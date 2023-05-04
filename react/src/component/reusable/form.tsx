@@ -48,25 +48,18 @@ export function EditorForm(props) {
 
 export function formActionFunctions(config: {
     formHandleFactory: FormStateHandleFactory, 
-    store: Store<any, AnyAction>, 
-    simulationInfoPromise: Promise<SimulationInfo>,
-    appWrapper: AppWrapper,
+    store: Store<any, AnyAction>,
     dispatch: Dispatch<AnyAction>
 }): { cancel: () => void, submit: () => void } {
     let {
         formHandleFactory,
         store,
-        simulationInfoPromise,
-        appWrapper,
         dispatch
     } = config;
     return {
         cancel: () => formHandleFactory.cancel(store.getState(), dispatch),
         submit: () => {
             formHandleFactory.save(store.getState(), dispatch);
-            /*simulationInfoPromise.then(simulationInfo => {
-                appWrapper.saveModelsToServer(simulationInfo, store.getState()[modelsSlice.name]);
-            })*/
         }
     } 
 }

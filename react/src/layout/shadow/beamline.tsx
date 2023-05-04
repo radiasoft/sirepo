@@ -49,7 +49,6 @@ export function ShadowBeamlineItem(props: { index: number, baseElement: ShadowBe
     
     let routeHelper = useContext(CRouteHelper);
     let store = useStore();
-    let simulationInfoPromise = useContext(CSimulationInfoPromise);
     let schema = useContext(CSchema);
     let handleFactory = useContext(CHandleFactory);
     let createHandleFactory = () => new FormStateHandleFactory(schema, new HandleFactoryWithArrayAliases(schema, aliases, handleFactory))
@@ -59,15 +58,11 @@ export function ShadowBeamlineItem(props: { index: number, baseElement: ShadowBe
     }
 
     let [isHover, updateIsHover] = useState(false);
-    //aliasedHandleFactory.useUpdates(BeamlineItem);
     let dispatch = useDispatch();
-    let appWrapper = useContext(CAppWrapper);
 
     let actionFunctions = formActionFunctions({
         formHandleFactory: aliasedHandleFactory,
         store,
-        simulationInfoPromise,
-        appWrapper,
         dispatch
     });
 
@@ -130,12 +125,10 @@ export class ShadowBeamlineLayout extends Layout<ShadowBeamlineConfig, {}> {
     component: FunctionComponent<{ [key: string]: any; }> = (props: LayoutProps<{}>) => {
         let routeHelper = useContext(CRouteHelper);
         let store = useStore();
-        let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let schema = useContext(CSchema);
         let dispatch = useDispatch();
         let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
         formHandleFactory.useUpdates(ShadowBeamlineLayout);
-        let appWrapper = useContext(CAppWrapper);
 
         let beamlineDependency: Dependency = new Dependency(this.config.beamlineDependency);
 
@@ -215,8 +208,6 @@ export class ShadowBeamlineLayout extends Layout<ShadowBeamlineConfig, {}> {
         let { submit: _submit, cancel: _cancel } = formActionFunctions({
             formHandleFactory,
             store,
-            simulationInfoPromise,
-            appWrapper,
             dispatch
         });
 

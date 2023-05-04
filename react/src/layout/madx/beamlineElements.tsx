@@ -3,15 +3,15 @@ import { FunctionComponent } from "react";
 import { Badge, Button, Modal, Tab, Table, Tabs } from "react-bootstrap";
 import { useDispatch, useStore } from "react-redux";
 import { formActionFunctions } from "../../component/reusable/form";
-import { EditorPanel, Panel, ViewPanelActionButtons } from "../../component/reusable/panel";
+import { Panel, ViewPanelActionButtons } from "../../component/reusable/panel";
 import { HandleFactoryWithOverrides } from "../../data/alias";
 import { CSchema } from "../../data/appwrapper";
 import { getValueSelector, newModelFromSchema, revertDataStructure, StoreTypes } from "../../data/data";
 import { Dependency } from "../../data/dependency";
-import { CHandleFactory, DataHandle } from "../../data/handle";
+import { formStateFromModelState, FormStateHandleFactory } from "../../data/form";
+import { CHandleFactory } from "../../data/handle";
 import { useCoupledState } from "../../hook/coupling";
 import { ArrayFieldElement, ArrayFieldState } from "../../store/common";
-import { FormFieldState } from "../../store/formState";
 import { ModelState } from "../../store/models";
 import { Layout } from "../layout";
 import { LAYOUTS } from "../layouts";
@@ -32,7 +32,7 @@ export type MadxBeamlineElementsConfig = {
     elementTemplates: TemplateSettings[]
 }
 
-function BeamlineNewElementEditor(props: { template: TemplateSettings, onComplete: (modelState: ModelState) => void, name: string, onHide: () => void }) {
+function BeamlineNewElementEditor(props: { template: TemplateSettings, onComplete: (modelState: ModelState, model: string) => void, name: string, onHide: () => void }) {
     let [layouts, _, updated] = useCoupledState(props.template, () => props.template.items.map((i, idx) => {
         return LAYOUTS.getLayoutForSchema(i);
     }))
@@ -46,7 +46,7 @@ function BeamlineNewElementEditor(props: { template: TemplateSettings, onComplet
         {
             fake: props.template.modelName,
             value: newModelFromSchema(schema.models[props.template.modelName], { name: props.name }),
-            onSave: props.onComplete
+            onSave: (v) => props.onComplete(v, props.template.modelName)
         }
     ], parentHandleFactory);
 
@@ -77,7 +77,10 @@ export class MadxBeamlineElementsLayout extends Layout<MadxBeamlineElementsConfi
     }
 
     component: FunctionComponent<{ [key: string]: any; }> = (props) => {
-        let handleFactory = useContext(CHandleFactory);
+        let handleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
+        handleFactory.useUpdates(MadxBeamlineElementsLayout);
+        let store = useStore();
+        let dispatch = useDispatch();
         //let activeBeamlineId = handleFactory.createHandle(new Dependency(this.config.activeBeamlineDependency), StoreTypes.Models).hook().value;
         let elementsHandle = handleFactory.createHandle(new Dependency(this.config.elementsDependency), StoreTypes.FormState).hook();
         let elementsValue = revertDataStructure(elementsHandle.value, getValueSelector(StoreTypes.FormState)) as ArrayFieldState<ModelState>;
@@ -104,9 +107,32 @@ export class MadxBeamlineElementsLayout extends Layout<MadxBeamlineElementsConfi
             return ret;
         }
 
-        let addBeamlineElement = (template: TemplateSettings, modelValue: ModelState) => {
+        let addBeamlineElement = (template: TemplateSettings, modelValue: ModelState, model: string) => {
             console.log(`adding beamline element with type=${template.type}`, modelValue);
+
+            let nv = [...(elementsHandle.value.value as any[])];
+            let v = {
+                item: formStateFromModelState(modelValue),
+                model: model
+            }
+            console.log("nv before", nv);
+            console.log("V", v);
+
+            nv.push(v)
+            
+            elementsHandle.write({
+                ...elementsHandle.value,
+                value: nv
+            }, store.getState(), dispatch);
         }
+
+        let { cancel, submit } = formActionFunctions({
+            formHandleFactory: handleFactory,
+            store, 
+            dispatch
+        });
+
+        let actionButtons = handleFactory.isDirty() ? <ViewPanelActionButtons onSave={submit} onCancel={cancel} canSave={handleFactory.isValid(store.getState())}/> : undefined;
 
         return (
             <>
@@ -141,69 +167,75 @@ export class MadxBeamlineElementsLayout extends Layout<MadxBeamlineElementsConfi
                 </Modal>
                 {
                     shownModalTemplate && (
-                        <BeamlineNewElementEditor name={uniqueNameForType(shownModalTemplate.type)} onHide={() => updateShownModalTemplate(undefined)} template={shownModalTemplate} onComplete={(mv) => addBeamlineElement(shownModalTemplate, mv)}/>
+                        <BeamlineNewElementEditor name={uniqueNameForType(shownModalTemplate.type)} onHide={() => {
+                            updateShownModalTemplate(undefined);
+                            updateNewElementModalShown(false);
+                        }} template={shownModalTemplate} onComplete={(mv, m) => addBeamlineElement(shownModalTemplate, mv, m)}/>
                     )
                 }
-                <Panel title="Beamline Elements" panelBodyShown={true}>
-                    <div className="d-flex flex-column">
-                        <div className="d-flex flex-row flew-nowrap justify-content-right">
-                            <Button variant="primary" size="sm" onClick={() => updateNewElementModalShown(true)}>New Element</Button>
-                        </div>
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Description</th>
-                                    <th>Length</th>
-                                    <th>Bend</th>
-                                </tr>
-                            </thead>
-                            {
-                                [...new Set(elementsValue.map((ev: ArrayFieldElement<ModelState>) => ev.model))].sort((a: string, b: string) => a.localeCompare(b)).map((category: string) => {
-                                    return (
-                                        <tbody key={category}>
-                                            <tr>
-                                                <td>
-                                                    <span>
-                                                        {category}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                            {
-                                                elementsValue.filter(ev => ev.model == category).map((ev: ArrayFieldElement<ModelState>) => {
-                                                    return (
-                                                        <React.Fragment key={`${ev.item._id}`}>
-                                                            <tr>
-                                                                <td>
-                                                                    <h6>
-                                                                        <Badge bg="secondary">
-                                                                            {ev.item.name as string}
-                                                                        </Badge>
-                                                                    </h6>
-                                                                </td>
-                                                                <td>
-                                                                    {/*??? TODO: garsuga: where does description come from*/}
-                                                                </td>
-                                                                <td>
-                                                                    {ev.item.l !== undefined ? `${(ev.item.l as number).toPrecision(4)}m` : ""}
-                                                                </td>
-                                                                <td>
-                                                                    {ev.item.angle !== undefined ? (ev.item.angle as number).toPrecision(3) : ""}
-                                                                </td>
-                                                            </tr>
-                                                        </React.Fragment>
-                                                        
-                                                    )
-                                                })
-                                            }
-                                        </tbody>
-                                    )
-                                    
-                                })
-                            }
-                        </Table>
+                <div className="d-flex flex-column">
+                    {actionButtons}
+                    <div className="d-flex flex-row flew-nowrap justify-content-right">
+                        <Button variant="primary" size="sm" onClick={() => updateNewElementModalShown(true)}>New Element</Button>
                     </div>
-                </Panel>
+                    <Table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Length</th>
+                                <th>Bend</th>
+                            </tr>
+                        </thead>
+                        {
+                            [...new Set(elementsValue.map((ev: ArrayFieldElement<ModelState>) => ev.model))].sort((a: string, b: string) => a.localeCompare(b)).map((category: string) => {
+                                return (
+                                    <tbody key={category}>
+                                        <tr>
+                                            <td>
+                                                <span>
+                                                    {category}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {
+                                            elementsValue.filter(ev => ev.model == category).map((ev: ArrayFieldElement<ModelState>) => {
+                                                if(category === "COLLIMATOR") {
+                                                    console.log(`${category}`, ev.item);
+                                                }
+                                                return (
+                                                    <React.Fragment key={`${ev.item._id}`}>
+                                                        <tr>
+                                                            <td>
+                                                                <h6>
+                                                                    <Badge bg="secondary">
+                                                                        {ev.item.name as string}
+                                                                    </Badge>
+                                                                </h6>
+                                                            </td>
+                                                            <td>
+                                                                {/*??? TODO: garsuga: where does description come from*/}
+                                                            </td>
+                                                            <td>
+                                                                {ev.item.l !== undefined ? `${(ev.item.l as number).toPrecision(4)}m` : ""}
+                                                            </td>
+                                                            <td>
+                                                                {ev.item.angle !== undefined ? (ev.item.angle as number).toPrecision(3) : ""}
+                                                            </td>
+                                                        </tr>
+                                                    </React.Fragment>
+                                                    
+                                                )
+                                            })
+                                        }
+                                    </tbody>
+                                )
+                                
+                            })
+                        }
+                    </Table>
+                    {actionButtons}
+                </div>
             </>
             
         )

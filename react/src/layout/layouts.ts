@@ -20,6 +20,7 @@ import { Histogram2dFromApi } from "./report/histogram2d";
 import { ShadowBeamlineWatchpointReports } from "./shadow/beamlineWatchpointReports";
 import { ShadowBeamlineLayout } from "./shadow/beamline";
 import { MadxBeamlineElementsLayout } from "./madx/beamlineElements";
+import { MadxBeamlinesPickerLayout } from "./madx/beamlinesPicker";
 
 
 // TODO rename to LayoutsWrapper
@@ -48,7 +49,8 @@ class LayoutWrapper {
         waterfall: WaterfallLayout,
         shadowBeamlineWatchpointReports: ShadowBeamlineWatchpointReports,
         shadowBeamline: LayoutWithFormController(ShadowBeamlineLayout),
-        madxBeamlineElements: MadxBeamlineElementsLayout
+        madxBeamlineElements: LayoutWithFormController(MadxBeamlineElementsLayout),
+        madxBeamlinesPicker: MadxBeamlinesPickerLayout
     }
 
     constructor () {

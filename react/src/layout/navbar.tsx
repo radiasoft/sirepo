@@ -40,12 +40,10 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
     }
 
     component = (props: LayoutProps<{}>) => {
-        let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
         let [modalShown, updateModalShown] = useState(false);
         let dispatch = useDispatch();
         let store = useStore();
-        let appWrapper = useContext(CAppWrapper);
 
         let title = interpolate(this.config.title).withDependencies(formHandleFactory, StoreTypes.Models).raw();
         let modalTitle = interpolate(this.config.modal.title).withDependencies(formHandleFactory, StoreTypes.Models).raw();
@@ -53,8 +51,6 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
         let { submit: _submit, cancel: _cancel } = formActionFunctions({
             formHandleFactory,
             store,
-            simulationInfoPromise,
-            appWrapper,
             dispatch
         });
 
