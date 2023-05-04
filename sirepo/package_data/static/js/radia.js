@@ -1351,6 +1351,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
                         folder: '/',
                         name: appState.models.simulation.name,
                         notes: 'Tabulated undulator from radia',
+                        runDir: $scope.modelName,
                         simulationType: 'srw',
                         sourceSimId: appState.models.simulation.simulationId,
                         sourceSimType: 'radia',
