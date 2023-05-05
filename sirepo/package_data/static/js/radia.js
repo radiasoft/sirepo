@@ -1375,7 +1375,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
                 return appState.models.simulation.magnetType === 'undulator' &&
                     ! $scope.simState.isProcessing() &&
                     frameCache.getFrameCount() > 0;
-            }
+            };
 
             $scope.simHandleStatus = data => {
                 if (data.computeModel === 'fieldLineoutAnimation' && data.state === "completed") {
