@@ -240,11 +240,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         self.selectedObject = o;
     };
 
-    self.showFieldDownload = function(doShow, path) {
-        self.selectedPath = path;
-        $('#sr-field-download').modal(doShow ? 'show' : 'hide');
-    };
-
     self.scaledArray = function (arr=SIREPO.ZERO_ARR) {
         return arr.map(x => SIREPO.APP_SCHEMA.constants.objectScale * x);
     };
@@ -1328,45 +1323,46 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
         `,
         controller: function($scope) {
             const modelName = $scope.modelName;
+            const simId = appState.models.simulation.simulationId;
+            const simName = appState.models.simulation.name;
+            const simType = SIREPO.APP_SCHEMA.simulationType;
+
             $scope.model = appState.models[modelName];
             $scope.simScope = $scope;
             $scope.simComputeModel = modelName;
 
             $scope.createSRWSimulation = () => {
-                const uName = `Undulator ${appState.models.simulation.name}`;
+                const uName = `Undulator ${simName}`;
                 requestSender.sendRequest(
                     'newSimulation',
                     data => {
-                        requestSender.openSimulation(
-                            'srw',
-                            'source',
-                            data.models.simulation.simulationId
-                        );
+                        requestSender.openSimulation('srw', 'source', simId);
                     },
                     {
                         electronBeamPosition: {
                             drift: SIREPO.APP_SCHEMA.constants.objectScale *
                                 appState.models[modelName].fieldPath.begin[radiaService.getAxisIndices().depth],
                         },
-                        folder: '/',
-                        name: appState.models.simulation.name,
-                        notes: 'Tabulated undulator from radia',
-                        runDir: $scope.modelName,
-                        simulationType: 'srw',
-                        sourceSimId: appState.models.simulation.simulationId,
-                        sourceSimType: 'radia',
-                        sourceType: 't',
+                        simulation: {
+                            folder: '/',
+                            name: simName,
+                            notes: 'Tabulated undulator from radia',
+                            simulationType: 'srw',
+                            sourceType: 't',
+                        },
+                        sourceSimId: simId,
+                        sourceSimType: simType,
                         tabulatedUndulator: {
                             gap: appState.models[appState.models.simulation.undulatorType].gap,
-                            indexFileName: 'fieldLineoutAnimation_sum.txt',
-                            magneticFile: 'fieldLineoutAnimation.zip',
+                            indexFileName: `${modelName}_sum.txt`,
+                            magneticFile: `${modelName}.zip`,
                             name: uName,
                             undulatorSelector: uName,
                             undulatorType: 'u_t',
                         }
                     },
                     err => {
-                        throw new Error('Error creating simulation' + err);
+                        throw new Error('Simulation creation failed: ' + err);
                     }
                 );
             };

@@ -232,7 +232,6 @@ def get_data_file(run_dir, model, frame, options):
     sim = data.models.simulation
     name = sim.name
     sim_id = sim.simulationId
-    beam_axis = _rotate_axis(to_axis="z", from_axis=sim.beamAxis)
     rpt = data.models[model]
     sfx = options.suffix or SCHEMA.constants.dataDownloads._default[0].suffix
     f = f"{model}.{sfx}"
@@ -252,6 +251,7 @@ def get_data_file(run_dir, model, frame, options):
         )
         return f
     if model == "fieldLineoutAnimation":
+        beam_axis = _rotate_axis(to_axis="z", from_axis=sim.beamAxis)
         f_type = rpt.fieldType
         fd = generate_field_data(sim_id, get_g_id(), name, f_type, [rpt.fieldPath])
         v = fd.data[0].vectors
@@ -261,7 +261,6 @@ def get_data_file(run_dir, model, frame, options):
             return _save_field_csv(f_type, v, beam_axis, f)
         if sfx == "zip":
             return _save_field_srw(
-                f_type,
                 data.models[data.models.simulation.undulatorType].gap,
                 v,
                 beam_axis,
@@ -346,6 +345,15 @@ def stateless_compute_stl_size(data, **kwargs):
 
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data, False, for_export=True, qcall=qcall)
+
+
+def save_field_srw(gap, vectors, beam_axis, filename):
+    return _save_field_srw(
+        gap,
+        vectors,
+        _rotate_axis(to_axis="z", from_axis=beam_axis),
+        pkio.py_path(filename)
+    )
 
 
 def validate_file(file_type, path):
@@ -847,10 +855,12 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     rpt_out = f"{_REPORT_RES_MAP.get(report, report)}"
     res, v = template_common.generate_parameters_file(data)
     if report == "fieldLineoutAnimation":
-        v.sim_id = data.models.simulation.simulationId
-        v.name = data.models.simulation.name
+        v.beam_axis = data.models.simulation.beamAxis
         v.f_type = data.models.fieldLineoutAnimation.fieldType
         v.f_path = data.models.fieldLineoutAnimation.fieldPath
+        v.gap = data.models[data.models.simulation.undulatorType].gap
+        v.name = data.models.simulation.name
+        v.sim_id = data.models.simulation.simulationId
         return template_common.render_jinja(
             SIM_TYPE,
             v,
@@ -1333,7 +1343,7 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
 
 # zip file - data plus index.  This will likely be used to generate files for a range
 # of gaps later
-def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
+def _save_field_srw(gap, vectors, scipy_rotation, path):
     # no whitespace in filenames
     base_name = re.sub(r"\s", "_", path.purebasename)
     data_path = path.dirpath().join(f"{base_name}_{gap}.dat")

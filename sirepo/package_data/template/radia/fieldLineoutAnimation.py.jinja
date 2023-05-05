@@ -1,4 +1,3 @@
-import mpi4py
 import sirepo.template.radia
 import sirepo.mpi
 from pykern.pkcollections import PKDict
@@ -6,19 +5,26 @@ from pykern.pkdebug import pkdp
 from pykern import pkjson
 from sirepo.template import radia_util
 
-def field_data():
-    from pykern import pkjson
-    from pykern import pkio
+_SRW_ZIP = "fieldLineoutAnimation.zip"
 
+def field_data():
     return sirepo.template.radia.generate_field_data(
-        '{{ sim_id }}',
+        "{{ sim_id }}",
         sirepo.template.radia.get_g_id(),
-        '{{ name }}',
-        '{{ f_type }}',
+        "{{ name }}",
+        "{{ f_type }}",
         [PKDict({{ f_path }})]
     ).data[0].vectors
+
+
+def _write_files(fields):
+    pkjson.dump_pretty(fields, "field_data.json")
+    sirepo.template.radia.save_field_srw({{ gap }}, fields, "{{ beam_axis }}", _SRW_ZIP)
+    sirepo.sim_data.get_class("radia").put_sim_file("{{ sim_id }}", _SRW_ZIP, _SRW_ZIP)
+
 
 with radia_util.MPI() as m:
     f = field_data()
     m.barrier()
-    sirepo.mpi.restrict_op_to_first_rank(lambda: pkjson.dump_pretty(f, "field_data.json"))
+    sirepo.mpi.restrict_op_to_first_rank(lambda: _write_files(f))
+

@@ -634,12 +634,12 @@ async def import_file(req, tmp_dir, qcall, **kwargs):
 
 def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
 
-    def _sim_from_radia(m, d):
-        m.tabulatedUndulator.pkupdate(d.tabulatedUndulator)
-        m.electronBeamPosition.pkupdate(d.electronBeamPosition)
+    def _sim_from_radia(models, d):
+        for m in ("simulation", "tabulatedUndulator", "electronBeamPosition"):
+            models[m].pkupdate(d[m])
         f = d.tabulatedUndulator.magneticFile
         t_basename = f"{d.sourceSimType}-{d.sourceSimId}-{f}"
-        m.tabulatedUndulator.magneticFile = t_basename
+        models.tabulatedUndulator.magneticFile = t_basename
         t = simulation_db.simulation_lib_dir(_SIM_DATA.sim_type(), qcall=qcall).join(
             t_basename
         )
@@ -647,7 +647,7 @@ def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
             d.sourceSimType,
             sid=d.sourceSimId,
             qcall=qcall
-        ).join(d.runDir).join(f).copy(t)
+        ).join(f).copy(t)
 
     sim = data.models.simulation
     sim.sourceType = new_simulation_data.sourceType
