@@ -352,7 +352,7 @@ def save_field_srw(gap, vectors, beam_axis, filename):
         gap,
         vectors,
         _rotate_axis(to_axis="z", from_axis=beam_axis),
-        pkio.py_path(filename)
+        pkio.py_path(filename),
     )
 
 

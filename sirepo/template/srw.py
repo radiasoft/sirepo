@@ -633,7 +633,6 @@ async def import_file(req, tmp_dir, qcall, **kwargs):
 
 
 def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
-
     def _sim_from_radia(models, d):
         for m in ("simulation", "tabulatedUndulator", "electronBeamPosition"):
             models[m].pkupdate(d[m])
@@ -644,9 +643,7 @@ def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
             t_basename
         )
         simulation_db.simulation_dir(
-            d.sourceSimType,
-            sid=d.sourceSimId,
-            qcall=qcall
+            d.sourceSimType, sid=d.sourceSimId, qcall=qcall
         ).join(f).copy(t)
 
     sim = data.models.simulation

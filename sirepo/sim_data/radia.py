@@ -338,5 +338,3 @@ class SimData(sirepo.sim_data.SimDataBase):
             PKDict(basename="geometry.dat"),
             PKDict(basename="geometryReport.h5"),
         ]
-
-
