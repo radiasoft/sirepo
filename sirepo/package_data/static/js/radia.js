@@ -1332,26 +1332,30 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
             $scope.simComputeModel = modelName;
 
             $scope.createSRWSimulation = () => {
-                const uName = `Undulator ${simName}`;
+                const uName = `Radia Undulator ${simName}`;
                 requestSender.sendRequest(
                     'newSimulation',
                     data => {
-                        requestSender.openSimulation('srw', 'source', simId);
+                        requestSender.openSimulation(
+                            'srw',
+                            'source',
+                            data.models.simulation.simulationId
+                        );
                     },
                     {
                         electronBeamPosition: {
                             drift: SIREPO.APP_SCHEMA.constants.objectScale *
                                 appState.models[modelName].fieldPath.begin[radiaService.getAxisIndices().depth],
                         },
+                        folder: '/',
+                        name: simName,
                         simulation: {
-                            folder: '/',
-                            name: simName,
                             notes: 'Tabulated undulator from radia',
-                            simulationType: 'srw',
-                            sourceType: 't',
                         },
+                        simulationType: 'srw',
                         sourceSimId: simId,
                         sourceSimType: simType,
+                        sourceType: 't',
                         tabulatedUndulator: {
                             gap: appState.models[appState.models.simulation.undulatorType].gap,
                             indexFileName: `${modelName}_sum.txt`,
