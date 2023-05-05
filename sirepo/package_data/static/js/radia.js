@@ -1315,8 +1315,8 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
             <div class="col-md-6">
               <div data-ng-if="showFieldLineoutPanel()" data-report-panel="parameter" data-model-name="fieldLineoutAnimation">
                 <div data-sim-status-panel="simState"></div>
-                <div class="col-sm-6 pull-right" style="padding-top: 8px;">
-                    <button class="btn btn-default" data-ng-click="createSRWSimulation()">Open in SRW</button>
+                <div data-ng-if="::canExport" class="col-sm-6 pull-right" style="padding-top: 8px;">
+                    <button data-ng-disabled="! isExportEnabled()" class="btn btn-default" data-ng-click="createSRWSimulation()">Open in SRW</button>
                 </div>
               </div>
             </div>
@@ -1330,6 +1330,8 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
             $scope.model = appState.models[modelName];
             $scope.simScope = $scope;
             $scope.simComputeModel = modelName;
+
+            $scope.canExport = appState.models.simulation.magnetType === 'undulator';
 
             $scope.createSRWSimulation = () => {
                 const uName = `Radia Undulator ${simName}`;
@@ -1372,8 +1374,8 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
             };
 
             $scope.isExportEnabled = () => {
-                return appState.models.simulation.magnetType === 'undulator' &&
-                    ! $scope.simState.isProcessing() &&
+                return $scope.canExport &&
+                    $scope.simState.isStateCompleted() &&
                     frameCache.getFrameCount() > 0;
             };
 
