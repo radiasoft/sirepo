@@ -98,8 +98,16 @@ def test_opal(fc):
 
 def test_radia(fc):
     fc.sr_animation_run(
-        fc.sr_sim_data("Dipole"),
+        fc.sr_sim_data("Parameterized C-Bend Dipole"),
         "solverAnimation",
+        PKDict(),
+    )
+
+
+def test_rshellweg(fc):
+    fc.sr_animation_run(
+        fc.sr_sim_data("RF Fields"),
+        "beamAnimation",
         PKDict(),
     )
 

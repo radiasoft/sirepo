@@ -250,7 +250,11 @@
             "colorMap": ["Color Map", "ColorMap", "afmhot"],
             "notes": ["Notes", "Text", ""]
         },
+        "_COMMAND": {
+            "isDisabled": ["", "Boolean", "0"]
+        },
         "command_beam": {
+            "_super": ["_", "model", "_COMMAND"],
             "particle": ["PARTICLE", "ParticleType", "positron", "The name of particles in the beam."],
             "mass": ["MASS [GeV]", "RPNValue", 0.0005109989461, "The restmass of the particles in the beam."],
             "charge": ["CHARGE [qp]", "RPNValue", 1, "The electrical charge of the particles in the beam in units of the proton charge"],
@@ -275,6 +279,7 @@
             "bv": ["BV", "Integer", 1, "The direction of the particle movement in a beam line."]
         },
         "command_beta0": {
+            "_super": ["_", "model", "_COMMAND"],
             "betx": ["BETX [m]", "RPNValue", 0.0],
             "alfx": ["ALFX", "RPNValue", 0.0],
             "mux": ["MUX", "RPNValue", 0.0],
@@ -308,9 +313,11 @@
             "energy": ["ENERGY", "RPNValue", 0.0]
         },
         "command_call": {
+            "_super": ["_", "model", "_COMMAND"],
             "file": ["FILE", "String", "", "The named file is read until a RETURN statement is encountered, or until the EOF."]
         },
         "command_constraint": {
+            "_super": ["_", "model", "_COMMAND"],
             "sequence": ["SEQUENCE", "LatticeBeamlineList", "", "Sequence for which the constraint applies"],
             "range": ["RANGE", "String", "", "Position where the constraint must be satisfied"],
             "alfx": ["ALFX", "OptionalRPNValue", null, "Correlation function $\\alpha_x$"],
@@ -329,6 +336,7 @@
             "y": ["Y", "OptionalRPNValue", null, "Canonical coordinate $y$"]
         },
         "command_ealign": {
+            "_super": ["_", "model", "_COMMAND"],
             "dx": ["DX [m]", "RPNValue", 0.0, "The misalignment in the x-direction for the entry of the beam element."],
             "dy": ["DY [m]", "RPNValue", 0.0, "The misalignment in the y-direction for the entry of the beam element."],
             "ds": ["DS [m]", "RPNValue", 0.0, "The misalignment in the s-direction for the entry of the beam element."],
@@ -343,11 +351,15 @@
             "arey": ["AREY [m]", "RPNValue", 0.0, "The misalignment in the y-direction for the entry of an aperture limit."]
         },
         "command_emit": {
+            "_super": ["_", "model", "_COMMAND"],
             "deltap": ["DELTAP", "RPNValue", 0, "The average energy error"],
             "tol": ["TOL", "RPNValue", 1.000001, "The tolerance attribute is for the distinction between static and dynamic cases: if for the eigenvalues of the one-turn matrix, |e_val_5| <tol and |e_val_6| <tol, then the longitudinal motion is not considered, otherwise it is."]
         },
-        "command_endmatch": {},
+        "command_endmatch": {
+            "_super": ["_", "model", "_COMMAND"]
+        },
         "command_global": {
+            "_super": ["_", "model", "_COMMAND"],
             "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "",  "The name of the sequence on which to operate the matching."],
             "q1": ["Q1", "OptionalRPNValue", null, "Enable a correction of tunes in presence of magnetic imperfections or misalignments."],
             "q2": ["Q2", "OptionalRPNValue", null, "Enable a correction of tunes in presence of magnetic imperfections or misalignments."],
@@ -355,6 +367,7 @@
             "dq2": ["DQ2", "OptionalRPNValue", null, "Enable a correction of chromaticities in presence of magnetic imperfections or misalignments."]
         },
         "command_jacobian": {
+            "_super": ["_", "model", "_COMMAND"],
             "calls": ["CALLS", "Integer", 30, "Maximum number of calls to the penalty function"],
             "tolerance": ["TOLERANCE", "RPNValue", 1e-6, "Desired tolerance for the minimum"],
             "repeat": ["REPEAT", "Integer", 1, "The number of calls of the JACOBIAN routine."],
@@ -364,15 +377,18 @@
             "random": ["RANDOM", "RPNValue", 0]
         },
         "command_lmdif": {
+            "_super": ["_", "model", "_COMMAND"],
             "calls": ["CALLS", "Integer", 1000, "Maximum number of calls to the penalty function"],
             "tolerance": ["TOLERANCE", "RPNValue", 1e-6, "Desired tolerance for the minimum"]
         },
         "command_makethin": {
+            "_super": ["_", "model", "_COMMAND"],
             "sequence": ["SEQUENCE", "LatticeBeamlineList", "", "The name of the sequence to be processed to thin slices."],
             "style": ["STYLE", "CommandMakethinStyle", "teapot", "The slicing style to be used for all elements."],
             "makedipedge": ["MAKEDIPEDGE", "Boolean", "1", "A logical flag to control the generation of DIPEDGE elements at the start and/or end of bending magnets, to conserve edge focusing from pole face angles E1, E2 or extra fields described by FINT, FINTX, in the process of slicing bending magnets to thin multipole slices."]
         },
         "command_match": {
+            "_super": ["_", "model", "_COMMAND"],
             "sequence": ["SEQUENCE", "LatticeBeamlineList", ""],
             "alfx": ["ALFX", "RPNValue", 0.0, "Correlation function $\\alpha_x$"],
             "alfy": ["ALFY", "RPNValue", 0.0, "Correlation function $\\alpha_y$"],
@@ -391,11 +407,13 @@
             "y": ["Y", "RPNValue", 0.0, "Canonical coordinate $y$"]
         },
         "command_migrad": {
+            "_super": ["_", "model", "_COMMAND"],
             "calls": ["CALLS", "Integer", 1000, "Maximum number of calls to the penalty function"],
             "tolerance": ["TOLERANCE", "RPNValue", 1e-6, "Desired tolerance for the minimum"],
             "strategy": ["STRATEGY", "Integer", 1, "Specifies the strategy to be used"]
         },
         "command_option": {
+            "_super": ["_", "model", "_COMMAND"],
             "bborbit": ["BBORBIT", "OptionalBoolean", "", "The closed orbit is modified by beam-beam kicks"],
             "debug": ["DEBUG", "OptionalBoolean", "", "Issues debugging information"],
             "echo": ["ECHO", "OptionalBoolean", "", "Echoes the input on the standard output file"],
@@ -415,6 +433,7 @@
             "warn": ["WARN", "OptionalBoolean", "", "Issues warning statements"]
         },
         "command_ptc_create_layout": {
+            "_super": ["_", "model", "_COMMAND"],
             "errors_out": ["ERRORS_OUT", "Boolean", "0", "Write out multiple errors in EFCOMP table format"],
             "even": ["EVEN", "Boolean", "1", "Even number of splits when using RESPLIT"],
             "exact": ["EXACT", "Boolean", "0", "If true exact Hamiltonian is used"],
@@ -429,13 +448,17 @@
             "xbend": ["XBEND", "RPNValue", -1.0]
         },
         "command_ptc_create_universe": {
+            "_super": ["_", "model", "_COMMAND"],
             "ntpsa": ["NTPSA", "Boolean", "0", "Invokes the Differential Algebra (DA) package written in C++ and kindly provided by Lingyun Yang (lyyang@lbl.gov). Etienne Forest has written the wrapper to allow the use of both the legendary DA package written in Fortran by Martin Berz (default) and this new DA package of Lingyun Yang. It is expected that this DA package will allow for the efficient calculation of a large number of DA parameters."],
             "sector_nmul": ["SECTOR_NMUL", "Integer", -1, "A global variable in PTC needed for exact sector bends defining up to which order the multipole are included in solving Maxwell’s equation up to order SECTOR_NMUL_MAX. Multipoles of order N with N > SECTOR_NMUL and N <= SECTOR_NMUL_MAX are treated similar to SixTrack. If a negative value of SECTOR_NMUL_MAX is passed than it is also identified automatically. However, if multipolar parameters of the bends are to be modified inside the PTC universe, for example with PTC_READ_ERRORS, than this parameter needs to be set to a corresponding value. Please note that using large values (above 10) slows down the computations, so the smallest required value should be used."],
             "sector_nmul_max": ["SECTOR_NMUL_MAX", "Integer", -1, "A global variable in PTC needed for exact sector bends defining up to which order Maxwell’s equation are solved. The value of SECTOR_NMUL_MAX must not be smaller than SECTOR_NMUL otherwise MAD-X stops with an error. If a negative value is passed than it is identified automatically by scanning the currently selected sequence."],
             "symprint": ["SYMPRINT", "Boolean", "1", "A flag to enable the printing of the check of symplecticity. It is recommended to leave this flag set to TRUE."]
         },
-        "command_ptc_end": {},
+        "command_ptc_end": {
+            "_super": ["_", "model", "_COMMAND"]
+        },
         "command_ptc_normal": {
+            "_super": ["_", "model", "_COMMAND"],
             "closed_orbit": ["CLOSED_ORBIT", "Boolean", "0", "Turn on the closed orbit calculation."],
             "deltap": ["DELTAP", "RPNValue", 0.0, "Relative momentum offset for reference closed orbit"],
             "icase": ["ICASE", "Icase", "4", "Dimensionality of the phase-space (4, 5 or 6)"],
@@ -444,9 +467,11 @@
             "normal": ["NORMAL", "Boolean", "0", "Turn on the calculation of the Normal Form"]
         },
         "command_ptc_observe": {
+            "_super": ["_", "model", "_COMMAND"],
             "place": ["PLACE", "OptionalString", "", "The name of observation point."]
         },
         "command_ptc_select": {
+            "_super": ["_", "model", "_COMMAND"],
             "table": ["TABLE", "OptionalString", "", "The name of the table where values should be stored."],
             "column": ["COLUMN", "OptionalString", "", "The name of the column in the table where values should be stored."],
             "polynomial": ["POLYNOMIAL", "OptionalString", "", "Specifies the row of the map."],
@@ -455,6 +480,7 @@
             "quantity": ["QUANTITY", "OptionalString", ""]
         },
         "command_ptc_setswitch": {
+            "_super": ["_", "model", "_COMMAND"],
             "debuglevel": ["DEBUGLEVEL", "Boolean", "1", "Sets the level of debugging printout: 0 prints none, 4 prints everything"],
             "exact_mis": ["EXACT_MIS", "Boolean", "0", "Switch ensures exact misalignment treatment."],
             "totalpath": ["TOTALPATH", "Boolean", "0", "If true, the 6th variable of PTC, i.e. 5th of MAD-X, is the total path. If false it is deviation from the reference particle, which is normally the closed orbit for closed layouts. This switch changes behaviour of the RF cavities, including RF multipoles and crab cavities."],
@@ -465,6 +491,7 @@
             "fringe": ["FRINGE", "Boolean", "0", "Sets the fringe switch/internal state of PTC."]
         },
         "command_ptc_start": {
+            "_super": ["_", "model", "_COMMAND"],
             "x": ["X", "RPNValue", 0.0, "Canonical coordinate $x$."],
             "y": ["Y", "RPNValue", 0.0, "Canonical coordinate $y$."],
             "px": ["PX", "RPNValue", 0.0, "Horizontal canonical momentum of $px$."],
@@ -479,6 +506,7 @@
             "phit": ["PHIT", "RPNValue", 0.0, "Action-angle coordinate"]
         },
         "command_ptc_track": {
+            "_super": ["_", "model", "_COMMAND"],
             "beam_envelope": ["BEAM_ENVELOPE", "Boolean", "0", "Turn on the calculations of the beam envelope with PTC"],
             "closed_orbit": ["CLOSED_ORBIT", "Boolean", "0", "Turn on the closed orbit calculation"],
             "deltap": ["DELTAP", "RPNValue", 0.0, "Relative momentum offset for reference closed orbit (used for 5D case ONLY)"],
@@ -498,8 +526,11 @@
             "turns": ["TURNS", "Integer", 0, "Number of turns to be tracked"],
             "onetable": ["ONETABLE", "Boolean", "0"]
         },
-        "command_ptc_track_end": {},
+        "command_ptc_track_end": {
+            "_super": ["_", "model", "_COMMAND"]
+        },
         "command_ptc_trackline": {
+            "_super": ["_", "model", "_COMMAND"],
             "turns": ["TURNS", "RPNValue", 1, "Number of turns to be tracked. If the layout of the machine is not closed, this value is forced to TURNS=1 by PTC"],
             "file": ["FILE", "OutputFile", ""],
             "everystep": ["EVERYSTEP", "Boolean", "0", "a logical switch to activate the recording of track parameters at every integration step. Normally tracking data are stored internally only at the end of each element. EVERYSTEP provides the user with finer data points. It implies usage of the so called node (thin) layout."],
@@ -507,6 +538,7 @@
             "onetable": ["ONETABLE", "Boolean", "0"]
         },
         "command_ptc_twiss": {
+            "_super": ["_", "model", "_COMMAND"],
             "alfx": ["ALFX", "RPNValue", 0.0, "Correlation function $\\alpha_x$"],
             "alfy": ["ALFY", "RPNValue", 0.0, "Correlation function $\\alpha_y$"],
             "alfz": ["ALFz", "RPNValue", 0.0, "Correlation function $\\alpha_z$"],
@@ -577,14 +609,17 @@
             "y": ["Y", "RPNValue", 0.0, "Canonical coordinate $y$"]
         },
         "command_resbeam": {
+            "_super": ["_", "model", "_COMMAND"],
             "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", ""]
         },
         "command_savebeta": {
+            "_super": ["_", "model", "_COMMAND"],
             "label": ["LABEL", "OptionalString", "", "Name of the label."],
             "place": ["PLACE", "OptionalString", "", "The location of the mark."],
             "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Name of the expaned sequence."]
         },
         "command_select": {
+            "_super": ["_", "model", "_COMMAND"],
             "class": ["CLASS", "OptionalString", "", "The class of elements to be selected."],
             "clear": ["CLEAR", "Boolean", "0", "Deselects ALL positions in the sequence for the flag ”name”."],
             "column": ["COLUMN", "OptionalString", "", "The name of the column."],
@@ -597,13 +632,16 @@
             "thick": ["THICK", "Boolean", "0", "Indicate whether the selected elements are treated as thick elements by the MAKETHIN command. "]
         },
         "command_set": {
+            "_super": ["_", "model", "_COMMAND"],
             "format": ["FORMAT", "OptionalString", "", "Format output. Must double-quote each format."],
             "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Select the sequence"]
         },
         "command_show": {
+            "_super": ["_", "model", "_COMMAND"],
             "command": ["COMMAND", "String", "", "Print the command with the values of all its parameters."]
         },
         "command_sodd": {
+            "_super": ["_", "model", "_COMMAND"],
             "detune": ["DETUNE", "Boolean", "0", "If true, the detune subroutine is executed"],
             "distort1": ["DISTORT1", "Boolean", "0", "If true, the distort1 subroutine is executed"],
             "distort2": ["DISTORT2", "Boolean", "0", "If true, the distort2 subroutine is executed"],
@@ -615,10 +653,12 @@
             "start_stop": ["START_STOP", "Float2StringArray", "0, 0", "Longitudinal interval of the beam line (in m)", "start, stop"]
         },
         "command_touschek": {
+            "_super": ["_", "model", "_COMMAND"],
             "tolerance": ["TOLERANCE", "RPNValue", 1e-7, "the tolerance for the numerical integrator DGAUSS"],
             "file": ["FILE", "OutputFile", "", "The name of the output file"]
         },
         "command_twiss": {
+            "_super": ["_", "model", "_COMMAND"],
             "alfx": ["ALFX", "RPNValue", 0.0, "Correlation function $\\alpha_x$"],
             "alfy": ["ALFY", "RPNValue", 0.0, "Correlation function $\\alpha_y$"],
             "beta0": ["BETA0", "OptionalString", "", "The name of a BETA0 block containing the Twiss parameters to be used as input"],
@@ -706,10 +746,12 @@
             "y": ["Y", "RPNValue", 0.0, "Canonical coordinate $y$"]
         },
         "command_use": {
+            "_super": ["_", "model", "_COMMAND"],
             "sequence": ["SEQUENCE", "OptionalLatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."],
             "period": ["PERIOD", "OptionalLatticeBeamlineList", "", "Name of the sequence to be loaded and expanded."]
         },
         "command_vary": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["NAME", "OptionalString", "", "Name of the parameter or attribute to be varied"],
             "step": ["STEP", "RPNValue", 0.0, "Approximate initial step size for varying the parameter"],
             "lower": ["LOWER", "RPNValue", 0.0, "Lower limit for the parameter"],

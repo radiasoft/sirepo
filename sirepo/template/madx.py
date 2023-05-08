@@ -168,6 +168,8 @@ class MadxOutputFileIterator(lattice.ModelIterator):
         self.model_index = PKDict()
 
     def field(self, model, field_schema, field):
+        if field == lattice.ElementIterator.IS_DISABLED_FIELD or field == "_super":
+            return
         self.field_index += 1
         if field_schema[1] == "OutputFile":
             b = "{}{}.{}".format(
@@ -334,6 +336,8 @@ def generate_parameters_file(data):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if _is_report("bunchReport", model):
+        return PTC_PARTICLES_FILE
     if frame == SCHEMA.constants.logFileFrameId:
         return template_common.text_data_file(MADX_LOG_FILE, run_dir)
     if frame >= 0:
@@ -348,8 +352,6 @@ def get_data_file(run_dir, model, frame, options):
             re.sub(r"elementAnimation", "", model),
             data,
         ).filename
-    if _is_report("bunchReport", model):
-        return PTC_PARTICLES_FILE
     assert False, f"no data file for model: {model}"
 
 

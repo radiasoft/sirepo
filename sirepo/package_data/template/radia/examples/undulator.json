@@ -326,11 +326,11 @@
             "coordinateSystem": "beam",
             "documentationUrl": "",
             "enableKickMaps": "1",
-            "folder": "/Examples",
+            "folder": "/Examples/Insertion Devices",
             "heightAxis": "z",
             "isExample": true,
             "magnetType": "undulator",
-            "name": "Undulator",
+            "name": "Parameterized Hybrid Undulator",
             "notes": "",
             "outOfSessionSimulationId": "",
             "undulatorType": "undulatorHybrid"
