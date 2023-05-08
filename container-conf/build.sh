@@ -25,15 +25,19 @@ build_as_run_user() {
     cd "$build_guest_conf"
     umask 022
     sirepo_boot_init
-    git clone -q --depth=50 https://github.com/radiasoft/pykern
-    git clone -q --depth=50 https://github.com/radiasoft/sirepo
-    cd sirepo
     sirepo_fix_srw
-    cd ../pykern
+    git clone -q --depth=50 https://github.com/radiasoft/pykern
+    git clone ${SIREPO_COMMIT:+--branch $SIREPO_COMMIT} -q --depth=50 https://github.com/radiasoft/sirepo
+    cd pykern
     pip uninstall -y pykern || true
     pip install .
     cd ../sirepo
     pip install -e .
+    cd react
+    npm install
+    npm run-script build
+    mv build ../sirepo/package_data/static/react
+    cd ..
     sirepo srw create_predefined
     pip uninstall -y sirepo
     pip install .

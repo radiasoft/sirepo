@@ -12,7 +12,7 @@ import pytest
 _sim_type = "myapp"
 _cfg = {
     "SIREPO_AUTH_DEPRECATED_METHODS": "github",
-    "SIREPO_SMTP_FROM_EMAIL": "x",
+    "SIREPO_SMTP_FROM_EMAIL": "x@x.x",
     "SIREPO_SMTP_FROM_NAME": "x",
     "SIREPO_SMTP_PASSWORD": "x",
     "SIREPO_SMTP_SERVER": "dev",
