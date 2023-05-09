@@ -902,6 +902,33 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, panelS
     };
 });
 
+SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCache, persistentSimulation, radiaService, $scope) {
+    const self = this;
+    self.simScope = $scope;
+    self.simAnalysisModel = 'optimizerAnimation';
+
+    self.simHandleStatus = function (data) {
+        if ('frameCount' in data && ! data.error) {
+            frameCache.setFrameCount(data.frameCount > 1 ? data.frameCount : 0);
+            self.simState.summaryData = data.summary;
+        }
+    };
+
+    self.hasOptFields = function() {
+        return true;
+        if (appState.isLoaded()) {
+            return false;
+        }
+        return (appState.applicationState().optimizer.fields || []).length > 0;
+    };
+
+    self.simState = persistentSimulation.initSimulationState(self);
+
+    self.simState.runningMessage = function() {
+        return 'Completed run: ' + self.simState.getFrameCount();
+    };
+});
+
 
 SIREPO.app.directive('appFooter', function() {
     return {
@@ -928,8 +955,9 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
-                  <li data-ng-if="! isImported()" class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-magnet"></span> Design</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                  <li data-ng-if="! isImported()" class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-magnet"></span> Design</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('visualization')}"><a href data-ng-click="nav.openSection('visualization')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('optimization')}"><a href data-ng-click="nav.openSection('optimization')"><span class="glyphicon glyphicon-time"></span> Optimization</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>

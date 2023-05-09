@@ -406,6 +406,13 @@
                 "controller": "RadiaVisualizationController as viz",
                 "templateUrl": "/static/html/radia-visualization.html"
             }
+        },
+        "optimization": {
+            "route": "/optimization/:simulationId",
+            "config": {
+                "controller": "RadiaOptimizationController as opt",
+                "templateUrl": "/static/html/radia-optimization.html"
+            }
         }
     },
     "model": {
@@ -895,6 +902,25 @@
         },
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
+        },
+        "optimizer": {
+            "objective": ["Objective Function", "ObjectiveFunction", "transparency"],
+            "tolerance": ["Tolerance", "Float", 0.001],
+            "timeLimit": ["Time Limit Per Run (s)", "Integer", 60],
+            "continuousFieldSteps": ["Continuous Field Divisions", "Integer", 20, "Number of times to subdivide non-gridded fields, ex. Current or Voltage"],
+            "initialSteps": ["Initial Simulation Steps", "Integer", 500],
+            "optimizerSteps": ["Optimizer Steps Between Tolerance Checks", "Integer", 250]
+        },
+        "optimizerAnimation": {
+            "x": ["Horizontal Value to Plot", "OptimizationField", 0],
+            "y": ["Vertical Value to Plot", "OptimizationField", 1],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "optimizerField": {
+            "field": ["Field", "String"],
+            "minimum": ["Minimum", "Float"],
+            "maximum": ["Maximum", "Float"]
         },
         "pointsReport": {
             "doSnap": ["Snap to Grid", "Boolean", "0"],
@@ -1467,6 +1493,35 @@
                     "modifications"
                 ]]
             ]
+        },
+        "optimizer": {
+            "title": "Optimization Fields",
+            "advanced": [
+                "tolerance",
+                "timeLimit",
+                "continuousFieldSteps",
+                "initialSteps",
+                "optimizerSteps"
+            ]
+        },
+        "optimizerAnimation": {
+            "title": "Optimization Path",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "colorMap",
+                "notes"
+            ]
+        },
+        "optimizerStatus": {
+            "title": "Optimization Status",
+            "advanced": []
         },
         "pointsReport": {
             "title": "Points",
