@@ -337,6 +337,10 @@
             ["tee", "Extruded Tee"],
             ["stl", "STL"]
         ],
+        "OptimizerFieldType": [
+            ["builtin", "Built-in"],
+            ["object", "Object Field"]
+        ],
         "PathType": [
             ["axisPath", "Axis"],
             ["linePath", "Line"],
@@ -902,19 +906,20 @@
         },
         "objectOptimizerField": {
             "_super": ["_", "model", "optimizerField"],
-            "field": ["Field", "String"],
-            "object": ["Object", ""]
+            "object": ["Object", ""],
+            "type": ["_", "OptimizerFieldType", "object"]
         },
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
         "optimizer": {
-            "objective": ["Objective Function", "ObjectiveFunction", "transparency"],
-            "tolerance": ["Tolerance", "Float", 0.001],
-            "timeLimit": ["Time Limit Per Run (s)", "Integer", 60],
             "continuousFieldSteps": ["Continuous Field Divisions", "Integer", 20, "Number of times to subdivide non-gridded fields, ex. Current or Voltage"],
+            "fields": ["Fields", "MultipleModelArray", []],
             "initialSteps": ["Initial Simulation Steps", "Integer", 500],
-            "optimizerSteps": ["Optimizer Steps Between Tolerance Checks", "Integer", 250]
+            "objective": ["Objective Function", "ObjectiveFunction", "transparency"],
+            "optimizerSteps": ["Optimizer Steps Between Tolerance Checks", "Integer", 250],
+            "timeLimit": ["Time Limit Per Run (s)", "Integer", 60],
+            "tolerance": ["Tolerance", "Float", 0.001]
         },
         "optimizerAnimation": {
             "x": ["Horizontal Value to Plot", "OptimizationField", 0],
@@ -925,7 +930,8 @@
         "optimizerField": {
             "field": ["Field", "String"],
             "minimum": ["Minimum", "Float"],
-            "maximum": ["Maximum", "Float"]
+            "maximum": ["Maximum", "Float"],
+            "type": ["_", "OptimizerFieldType", "builtin"]
         },
         "pointsReport": {
             "doSnap": ["Snap to Grid", "Boolean", "0"],
@@ -1522,6 +1528,25 @@
                 ],
                 "colorMap",
                 "notes"
+            ]
+        },
+        "objectOptimizerField": {
+            "title": "Field",
+            "basic": [],
+            "advanced": [
+                "object",
+                "field",
+                "minimum",
+                "maximum"
+            ]
+        },
+        "optimizerField": {
+            "title": "Field",
+            "basic": [],
+            "advanced": [
+                "field",
+                "minimum",
+                "maximum"
             ]
         },
         "optimizerStatus": {

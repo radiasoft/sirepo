@@ -1590,7 +1590,7 @@ SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, r
     };
 });
 
-SIREPO.app.directive('MultipleModelArray', function(appState, panelState, radiaService, $rootScope) {
+SIREPO.app.directive('multipleModelArray', function(appState, panelState, radiaService, $rootScope) {
     return {
         restrict: 'A',
         scope: {
