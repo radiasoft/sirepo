@@ -2519,6 +2519,17 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function handlePick(callData) {
+
+                function getClosestActor(pickedActors) {
+                    for (const a of pickedActors) {
+                        const i = getInfoForActor(a);
+                        if (i) {
+                            return [a, i];
+                        }
+                    }
+                    return [null, null];
+                }
+
                 if (renderer !== callData.pokedRenderer) {
                     return;
                 }
@@ -2552,14 +2563,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     return;
                 }
 
-                const pas = picker.getActors();
-
                 let selectedValue = Number.NaN;
                 let highlightVectColor = [255, 0, 0];
-                // the 1st actor in the array is the closest to the viewer
-                const actor = pas[0];
+
                 vtkSelection = {};
-                const info = getInfoForActor(actor);
+                const [actor, info] = getClosestActor(picker.getActors());
                 selectedInfo = info;
                 if (! info || ! info.pData) {
                     return;
