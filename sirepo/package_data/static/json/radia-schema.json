@@ -450,7 +450,7 @@
             "alternateFields": ["Alternate Fields", "Boolean", "1"],
             "name": ["Name", "String", "Clone"],
             "numCopies": ["Number of Copies", "Integer", 1, "", 1],
-            "transforms": ["", "ModelArrayTable", [], "", ["rotateClone", "translateClone"]],
+            "transforms": ["", "MultipleModelArray", [], "", ["rotateClone", "translateClone"]],
             "type": ["_", "TransformTypes", "cloneTransform"]
         },
         "threeDBuilder": {
@@ -787,7 +787,7 @@
             "name": ["Name", "String", ""]
         },
         "fieldPaths": {
-            "paths": ["", "ModelArrayTable", [], "", ["axisPath" ,"linePath", "circlePath", "fieldMapPath", "filePath"]]
+            "paths": ["", "MultipleModelArray", [], "", ["axisPath" ,"linePath", "circlePath", "fieldMapPath", "filePath"]]
         },
         "filePath": {
             "_super": ["_", "model", "fieldPath"],
@@ -816,7 +816,7 @@
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "modifications": ["", "ModelArrayTable", [], "", ["objectBevel", "objectFillet"]],
+            "modifications": ["", "MultipleModelArray", [], "", ["objectBevel", "objectFillet"]],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B Curve from File", "HBFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns (H, B in Tesla)"],
@@ -900,6 +900,11 @@
             "radius": ["Radius", "Float", 1.0],
             "type": ["_", "ObjectCutType", "objectFillet"]
         },
+        "objectOptimizerField": {
+            "_super": ["_", "model", "optimizerField"],
+            "field": ["Field", "String"],
+            "object": ["Object", ""]
+        },
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
@@ -944,7 +949,7 @@
         "radiaObject": {
             "_super": ["_", "model", "layoutObject"],
             "name": ["Name", "String", ""],
-            "transforms": ["", "ModelArrayTable", [], "", ["cloneTransform" ,"rotate", "symmetryTransform"]]
+            "transforms": ["", "MultipleModelArray", [], "", ["cloneTransform" ,"rotate", "symmetryTransform"]]
         },
         "rotate": {
             "_super": ["_", "model", "spatialTransform"],

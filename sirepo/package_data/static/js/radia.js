@@ -43,8 +43,8 @@ SIREPO.app.config(function() {
             <div class="sr-input-warning">
             </div>
         </div>
-        <div data-ng-switch-when="ModelArrayTable" class="col-sm-12">
-          <div data-model-array-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Modification" data-models="info[4]"></div>
+        <div data-ng-switch-when="MultipleModelArray" class="col-sm-12">
+          <div data-multiple-model-array="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Modification" data-models="info[4]"></div>
         </div>
         <div data-ng-switch-when="PtsFile" data-ng-class="fieldClass">
           <input id="radia-pts-file-import" type="file" data-file-model="model[field]" accept=".dat,.txt,.csv"/>
@@ -1590,7 +1590,7 @@ SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, r
     };
 });
 
-SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaService, $rootScope) {
+SIREPO.app.directive('MultipleModelArray', function(appState, panelState, radiaService, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -1679,7 +1679,7 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
             $scope.fieldLabel = (modelName, field) => info(modelName, field)[SIREPO.INFO_INDEX_LABEL];
 
             $scope.fieldMinWidth = (modelName, field) => {
-                return info(modelName, field)[SIREPO.INFO_INDEX_TYPE] === 'ModelArrayTable' ? '900px' : '0';
+                return info(modelName, field)[SIREPO.INFO_INDEX_TYPE] === 'MultipleModelArray' ? '900px' : '0';
             };
 
             $scope.fieldSize = (modelName, field) => {
