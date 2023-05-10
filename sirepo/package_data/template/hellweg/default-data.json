@@ -80,6 +80,6 @@
             "verticalAlpha": 0.28
         }
     },
-    "simulationType": "rshellweg",
+    "simulationType": "hellweg",
     "version": "20170214.000000"
 }

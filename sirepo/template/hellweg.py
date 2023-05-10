@@ -9,7 +9,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
-from sirepo.template import template_common, rshellweg_dump_reader
+from sirepo.template import template_common, hellweg_dump_reader
 import numpy
 import os.path
 import re
@@ -54,7 +54,7 @@ def background_percent_complete(report, run_dir, is_running):
         )
     dump_file = _dump_file(run_dir)
     if os.path.exists(dump_file):
-        beam_header = rshellweg_dump_reader.beam_header(dump_file)
+        beam_header = hellweg_dump_reader.beam_header(dump_file)
         last_update_time = int(os.path.getmtime(dump_file))
         frame_count = beam_header.NPoints
         return PKDict(
@@ -70,7 +70,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 def python_source_for_model(data, model, qcall, **kwargs):
     return """
-from rshellweg import solver
+from hellweg import solver
 
 {}
 
@@ -98,13 +98,13 @@ def sim_frame_beamAnimation(frame_args):
     )
     model = data.models.beamAnimation
     model.update(frame_args)
-    beam_info = rshellweg_dump_reader.beam_info(
+    beam_info = hellweg_dump_reader.beam_info(
         _dump_file(frame_args.run_dir), frame_args.frameIndex
     )
     x, y = frame_args.reportType.split("-")
     values = [
-        rshellweg_dump_reader.get_points(beam_info, x),
-        rshellweg_dump_reader.get_points(beam_info, y),
+        hellweg_dump_reader.get_points(beam_info, x),
+        hellweg_dump_reader.get_points(beam_info, y),
     ]
     model["x"] = x
     model["y"] = y
@@ -115,8 +115,8 @@ def sim_frame_beamAnimation(frame_args):
         values,
         model,
         {
-            "x_label": rshellweg_dump_reader.get_label(x),
-            "y_label": rshellweg_dump_reader.get_label(y),
+            "x_label": hellweg_dump_reader.get_label(x),
+            "y_label": hellweg_dump_reader.get_label(y),
             "title": _report_title(frame_args.reportType, "BeamReportType", beam_info),
             "z_label": "Number of Particles",
             "summaryData": _summary_text(frame_args.run_dir),
@@ -125,10 +125,10 @@ def sim_frame_beamAnimation(frame_args):
 
 
 def sim_frame_beamHistogramAnimation(frame_args):
-    beam_info = rshellweg_dump_reader.beam_info(
+    beam_info = hellweg_dump_reader.beam_info(
         _dump_file(frame_args.run_dir), frame_args.frameIndex
     )
-    points = rshellweg_dump_reader.get_points(beam_info, frame_args.reportType)
+    points = hellweg_dump_reader.get_points(beam_info, frame_args.reportType)
     hist, edges = numpy.histogram(
         points, template_common.histogram_bins(frame_args.histogramBins)
     )
@@ -138,13 +138,13 @@ def sim_frame_beamHistogramAnimation(frame_args):
         ),
         "x_range": [edges[0], edges[-1]],
         "y_label": "Number of Particles",
-        "x_label": rshellweg_dump_reader.get_label(frame_args.reportType),
+        "x_label": hellweg_dump_reader.get_label(frame_args.reportType),
         "points": hist.T.tolist(),
     }
 
 
 def sim_frame_parameterAnimation(frame_args):
-    s = rshellweg.solver.BeamSolver(
+    s = solver.BeamSolver(
         os.path.join(str(frame_args.run_dir), HELLWEG_INI_FILE),
         os.path.join(str(frame_args.run_dir), HELLWEG_INPUT_FILE),
     )
@@ -159,22 +159,22 @@ def sim_frame_parameterAnimation(frame_args):
     return {
         "title": _enum_text("ParameterReportType", frame_args.reportType),
         "x_range": [x[0], x[-1]],
-        "y_label": rshellweg_dump_reader.get_parameter_label(y1_var),
-        "x_label": rshellweg_dump_reader.get_parameter_label(x_field),
+        "y_label": hellweg_dump_reader.get_parameter_label(y1_var),
+        "x_label": hellweg_dump_reader.get_parameter_label(x_field),
         "x_points": x,
         "points": [
             y1,
             y2,
         ],
         "y_range": [min(y1_extent[0], y2_extent[0]), max(y1_extent[1], y2_extent[1])],
-        "y1_title": rshellweg_dump_reader.get_parameter_title(y1_var),
-        "y2_title": rshellweg_dump_reader.get_parameter_title(y2_var),
+        "y1_title": hellweg_dump_reader.get_parameter_title(y1_var),
+        "y2_title": hellweg_dump_reader.get_parameter_title(y2_var),
     }
 
 
 def sim_frame_particleAnimation(frame_args):
     x_field = "z0"
-    particle_info = rshellweg_dump_reader.particle_info(
+    particle_info = hellweg_dump_reader.particle_info(
         _dump_file(frame_args.run_dir),
         frame_args.reportType,
         int(frame_args.renderCount),
@@ -183,8 +183,8 @@ def sim_frame_particleAnimation(frame_args):
     return {
         "title": _enum_text("ParticleReportType", frame_args.reportType),
         "x_range": [numpy.min(x), numpy.max(x)],
-        "y_label": rshellweg_dump_reader.get_label(frame_args.reportType),
-        "x_label": rshellweg_dump_reader.get_label(x_field),
+        "y_label": hellweg_dump_reader.get_label(frame_args.reportType),
+        "x_label": hellweg_dump_reader.get_label(x_field),
         "x_points": x,
         "points": particle_info["y_values"],
         "y_range": particle_info["y_range"],
@@ -218,11 +218,11 @@ def _compute_range_across_files(run_dir, **kwargs):
     dump_file = _dump_file(run_dir)
     if not os.path.exists(dump_file):
         return res
-    beam_header = rshellweg_dump_reader.beam_header(dump_file)
+    beam_header = hellweg_dump_reader.beam_header(dump_file)
     for frame in range(beam_header.NPoints):
-        beam_info = rshellweg_dump_reader.beam_info(dump_file, frame)
+        beam_info = hellweg_dump_reader.beam_info(dump_file, frame)
         for field in res:
-            values = rshellweg_dump_reader.get_points(beam_info, field)
+            values = hellweg_dump_reader.get_points(beam_info, field)
             if not values:
                 pass
             elif res[field]:
@@ -466,12 +466,12 @@ def _parse_error_message(run_dir):
 def _report_title(report_type, enum_name, beam_info):
     return "{}, z={:.4f} cm".format(
         _enum_text(enum_name, report_type),
-        100 * rshellweg_dump_reader.get_parameter(beam_info, "z"),
+        100 * hellweg_dump_reader.get_parameter(beam_info, "z"),
     )
 
 
 def _scale_structure_parameters(solver, field):
-    v = solver.get_structure_parameters(rshellweg_dump_reader.parameter_index(field))
+    v = solver.get_structure_parameters(hellweg_dump_reader.parameter_index(field))
     if field in _PARAMETER_SCALE:
         return (_PARAMETER_SCALE[field] * numpy.array(v)).tolist()
     return v

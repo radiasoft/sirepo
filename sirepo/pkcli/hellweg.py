@@ -7,12 +7,12 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc
-from rshellweg import solver
+from hellweg import solver
 from sirepo import simulation_db
 from sirepo.template import template_common
 import copy
 import py.path
-import sirepo.template.rshellweg as template
+import sirepo.template.hellweg as template
 
 
 def run(cfg_dir):
@@ -32,7 +32,7 @@ def run(cfg_dir):
                 frameReport=r.replace("Report", "Animation"),
                 run_dir=pkio.py_path(cfg_dir),
                 sim_in=sim_in,
-                simulationType="rshellweg",
+                simulationType="hellweg",
             ),
         ),
     )

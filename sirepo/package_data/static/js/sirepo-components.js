@@ -1391,7 +1391,10 @@ SIREPO.app.directive('helpLink', function(appState) {
         template: `
             <a data-ng-if="::url" data-ng-href="{{ ::url }}" target="_blank">
               <span data-ng-class="::glyphClass"></span>
-              ${SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].shortName}
+              ${
+                //SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].shortName
+                "changeMe"
+            }
                {{ ::title }}
             </a>
         `,
@@ -2358,8 +2361,10 @@ SIREPO.app.directive('appHeaderBrand', function() {
 
     function brand() {
         return [
-            '<span class="hidden-md hidden-sm">', appInfo.longName, '</span>',
-            '<span class="hidden-xs hidden-lg hidden-xl">', appInfo.shortName, '</span>',
+            //'<span class="hidden-md hidden-sm">', appInfo.longName, '</span>',
+            //'<span class="hidden-xs hidden-lg hidden-xl">', appInfo.shortName, '</span>',
+            '<span class="hidden-md hidden-sm">', "changeMe", '</span>',
+            '<span class="hidden-xs hidden-lg hidden-xl">', "changeMe", '</span>',
         ].join('');
     }
 
