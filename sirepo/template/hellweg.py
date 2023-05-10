@@ -70,7 +70,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 def python_source_for_model(data, model, qcall, **kwargs):
     return """
-from hellweg import solver
+from rshellweg import solver
 
 {}
 
