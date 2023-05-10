@@ -303,6 +303,7 @@ class DriverBase(PKDict):
         if ("opName" not in c or c.opName == job.OP_ERROR) or (
             "reply" in c and c.reply.get("state") == job.ERROR
         ):
+            pkdlog("[][][] {}", )
             pkdlog("{} error msg={}", self, c)
         elif c.opName == job.OP_JOB_CMD_STDERR:
             pkdlog("{} stderr from job_cmd msg={}", self, c)
