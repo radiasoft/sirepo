@@ -382,7 +382,7 @@ class DriverBase(PKDict):
 
     def _websocket_free(self):
         pass
-    
+
 
 def init_module(**imports):
     global _cfg, _CLASSES, _DEFAULT_CLASS
