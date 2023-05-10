@@ -144,7 +144,7 @@ def sim_frame_beamHistogramAnimation(frame_args):
 
 
 def sim_frame_parameterAnimation(frame_args):
-    s = solver.BeamSolver(
+    s = rshellweg.solver.BeamSolver(
         os.path.join(str(frame_args.run_dir), HELLWEG_INI_FILE),
         os.path.join(str(frame_args.run_dir), HELLWEG_INPUT_FILE),
     )

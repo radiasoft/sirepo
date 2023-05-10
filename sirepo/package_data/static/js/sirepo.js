@@ -3441,8 +3441,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
         return $.grep(
             [
                 self.sectionTitle(),
-                //SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName,
-                "changeMe",
+                SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName,
                 'Sirepo',
             ],
             function(n){ return n; })
@@ -3709,8 +3708,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     const s = SIREPO.APP_SCHEMA.strings;
     n.content = [
         '<div class="text-center"><strong>Welcome to Sirepo - ',
-        //$sce.getTrustedHtml(SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName),
-        $sce.getTrustedHtml("changeMe"),
+        $sce.getTrustedHtml(SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName),
         '!</strong></div>',
         `Below are some example ${s.simulationDataTypePlural}` +
             ` and folders containing ${s.simulationDataTypePlural}.` +
