@@ -274,6 +274,7 @@ def _generate_crystal(crystal):
                     crystal_alpha={crystal.crystal_alpha},
                     pump_waist={crystal.pump_waist},
                     pump_wavelength={crystal.pump_wavelength},
+                    pump_gaussian_order={crystal.pump_gaussian_order},
                     pump_energy={crystal.pump_energy},
                     pump_type="{crystal.pump_type}",
                 ),

@@ -138,7 +138,7 @@ angular.element(document).ready(function() {
         error: function(xhr, status, err) {
             if (! SIREPO.APP_SCHEMA) {
                 srlog("schema load failed: ", err);
-                if (err.match(/forbidden/i)) {
+                if (err.toString().match(/forbidden/i)) {
                     window.location.href = "/forbidden";
                     return;
                 }
@@ -883,7 +883,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return SIREPO.APP_SCHEMA.view[name] || SIREPO.APP_SCHEMA.common.view[name];
     };
 
-    self.watchModelFields = function($scope, modelFields, callback) {
+    self.watchModelFields = function($scope, modelFields, callback, useDeepEquals=false) {
         $scope.appState = self;
         modelFields.forEach(function(f) {
             // allows watching fields when creating a new simulation (isLoaded() returns false)
@@ -894,7 +894,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
                     // call in next cycle to allow UI to change layout first
                     $interval(callback, 1, 1, true, f);
                 }
-            });
+            }, useDeepEquals);
         });
     };
 
