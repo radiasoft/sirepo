@@ -27,6 +27,7 @@ PROD_FOSS_CODES = frozenset(
         "genesis",
         "jspec",
         "madx",
+        "omega",
         "opal",
         "radia",
         "shadow",
@@ -42,7 +43,6 @@ _NON_PROD_FOSS_CODES = frozenset(
     (
         "myapp",
         "silas",
-        "omega",
         "rshellweg",
     )
 )
@@ -140,6 +140,7 @@ def _init():
                 "url base to reach cloudmc example h5m files",
             ),
         ),
+        debug_mode=(pkconfig.in_dev_mode(), bool, "control debugging output"),
         default_proprietary_sim_types=(
             frozenset(),
             set,
@@ -177,11 +178,10 @@ def _init():
                 "url to reach scan monitor daemon",
             ),
         ),
-        # TODO(pjm): myapp can't be in react_sim_types or unit tests fail
         react_sim_types=(
             ("jspec", "genesis", "warppba", "omega", "myapp")
             if pkconfig.in_dev_mode()
-            else (),
+            else ("omega",),
             set,
             "React apps",
         ),
