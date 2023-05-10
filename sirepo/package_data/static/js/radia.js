@@ -1011,149 +1011,6 @@ SIREPO.app.directive('bevelEdge', function(appState, panelState, radiaService, u
     };
 });
 
-SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaService, $rootScope) {
-    return {
-        restrict: 'A',
-        scope: {
-            field: '=',
-            fieldName: '=',
-            itemClass: '@',
-            model: '=',
-            models: '=',
-            modelName: '=',
-        },
-        template: `
-            <div>
-              <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
-              <table class="table table-striped table-condensed radia-table-dialog">
-                <thead></thead>
-                <tbody>
-                <tr data-ng-repeat="item in field track by $index">
-                  <td style="display: inline-flex; flex-wrap: wrap;">
-                    <div class="item-name">
-                      <span class="glyphicon glyphicon-chevron-down" data-ng-show="isExpanded(item)" data-ng-click="toggleExpand($index)"></span>
-                      <span class="glyphicon glyphicon-chevron-up" data-ng-show="! isExpanded(item)" data-ng-click="toggleExpand($index)"></span>
-                      <label>{{ title(item.type) }}</label>
-                    </div>
-                    <div data-ng-show="isExpanded(item)" data-ng-repeat="f in modelFields($index)" style="padding-left: 6px; min-width: {{ fieldMinWidth(item.type, f) }}">
-                      <div data-field-editor="f" data-label-size="12" data-field-size="fieldSize(item.type, f)" data-model-name="item.type" data-model="item"></div>
-                    </div>
-                    <div data-ng-show="! isExpanded(item)">...</div>
-                    </td>
-                    <td>
-                      <div class="sr-button-bar-parent">
-                        <div class="sr-button-bar">
-                          <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
-                        </div>                      
-                      </div>
-                    </td>
-                </tr>
-                <tr>
-                  <td colspan="100%">
-                    <select class="form-control" data-ng-model="selectedItem" data-ng-options="title(m) for m in models" data-ng-change="addItem()">
-                      <option value="" disabled selected>add</option>
-                    </select>
-                  </td>
-               </tr>
-               </tbody>
-              </table>
-            </div>
-            </div>
-        `,
-        controller: function($scope, $element) {
-            const doSaveGeom = appState.superClasses($scope.modelName).includes('radiaObject');
-            let expanded = {};
-            for (const i in $scope.field) {
-                expanded[i] = false;
-            }
-
-            let watchedModels = [$scope.modelName].concat($scope.models);
-
-            $scope.selectedItem = null;
-
-            function itemIndex(data) {
-                return $scope.field.indexOf(data);
-            }
-
-            function info(modelName, field) {
-                return appState.modelInfo(modelName)[field];
-            }
-
-            $scope.addItem = () => {
-                if (! $scope.selectedItem) {
-                    return;
-                }
-                const m = appState.setModelDefaults({}, $scope.selectedItem);
-                $scope.field.push(m);
-                expanded[$scope.field.length - 1] = true;
-                $scope.selectedItem = null;
-            };
-
-            $scope.deleteItem = index => {
-                $scope.field.splice(index, 1);
-                delete expanded[index];
-                if (doSaveGeom) {
-                   radiaService.saveGeometry(true);
-                }
-            };
-
-            $scope.fieldLabel = (modelName, field) => info(modelName, field)[SIREPO.INFO_INDEX_LABEL];
-
-            $scope.fieldMinWidth = (modelName, field) => {
-                return info(modelName, field)[SIREPO.INFO_INDEX_TYPE] === 'ModelArrayTable' ? '900px' : '0';
-            };
-
-            $scope.fieldSize = (modelName, field) => {
-                return info(modelName, field)[SIREPO.INFO_INDEX_TYPE] === 'String' ? 8 : null;
-            };
-
-            $scope.isExpanded = item => expanded[itemIndex(item)];
-
-            $scope.modelFields = index => {
-                return SIREPO.APP_SCHEMA.view[$scope.field[index].type].advanced;
-            };
-
-            $scope.moveItem = (direction, item) => {
-                const d = direction === 0 ? 0 : (direction > 0 ? 1 : -1);
-                const currentIndex = itemIndex(item);
-                const newIndex = currentIndex + d;
-                if (newIndex >= 0 && newIndex < $scope.field.length) {
-                    const tmp = $scope.field[newIndex];
-                    $scope.field[newIndex] = item;
-                    $scope.field[currentIndex] = tmp;
-                }
-            };
-
-            $scope.title = modelName => SIREPO.APP_SCHEMA.view[modelName].title;
-
-            $scope.toggleExpand = index => {
-                expanded[index] = ! expanded[index];
-            };
-
-            $scope.$on('modelChanged', (e, modelName) => {
-                if (! watchedModels.includes(modelName)) {
-                    return;
-                }
-                $scope.selectedItem = null;
-                if (doSaveGeom) {
-                    radiaService.saveGeometry(true, false);
-                }
-            });
-
-            $scope.$on('cancelChanges', (e, name) => {
-                if (name === 'geometryReport') {
-                    return;
-                }
-                if (! watchedModels.includes(name)) {
-                    return;
-                }
-                appState.cancelChanges('geometryReport');
-            });
-
-        },
-    };
-});
-
 SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUpload, requestSender) {
 
     const RADIA_IMPORT_FORMATS = ['.dat',];
@@ -1301,6 +1158,43 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
     };
 });
 
+SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@'
+        },
+        template: `
+            <div class="col-md-6">
+                <div data-ng-if="! dataCleared" data-report-panel="parameter" data-request-priority="0" data-model-name="electronTrajectoryReport"></div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.dataCleared = true;
+            $scope.model = appState.models[$scope.modelName];
+
+            function setPanelHidden(doHide) {
+                appState.models[$scope.modelName].hidePanel = doHide;
+                appState.saveQuietly($scope.modelName);
+                appState.autoSave();
+            }
+
+            if (appState.models[$scope.modelName].hidePanel === undefined) {
+                setPanelHidden(true);
+            }
+
+            $scope.$on('radiaViewer.loaded', () => {
+                $scope.dataCleared = false;
+                panelState.setHidden($scope.modelName, appState.models[$scope.modelName].hidePanel);
+            });
+
+            $scope.$on(`panel.${$scope.modelName}.hidden`, (e, d) => {
+                setPanelHidden(d);
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, radiaService, requestSender) {
 
     return {
@@ -1396,44 +1290,6 @@ SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, r
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.tModel.gap = (appState.models.undulator || {}).gap || 0;
-            });
-        },
-    };
-});
-
-
-SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        scope: {
-            modelName: '@'
-        },
-        template: `
-            <div class="col-md-6">
-                <div data-ng-if="! dataCleared" data-report-panel="parameter" data-request-priority="0" data-model-name="electronTrajectoryReport"></div>
-            </div>
-        `,
-        controller: function($scope) {
-            $scope.dataCleared = true;
-            $scope.model = appState.models[$scope.modelName];
-
-            function setPanelHidden(doHide) {
-                appState.models[$scope.modelName].hidePanel = doHide;
-                appState.saveQuietly($scope.modelName);
-                appState.autoSave();
-            }
-
-            if (appState.models[$scope.modelName].hidePanel === undefined) {
-                setPanelHidden(true);
-            }
-
-            $scope.$on('radiaViewer.loaded', () => {
-                $scope.dataCleared = false;
-                panelState.setHidden($scope.modelName, appState.models[$scope.modelName].hidePanel);
-            });
-
-            $scope.$on(`panel.${$scope.modelName}.hidden`, (e, d) => {
-                setPanelHidden(d);
             });
         },
     };
@@ -1709,6 +1565,174 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
     };
 });
 
+SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            direction: '@',
+            viewName: '@',
+        },
+        template: `
+            <div class="col-md-6">
+                <div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMapReport"></div>
+            </div>
+        `,
+        controller: function($scope) {
+
+            $scope.dataCleared = true;
+
+            $scope.model = appState.models.kickMapReport;
+            $scope.$on('radiaViewer.loaded', () => {
+                $scope.dataCleared = false;
+            });
+
+        },
+    };
+});
+
+SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaService, $rootScope) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            fieldName: '=',
+            itemClass: '@',
+            model: '=',
+            models: '=',
+            modelName: '=',
+        },
+        template: `
+            <div>
+              <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
+              <table class="table table-striped table-condensed radia-table-dialog">
+                <thead></thead>
+                <tbody>
+                <tr data-ng-repeat="item in field track by $index">
+                  <td style="display: inline-flex; flex-wrap: wrap;">
+                    <div class="item-name">
+                      <span class="glyphicon glyphicon-chevron-down" data-ng-show="isExpanded(item)" data-ng-click="toggleExpand($index)"></span>
+                      <span class="glyphicon glyphicon-chevron-up" data-ng-show="! isExpanded(item)" data-ng-click="toggleExpand($index)"></span>
+                      <label>{{ title(item.type) }}</label>
+                    </div>
+                    <div data-ng-show="isExpanded(item)" data-ng-repeat="f in modelFields($index)" style="padding-left: 6px; min-width: {{ fieldMinWidth(item.type, f) }}">
+                      <div data-field-editor="f" data-label-size="12" data-field-size="fieldSize(item.type, f)" data-model-name="item.type" data-model="item"></div>
+                    </div>
+                    <div data-ng-show="! isExpanded(item)">...</div>
+                    </td>
+                    <td>
+                      <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar">
+                          <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                        </div>                      
+                      </div>
+                    </td>
+                </tr>
+                <tr>
+                  <td colspan="100%">
+                    <select class="form-control" data-ng-model="selectedItem" data-ng-options="title(m) for m in models" data-ng-change="addItem()">
+                      <option value="" disabled selected>add</option>
+                    </select>
+                  </td>
+               </tr>
+               </tbody>
+              </table>
+            </div>
+            </div>
+        `,
+        controller: function($scope, $element) {
+            const doSaveGeom = appState.superClasses($scope.modelName).includes('radiaObject');
+            let expanded = {};
+            for (const i in $scope.field) {
+                expanded[i] = false;
+            }
+
+            let watchedModels = [$scope.modelName].concat($scope.models);
+
+            $scope.selectedItem = null;
+
+            function itemIndex(data) {
+                return $scope.field.indexOf(data);
+            }
+
+            function info(modelName, field) {
+                return appState.modelInfo(modelName)[field];
+            }
+
+            $scope.addItem = () => {
+                if (! $scope.selectedItem) {
+                    return;
+                }
+                const m = appState.setModelDefaults({}, $scope.selectedItem);
+                $scope.field.push(m);
+                expanded[$scope.field.length - 1] = true;
+                $scope.selectedItem = null;
+            };
+
+            $scope.deleteItem = index => {
+                $scope.field.splice(index, 1);
+                delete expanded[index];
+                if (doSaveGeom) {
+                   radiaService.saveGeometry(true);
+                }
+            };
+
+            $scope.fieldLabel = (modelName, field) => info(modelName, field)[SIREPO.INFO_INDEX_LABEL];
+
+            $scope.fieldMinWidth = (modelName, field) => {
+                return info(modelName, field)[SIREPO.INFO_INDEX_TYPE] === 'ModelArrayTable' ? '900px' : '0';
+            };
+
+            $scope.fieldSize = (modelName, field) => {
+                return info(modelName, field)[SIREPO.INFO_INDEX_TYPE] === 'String' ? 8 : null;
+            };
+
+            $scope.isExpanded = item => expanded[itemIndex(item)];
+
+            $scope.modelFields = index => {
+                return SIREPO.APP_SCHEMA.view[$scope.field[index].type].advanced;
+            };
+
+            $scope.moveItem = (direction, item) => {
+                const d = direction === 0 ? 0 : (direction > 0 ? 1 : -1);
+                const currentIndex = itemIndex(item);
+                const newIndex = currentIndex + d;
+                if (newIndex >= 0 && newIndex < $scope.field.length) {
+                    const tmp = $scope.field[newIndex];
+                    $scope.field[newIndex] = item;
+                    $scope.field[currentIndex] = tmp;
+                }
+            };
+
+            $scope.title = modelName => SIREPO.APP_SCHEMA.view[modelName].title;
+
+            $scope.toggleExpand = index => {
+                expanded[index] = ! expanded[index];
+            };
+
+            $scope.$on('modelChanged', (e, modelName) => {
+                if (! watchedModels.includes(modelName)) {
+                    return;
+                }
+                $scope.selectedItem = null;
+                if (doSaveGeom) {
+                    radiaService.saveGeometry(true, false);
+                }
+            });
+
+            $scope.$on('cancelChanges', (e, name) => {
+                if (name === 'geometryReport') {
+                    return;
+                }
+                if (! watchedModels.includes(name)) {
+                    return;
+                }
+                appState.cancelChanges('geometryReport');
+            });
+
+        },
+    };
+});
+
 SIREPO.app.directive('pointsTable', function() {
     return {
         restrict: 'A',
@@ -1746,163 +1770,6 @@ SIREPO.app.directive('pointsTable', function() {
             $scope.toggleExpand = () => {
                 $scope.isExpanded = ! $scope.isExpanded;
             };
-        },
-    };
-});
-
-
-SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
-    return {
-        restrict: 'A',
-        scope: {
-            direction: '@',
-            viewName: '@',
-        },
-        template: `
-            <div class="col-md-6">
-                <div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMapReport"></div>
-            </div>
-        `,
-        controller: function($scope) {
-
-            $scope.dataCleared = true;
-
-            $scope.model = appState.models.kickMapReport;
-            $scope.$on('radiaViewer.loaded', () => {
-                $scope.dataCleared = false;
-            });
-
-        },
-    };
-});
-
-SIREPO.app.directive('terminationTable', function(appState, panelState, radiaService, validationService) {
-    return {
-        restrict: 'A',
-        scope: {
-            field: '=',
-            fieldName: '=',
-            itemClass: '@',
-            model: '=',
-            modelName: '=',
-            parentController: '=',
-            object: '=',
-        },
-
-        template: `
-            <table class="table radia-table-hover">
-              <colgroup>
-                <col style="width: 20ex">
-                <col style="width: 20ex">
-                <col style="width: 20ex">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>Object</th>
-                  <th>Air Gap [mm]</th>
-                  <th>Gap Offset [mm]</th>
-                  <th></th>
-                </tr>
-              </thead>
-             <tbody>
-            <tr>
-            </tr>
-                <tr data-ng-repeat="item in field track by $index">
-                    <td>{{ item.object.name }}</td>
-                    <td>{{ item.airGap }}</td>
-                    <td>{{ item.gapOffset }}</td>
-                  <td style="text-align: right">
-                    <div class="sr-button-bar-parent">
-                        <div class="sr-button-bar" data-ng-class="sr-button-bar-active" >
-                             <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
-                             <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
-                        </div>
-                    <div>
-                  </td>
-                </tr>
-            </tbody>
-            </table>
-            <button data-ng-click="addItem()" id="sr-new-termination" class="btn btn-info btn-xs pull-right">New Termination Object <span class="glyphicon glyphicon-plus"></span></button>
-        `,
-        controller: function($scope, $element) {
-            let isEditing = false;
-
-            const editorFields = [
-                'geomObject.magnetization',
-                'geomObject.material',
-            ];
-
-            const itemModel = 'termination';
-            const groupModel = 'terminationGroup';
-            let selectedItem =  null;
-            let watchedModels = [itemModel];
-
-
-            function itemIndex(data) {
-                return $scope.field.indexOf(data);
-            }
-
-            $scope.addItem = () => {
-                const item = appState.setModelDefaults({}, itemModel);
-                item.object.id = radiaService.generateId();
-                item.object.groupId = $scope.model[groupModel].id;
-                $scope.editItem(item, true);
-            };
-
-            $scope.deleteItem = item => {
-                radiaService.deleteObject(radiaService.getObject(item.object.id));
-                const i = itemIndex(item);
-                $scope.field.splice(i, 1);
-                $scope.model[groupModel].members.splice(i, 1);
-                appState.saveChanges([$scope.modelName, 'geometryReport']);
-            };
-
-            $scope.editItem = (item, isNew) => {
-                isEditing = ! isNew;
-                selectedItem = item;
-                appState.models[itemModel] = item;
-                appState.models.geomObject = item.object;
-                panelState.showModalEditor(itemModel);
-            };
-
-            $scope.$on('modelChanged', (e, modelName) => {
-                if (! watchedModels.includes(modelName)) {
-                    return;
-                }
-                if (! isEditing) {
-                    const item = appState.models[modelName];
-                    $scope.field.push(item);
-                    $scope.model[groupModel].members.push(item.object.id);
-                    radiaService.getObject(item.object.groupId).members.push(item.object.id);
-                    appState.models.geometryReport.objects.push(item.object);
-                    isEditing = true;
-                }
-                for (const item of $scope.field) {
-                    appState.models.geometryReport.objects[
-                        appState.models.geometryReport.objects.indexOf(
-                            radiaService.getObject(item.object.id)
-                        )
-                    ] = item.object;
-                }
-                selectedItem = null;
-                appState.saveChanges('geometryReport');
-            });
-
-            $scope.$on('cancelChanges', (e, name) => {
-                if (! watchedModels.includes(name)) {
-                    return;
-                }
-                appState.removeModel(name);
-            });
-
-            appState.watchModelFields($scope, editorFields, () => {
-                if (! selectedItem) {
-                    return;
-                }
-                const o = selectedItem.object;
-                radiaService.validateMagnetization(o.magnetization, o.material);
-            }, true);
-
         },
     };
 });
@@ -3060,6 +2927,137 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
         `,
         controller: function($scope, $element) {
             plotting.setupSelector($scope, $element);
+        },
+    };
+});
+
+SIREPO.app.directive('terminationTable', function(appState, panelState, radiaService, validationService) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            fieldName: '=',
+            itemClass: '@',
+            model: '=',
+            modelName: '=',
+            parentController: '=',
+            object: '=',
+        },
+
+        template: `
+            <table class="table radia-table-hover">
+              <colgroup>
+                <col style="width: 20ex">
+                <col style="width: 20ex">
+                <col style="width: 20ex">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Object</th>
+                  <th>Air Gap [mm]</th>
+                  <th>Gap Offset [mm]</th>
+                  <th></th>
+                </tr>
+              </thead>
+             <tbody>
+            <tr>
+            </tr>
+                <tr data-ng-repeat="item in field track by $index">
+                    <td>{{ item.object.name }}</td>
+                    <td>{{ item.airGap }}</td>
+                    <td>{{ item.gapOffset }}</td>
+                  <td style="text-align: right">
+                    <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar" data-ng-class="sr-button-bar-active" >
+                             <button data-ng-click="editItem(item)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
+                             <button data-ng-click="deleteItem(item, $index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                        </div>
+                    <div>
+                  </td>
+                </tr>
+            </tbody>
+            </table>
+            <button data-ng-click="addItem()" id="sr-new-termination" class="btn btn-info btn-xs pull-right">New Termination Object <span class="glyphicon glyphicon-plus"></span></button>
+        `,
+        controller: function($scope, $element) {
+            let isEditing = false;
+
+            const editorFields = [
+                'geomObject.magnetization',
+                'geomObject.material',
+            ];
+
+            const itemModel = 'termination';
+            const groupModel = 'terminationGroup';
+            let selectedItem =  null;
+            let watchedModels = [itemModel];
+
+
+            function itemIndex(data) {
+                return $scope.field.indexOf(data);
+            }
+
+            $scope.addItem = () => {
+                const item = appState.setModelDefaults({}, itemModel);
+                item.object.id = radiaService.generateId();
+                item.object.groupId = $scope.model[groupModel].id;
+                $scope.editItem(item, true);
+            };
+
+            $scope.deleteItem = item => {
+                radiaService.deleteObject(radiaService.getObject(item.object.id));
+                const i = itemIndex(item);
+                $scope.field.splice(i, 1);
+                $scope.model[groupModel].members.splice(i, 1);
+                appState.saveChanges([$scope.modelName, 'geometryReport']);
+            };
+
+            $scope.editItem = (item, isNew) => {
+                isEditing = ! isNew;
+                selectedItem = item;
+                appState.models[itemModel] = item;
+                appState.models.geomObject = item.object;
+                panelState.showModalEditor(itemModel);
+            };
+
+            $scope.$on('modelChanged', (e, modelName) => {
+                if (! watchedModels.includes(modelName)) {
+                    return;
+                }
+                if (! isEditing) {
+                    const item = appState.models[modelName];
+                    $scope.field.push(item);
+                    $scope.model[groupModel].members.push(item.object.id);
+                    radiaService.getObject(item.object.groupId).members.push(item.object.id);
+                    appState.models.geometryReport.objects.push(item.object);
+                    isEditing = true;
+                }
+                for (const item of $scope.field) {
+                    appState.models.geometryReport.objects[
+                        appState.models.geometryReport.objects.indexOf(
+                            radiaService.getObject(item.object.id)
+                        )
+                    ] = item.object;
+                }
+                selectedItem = null;
+                appState.saveChanges('geometryReport');
+            });
+
+            $scope.$on('cancelChanges', (e, name) => {
+                if (! watchedModels.includes(name)) {
+                    return;
+                }
+                appState.removeModel(name);
+            });
+
+            appState.watchModelFields($scope, editorFields, () => {
+                if (! selectedItem) {
+                    return;
+                }
+                const o = selectedItem.object;
+                radiaService.validateMagnetization(o.magnetization, o.material);
+            }, true);
+
         },
     };
 });
