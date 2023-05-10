@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc
-from hellweg import solver
+from rshellweg import solver
 from sirepo import simulation_db
 from sirepo.template import template_common
 import copy
