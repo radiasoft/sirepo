@@ -664,7 +664,7 @@ class VTKScene {
     /**
      * Sets the camera to the given position, pointing such that "up" is in the given direction
      * @param {[number]} position
-     * @param {[numbeer]} viewUp
+     * @param {[number]} viewUp
      */
     setCam(position = [1, 0, 0], viewUp = [0, 0, 1]) {
         this.cam.setPosition(...position);
