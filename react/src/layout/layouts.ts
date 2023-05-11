@@ -22,6 +22,7 @@ import { ShadowBeamlineLayout } from "./shadow/beamline";
 import { MadxAllBeamlineElementsLayout } from "./madx/allBeamlineElements";
 import { MadxBeamlinesPickerLayout } from "./madx/beamlinesPicker";
 import { MadxBeamlineElementsLayout } from "./madx/beamlineElements";
+import { MadxBeamlineReportsLayout } from "./madx/beamlineReports";
 
 
 // TODO rename to LayoutsWrapper
@@ -52,7 +53,8 @@ class LayoutWrapper {
         shadowBeamline: LayoutWithFormController(ShadowBeamlineLayout),
         madxAllBeamlineElements: LayoutWithFormController(MadxAllBeamlineElementsLayout),
         madxBeamlinesPicker: MadxBeamlinesPickerLayout,
-        madxBeamlineElements: LayoutWithFormController(MadxBeamlineElementsLayout)
+        madxBeamlineElements: LayoutWithFormController(MadxBeamlineElementsLayout),
+        madxBeamlineReports: MadxBeamlineReportsLayout
     }
 
     constructor () {

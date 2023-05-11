@@ -29,16 +29,33 @@ export interface EmptyDataHandle<M, F, D extends DataHandle<M, F> = DataHandle<M
     hook(): D;
 }
 
+export class ModelHandle<M> {
+    constructor(initialModelValue: M) {
+        this.value = initialModelValue;
+    }
+
+    readonly value: M
+}
+export interface EmptyModelHandle<M, D extends ModelHandle<M> = ModelHandle<M>> {
+    initialize(state: any): D;
+    hook(): D
+}
+
 export type SelectorUser = <M>(selector: (state: any) => M) => M;
 
 export abstract class HandleFactory {
     constructor(protected schema: Schema, public parent?: HandleFactory) {}
     abstract createHandle<M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F>;
+    abstract createModelHandle<M, F>(modelName: string, type: StoreType<M, F>): EmptyModelHandle<M>;
 }
 
 export class BaseHandleFactory extends HandleFactory {
-    createHandle<M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F> {
-        let ms = getModelReadSelector(type)(dependency.modelName);
+    private modelSelector = <M, F>(modelName: string, type: StoreType<M, F>): (state: any) => M => {
+        return getModelReadSelector(type)(modelName);
+    }
+
+    createHandle = <M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F> => {
+        let ms = this.modelSelector(dependency.modelName, type);
         let mac = getModelWriteActionCreator(type);
         let cdh = (value: F): DataHandle<M, F> => {
             return new (class extends DataHandle<M, F> {
@@ -54,9 +71,24 @@ export class BaseHandleFactory extends HandleFactory {
                 return cdh(ms(state)[dependency.fieldName]);
             },
             hook: () => {
-                let mv = useSelector(ms);
-                //console.log("dependency", dependency.getDependencyString(), mv);
-                return cdh(mv[dependency.fieldName]);
+                return cdh(useSelector(ms)[dependency.fieldName]);
+            }
+        }
+    }
+
+    createModelHandle = <M, F>(modelName: string, type: StoreType<M, F>): EmptyModelHandle<M, ModelHandle<M>> => {
+        let ms = this.modelSelector(modelName, type);
+
+        let cmh = (value: M): ModelHandle<M> => {
+            return new ModelHandle(value);
+        }
+
+        return {
+            initialize: (state: any) => {
+                return cmh(ms(state));
+            },
+            hook: () => {
+                return cmh(useSelector(ms)); 
             }
         }
     }
@@ -112,16 +144,7 @@ export class DependencyReader<F> {
 }
 
 
-export function useModelValue<M, F>(modelName: string, type: StoreType<M, F>): M {
+/*export function useModelValue<M, F>(modelName: string, type: StoreType<M, F>): M {
     let ms = getModelReadSelector(type);
-    return useSelector(ms(modelName))
-
-    /*return Object.fromEntries(new DependencyReader([new Dependency(`${modelName}.*`)], StoreTypes.Models, schema).hook().map(pair => {
-        return [
-            pair.dependency.fieldName,
-            pair.value
-        ]
-    }));*/
-
-
-}
+    return useSelector(ms(modelName);
+}*/

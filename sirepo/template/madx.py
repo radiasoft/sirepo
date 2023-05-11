@@ -434,7 +434,7 @@ def to_string(value):
 
 def uniquify_elements(data):
     def _do_unique(elem_ids):
-        ae = map(lambda i: i.item, data.model.elements.elements)
+        ae = map(lambda i: i.item, data.models.elements.elements)
         element_map = PKDict({e._id: e for e in ae})
         names = set([e.name for e in ae])
         max_id = LatticeUtil.max_id(data)
@@ -963,7 +963,7 @@ def _output_info(run_dir):
                     PKDict(
                         modelKey="twissFromParticlesAnimation",
                         filename=f.filename,
-                        isHistogram=True,
+                        isHistogram=False,
                         plottableColumns=PTC_OBSERVE_TWISS_COLS,
                         pageCount=0,
                     ),

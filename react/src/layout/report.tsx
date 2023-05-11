@@ -17,9 +17,9 @@ import { SchemaLayout } from "../utility/schema";
 import { CRouteHelper } from "../utility/route";
 import { ModelState } from "../store/models";
 import { useShown } from "../hook/shown";
-import { CHandleFactory, DependencyReader, useModelValue } from "../data/handle";
+import { CHandleFactory, DependencyReader } from "../data/handle";
 import { StoreTypes, ValueSelectors } from "../data/data";
-import { interpolate } from "../utility/string";
+import { interpolate, InterpolationBase } from "../utility/string";
 
 
 export type ReportVisualProps<L> = { data: L, model: ModelState };
@@ -58,12 +58,12 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
         let [simulationData, updateSimulationData] = useState(undefined);
 
         let simulationPollingVersionRef = useRef(uuidv4())
-        let [model, updateModel] = useState(undefined);
+        //let model = useModelValue(report, StoreTypes.Models);
+        let model = handleFactory.createModelHandle(report, StoreTypes.Models).hook().value;
 
         useEffect(() => {
             updateSimulationData(undefined);
             simulationInfoPromise.then(({ models, simulationId }) => {
-                updateModel(models[report]);
                 pollRunReport(routeHelper, {
                     appName,
                     models,
@@ -166,7 +166,7 @@ export type ManualRunReportConfig = {
     reportName: string,
     reportGroupName: string,
     frameIdFields: string[],
-    shown: string,
+    shown: string
 }
 
 export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
@@ -179,13 +179,15 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
     }
 
     component = (props: LayoutProps<{}>) => {
-        let { reportName, reportGroupName, frameIdFields } = this.config;
+        let { reportGroupName, frameIdFields } = this.config;
+        let handleFactory = useContext(CHandleFactory);
+        let reportName = interpolate(this.config.reportName).withDependencies(handleFactory, StoreTypes.Models).raw();
         let showAnimationController = 'showAnimationController' in this.config
                                     ? !!this.config.showAnimationController
                                     : true;
         let shown = useShown(this.config.shown, true, StoreTypes.Models);
-        //let model = getModelValues([reportName], modelsWrapper, store.getState())[reportName];
-        let reportModel = useModelValue(reportName, StoreTypes.Models);
+        //let reportModel = useModelValue(reportName, StoreTypes.Models);
+        let reportModel = handleFactory.createModelHandle(reportName, StoreTypes.Models).hook().value;
         let animationReader = useAnimationReader(reportName, reportGroupName, frameIdFields);
         return (
             <>

@@ -1,9 +1,9 @@
 import { Dispatch, AnyAction } from "redux";
-import { ArrayFieldState, StoreState } from "../store/common";
+import { ArrayFieldElement, ArrayFieldState, StoreState } from "../store/common";
 import { Schema } from "../utility/schema";
 import { expandDataStructure, getValueSelector, revertDataStructure, StoreType, StoreTypes, ValueSelectors } from "./data";
 import { Dependency } from "./dependency";
-import { DataHandle, EmptyDataHandle, HandleFactory } from "./handle";
+import { DataHandle, EmptyDataHandle, EmptyModelHandle, HandleFactory, ModelHandle } from "./handle";
 import cloneDeep from 'lodash/cloneDeep';
 import { ModelState } from "../store/models";
 import { FormModelState } from "../store/formState";
@@ -11,12 +11,14 @@ import { callNextParentFunction, FormActionFunc, formStateFromSingleValue, initi
 import { mapProperties } from "../utility/object";
 import { useState } from "react";
 
+export type AliasDataLocation = {
+    modelName: string,
+    fieldName: string,
+    index: number
+}
+
 export type ArrayAliases = {
-    realDataLocation: {
-        modelName: string,
-        fieldName: string,
-        index: number
-    },
+    realDataLocation: AliasDataLocation,
     realSchemaName: string,
     fake: string
 }[]
@@ -26,17 +28,30 @@ export class HandleFactoryWithArrayAliases extends HandleFactory {
         super(schema, parent);
     }
 
+    private emptyAliasedHandle = <M, F>(location: AliasDataLocation, type: StoreType<M, F>): EmptyDataHandle<M, F> => {
+        return this.parent.createHandle(new Dependency(`${location.modelName}.${location.fieldName}`), type);
+    }
+
+    private getArrayElementFromParentHandle = <M, F>(dh: DataHandle<M, F>, index: number, type: StoreType<M, F>): ArrayFieldElement<M> => {
+        let mv = getValueSelector(type)(dh.value)[index];
+        if(!mv) {
+            console.error(`could not find index=${index}`);
+            console.error(`was looking in`, getValueSelector(type)(dh.value))
+        }
+        return mv;
+    }
+
     createHandle = <M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F, DataHandle<M, F>> => {
+        console.log(`alias handle factory creating handle for ${dependency.getDependencyString()}`);
         let alias = this.aliases.find(a => a.fake === dependency.modelName);
+        console.log(`alias=${alias}`);
+        console.log(`aliases`, this.aliases);
+        let getAE = this.getArrayElementFromParentHandle;
         if(alias !== undefined) {
-            let edh = this.parent.createHandle(new Dependency(`${alias.realDataLocation.modelName}.${alias.realDataLocation.fieldName}`), type);
+            let edh = this.emptyAliasedHandle(alias.realDataLocation, type);
             return new (class implements EmptyDataHandle<M, F> {
                 private createDummyHandle(dh: DataHandle<M, F>): DataHandle<M, F> {
-                    let mv = getValueSelector(type)(dh.value)[alias.realDataLocation.index];
-                    if(!mv) {
-                        console.error(`could not find index=${alias.realDataLocation.index}`);
-                        console.error(`was looking in`, getValueSelector(type)(dh.value))
-                    }
+                    let mv = getAE(dh, alias.realDataLocation.index, type);
                     let fv = mv.item[dependency.fieldName];
                     return new (class extends DataHandle<M, F> {
                         write(value: F, state: StoreState<M>, dispatch: Dispatch<AnyAction>) {
@@ -58,6 +73,58 @@ export class HandleFactoryWithArrayAliases extends HandleFactory {
         }
         return this.parent.createHandle(dependency, type);
     }
+
+    createModelHandle<M, F>(modelName: string, type: StoreType<M, F>): EmptyModelHandle<M, ModelHandle<M>> {
+        let alias = this.aliases.find(a => a.fake === modelName);
+        if(alias === undefined) {
+            return this.parent.createModelHandle(modelName, type);
+        }
+
+        let edh = this.emptyAliasedHandle(alias.realDataLocation, type);
+
+        return {
+            initialize: (state) => {
+                let dh = edh.initialize(state);
+                return new ModelHandle(this.getArrayElementFromParentHandle(dh, alias.realDataLocation.index, type).item);
+            },
+            hook: () => {
+                let dh = edh.hook();
+                return new ModelHandle(this.getArrayElementFromParentHandle(dh, alias.realDataLocation.index, type).item);
+            }
+        }
+    }
+}
+
+export type HandleFactorySimpleAliases = {
+    real: string,
+    fake: string
+}[]
+
+export class HandleFactoryWithSimpleAliases extends HandleFactory {
+    constructor(schema: Schema, private aliases: HandleFactorySimpleAliases, parent: HandleFactory) {
+        super(schema, parent);
+    }
+
+    private findAlias(name: string) {
+        return this.aliases.find(a => a.fake === name);
+    }
+
+    createHandle<M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F, DataHandle<M, F>> {
+        let alias = this.findAlias(dependency.modelName);
+        if(alias) {
+            return this.parent.createHandle(new Dependency(`${alias.real}.${dependency.fieldName}`), type);
+        }
+        return this.parent.createHandle(dependency, type);
+    }
+
+    createModelHandle<M, F>(modelName: string, type: StoreType<M, F>): EmptyModelHandle<M, ModelHandle<M>> {
+        let alias = this.findAlias(modelName);
+        if(alias) {
+            return this.parent.createModelHandle(alias.real, type);
+        }
+        return this.parent.createModelHandle(modelName, type);
+    }
+    
 }
 
 export type HandleFactoryOverrides = {
@@ -152,5 +219,21 @@ export class HandleFactoryWithOverrides extends HandleFactory {
         }
 
         return this.parent.createHandle(dependency, type);
+    }
+
+    createModelHandle<M, F>(modelName: string, type: StoreType<M, F>): EmptyModelHandle<M, ModelHandle<M>> {
+        let override = this.overrides.find(a => a.fake === modelName);
+        if(override === undefined) {
+            return this.parent.createModelHandle(modelName, type);
+        }
+        let mv = (type === StoreTypes.Models ? override.value : override.formValue) as M;
+        return {
+            initialize: (state: any) => {
+                return new ModelHandle(mv);
+            },
+            hook: () => {
+                return new ModelHandle(mv);
+            }
+        }
     }
 }

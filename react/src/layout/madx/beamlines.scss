@@ -1,0 +1,24 @@
+.popover-buttons {
+    flex-flow: row nowrap;
+    justify-content: flex-end; 
+    display: flex;
+    align-items: normal;
+    position: absolute; 
+    right: 0px;
+    white-space: nowrap;
+}
+
+.popover-buttons-outer {
+    width: 0;
+    position: relative;
+    display: inline-block;
+}
+
+.popover-button {
+    margin-left: 10px;
+    color: white !important;
+}
+
+table > tr, table > thead, table > tbody {
+    width: 100%;
+}

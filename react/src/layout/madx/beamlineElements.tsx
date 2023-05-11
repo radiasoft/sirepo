@@ -3,7 +3,7 @@ import { getValueSelector, revertDataStructure, StoreTypes } from "../../data/da
 import { FormStateHandleFactory } from "../../data/form";
 import { CHandleFactory } from "../../data/handle";
 import { Layout } from "../layout";
-import { TemplateSettings } from "./allBeamlineElements";
+import { getTemplateSettingsByType, MadxBeamlineElementEditor, TemplateSettings } from "./allBeamlineElements";
 import { Dependency } from "../../data/dependency";
 import { ArrayFieldElement, ArrayFieldState } from "../../store/common";
 import { ModelState } from "../../store/models";
@@ -13,7 +13,9 @@ import { useCoupledState } from "../../hook/coupling";
 import { useDispatch, useStore } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
-import * as IconRegular from "@fortawesome/free-regular-svg-icons";
+import { LAYOUTS } from "../layouts";
+import { ArrayAliases } from "../../data/alias";
+import { HoverController } from "../../component/reusable/hover";
 
 export type MadxBeamlineElmenetsConfig = {
     selectedBeamlineDependency: string,
@@ -39,44 +41,68 @@ export class MadxBeamlineElementsLayout extends Layout<MadxBeamlineElmenetsConfi
         })
         let beamlinesHandle = handleFactory.createHandle(new Dependency(this.config.beamlinesDependency), StoreTypes.FormState).hook();
         let beamlinesValue = revertDataStructure(beamlinesHandle.value, getValueSelector(StoreTypes.FormState)) as ArrayFieldState<ModelState>;
-        let elementsHandle = handleFactory.createHandle(new Dependency(this.config.elementsDependency), StoreTypes.FormState).hook();
+        let elementsDependency = new Dependency(this.config.elementsDependency);
+        let elementsHandle = handleFactory.createHandle(elementsDependency, StoreTypes.FormState).hook();
         let elementsValue = revertDataStructure(elementsHandle.value, getValueSelector(StoreTypes.FormState)) as ArrayFieldState<ModelState>;
 
         let _allItems = [...elementsValue, ...beamlinesValue];
         let findBeamlineOrElementById = (id: number): ArrayFieldElement<ModelState> => {
             return _allItems.find(i => i.item.id === id || i.item._id === id);
         }
-        console.log("selectedBeamline", selectedBeamlineHandle.value);
-        console.log("elementsValue", elementsValue);
 
         let currentBeamline = beamlinesValue.find(beam => beam.item.id === selectedBeamlineHandle.value).item;
-        console.log("currentBeamline", currentBeamline);
         let beamlineElements = (currentBeamline.items as number[]).map(findBeamlineOrElementById)
-        console.log("beamlineElements", beamlineElements);
 
-        let [hoveredElement, updateHoveredElement] = useState<number>(undefined);
+        let [shownElement, updateShownElement] = useState<{
+            template: TemplateSettings,
+            aliases: ArrayAliases
+        }>(undefined);
 
         return (
-            <div className="d-flex flex-row" style={{ flexWrap: "wrap" }}>
-                {
-                    beamlineElements.map(e => {
-                        let id = (e.item._id !== undefined ? e.item._id : e.item.id) as number;
-                        let isHovered = id === hoveredElement;
-                        return (
-                            <div key={id} className="d-flex flex-row flex-nowrap" onMouseEnter={() => updateHoveredElement(id)} onMouseLeave={() => isHovered && updateHoveredElement(undefined)}>
-                                <Badge bg="primary">
-                                    {`${e.item.name as string}`}
-                                </Badge>
-                                <div style={{width: "25px", height: "25px"}}>
-                                    <div style={{ display: isHovered ? "block" : "none" }}>
-                                        <FontAwesomeIcon icon={Icon.faClose} onClick={() => null}/>
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                    })
-                }
-            </div>
+            <>
+                <div className="d-flex flex-row" style={{ flexWrap: "wrap" }}>
+                    <HoverController>
+                        {
+                            (hover) => {
+                                return beamlineElements.map(e => {
+                                    let id = (e.item._id !== undefined ? e.item._id : e.item.id) as number;
+                                    let template = e.item.type !== undefined ? getTemplateSettingsByType((e.item.type as string), this.config.elementTemplates) : undefined;
+                                    let aliases: ArrayAliases = e.item.type !== undefined ? [
+                                        {
+                                            realSchemaName: e.item.type as string,
+                                            realDataLocation: {
+                                                modelName: elementsDependency.modelName,
+                                                fieldName: elementsDependency.fieldName,
+                                                index: elementsValue.findIndex(e => e.item._id === id)
+                                            },
+                                            fake: e.item.type as string
+                                        }
+                                    ] : undefined;
+                                    return (
+                                        <div key={id} className="d-flex flex-row flex-nowrap" onMouseEnter={() => hover.aquireHover(id)} onMouseLeave={() => hover.releaseHover(id)}>
+                                            <Badge bg="primary" onDoubleClick={() => {
+                                                    updateShownElement({
+                                                        template,
+                                                        aliases
+                                                    })
+                                                }
+                                            }>
+                                                {`${e.item.name as string}`}
+                                            </Badge>
+                                            <div style={{width: "25px", height: "25px"}}>
+                                                <div style={{ display: hover.checkHover(id) ? "block" : "none" }}>
+                                                    <FontAwesomeIcon icon={Icon.faClose} onClick={() => null}/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            }
+                        }
+                    </HoverController>
+                </div>
+                {shownElement && <MadxBeamlineElementEditor aliases={shownElement.aliases} template={shownElement.template} onHide={() => updateShownElement(undefined)}/>}
+            </>
         )
     }
 }

@@ -668,33 +668,31 @@ class LatticeUtil(object):
         By default the commands and elements containers are iterated.
         """
         iterator.id_map = self.id_map
-        a = [self.data.models[name]] if name else [map(lambda i: i.item, self.data.models.elements.elements), self.data.models.commands]
-        for e in a:
-            for m in e:
-                model_schema = self.schema.model[self.model_name_for_data(m)]
-                iterator.start(m)
-                for k in sorted(m):
-                    if k in model_schema:
-                        iterator.field(m, model_schema[k], k)
-                iterator.end(m)
+        e = [self.data.models[name]] if name else self.data.models.commands + list(map(lambda i: i.item, self.data.models.elements.elements))
+        for m in e:
+            model_schema = self.schema.model[self.model_name_for_data(m)]
+            iterator.start(m)
+            for k in sorted(m):
+                if k in model_schema:
+                    iterator.field(m, model_schema[k], k)
+            iterator.end(m)
         return iterator
 
     @classmethod
     def max_id(cls, data):
         max_id = 1
-        a = []
+        e = []
         if "elements" in data.models:
-            a += map(lambda i: i.item, data.models.elements.elements)
+            e += map(lambda i: i.item, data.models.elements.elements)
         if "lattice" in data.models:
-            a += map(lambda i: i.item, data.models.lattice.beamlines)
+            e += map(lambda i: i.item, data.models.lattice.beamlines)
         if "commands" in data.models:
-            a += data.models.commands
-        for e in a:
-            for m in e:
-                assert "_id" in m or "id" in m, "Missing id: {}".format(m)
-                i = m._id if "_id" in m else m.id
-                if i > max_id:
-                    max_id = i
+            e += data.models.commands
+        for m in e:
+            assert "_id" in m or "id" in m, "Missing id: {}".format(m)
+            i = m._id if "_id" in m else m.id
+            if i > max_id:
+                max_id = i
         return max_id
 
     @classmethod

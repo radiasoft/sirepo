@@ -47,7 +47,7 @@ export class ReportEventManager {
         }
     }
 
-    private callListenerWithData = (listener: ReportEventSubscriber, simulationData: ResponseHasState) => {
+    protected callListenerWithData = (listener: ReportEventSubscriber, simulationData: ResponseHasState) => {
         listener.onReportData && listener.onReportData(simulationData);
         if(simulationData.state === 'completed') {
             listener.onComplete && listener.onComplete()
@@ -58,7 +58,7 @@ export class ReportEventManager {
         this.reportEventListeners = mapProperties(this.reportEventListeners, (_, listeners) => Object.fromEntries(Object.entries(listeners).filter(([k,]) => k !== key)));
     }
 
-    getListenersForReport: (report: string) => ReportEventSubscriber[] = (report: string) => {
+    private getListenersForReport: (report: string) => ReportEventSubscriber[] = (report: string) => {
         return Object.entries(this.reportEventListeners[report] || {}).map(([, listener]) => listener);
     }
 

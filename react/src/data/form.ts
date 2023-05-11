@@ -7,7 +7,7 @@ import { Dictionary, mapProperties } from "../utility/object";
 import { Schema } from "../utility/schema";
 import { StoreType, StoreTypes, expandDataStructure, revertDataStructure, getValueSelector } from "./data";
 import { Dependency } from "./dependency";
-import { DataHandle, EmptyDataHandle, HandleFactory } from "./handle";
+import { DataHandle, EmptyDataHandle, EmptyModelHandle, HandleFactory, ModelHandle } from "./handle";
 
 export type FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => void
 type FormSelectorFunc<V> = (state: any) => V
@@ -147,5 +147,9 @@ export class FormStateHandleFactory extends HandleFactory {
             })
         }
         return edh;
+    }
+
+    createModelHandle<M, F>(modelName: string, type: StoreType<M, F>): EmptyModelHandle<M, ModelHandle<M>> {
+        return this.parent.createModelHandle(modelName, type);
     }
 }

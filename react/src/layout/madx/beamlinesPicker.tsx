@@ -2,12 +2,14 @@ import React, { useState } from "react"
 import { FunctionComponent, useContext } from "react"
 import { Button, Table } from "react-bootstrap"
 import { useDispatch, useStore } from "react-redux"
+import { HoverController } from "../../component/reusable/hover"
 import { StoreTypes } from "../../data/data"
 import { Dependency } from "../../data/dependency"
 import { CHandleFactory } from "../../data/handle"
 import { ArrayFieldState } from "../../store/common"
 import { ModelState } from "../../store/models"
 import { Layout } from "../layout"
+import "./beamlines.scss";
 
 export type MadxBeamlinesPickerConfig = {
     selectedBeamlineDependency: string
@@ -24,7 +26,6 @@ export class MadxBeamlinesPickerLayout extends Layout<MadxBeamlinesPickerConfig>
         let beamlinesHandle = handleFactory.createHandle(new Dependency(this.config.beamlinesDependency), StoreTypes.Models).hook();
         let beamlines: ArrayFieldState<ModelState> = beamlinesHandle.value as ArrayFieldState<ModelState>;
 
-        let [hoveredBeamline, updateHoveredBeamline] = useState<number>(undefined);
         let selectBeamline = (id: number) => {
             if(id !== selectedBeamline) {
                 selectedBeamlineIdHandle.write(id, store.getState(), dispatch);
@@ -32,7 +33,7 @@ export class MadxBeamlinesPickerLayout extends Layout<MadxBeamlinesPickerConfig>
         }
 
         return (
-            <Table>
+            <Table className="w-100">
                 <thead>
                     <tr>
                         <th>
@@ -50,40 +51,53 @@ export class MadxBeamlinesPickerLayout extends Layout<MadxBeamlinesPickerConfig>
                     </tr>
                 </thead>
                 <tbody>
+                    <HoverController>
                     {
-                        beamlines.map(bl => bl.item).map(bl => {
-                            let name = bl.name as string;
-                            let id = bl.id as number;
-                            let isHovered = hoveredBeamline === id;
-                            let isSelected = selectedBeamline === id;
-                            return (
-                                <tr key={id} onMouseEnter={() => updateHoveredBeamline(id)} onMouseLeave={() => isHovered ? updateHoveredBeamline(undefined) : undefined} style={
-                                    {
-                                        backgroundColor: isSelected ? "#dff0d8" : undefined,
-                                        /*filter: isHovered ? "brightness(75%)" : undefined*/
-                                    }
-                                }>
-                                    <td>
-                                        {`${name}`}
-                                    </td>
-                                    <td>
-                                        {/* TODO: description */}
-                                    </td>
-                                    <td>
-                                        {(bl.length as number).toPrecision(4)}
-                                    </td>
-                                    <td>
-                                        
-                                        {isHovered ? (
-                                            <Button size="sm" variant="primary" onClick={() => selectBeamline(id)}>
-                                                Select
-                                            </Button>
-                                        ) : (bl.angle as number).toPrecision(4)}
-                                    </td>
-                                </tr>
-                            )
-                        })
+                        (hover) => {
+                            return beamlines.map(bl => bl.item).map(bl => {
+                                let name = bl.name as string;
+                                let id = bl.id as number;
+                                let isSelected = selectedBeamline === id;
+                                return (
+                                    <tr key={id} onMouseEnter={() => hover.aquireHover(id)} onMouseLeave={() => hover.releaseHover(id)} style={
+                                        {
+                                            backgroundColor: isSelected ? "#dff0d8" : undefined,
+                                            /*filter: isHovered ? "brightness(75%)" : undefined*/
+                                        }
+                                    }>
+                                        <td>
+                                            {`${name}`}
+                                        </td>
+                                        <td>
+                                            {/* TODO: description */}
+                                        </td>
+                                        <td>
+                                            {(bl.length as number).toPrecision(4)}
+                                        </td>
+                                        <td>
+                                            
+                                            {(bl.angle as number).toPrecision(4)}
+                                        </td>
+                                        {
+                                            hover.checkHover(id) && (
+                                                <div className="popover-buttons-outer">
+                                                    <div className="popover-buttons">
+                                                        <Button className="popover-button" size="sm" variant="primary" onClick={() => selectBeamline(id)}>
+                                                            Select
+                                                        </Button>
+                                                        <Button className="popover-button" size="sm" variant="primary" onClick={() => selectBeamline(id)}>
+                                                            Select
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )
+                                        }
+                                    </tr>
+                                )
+                            })
+                        }
                     }
+                    </HoverController>
                 </tbody>
             </Table>
         )
