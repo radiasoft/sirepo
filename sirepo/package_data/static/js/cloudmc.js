@@ -1797,7 +1797,7 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
         panelState.showField($scope.modelName, 'file', isFile);
         $scope.$parent.advancedFields.forEach((x, i) => {
             panelState.showTab($scope.modelName, i, ! isFile || x[0] === 'Type');
-        })
+        });
     }
 
 });
