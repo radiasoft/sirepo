@@ -1600,7 +1600,9 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
 
             $scope.description = m => {
                 if (childModel === 'source')  {
-                    return m.file ? `File(filename=${m.file })` : sourceInfo('SpatialDistribution', m.space);
+                    return m.type === 'file' && m.file
+                         ? `File(filename=${m.file })`
+                         : sourceInfo('SpatialDistribution', m.space);
                 }
                 return tallyInfo(m);
             };
@@ -1791,12 +1793,9 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
 
     function updateEditor() {
         const isFile = $scope.modelData.type === 'file';
-        if (! isFile) {
-            $scope.modelData.file = '';
-        }
         panelState.showField($scope.modelName, 'file', isFile);
         $scope.$parent.advancedFields.forEach((x, i) => {
-            panelState.showTab($scope.modelName, i, ! isFile || x[0] === 'Type');
+            panelState.showTab($scope.modelName, i + 1, ! isFile || x[0] === 'Type');
         });
     }
 
