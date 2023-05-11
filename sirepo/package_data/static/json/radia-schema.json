@@ -326,6 +326,9 @@
             ["objectBevel", "Bevel"],
             ["objectFillet", "Fillet"]
         ],
+        "ObjectiveFunction": [
+            ["uniformity", "Field Uniformity"]
+        ],
         "ObjectType": [
             ["cuboid", "Cuboid"],
             ["cylinder", "Cylinder"],
@@ -338,8 +341,8 @@
             ["stl", "STL"]
         ],
         "OptimizerFieldType": [
-            ["builtin", "Built-in"],
-            ["object", "Object Field"]
+            ["optimizerField", "Built-in"],
+            ["objectOptimizerField", "Object Field"]
         ],
         "PathType": [
             ["axisPath", "Axis"],
@@ -904,19 +907,23 @@
             "radius": ["Radius", "Float", 1.0],
             "type": ["_", "ObjectCutType", "objectFillet"]
         },
+        "objectiveFunction": {
+            "inputs": ["Inputs", "MultipleModelArray", [], "", ["optimizerField" , "objectOptimizerField"]],
+            "objective": ["Objective Function", "ObjectiveFunction", "uniformity"]
+        },
         "objectOptimizerField": {
             "_super": ["_", "model", "optimizerField"],
             "object": ["Object", ""],
-            "type": ["_", "OptimizerFieldType", "object"]
+            "type": ["_", "OptimizerFieldType", "objectOptimizerField"]
         },
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
         "optimizer": {
             "continuousFieldSteps": ["Continuous Field Divisions", "Integer", 20, "Number of times to subdivide non-gridded fields, ex. Current or Voltage"],
-            "fields": ["Fields", "MultipleModelArray", [], "", ["optimizerField" , "objectOptimizerField"]],
+            "fields": ["Inputs", "MultipleModelArray", [], "", ["optimizerField" , "objectOptimizerField"]],
             "initialSteps": ["Initial Simulation Steps", "Integer", 500],
-            "objective": ["Objective Function", "ObjectiveFunction", "transparency"],
+            "objective": ["Objective Function", "model.objectiveFunction", {}],
             "optimizerSteps": ["Optimizer Steps Between Tolerance Checks", "Integer", 250],
             "timeLimit": ["Time Limit Per Run (s)", "Integer", 60],
             "tolerance": ["Tolerance", "Float", 0.001]
@@ -932,7 +939,7 @@
             "id": ["_", "String", ""],
             "minimum": ["Minimum", "Float"],
             "maximum": ["Maximum", "Float"],
-            "type": ["_", "OptimizerFieldType", "builtin"]
+            "type": ["_", "OptimizerFieldType", "optimizerField"]
         },
         "pointsReport": {
             "doSnap": ["Snap to Grid", "Boolean", "0"],
@@ -1508,8 +1515,10 @@
         },
         "optimizer": {
             "title": "Optimization Fields",
+            "basic": [
+                "objective"
+            ],
             "advanced": [
-                "fields",
                 "tolerance",
                 "timeLimit",
                 "continuousFieldSteps",
@@ -1533,7 +1542,7 @@
             ]
         },
         "objectOptimizerField": {
-            "title": "Field",
+            "title": "Object Field",
             "basic": [],
             "advanced": [
                 "object",
@@ -1543,7 +1552,7 @@
             ]
         },
         "optimizerField": {
-            "title": "Field",
+            "title": "Built-in Field",
             "basic": [],
             "advanced": [
                 "field",

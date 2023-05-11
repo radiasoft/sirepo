@@ -1738,50 +1738,9 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
         restrict: 'A',
         scope: {},
         template: `
-            <form name="form" class="form-horizontal" data-ng-show="::optFields.length">
-            
+            <form name="form" class="form-horizontal">
             <div class="form-group form-group-sm">
-              <h4>Bounds</h4>
-              
-            </div>
-            <div class="form-group form-group-sm" data-ng-show="appState.models.optimizer.fields.length">
-              <h4>Constraints</h4>
-              <table class="table table-striped table-condensed">
-                <thead>
-                  <tr>
-                    <th>Bounded Field</th>
-                    <th> </th>
-                    <th>Field</th>
-                    <th> </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr data-ng-repeat="constraint in appState.models.optimizer.constraints track by $index">
-                    <td>
-                      <div class="form-control-static">{{ labelForField(constraint[0]) }}</div>
-                    </td>
-                    <td style="vertical-align: middle">{{ constraint[1] }}</td>
-                    <td>
-                      <div class="form-control-static">{{ labelForField(constraint[2]) }}</div>
-                    </td>
-                    <td style="vertical-align: middle">
-                      <button class="btn btn-danger btn-xs" data-ng-click="deleteConstraint($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <select class="input-sm form-control" data-ng-model="selectedConstraint" data-ng-options="f.field as labelForField(f.field) for f in appState.models.optimizer.fields"></select>
-                    </td>
-                    <td>=</td>
-                    <td>
-                      <select data-ng-show="selectedConstraint" class="input-sm form-control" data-ng-model="selectedConstraint2" data-ng-options="f.field as f.label for f in ::optFields" data-ng-change="addConstraint()"></select>
-                    </td>
-                    <td style="vertical-align: middle">
-                      <button  data-ng-show="selectedConstraint" class="btn btn-danger btn-xs" data-ng-click="deleteSelectedConstraint()" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div data-model-field="'fields'" data-model-name="'optimizer'"></div>
             </div>
             <div class="form-group form-group-sm">
               <div data-model-field="'objective'" data-model-name="'optimizer'"></div>
@@ -1793,15 +1752,16 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
             </form>
         `,
         controller: function($scope, $element) {
-            const OPTIMIZABLE_TYPES = ['Float', 'FloatArray'];
+            const OPTIMIZIBLE_TYPES = ['Float', 'FloatArray'];
 
-            $scope.form = angular.element($($element).find('form').eq(0));
             $scope.appState = appState;
+            $scope.form = angular.element($($element).find('form').eq(0));
+            $scope.avaiableFields = [];
             $scope.selectedField = null;
             $scope.selectedConstraint = null;
             $scope.selectedConstraint2 = null;
 
-            function avaiableFields() {
+            function getAvaiableFields() {
                 const fields = [];
 
                 // fields from schema
@@ -1831,17 +1791,17 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
                 const optFields = Object.keys(info).filter(
                     x => {
                         const t = info[x][SIREPO.INFO_INDEX_TYPE]
-                        return OPTIMIZABLE_TYPES.includes(t);
+                        return OPTIMIZIBLE_TYPES.includes(t);
                     }
                 );
                 for (const o of radiaService.getObjects()) {
-                    for (const f in Object.keys(o).filter(x => optFields.includes(x))) {
+                    for (const f of Object.keys(o).filter(x => optFields.includes(x))) {
                         const id = `${o.id}.${f}`;
                         if (! getOptField(id)) {
                             fields.push(
                                 appState.setModelDefaults(
                                     {
-                                        field: appState.optFieldName(m, f),
+                                        field: f,
                                         id: id,
                                     },
                                     'objectOptimizerField'
@@ -1850,7 +1810,6 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
                         }
                     }
                 }
-                srdbg(fields);
                 return fields;
             }
 
@@ -2001,10 +1960,12 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
             };
 
             appState.whenModelsLoaded($scope, function() {
-                avaiableFields();
+
                 //buildOptimizeFields();
                 //verifyBoundsAndConstraints();
             });
+
+            $scope.avaiableFields = getAvaiableFields();
         },
     };
 });
