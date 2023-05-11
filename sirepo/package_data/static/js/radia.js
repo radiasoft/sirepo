@@ -1738,44 +1738,11 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
         restrict: 'A',
         scope: {},
         template: `
-            <div class="well" data-ng-show="! optFields.length">
-            Select fields for optimization on the <i>Source</i> tab.
-            </div>
             <form name="form" class="form-horizontal" data-ng-show="::optFields.length">
+            
             <div class="form-group form-group-sm">
               <h4>Bounds</h4>
-              <table class="table table-striped table-condensed">
-                <thead>
-                  <tr>
-                    <th>Field</th>
-                    <th>Minimum</th>
-                    <th>Maximum</th>
-                    <th> </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr data-ng-repeat="optimizerField in appState.models.optimizer.fields track by $index">
-                    <td>
-                      <div class="form-control-static">{{ labelForField(optimizerField.field) }}</div>
-                    </td><td>
-                      <div class="row" data-field-editor="\'minimum\'" data-field-size="12" data-model-name="\'optimizerField\'" data-model="optimizerField"></div>
-                    </td><td>
-                      <div class="row" data-field-editor="\'maximum\'" data-field-size="12" data-model-name="\'optimizerField\'" data-model="optimizerField"></div>
-                    </td>
-                    <td style="vertical-align: middle">
-                      <button class="btn btn-danger btn-xs" data-ng-click="deleteField($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <select class="input-sm form-control" data-ng-model="selectedField" data-ng-options="f.field as f.label for f in unboundedOptFields" data-ng-change="addField()"></select>
-                    </td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                  </tr>
-                </tbody>
-              </table>
+              
             </div>
             <div class="form-group form-group-sm" data-ng-show="appState.models.optimizer.fields.length">
               <h4>Constraints</h4>
@@ -1817,7 +1784,7 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
               </table>
             </div>
             <div class="form-group form-group-sm">
-              <div data-model-field="\'objective\'" data-model-name="\'optimizer\'"></div>
+              <div data-model-field="'objective'" data-model-name="'optimizer'"></div>
             </div>
             <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
               <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
@@ -1826,11 +1793,70 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
             </form>
         `,
         controller: function($scope, $element) {
+            const OPTIMIZABLE_TYPES = ['Float', 'FloatArray'];
+
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.appState = appState;
             $scope.selectedField = null;
             $scope.selectedConstraint = null;
             $scope.selectedConstraint2 = null;
+
+            function avaiableFields() {
+                const fields = [];
+
+                // fields from schema
+                for (const m in SIREPO.APP_SCHEMA.model) {
+                    const info = appState.modelInfo(m);
+                    for (const f in info) {
+                        const id = `${m}.${f}`;
+                        if (
+                            info[f][SIREPO.INFO_INDEX_TYPE] !== 'OptFloat' || getOptField(id)
+                        ) {
+                            continue;
+                        }
+                        fields.push(
+                            appState.setModelDefaults(
+                                {
+                                    field: appState.optFieldName(m, f),
+                                    id: id,
+                                },
+                                'optimizerField'
+                            )
+                        );
+                    }
+                }
+                // fields from objects
+                const m = 'geomObject';
+                const info = appState.modelInfo(m);
+                const optFields = Object.keys(info).filter(
+                    x => {
+                        const t = info[x][SIREPO.INFO_INDEX_TYPE]
+                        return OPTIMIZABLE_TYPES.includes(t);
+                    }
+                );
+                for (const o of radiaService.getObjects()) {
+                    for (const f in Object.keys(o).filter(x => optFields.includes(x))) {
+                        const id = `${o.id}.${f}`;
+                        if (! getOptField(id)) {
+                            fields.push(
+                                appState.setModelDefaults(
+                                    {
+                                        field: appState.optFieldName(m, f),
+                                        id: id,
+                                    },
+                                    'objectOptimizerField'
+                                )
+                            );
+                        }
+                    }
+                }
+                srdbg(fields);
+                return fields;
+            }
+
+            function getOptField(id) {
+                return appState.models.optimizer.fields.filter(x => x.id === id)[0];
+            }
 
             function buildOptimizeFields() {
                 $scope.optFields = radiaService.buildOptimizeFields();
@@ -1975,8 +2001,9 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
             };
 
             appState.whenModelsLoaded($scope, function() {
-                buildOptimizeFields();
-                verifyBoundsAndConstraints();
+                avaiableFields();
+                //buildOptimizeFields();
+                //verifyBoundsAndConstraints();
             });
         },
     };
