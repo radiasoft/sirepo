@@ -197,7 +197,10 @@ def _iterate_sims_by_users(qcall, all_sim_types):
         if _is_src_dir(d):
             continue
         with qcall.auth.logged_in_user_set(simulation_db.uid_from_dir_name(d)):
-            s = _get_named_example_sims(qcall, all_sim_types)
+            s = _get_named_example_sims(
+                qcall,
+                [a for a in all_sim_types if d.join(a).exists()],
+            )
             for t in s.keys():
                 yield (t, s)
 

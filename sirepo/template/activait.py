@@ -1524,33 +1524,37 @@ def _set_fields_by_layer_type(l, new_layer):
         )
 
     if "input" not in l.name:
-        return new_layer.pkmerge(
-            PKDict(
-                Activation=lambda l: PKDict(activation=l.activation.__name__),
-                Add=lambda l: PKDict(),
-                BatchNormalization=lambda l: PKDict(momentum=l.momentum),
-                Concatenate=lambda l: PKDict(),
-                Conv2D=lambda l: _conv(l),
-                Dense=lambda l: PKDict(
-                    dimensionality=l.units,
-                    activation=l.activation.__name__,
-                ),
-                GlobalAveragePooling2D=lambda l: PKDict(),
-                GaussianNoise=lambda l: PKDict(stddev=l.stddev),
-                GaussianDropout=lambda l: _dropout(l),
-                AlphaDropout=lambda l: _dropout(l),
-                Dropout=lambda l: _dropout(l),
-                Flatten=lambda l: PKDict(),
-                SeparableConv2D=lambda l: _conv(l),
-                MaxPooling2D=lambda l: _pool(l),
-                AveragePooling2D=lambda l: _pool(l),
-                Conv2DTranspose=lambda l: _conv(l),
-                UpSampling2D=lambda l: PKDict(
-                    size=l.size[0], interpolation=l.interpolation
-                ),
-                ZeroPadding2D=lambda l: PKDict(padding=l.padding[0][0]),
-            )[new_layer.layer](l)
+        d = PKDict(
+            Activation=lambda l: PKDict(activation=l.activation.__name__),
+            Add=lambda l: PKDict(),
+            BatchNormalization=lambda l: PKDict(momentum=l.momentum),
+            Concatenate=lambda l: PKDict(),
+            Conv2D=lambda l: _conv(l),
+            Dense=lambda l: PKDict(
+                dimensionality=l.units,
+                activation=l.activation.__name__,
+            ),
+            GlobalAveragePooling2D=lambda l: PKDict(),
+            GaussianNoise=lambda l: PKDict(stddev=l.stddev),
+            GaussianDropout=lambda l: _dropout(l),
+            AlphaDropout=lambda l: _dropout(l),
+            Dropout=lambda l: _dropout(l),
+            Flatten=lambda l: PKDict(),
+            Reshape=lambda l: PKDict(new_shape=str(l.target_shape)),
+            SeparableConv2D=lambda l: _conv(l),
+            MaxPooling2D=lambda l: _pool(l),
+            AveragePooling2D=lambda l: _pool(l),
+            Conv2DTranspose=lambda l: _conv(l),
+            UpSampling2D=lambda l: PKDict(
+                size=l.size[0], interpolation=l.interpolation
+            ),
+            ZeroPadding2D=lambda l: PKDict(padding=l.padding[0][0]),
         )
+        if not d.get(new_layer.layer):
+            raise sirepo.util.UserAlert(
+                f"No support for importing {l.name.title()} layer"
+            )
+        return new_layer.pkmerge(d[new_layer.layer](l))
     return new_layer
 
 

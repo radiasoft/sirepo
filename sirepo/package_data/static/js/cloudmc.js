@@ -634,7 +634,17 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             }
 
             function handlePick(callData) {
-                if (vtkScene.renderer !== callData.pokedRenderer || isGeometryOnly) {
+                function getClosestActor(pickedActors) {
+                    for (const a of pickedActors) {
+                        const v = getVolumeByActor(a);
+                        if (v) {
+                            return [a, v];
+                        }
+                    }
+                    return [null, null];
+                }
+
+                if (vtkScene.renderer !== callData.pokedRenderer || ! isGeometryOnly) {
                     return;
                 }
 
@@ -647,9 +657,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
                 const pos = callData.position;
                 picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
+                const [actor, v] = getClosestActor(picker.getActors());
 
-                const actor = picker.getActors()[0];
-                const v = getVolumeByActor(actor);
                 if (selectedVolume) {
                     vtkScene.removeActor(axesBoxes[selectedVolume.name]);
                     delete axesBoxes[selectedVolume.name];
