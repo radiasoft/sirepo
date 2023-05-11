@@ -15,19 +15,19 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_send_directly():
-    import pykern.pkconfig
+    from pykern import pkconfig
     from pykern.pkcollections import PKDict
 
-    pykern.pkconfig.reset_state_for_testing(
+    pkconfig.reset_state_for_testing(
         PKDict(
             SIREPO_SMTP_SEND_DIRECTLY="1",
         ),
     )
-    import sirepo.smtp
-    import sirepo.util
 
-    sirepo.smtp.send(
+    from sirepo import smtp, util
+
+    smtp.send(
         os.environ.get("SIREPO_TESTS_SMTP_EMAIL"),
-        f"sirepo.smtp1_test {sirepo.util.random_base62(5)}",
+        f"sirepo.smtp1_test {util.random_base62(5)}",
         "This is a message from sirepo/tests/smtp1_test.py\n",
     )
