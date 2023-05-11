@@ -38,10 +38,11 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="ObjectType" class="col-sm-7">
             <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="model[field]" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
         </div>
-        <div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">
-          <select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
-            <div class="sr-input-warning">
-            </div>
+        <div data-ng-switch-when="FieldPaths" class="col-sm-7">
+          <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
+        </div>
+        <div data-ng-switch-when="OptimizableModel" data-ng-class="fieldClass">
+          <div data-optimizable-model="" data-model-name="modelName" data-model="model" data-field="model[field]"></div>
         </div>
         <div data-ng-switch-when="MultipleModelArray" class="col-sm-12">
           <div data-multiple-model-array="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Modification" data-models="info[4]"></div>
@@ -1767,6 +1768,26 @@ SIREPO.app.directive('multipleModelArray', function(appState, panelState, radiaS
     };
 });
 
+SIREPO.app.directive('optimizableModel', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            model: '=',
+            modelName: '=',
+        },
+        template: `
+          <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
+        `,
+        controller: function($scope) {
+            $scope.isExpanded = false;
+            $scope.toggleExpand = () => {
+                $scope.isExpanded = ! $scope.isExpanded;
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaService) {
     return {
         restrict: 'A',
@@ -3363,116 +3384,6 @@ SIREPO.viewLogic('fieldPathsView', function(activeSection, appState, panelState,
     });
 });
 
-SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, requestSender, utilities, $element, $scope) {
-    let modelType = null;
-    let editedModels = [];
-    const parent = $scope.$parent;
-
-    $scope.watchFields = [
-        [
-            'geomObject.type',
-            "extrudedPoly.extrusionAxisSegments", "extrudedPoly.triangulationLevel",
-            'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
-            'jay.hookHeight', 'jay.hookWidth',
-        ], updateShapeEditor,
-    ];
-
-    $scope.whenSelected = () => {
-        modelType = appState.models.geomObject.type;
-        $scope.modelData = appState.models[$scope.modelName];
-        editedModels = radiaService.updateModelAndSuperClasses(modelType, $scope.modelData);
-        updateShapeEditor();
-    };
-
-    $scope.$on('extrudedPoly.changed', loadPoints);
-    $scope.$on('stl.changed', loadSTLSize);
-
-    function setPoints(data) {
-        $scope.modelData.referencePoints = data.points;
-        radiaService.updateExtruded($scope.modelData, () => {
-            appState.saveChanges(editedModels);
-            updateShapeEditor();
-        });
-    }
-
-    function setSTLSize(data) {
-        $scope.modelData.size = data.size;
-        appState.saveQuietly(editedModels);
-    }
-
-    function loadSTLSize()  {
-        requestSender.sendStatelessCompute(
-            appState,
-            setSTLSize,
-            {
-                method: 'stl_size',
-                args: {
-                    file: $scope.modelData.file,
-                }
-            },
-            {
-                onError: res => {
-                    if (res.error.includes('does not exist')) {
-                        throw new Error('STL file ' + $scope.modelData.file + ' does not exist');
-                    }
-                    throw new Error(res.error);
-                }
-            }
-        );
-    }
-
-    function loadPoints() {
-        if (! $scope.modelData.pointsFile) {
-            $scope.modelData.points = [];
-            $scope.modelData.referencePoints = [];
-            return;
-        }
-        radiaService.buildShapePoints($scope.modelData, setPoints);
-    }
-
-    function buildTriangulationLevelDelegate() {
-        const m = 'extrudedPoly';
-        const f = 'triangulationLevel';
-        let d = panelState.getFieldDelegate(m, f);
-        d.range = () => {
-            return {
-                min: appState.fieldProperties(m, f).min,
-                max: appState.fieldProperties(m, f).max,
-                step: 0.01
-            };
-        };
-        d.readout = () => {
-            return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
-        };
-        d.update = () => {};
-        $scope.fieldDelegate = d;
-    }
-
-    function modelField(f) {
-        const m = appState.parseModelField(f);
-        return m ? m : [parent.modelName, f];
-    }
-
-    function updateShapeEditor() {
-        parent.showPageNamed('Point Editor', $scope.modelData.pointsFile !== undefined);
-        modelType = appState.models.geomObject.type;
-        parent.activePage.items.forEach((f) => {
-            const m = modelField(f);
-            const hasField = SIREPO.APP_SCHEMA.model[modelType][m[1]] !== undefined;
-            panelState.showField(
-                m[0],
-                m[1],
-                hasField || appState.isSubclass(modelType, m[0])
-            );
-        });
-        // show the type but disable it
-        panelState.enableField('geomObject', 'type', false);
-        panelState.showField('extrudedPoints', 'referencePoints', ($scope.modelData.referencePoints || []).length > 0);
-    }
-
-    buildTriangulationLevelDelegate();
-});
-
 SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, requestSender, $rootScope, $scope) {
 
     const ctl = angular.element($('div[data-ng-controller]').eq(0)).controller('ngController');
@@ -3652,6 +3563,195 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     const self = {};
     self.getBaseObject = () => $scope.modelData;
     return self;
+});
+
+SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, requestSender, utilities, $element, $scope) {
+    let modelType = null;
+    let editedModels = [];
+    const parent = $scope.$parent;
+
+    $scope.watchFields = [
+        [
+            'geomObject.type',
+            "extrudedPoly.extrusionAxisSegments", "extrudedPoly.triangulationLevel",
+            'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
+            'jay.hookHeight', 'jay.hookWidth',
+        ], updateShapeEditor,
+    ];
+
+    $scope.whenSelected = () => {
+        modelType = appState.models.geomObject.type;
+        $scope.modelData = appState.models[$scope.modelName];
+        editedModels = radiaService.updateModelAndSuperClasses(modelType, $scope.modelData);
+        updateShapeEditor();
+    };
+
+    $scope.$on('extrudedPoly.changed', loadPoints);
+    $scope.$on('stl.changed', loadSTLSize);
+
+    function setPoints(data) {
+        $scope.modelData.referencePoints = data.points;
+        radiaService.updateExtruded($scope.modelData, () => {
+            appState.saveChanges(editedModels);
+            updateShapeEditor();
+        });
+    }
+
+    function setSTLSize(data) {
+        $scope.modelData.size = data.size;
+        appState.saveQuietly(editedModels);
+    }
+
+    function loadSTLSize()  {
+        requestSender.sendStatelessCompute(
+            appState,
+            setSTLSize,
+            {
+                method: 'stl_size',
+                args: {
+                    file: $scope.modelData.file,
+                }
+            },
+            {
+                onError: res => {
+                    if (res.error.includes('does not exist')) {
+                        throw new Error('STL file ' + $scope.modelData.file + ' does not exist');
+                    }
+                    throw new Error(res.error);
+                }
+            }
+        );
+    }
+
+    function loadPoints() {
+        if (! $scope.modelData.pointsFile) {
+            $scope.modelData.points = [];
+            $scope.modelData.referencePoints = [];
+            return;
+        }
+        radiaService.buildShapePoints($scope.modelData, setPoints);
+    }
+
+    function buildTriangulationLevelDelegate() {
+        const m = 'extrudedPoly';
+        const f = 'triangulationLevel';
+        let d = panelState.getFieldDelegate(m, f);
+        d.range = () => {
+            return {
+                min: appState.fieldProperties(m, f).min,
+                max: appState.fieldProperties(m, f).max,
+                step: 0.01
+            };
+        };
+        d.readout = () => {
+            return appState.modelInfo(m)[f][SIREPO.INFO_INDEX_LABEL];
+        };
+        d.update = () => {};
+        $scope.fieldDelegate = d;
+    }
+
+    function modelField(f) {
+        const m = appState.parseModelField(f);
+        return m ? m : [parent.modelName, f];
+    }
+
+    function updateShapeEditor() {
+        parent.showPageNamed('Point Editor', $scope.modelData.pointsFile !== undefined);
+        modelType = appState.models.geomObject.type;
+        parent.activePage.items.forEach((f) => {
+            const m = modelField(f);
+            const hasField = SIREPO.APP_SCHEMA.model[modelType][m[1]] !== undefined;
+            panelState.showField(
+                m[0],
+                m[1],
+                hasField || appState.isSubclass(modelType, m[0])
+            );
+        });
+        // show the type but disable it
+        panelState.enableField('geomObject', 'type', false);
+        panelState.showField('extrudedPoints', 'referencePoints', ($scope.modelData.referencePoints || []).length > 0);
+    }
+
+    buildTriangulationLevelDelegate();
+});
+
+SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, radiaService, $scope) {
+
+    srdbg('optimizerView');
+    $scope.watchFields = [];
+
+    function addField(modelName, fieldName) {
+
+    }
+
+    function getOptField(id) {
+        return appState.models.optimizer.fields.filter(x => x.id === id)[0];
+    }
+
+    function objectFields() {
+        const fields = [];
+        const m = 'geomObject';
+        const info = appState.modelInfo(m);
+        const optFields = Object.keys(info).filter(
+            x => {
+                const t = info[x][SIREPO.INFO_INDEX_TYPE]
+                return OPTIMIZIBLE_TYPES.includes(t);
+            }
+        );
+        for (const o of radiaService.getObjects()) {
+            for (const f of Object.keys(o).filter(x => optFields.includes(x))) {
+                const id = `${o.id}.${f}`;
+                if (! getOptField(id)) {
+                    fields.push(
+                        appState.setModelDefaults(
+                            {
+                                field: f,
+                                id: id,
+                            },
+                            'objectOptimizerField'
+                        )
+                    );
+                }
+            }
+        }
+        return fields;
+    }
+
+    function schemaFields() {
+        const fields = [];
+        for (const m in SIREPO.APP_SCHEMA.model) {
+            const info = appState.modelInfo(m);
+            for (const f in info) {
+                const id = `${m}.${f}`;
+                if (
+                    info[f][SIREPO.INFO_INDEX_TYPE] !== 'OptFloat' || getOptField(id)
+                ) {
+                    continue;
+                }
+                fields.push(
+                    appState.setModelDefaults(
+                        {
+                            field: appState.optFieldName(m, f),
+                            id: id,
+                        },
+                        'optimizerField'
+                    )
+                );
+            }
+        }
+        return fields;
+    }
+
+    function updateEditor() {
+
+    }
+
+    $scope.whenSelected = () => {
+        $scope.modelData = appState.models[$scope.modelName];
+    };
+
+    $scope.$on(`${$scope.modelName}.changed`, () => {});
+
 });
 
 SIREPO.viewLogic('racetrackView', function(appState, panelState, radiaService, requestSender, $rootScope, $scope) {
