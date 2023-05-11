@@ -664,7 +664,7 @@ class VTKScene {
     /**
      * Sets the camera to the given position, pointing such that "up" is in the given direction
      * @param {[number]} position
-     * @param {[numbeer]} viewUp
+     * @param {[number]} viewUp
      */
     setCam(position = [1, 0, 0], viewUp = [0, 0, 1]) {
         this.cam.setPosition(...position);
@@ -1969,7 +1969,7 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
 
 // elevations tab + vtk tab (or all in 1 tab?)
 // A lot of this is 2d and could be extracted
-SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, panelState, plotting, utilities, vtkPlotting) {
+SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, panelState, plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1978,7 +1978,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             source: '=controller',
         },
         templateUrl: '/static/html/3d-builder.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope, $element) {
+        controller: function($scope) {
             const ASPECT_RATIO = 1.0;
 
             const ELEVATIONS = {};
@@ -2468,34 +2468,22 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     const sz = d.getSizeCoords().map(function (c) {
                         return utilities.roundToPlaces(c * invObjScale, 2);
                     });
-                    return `${d.id} ${d.name} center : ${ctr} size: ${sz}`;
+                    return `${d.name} center : ${ctr} size: ${sz}`;
                 });
             }
 
-            $scope.align = (o, alignType) => {
-                $scope.source.align(o, alignType, getElevation().labAxisIndices());
-            };
-
-            $scope.copyObject = function(o) {
-                $scope.source.copyObject(o);
-            };
-
-            $scope.deleteObject = function(o) {
-                $scope.source.deleteObject(o);
-            };
-
-            $scope.destroy = function() {
+            $scope.destroy = () => {
                 if (zoom) {
                     zoom.on('zoom', null);
                 }
                 $('.plot-viewport').off();
             };
 
-            $scope.dragMove = function(obj, evt) {
+            $scope.dragMove = (o, evt) => {
                 const p = isMouseInBounds(evt);
                 if (p) {
                     d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone sr-drag-clone-hidden');
-                    updateDragShadow(obj, p);
+                    updateDragShadow(o, p);
                 }
                 else {
                     clearDragShadow();
@@ -2505,7 +2493,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             };
 
             // called when dropping new objects, not existing
-            $scope.dropSuccess = function(obj, evt) {
+            $scope.dropSuccess = (o, evt) => {
                 clearDragShadow();
                 const p = isMouseInBounds(evt);
                 if (p) {
@@ -2514,25 +2502,25 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     const ctr = [0, 0, 0];
                     ctr[labXIdx] = axes.x.scale.invert(p[0]);
                     ctr[labYIdx] = axes.y.scale.invert(p[1]);
-                    obj.center = ctr.map(x => x * invObjScale);
-                    $scope.$emit('layout.object.dropped', obj);
+                    o.center = ctr.map(x => x * invObjScale);
+                    $scope.$emit('layout.object.dropped', o);
                     drawShapes();
                 }
             };
 
-            $scope.editObject = function(o) {
-                $scope.source.editObject(o);
-            };
+            $scope.editObject = $scope.source.editObject;
 
             $scope.fitToShapes = () => {
                 replot(true);
             };
 
+            $scope.getElevation = getElevation;
+
             $scope.getObjects = () => {
                 return (appState.models[$scope.modelName] || {}).objects;
             };
 
-            $scope.init = function() {
+            $scope.init = () => {
                 $scope.shapes = $scope.source.getShapes(getElevation());
 
                 $scope.$on($scope.modelName + '.changed', function(e, name) {
@@ -2565,25 +2553,18 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             $scope.isDropEnabled = () => $scope.source.isDropEnabled();
 
-            $scope.isGroup = obj => $scope.source.isGroup(obj);
+            $scope.plotHeight = () => $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom;
 
-            $scope.plotHeight = function() {
-                var ph = $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom;
-                return ph;
-            };
+            $scope.plotOffset = () => $scope.height;
 
-            $scope.plotOffset = function() {
-                return $scope.height;
-            };
-
-            $scope.resize = function() {
+            $scope.resize = () => {
                 if (select().empty()) {
                     return;
                 }
                 refresh();
             };
 
-            $scope.setElevation = function(elev) {
+            $scope.setElevation = elev => {
                 $scope.settings.elevation = elev;
                 SIREPO.SCREEN_DIMS.forEach(dim => {
                     axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
@@ -2601,6 +2582,145 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('objectTable', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            elevation: '=',
+            modelName: '@',
+            overlayButtons: '=',
+            source: '=',
+        },
+        template: `
+          <div class="panel panel-info">
+            <div class="panel-heading"><span class="sr-panel-heading">Objects</span></div>
+            <div class="panel-body">
+              <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
+                <thead></thead>
+                  <tbody>
+                    <tr data-ng-show="areAllParentsExpanded(o)" data-ng-attr-id="{{ o.id }}" data-ng-repeat="o in getObjects() track by $index">
+                      <td style="padding-left: {{ nestLevel(o) }}em; cursor: pointer; white-space: nowrap">
+                        <span style="font-size: large; color: {{o.color || '#cccccc'}};">■</span>
+                          <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': expanded[o.id], 'glyphicon-chevron-up': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
+                            <span>{{ o.name }}</span>
+                            <span class="sr-button-bar-parent" data-ng-if="isGroup(o)">
+                              <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(o, t.type)"><img alt="{{ t.title }}" data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
+                            </span>
+                      </td>
+                        <td style="text-align: right">
+                          <div class="sr-button-bar-parent">
+                            <div class="sr-button-bar sr-button-bar-active">
+                               <button data-ng-if="! isGroup(o)" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy">Copy</button>
+                               <button data-ng-click="editObject(o)" class="btn btn-info btn-xs" title="edit">Edit</button>
+                               <button data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
+                            </div>
+                          </div>
+                        </td>                    
+                    </tr>
+                  </tbody>
+                </table>
+            </div>
+          </div>
+        `,
+        controller: function($scope) {
+            $scope.expanded = {};
+
+            function init() {
+                for (const o of $scope.getObjects()) {
+                    $scope.expanded[o.id] = true;
+                }
+            }
+
+            function arrange(objects) {
+
+                const arranged = [];
+
+                function addGroup(o) {
+                    const p = $scope.getParent(o);
+                    if (p && ! arranged.includes(p)) {
+                        return;
+                    }
+                    if (! arranged.includes(o)) {
+                        arranged.push(o);
+                    }
+                    for (const m of $scope.memberObjects(o)) {
+                        if ($scope.isGroup(m)) {
+                            addGroup(m);
+                        }
+                        else {
+                            arranged.push(m);
+                        }
+                    }
+                }
+
+                for (const o of objects) {
+                    if (arranged.includes(o)) {
+                        continue;
+                    }
+                    if ($scope.isNotInGroup(o)) {
+                        arranged.push(o);
+                    }
+                    if ($scope.isGroup(o)) {
+                        addGroup(o);
+                    }
+                }
+                return arranged;
+            }
+
+            $scope.align = (o, alignType) => {
+                $scope.source.align(o, alignType, $scope.elevation.labAxisIndices());
+            };
+
+            $scope.copyObject = $scope.source.copyObject;
+
+            $scope.deleteObject = $scope.source.deleteObject;
+
+            $scope.editObject = $scope.source.editObject;
+
+            $scope.getParent = o => $scope.source.getObject(o.groupId);
+
+            $scope.getObjects = () => {
+                return arrange((appState.models[$scope.modelName] || {}).objects);
+            };
+
+            $scope.isInGroup = $scope.source.isInGroup;
+
+            $scope.isNotInGroup = o => ! $scope.isInGroup(o);
+
+            $scope.isGroup = $scope.source.isGroup;
+
+            $scope.memberObjects = o => {
+                return ($scope.source.getMembers(o) || []).map(mId => $scope.source.getObject(mId));
+            };
+
+            $scope.nestLevel = o => {
+                let n = 0;
+                if ($scope.isInGroup(o)) {
+                    n += (1 + $scope.nestLevel($scope.source.getObject(o.groupId)));
+                }
+                return n;
+            };
+
+            $scope.toggleExpand = o => {
+                $scope.expanded[o.id] = ! $scope.expanded[o.id];
+            };
+
+            $scope.areAllParentsExpanded = o => {
+                if ($scope.isNotInGroup(o)) {
+                    return true;
+                }
+                const p = $scope.getParent(o);
+                if (! $scope.expanded[p.id]) {
+                    return false;
+                }
+                return $scope.areAllParentsExpanded(p);
+            };
+
+            init();
         },
     };
 });
