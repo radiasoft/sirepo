@@ -49,7 +49,12 @@ def stateless_compute_read_epics_values(data, **kwargs):
     )
     p = run_dir.join(_PREV_EPICS_FILE)
     e = run_dir.join(_STATUS_FILE)
-    if e.exists() and p.exists() and filecmp.cmp(str(e), str(p), False):
+    if (
+        not data.get("noCache")
+        and e.exists()
+        and p.exists()
+        and filecmp.cmp(str(e), str(p), False)
+    ):
         return PKDict()
     shutil.copyfile(str(e), str(p))
     return PKDict(
@@ -80,7 +85,7 @@ def _read_epics_data(run_dir):
         d = simulation_db.json_load(s)
         for f in d:
             v = d[f][0]
-            if re.search(r"[A-Za-z]", v):
+            if re.search(r"[A-Za-z]{2}", v):
                 pass
             elif v[0] == "[":
                 v = re.sub(r"\[|\]", "", v)

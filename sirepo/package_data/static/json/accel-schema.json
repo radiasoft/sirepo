@@ -3,14 +3,14 @@
         "inProgressText": "Reading",
         "epicsPlots": {
             "waveformAReport": {
-                "x": "LLRFSim:Sim:timestep",
-                "y1": "LLRFSIM:Cav:Vt",
-                "y2": "LLRFSIM:Cav:Vr"
+                "x": "LLRFSim_Sim:timestep",
+                "y1": "LLRFSim_Cav:Vt",
+                "y2": "LLRFSim_Cav:Vr"
             },
             "waveformBReport": {
-                "x": "LLRFSim:Sim:timestep",
-                "y1": "LLRFSIM:Cav:tphase",
-                "y2": "LLRFSIM:Cav:rphase"
+                "x": "LLRFSim_Sim:timestep",
+                "y1": "LLRFSim_Cav:tphase",
+                "y2": "LLRFSim_Cav:rphase"
             }
         }
     },
@@ -46,7 +46,16 @@
             "noise": ["Noise [A]", "EpicsFloat", 0, "standard deviation for generator current white noise"],
             "phiG": ["phiG [rad]", "EpicsFloat", 0, "current envelope phiG"],
             "signal_type": ["Signal Type", "EpicsEnum", "flat"],
-            "wG": ["wG [rad/s]", "EpicsFloat", 0, "current envelope frequency"]
+            "wG": ["wG [rad/s]", "EpicsFloat", 0, "current envelope frequency"],
+            "amp": ["amp", "ReadOnlyFloat", 0],
+            "start": ["start", "ReadOnlyFloat", 0],
+            "rho": ["rho", "ReadOnlyFloat", 0],
+            "wS": ["wS", "ReadOnlyFloat", 0],
+            "phiS": ["phiS", "ReadOnlyFloat", 0],
+            "I0S": ["I0S", "ReadOnlyFloat", []],
+            "duration": ["duration", "ReadOnlyFloat", 0],
+            "Ig": ["", "ReadOnlyFloatArray", []],
+            "phase": ["", "ReadOnlyFloatArray", []]
         },
         "LLRFSim_Cav": {
             "Q": ["Q", "EpicsFloat", 0, "quality factor"],
@@ -56,7 +65,11 @@
             "dw": ["dw", "EpicsFloat", 0, "cavity detuning"],
             "phiC": ["phiC [rad]", "EpicsFloat", 0, "voltage IQ-demodulation phase"],
             "w0": ["w0 [rad/s]", "EpicsFloat", 0, "resonance frequency"],
-            "wC": ["wC [rad/s]", "EpicsFloat", 0, "voltage IQ-demodulation frequency"]
+            "wC": ["wC [rad/s]", "EpicsFloat", 0, "voltage IQ-demodulation frequency"],
+            "Vt": ["", "ReadOnlyFloatArray", []],
+            "Vr": ["", "ReadOnlyFloatArray", []],
+            "tphase": ["", "ReadOnlyFloatArray", []],
+            "rphase": ["", "ReadOnlyFloatArray", []]
         },
         "LLRFSim_Sim": {
             "num_pulse": ["Pulse Number", "EpicsInteger", 0, "number of pulses"],
@@ -80,7 +93,14 @@
                 "noise",
                 "phiG",
                 "signal_type",
-                "wG"
+                "wG",
+                "amp",
+                "start",
+                "duration",
+                "rho",
+                "wS",
+                "phiS",
+                "I0S"
             ],
             "advanced": []
         },

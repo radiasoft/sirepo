@@ -68,6 +68,7 @@ SIREPO.app.controller('accelController', function (accelService, appState, panel
         }
     };
 
+    let noCache = true;
     let inRequest = false;
     function readEpicsData() {
         $interval(
@@ -80,6 +81,7 @@ SIREPO.app.controller('accelController', function (accelService, appState, panel
                     appState,
                     function (data) {
                         inRequest = false;
+                        noCache = false;
                         if (! appState.isLoaded()) {
                             return;
                         }
@@ -91,6 +93,7 @@ SIREPO.app.controller('accelController', function (accelService, appState, panel
                         method: 'read_epics_values',
                         simulationId: appState.models.simulation.simulationId,
                         report: 'animation',
+                        noCache: noCache,
                     }
                 );
             },
@@ -137,6 +140,15 @@ SIREPO.app.controller('accelController', function (accelService, appState, panel
                     for (const [dim, field] of Object.entries(v)) {
                         if (field == f) {
                             for (const dim of ['x', 'y1', 'y2']) {
+                                if (dim === 'x' && typeof epicsData[v.x] == 'number') {
+                                    // x may be a step value, convert to an array
+                                    if (epicsData[v.y1]) {
+                                        epicsData[v.x] = SIREPO.UTILS.linearlySpacedArray(
+                                            0, epicsData[v.x] * epicsData[v.y1].length,
+                                            epicsData[v.y1].length,
+                                        );
+                                    }
+                                }
                                 if (! angular.isArray(epicsData[v[dim]])) {
                                     //TODO(pjm): invalid epics data recieved
                                     prevEpicsData = null;
