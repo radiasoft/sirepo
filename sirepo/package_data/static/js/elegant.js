@@ -1360,7 +1360,7 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
             function unitsAsHtml(units) {
                 //TODO(robnagler) Needs to be generalized. Don't know all the cases though
                 //TODO(pjm): could generalize, see "special characters" section
-                // http://www.aps.anl.gov/accelerator_Systems_Division/accelerator_Operations_Physics/manuals/SDDStoolkit/SDDStoolkitsu66.html
+                // http://www.aps.anl.gov/Accelerator_Systems_Division/Accelerator_Operations_Physics/manuals/SDDStoolkit/SDDStoolkitsu66.html
                 if (units == 'm$be$nc') {
                     return $sce.trustAsHtml(' m<sub>e</sub>c');
                 }
