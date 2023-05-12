@@ -94,9 +94,13 @@ SIREPO.app.controller('accelController', function (accelService, appState, panel
                     }
                 );
             },
-            //TODO(pjm): calculate based on 2 seconds
-            500,
-            4,
+            //TODO(pjm): calculate based on 2 seconds, 4 * 500ms
+            //500,
+            //4,
+
+            //TODO(pjm): for dev, use a slower rate, 1 * 2s
+            2000,
+            1,
         );
     }
 
@@ -229,7 +233,7 @@ SIREPO.app.directive('epicsInput', function(appState, accelService) {
             $scope.accelService = accelService;
             $scope.changed = () => {
                 const v = accelService.getEpicsValue($scope.modelName, $scope.field);
-                if (nonReadOnlyDiff(appState.models.MTEST[$scope.field], v, $scope.field)) {
+                if (nonReadOnlyDiff(appState.models[$scope.modelName][$scope.field], v, $scope.field)) {
                     $scope.isDiff = true;
                 } else {
                     $scope.isDiff = false;

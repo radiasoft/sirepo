@@ -3,21 +3,26 @@
         "inProgressText": "Reading",
         "epicsPlots": {
             "waveformAReport": {
-                "x": "MTEST:TimeBase",
-                "y1": "MTEST:Waveform",
-                "y2": "MTEST:Waveform2"
+                "x": "LLRFSim:Sim:timestep",
+                "y1": "LLRFSIM:Cav:Vt",
+                "y2": "LLRFSIM:Cav:Vr"
             },
             "waveformBReport": {
-                "x": "MTEST:TimeBase",
-                "y1": "MTEST:Waveform3",
-                "y2": "MTEST:Waveform4"
+                "x": "LLRFSim:Sim:timestep",
+                "y1": "LLRFSIM:Cav:tphase",
+                "y2": "LLRFSIM:Cav:rphase"
             }
         }
     },
     "enum": {
-        "Run": [
-            ["RUN", "RUN"],
-            ["STOP", "STOP"]
+        "signal_type": [
+            ["flat", "flat"],
+            ["sawtooth", "sawtooth"],
+            ["sine", "sine"],
+            ["square", "square"],
+            ["step", "step"],
+            ["tophat", "tophat"],
+            ["triangle", "triangle"]
         ]
     },
     "dynamicFiles": {
@@ -37,22 +42,25 @@
         }
     },
     "model": {
-        "MTEST": {
-            "Run": ["Run Status", "EpicsEnum", "STOP"],
-            "MaxPoints": ["Max Points", "EpicsInteger", 1000],
-            "UpdateTime": ["Update Time", "EpicsFloat", 1],
-            "TimePerDivision": ["Time Per Division", "EpicsFloat", 0.001],
-            "TriggerDelay": ["Trigger Delay", "EpicsFloat", 0.2],
-            "VoltOffset": ["Volt Offset", "EpicsFloat", 0],
-            "NoiseAmplitude": ["Noise Amplitude", "EpicsFloat", 0.2],
-            "Waveform": ["Waveform", "ReadOnlyFloatArray", []],
-            "Waveform2": ["Waveform", "ReadOnlyFloatArray", []],
-            "Waveform3": ["Waveform", "ReadOnlyFloatArray", []],
-            "Waveform4": ["Waveform", "ReadOnlyFloatArray", []],
-            "TimeBase": ["Time Base", "ReadOnlyFloatArray", []],
-            "MinValue": ["Min Value", "ReadOnlyFloat", 0],
-            "MaxValue": ["Max Value", "ReadOnlyFloat", 0],
-            "MeanValue": ["Mean Value", "ReadOnlyFloat", 0]
+        "LLRFSim_Gen": {
+            "noise": ["Noise [A]", "EpicsFloat", 0, "standard deviation for generator current white noise"],
+            "phiG": ["phiG [rad]", "EpicsFloat", 0, "current envelope phiG"],
+            "signal_type": ["Signal Type", "EpicsEnum", "flat"],
+            "wG": ["wG [rad/s]", "EpicsFloat", 0, "current envelope frequency"]
+        },
+        "LLRFSim_Cav": {
+            "Q": ["Q", "EpicsFloat", 0, "quality factor"],
+            "R": ["R [Ohm]", "EpicsFloat", 0, "shunt resistance"],
+            "Z0": ["Z0 [Ohm]", "EpicsFloat", 0, "characteristic impedance"],
+            "beta": ["beta", "EpicsFloat", 0, "coupling factor"],
+            "dw": ["dw", "EpicsFloat", 0, "cavity detuning"],
+            "phiC": ["phiC [rad]", "EpicsFloat", 0, "voltage IQ-demodulation phase"],
+            "w0": ["w0 [rad/s]", "EpicsFloat", 0, "resonance frequency"],
+            "wC": ["wC [rad/s]", "EpicsFloat", 0, "voltage IQ-demodulation frequency"]
+        },
+        "LLRFSim_Sim": {
+            "num_pulse": ["Pulse Number", "EpicsInteger", 0, "number of pulses"],
+            "pulse_lens": ["Timestep", "EpicsFloat", 0]
         },
         "epicsServer": {
             "serverAddress": ["Network Address", "String", "localhost:5064", "EPICS server network address, $\\text{<host>:<port>}$"]
@@ -66,19 +74,27 @@
         "typeOfSimulation": "monitor"
     },
     "view": {
-        "MTEST": {
-            "title": "PCASPY simscope",
+        "LLRFSim_Gen": {
+            "title": "Gen",
             "basic": [
-                "Run",
-                "MaxPoints",
-                "UpdateTime",
-                "TimePerDivision",
-                "TriggerDelay",
-                "VoltOffset",
-                "NoiseAmplitude",
-                "MinValue",
-                "MaxValue",
-                "MeanValue"
+                "noise",
+                "phiG",
+                "signal_type",
+                "wG"
+            ],
+            "advanced": []
+        },
+        "LLRFSim_Cav": {
+            "title": "Cav",
+            "basic": [
+                "Q",
+                "R",
+                "Z0",
+                "beta",
+                "dw",
+                "phiC",
+                "w0",
+                "wC"
             ],
             "advanced": []
         },

@@ -34,7 +34,7 @@ def run(cfg_dir):
 
 def run_background(cfg_dir):
     subprocess.Popen(
-        "camonitor MTEST:Run MTEST:MaxPoints MTEST:UpdateTime MTEST:TimePerDivision MTEST:TriggerDelay MTEST:VoltOffset MTEST:NoiseAmplitude MTEST:Waveform MTEST:Waveform2 MTEST:Waveform3 MTEST:Waveform4  MTEST:TimeBase MTEST:MinValue MTEST:MaxValue MTEST:MeanValue | python parameters.py",
+        "pvmonitor LLRFSim:Cav:Q LLRFSim:Cav:R LLRFSim:Cav:Vr LLRFSim:Cav:Vt LLRFSim:Cav:Z0 LLRFSim:Cav:beta LLRFSim:Cav:dw LLRFSim:Cav:phiC LLRFSim:Cav:rphase LLRFSim:Cav:tphase LLRFSim:Cav:w0 LLRFSim:Cav:wC LLRFSim:Gen:I0S LLRFSim:Gen:Ig LLRFSim:Gen:amp LLRFSim:Gen:duration LLRFSim:Gen:noise LLRFSim:Gen:phase LLRFSim:Gen:phiG LLRFSim:Gen:phiS LLRFSim:Gen:rho LLRFSim:Gen:signal_type LLRFSim:Gen:start LLRFSim:Gen:wG LLRFSim:Gen:wS LLRFSim:Sim:num_pulse LLRFSim:Sim:timestep | python parameters.py",
         shell=True,
         stdin=subprocess.PIPE,
         env=accel.epics_env(
