@@ -45,15 +45,21 @@ _PID_FILE = "job_agent.pid"
 
 _PY2_CODES = frozenset(())
 
-cfg = None
+_cfg = None
 
 
 def start():
     # TODO(robnagler) commands need their own init hook like the server has
-    global cfg
+    global _cfg
 
-    cfg = pkconfig.init(
+    _cfg = pkconfig.init(
         agent_id=pkconfig.Required(str, "id of this agent"),
+        # POSIT: same as job_driver.DriverBase._agent_env
+        dev_source_dirs=(
+            pkconfig.in_dev_mode(),
+            bool,
+            "add ~/src/radiasoft/{pykern,sirepo} to $PYTHONPATH",
+        ),
         fastcgi_sock_dir=(
             pkio.py_path("/tmp"),
             pkio.py_path,
@@ -73,10 +79,10 @@ def start():
             "how to connect to the supervisor",
         ),
     )
-    pkdlog("{}", cfg)
-    if pkconfig.channel_in_internal_test() and cfg.start_delay:
-        pkdlog("start_delay={}", cfg.start_delay)
-        time.sleep(cfg.start_delay)
+    pkdlog("{}", _cfg)
+    if pkconfig.channel_in_internal_test() and _cfg.start_delay:
+        pkdlog("start_delay={}", _cfg.start_delay)
+        time.sleep(_cfg.start_delay)
     i = tornado.ioloop.IOLoop.current()
     d = _Dispatcher()
 
@@ -159,7 +165,7 @@ class _Dispatcher(PKDict):
         if msg:
             kwargs["opId"] = msg.get("opId")
         return pkjson.dump_bytes(
-            PKDict(agentId=cfg.agent_id, opName=opName).pksetdefault(**kwargs),
+            PKDict(agentId=_cfg.agent_id, opName=opName).pksetdefault(**kwargs),
         )
 
     async def job_cmd_reply(self, msg, op_name, text):
@@ -186,7 +192,7 @@ class _Dispatcher(PKDict):
                 # TODO(robnagler) connect_timeout, ping_interval, ping_timeout
                 self._websocket = await tornado.websocket.websocket_connect(
                     tornado.httpclient.HTTPRequest(
-                        url=cfg.supervisor_uri,
+                        url=_cfg.supervisor_uri,
                         validate_cert=sirepo.job.cfg().verify_tls,
                     ),
                     max_message_size=job.cfg().max_message_bytes,
@@ -367,8 +373,8 @@ class _Dispatcher(PKDict):
         if not self.fastcgi_cmd:
             m = msg.copy()
             m.jobCmd = "fastcgi"
-            self._fastcgi_file = cfg.fastcgi_sock_dir.join(
-                f"sirepo_job_cmd-{cfg.agent_id:8}.sock",
+            self._fastcgi_file = _cfg.fastcgi_sock_dir.join(
+                f"sirepo_job_cmd-{_cfg.agent_id:8}.sock",
             )
             self._fastcgi_msg_q = sirepo.tornado.Queue(1)
             pkio.unchecked_remove(self._fastcgi_file)
@@ -466,8 +472,8 @@ class _Cmd(PKDict):
                 SIREPO_MPI_CORES=self.msg.get("mpiCores", 1),
                 SIREPO_SIM_DATA_LIB_FILE_URI=self._lib_file_uri,
                 SIREPO_SIM_DATA_LIB_FILE_LIST=self._lib_file_list_f,
-                SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_URI=cfg.supervisor_sim_db_file_uri,
-                SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_TOKEN=cfg.supervisor_sim_db_file_token,
+                SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_URI=_cfg.supervisor_sim_db_file_uri,
+                SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_TOKEN=_cfg.supervisor_sim_db_file_token,
             ),
             uid=self._uid,
         )
@@ -510,7 +516,7 @@ class _Cmd(PKDict):
         return pkdformat(
             "{}(a={:.4} jid={} o={:.4} job_cmd={} run_dir={})",
             self.__class__.__name__,
-            cfg.agent_id,
+            _cfg.agent_id,
             self.jid,
             self.op_id,
             self.msg.jobCmd,
@@ -610,7 +616,7 @@ class _SbatchCmd(_Cmd):
     def job_cmd_env(self):
         # POSIT: sirepo.mpi cfg sentinel for running in slurm
         e = PKDict(SIREPO_MPI_IN_SLURM=1)
-        if pkconfig.in_dev_mode():
+        if _cfg.dev_source_dirs:
             h = pkio.py_path("~/src/radiasoft")
             e.PYTHONPATH = "{}:{}".format(h.join("sirepo"), h.join("pykern"))
         return super().job_cmd_env(e)
