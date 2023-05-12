@@ -1798,7 +1798,7 @@
         },
         "command_ptc_trackline": {
             "title": "ptc_trackline",
-            "description": "The PTC_TRACKLINE command performs particle tracking that takes into account accelerator in travelling wave cavities. It must be invoked in the scope of correctly initialized PTC environment, i.e. after PTC_CREATE_UNIVERSE and PTC_CREATE_LAYOUT commands, and before corresponding PTC_END.",
+            "description": "The PTC_TRACKLINE command performs particle tracking that takes into account acceleration in travelling wave cavities. It must be invoked in the scope of correctly initialized PTC environment, i.e. after PTC_CREATE_UNIVERSE and PTC_CREATE_LAYOUT commands, and before corresponding PTC_END.",
             "fieldsPerTab": 8,
             "advanced": [
                 "turns",
@@ -2586,7 +2586,7 @@
         },
         "NLLENS": {
             "title": "NLLENS",
-            "description": "The NLLENS element represents a thin nonlinear lens with the potential of 'Elliptic' type. The lens is used to create fully integrable 2D nonlinear acceleration lattice with very large nonlinear tune spread/shift. The NLLENS element is recognized by the thin tracking module. The quadrupole term of the potential is included in the transport map and, consequently, affects the calculation of tunes and Twiss functions.",
+            "description": "The NLLENS element represents a thin nonlinear lens with the potential of 'Elliptic' type. The lens is used to create fully integrable 2D nonlinear accelerator lattice with very large nonlinear tune spread/shift. The NLLENS element is recognized by the thin tracking module. The quadrupole term of the potential is included in the transport map and, consequently, affects the calculation of tunes and Twiss functions.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
