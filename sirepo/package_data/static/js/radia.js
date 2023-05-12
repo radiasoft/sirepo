@@ -190,6 +190,11 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         };
     };
 
+    self.getGroup = function(id) {
+        const o = self.getObject(id);
+        return o ? self.getObject(o.groupId) : null;
+    };
+
     self.getObject = function(id) {
         let objs = appState.models.geometryReport.objects || [];
         for (const o of objs) {
@@ -420,14 +425,33 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.align = (group, alignType, axesInds) => {
-        const m = group.members;
-        for (let i = 1; i < m.length; ++i) {
-            self[alignType](
-                self.getObject(m[i]),
-                self.getObject(m[0]),
-                axesInds
-            );
-            self.saveObject(m[i]);
+
+        function getFirstNotInGroup(arr) {
+            let m0 = null;
+            let i = 0;
+            for (i = 0; i < arr.length; ++i) {
+                const m = self.getObject(arr[i]);
+                if (self.isGroup(m)) {
+                    continue;
+                }
+                m0 = m;
+                break;
+            }
+            return [i + 1, m0];
+        }
+
+        const d = getDescendents(group);
+        if (d.length <= 1) {
+            return;
+        }
+        const [start, m0] = getFirstNotInGroup(d);
+        if (! m0) {
+            return;
+        }
+        for (let i = start; i < d.length; ++i) {
+            const m = self.getObject(d[i]);
+            self[alignType](m, m0, axesInds);
+            self.saveObject(m.id);
         }
         radiaService.saveGeometry(true);
     };
@@ -485,17 +509,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return appState.models.simulation.dipoleType;
     };
 
-    self.getMagnetType = () => {
-        return appState.models.simulation.magnetType;
-    };
+    self.getGroup = radiaService.getGroup;
 
-    self.getObject = id => {
-        return radiaService.getObject(id);
-    };
+    self.getMagnetType = () => appState.models.simulation.magnetType;
 
-    self.getObjects = () => {
-        return radiaService.getObjects();
-    };
+    self.getMembers = o => o.members;
+
+    self.getObject = radiaService.getObject;
+
+    self.getObjects = radiaService.getObjects;
 
     self.getShape = id => {
         return self.shapes.filter(s => s.id === id)[0];
@@ -512,9 +534,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return self.shapes.concat(s);
     };
 
-    self.getObjectView = id => {
-        return self.views.filter( s => s.id === id)[0];
-    };
+    self.getObjectView = id => self.views.filter(s => s.id === id)[0];
 
     self.getObjectViews = () => self.views;
 
@@ -526,6 +546,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.getView = () => `${appState.models.simulation[`${self.getMagnetType()}Type`]}`;
+
+    self.isInGroup = o => ! ! o.groupId;
 
     self.isDropEnabled = () => self.dropEnabled;
 
@@ -769,6 +791,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function deleteShapesForObject(o) {
         self.views.splice(indexOfViews(self.viewsForObject(o)), 1);
+    }
+
+    function getDescendents(group) {
+        let d = [];
+        for (const m of (group.members || [])) {
+            d.push(m);
+            const o = self.getObject(m);
+            if (self.isGroup(o)) {
+                d = d.concat(getDescendents(o));
+            }
+        }
+        return d;
     }
 
     function groupBounds(objs) {
