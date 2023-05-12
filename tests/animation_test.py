@@ -104,6 +104,14 @@ def test_radia(fc):
     )
 
 
+def test_rshellweg(fc):
+    fc.sr_animation_run(
+        fc.sr_sim_data("RF Fields"),
+        "beamAnimation",
+        PKDict(),
+    )
+
+
 def test_srw(fc):
     data = fc.sr_sim_data("Young's Double Slit Experiment")
     data.models.multiElectronAnimation.numberOfMacroElectrons = 4
