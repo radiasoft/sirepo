@@ -81,7 +81,7 @@ def _read_epics_data(run_dir):
         for f in d:
             v = d[f][0]
             if re.search(r"[A-Za-z]", v):
-                pass
+                v = re.sub(r"\(\d+\)", "", v)
             elif v[0] == "[":
                 v = re.sub(r"\[|\]", "", v)
                 v = [float(x) for x in v.split(",")]
