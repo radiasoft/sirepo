@@ -29,7 +29,7 @@ SIREPO.app.config(function() {
     `;
 });
 
-SIREPO.app.factory('accelService', function(appState) {
+SIREPO.app.factory('epicsllrfService', function(appState) {
     const self = {};
     let epicsData;
     self.computeModel = () => 'animation';
@@ -50,7 +50,7 @@ SIREPO.app.factory('accelService', function(appState) {
 });
 
 
-SIREPO.app.controller('accelController', function (accelService, appState, panelState, errorService, persistentSimulation, requestSender, $interval, $scope, $rootScope) {
+SIREPO.app.controller('epicsllrfController', function (epicsllrfService, appState, panelState, errorService, persistentSimulation, requestSender, $interval, $scope, $rootScope) {
     const self = this;
     let prevEpicsData;
     self.simScope = $scope;
@@ -115,7 +115,7 @@ SIREPO.app.controller('accelController', function (accelService, appState, panel
                 );
                 return;
             }
-            accelService.setEpicsData(epicsData);
+            epicsllrfService.setEpicsData(epicsData);
             const changed = [];
             for (const f in epicsData) {
                 let [modelName, field] = f.split(':');
@@ -156,7 +156,7 @@ SIREPO.app.controller('accelController', function (accelService, appState, panel
                                 }
                             }
                             visited[r] = true;
-                            $scope.$broadcast('sr-accel-waveform', [
+                            $scope.$broadcast('sr-epicsllrf-waveform', [
                                 r,
                                 epicsData[v.x].slice(1),
                                 epicsData[v.y1].slice(1),
@@ -174,7 +174,7 @@ SIREPO.app.controller('accelController', function (accelService, appState, panel
 });
 
 
-SIREPO.app.directive('appFooter', function(accelService) {
+SIREPO.app.directive('appFooter', function(epicsllrfService) {
     return {
         restrict: 'A',
         scope: {
@@ -211,7 +211,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('epicsValue', function(appState, accelService, $timeout) {
+SIREPO.app.directive('epicsValue', function(appState, epicsllrfService, $timeout) {
     return {
         restrict: 'A',
         scope: {
@@ -219,10 +219,10 @@ SIREPO.app.directive('epicsValue', function(appState, accelService, $timeout) {
             field: '=',
         },
         template: `
-          <div data-ng-model="field" class="form-control-static col-sm-3">{{ fmtExp(accelService.getEpicsValue(modelName, field)) }}</div>
+          <div data-ng-model="field" class="form-control-static col-sm-3">{{ fmtExp(epicsllrfService.getEpicsValue(modelName, field)) }}</div>
         `,
         controller: function($scope) {
-            $scope.accelService = accelService;
+            $scope.epicsllrfService = epicsllrfService;
             $scope.fmtExp = (value) => {
                 return value == null ? "" : appState.formatExponential(value);
             };
@@ -230,7 +230,7 @@ SIREPO.app.directive('epicsValue', function(appState, accelService, $timeout) {
     };
 });
 
-SIREPO.app.directive('epicsInput', function(appState, accelService) {
+SIREPO.app.directive('epicsInput', function(appState, epicsllrfService) {
     return {
         restrict: 'A',
         scope: {
@@ -242,9 +242,9 @@ SIREPO.app.directive('epicsInput', function(appState, accelService) {
           <input data-string-to-number="" data-ng-class="{'highlight-cell': isDiff}" data-ng-change="{{ changed() }}" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
           `,
         controller: function($scope) {
-            $scope.accelService = accelService;
+            $scope.epicsllrfService = epicsllrfService;
             $scope.changed = () => {
-                const v = accelService.getEpicsValue($scope.modelName, $scope.field);
+                const v = epicsllrfService.getEpicsValue($scope.modelName, $scope.field);
                 if (nonReadOnlyDiff(appState.models[$scope.modelName][$scope.field], v, $scope.field)) {
                     $scope.isDiff = true;
                 } else {
@@ -321,7 +321,7 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
                     updatePlot();
                 }
             });
-            $scope.$on('sr-accel-waveform', (event, data) => {
+            $scope.$on('sr-epicsllrf-waveform', (event, data) => {
                 if (data[0] == $scope.modelName) {
                     plotData = data;
                     if (plotScope) {

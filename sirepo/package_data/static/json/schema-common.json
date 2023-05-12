@@ -4,9 +4,9 @@
             "longName": "MyApp",
             "shortName": "MyApp"
         },
-        "accel": {
-            "longName": "Accel",
-            "shortName": "Accel"
+        "epicsllrf": {
+            "longName": "Epicsllrf",
+            "shortName": "Epicsllrf"
         },
         "activait": {
             "longName": "Activait",

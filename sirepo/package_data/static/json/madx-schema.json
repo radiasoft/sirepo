@@ -2586,7 +2586,7 @@
         },
         "NLLENS": {
             "title": "NLLENS",
-            "description": "The NLLENS element represents a thin nonlinear lens with the potential of 'Elliptic' type. The lens is used to create fully integrable 2D nonlinear accelerator lattice with very large nonlinear tune spread/shift. The NLLENS element is recognized by the thin tracking module. The quadrupole term of the potential is included in the transport map and, consequently, affects the calculation of tunes and Twiss functions.",
+            "description": "The NLLENS element represents a thin nonlinear lens with the potential of 'Elliptic' type. The lens is used to create fully integrable 2D nonlinear acceleration lattice with very large nonlinear tune spread/shift. The NLLENS element is recognized by the thin tracking module. The quadrupole term of the potential is included in the transport map and, consequently, affects the calculation of tunes and Twiss functions.",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",

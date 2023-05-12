@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""accel execution template.
+"""epicsllrf execution template.
 
 :copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html

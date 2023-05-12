@@ -27,17 +27,17 @@
     },
     "dynamicFiles": {
         "sirepoLibs": {
-            "js": ["accel.js"],
+            "js": ["epicsllrf.js"],
             "css": [
-                "accel.css"
+                "epicsllrf.css"
             ]
         }
     },
     "localRoutes": {
         "source": {
             "config": {
-                "controller": "accelController as source",
-                "templateUrl": "/static/html/accel-source.html"
+                "controller": "epicsllrfController as source",
+                "templateUrl": "/static/html/epicsllrf-source.html"
             }
         }
     },

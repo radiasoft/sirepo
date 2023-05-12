@@ -12,5 +12,5 @@
             "notes": ""
         }
     },
-    "simulationType": "accel"
+    "simulationType": "epicsllrf"
 }
