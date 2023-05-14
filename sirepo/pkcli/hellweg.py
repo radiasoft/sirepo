@@ -13,6 +13,7 @@ import py.path
 import rshellweg.solver
 import sirepo.template
 
+
 def run(cfg_dir):
     """Run Hellweg in ``cfg_dir``
 
