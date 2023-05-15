@@ -125,11 +125,11 @@
             ]
         },
         "waveformAReport": {
-            "title": "Waveform A",
+            "title": "Voltage",
             "advanced": []
         },
         "waveformBReport": {
-            "title": "Waveform B",
+            "title": "Phase",
             "advanced": []
         }
     }

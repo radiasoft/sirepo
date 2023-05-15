@@ -280,6 +280,7 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
             let plotData, plotScope;
 
             function updatePlot() {
+                srdbg("plotData=", plotData);
                 const x = plotData[1];
                 const y1 = plotData[2];
                 const y2 = plotData[3];
@@ -322,6 +323,8 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
                 }
             });
             $scope.$on('sr-epicsllrf-waveform', (event, data) => {
+                srdbg("data=", data);
+                srdbg("$scope.modelName", $scope.modelName);
                 if (data[0] == $scope.modelName) {
                     plotData = data;
                     if (plotScope) {
