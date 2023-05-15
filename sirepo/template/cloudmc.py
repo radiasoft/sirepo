@@ -21,7 +21,6 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
 def _percent_complete(run_dir, is_running):
-
     def _parse_eigenval(txt):
         res = []
         for v in txt.split():
