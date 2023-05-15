@@ -41,27 +41,26 @@ def default_command(in_file):
     Returns:
         str: json output of command, e.g. status msg
     """
-    import json
+    import shutil
 
     try:
+        pkdp("\n\n\n\nin file={}\n\n\n", in_file)
         f = pkio.py_path(in_file)
         pkdp("\n\n\n\nf={}\n\n\n", f)
+        # with open("/home/vagrant/src/radiasoft/sirepo/t/s.json", "w") as jfile:
+        #     json.dump(pkjson.load_any(f), jfile)
+        # if "sourceIntensityReport" in f.dirname:
+        #     shutil.copyfile(
+        #         f,
+        #         "/home/vagrant/src/radiasoft/sirepo/t/s.json",
+        #     )
 
         msg = pkjson.load_any(f)
-        # if "sourceIntensityReport" in f.dirname:
-        #     with open("/home/vagrant/src/radiasoft/sirepo/t/src_intensity_1.json", "w") as jfile:
-        #         json.dump(msg, jfile)
-        # if "sourceIntensityReport" in f.dirname:
-        # pkdp("\n\n\n\nreport={}", msg.data.report)
-        # TODO(e-carlin): find common place to serialize/deserialize paths
         msg.runDir = pkio.py_path(msg.runDir)
-        # pkdp("\n\n\nmsg.jobCmd {} \n\n\n", msg.jobCmd)
-        # pkdp("\n\n\nglobals() {} \n\n\n", globals())
         f.remove()
         res = globals()["_do_" + msg.jobCmd](
             msg, sirepo.template.import_module(msg.simulationType)
         )
-        # pkdp("\n\n\n res {} \n\n\n", res)
         if res is None:
             return
         r = PKDict(res).pksetdefault(state=job.COMPLETED)
