@@ -203,6 +203,8 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         cloudmcService.validateSelectedTally();
     }
 
+    self.eigenvalueHistory = () => appState.models.settings.eigenvalueHistory;
+
     self.simHandleStatus = function (data) {
         errorMessage = data.error;
         self.eigenvalue = data.eigenvalue;
@@ -1767,16 +1769,26 @@ SIREPO.app.directive('tallyAspects', function() {
 });
 
 SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
+
     function processPlanes() {
         panelState.showFields('reflectivePlanes', [
             ['plane1a', 'plane1b', 'plane2a', 'plane2b'],
             appState.models.reflectivePlanes.useReflectivePlanes == '1',
         ]);
     }
+
+    function updateEditor() {
+        panelState.showField($scope.modelName, 'eigenvalueHistory', appState.models[$scope.modelName].run_mode === 'eigenvalue');
+    }
+
     $scope.whenSelected = processPlanes;
+
     $scope.watchFields = [
         ['reflectivePlanes.useReflectivePlanes'], processPlanes,
+        [`${$scope.modelName}.run_mode`], updateEditor,
     ];
+
+
 });
 
 SIREPO.app.directive('simpleListEditor', function(panelState) {

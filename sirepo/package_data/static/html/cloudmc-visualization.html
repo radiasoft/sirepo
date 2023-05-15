@@ -8,7 +8,7 @@
         <div data-sim-status-panel="visualization.simState"></div>
         <div data-ng-show="visualization.eigenvalue">
           <table class="table-condensed table-bordered">
-            <caption style="text-align: center; font-weight: bold;">K Eigenvalue</caption>
+            <caption style="text-align: center; font-weight: bold;">Last {{ visualization.eigenvalueHistory() }} K Eigenvalues</caption>
             <thead>
               <th>Batch</th>
               <th>K</th>
@@ -16,11 +16,11 @@
               <th>σ</th>
             </thead>
             <tbody>
-              <tr>
-                <td>{{ visualization.frameCache.getFrameCount() }}</td>
-                <td>{{ visualization.eigenvalue[0] }}</td>
-                <td>{{ visualization.eigenvalue[1] || 'N/A' }}</td>
-                <td>{{ visualization.eigenvalue[2] || 'N/A' }}</td>
+              <tr data-ng-repeat="e in visualization.eigenvalue.slice(-visualization.eigenvalueHistory()) track by $index">
+                <td>{{ e.batch }}</td>
+                <td>{{ e.val[0] }}</td>
+                <td>{{ e.val[1] || 'N/A' }}</td>
+                <td>{{ e.val[2] || 'N/A' }}</td>
               </tr>
             </tbody>
           </table>
