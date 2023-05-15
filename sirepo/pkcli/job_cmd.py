@@ -44,17 +44,7 @@ def default_command(in_file):
     import shutil
 
     try:
-        pkdp("\n\n\n\nin file={}\n\n\n", in_file)
         f = pkio.py_path(in_file)
-        pkdp("\n\n\n\nf={}\n\n\n", f)
-        # with open("/home/vagrant/src/radiasoft/sirepo/t/s.json", "w") as jfile:
-        #     json.dump(pkjson.load_any(f), jfile)
-        # if "sourceIntensityReport" in f.dirname:
-        #     shutil.copyfile(
-        #         f,
-        #         "/home/vagrant/src/radiasoft/sirepo/t/s.json",
-        #     )
-
         msg = pkjson.load_any(f)
         msg.runDir = pkio.py_path(msg.runDir)
         f.remove()
@@ -139,7 +129,6 @@ def _do_compute(msg, template):
             stdout=run_log,
             stderr=run_log,
         )
-    pkdp("\n\n p.args={}", p.args)
     while True:
         for j in range(20):
             time.sleep(0.1)
@@ -324,7 +313,6 @@ def _on_do_compute_exit(
     # locals() must be called before anything else so we only get the function
     # arguments
     kwargs = locals()
-    pkdp("\n\n\n template={}, locals={}", template, locals())
     def _failure_exit():
         a = _post_processing()
         if not a:
