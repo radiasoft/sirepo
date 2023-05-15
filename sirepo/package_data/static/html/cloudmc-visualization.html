@@ -6,13 +6,14 @@
     <div class="col-md-6 col-xl-4">
       <div data-simple-panel="simulationStatus">
         <div data-sim-status-panel="visualization.simState"></div>
-        <div data-ng-show="visualization.eigenvalue">
+        <div class="row" data-ng-show="visualization.eigenvalue">
+          <div class="col-md-6">
           <table class="table-condensed table-bordered">
-            <caption style="text-align: center; font-weight: bold;">Last {{ visualization.eigenvalueHistory() }} K Eigenvalues</caption>
+            <caption style="text-align: center; font-weight: bold;">Last {{ visualization.eigenvalueHistory() }} k Eigenvalues</caption>
             <thead>
               <th>Batch</th>
-              <th>K</th>
-              <th>&lt;K&gt;</th>
+              <th>k</th>
+              <th>&lt;k&gt;</th>
               <th>σ</th>
             </thead>
             <tbody>
@@ -24,6 +25,24 @@
               </tr>
             </tbody>
           </table>
+          </div>
+          <div class="col-md-6" data-ng-show="visualization.results">
+          <table class="table-condensed table-bordered">
+            <caption style="text-align: center; font-weight: bold;">Results</caption>
+            <thead>
+              <th>Quantity</th>
+              <th>Value</th>
+              <th>σ</th>
+            </thead>
+            <tbody>
+              <tr data-ng-repeat="r in visualization.results track by $index">
+                <td>{{ r[0] }}</td>
+                <td>{{ r[1] }}</td>
+                <td>{{ r[2] }}</td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
         </div>
       </div>
     </div>
