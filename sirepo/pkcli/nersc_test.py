@@ -7,18 +7,20 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
 from pykern import pkio
+from pykern import pkjson
 from pykern import pksubprocess
 import sirepo.sim_data
 
 _SEQUENTIAL_TEST_BASH_FILE = "sequential_test.sh"
 _SEQUENTIAL_TEST_JSON = "nersc_sequential.json"
-_SIREPO_RUN_DIR = "sirepo_run_dir"
+_RUN_DIR = "sirepo_run_dir"
+_SEQUENTIAL_RESULT_FILE = "nersc_test_result.json"
 
 def sequential():
-
-    s = pkio.py_path(_SIREPO_RUN_DIR)
+    s = pkio.py_path(_RUN_DIR)
     pkio.unchecked_remove(s)
     s.ensure(dir=True)
+    o = s.join(_SEQUENTIAL_RESULT_FILE )
     b = f"""
 #!/bin/bash
 set -e
@@ -40,8 +42,10 @@ exec 'sirepo' 'job_cmd' 'jobCmdIn.json'
     """
     pkio.write_text(_SEQUENTIAL_TEST_BASH_FILE, b)
     pksubprocess.check_call_with_signals(
-        ["bash", _SEQUENTIAL_TEST_BASH_FILE]
+        ["bash", _SEQUENTIAL_TEST_BASH_FILE],
+        output=str(o),
     )
     pkio.unchecked_remove(_SEQUENTIAL_TEST_BASH_FILE)
-
-    # TODO (gurhar1133): make sure "state":"completed"
+    r = pkjson.load_any(o)
+    if r.state != "completed":
+        raise AssertionError(f"incompled result {r.state}")

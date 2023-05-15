@@ -41,11 +41,10 @@ def default_command(in_file):
     Returns:
         str: json output of command, e.g. status msg
     """
-    import shutil
-
     try:
         f = pkio.py_path(in_file)
         msg = pkjson.load_any(f)
+        # TODO(e-carlin): find common place to serialize/deserialize paths
         msg.runDir = pkio.py_path(msg.runDir)
         f.remove()
         res = globals()["_do_" + msg.jobCmd](
@@ -313,6 +312,7 @@ def _on_do_compute_exit(
     # locals() must be called before anything else so we only get the function
     # arguments
     kwargs = locals()
+
     def _failure_exit():
         a = _post_processing()
         if not a:
