@@ -11,16 +11,18 @@ from pykern import pkjson
 from pykern import pksubprocess
 import sirepo.sim_data
 
+
 _SEQUENTIAL_TEST_BASH_FILE = "sequential_test.sh"
 _SEQUENTIAL_TEST_JSON = "nersc_sequential.json"
 _RUN_DIR = "sirepo_run_dir"
 _SEQUENTIAL_RESULT_FILE = "nersc_test_result.json"
 
+
 def sequential():
     s = pkio.py_path(_RUN_DIR)
     pkio.unchecked_remove(s)
     s.ensure(dir=True)
-    o = s.join(_SEQUENTIAL_RESULT_FILE )
+    o = s.join(_SEQUENTIAL_RESULT_FILE)
     b = f"""
 #!/bin/bash
 set -e
