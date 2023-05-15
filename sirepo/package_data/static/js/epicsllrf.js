@@ -161,6 +161,7 @@ SIREPO.app.controller('epicsllrfController', function (epicsllrfService, appStat
                                 epicsData[v.x].slice(1),
                                 epicsData[v.y1].slice(1),
                                 epicsData[v.y2].slice(1),
+                                epicsData[v.y3].slice(1),
                             ]);
                         }
                     }
@@ -284,6 +285,7 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
                 const x = plotData[1];
                 const y1 = plotData[2];
                 const y2 = plotData[3];
+                const y3 = plotData[4];
                 plotData = null;
                 if (plotScope) {
                     plotScope.clearData();
@@ -305,6 +307,11 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
                                 color: '#ff7f0e',
                                 points: y2,
                                 label: "Waveform 2",
+                            },
+                            {
+                                color: '#000000',
+                                points: y3,
+                                label: "Waveform 3",
                             },
                         ],
                         y_range: [

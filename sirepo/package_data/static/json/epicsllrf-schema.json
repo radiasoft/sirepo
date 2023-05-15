@@ -4,13 +4,15 @@
         "epicsPlots": {
             "waveformAReport": {
                 "x": "LLRFSim_Sim:timestep",
-                "y1": "LLRFSim_Cav:Vt",
-                "y2": "LLRFSim_Cav:Vr"
+                "y1": "LLRFSim_Gen:Ig",
+                "y2": "LLRFSim_Cav:Vt",
+                "y3": "LLRFSim_Cav:Vr"
             },
             "waveformBReport": {
                 "x": "LLRFSim_Sim:timestep",
-                "y1": "LLRFSim_Cav:tphase",
-                "y2": "LLRFSim_Cav:rphase"
+                "y1": "LLRFSim_Gen:phase",
+                "y2": "LLRFSim_Cav:tphase",
+                "y3": "LLRFSim_Cav:rphase"
             }
         }
     },
