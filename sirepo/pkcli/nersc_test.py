@@ -26,8 +26,6 @@ def sequential():
     b = f"""
 #!/bin/bash
 set -e
-#rm -rf 'sirepo_run_dir'
-#mkdir 'sirepo_run_dir'
 cd 'sirepo_run_dir'
 export SIREPO_MPI_CORES='1'
 export PYKERN_PKCONFIG_CHANNEL='dev'
