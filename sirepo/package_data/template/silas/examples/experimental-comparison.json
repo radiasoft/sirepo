@@ -100,11 +100,6 @@
             "colorMap": "viridis",
             "sliceNumber": 0
         },
-        "initialPhaseReport": {
-            "_super": "initialIntensityReport",
-            "colorMap": "viridis",
-            "sliceNumber": 0
-        },
         "laserPulse": {
             "ccd": "photon_count_off_peak_timing.txt",
             "chirp": 0,

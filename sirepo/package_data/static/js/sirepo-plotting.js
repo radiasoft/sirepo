@@ -1807,13 +1807,15 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
 
         function calcFormat(count, unit, base) {
             let code = 'e';
-            const tickValues = self.scale.ticks(count);
+            let tickValues = self.scale.ticks(count);
+            if (tickValues.length < 2) {
+                tickValues = self.scale.ticks(count + 1);
+            }
             const v0 = applyUnit(tickValues[0], base, unit);
             const v1 = applyUnit(tickValues[1], base, unit);
             const vn = applyUnit(tickValues[tickValues.length - 1], base, unit);
             let decimals;
-            if (vn > 0 && Math.abs(v0) > vn) {
-                // odd case around zero
+            if (Math.abs(v0) > Math.abs(vn)) {
                 decimals = d3_precisionRound(v1 - v0, Math.abs(v0));
             }
             else {

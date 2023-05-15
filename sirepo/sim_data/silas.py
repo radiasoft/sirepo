@@ -9,16 +9,15 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
 
-INITIAL_REPORTS = frozenset(
-    (
-        "initialIntensityReport",
-        "initialPhaseReport",
-    )
-)
-
 
 class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(("colorMap",))
+    SOURCE_REPORTS = frozenset(
+        (
+            "laserPulseAnimation",
+            "laserPulse2Animation",
+        )
+    )
 
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
@@ -31,8 +30,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "crystalCylinder",
                 "crystalSettings",
                 "laserPulse",
+                "laserPulseAnimation",
+                "laserPulse2Animation",
                 "initialIntensityReport",
-                "initialPhaseReport",
                 "plotAnimation",
                 "plot2Animation",
                 "simulation",
@@ -51,10 +51,6 @@ class SimData(sirepo.sim_data.SimDataBase):
             cls.update_model_defaults(m, m.type)
 
     @classmethod
-    def initial_reports(cls):
-        return INITIAL_REPORTS
-
-    @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if analysis_model in (
             "crystalAnimation",
@@ -63,21 +59,15 @@ class SimData(sirepo.sim_data.SimDataBase):
             "plot2Animation",
         ):
             return "crystalAnimation"
-        if analysis_model in (
-            "initialIntensityReport",
-            "initialPhaseReport",
-        ):
-            return "initialIntensityReport"
         if "beamlineAnimation" in analysis_model:
             return "beamlineAnimation"
+        if analysis_model in cls.SOURCE_REPORTS:
+            return "laserPulseAnimation"
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        res = []
-        if r in INITIAL_REPORTS:
-            res += ["laserPulse"]
-        return res
+        return []
 
     @classmethod
     def _lib_file_basenames(cls, data):

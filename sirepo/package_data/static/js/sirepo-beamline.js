@@ -103,6 +103,7 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
         if (appState.isLoaded()) {
             var beamline = appState.applicationState().beamline;
             var res = [];
+            self.createWatchModel(0);
             for (var i = 0; i < beamline.length; i++) {
                 if (beamline[i].type == 'watch' || beamline[i].type == 'crystal') {
                     res.push(beamline[i]);
@@ -685,7 +686,7 @@ SIREPO.app.directive('beamlineReports', function(beamlineService) {
         scope: {},
         template: `
             <div data-column-for-aspect-ratio="initialIntensityReport">
-              <div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamlineService.getReportTitle(\'initialIntensityReport\') }}"></div>
+              <div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamlineService.getReportTitle('initialIntensityReport') }}"></div>
             </div>
             <div data-ng-if="! item.isDisabled" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id">
               <div data-watchpoint-report="" data-item-id="item.id"></div>

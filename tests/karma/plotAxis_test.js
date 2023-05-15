@@ -107,6 +107,10 @@ describe('plotting: plotAxis', function() {
             tickValues('', [-0.005903110878804563, 0.0016902793870008444], {width: 493, height: 493}, 'y', 'left'),
             ['-5e-3', '-4e-3', '-3e-3', '-2e-3', '-1e-3', '0', '1e-3'],
         );
+        assertTicks(
+            tickValues('', [-0.0002, -0.0018], {width: 315, height: 200}, 'y', 'left'),
+            ['-1.5e-3', '-1.0e-3', '-5.0e-4'],
+        );
 
     }));
     it('should format units', inject(function(layoutService) {

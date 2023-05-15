@@ -14,11 +14,11 @@
             ["excited_states_longitudinal", "Excited States Longitudinal Distribution"]
         ],
         "WatchpointPlot": [
-            ["intensity", "Intensity"],
-            ["phase", "Phase"],
-            ["photons", "Number of Photons"],
+            ["intensity", "Intensity by Slice"],
+            ["phase", "Phase by Slice"],
+            ["photons", "Number of Photons by Slice"],
             ["longitudinal_photons", "Longitudinal Photons"],
-            ["longitudinal_intensity", "Longitudinal Intensity"],
+            ["longitudinal_intensity", "Longitudinal Central Intensity"],
             ["total_intensity", "Total Intensity"],
             ["total_phase", "Total Phase"]
         ],
@@ -86,6 +86,8 @@
     },
     "frameIdFields": {
         "beamlineAnimation": ["watchpointPlot", "crystalPlot"],
+        "laserPulseAnimation": ["watchpointPlot"],
+        "laserPulse2Animation": ["watchpointPlot"],
         "crystalAnimation": [],
         "crystal3dAnimation": [],
         "plotAnimation": [],
@@ -160,12 +162,16 @@
             "sigx_waist": ["Horizontal RMS Waist Size [m]", "Float", 0.001],
             "sigy_waist": ["Vertical RMS Waist Size [m]", "Float", 0.001]
         },
+        "laserPulseAnimation": {
+            "_super": ["_", "model", "initialIntensityReport"]
+        },
+        "laserPulse2Animation": {
+            "_super": ["_", "model", "initialIntensityReport"],
+            "watchpointPlot": ["Value to Plot", "WatchpointPlot", "phase"]
+        },
         "initialIntensityReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "sliceNumber": ["Slice Number", "SliceNumber", 0]
-        },
-        "initialPhaseReport": {
-            "_super": ["_", "model", "initialIntensityReport"]
+            "watchpointPlot": ["Value to Plot", "WatchpointPlot", "intensity"]
         },
         "lens": {
             "_super": ["_", "model", "beamElement"],
@@ -187,7 +193,6 @@
         },
         "watchpointReport": {
             "_super": ["_", "model", "initialIntensityReport"],
-            "watchpointPlot": ["Value to Plot", "WatchpointPlot", "intensity"],
             "crystalPlot": ["Value to Plot", "CrystalPlot", "excited_states"]
         }
     },
@@ -304,17 +309,16 @@
                 ]]
             ]
         },
-        "initialIntensityReport": {
-            "title": "Intensity",
-            "advanced": [
-                "sliceNumber",
-                "colorMap"
-            ]
+        "laserPulseAnimation": {
+            "_super": ["_", "view", "initialIntensityReport"]
         },
-        "initialPhaseReport": {
-            "title": "Phase",
+        "laserPulse2Animation": {
+            "_super": ["_", "view", "initialIntensityReport"]
+        },
+        "initialIntensityReport": {
+            "title": "Laser Pulse",
             "advanced": [
-                "sliceNumber",
+                "watchpointPlot",
                 "colorMap"
             ]
         },
@@ -350,7 +354,6 @@
         "watchpointReport": {
             "_super": ["_", "view", "initialIntensityReport"],
             "advanced": [
-                "watchpointPlot",
                 "crystalPlot"
             ]
         }
