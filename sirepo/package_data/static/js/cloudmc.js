@@ -211,7 +211,6 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         self.eigenvalue = data.eigenvalue;
         self.results = data.results;
         if (data.frameCount) {
-            srdbg(data);
             frameCache.setFrameCount(data.frameCount);
         }
         if (data.tallies) {
