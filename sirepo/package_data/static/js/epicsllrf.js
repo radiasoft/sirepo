@@ -301,17 +301,17 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
                             {
                                 color: '#1f77b4',
                                 points: y1,
-                                label: "Waveform 1",
+                                label: "Incoming",
                             },
                             {
                                 color: '#ff7f0e',
                                 points: y2,
-                                label: "Waveform 2",
+                                label: "Transmitted",
                             },
                             {
                                 color: '#000000',
                                 points: y3,
-                                label: "Waveform 3",
+                                label: "Reflected",
                             },
                         ],
                         y_range: [
