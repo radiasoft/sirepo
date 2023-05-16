@@ -105,7 +105,7 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
             var res = [];
             self.createWatchModel(0);
             for (var i = 0; i < beamline.length; i++) {
-                if (beamline[i].type == 'watch' || beamline[i].type == 'crystal') {
+                if (self.isWatchpointReportElement(beamline[i])) {
                     res.push(beamline[i]);
                     self.createWatchModel(beamline[i].id);
                 }
@@ -171,6 +171,13 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
 
     self.isTouchscreen = function() {
         return isTouchscreen;
+    };
+
+    self.isWatchpointReportElement = item => {
+        if (SIREPO.BEAMLINE_WATCHPOINT_REPORT_ELEMENTS) {
+            return SIREPO.BEAMLINE_WATCHPOINT_REPORT_ELEMENTS.includes(item.type);
+        }
+        return item.type == 'watch';
     };
 
     self.removeActiveItem = function() {
@@ -249,8 +256,8 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 <div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">
                   <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data, $event)"> </div><div data-ng-drag="::beamlineService.isEditable()" data-ng-drag-data="item" data-item="item" data-beamline-item=""
                     data-show-active-watchpoints="showActiveWatchpoints" data-active-watchpoint-title="{{ activeWatchpointTitle }}" data-is-watchpoint-active="isWatchpointActive(item)" data-set-watchpoint-active="setWatchpointActive(item)"
-                    class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}"
-                    data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}" oncontextmenu="return false">
+                    class="srw-beamline-element {{ beamlineService.isTouchscreen() ? '' : 'srw-hover' }}"
+                    data-ng-class="{'srw-disabled-item': item.isDisabled, 'srw-beamline-invalid': ! beamlineService.isItemValid(item)}" oncontextmenu="return false">
                   </div><div class="srw-drop-between-zone" data-ng-attr-style="width: {{ dropBetweenWidth }}px"  data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data, $event)"> </div>
                 </div>
             </div>
@@ -296,7 +303,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 if (newItem.type == 'ellipsoidMirror') {
                     newItem.firstFocusLength = newItem.position;
                 }
-                if (newItem.type == 'watch' || newItem.type == 'crystal') {
+                if (beamlineService.isWatchpointReportElement(newItem)) {
                     beamlineService.createWatchModel(newItem.id);
                 }
                 appState.models.beamline.push(newItem);
@@ -408,7 +415,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 };
                 for (var i = 0; i < appState.models.beamline.length; i++) {
                     var item = appState.models.beamline[i];
-                    if (item.type == 'watch' || item.type == 'crystal') {
+                    if (beamlineService.isWatchpointReportElement(item)) {
                         watchpoints[beamlineService.watchpointReportName(item.id)] = true;
                     }
                 }
@@ -509,15 +516,15 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             setWatchpointActive: '&',
         },
         template: `
-            <span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : (item.position === 0 ? \'0m\' : \'⚠ \') }}</span>
+            <span class="srw-beamline-badge badge">{{ item.position ? item.position + 'm' : (item.position === 0 ? '0m' : '⚠ ') }}</span>
             <span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon srw-beamline-toggle glyphicon glyphicon-remove-circle" title="Delete Element"></span>
             <span data-ng-if="showItemButtons()" data-ng-click="beamlineService.copyElement(item)" class="srw-beamline-copy-icon srw-beamline-toggle glyphicon glyphicon-duplicate" title="Copy Element"></span>
-            <span data-ng-if="showItemButtons() && showActiveIcon(item)" data-ng-click="setWatchpointActive(item)" class="srw-beamline-report-icon srw-beamline-toggle glyphicon glyphicon-ok" data-ng-class="{\'srw-beamline-report-icon-active\': isWatchpointActive(item)}" title="{{ activeWatchpointTitle }}"></span>
-            <span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon srw-beamline-toggle glyphicon" data-ng-class="{\'glyphicon-ok-circle\': item.isDisabled, \' glyphicon-ban-circle\': ! item.isDisabled}" title="{{ enableItemToggleTitle() }}"></span>
+            <span data-ng-if="showItemButtons() && showActiveIcon(item)" data-ng-click="setWatchpointActive(item)" class="srw-beamline-report-icon srw-beamline-toggle glyphicon glyphicon-ok" data-ng-class="{'srw-beamline-report-icon-active': isWatchpointActive(item)}" title="{{ activeWatchpointTitle }}"></span>
+            <span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon srw-beamline-toggle glyphicon" data-ng-class="{'glyphicon-ok-circle': item.isDisabled, ' glyphicon-ban-circle': ! item.isDisabled}" title="{{ enableItemToggleTitle() }}"></span>
             <div class="srw-beamline-image">
               <span data-beamline-icon="" data-item="item"></span>
             </div>
-            <div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ (beamlineService.isItemValid(item) ? \'\' : \'⚠ \') + item.title }}<span class="caret"></span></div>
+            <div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ (beamlineService.isItemValid(item) ? '' : '⚠ ') + item.title }}<span class="caret"></span></div>
         `,
         controller: function($scope, $element) {
             $scope.beamlineService = beamlineService;

@@ -31,6 +31,7 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
     `;
     SIREPO.BEAMLINE_WATCHPOINT_MODEL_PREFIX = 'beamlineAnimation';
+    SIREPO.BEAMLINE_WATCHPOINT_REPORT_ELEMENTS = ['watch', 'crystal'];
 });
 
 SIREPO.app.factory('silasService', function(appState) {
