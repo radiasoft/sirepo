@@ -1599,8 +1599,10 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
             };
 
             $scope.description = m => {
-                if (childModel == 'source')  {
-                    return sourceInfo('SpatialDistribution', m.space);
+                if (childModel === 'source')  {
+                    return m.type === 'file' && m.file
+                         ? `File(filename=${m.file })`
+                         : sourceInfo('SpatialDistribution', m.space);
                 }
                 return tallyInfo(m);
             };
@@ -1776,6 +1778,29 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
         ['reflectivePlanes.useReflectivePlanes'], processPlanes,
     ];
 });
+
+SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
+    $scope.whenSelected = () => {
+        $scope.modelData = appState.models[$scope.modelName];
+        updateEditor();
+    };
+
+    $scope.watchFields = [
+        [
+            'source.type',
+        ], updateEditor,
+    ];
+
+    function updateEditor() {
+        const isFile = $scope.modelData.type === 'file';
+        panelState.showField($scope.modelName, 'file', isFile);
+        $scope.$parent.advancedFields.forEach((x, i) => {
+            panelState.showTab($scope.modelName, i + 1, ! isFile || x[0] === 'Type');
+        });
+    }
+
+});
+
 
 SIREPO.app.directive('simpleListEditor', function(panelState) {
     return {
