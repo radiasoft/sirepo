@@ -164,7 +164,6 @@ def _beamline_animation_percent_complete(run_dir, res, data):
                 )
                 count.crystal += 1
                 res.frameCount += 1
-    pkdp("percent complete total: {} frameCount: {}", total_count, res.frameCount)
     res.percentComplete = res.frameCount * 100 / total_count
     return res
 
