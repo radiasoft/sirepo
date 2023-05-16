@@ -21,19 +21,51 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
 def _percent_complete(run_dir, is_running):
+    RE_F = "\d*\.\d+"
+
+    def _get_groups(match, *args):
+        res = []
+        for i in args:
+            g = match.group(i)
+            if g is not None:
+                res.append(g.strip())
+        return res
+
     res = PKDict(
         frameCount=0,
         percentComplete=0,
     )
     with pkio.open_text(str(run_dir.join(template_common.RUN_LOG))) as f:
+        res.eigenvalue = None
+        res.results = None
+        has_results = False
         for line in f:
             m = re.match(r"^ Simulating batch (\d+)", line)
             if m:
                 res.frameCount = int(m.group(1))
                 continue
-            m = re.match(r"^\s+(\d+)/1\s+\d", line)
+            m = re.match(
+                rf"^\s+(\d+)/1\s+({RE_F})\s*({RE_F})?\s*(\+/-)?\s*({RE_F})?", line
+            )
             if m:
                 res.frameCount = int(m.group(1))
+                res.eigenvalue = res.eigenvalue or []
+                res.eigenvalue.append(
+                    PKDict(
+                        batch=res.frameCount,
+                        val=_get_groups(m, 2, 3, 5),
+                    )
+                )
+                continue
+            if not has_results:
+                has_results = re.match(r"\s*=+>\s+RESULTS\s+<=+\s*", line)
+                if not has_results:
+                    continue
+            m = re.match(rf"^\s+(.+)\s=\s({RE_F})\s+\+/-\s+({RE_F})", line)
+            if m:
+                res.results = res.results or []
+                res.results.append(_get_groups(m, 1, 2, 3))
+
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
         res.percentComplete = res.frameCount * 100 / data.models.settings.batches
