@@ -93,7 +93,6 @@ def _read_epics_data(run_dir):
             else:
                 v = float(v)
             d[f] = v
-        pkdp("\n\n\nv={}", v)
         d = _check_connection(d)
         return d
     return PKDict()

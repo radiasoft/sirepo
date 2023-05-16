@@ -1,6 +1,7 @@
 {
     "constants": {
         "inProgressText": "Reading",
+        "epicsModelPrefix": "LLRFSim",
         "epicsPlots": {
             "waveformAReport": {
                 "x": "LLRFSim_Sim:timestep",
@@ -84,7 +85,7 @@
         },
         "LLRFSim_Sim": {
             "num_pulse": ["Pulse Number", "EpicsInteger", 0, "number of pulses"],
-            "pulse_lens": ["Timestep", "EpicsFloat", 0]
+            "timestep": ["Timestep", "EpicsFloat", 0]
         },
         "epicsServer": {
             "serverAddress": ["Network Address", "String", "localhost:5064", "EPICS server network address, $\\text{<host>:<port>}$"]

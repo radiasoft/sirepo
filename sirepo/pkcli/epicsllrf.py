@@ -8,8 +8,11 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common, epicsllrf
 from sirepo import simulation_db
+import sirepo.sim_data
 import subprocess
 
+
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 def run(cfg_dir):
     plots = [
@@ -34,7 +37,7 @@ def run(cfg_dir):
 
 def run_background(cfg_dir):
     subprocess.Popen(
-        "pvmonitor LLRFSim:Cav:Q LLRFSim:Cav:R LLRFSim:Cav:Vr LLRFSim:Cav:Vt LLRFSim:Cav:Z0 LLRFSim:Cav:beta LLRFSim:Cav:dw LLRFSim:Cav:phiC LLRFSim:Cav:rphase LLRFSim:Cav:tphase LLRFSim:Cav:w0 LLRFSim:Cav:wC LLRFSim:Gen:I0S LLRFSim:Gen:Ig LLRFSim:Gen:amp LLRFSim:Gen:duration LLRFSim:Gen:noise LLRFSim:Gen:phase LLRFSim:Gen:phiG LLRFSim:Gen:phiS LLRFSim:Gen:rho LLRFSim:Gen:signal_type LLRFSim:Gen:start LLRFSim:Gen:wG LLRFSim:Gen:wS LLRFSim:Sim:num_pulse LLRFSim:Sim:timestep | python parameters.py",
+        f"pvmonitor {_epics_fields()} | python parameters.py",
         shell=True,
         stdin=subprocess.PIPE,
         env=epicsllrf.epics_env(
@@ -43,3 +46,11 @@ def run_background(cfg_dir):
             ).models.epicsServer.serverAddress
         ),
     ).wait()
+
+def _epics_fields():
+    r = []
+    for model in SCHEMA.model:
+        if SCHEMA.constants.epicsModelPrefix in model:
+            for k in SCHEMA.model[model]:
+                r.append(model.replace("_", ":") + ":" + k)
+    return " ".join(r)

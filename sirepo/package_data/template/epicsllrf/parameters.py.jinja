@@ -19,7 +19,6 @@ for line in sys.stdin:
         name, time, value = m.group(1, 2, 3)
         #TODO(pjm): may want to rename model somewhere else
         name = name.replace(':', '_', 1)
-        print("name", name)
         pvs[name] = [value, time]
     if not select.select([sys.stdin, ], [], [], 0.0)[0]:
         # no remaining data, save input file info
