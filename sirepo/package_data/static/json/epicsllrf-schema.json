@@ -13,6 +13,15 @@
                 "y1": "LLRFSim_Gen:phase",
                 "y2": "LLRFSim_Cav:tphase",
                 "y3": "LLRFSim_Cav:rphase"
+            },
+            "plotLabels": {
+                "LLRFSim_Sim:timestep": "Time [s]",
+                "LLRFSim_Gen:Ig": "Incoming [rad]",
+                "LLRFSim_Cav:Vt": "Transmitted [rad]",
+                "LLRFSim_Cav:Vr": "Reflected",
+                "LLRFSim_Gen:phase": "Incoming [rad]",
+                "LLRFSim_Cav:tphase": "Transmitted [rad]",
+                "LLRFSim_Cav:rphase": "Reflected"
             }
         }
     },

@@ -281,11 +281,12 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
             let plotData, plotScope;
 
             function updatePlot() {
-                srdbg("plotData=", plotData);
                 const x = plotData[1];
                 const y1 = plotData[2];
                 const y2 = plotData[3];
                 const y3 = plotData[4];
+                const e = SIREPO.APP_SCHEMA.constants.epicsPlots;
+                const l = e.plotLabels;
                 plotData = null;
                 if (plotScope) {
                     plotScope.clearData();
@@ -301,17 +302,17 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
                             {
                                 color: '#1f77b4',
                                 points: y1,
-                                label: "Incoming",
+                                label: l[e[$scope.modelName].y1],
                             },
                             {
                                 color: '#ff7f0e',
                                 points: y2,
-                                label: "Transmitted",
+                                label: l[e[$scope.modelName].y2],
                             },
                             {
                                 color: '#000000',
                                 points: y3,
-                                label: "Reflected",
+                                label: l[e[$scope.modelName].y3],
                             },
                         ],
                         y_range: [
@@ -330,8 +331,6 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
                 }
             });
             $scope.$on('sr-epicsllrf-waveform', (event, data) => {
-                srdbg("data=", data);
-                srdbg("$scope.modelName", $scope.modelName);
                 if (data[0] == $scope.modelName) {
                     plotData = data;
                     if (plotScope) {
