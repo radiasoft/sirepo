@@ -215,7 +215,7 @@ class _Req(_JsonPostRequestHandler):
             )
 
         def _filename_and_json(path):
-            return PKDict(filename=str(path.basename), json=pkio.read_text(path))
+            return PKDict(filename=path.basename, json=pkjson.load_any(path))
 
         def _image_paths(uid):
             return pkio.sorted_glob(_Analysis.analysis_output_dir(uid).join("**/*.png"))

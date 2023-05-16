@@ -556,7 +556,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.formatJsonFile = (contents) => {
-                return JSON.stringify(JSON.parse(contents), undefined, 2);
+                return JSON.stringify(contents, undefined, 2);
             };
 
             $scope.getHeader = function() {
