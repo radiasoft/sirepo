@@ -36,8 +36,8 @@ def _percent_complete(run_dir, is_running):
         percentComplete=0,
     )
     with pkio.open_text(str(run_dir.join(template_common.RUN_LOG))) as f:
-        res.eigenvalue = []
-        res.results = []
+        res.eigenvalue = None
+        res.results = None
         has_results = False
         for line in f:
             m = re.match(r"^ Simulating batch (\d+)", line)
@@ -49,6 +49,7 @@ def _percent_complete(run_dir, is_running):
             )
             if m:
                 res.frameCount = int(m.group(1))
+                res.eigenvalue = res.eigenvalue or []
                 res.eigenvalue.append(
                     PKDict(
                         batch=res.frameCount,
@@ -62,6 +63,7 @@ def _percent_complete(run_dir, is_running):
                     continue
             m = re.match(rf"^\s+(.+)\s=\s({RE_F})\s+\+/-\s+({RE_F})", line)
             if m:
+                res.results = res.results or []
                 res.results.append(_get_groups(m, 1, 2, 3))
 
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))

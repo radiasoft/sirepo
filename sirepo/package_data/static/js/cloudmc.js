@@ -1772,24 +1772,24 @@ SIREPO.app.directive('tallyAspects', function() {
 
 SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
 
-    function processPlanes() {
+    function updateEditor() {
         panelState.showFields('reflectivePlanes', [
             ['plane1a', 'plane1b', 'plane2a', 'plane2b'],
-            appState.models.reflectivePlanes.useReflectivePlanes == '1',
+            appState.models.reflectivePlanes.useReflectivePlanes === '1',
         ]);
+
+        panelState.showField(
+            $scope.modelName,
+            'eigenvalueHistory',
+            appState.models[$scope.modelName].run_mode === 'eigenvalue'
+        );
     }
 
-    function updateEditor() {
-        panelState.showField($scope.modelName, 'eigenvalueHistory', appState.models[$scope.modelName].run_mode === 'eigenvalue');
-    }
-
-    $scope.whenSelected = processPlanes;
+    $scope.whenSelected = updateEditor;
 
     $scope.watchFields = [
-        ['reflectivePlanes.useReflectivePlanes'], processPlanes,
-        [`${$scope.modelName}.run_mode`], updateEditor,
+        [`${$scope.modelName}.run_mode`, 'reflectivePlanes.useReflectivePlanes'], updateEditor,
     ];
-
 
 });
 

@@ -6,8 +6,8 @@
     <div class="col-md-6 col-xl-4">
       <div data-simple-panel="simulationStatus">
         <div data-sim-status-panel="visualization.simState"></div>
-        <div class="row" data-ng-show="visualization.eigenvalue">
-          <div class="col-md-6">
+        <div class="row">
+          <div class="col-md-6" data-ng-show="visualization.eigenvalue">
           <table class="table-condensed table-bordered">
             <caption style="text-align: center; font-weight: bold;">Last {{ visualization.eigenvalueHistory() }} Eigenvalues</caption>
             <thead>
