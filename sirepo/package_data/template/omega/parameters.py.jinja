@@ -28,21 +28,12 @@ def convert_bunched_beam_to_sdds_beam(data, filename):
     data.models.bunchSource.inputSource = 'sdds_beam'
 
 
-def elegant_lib_file(model, field, filename):
-    s = sirepo.sim_data.get_class('elegant')
-    #TODO(pjm): need an API to add/update lib files
-    if 'lib_file_uri' in sirepo.sim_data._cfg:
-        sirepo.sim_data._cfg.lib_file_uri = ''
-    return s.lib_file_write_path(
-        s.lib_file_name_with_model_field(model, field, filename),
-    )
-
-
-def file_name_from_sim_name(sim_name):
+def file_name_from_sim_name(sim_type, sim_name):
     res = re.sub(r'[^0-9a-zA-Z]', '_', sim_name)
     res = re.sub(r'^\_+|\_+$', '', res)
     res = re.sub(r'\_+', '_', res)
-    return f'{res}.sdds'
+    ext = "sdds" if sim_type == "elegant" else "dat"
+    return f"{res}.{ext}"
 
 
 def prep_run_dir(run_dir, data):
@@ -60,17 +51,17 @@ def run_elegant(run_dir, elegant_id, prev_sim=None):
     data = read_sim('elegant', elegant_id)
     if prev_sim:
         assert prev_sim.outfile_path
-        filename = file_name_from_sim_name(f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
-        data = update_elegant_sim(data, filename)
+        filename = file_name_from_sim_name('elegant', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
+        update_elegant_sim(data, filename)
         if prev_sim.sim_type == 'elegant':
             p = pkio.py_path(prev_sim.outfile_path)
-            p.copy(elegant_lib_file('bunchFile', 'sourceFile', filename))
-            p.copy(elegant_lib_file('command_run_setup', 'expand_for', filename))
+            p.copy(sim_lib_file('elegant', 'bunchFile', 'sourceFile', filename))
+            p.copy(sim_lib_file('elegant', 'command_run_setup', 'expand_for', filename))
         else:
             sw = switchyard.Switchyard()
             sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
-            sw.write(elegant_lib_file('bunchFile', 'sourceFile', filename), 'elegant')
-            sw.write(elegant_lib_file('command_run_setup', 'expand_for', filename), 'elegant')
+            sw.write(sim_lib_file('elegant', 'bunchFile', 'sourceFile', filename), 'elegant')
+            sw.write(sim_lib_file('elegant', 'command_run_setup', 'expand_for', filename), 'elegant')
     data.computeModel = 'animation'
     if 'report' in data:
         del data['report']
@@ -80,8 +71,14 @@ def run_elegant(run_dir, elegant_id, prev_sim=None):
 
 
 def run_opal(run_dir, opal_id, prev_sim=None):
-    assert not prev_sim
     data = read_sim('opal', opal_id)
+    if prev_sim:
+        assert prev_sim.outfile_path
+        filename = file_name_from_sim_name('opal', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
+        update_opal_sim(data, filename)
+        sw = switchyard.Switchyard()
+        sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
+        sw.write(sim_lib_file("opal", "command_distribution", "fname", filename), "opal")
     data.computeModel = 'animation'
     LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
     with pkio.save_chdir(prep_run_dir(run_dir, data)):
@@ -103,12 +100,28 @@ def run_sims(sim_list):
         prev = s
 
 
+def sim_lib_file(sim_type, model, field, filename):
+    s = sirepo.sim_data.get_class(sim_type)
+    #TODO(pjm): need an API to add/update lib files
+    if 'lib_file_uri' in sirepo.sim_data._cfg:
+        sirepo.sim_data._cfg.lib_file_uri = ''
+    return s.lib_file_write_path(
+        s.lib_file_name_with_model_field(model, field, filename),
+    )
+
+
 def update_elegant_sim(data, filename):
     if data.models.bunchSource.inputSource == 'bunched_beam':
         convert_bunched_beam_to_sdds_beam(data, filename)
     assert data.models.bunchSource.inputSource == 'sdds_beam'
     LatticeUtil.find_first_command(data, "run_setup").expand_for = filename
-    return data
+
+
+def update_opal_sim(data, filename):
+    d = LatticeUtil.find_first_command(data, "distribution")
+    d.type = "FROMFILE"
+    d.fname = filename
+    data.pkupdate(d)
 
 
 run_sims([
