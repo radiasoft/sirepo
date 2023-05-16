@@ -21,13 +21,14 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
 def _percent_complete(run_dir, is_running):
-    def _parse_eigenval(txt):
+    RE_F = "\d*\.\d+"
+
+    def _get_groups(match, *args):
         res = []
-        for v in txt.split():
-            try:
-                res.append(float(v))
-            except ValueError:
-                continue
+        for i in args:
+            g = match.group(i)
+            if g is not None:
+                res.append(g.strip())
         return res
 
     res = PKDict(
@@ -43,13 +44,15 @@ def _percent_complete(run_dir, is_running):
             if m:
                 res.frameCount = int(m.group(1))
                 continue
-            m = re.match(r"^\s+(\d+)/1\s+\d", line)
+            m = re.match(
+                rf"^\s+(\d+)/1\s+({RE_F})\s*({RE_F})?\s*(\+/-)?\s*({RE_F})?", line
+            )
             if m:
                 res.frameCount = int(m.group(1))
                 res.eigenvalue.append(
                     PKDict(
                         batch=res.frameCount,
-                        val=_parse_eigenval(line),
+                        val=_get_groups(m, 2, 3, 5),
                     )
                 )
                 continue
@@ -57,9 +60,9 @@ def _percent_complete(run_dir, is_running):
                 has_results = re.match(r"\s*=+>\s+RESULTS\s+<=+\s*", line)
                 if not has_results:
                     continue
-            m = re.match(r"\s+(.+)\s=\s(\d+\.\d+)\s+\+/-\s+(\d+\.\d+)", line)
+            m = re.match(rf"^\s+(.+)\s=\s({RE_F})\s+\+/-\s+({RE_F})", line)
             if m:
-                res.results.append([g.strip() for g in m.groups()])
+                res.results.append(_get_groups(m, 1, 2, 3))
 
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
