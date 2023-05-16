@@ -74,15 +74,18 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def sim_frame(frame_args):
+    def _crystal_or_watch(frame_args, element):
+        if element and element.type == "crystal":
+            return frame_args.crystalPlot
+        return frame_args.watchpointPlot
+
     r = frame_args.frameReport
     frame_args.sim_in.report = r
     count, element = _report_to_file_index(frame_args.sim_in, r)
     if "beamlineAnimation" in r or r in _SIM_DATA.SOURCE_REPORTS:
         return _laser_pulse_plot(
             frame_args.run_dir,
-            frame_args.crystalPlot
-            if element and element.type == "crystal"
-            else frame_args.watchpointPlot,
+            _crystal_or_watch(frame_args, element),
             frame_args.sim_in,
             count,
             element,
@@ -131,6 +134,34 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _beamline_animation_percent_complete(run_dir, res, data):
+    def _output_append(frame_count, filename, count, element, res, total_count):
+        total_count += 1
+        if run_dir.join(filename).exists():
+            res.outputInfo.append(
+                PKDict(
+                    modelKey="beamlineAnimation{}".format(e.id),
+                    filename=filename,
+                    id=element.id,
+                    frameCount=frame_count,
+                )
+            )
+            if element.type == "watch":
+                count.watch += 1
+            else:
+                count.crystal += 1
+            res.frameCount += 1
+
+    def _file(element, count):
+        return PKDict(
+            watch=_RESULTS_FILE.format(count.watch),
+            crystal=_CRYSTAL_FILE.format(count.crystal),
+        )[element.type]
+
+    def _frames(element, data):
+        if element.type == "watch":
+            return data.models.laserPulse.nslice
+        return element.nslice
+
     _initial_intensity_percent_complete(run_dir, res, data, ("beamlineAnimation0",))
     count = PKDict(
         watch=1,
@@ -138,32 +169,16 @@ def _beamline_animation_percent_complete(run_dir, res, data):
     )
     total_count = 1
     for e in data.models.beamline:
-        if e.type == "watch":
-            total_count += 1
-            if run_dir.join(_RESULTS_FILE.format(count.watch)).exists():
-                res.outputInfo.append(
-                    PKDict(
-                        modelKey="beamlineAnimation{}".format(e.id),
-                        filename=_RESULTS_FILE.format(count.watch),
-                        id=e.id,
-                        frameCount=data.models.laserPulse.nslice,
-                    )
-                )
-                count.watch += 1
-                res.frameCount += 1
-        elif e.type == "crystal":
-            total_count += 1
-            if run_dir.join(_CRYSTAL_FILE.format(count.crystal)).exists():
-                res.outputInfo.append(
-                    PKDict(
-                        modelKey="beamlineAnimation{}".format(e.id),
-                        filename=_CRYSTAL_FILE.format(count.crystal),
-                        id=e.id,
-                        frameCount=e.nslice,
-                    )
-                )
-                count.crystal += 1
-                res.frameCount += 1
+        if e.type in ("watch", "crystal"):
+            _output_append(
+                _frames(e, data),
+                _file(e, count),
+                count,
+                e,
+                res,
+                total_count,
+            )
+
     res.percentComplete = res.frameCount * 100 / total_count
     return res
 

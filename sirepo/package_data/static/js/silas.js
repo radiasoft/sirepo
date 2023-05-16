@@ -41,7 +41,7 @@ SIREPO.app.factory('silasService', function(appState) {
         if (['crystalAnimation', 'crystal3dAnimation', 'plotAnimation', 'plot2Animation'].indexOf(analysisModel) >= 0) {
             return 'crystalAnimation';
         }
-        if (analysisModel === 'laserPulseAnimation' || analysisModel == 'laserPulse2Animation') {
+        if (['laserPulseAnimation', 'laserPulse2Animation'].includes(analysisModel)) {
             return 'laserPulseAnimation';
         }
         return 'beamlineAnimation';
@@ -286,10 +286,14 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
             ['n0', 'n2'], item.propagationType != 'gain_calc',
         ]);
         panelState.showTab(item.type, 2, item.origin === 'new');
-        panelState.showTab(item.type, 3, item.origin === 'new'
-            && ((item.propagationType == 'n0n2_srw' && item.radial_n2 == '1')
-             || item.calc_gain === '1' || item.propagationType === 'gain_calc'));
+        panelState.showTab(item.type, 3, propOrGain(item));
     }
+
+    const propOrGain = (item) => {
+        return item.origin === 'new'
+        && ((item.propagationType == 'n0n2_srw' && item.radial_n2 == '1')
+        || item.calc_gain === '1' || item.propagationType === 'gain_calc');
+    };
 
     $scope.whenSelected = updateCrystalFields;
     $scope.watchFields = [
@@ -684,8 +688,7 @@ const intensityViewHandler = function(appState, beamlineService, panelState, $sc
 
         getAndSavePlot(m, e);
         const idx = SIREPO.SINGLE_FRAME_ANIMATION.indexOf(modelKey());
-        // TODO (gurhar1133): refactor
-        if (m.reportType == 'parameter' || m.watchpointPlot == 'total_intensity' || m.watchpointPlot == 'total_phase') {
+        if (m.reportType == 'parameter' || ['total_intensity', 'total_phase'].includes(m.watchpointPlot)) {
             if (idx < 0) {
                 SIREPO.SINGLE_FRAME_ANIMATION.push(modelKey());
             }
