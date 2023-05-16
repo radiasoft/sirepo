@@ -388,8 +388,8 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
         return len(file)
 
     def _title(plot_type, slice_index):
-        if plot_type in ("total_intensity", "total_phase"):
-            return plot_type.replace("_", " ").capitalize()
+        if plot_type in ("total_intensity", "total_phase", "excited_states"):
+            return plot_type.replace("_", " ").title()
         return plot_type.capitalize() + " Slice #" + str(slice_index + 1)
 
     def _y_value(element, index, file, cell_volume):
