@@ -13,6 +13,10 @@ STATIC_D = "static"
 
 JSON_SUFFIX = ".json"
 
+# standin for user ID needed for testing purposes
+# see sirepo.pkcli.nersc_test.sequential
+MOCK_UID = "someuser"
+
 MPI_LOG = "mpi_run.log"
 
 PORT_MAX = 32767
