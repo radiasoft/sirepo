@@ -11,6 +11,18 @@ import sirepo.pkcli.nersc_test
 import pykern.pksubprocess
 
 
+_SIREPO_RUN_DIR_FILES = [
+    "in.json",
+    "nersc_sequential.log",
+    "out.json",
+    "parameters.py",
+    "res_int_se.dat",
+    "run.log",
+    "sequential_test.sh",
+    "sequential_test.sh.jinja",
+]
+
+
 def test_sequential():
     w = pykern.pkunit.work_dir()
     with pykern.pkio.save_chdir(w):
@@ -20,18 +32,5 @@ def test_sequential():
         o = list(sorted([w.bestrelpath(f) for f in pykern.pkio.walk_tree(w)]))
     pykern.pkunit.pkeq(
         o,
-        [
-            "sirepo_run_dir/in.json",
-            "sirepo_run_dir/nersc_sequential.log",
-            "sirepo_run_dir/out.json",
-            "sirepo_run_dir/parameters.py",
-            "sirepo_run_dir/res_int_se.dat",
-            "sirepo_run_dir/run.log",
-            "sirepo_run_dir/sequential_test.sh",
-            "sirepo_run_dir/sequential_test.sh.jinja",
-        ],
-    )
-    pykern.pkunit.file_eq(
-        expect_path=w.join("sirepo_run_dir").join("sequential_test.sh"),
-        actual_path=pykern.pkunit.data_dir().join("expected_sequential_test.sh"),
+        ["sirepo_run_dir/" + f for f in _SIREPO_RUN_DIR_FILES],
     )

@@ -19,8 +19,8 @@ import shutil
 _SEQUENTIAL_TEST_BASH_FILE = "sequential_test.sh"
 _SEQUENTIAL_TEST_BASH_TEMPLATE = _SEQUENTIAL_TEST_BASH_FILE + ".jinja"
 _NERSC_TEST_DIR = "nersc_test/"
-_SEQUENTIAL_TEST_JSON = "nersc_sequential.json"
 _RUN_DIR = "sirepo_run_dir"
+_SEQUENTIAL_TEST_JSON = "nersc_sequential.json"
 _SEQUENTIAL_RESULT_FILE = "nersc_sequential.log"
 
 
