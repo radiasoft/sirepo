@@ -67,7 +67,7 @@ def stateless_compute_update_epics_value(data, **kwargs):
 
     for f in data.fields:
         subprocess.Popen(
-            f"pvput LLRFSim:Gen:{f.field} {f.value}",
+            f"pvput {data.model}:{f.field} {f.value}",
             shell=True,
             stdin=subprocess.PIPE,
         ).wait()
