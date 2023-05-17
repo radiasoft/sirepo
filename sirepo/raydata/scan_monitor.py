@@ -214,11 +214,20 @@ class _Req(_JsonPostRequestHandler):
                 ),
             )
 
-        def _paths(uid):
+        def _filename_and_json(path):
+            return PKDict(filename=path.basename, json=pkjson.load_any(path))
+
+        def _image_paths(uid):
             return pkio.sorted_glob(_Analysis.analysis_output_dir(uid).join("**/*.png"))
 
+        def _json_paths(uid):
+            return pkio.sorted_glob(
+                _Analysis.analysis_output_dir(uid).join("**/*.json")
+            )
+
         return PKDict(
-            images=[_filename_and_image(p) for p in _paths(req.uid)],
+            images=[_filename_and_image(p) for p in _image_paths(req.uid)],
+            jsonFiles=[_filename_and_json(p) for p in _json_paths(req.uid)],
         )
 
     def _analysis_run_log(self, req):

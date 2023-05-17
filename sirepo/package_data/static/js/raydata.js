@@ -378,6 +378,14 @@ SIREPO.app.directive('scansTable', function() {
                                 </div>
                               </div>
                             </div>
+                            <div data-ng-repeat="j in jsonFiles">
+                              <div class="panel panel-info">
+                                <div class="panel-heading"><span class="sr-panel-heading">{{ j.filename }}</span></div>
+                                <div class="panel-body">
+                                  <pre style="overflow: scroll; height: 150px">{{ formatJsonFile(j.json) }}</pre>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -399,6 +407,7 @@ SIREPO.app.directive('scansTable', function() {
             $scope.availableColumns = [];
             $scope.awaitingScans = false;
             $scope.images = null;
+            $scope.jsonFiles = null;
             $scope.noScansReturned = false;
             $scope.orderByColumn = 'start';
             $scope.pdfSelectAllScans = false;
@@ -440,6 +449,7 @@ SIREPO.app.directive('scansTable', function() {
                     appState,
                     (json) => {
                         $scope.images = json.images;
+                        $scope.jsonFiles = json.jsonFiles;
                     },
                     {
                         method: 'analysis_output',
@@ -543,6 +553,10 @@ SIREPO.app.directive('scansTable', function() {
                     },
                     errorOptions,
                 );
+            };
+
+            $scope.formatJsonFile = (contents) => {
+                return JSON.stringify(contents, undefined, 2);
             };
 
             $scope.getHeader = function() {
