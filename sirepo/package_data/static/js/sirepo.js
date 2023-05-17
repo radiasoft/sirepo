@@ -1314,6 +1314,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                 },
                 function(data) {
                     if (!appState.isLoaded()) {
+                        // TODO 'is it the same simulation that made the request?'
                         srdbg("appState not loaded");
                         return
                     }
