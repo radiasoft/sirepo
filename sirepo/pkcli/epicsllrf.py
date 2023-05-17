@@ -36,16 +36,15 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
-    subprocess.Popen(
+    epicsllrf.run_epics_cmd(
         f"pvmonitor {_epics_fields()} | python parameters.py",
-        shell=True,
-        stdin=subprocess.PIPE,
         env=epicsllrf.epics_env(
             simulation_db.read_json(
                 template_common.INPUT_BASE_NAME
             ).models.epicsServer.serverAddress
-        ),
-    ).wait()
+        )
+    )
+
 
 def _epics_fields():
     r = []
@@ -53,5 +52,4 @@ def _epics_fields():
         if SCHEMA.constants.epicsModelPrefix in model:
             for k in SCHEMA.model[model]:
                 r.append(model.replace("_", ":") + ":" + k)
-    pkdp("\n\n\nr={}", "\n ".join(r))
     return " ".join(r)

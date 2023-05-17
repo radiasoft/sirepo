@@ -127,11 +127,12 @@ SIREPO.app.controller('epicsllrfController', function (epicsllrfService, appStat
         }
 
         const readOnly = (model, field) => {
-            return model[field][1].includes('ReadOnly');
+            return model[field][1].includes('ReadOnly') || field == 'signal_type';
         }
 
         $scope.$on('LLRFSim_Gen.changed', () => {
             const d = getGenDiff();
+            srdbg(d);
             if (d.length) {
                 requestSender.sendStatelessCompute(
                     appState,

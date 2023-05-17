@@ -16,6 +16,7 @@ import re
 import shutil
 import sirepo.sim_data
 import sirepo.util
+import subprocess
 
 _STATUS_FILE = "status.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -62,15 +63,21 @@ def stateless_compute_read_epics_values(data, **kwargs):
     )
 
 
-def stateless_compute_update_epics_value(data, **kwargs):
-    import subprocess
+def run_epics_cmd(cmd, env=None):
+    subprocess.Popen(
+        cmd,
+        env=env,
+        shell=True,
+        stdin=subprocess.PIPE,
+    ).wait()
 
+
+def stateless_compute_update_epics_value(data, **kwargs):
     for f in data.fields:
-        subprocess.Popen(
-            f"pvput {data.model}:{f.field} {f.value}",
-            shell=True,
-            stdin=subprocess.PIPE,
-        ).wait()
+        # TODO (gurhar1133): validate model and field
+        run_epics_cmd(
+            f"pvput {data.model}:{f.field} {f.value}"
+        )
     return PKDict(success=True)
 
 
@@ -106,6 +113,7 @@ def _read_epics_data(run_dir):
                 v = float(v)
             d[f] = v
         d = _check_connection(d)
+        pkdp("\n\n\nd={}", d)
         return d
     return PKDict()
 
