@@ -15,21 +15,15 @@ def test_four_processes():
     from pykern.pkdebug import pkdp
     import os
 
-    def _p(fmt, *args):
-        pkdp("{} " + fmt, os.getpid(), *args)
-        return args[0]
-
     def _io(expect, append, before=0, after=0):
         p = _path()
         if before:
-            _p("{}", before)
             time.sleep(before)
         with file_lock.FileLock(p):
-            v = _p("{}", p.read()) if p.exists() else ""
+            v = p.read() if p.exists() else ""
             pkunit.pkeq(expect, v)
             p.write(v + append)
             if after:
-                _p("{}", after)
                 time.sleep(after)
 
     def _path():
@@ -40,7 +34,6 @@ def test_four_processes():
     def _start(name, *args, **kwargs):
         p = multiprocessing.Process(target=_io, name=name, args=args, kwargs=kwargs)
         p.start()
-        pkdp("{} {}", name, p.pid)
         return p
 
     pkunit.empty_work_dir()
@@ -52,7 +45,6 @@ def test_four_processes():
         _start("t4", "ab", "d", before=0.5),
     ]:
         p.join()
-        pkdp(p.name)
     pkunit.pkeq("abdc", _path().read())
 
 
