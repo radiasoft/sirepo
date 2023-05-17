@@ -478,16 +478,21 @@ def code_var(variables):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if frame < 0:
-        return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)
     if model in ("bunchAnimation", "plotAnimation") or "bunchReport" in model:
         return _OPAL_H5_FILE
+    if frame < 0:
+        return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)
     if model == "plot2Animation":
         return _OPAL_SDDS_FILE
     if model == "beamline3dAnimation":
         return _OPAL_VTK_FILE
     if "elementAnimation" in model:
-        return _file_name_for_element_animation(run_dir, model)
+        return _file_name_for_element_animation(
+            PKDict(
+                run_dir=run_dir,
+                frameReport=model,
+            )
+        )
     raise AssertionError("unknown model={}".format(model))
 
 
