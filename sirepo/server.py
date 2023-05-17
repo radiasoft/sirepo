@@ -13,6 +13,7 @@ from sirepo import simulation_db
 import re
 import sirepo.const
 import sirepo.feature_config
+import sirepo.file_lock
 import sirepo.flask
 import sirepo.quest
 import sirepo.resource
@@ -299,7 +300,7 @@ class API(sirepo.quest.API):
             req.form_file = f
             req.import_file_arguments = self.sreq.form_get("arguments", "")
 
-            def s(data):
+            def _save_sim(data):
                 data.models.simulation.folder = req.folder
                 data.models.simulation.isExample = False
                 return self._save_new_and_reply(req, data)
@@ -323,12 +324,14 @@ class API(sirepo.quest.API):
                     data = await req.template.import_file(
                         req,
                         tmp_dir=d,
-                        reply_op=s,
                         qcall=self,
+                        # SRW needs a simulation created to be able to start
+                        # a background import.
+                        srw_save_sim=_save_sim,
                     )
                 if "error" in data:
                     return self.reply_json(data)
-            return s(data)
+            return _save_sim(data)
         except sirepo.util.ReplyExc:
             raise
         except Exception as e:
@@ -522,12 +525,10 @@ class API(sirepo.quest.API):
     async def api_saveSimulationData(self):
         # do not fixup_old_data yet
         req = self.parse_post(id=True, template=True)
-        d = req.req_data
-        simulation_db.validate_serial(d, qcall=self)
         return self._simulation_data_reply(
             req,
             simulation_db.save_simulation_json(
-                d, fixup=True, modified=True, qcall=self
+                req.req_data, fixup=True, modified=True, qcall=self
             ),
         )
 
@@ -656,20 +657,21 @@ class API(sirepo.quest.API):
                 "new folder is root req={}",
                 req,
             )
-        for r in simulation_db.iterate_simulation_datafiles(
-            req.type,
-            _simulation_data_iterator,
-            qcall=self,
-        ):
-            f = r.models.simulation.folder
-            l = o.lower()
-            if f.lower() == o.lower():
-                r.models.simulation.folder = n
-            elif f.lower().startswith(o.lower() + "/"):
-                r.models.simulation.folder = n + f[len() :]
-            else:
-                continue
-            simulation_db.save_simulation_json(r, fixup=False, qcall=self)
+        with simulation_db.user_lock(qcall=self):
+            for r in simulation_db.iterate_simulation_datafiles(
+                req.type,
+                _simulation_data_iterator,
+                qcall=self,
+            ):
+                f = r.models.simulation.folder
+                l = o.lower()
+                if f.lower() == o.lower():
+                    r.models.simulation.folder = n
+                elif f.lower().startswith(o.lower() + "/"):
+                    r.models.simulation.folder = n + f[len() :]
+                else:
+                    continue
+                simulation_db.save_simulation_json(r, fixup=False, qcall=self)
         return self.reply_ok()
 
     @sirepo.quest.Spec(

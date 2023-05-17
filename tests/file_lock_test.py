@@ -1,0 +1,67 @@
+# -*- coding: utf-8 -*-
+"""test file_lock
+
+:copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+import pytest
+
+
+def test_four_processes():
+    import multiprocessing
+    import time
+    from pykern import pkunit
+    from sirepo import file_lock
+    from pykern.pkdebug import pkdp
+    import os
+
+    def _p(fmt, *args):
+        pkdp("{} " + fmt, os.getpid(), *args)
+        return args[0]
+
+    def _io(expect, append, before=0, after=0):
+        p = _path()
+        if before:
+            _p("{}", before)
+            time.sleep(before)
+        with file_lock.FileLock(p):
+            v = _p("{}", p.read()) if p.exists() else ""
+            pkunit.pkeq(expect, v)
+            p.write(v + append)
+            if after:
+                _p("{}", after)
+                time.sleep(after)
+
+    def _path():
+        from pykern import pkunit
+
+        return pkunit.work_dir().join("foo")
+
+    def _start(name, *args, **kwargs):
+        p = multiprocessing.Process(target=_io, name=name, args=args, kwargs=kwargs)
+        p.start()
+        pkdp("{} {}", name, p.pid)
+        return p
+
+    pkunit.empty_work_dir()
+    for p in [
+        _start("t1", "", "a"),
+        _start("t2", "a", "b", after=1),
+        # More than the _LOOP_SLEEP
+        _start("t3", "abd", "c", before=2),
+        _start("t4", "ab", "d", before=0.5),
+    ]:
+        p.join()
+        pkdp(p.name)
+    pkunit.pkeq("abdc", _path().read())
+
+
+def test_happy():
+    from pykern import pkunit
+    from sirepo import file_lock
+
+    def _simple(path):
+        with file_lock.FileLock(path):
+            pass
+
+    _simple(pkunit.empty_work_dir())

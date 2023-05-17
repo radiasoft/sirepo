@@ -544,11 +544,12 @@ async def import_file(req, tmp_dir, qcall, **kwargs):
     i = None
     r = None
     try:
-        r = kwargs["reply_op"](simulation_db.default_data(SIM_TYPE))
+        r = kwargs["srw_save_sim"](simulation_db.default_data(SIM_TYPE))
         d = pykern.pkjson.load_any(r.content_as_str())
         r.destroy()
         r = None
         i = d.models.simulation.simulationId
+        serial = d.models.simulation.simulationSerial
         b = d.models.backgroundImport = PKDict(
             arguments=req.import_file_arguments,
             python=req.form_file.as_str(),
@@ -608,6 +609,7 @@ async def import_file(req, tmp_dir, qcall, **kwargs):
             )
         x = x.get(PARSED_DATA_ATTR)
         x.models.simulation.simulationId = i
+        x.models.simulation.simulationSerial = serial
         x = simulation_db.save_simulation_json(
             x, do_validate=True, fixup=True, qcall=qcall
         )

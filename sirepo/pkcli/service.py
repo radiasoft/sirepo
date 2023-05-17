@@ -46,7 +46,7 @@ def flask():
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
         assert pkconfig.in_dev_mode()
-        app = sirepo.modules.import_and_init("sirepo.server").init_app(
+        app = sirepo.modules.import_and_init("sirepo.server", want_flask=True).init_app(
             use_reloader=_cfg().use_reloader,
             is_server=True,
         )

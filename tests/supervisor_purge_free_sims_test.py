@@ -5,15 +5,14 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import pytest
-from pykern.pkcollections import PKDict
-import os
-import time
 
 _CACHE_AND_SIM_PURGE_PERIOD = 3
 _PURGE_FREE_AFTER_DAYS = 1
 
 
 def setup_module(module):
+    import os
+
     os.environ.update(
         SIREPO_JOB_SUPERVISOR_JOB_CACHE_SECS=str(_CACHE_AND_SIM_PURGE_PERIOD),
         SIREPO_JOB_SUPERVISOR_PURGE_NON_PREMIUM_AFTER_SECS=str(_PURGE_FREE_AFTER_DAYS)
@@ -29,6 +28,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
     from sirepo import auth_role
+    import time
 
     def _check_run_dir(should_exist=0):
         f = pkio.walk_tree(fc.sr_user_dir(), file_re=m)
@@ -79,6 +79,7 @@ def test_elegant_no_frame_after_purge(auth_fc):
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
+    import time
 
     fc = auth_fc
     user_free = "free@b.c"
