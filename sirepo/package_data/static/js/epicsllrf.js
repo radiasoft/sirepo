@@ -117,25 +117,34 @@ SIREPO.app.controller('epicsllrfController', function (epicsllrfService, appStat
             e.forEach(field => {
                 var ev = epicsllrfService.getEpicsValue("LLRFSim_Gen", field)
                 if (appState.models.LLRFSim_Gen[field] != ev) {
-                    srdbg("diff", field, ev, appState.models.LLRFSim_Gen[field]);
-                    diff.push(field)
+                    if (! SIREPO.APP_SCHEMA.model.LLRFSim_Gen[field][1].includes("ReadOnly")){
+                        srdbg("diff", field, ev, appState.models.LLRFSim_Gen[field]);
+                        diff.push(
+                                {
+                                    field: field,
+                                    value: appState.models.LLRFSim_Gen[field],
+                                }
+                            );
+                    }
                 }
             })
+            srdbg("diffs", diff);
             // var d = epicsllrfService.getEpicsValue("LLRFSim_Gen", );
             // srdbg("epics data= ", d);
-            requestSender.sendStatelessCompute(
-                appState,
-                function (data) {
-                    // srdbg("data returned=", data)
-                },
-                {
-                    method: 'update_epics_value',
-                    simulationId: appState.models.simulation.simulationId,
-                    target: appState.models.LLRFSim_Gen,
-                    // report: 'animation',
-                    // noCache: noCache,
-                }
-            )
+            if (diff.length) {
+                srdbg("DIFF")
+                requestSender.sendStatelessCompute(
+                    appState,
+                    function (data) {
+                        // srdbg("data returned=", data)
+                    },
+                    {
+                        method: 'update_epics_value',
+                        fields: diff,
+                        model: "LLRFSim_Gen",
+                    }
+                )
+            }
         });
     }
 

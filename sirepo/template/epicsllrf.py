@@ -63,8 +63,15 @@ def stateless_compute_read_epics_values(data, **kwargs):
 
 
 def stateless_compute_update_epics_value(data, **kwargs):
-    pkdp("\n\n\n data.target={}", data.target)
-    assert 0, f"HIT"
+    import subprocess
+
+    for f in data.fields:
+        subprocess.Popen(
+            f"pvput LLRFSim:Gen:{f.field} {f.value}",
+            shell=True,
+            stdin=subprocess.PIPE,
+        ).wait()
+    return PKDict(success=True)
 
 
 def write_parameters(data, run_dir, is_parallel):
