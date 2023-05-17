@@ -17,6 +17,7 @@ for line in sys.stdin:
             print(f'unmatched: {line}')
             continue
         name, time, value = m.group(1, 2, 3)
+        print("name", name)
         #TODO(pjm): may want to rename model somewhere else
         name = name.replace(':', '_', 1)
         pvs[name] = [value, time]

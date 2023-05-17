@@ -6,23 +6,23 @@
             "waveformAReport": {
                 "x": "LLRFSim_Sim:timestep",
                 "y1": "LLRFSim_Gen:Ig",
-                "y2": "LLRFSim_Cav:Vt",
-                "y3": "LLRFSim_Cav:Vr"
+                "y2": "LLRFSim_Cav1:Vt",
+                "y3": "LLRFSim_Cav1:Vr"
             },
             "waveformBReport": {
                 "x": "LLRFSim_Sim:timestep",
                 "y1": "LLRFSim_Gen:phase",
-                "y2": "LLRFSim_Cav:tphase",
-                "y3": "LLRFSim_Cav:rphase"
+                "y2": "LLRFSim_Cav1:tphase",
+                "y3": "LLRFSim_Cav1:rphase"
             },
             "plotLabels": {
                 "LLRFSim_Sim:timestep": "Time [s]",
                 "LLRFSim_Gen:Ig": "Incoming [rad]",
-                "LLRFSim_Cav:Vt": "Transmitted [rad]",
-                "LLRFSim_Cav:Vr": "Reflected",
+                "LLRFSim_Cav1:Vt": "Transmitted [rad]",
+                "LLRFSim_Cav1:Vr": "Reflected",
                 "LLRFSim_Gen:phase": "Incoming [rad]",
-                "LLRFSim_Cav:tphase": "Transmitted [rad]",
-                "LLRFSim_Cav:rphase": "Reflected"
+                "LLRFSim_Cav1:tphase": "Transmitted [rad]",
+                "LLRFSim_Cav1:rphase": "Reflected"
             }
         }
     },
@@ -56,17 +56,17 @@
     "model": {
         "LLRFSim_Beam": {
             "I0S": ["I0S", "ReadOnlyFloat", []],
-            "Ib": ["", "ReadOnlyFloatArray", []],
+            "Ib": ["Ib", "ReadOnlyFloatArray", []],
             "amp": ["amp", "ReadOnlyFloat", 0],
             "duration": ["duration", "ReadOnlyFloat", 0],
-            "noise": ["Noise", "EpicsFloat", 0],
+            "noise": ["Noise", "EpicsFloat", 0.000],
             "phase": ["", "ReadOnlyFloatArray", []],
-            "phiB": ["phiB", "EpicsFloat", 0],
+            "phiB": ["phiB", "EpicsFloat", 0.000],
             "phiS": ["phiS", "ReadOnlyFloat", 0],
             "rho": ["rho", "ReadOnlyFloat", 0],
             "signal_type": ["Signal Type", "EpicsEnum", "flat"],
             "start": ["start", "ReadOnlyFloat", 0],
-            "wB": ["wB", "EpicsFloat", 0],
+            "wB": ["wB", "EpicsFloat", 0.000],
             "wS": ["wS", "ReadOnlyFloat", 0]
         },
         "LLRFSim_Gen": {
@@ -84,7 +84,33 @@
             "Ig": ["", "ReadOnlyFloatArray", []],
             "phase": ["", "ReadOnlyFloatArray", []]
         },
+        "LLRFSim_GenTee": {
+            "alpha": ["alpha", "EpicsFloat", 0],
+            "beta": ["beta", "EpicsFloat", 0],
+            "length": ["length", "EpicsFloat", 1]
+        },
+        "LLRFSim_Feedback": {
+            "delay": ["delay", "ReadOnlyFloat", 0],
+            "int_err": ["int_err", "ReadOnlyFloat", 0],
+            "ki": ["ki", "ReadOnlyFloat", 0],
+            "kp": ["kp", "ReadOnlyFloat", 0],
+            "path": ["path", "String", "accel_feedback.py"]
+        },
         "LLRFSim_Cav1": {
+            "Q": ["Q", "EpicsFloat", 0, "quality factor"],
+            "R": ["R [Ohm]", "EpicsFloat", 0, "shunt resistance"],
+            "Z0": ["Z0 [Ohm]", "EpicsFloat", 0, "characteristic impedance"],
+            "beta": ["beta", "EpicsFloat", 0, "coupling factor"],
+            "dw": ["dw", "EpicsFloat", 0, "cavity detuning"],
+            "phiC": ["phiC [rad]", "EpicsFloat", 0, "voltage IQ-demodulation phase"],
+            "w0": ["w0 [rad/s]", "EpicsFloat", 0, "resonance frequency"],
+            "wC": ["wC [rad/s]", "EpicsFloat", 0, "voltage IQ-demodulation frequency"],
+            "Vt": ["", "ReadOnlyFloatArray", []],
+            "Vr": ["", "ReadOnlyFloatArray", []],
+            "tphase": ["", "ReadOnlyFloatArray", []],
+            "rphase": ["", "ReadOnlyFloatArray", []]
+        },
+        "LLRFSim_Cav2": {
             "Q": ["Q", "EpicsFloat", 0, "quality factor"],
             "R": ["R [Ohm]", "EpicsFloat", 0, "shunt resistance"],
             "Z0": ["Z0 [Ohm]", "EpicsFloat", 0, "characteristic impedance"],
@@ -150,8 +176,42 @@
             ],
             "advanced": []
         },
+        "LLRFSim_GenTee": {
+            "title": "Gen",
+            "basic": [
+                "alpha",
+                "beta",
+                "length"
+            ],
+            "advanced": []
+        },
+        "LLRFSim_Feedback": {
+            "title": "Feedback",
+            "basic": [
+                "delay",
+                "int_err",
+                "ki",
+                "kp",
+                "path"
+            ],
+            "advanced": []
+        },
         "LLRFSim_Cav1": {
             "title": "Cav1",
+            "basic": [
+                "Q",
+                "R",
+                "Z0",
+                "beta",
+                "dw",
+                "phiC",
+                "w0",
+                "wC"
+            ],
+            "advanced": []
+        },
+        "LLRFSim_Cav2": {
+            "title": "Cav2",
             "basic": [
                 "Q",
                 "R",
