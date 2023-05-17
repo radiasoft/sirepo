@@ -1294,7 +1294,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                 return 0;
             }
             const milliseconds = 1000;
-            srdbg(`appState.models[${modelName}] = `, appState.models[modelName]);
             var x = appState.models[modelName].framesPerSecond;
             if (! x) {
                 return  0.5 * milliseconds;
@@ -1314,6 +1313,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                     '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
+                    if (!appState.isLoaded()) {
+                        srdbg("appState not loaded");
+                        return
+                    }
                     waitTimeHasElapsed = true;
                     panelState.setLoading(modelName, false);
                     if ('state' in data && data.state === 'missing') {
