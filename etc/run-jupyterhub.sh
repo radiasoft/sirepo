@@ -3,7 +3,14 @@
 # Start Sirepo Jupyterhub with email login
 # If $SIREPO_AUTH_GITHUB_KEY and $SIREPO_AUTH_GITHUB_SECRET, then
 # add github authentication to test SIREPO_SIM_API_JUPYTERHUBLOGIN_RS_JUPYTER_MIGRATE.
+
 #
+# juptyerhub upgrades: If you get this:
+# Found database schema version 4dc2d5a8c53c != 651f5419b74d. Backup your database and run `jupyterhub upgrade-db` to upgrade to the latest schema.
+# Then you need to:
+#   cd run/jupyterhub
+#   jupyterhub upgrade-db
+# so that it sees the sqlite db.
 set -eou pipefail
 
 if [[ ! -d ~/mail ]]; then
@@ -45,11 +52,11 @@ if [[ ${SIREPO_AUTH_GITHUB_KEY:-} && ${SIREPO_AUTH_GITHUB_SECRET:-} ]]; then
     export SIREPO_SIM_API_JUPYTERHUBLOGIN_RS_JUPYTER_MIGRATE=1
 fi
 
+sirepo service tornado &
 sirepo service nginx-proxy &
-sirepo service uwsgi &
 sirepo job_supervisor &
 sirepo service jupyterhub &
-if ! wait -n; then
-    kill -9 $(jobs -p) || true
-    exit 1
-fi
+declare -a x=( $(jobs -p) )
+# this doesn't kill uwsgi for some reason; TERM is better than KILL
+trap "kill ${x[*]}" EXIT
+wait -n

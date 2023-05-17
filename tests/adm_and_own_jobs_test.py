@@ -16,7 +16,7 @@ def setup_module(module):
     )
 
 
-def test_adm_jobs(auth_fc):
+def test_adm_jobs_simple(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
 
@@ -31,11 +31,10 @@ def test_adm_jobs_forbidden(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
     from sirepo import srunit
-    import sirepo.auth_db
 
     def _op(fc, sim_type):
-        with srunit.auth_db_session():
-            sirepo.auth_db.UserRole.delete_all_for_column_by_values(
+        with srunit.quest_start() as qcall:
+            qcall.auth_db.model("UserRole").delete_all_for_column_by_values(
                 "uid",
                 [
                     fc.sr_auth_state().uid,
@@ -66,16 +65,15 @@ def test_srw_user_see_only_own_jobs(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
     from sirepo import srunit
-    import sirepo.auth_db
-    import sirepo.auth_role
+    from sirepo import auth_role
 
     def _cancel_job(user, cancel_req):
         _login_as_user(user)
         fc.sr_post("runCancel", cancel_req)
 
     def _clear_role_db():
-        with srunit.auth_db_session():
-            sirepo.auth_db.UserRole.delete_all()
+        with srunit.quest_start() as qcall:
+            qcall.auth_db.model("UserRole").delete_all()
 
     def _get_jobs(adm, job_count):
         r = fc.sr_post("admJobs" if adm else "ownJobs", PKDict(simulationType=t))
@@ -113,32 +111,23 @@ def test_srw_user_see_only_own_jobs(auth_fc):
 
     def _login_as_user(user):
         fc.sr_logout()
-        r = fc.sr_post("authEmailLogin", {"email": user, "simulationType": t})
-        fc.sr_email_confirm(fc, r)
+        fc.sr_email_login(user, sim_type=t)
 
     def _make_user_adm(uid):
-        import sirepo.pkcli.roles
+        from sirepo.pkcli import roles
 
-        sirepo.pkcli.roles.add_roles(
-            uid,
-            sirepo.auth_role.ROLE_ADM,
-        )
-        with srunit.auth_db_session():
-            r = sirepo.auth_db.UserRole.search_all_for_column("uid")
+        roles.add(uid, auth_role.ROLE_ADM)
+        with srunit.quest_start() as qcall:
+            r = qcall.auth_db.model("UserRole").search_all_for_column("uid")
         pkunit.pkeq(1, len(r), "One user with role adm r={}", r)
         pkunit.pkeq(r[0], uid, "Expected same uid as user")
 
     def _register_both_users():
-        r = fc.sr_post("authEmailLogin", {"email": adm_user, "simulationType": t})
-        fc.sr_email_confirm(fc, r)
-        fc.sr_post(
-            "authCompleteRegistration",
-            {"displayName": "abc", "simulationType": t},
-        )
-        fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
-        _make_user_adm(fc.sr_auth_state().uid)
-        r = fc.sr_post("authEmailLogin", {"email": non_adm_user, "simulationType": t})
-        fc.sr_email_confirm(fc, r, "xyz")
+        fc.sr_email_login(adm_user, sim_type=t)
+        u = fc.sr_uid
+        fc.sr_logout()
+        _make_user_adm(u)
+        fc.sr_email_login(non_adm_user, sim_type=t)
 
     fc = auth_fc
     t = "srw"

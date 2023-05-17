@@ -1,7 +1,7 @@
 {
     "appModes": {
         "default": {
-            "localRoute": "dataSource"
+            "localRoute": "runAnalysis"
         }
     },
     "dynamicFiles": {
@@ -14,48 +14,67 @@
             ]
         }
     },
-    "enum": {
-        "CatalogName": [
-            ["chx", "chx"],
-            ["csx", "csx"]
-        ]
-    },
+    "enum": {},
     "frameIdFields": {
         "animation": []
     },
     "localRoutes": {
-        "analysis": {
-            "route": "/analysis/:simulationId",
+        "analysisExecuted": {
+            "route": "/analysis-executed/:simulationId",
             "config": {
-                "controller": "AnalysisController as analysis",
-                "templateUrl": "/static/html/raydata-analysis.html"
+                "controller": "AnalysisExecutedController as analysisExecuted",
+                "templateUrl": "/static/html/raydata-analysis-executed.html"
           }
         },
-        "dataSource": {
-            "route": "/data-source/:simulationId",
+        "analysisQueue": {
+            "route": "/analysis-queue/:simulationId",
             "config": {
-                "controller": "DataSourceController as dataSource",
-                "templateUrl": "/static/html/raydata-data-source.html"
+                "controller": "AnalysisQueueController as analysisQueue",
+                "templateUrl": "/static/html/raydata-analysis-queue.html"
+          }
+        },
+        "replay": {
+            "route": "/replay/:simulationId",
+            "config": {
+                "controller": "ReplayController as replay",
+                "templateUrl": "/static/html/raydata-replay.html"
+          }
+        },
+        "runAnalysis": {
+            "route": "/run-analysis/:simulationId",
+            "config": {
+                "controller": "RunAnalysisController as runAnalysis",
+                "templateUrl": "/static/html/raydata-run-analysis.html"
           }
         }
     },
     "model": {
-        "analysisStatus": {
-            "notes": ["Notes", "Text", ""]
+        "catalog": {
+            "catalogName": ["Catalog Name", "CatalogName", ""]
+        },
+        "executedScans": {
+            "searchStartTime":["Start", "DateTimePicker", null],
+            "searchStopTime":["Stop", "DateTimePicker", null],
+            "scans": ["", "ExecutedScansTable", ""]
+        },
+        "recentlyExecutedScans": {
+            "scans": ["", "RecentlyExecutedScansTable", ""]
         },
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
         },
-        "pollBlueskyForScansAnimation": {
-            "minutes": ["Poll duration [min]", "Integer", 1, "Number of minutes to poll for new scans", 1, 1440]
+        "queuedScans": {
+            "scans": ["", "QueuedScansTable", ""]
         },
-        "scans": {
-            "searchStartTime": ["Start", "DateTimePicker", null],
-	    "searchStopTime": ["Stop", "DateTimePicker", null],
-            "catalogName": ["Catalog Name", "CatalogName", ""]
+        "replay": {
+            "sourceCatalogName": ["Source Catalog", "CatalogName", ""],
+            "destinationCatalogName": ["Destination Catalog", "CatalogName", ""],
+            "numScans": ["Number of Scans", "Integer", null]
         },
-        "selectedScans": {
-	    "uids": ["", "SelectedScansTable", null]
+        "runAnalysis": {
+            "searchStartTime":["Start", "DateTimePicker", null],
+            "searchStopTime":["Stop", "DateTimePicker", null],
+            "scans": ["", "RunAnalysisTable", ""]
         },
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
@@ -68,11 +87,30 @@
         "typeOfSimulation": "poll"
     },
     "view": {
-        "analysisStatus": {
-            "title": "Analysis Status",
-            "advanced": [
-                "notes"
-            ]
+        "analysisQueue": {
+            "title": "Analysis Queue",
+            "basic": [
+                "catalog.catalogName",
+                "queuedScans.scans"
+            ],
+            "advanced": []
+        },
+        "executedScans": {
+            "title": "Executed Scans",
+            "basic": [
+                "catalog.catalogName",
+                "searchStartTime",
+                "searchStopTime",
+                "scans"
+            ],
+            "advanced": []
+        },
+        "recentlyExecutedScans": {
+            "title": "Recently Executed",
+            "basic": [
+                "scans"
+            ],
+            "advanced": []
         },
         "inputFiles": {
             "title": "Input Files",
@@ -81,23 +119,30 @@
             ],
             "advanced": []
         },
-        "scans": {
-            "title": "Scans",
+        "replay": {
+            "title": "Replay",
             "basic": [
-                "catalogName",
+              "sourceCatalogName",
+              "destinationCatalogName",
+              "numScans"
+            ],
+            "advanced": []
+        },
+        "runAnalysis": {
+            "title": "Run Analysis",
+            "basic": [
+                "catalog.catalogName",
                 "searchStartTime",
                 "searchStopTime",
-                "selectedScans.uids"
+                "scans"
             ],
             "advanced": []
         },
         "simulationStatus": {
             "title": "Poll For New Scans",
+            "basic": [],
             "advanced": [
                 "notes"
-            ],
-            "basic": [
-                "pollBlueskyForScansAnimation.minutes"
             ]
         }
     }

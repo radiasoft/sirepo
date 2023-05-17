@@ -12,6 +12,36 @@ import pytest
 _MIN_SERIAL = 10000000
 
 
+def test_bad_request(fc):
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp, pkdpretty
+
+    fc.sr_login_as_guest()
+    r = fc.sr_post_form("listSimulations", PKDict(), raw_response=True)
+    pkunit.pkeq(400, r.status_code)
+
+
+def test_elegant_server_upgraded(fc):
+    from pykern.pkdebug import pkdp, pkdpretty
+    from pykern.pkunit import pkexcept
+    from pykern.pkcollections import PKDict
+
+    d = fc.sr_sim_data("Backtracking")
+    d.version = d.version[:-1] + str(int(d.version[-1]) - 1)
+    with pkexcept("serverupgraded"):
+        fc.sr_post("saveSimulationData", d)
+
+
+def test_home_page_file(fc):
+    from pykern.pkunit import pkeq, pkre
+    from pykern.pkdebug import pkdp
+
+    r = fc.sr_get("/en/css/landing.css")
+    pkeq(200, r.status_code)
+    pkre("^.landing {", r.data)
+
+
 def test_srw_serial_stomp(fc):
     from pykern.pkdebug import pkdp, pkdpretty
     from pykern.pkunit import pkfail, pkok
@@ -53,14 +83,3 @@ def test_srw_serial_stomp(fc):
         new_serial,
         curr_serial,
     )
-
-
-def test_elegant_server_upgraded(fc):
-    from pykern.pkdebug import pkdp, pkdpretty
-    from pykern.pkunit import pkexcept
-    from pykern.pkcollections import PKDict
-
-    d = fc.sr_sim_data("Backtracking")
-    d.version = d.version[:-1] + str(int(d.version[-1]) - 1)
-    with pkexcept("serverupgraded"):
-        fc.sr_post("saveSimulationData", d)

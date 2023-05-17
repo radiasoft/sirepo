@@ -591,6 +591,7 @@
             "includeLattice": ["Show Lattice Overlay", "Boolean", "1"]
         },
         "command_alter_elements": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of the elements to alter. If not specified, then one must specify type."],
             "item": ["Item", "OptionalStringUpper", "", "The name of the parameter to alter."],
             "type": ["Type", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of element types to alter. May be specified with name or by itself."],
@@ -612,6 +613,7 @@
             "after": ["After", "OptionalStringUpper", "", "The name of an element. If given, the alteration is applied only to elements that follow the named element in the beamline."]
         },
         "command_amplification_factors": {
+            "_super": ["_", "model", "_COMMAND"],
             "output": ["Output", "OutputFile", "", "The name of a file for text output."],
             "uncorrected_orbit_function": ["Uncorrected Orbit Function", "OutputFile", "", "The name of a file for an SDDS-format output of the uncorrected-orbit amplification function."],
             "corrected_orbit_function": ["Corrected Orbit Function", "OutputFile", "", "The name of a file for an SDDS-format output of the corrected-orbit amplification function."],
@@ -625,6 +627,7 @@
             "maximum_z": ["Maximum Z", "RPNValue", 0, "The maximum z coordinate of the elements to perturb."]
         },
         "command_analyze_map": {
+            "_super": ["_", "model", "_COMMAND"],
             "output": ["Output", "OutputFile", "", "The name of a file for SDDS output."],
             "output_order": ["Output Order", "RPNValue", 1, ""],
             "printout": ["Printout", "OutputFile", "", "The name of a file for text output of the matrix."],
@@ -652,12 +655,14 @@
             "max_fit_order": ["Max Fit Order", "RPNValue", 8, "Maximum order of fits using in determining the matrix elements."]
         },
         "command_aperture_data": {
+            "_super": ["_", "model", "_COMMAND"],
             "input": ["Input", "InputFile", "", "Name of SDDS file supplying the aperture data. The following columns are all required, in double or float type, with units of m (meters). ( • s — Distance along the central trajectory. • xHalfAperture — Half aperture in the horizontal. • yHalfAperture — Half aperture in the vertical. • xCenter — Center of the aperture in the horizontal. • yCenter — Center of the aperture in the vertical. )"],
             "periodic": ["Periodic", "RPNBoolean", "1", "If non-zero, the aperture is a periodic function of s, with period equal to the range of the data."],
             "persistent": ["Persistent", "RPNBoolean", "0", "If non-zero, the aperture data persists across subsequent run_setup commands. By default, the aperture data is forgotten when a new run_setup command is seen."],
             "disable": ["Disable", "RPNBoolean", "0", "If non-zero, the command is ignored."]
         },
         "command_bunched_beam": {
+            "_super": ["_", "model", "_COMMAND"],
             "bunch": ["Bunch", "OutputFile", "", "The name of an SDDS file to which the phase-space coordinates of the bunches are to be written."],
             "n_particles_per_bunch": ["N Particles Per Bunch", "RPNValue", 1, "Number of particles in each bunch."],
             "time_start": ["Time Start", "RPNValue", 0, "The central value of the time coordinate for the bunch."],
@@ -700,15 +705,18 @@
             "save_initial_coordinates": ["Save Initial Coordinates", "RPNBoolean", "1", "A flag that, if set, results in saving initial coordinates of tracked particles in memory. This is the default behavior. If unset, the initial coordinates are not saved, but are regenerated each time they are needed. This is more memory efficient and is useful for tracking very large numbers of particles."]
         },
         "command_change_particle": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "ChangeParticleName", "electron", ""],
             "mass_ratio": ["Mass Ratio", "RPNValue", 0, "If the particle name is \"custom,\" these parameters specify the mass and charge of the particle relative to the electron. E.g., for an anti-proton, one would use a mass ratio of 1836.18 and a charge ratio of 1."],
             "charge_ratio": ["Charge Ratio", "RPNValue", 0, ""]
         },
         "command_change_start": {
+            "_super": ["_", "model", "_COMMAND"],
             "element_name": ["Element Name", "OptionalString", "", "Name of the element where the lattice will start, which implies removing all elements upstream of the named element. If the element occurs more than once, the first instance is used. The named element will be the first element in the lattice."],
             "ring_mode": ["Ring Mode", "RPNBoolean", "0", "If nonzero, the ring structure of the lattice is preserved by moving the elements upstream of the named element to the end of the lattice."]
         },
         "command_chaos_map": {
+            "_super": ["_", "model", "_COMMAND"],
             "output": ["Output", "OutputFile", "", "The (incomplete) name of an SDDS file to send output to. Recommended value: “%s.cmap”. For the parallel version, particles will be listed in essentially random order. If needed, sddssort can be used to sort particles by initial coordinates."],
             "xmin": ["Xmin", "RPNValue", -0.1, "Limits of grid of initial x coordinates for tracking."],
             "xmax": ["Xmax", "RPNValue", 0.1, ""],
@@ -725,6 +733,7 @@
             "verbosity": ["Verbosity", "RPNBoolean", "1", "If nonzero, prints possibly useful information while running."]
         },
         "command_chromaticity": {
+            "_super": ["_", "model", "_COMMAND"],
             "sextupoles": ["Sextupoles", "OptionalStringUpper", "", "List of names of elements to use to correct the chromaticities. Several names may be given and names may include wildcards. If so, then sextupoles in each group are changed by the same amount for each iteration. This would typically be used when the sextupoles are nominally identical (though perhaps differing in strength because of introduced errors). If that's not the case, the iteration may fail to converge."],
             "lower_limits": ["Lower Limits", "OptionalString", "", "List of lower limits for each family"],
             "upper_limits": ["Upper Limits", "OptionalString", "", "List of upper limits for each family"],
@@ -745,6 +754,7 @@
             "dK2_weight": ["DK2 Weight", "RPNValue", 1, "Weighting factor that is used to minimize the mean-square changes in K_2 values in the event that there are more than two families."]
         },
         "command_closed_orbit": {
+            "_super": ["_", "model", "_COMMAND"],
             "output": ["Output", "OutputFile", "", "The name of an SDDS file to which the closed orbits will be written."],
             "output_monitors_only": ["Output Monitors Only", "RPNBoolean", "0", "If non-zero, indicates that the closed orbit output should include only the data at the locations of the beam-position monitors."],
             "start_from_centroid": ["Start From Centroid", "RPNBoolean", "1", "A flag indicating whether to force the computation to start from the centroids of the beam distribution."],
@@ -763,6 +773,7 @@
             "immediate": ["Immediate", "RPNBoolean", "0", "If non-zero, computations are done immediately, so the command acts as an action command."]
         },
         "command_correct": {
+            "_super": ["_", "model", "_COMMAND"],
             "mode": ["Mode", "CorrectMode", "trajectory", ""],
             "method": ["Method", "CorrectMethod", "global", ""],
             "trajectory_output": ["Trajectory Output", "OutputFile", "", "The name of an SDDS file to which the trajectories or orbits will be written."],
@@ -806,6 +817,7 @@
             "use_response_from_computed_orbits": ["Use Response From Computed Orbits", "RPNBoolean", "0", "If nonzero, in-plane response matrices are computed using differences of closed orbits, which is slower but may be more accurate. For cross-plane matrices, this is always the case."]
         },
         "command_correct_tunes": {
+            "_super": ["_", "model", "_COMMAND"],
             "quadrupoles": ["Quadrupoles", "OptionalStringUpper", "", "List of names of quadrupoles to be used. Several names may be given and the names may include wildcards. If so, then quadrupoles in each group are changed by the same amount for each iteration. This would typically be used when the quadrupoles are nominally identical (though perhaps differing in strength because of introduced errors). If that's not the case, the iteration may fail to converge."],
             "tune_x": ["Tune X", "RPNValue", 0, "Desired x and y tune values. If not given, the desired values are assumed to be the unperturbed tunes."],
             "tune_y": ["Tune Y", "RPNValue", 0, ""],
@@ -821,6 +833,7 @@
             "dK1_weight": ["DK1 Weight", "RPNValue", 1, "Weighting factor that is used to minimize the mean-square changes in K_1 values in the event that there are more than two families."]
         },
         "command_correction_matrix_output": {
+            "_super": ["_", "model", "_COMMAND"],
             "response": ["Response", "StringArray", ",,,", "Array of filenames for SDDS output of the x and y response matrices, plus the cross-plane response matrices. Recommended values, in order: \"%s.hrm\" (horizontal response to horizontal correctors), \"%s.vrm\" (vertical response to vertical correctors), \"%s.vhrm\" (vertical response to horizontal correctors), and \"%s.hvrm\" (horizontal response to vertical correctors)."],
             "inverse": ["Inverse", "StringArray", ",", "Array of filenames for SDDS output of the x and y inverse response matrices. Recommended values: \"%s.hirm\" and \"%s.virm\"."],
             "KnL_units": ["KNL Units", "RPNBoolean", "0", "Flag that, if set, indicates use of \"units\" of m/K0L rather than m/rad. This results in a sign change for the horizontal data."],
@@ -832,6 +845,7 @@
             "use_response_from_computed_orbits": ["Use Response From Computed Orbits", "RPNBoolean", "0", "If nonzero, in-plane response matrices are computed using differences of closed orbits, which is slower but may be more accurate. For cross-plane matrices, this is always the case."]
         },
         "command_coupled_twiss_output": {
+            "_super": ["_", "model", "_COMMAND"],
             "filename": ["Filename", "OutputFile", "", "The name of the SDDS file to which coupled twiss parameters and beam sizes will be written. Suggested value: \"%s.ctwi\"."],
             "output_at_each_step": ["Output At Each Step", "RPNBoolean", "0", "If nonzero, then this is a setup command and results in computations occurring for each simulation step (e.g., for each perturbed machine if errors are included). If zero, then this is an action command and computations are done immediately (e.g., for the unperturbed machine). If you wish to compute Twiss parameters on a closed orbit or after other calculations, be sure to set this control to a nonzero value."],
             "emittances_from_twiss_command": ["Emittances From Twiss Command", "RPNBoolean", "1", "If nonzero, then the values of the horizontal emittance and the momentum spread are taken from the uncoupled computation done with the twiss_output command. In this case, the user must issue a twiss_output command prior to the coupled_twiss_output. If zero, then the values of the horizontal emittance and the momentum spread are taken from the parameters emit_x and sigma_dp, respectively. emit_x — Gives the horizontal emittance, if emittances_from_twiss_command=0."],
@@ -843,6 +857,7 @@
             "concat_order": ["Concat Order", "RPNValue", 2, ""]
         },
         "command_divide_elements": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "A possibly wildcard-containing string specifying the elements to which this specification applies."],
             "type": ["Type", "OptionalStringUpper", "", "A possibly wildcard-containing string specifying the element types to which this specification applies."],
             "exclude": ["Exclude", "OptionalStringUpper", "", "A possibily wildcard-containing string specifying elements to be excluded from the specification."],
@@ -851,6 +866,7 @@
             "clear": ["Clear", "RPNBoolean", "0", "If nonzero, all prior division specifications are deleted."]
         },
         "command_elastic_scattering": {
+            "_super": ["_", "model", "_COMMAND"],
             "losses": ["Losses", "OutputFile", "", "The (incomplete) name of an SDDS file to which the record of initial scattering location, initial scattering angle, and loss coordinates will be written."],
             "output": ["Output", "OutputFile", "", "The (incomplete) name of an SDDS file to which the final coordinates of all surviving particles will be written."],
             "log_file": ["Log File", "OutputFile", "", "The (incomplete) name of an SDDS file to which statistical data will be written as the simulations run. Users should check the MinParticles and MaxParticles columns as the simulation runs to ensure reasonable load balance (e.g., within 10-20%). If balance is poor, consider changing the values of n_phi and n_theta slightly. The product of these values should not evenly divide the number of working cores (which is one less than the total number of cores)."],
@@ -866,6 +882,7 @@
             "verbosity": ["Verbosity", "RPNValue", 1, "Higher values may result in more verbose informational output."]
         },
         "command_error_control": {
+            "_super": ["_", "model", "_COMMAND"],
             "clear_error_settings": ["Clear Error Settings", "RPNBoolean", "1", "Clear all previous error settings."],
             "summarize_error_settings": ["Summarize Error Settings", "RPNBoolean", "0", "Summarize current error settings. If non-zero, then the command has no other function except showing a summary of the current error settings."],
             "no_errors_for_first_step": ["No Errors For First Step", "RPNBoolean", "0", "If non-zero, then there will be no errors for the first step. This can be useful for fiducialization of phase and momentum profiles."],
@@ -873,6 +890,7 @@
             "error_factor": ["Error Factor", "RPNValue", 1, "A value by which to multiply the error amplitudes in all error commands."]
         },
         "command_error_element": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "The possibly wildcarded name of the elements for which errors are being specified."],
             "element_type": ["Element Type", "OptionalStringUpper", "", "An optional, possibly wildcarded string giving the type of elements to which the errors should be applied. E.g., element_type=*MON* would match all beam position monitors. If this item is given, then name may be left blank."],
             "item": ["Item", "OptionalStringUpper", "", "The parameter of the elements to which the error pertains."],
@@ -893,6 +911,7 @@
             "sample_mode": ["Sample Mode", "ErrorElementSampleMode", "", ""]
         },
         "command_find_aperture": {
+            "_super": ["_", "model", "_COMMAND"],
             "output": ["Output", "OutputFile", "", "The name of an SDDS file to send output to."],
             "search_output": ["Search Output", "OutputFile", "", "The name of an SDDS file for output of detailed information on each tracked particle (single-particle mode only)."],
             "boundary": ["Boundary", "OutputFile", "", "The name of an SDDS file for the boundary points of the aperture search."],
@@ -918,6 +937,7 @@
             "full_plane": ["Full Plane", "RPNBoolean", "0", "If non-zero, then the search covers both positive and negative y values. Only available in line-search modes."]
         },
         "command_floor_coordinates": {
+            "_super": ["_", "model", "_COMMAND"],
             "filename": ["Filename", "OutputFile", "", "The name of an SDDS file to send output to."],
             "X0": ["X0", "RPNValue", 0, "Initial X, Z, and angle coordinate of the beamline."],
             "Z0": ["Z0", "RPNValue", 0, ""],
@@ -928,6 +948,7 @@
             "store_vertices": ["Store Vertices", "RPNBoolean", "0", "Flag that, if set, results in storing the floor coordinates for dipole magnet vertex points. The coordinates are stored in variables with names of the form magnetName#occurrenceNumber-VP.property, where property is X, Y, Z, theta, phi, and psi."]
         },
         "command_frequency_map": {
+            "_super": ["_", "model", "_COMMAND"],
             "output": ["Output", "OutputFile", "", "The name of an SDDS file to send output to."],
             "xmin": ["Xmin", "RPNValue", -0.1, "Limits of grid of initial x coordinates for tracking."],
             "xmax": ["Xmax", "RPNValue", 0.1, ""],
@@ -944,6 +965,7 @@
             "full_grid_output": ["Full Grid Output", "RPNBoolean", "0", "If non-zero, all grid points are represented in the output file, even if tracking or tune determination failed. This makes it possible to plot with programs (e.g., sddscontour) that require a strictly uniform grid."]
         },
         "command_global_settings": {
+            "_super": ["_", "model", "_COMMAND"],
             "inhibit_fsync": ["Inhibit FSYNC", "RPNBoolean", "0", "By default, elegant forces file synchronization across a network file system to ensure that users see up-to-date files as soon as possible. In cases where a great deal of output is generated, this can degrade performance. Setting this parameter to 1 will turn off synchronization until the end of the run."],
             "allow_overwriting": ["Allow Overwriting", "RPNBoolean", "0", "By default, elegant will overwrite existing output files. If this parameter is set to 0, it will instead exit if an output file already exists."],
             "echo_namelists": ["Echo Namelists", "RPNBoolean", "1", "By default, elegant echoes all namelist input to the terminal. If this parameter is set to 0, this output will be inhibited."],
@@ -961,6 +983,7 @@
             "tracking_matrix_step_size": ["Tracking Matrix Step Size", "Float6StringArray", "5e-5, 5e-5, 5e-5, 5e-5, 5e-5, 5e-5", "Sets the step sizes, in each of the six coordinates, used for tracking-based matrix determination"]
         },
         "command_ignore_elements": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the elements to which the operation is to be applied."],
             "type": ["Type", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the element types to which the operation is to be applied."],
             "exclude": ["Exclude", "OptionalStringUpper", "", "Possibily wild-card containing string specifying elements to be excluded from the operation. Does not affect elements included by other specifications."],
@@ -969,6 +992,7 @@
             "completely": ["Completely", "RPNBoolean", "0", "If nonzero, the element is ignore not only for tracking, but for all purposes. (This allows, for example, requesting sigma and centroid output from run_setup.)"]
         },
         "command_inelastic_scattering": {
+            "_super": ["_", "model", "_COMMAND"],
             "losses": ["Losses", "OutputFile", "", "The (incomplete) name of an SDDS file to which the record of initial scattering location, initial scattering δ, and loss coordinates will be written."],
             "output": ["Output", "OutputFile", "", "The (incomplete) name of an SDDS file to which the final coordinates of all surviving particles will be written."],
             "log_file": ["Log File", "OutputFile", "", "The (incomplete) name of an SDDS file to which statistical data will be written as the simulations run. Users should check the MinParticles and MaxParticles columns as the simulation runs to ensure reasonable load balance (e.g., within 10-20%). If balance is poor, consider changing the value of n_delta slightly."],
@@ -986,6 +1010,7 @@
             "allow_watch_file_output": ["Allow Watch File Output", "RPNBoolean", "0", "If nonzero, WATCH elements provide output during tracking."]
         },
         "command_insert_elements": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the names of the elements after which the new element is inserted. A list of comma- or space-separated names may be given."],
             "type": ["Type", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the type of the elements after which the new element is inserted."],
             "exclude": ["Exclude", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the names of elements to be excluded from the specification."],
@@ -1001,6 +1026,7 @@
             "occurrence": ["Occurrence", "StringArray", "0", ""]
         },
         "command_insert_sceffects": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the name of the elements after which to insert the space charge kick element."],
             "type": ["Type", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the type of the elements after which to insert the space charge kick element."],
             "exclude": ["Exclude", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the name of elements to be excluded from the insertion of the space charge kick element."],
@@ -1016,6 +1042,7 @@
             "averaging_factor": ["Averaging Factor", "RPNValue", 1, "For nonlinear space charge mode only, this parameter allows applying an infinite-impulse-response (IIR) filter to the turn-by-turn beam size data in order to reduce the effects of noise. A value of 1 means that only data from the present turn is used, while values approaching 0 will tend to use the initial beam sizes only."]
         },
         "command_ion_effects": {
+            "_super": ["_", "model", "_COMMAND"],
             "pressure_profile": ["Pressure Profile", "InputFile", "", "Name of an SDDS file giving the s-dependent gas pressure for various gas species. Column names will be matched to the entries in the SourceName column of the ion_properties file."],
             "pressure_factor": ["Pressure Factor", "RPNValue", 1, "Factor by which to multiply the pressures given in the pressure_profile."],
             "ion_properties": ["Ion Properties", "InputFile", "", "Name of an SDDS file giving properties of ions. Column names are • IonName — String column giving the name of the ion. • Mass — Floating-point column giving the ion mass, in AMU. • ChargeState — Integer column giving the ion charge state (a positive integer). • SourceName — String column giving the name of the source gas for this ion. In a future release, the source may also be another type of ion, to allow for multiple ionization. • CrossSection — Floating-point column giving the cross section for producing the ion from the source, in Mb."],
@@ -1058,6 +1085,7 @@
             "verbosity": ["Verbosity", "RPNValue", 0, "Larger values result in more output during running. Used for debugging only."]
         },
         "command_linear_chromatic_tracking_setup": {
+            "_super": ["_", "model", "_COMMAND"],
             "nux": ["Nux", "StringArray", "-1, 0, 0, 0", "Provide the horizontal tune plus its first three chromatic derivatives, i.e., ∂ νx/∂δ, ∂^2 νx/∂δ^2, and ∂^3 νx/∂δ^3."],
             "betax": ["Betax", "StringArray", "1.0, 0", "Provide the horizontal beta function plus its chromatic derivative."],
             "alphax": ["Alphax", "StringArray", "0, 0", "Provide the horizontal alpha function plus its chromatic derivative."],
@@ -1071,11 +1099,13 @@
             "alphac": ["Alphac", "StringArray", "0, 0", "Provide the first and second-order momentum compaction. N.B: if you are tracking with an rf cavity, be sure that your lattice length equal to the actual circumference. See the example below."]
         },
         "command_link_control": {
+            "_super": ["_", "model", "_COMMAND"],
             "clear_links": ["Clear Links", "RPNBoolean", "1", "Clear all previously set links."],
             "summarize_links": ["Summarize Links", "RPNBoolean", "0", "Summarize all current set links."],
             "verbosity": ["Verbosity", "RPNValue", 0, "A larger value results in more output during computations."]
         },
         "command_link_elements": {
+            "_super": ["_", "model", "_COMMAND"],
             "target": ["Target", "OptionalStringUpper", "", "The name of the elements to be modified by the link. May contain wild-cards."],
             "exclude": ["Exclude", "OptionalStringUpper", "", "Wildcard sequence to match to element names. If a match is found, the element is excluded from the link."],
             "item": ["Item", "OptionalStringUpper", "", "The parameter that will be modified."],
@@ -1089,6 +1119,7 @@
             "exclude_self": ["Exclude Self", "RPNBoolean", "1", "If nonzero, self-links are blocked. It is not recommended to change this."]
         },
         "command_load_parameters": {
+            "_super": ["_", "model", "_COMMAND"],
             "filename": ["Filename", "InputFile", "", ""],
             "include_name_pattern": ["Include Name Pattern", "OptionalStringUpper", "", "A comma- or space-separated list of wildcard patterns to be used in selecting, respectively, which elements to include and which to exclude from loading. To be used, data must match at least one inclusion pattern and no exclusion patterns."],
             "exclude_name_pattern": ["Exclude Name Pattern", "OptionalStringUpper", "", ""],
@@ -1108,6 +1139,7 @@
             "use_first": ["Use First", "RPNBoolean", "0", "It is possible that the input file will contain multiple lines for any given parameter. In this case, elegant will by default process all lines. For example, if the lines give differential values, then all would be included. However, if the lines give absolute values, then the last one will overwrite the previous values; this flag allows overriding the behavior in this case to force elegant to use the first value. This can have speed advantages for cases where there are many identical occurences of the same element."]
         },
         "command_matrix_output": {
+            "_super": ["_", "model", "_COMMAND"],
             "printout": ["Printout", "OutputFile", "", "The name of a file to which the matrix output will be printed (as text)."],
             "printout_order": ["Printout Order", "RPNValue", 1, "The order to which the matrix is printed."],
             "full_matrix_only": ["Full Matrix Only", "RPNBoolean", "0", "A flag indicating that only the matrix of the entire accelerator is to be output."],
@@ -1124,6 +1156,7 @@
             "start_from_occurence": ["Start From Occurrence", "RPNValue", 1, "If start_from is not NULL, the number of the occurrence of the named element from which to start."]
         },
         "command_modulate_elements": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of the elements to modulate. If not specified, then one must specify type."],
             "item": ["Item", "OptionalStringUpper", "", "The name of the parameter to modulate."],
             "type": ["Type", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of element types to modulate. May be specified with name or by itself."],
@@ -1147,6 +1180,7 @@
             "flush_record": ["Flush Record", "RPNValue", 1, "Gives the interval in steps at which to flush the record file. Higher values result in less frequent updates to the record, but may improve performance."]
         },
         "command_moments_output": {
+            "_super": ["_", "model", "_COMMAND"],
             "filename": ["Filename", "OutputFile", "", "The name of a file to which the moments results will be written."],
             "output_at_each_step": ["Output At Each Step", "RPNBoolean", "0", "A flag indicating, if set, that computations and/or output is desired at each step of the simulation. If you wish to compute Twiss parameters on a closed orbit or after other calculations, be sure to set this control to a nonzero value."],
             "output_before_tune_correction": ["Output Before Tune Correction", "RPNBoolean", "0", "A flag indicating, if set, that output is desired both before and after tune correction."],
@@ -1173,6 +1207,7 @@
             "alpha_z": ["Alpha Z", "RPNValue", 0, ""]
         },
         "command_momentum_aperture": {
+            "_super": ["_", "model", "_COMMAND"],
             "output": ["Output", "OutputFile", "", "The name of a file to which the momentum aperture results will be written."],
             "x_initial": ["X Initial", "RPNValue", 0, "The initial x and y coordinate values for tracking. It is essential that y_initial be nonzero if one wants to see losses due to vertical resonances."],
             "y_initial": ["Y Initial", "RPNValue", 0, ""],
@@ -1197,6 +1232,7 @@
             "forbid_resonance_crossing": ["Forbid Resonance Crossing", "RPNBoolean", "0", "Normally, elegant allows the momentum aperture search to cross integer and half-integer resonances if no unstable particles are found. If this is undesirable, this flag can be set to 1."]
         },
         "command_obstruction_data": {
+            "_super": ["_", "model", "_COMMAND"],
             "input": ["Input", "InputFile", "", "Name of SDDS file containing obstruction data. The file must contain two columns, Z and X, giving the global coordinates of points on the obstruction contour in the Y = 0 plane, in units of meters. The file may contain more than one page, with each page giving a closed contour for a separate obstruction."],
             "periods": ["Periods", "RPNValue", 1, "Obstructions represented by the provided data are to be repeated in a periodic fashion the number of times given. It is assumed that the system is a storage ring."],
             "disable": ["Disable", "RPNBoolean", "0", "If nonzero, then the command is ignored."],
@@ -1204,17 +1240,20 @@
             "y_limit": ["Y Limit", "Float2StringArray", "-10, 10", "Allows specifying maximum limits on the vertical coordinate, beyond which particles are lost."]
         },
         "command_optimization_constraint": {
+            "_super": ["_", "model", "_COMMAND"],
             "quantity": ["Quantity", "OptionalString", "", "The quantity to be constrained, given as the name of a quantity from among the optimization variables, optimization covariables, and the \"final\" parameters (see the entry for run_setup for the last of these). The optimization (co)variables are referred to as <element-name>.<parameter-name>, in all capital letters. Other quantities, such as Twiss parameters or anything else but what is listed just above, are not recognized. Expressions involving multiple quantities are not supported."],
             "lower": ["Lower", "RPNValue", 0, "The lower and upper limits allowed for the expression."],
             "upper": ["Upper", "RPNValue", 0, ""]
         },
         "command_optimization_covariable": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "The name of the element."],
             "item": ["Item", "OptionalStringUpper", "", "The parameter of the element to be changed."],
             "equation": ["Equation", "OptionalString", "", "An rpn equation for the value of the parameter in terms of the values of any parameters of any optimization variable. These latter appear in the equation in the form <element-name>.<parameter-name>, in all capital letters. The original values of all variables and covariable may be accessed via names like <element-name>.<parameter-name>0."],
             "disable": ["Disable", "RPNBoolean", "0", "If nonzero, the covariable is ignored."]
         },
         "command_optimization_setup": {
+            "_super": ["_", "model", "_COMMAND"],
             "equation": ["Equation", "OptionalString", "", "An rpn equation for the optimization function, expressed in terms of any parameters of any optimization variables, the \"final\" parameters of the beam (as recorded in the final output file available in the run_setup namelist), and selected quantities from Twiss parameter, tune shift with amplitude, closed orbit, beam moments, driving terms, and other computations."],
             "mode": ["Mode", "OptimizationSetupMode", "minimize", ""],
             "method": ["Method", "OptimizationSetupMethod", "simplex", ""],
@@ -1241,6 +1280,7 @@
             "restart_random_numbers": ["Restart Random Numbers", "RPNBoolean", "0", "If nonzero, the random number generators used by elegant are reset for each evaluation of the optimization function. This is valuable if one is optimizing tracking results that involve random processes (e.g., ISR or scattering)."]
         },
         "command_optimization_term": {
+            "_super": ["_", "model", "_COMMAND"],
             "term": ["Term", "OptionalString", "", "An rpn expression giving one term to be optimized. If more than one optimization_term command is given, then the terms are added. The advantage of using this command over giving an equation via optimization_setup is that elegant will report the value of each term as it performs the optimization (if a log_file is given to optimization_setup). This permits determination of which terms are causing problems for the optimization. Please see the entry for equation under optimization_setup for details on designing optimization terms."],
             "weight": ["Weight", "RPNValue", 1, "The weight to assign to this term. If zero, the term is ignored."],
             "field_string": ["Field String", "OptionalString", "", "These parameters are used to perform substitution of a series of values into the string given by term. This can be used to make an identical constraint at a number of instances of the same marker. For example, to constraint Cx to zero at instances 1, 3, 5, ..., 39, of marker M1, one could use ( &optimization_term term = \"M1#@.Cx sqr\", field_string = @, field_initial_value = 1, field_final_value = 39, field_interval = 2 &end )"],
@@ -1252,6 +1292,7 @@
             "verbose": ["Verbose", "RPNBoolean", "0", "If nonzero, optimization terms are echoed to the terminal as they are created or read from the input file."]
         },
         "command_optimization_variable": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "The name of the element."],
             "item": ["Item", "OptionalStringUpper", "", "The parameter of the element to be varied."],
             "lower_limit": ["Lower Limit", "RPNValue", 0, "The lower and upper limits allowed for the parameter. If these are equal, the range of the parameter is unlimited."],
@@ -1264,9 +1305,11 @@
             "initial_value": ["Initial Value", "RPNValue", 0, ""]
         },
         "command_optimize": {
+            "_super": ["_", "model", "_COMMAND"],
             "summarize_setup": ["Summarize Setup", "RPNBoolean", "0", "A flag indicating, if set, that a summary of the optimization parameters should be printed."]
         },
         "command_parallel_optimization_setup": {
+            "_super": ["_", "model", "_COMMAND"],
             "equation": ["Equation", "OptionalString", "", "An rpn equation for the optimization function, expressed in terms of any parameters of any optimization variables, the \"final\" parameters of the beam (as recorded in the final output file available in the run_setup namelist), and selected quantities from Twiss parameter, tune shift with amplitude, closed orbit, beam moments, driving terms, and other computations."],
             "mode": ["Mode", "OptimizationSetupMode", "minimize", ""],
             "method": ["Method", "OptimizationSetupMethod", "simplex", ""],
@@ -1307,10 +1350,12 @@
             "simplex_log_interval": ["Simplex Log Interval", "RPNValue", 1, "Interval at which simplex_log files will be updated."]
         },
         "command_print_dictionary": {
+            "_super": ["_", "model", "_COMMAND"],
             "filename": ["Filename", "OutputFile", "", "The name of a file to which the dictionary will be written. By default, the output is in LaTeX format."],
             "SDDS_form": ["SDDS Form", "RPNBoolean", "0", "If non-zero, then the output is in SDDS format."]
         },
         "command_ramp_elements": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of the elements to modulate. If not specified, then one must specify type."],
             "item": ["Item", "OptionalStringUpper", "", "The name of the parameter to modulate."],
             "type": ["Type", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of element types to modulate. May be specified with name or by itself."],
@@ -1332,6 +1377,7 @@
             "record": ["Record", "OptionalString", "", "Gives a possibly incomplete filename to which will be written a record of the values of the ramp."]
         },
         "command_replace_elements": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the name of the elements to be removed or replaced."],
             "type": ["Type", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the type of the elements to be removed or replaced."],
             "exclude": ["Exclude", "OptionalStringUpper", "", "Possibly wild-card containing string specifying the name of elements to be excluded from this command."],
@@ -1342,6 +1388,7 @@
             "occurrence": ["Occurrence", "StringArray", "0", ""]
         },
         "command_rf_setup": {
+            "_super": ["_", "model", "_COMMAND"],
             "filename": ["Filename", "OutputFile", "", "Name of a file to which data related to the rf settings will be written."],
             "name": ["Name", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of the elements to set. If not given, all RFCA elements are selected."],
             "start_occurence": ["Start Occurence", "RPNValue", -1, "If nonzero, these give the starting and ending occurrence numbers of elements that will be set."],
@@ -1359,9 +1406,11 @@
             "track_for_frequency": ["Track for Frequency", "RPNBoolean", "0", "If nonzero, particle tracking is used to determine the rf frequency. If zero, the ideal length of the lattice is used."]
         },
         "command_rpn_expression": {
+            "_super": ["_", "model", "_COMMAND"],
             "expression": ["Expression", "OptionalString", "", "An rpn expression. This expression is executed immediately and can be used, for example, to read in rpn commands from a file or store values in rpn memories."]
         },
         "command_rpn_load": {
+            "_super": ["_", "model", "_COMMAND"],
             "tag": ["Tag", "OptionalString", "", "Option string that will be pre-pended to the names of all the numerical columns in the file in order to create RPN variable names. E.g., if the input file was from the twiss_output command and tag = tw1 was given, then RPN variables tw1.betax, tw1.alphax, etc. would be used. N.B.: If the tag is blank, then nothing is appended to the names from the file. This can be dangerous since the names may conflict with the names of other variables!"],
             "filename": ["Filename", "InputFile", "", "The name of the SDDS file from which to read data. By default, data is taken from all columns from the last row of the last page of the file. This default behavior can be altered using one or more of the following parameters: ("],
             "match_column": ["Match Column", "OptionalString", "", "The name of a string column to use in selecting the row from which data will be taken."],
@@ -1374,6 +1423,7 @@
             "load_parameters": ["Load Parameters", "RPNBoolean", "0", "If nonzero, specifies loading the SDDS parameter data rather than the column data."]
         },
         "command_run_control": {
+            "_super": ["_", "model", "_COMMAND"],
             "n_steps": ["N Steps", "RPNValue", 1, "The number of separate repetitions of the action implied by the next action command. If random errors are defined, this is also the number of separate error ensembles."],
             "bunch_frequency": ["Bunch Frequency", "RPNValue", 0, "The frequency to use in calculating the time delay between repetitions."],
             "n_indices": ["N Indices", "RPNValue", 0, "The number of looping indices for which to expect definitions in subsequent vary_element commands. If nonzero, then n_steps is ignored."],
@@ -1384,6 +1434,7 @@
             "restrict_fiducialization": ["Restrict Fiducialization", "RPNBoolean", "0", "If nonzero, then momentum profile fiducialization occurs only after elements that are intended change the momentum, such as rf cavities. If zero, then each element is fiducialized to the average momentum of the beam. Active only if first_is_fiducial=1 and overrides the always_change_p0 setting in run_setup."]
         },
         "command_run_setup": {
+            "_super": ["_", "model", "_COMMAND"],
             "lattice": ["Lattice", "ElegantLatticeList", "", "Name of the lattice definition file."],
             "use_beamline": ["Use Beamline", "LatticeBeamlineList", "", "Name of the beamline to use."],
             "output": ["Output", "OutputFile", "", "The name of an SDDS file into which final phase-space coordinates will be written."],
@@ -1419,6 +1470,7 @@
             "back_tracking": ["Back Tracking", "RPNBoolean", "0", "If nonzero, then back-tracking is performed. The beamline is reversed in order and the beam is propagated backwards through the elements. Only a selection of elements are supported at present, including CHARGE, CSBEND, DRIF, EDRIFT, EHCOR, EHVCOR, EVCOR, HMON, KOCT, KQUAD, KSEXT, MARK, MONI, QUAD, RFCA, SBEN, SEXT, TRWAKE, UKICKMAP, VMON, WAKE, and WATCH."]
         },
         "command_sasefel": {
+            "_super": ["_", "model", "_COMMAND"],
             "output": ["Output", "OutputFile", "", "The filename of an SDDS file to which output will be written."],
             "model": ["Model", "OptionalString", "Ming Xie", "The name of the FEL model used. At present, only one model is supported; the \"Ming-Xie\" model is based on the simple parametrization M. Xie."],
             "beta": ["Beta", "RPNValue", 0, "The value of the beta function, in meters."],
@@ -1428,10 +1480,12 @@
             "n_slices": ["N Slices", "RPNValue", 0, ""]
         },
         "command_save_lattice": {
+            "_super": ["_", "model", "_COMMAND"],
             "filename": ["Filename", "OutputFile", "", "The name of a file to which the element and beamline definitions will be written."],
             "output_seq": ["Output Seq", "RPNBoolean", "0", "If non-zero, the lattice will be saved as a single beamline sequence. Elements used for the beamline are re-arranged according to their type. Note: sub-beamline definitions in the original lattice file will be destroyed from the output file. This feature is intended to be used together with insert_elements and replace_elements."]
         },
         "command_sdds_beam": {
+            "_super": ["_", "model", "_COMMAND"],
             "input": ["Input", "BeamInputFile", "", "Name of an SDDS file containing coordinates of input particles."],
             "input_type": ["Input Type", "SddsBeamInputType", "elegant", ""],
             "n_particles_per_ring": ["N Particles Per Ring", "RPNValue", 0, "For spiffe data, gives the number of particles to generate for each ring of charge."],
@@ -1456,11 +1510,13 @@
             "duplicate_stagger": ["Duplicate Stagger", "StringArray", "0, 0, 0, 0, 0, 0", "Specifies offsetting of the coordinates x, x^′, y, y^′, t, and δ for each duplication by the specified amounts. One assumes that some stochastic process such as synchrotron radiation will cause further differentiation of duplicate particles. One can also use SCATTER or DSCATTER elements in the beamline for this purpose."]
         },
         "command_set_reference_particle_output": {
+            "_super": ["_", "model", "_COMMAND"],
             "match_to": ["Match To", "InputFile", "", "Name of an SDDS file from which a particle distribution will be read. The coordinates of this distribution will be compared to those from tracking to compute a contribution to the optimization penalty function."],
             "weight": ["Weight", "Float6StringArray", "1, 1, 1, 1, 0, 1", "Weight to be assigned to each plane. By default, path-length coordinates are not compared."],
             "comparison_mode": ["Comparison Mode", "SetReferenceParticleOutputComparisonMode", "", "May be one of “max-ad”, “sum-ad”, and “sum-sqr”, corresponding to maximum absolute deviation, sum of absolute deviations, and sum of squared deviations. The default is maximum absolute deviation."]
         },
         "command_slice_analysis": {
+            "_super": ["_", "model", "_COMMAND"],
             "output": ["Output", "OutputFile", "", "The filename of the output file."],
             "n_slices": ["N Slices", "RPNValue", 0, "Number of slices to use."],
             "s_start": ["S Start", "RPNValue", 0, "Position in beamline at which to start and stop performing slice analysis."],
@@ -1468,6 +1524,7 @@
             "final_values_only": ["Final Values Only", "RPNBoolean", "0", "If nonzero, then slice quantities are computed only at the end of the beamline."]
         },
         "command_steering_element": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "Optional: the (possibly wild-carded) name of the element to add to the steering list. If not given, then element_type must be given."],
             "element_type": ["Element Type", "OptionalStringUpper", "", "Optional: the (possibly wild-carded) name of the element type to add to the steering list. If not given, then name must be given."],
             "item": ["Item", "OptionalStringUpper", "", "The parameter of the element to be varied."],
@@ -1483,6 +1540,7 @@
             "before": ["Before", "OptionalStringUpper", "", "The name of an element. If given, only elements that precede the named element in the beamline are included."]
         },
         "command_touschek_scatter": {
+            "_super": ["_", "model", "_COMMAND"],
             "charge": ["Charge", "RPNValue", 0, ""],
             "frequency": ["Frequency", "RPNValue", 1, ""],
             "emit_x": ["Emit X", "RPNValue", 0, ""],
@@ -1516,6 +1574,7 @@
             "verbosity": ["Verbosity", "RPNValue", 0, ""]
         },
         "command_track": {
+            "_super": ["_", "model", "_COMMAND"],
             "center_on_orbit": ["Center On Orbit", "RPNBoolean", "0", "A flag indicating whether to center the beam transverse coordinates on the closed orbit before tracking."],
             "center_momentum_also": ["Center Momentum Also", "RPNBoolean", "1", "A flag indicating whether to center the momentum coordinate also."],
             "offset_by_orbit": ["Offset By Orbit", "RPNBoolean", "0", "A flag indicating whether to offset the transverse beam coordinates by the closed orbit before tracking. Similar to center_on_orbit, but the initial centroids of the beam are preserved. The beam is simply displaced by the closed orbit rather than being centered on it."],
@@ -1527,6 +1586,7 @@
             "check_beam_structure": ["Check Beam Structure", "RPNBoolean", "0", "For debugging use only."]
         },
         "command_transmute_elements": {
+            "_super": ["_", "model", "_COMMAND"],
             "name": ["Name", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the elements to which the transmutation specification is to be applied."],
             "type": ["Type", "OptionalStringUpper", "", "Possibily wild-card containing string specifying the element types to which the transmutation specification is to be applied."],
             "exclude": ["Exclude", "OptionalStringUpper", "", "Possibily wild-card containing string specifying elements to be excluded from the specified transmutation. Does not affect elements transmuted due to other specifications."],
@@ -1535,6 +1595,7 @@
             "clear": ["Clear", "RPNBoolean", "0", "If nonzero, all prior transmutation specifications are deleted."]
         },
         "command_tune_footprint": {
+            "_super": ["_", "model", "_COMMAND"],
             "delta_output": ["Delta Output", "OutputFile", "", "The optional name of an SDDS file to send tune and diffusion rate vs δ output to."],
             "xy_output": ["XY Output", "OutputFile", "", "The optional name of an SDDS file to send tune and diffusion rate vs (x, y) output to."],
             "xmin": ["Xmin", "RPNValue", -0.02, "Limits of grid of initial x coordinates for tracking."],
@@ -1558,6 +1619,7 @@
             "ignore_half_integer": ["Ignore Half Integer", "RPNBoolean", "0", "If nonzero, half-integer resonances are ignored in determining the tune footprint."]
         },
         "command_tune_shift_with_amplitude": {
+            "_super": ["_", "model", "_COMMAND"],
             "turns": ["Turns", "RPNValue", 2048, "The number of turns to track. If zero, then the concatenated matrix is used instead of tracking, and all other parameters of this command are irrelevant. The matrix method doesn't work well with all lattices. The order of the concatenated matrix is given by the concat_order control in twiss_output."],
             "x0": ["X0", "RPNValue", 1e-6, "The initial x and y amplitudes to use for determining the small-amplitude tunes."],
             "y0": ["Y0", "RPNValue", 1e-6, ""],
@@ -1580,6 +1642,7 @@
             "tune_output": ["Tune Output", "OptionalString", "", ""]
         },
         "command_twiss_analysis": {
+            "_super": ["_", "model", "_COMMAND"],
             "match_name": ["Match Name", "OptionalStringUpper", "", "Optional wildcard string to match to element names for selection of elements to inculde in the analysis."],
             "start_name": ["Start Name", "OptionalStringUpper", "", "Name of the element at which to start analysis. If the element occurs more than once, the first occurrence is used."],
             "end_name": ["End Name", "OptionalStringUpper", "", "Name of the element at which to end analysis. If the element occurs more than once, the first occurrence is used."],
@@ -1590,6 +1653,7 @@
             "clear": ["Clear", "RPNBoolean", "0", "If nonzero, all previously defined analysis regions are deleted."]
         },
         "command_twiss_output": {
+            "_super": ["_", "model", "_COMMAND"],
             "filename": ["Filename", "OutputFile", "", "The name of an SDDS file to which the Twiss parameters will be written."],
             "matched": ["Matched", "RPNBoolean", "1", "A flag indicating, if set, that the periodic or matched Twiss parameters should be found. If zero, calculations are performed in transport line mode starting from the given initial values of betax, alphax, etc. N.B.: This may give different values for the chromaticity even if the initial values are identical to those for a periodic solution. The reason has to do with different assumptions about the initial conditions for particles in a transport line vs a ring."],
             "output_at_each_step": ["Output At Each Step", "RPNBoolean", "0", "A flag indicating, if set, that output is desired at each step of the simulation. If you wish to compute Twiss parameters on a closed orbit or after other calculations, be sure to set this control to a nonzero value."],
@@ -1622,6 +1686,7 @@
             "local_dispersion": ["Local Dispersion", "RPNBoolean", "1", "Normally, elegant will ignore acceleration in computing the dispersion. That is, the dispersion would be the \"local\" dispersion ∂ x / ∂ δ, where δ was the local fractional momentum deviation. In a linac or other systems with rf elements, one might also be interested in the \"global\" dispersion ∂ x / ∂ δ0, where δ0 is the energy deviation at the beginning of the system. In this case, set local_dispersion=0. Alternatively, one may look at the Ri6 elements of the matrix from matrix_output."]
         },
         "command_vary_element": {
+            "_super": ["_", "model", "_COMMAND"],
             "index_number": ["Index Number", "RPNValue", 0, "A non-negative integer giving the number of the index."],
             "index_limit": ["Index Limit", "RPNValue", 0, "A positive integer giving the number of values the index will take. Must be given if this index_number has not been listed in a previous vary_element command, unless enumeration_file is given."],
             "name": ["Name", "OptionalStringUpper", "", "The name of an element."],
@@ -1633,6 +1698,9 @@
             "geometric": ["Geometric", "RPNBoolean", "0", "If nonzero, then variation is geometric rather than arithmetic."],
             "enumeration_file": ["Enumeration File", "InputFile", "", "Name of an SDDS file giving values for the item."],
             "enumeration_column": ["Enumeration Column", "OptionalString", "", "Column of the SDDS file giving the values."]
+        },
+        "_COMMAND": {
+            "isDisabled": ["", "Boolean", "0"]
         },
         "ALPH": {
             "name": ["Name", "ValidatedString"],

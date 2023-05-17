@@ -12,7 +12,7 @@ import pytest
 _sim_type = "myapp"
 _cfg = {
     "SIREPO_AUTH_DEPRECATED_METHODS": "github",
-    "SIREPO_SMTP_FROM_EMAIL": "x",
+    "SIREPO_SMTP_FROM_EMAIL": "x@x.x",
     "SIREPO_SMTP_FROM_NAME": "x",
     "SIREPO_SMTP_PASSWORD": "x",
     "SIREPO_SMTP_SERVER": "dev",
@@ -25,16 +25,17 @@ _cfg = {
 }
 
 
-@srunit.wrap_in_request(cfg=_cfg, want_user=False)
 def test_migration():
     """See if user gets migrated"""
-    from pykern.pkunit import pkeq, pkok, pkexcept, work_dir
-    from pykern.pkdebug import pkdp
-    from sirepo import auth
+    from sirepo import srunit
+    from pykern import pkconfig
 
-    # deprecated methods raise Unauthorized, but still login
-    with pkexcept("SRException.*deprecated"):
-        auth.login(auth.github, uid="jeTJR5G4")
-    # verify logged in
-    pkeq("jeTJR5G4", auth.user_if_logged_in("github"))
-    pkok(work_dir().join("db/auth.db").exists(), "auth.db does not exist")
+    with srunit.quest_start(cfg=_cfg) as qcall:
+        from pykern.pkunit import pkeq, pkok, pkexcept, work_dir
+        from pykern.pkdebug import pkdp
+
+        # deprecated methods raise Unauthorized, but still login
+        with pkexcept("SRException.*deprecated"):
+            qcall.auth.login(method="github", uid="jeTJR5G4")
+        # verify logged in
+        pkeq("jeTJR5G4", qcall.auth.user_if_logged_in("github"))

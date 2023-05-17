@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import os
 try:
     __IPYTHON__
@@ -17,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['S1', 'S1_HCM', 'HCM', 'HCM_DCM_C1', 'DCM_C1', 'DCM_C2', 'DCM_C2_HFM', 'HFM', 'After_HFM', 'After_HFM_CRL1', 'CRL1', 'CRL2', 'CRL2_Before_SSA', 'Before_SSA', 'SSA', 'SSA_Before_FFO', 'Before_FFO', 'AFFO', 'FFO', 'FFO_At_Sample', 'At_Sample']
+        names = ['S1', 'S1_HCM', 'HCM', 'HCM_DCM_C1', 'DCM_C1', 'DCM_C2', 'DCM_C2_HFM', 'HFM', 'After_HFM_CRL1', 'CRL1', 'CRL2', 'CRL2_Before_SSA', 'SSA', 'SSA_Before_FFO', 'AFFO', 'FFO', 'FFO_At_Sample']
     for el_name in names:
         if el_name == 'S1':
             # S1: aperture 26.62m
@@ -128,9 +129,6 @@ def set_optics(v, names=None, want_final_propagation=True):
             ))
             pp.append(v.op_HFM_pp)
 
-        elif el_name == 'After_HFM':
-            # After_HFM: watch 32.64m
-            pass
         elif el_name == 'After_HFM_CRL1':
             # After_HFM_CRL1: drift 32.64m
             el.append(srwlib.SRWLOptD(
@@ -175,9 +173,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_CRL2_Before_SSA_L,
             ))
             pp.append(v.op_CRL2_Before_SSA_pp)
-        elif el_name == 'Before_SSA':
-            # Before_SSA: watch 61.75m
-            pass
         elif el_name == 'SSA':
             # SSA: aperture 61.75m
             el.append(srwlib.SRWLOptA(
@@ -195,9 +190,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_SSA_Before_FFO_L,
             ))
             pp.append(v.op_SSA_Before_FFO_pp)
-        elif el_name == 'Before_FFO':
-            # Before_FFO: watch 109.0m
-            pass
         elif el_name == 'AFFO':
             # AFFO: aperture 109.0m
             el.append(srwlib.SRWLOptA(
@@ -224,9 +216,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_FFO_At_Sample_L,
             ))
             pp.append(v.op_FFO_At_Sample_pp)
-        elif el_name == 'At_Sample':
-            # At_Sample: watch 109.018147m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -238,7 +227,7 @@ varParam = [
     ['name', 's', 'NSLS-II HXN beamline: SSA closer', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'NSLS-II_HXN_beamline_SSA_closer/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -266,21 +255,24 @@ varParam = [
     ['ebm_etayp', 'f', 0.0, 'vertical dispersion function derivative [rad]'],
 
 #---Undulator
-    ['und_bx', 'f', 0.0, 'undulator horizontal peak magnetic field [T]'],
-    ['und_by', 'f', 0.88770981, 'undulator vertical peak magnetic field [T]'],
-    ['und_phx', 'f', 0.0, 'initial phase of the horizontal magnetic field [rad]'],
-    ['und_phy', 'f', 0.0, 'initial phase of the vertical magnetic field [rad]'],
-    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
-    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
-    ['und_per', 'f', 0.02, 'undulator period [m]'],
-    ['und_len', 'f', 4.865095, 'undulator length [m]'],
-    ['und_zc', 'f', 0.0, 'undulator center longitudinal position [m]'],
-    ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
-    ['und_sy', 'i', -1, 'undulator vertical magnetic field symmetry vs longitudinal position'],
+#---idealized params
+#    ['und_bx', 'f', 0.0, 'undulator horizontal peak magnetic field [T]'],
+#    ['und_by', 'f', 0.88770981, 'undulator vertical peak magnetic field [T]'],
+#    ['und_phx', 'f', 0.0, 'initial phase of the horizontal magnetic field [rad]'],
+#    ['und_phy', 'f', 0.0, 'initial phase of the vertical magnetic field [rad]'],
+#    ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
+#    ['und_sy', 'i', -1, 'undulator vertical magnetic field symmetry vs longitudinal position'],
+#    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
+#    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
+#---tabulated params
     ['und_g', 'f', 5.622, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
     ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
     ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
     ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
+#---both  params
+    ['und_zc', 'f', 0.0, 'undulator center longitudinal position [m]'],
+    ['und_per', 'f', 0.02, 'undulator period [m]'],
+    ['und_len', 'f', 4.865095, 'undulator length [m]'],
 
 
 
@@ -423,7 +415,7 @@ varParam = [
     ['op_S1_HCM_L', 'f', 1.7300000000000004, 'length'],
 
     # HCM: sphericalMirror
-    ['op_HCM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_HCM_hfn', 's', '', 'heightProfileFile'],
     ['op_HCM_dim', 's', 'x', 'orientation'],
     ['op_HCM_r', 'f', 17718.8, 'radius'],
     ['op_HCM_size_tang', 'f', 1.0, 'tangentialSize'],
@@ -491,7 +483,7 @@ varParam = [
     ['op_DCM_C2_HFM_L', 'f', 2.219999999999999, 'length'],
 
     # HFM: sphericalMirror
-    ['op_HFM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_HFM_hfn', 's', '', 'heightProfileFile'],
     ['op_HFM_dim', 's', 'x', 'orientation'],
     ['op_HFM_r', 'f', 18193.8, 'radius'],
     ['op_HFM_size_tang', 'f', 1.0, 'tangentialSize'],
@@ -628,7 +620,7 @@ def setup_magnetic_measurement_files(filename, v):
                     )
                 )
             f = f[0]
-            z.extractall()
+            z.extractall(v.fdir)
         except Exception:
             if c:
                 c.Abort(1)
@@ -645,11 +637,12 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    setup_magnetic_measurement_files("magn_meas_u20_hxn.zip", v)
-    names = ['S1','S1_HCM','HCM','HCM_DCM_C1','DCM_C1','DCM_C2','DCM_C2_HFM','HFM','After_HFM','After_HFM_CRL1','CRL1','CRL2','CRL2_Before_SSA','Before_SSA','SSA','SSA_Before_FFO','Before_FFO','AFFO','FFO','FFO_At_Sample','At_Sample']
+    setup_magnetic_measurement_files(v.fdir + "magn_meas_u20_hxn.zip", v)
+    names = ['S1','S1_HCM','HCM','HCM_DCM_C1','DCM_C1','DCM_C2','DCM_C2_HFM','HFM','After_HFM_CRL1','CRL1','CRL2','CRL2_Before_SSA','SSA','SSA_Before_FFO','AFFO','FFO','FFO_At_Sample']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True

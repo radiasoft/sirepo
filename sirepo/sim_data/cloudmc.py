@@ -4,6 +4,7 @@
 :copyright: Copyright (c) 202 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
 
@@ -18,7 +19,15 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
-    def fixup_old_data(cls, data):
+    def source_filenames(cls, data):
+        return [
+            cls.lib_file_name_with_model_field("source", "file", x.file)
+            for x in data.models.settings.sources
+            if x.get("type") == "file" and x.get("file")
+        ]
+
+    @classmethod
+    def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
         cls._init_models(
             dm,
@@ -29,9 +38,13 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "openmcAnimation",
                 "reflectivePlanes",
                 "settings",
+                "tallyReport",
                 "volumes",
+                "voxels",
             ),
         )
+        if "tally" in dm:
+            del dm["tally"]
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
@@ -39,10 +52,12 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model == "geometry3DReport":
+            return "dagmcAnimation"
         return analysis_model
 
     @classmethod
     def _lib_file_basenames(cls, data):
         return [
             cls.dagmc_filename(data),
-        ]
+        ] + cls.source_filenames(data)

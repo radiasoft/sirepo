@@ -449,6 +449,13 @@
                 "templateUrl": "/static/html/srw-beamline.html",
                 "reloadOnSearch": true
             }
+        },
+        "ml": {
+            "route": "/ml/:simulationId",
+            "config": {
+                "controller": "MLController as ml",
+                "templateUrl": "/static/html/srw-ml.html"
+            }
         }
     },
     "model": {
@@ -513,7 +520,7 @@
         "coherentModesAnimation": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Processes per node", "Integer", 32],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
@@ -649,13 +656,15 @@
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "exportRsOpt": {
+            "characteristic": ["Characteristic to Extract", "Characteristic", "1"],
             "elements": ["Beamline Elements", "RSOptElements", []],
             "numCores": ["Number of Cores", "Integer", 4],
             "numSamples": ["Samples per Parameter", "Integer", 100, "", 1],
             "numWorkers": ["Number of Workers", "Integer", 1],
             "randomSeed": ["Random Seed", "RandomSeed", "", "Explicit seed for random numbers in the range [{{ SIREPO.APP_SCHEMA.model.exportRsOpt.randomSeed[SIREPO.INFO_INDEX_MIN] }}, {{ SIREPO.APP_SCHEMA.model.exportRsOpt.randomSeed[SIREPO.INFO_INDEX_MAX] }}). Leave empty to allow server to decide the seed.", 0, 4294967296],
             "scanType": ["Scan Type", "ScanType", "random", "Grid samples each parameter uniformly. Random takes a random sample for each parameter."],
-            "totalSamples": ["Total Samples", "Integer", 100, "Grid: &lt;number of samples&gt;^&lt;number of params&gt;. Random: &lt;number of samples&gt;", 1]
+            "totalSamples": ["Total Samples", "Integer", 100, "Grid: &lt;number of samples&gt;^&lt;number of params&gt;. Random: &lt;number of samples&gt;", 1],
+            "maxOuputDimension": ["Maximum Output Dimension [pixels]", "Integer", 32, "", 1]
         },
         "fiber": {
             "title": ["Element Name", "String", "Fiber"],
@@ -754,7 +763,7 @@
             "energyAvg": ["Photon energy [eV] to orient grating for", "Float", 1000],
             "cff": ["Cff Parameter (cos(beta)/cos(alpha))", "Float", 1.75],
             "rollAngle": ["Roll Angle [rad]", "Float", 0],
-            "diffractionOrder": ["Diffraction Order", "Float", 1, "", 1],
+            "diffractionOrder": ["Diffraction Order", "Integer", 1, ""],
             "grooveDensity0": ["a₀ [lines/mm]", "Float", 350.0],
             "grooveDensity1": ["a₁ [lines/mm²]", "Float", 0],
             "grooveDensity2": ["a₂ [lines/mm³]", "Float", 0],
@@ -794,6 +803,14 @@
             "verticalFocalLength": ["Vertical Focal Length [m]", "Float", 1.0e+23],
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
+        },
+        "machineLearningAnimation": {
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
+            "sbatchCores": ["Cores", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchProject": ["Project", "OptionalString", ""]
         },
         "mask": {
             "title": ["Element Name", "String", "Mask"],
@@ -836,7 +853,7 @@
         "multiElectronAnimation": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Processes per node", "Integer", 32],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
@@ -1098,7 +1115,10 @@
         }
     },
     "strings": {
-        "completionState": ""
+        "completionState": "",
+        "machineLearningAnimation": {
+            "typeOfSimulation": "Data Generation"
+        }
     },
     "view": {
         "_INTENSITY_REPORT": {
@@ -1701,6 +1721,11 @@
                 ]
             ]
         },
+        "machineLearningAnimation": {
+            "title": "Machine Learning Training Data",
+            "basic": [],
+            "advanced": []
+        },
         "mask": {
             "title": "Mask",
             "basic": [],
@@ -1758,16 +1783,17 @@
             "advanced": ["notes"]
         },
         "exportRsOpt": {
-            "title": "Generate Machine Learning Data Script",
+            "title": "Machine Learning Input",
             "basic": [
-            ],
-            "advanced": [
                 "elements",
                 "scanType",
                 "numSamples",
                 "totalSamples",
-                "randomSeed"
-            ]
+                "randomSeed",
+                "maxOuputDimension",
+                "characteristic"
+            ],
+            "advanced": []
         },
         "multipole": {
             "title": "Dipole",

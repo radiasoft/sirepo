@@ -7,7 +7,6 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
-from pykern import pkinspect
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
@@ -15,13 +14,9 @@ from sirepo import job
 import asyncio
 import contextlib
 import copy
-import inspect
 import pykern.pkio
-import re
-import sirepo.auth
-import sirepo.auth_db
 import sirepo.const
-import sirepo.http_reply
+import sirepo.quest
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.srdb
@@ -63,13 +58,20 @@ _PARALLEL_STATUS_FIELDS = frozenset(
         "frameCount",
         "lastUpdateTime",
         "percentComplete",
+        "queueState",
     )
 )
 
-cfg = None
+_cfg = None
 
 #: how many times restart request when Awaited() raised
 _MAX_RETRIES = 10
+
+
+#: POSIT: same as sirepo.reply
+_REPLY_SR_EXCEPTION_STATE = "srException"
+_REPLY_ERROR_STATE = "error"
+_REPLY_STATE = "state"
 
 
 class Awaited(Exception):
@@ -93,7 +95,7 @@ class ServerReq(PKDict):
         # no longer contains secret so ok to log
         assert s, "no secret in message content={}".format(self.content)
         assert (
-            s == sirepo.job.cfg.server_secret
+            s == sirepo.job.cfg().server_secret
         ), "server_secret did not match content={}".format(self.content)
         return await _Supervisor.receive(self)
 
@@ -131,16 +133,14 @@ class SlotQueue(sirepo.tornado.Queue):
         return SlotProxy(_op=op, _q=self)
 
 
-def init():
-    global cfg, _DB_DIR, _NEXT_REQUEST_SECONDS, job_driver
+def init_module(**imports):
+    global _cfg, _DB_DIR, _NEXT_REQUEST_SECONDS
 
-    if cfg:
+    if _cfg:
         return
-    job.init()
-    from sirepo import job_driver
-
-    job_driver.init(pkinspect.this_module())
-    cfg = pkconfig.init(
+    # import sirepo.job_driver
+    sirepo.util.setattr_imports(imports)
+    _cfg = pkconfig.init(
         job_cache_secs=(300, int, "when to re-read job state from disk"),
         max_secs=dict(
             analysis=(
@@ -172,7 +172,7 @@ def init():
         purge_non_premium_after_secs=(
             0,
             pkconfig.parse_seconds,
-            "how long to wait before purging non-premium users simulations",
+            "expiration period for purging non-premium users simulations",
         ),
         purge_non_premium_task_secs=(
             None,
@@ -185,27 +185,22 @@ def init():
     _NEXT_REQUEST_SECONDS = PKDict(
         {
             job.PARALLEL: 2,
-            job.SBATCH: cfg.sbatch_poll_secs,
+            job.SBATCH: _cfg.sbatch_poll_secs,
             job.SEQUENTIAL: 1,
         }
     )
-    sirepo.auth_db.init()
     tornado.ioloop.IOLoop.current().add_callback(
         _ComputeJob.purge_free_simulations,
     )
 
 
 async def terminate():
-    from sirepo import job_driver
-
     await job_driver.terminate()
 
 
 class _Supervisor(PKDict):
     def __init__(self, **kwargs):
-        super().__init__(
-            **kwargs,
-        )
+        super().__init__(**kwargs)
 
     def destroy_op(self, op):
         pass
@@ -229,7 +224,7 @@ class _Supervisor(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            "_Supervisor(api={} uid={})", self.req.api, self.req.content.uid
+            "_Supervisor(api={} uid={})", self.req.content.api, self.req.content.uid
         )
 
     @classmethod
@@ -242,11 +237,13 @@ class _Supervisor(PKDict):
                 o,
                 "_receive_" + req.content.api,
             )(req)
-        except sirepo.util.ASYNC_CANCELED_ERROR:
+        except sirepo.const.ASYNC_CANCELED_ERROR:
             return PKDict(state=job.CANCELED)
         except Exception as e:
             pkdlog("{} error={} stack={}", req, e, pkdexc())
-            return sirepo.http_reply.gen_tornado_exception(e)
+            if isinstance(e, sirepo.util.ReplyExc):
+                return cls._reply_exception(e)
+            raise
 
     async def op_run_timeout(self, op):
         pass
@@ -259,11 +256,11 @@ class _Supervisor(PKDict):
             msg=PKDict(req.copy_content()).pksetdefault(jobRunMode=job_run_mode),
             opName=opName,
         )
-        if "dataFileKey" in kwargs:
+        if "dataFileKey" in o.msg:
             kwargs["dataFileUri"] = job.supervisor_file_uri(
                 o.driver.cfg.supervisor_uri,
                 job.DATA_FILE_URI,
-                kwargs.pop("dataFileKey"),
+                o.msg.pop("dataFileKey"),
             )
         o.msg.pkupdate(**kwargs)
         return o
@@ -339,7 +336,7 @@ class _Supervisor(PKDict):
                 return m - db.computeJobQueued
 
             r = []
-            with sirepo.auth_db.session():
+            with sirepo.quest.start() as qcall:
                 for i in filter(_filter_jobs, _ComputeJob.instances.values()):
                     d = PKDict(
                         simulationType=i.db.simulationType,
@@ -348,7 +345,7 @@ class _Supervisor(PKDict):
                         lastUpdateTime=i.db.lastUpdateTime,
                         elapsedTime=i.elapsed_time(),
                         statusMessage=i.db.get("jobStatusMessage", ""),
-                        computeModel=sirepo.sim_data.split_jid(
+                        computeModel=sirepo.job.split_jid(
                             i.db.computeJid
                         ).compute_model,
                     )
@@ -357,9 +354,9 @@ class _Supervisor(PKDict):
                     else:
                         d.uid = i.db.uid
                         d.displayName = (
-                            sirepo.auth_db.UserRegistration.search_by(
-                                uid=i.db.uid
-                            ).display_name
+                            qcall.auth_db.model("UserRegistration")
+                            .search_by(uid=i.db.uid)
+                            .display_name
                             or "n/a"
                         )
                         d.queuedTime = _get_queued_time(i.db)
@@ -391,9 +388,27 @@ class _Supervisor(PKDict):
     async def _receive_api_ownJobs(self, req):
         return self._get_running_pending_jobs(uid=req.content.uid)
 
+    @classmethod
+    def _reply_exception(cls, exc):
+        n = exc.__class__
+        if isinstance(exc, sirepo.util.SRException):
+            return PKDict(
+                {
+                    _REPLY_STATE: _REPLY_SR_EXCEPTION_STATE,
+                    _REPLY_SR_EXCEPTION_STATE: exc.sr_args,
+                }
+            )
+        if isinstance(exc, sirepo.util.UserAlert):
+            return PKDict(
+                {
+                    _REPLY_STATE: _REPLY_ERROR_STATE,
+                    _REPLY_ERROR_STATE: exc.sr_args.error,
+                }
+            )
+        raise AssertionError(f"Reply class={exc.__class__.__name__} unknown exc={exc}")
+
 
 class _ComputeJob(_Supervisor):
-
     instances = PKDict()
     _purged_jids_cache = set()
 
@@ -416,7 +431,7 @@ class _ComputeJob(_Supervisor):
 
     def cache_timeout_set(self):
         self.timer = tornado.ioloop.IOLoop.current().call_later(
-            cfg.job_cache_secs,
+            _cfg.job_cache_secs,
             self.cache_timeout,
         )
 
@@ -470,10 +485,10 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     async def purge_free_simulations(cls):
-        def _get_uids_and_files():
+        def _get_uids_and_files(qcall):
             r = []
             u = None
-            p = sirepo.auth_db.UserRole.uids_of_paid_users()
+            p = qcall.auth_db.model("UserRole").uids_of_paid_users()
             for f in pkio.sorted_glob(
                 _DB_DIR.join(
                     "*{}".format(
@@ -481,7 +496,7 @@ class _ComputeJob(_Supervisor):
                     )
                 )
             ):
-                n = sirepo.sim_data.split_jid(jid=f.purebasename).uid
+                n = sirepo.job.split_jid(jid=f.purebasename).uid
                 if (
                     n in p
                     or f.mtime() > _too_old
@@ -499,37 +514,39 @@ class _ComputeJob(_Supervisor):
             if r:
                 yield u, r
 
-        def _purge_sim(jid):
+        def _purge_sim(jid, qcall):
             d = cls.__db_load(jid)
             if d.lastUpdateTime > _too_old:
                 return
             cls._purged_jids_cache.add(jid)
             if d.status == job.JOB_RUN_PURGED:
                 return
-            p = sirepo.simulation_db.simulation_run_dir(d)
+            p = sirepo.simulation_db.simulation_run_dir(d, qcall=qcall)
             pkio.unchecked_remove(p)
             n = cls.__db_init_new(d, d)
             n.status = job.JOB_RUN_PURGED
             cls.__db_write_file(n)
 
-        if not cfg.purge_non_premium_task_secs:
+        if not _cfg.purge_non_premium_task_secs:
             return
         s = sirepo.srtime.utc_now()
         u = None
         f = None
         try:
-            _too_old = sirepo.srtime.utc_now_as_int() - cfg.purge_non_premium_after_secs
-            with sirepo.auth_db.session():
-                for u, v in _get_uids_and_files():
-                    with sirepo.auth.set_user_outside_of_http_request(u):
+            _too_old = (
+                sirepo.srtime.utc_now_as_int() - _cfg.purge_non_premium_after_secs
+            )
+            with sirepo.quest.start() as qcall:
+                for u, v in _get_uids_and_files(qcall):
+                    with qcall.auth.logged_in_user_set(u):
                         for f in v:
-                            _purge_sim(jid=f.purebasename)
+                            _purge_sim(jid=f.purebasename, qcall=qcall)
                     await tornado.gen.sleep(0)
         except Exception as e:
             pkdlog("u={} f={} error={} stack={}", u, f, e, pkdexc())
         finally:
             tornado.ioloop.IOLoop.current().call_later(
-                cfg.purge_non_premium_task_secs,
+                _cfg.purge_non_premium_task_secs,
                 cls.purge_free_simulations,
             )
 
@@ -563,6 +580,7 @@ class _ComputeJob(_Supervisor):
     def __db_init_new(cls, data, prev_db=None):
         db = PKDict(
             alert=None,
+            queueState="queued",
             canceledAfterSecs=None,
             computeJid=data.computeJid,
             computeJobHash=data.computeJobHash,
@@ -630,7 +648,7 @@ class _ComputeJob(_Supervisor):
             for h in d.history:
                 h.setdefault(k, v)
         d.pksetdefault(
-            computeModel=lambda: sirepo.sim_data.split_jid(compute_jid).compute_model,
+            computeModel=lambda: sirepo.job.split_jid(compute_jid).compute_model,
             dbUpdateTime=lambda: f.mtime(),
         )
         if "cancelledAfterSecs" in d:
@@ -669,14 +687,10 @@ class _ComputeJob(_Supervisor):
 
     def _raise_if_purged_or_missing(self, req):
         if self.db.status in (job.MISSING, job.JOB_RUN_PURGED):
-            sirepo.util.raise_not_found("purged or missing {}", req)
+            raise sirepo.util.NotFound("purged or missing {}", req)
 
     async def _receive_api_analysisJob(self, req):
-        return await self._send_with_single_reply(
-            job.OP_ANALYSIS,
-            req,
-            jobCmd="analysis_job",
-        )
+        return await self._send_op_analysis(req, "analysis_job")
 
     async def _receive_api_downloadDataFile(self, req):
         self._raise_if_purged_or_missing(req)
@@ -684,7 +698,6 @@ class _ComputeJob(_Supervisor):
             job.OP_IO,
             req,
             jobCmd="download_data_file",
-            dataFileKey=req.content.pop("dataFileKey"),
         )
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
@@ -829,11 +842,7 @@ class _ComputeJob(_Supervisor):
         r = self._status_reply(req)
         if r:
             return r
-        r = await self._send_with_single_reply(
-            job.OP_ANALYSIS,
-            req,
-            jobCmd="sequential_result",
-        )
+        r = await self._send_op_analysis(req, "sequential_result")
         if r.state == job.ERROR:
             return self._init_db_missing_response(req)
         return r
@@ -843,17 +852,15 @@ class _ComputeJob(_Supervisor):
 
     async def _receive_api_simulationFrame(self, req):
         if not self._req_is_valid(req):
-            sirepo.util.raise_not_found("invalid req={}", req)
+            raise sirepo.util.NotFound("invalid req={}", req)
         self._raise_if_purged_or_missing(req)
-        return await self._send_with_single_reply(
-            job.OP_ANALYSIS, req, jobCmd="get_simulation_frame"
-        )
+        return await self._send_op_analysis(req, "get_simulation_frame")
 
     async def _receive_api_statefulCompute(self, req):
-        return await self._send_simulation_compute(req)
+        return await self._send_op_analysis(req, "stateful_compute")
 
     async def _receive_api_statelessCompute(self, req):
-        return await self._send_simulation_compute(req)
+        return await self._send_op_analysis(req, "stateless_compute")
 
     def _create_op(self, opName, req, **kwargs):
         req.simulationType = self.db.simulationType
@@ -862,7 +869,7 @@ class _ComputeJob(_Supervisor):
         r = req.content.get("jobRunMode", self.db.jobRunMode)
         if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
             # happens only when config changes, and only when sbatch is missing
-            sirepo.util.raise_not_found("invalid jobRunMode={} req={}", r, req)
+            raise sirepo.util.NotFound("invalid jobRunMode={} req={}", r, req)
         k = (
             job.PARALLEL
             if self.db.isParallel and opName != job.OP_ANALYSIS
@@ -903,7 +910,7 @@ class _ComputeJob(_Supervisor):
                         pass
                 else:
                     raise AssertionError(f"too many retries {op}")
-            except sirepo.util.ASYNC_CANCELED_ERROR:
+            except sirepo.const.ASYNC_CANCELED_ERROR:
                 if self.pkdel("_canceled_serial") != compute_job_serial:
                     # There was a timeout getting the run started. Set the
                     # error and let the user know. The timeout has destroyed
@@ -913,7 +920,7 @@ class _ComputeJob(_Supervisor):
                     # We were canceled due to api_runCancel.
                     # api_runCancel destroyed the op and updated the db
                     pass
-                return False
+                raise
             except Exception as e:
                 op.destroy(cancel=False)
                 if isinstance(e, sirepo.util.SRException) and e.sr_args.params.get(
@@ -930,13 +937,13 @@ class _ComputeJob(_Supervisor):
 
         op.task = asyncio.current_task()
         op.pkdel("run_callback")
-        if not await _send_op(op, compute_job_serial, prev_db):
-            return
+        await _send_op(op, compute_job_serial, prev_db)
         try:
             with op.set_job_situation("Entered __create._run"):
                 while True:
                     try:
                         r = await op.reply_get()
+                        self.db.queueState = None
                         # TODO(robnagler) is this ever true?
                         if op != self.run_op:
                             return
@@ -958,7 +965,8 @@ class _ComputeJob(_Supervisor):
                         self.__db_write()
                         if r.state in job.EXIT_STATUSES:
                             break
-                    except sirepo.util.ASYNC_CANCELED_ERROR:
+                    except sirepo.const.ASYNC_CANCELED_ERROR:
+                        self.db.queueState = None
                         return
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
@@ -970,16 +978,15 @@ class _ComputeJob(_Supervisor):
         finally:
             op.destroy(cancel=False)
 
-    async def _send_simulation_compute(self, req):
-        pkdlog("{} method={} api={}", req, req.content.data.method, req.content.api)
-        f = inspect.currentframe().f_back.f_code.co_name
-        m = re.search(f"^_receive_api_([a-z]+)Compute$", f)
-        assert m, f"unrecognized caller function={f}"
-        return await self._send_with_single_reply(
-            job.OP_ANALYSIS,
+    async def _send_op_analysis(self, req, jobCmd):
+        pkdlog(
+            "{} api={} method={}",
             req,
-            jobCmd=f"{m.group(1)}_compute",
+            jobCmd,
+            req.content.data.get("method"),
         )
+
+        return await self._send_with_single_reply(job.OP_ANALYSIS, req, jobCmd=jobCmd)
 
     async def _send_with_single_reply(self, opName, req, **kwargs):
         o = self._create_op(opName, req, **kwargs)
@@ -1017,6 +1024,7 @@ class _ComputeJob(_Supervisor):
                 r.computeJobSerial = self.db.computeJobSerial
                 r.computeModel = self.db.computeModel
                 r.elapsedTime = self.elapsed_time()
+                r.queueState = self.db.get("queueState")
             if self._is_running_pending():
                 c = req.content
                 r.update(
@@ -1111,6 +1119,7 @@ class _Op(PKDict):
     async def run_timeout(self):
         """Can be any op that's timed"""
         pkdlog("{} max_run_secs={}", self, self.max_run_secs)
+        # TODO add-qcall and pass to op, can't be Op() or Supervisor()
         await self._supervisor.op_run_timeout(self)
 
     def send(self):
@@ -1139,10 +1148,10 @@ class _Op(PKDict):
             sirepo.job.OP_ANALYSIS,
             sirepo.job.OP_IO,
         ):
-            return cfg.max_secs[self.opName]
+            return _cfg.max_secs[self.opName]
         if self.kind == job.PARALLEL and self.msg.get("isPremiumUser"):
-            return cfg.max_secs["parallel_premium"]
-        return cfg.max_secs[self.kind]
+            return _cfg.max_secs["parallel_premium"]
+        return _cfg.max_secs[self.kind]
 
     def __hash__(self):
         return hash((self.opId,))

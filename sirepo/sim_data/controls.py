@@ -73,7 +73,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return opts
 
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
         cls._init_models(
             dm,
@@ -89,7 +89,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             ),
         )
         if "externalLattice" in dm:
-            sirepo.sim_data.get_class("madx").fixup_old_data(dm.externalLattice)
+            sirepo.sim_data.get_class("madx").fixup_old_data(
+                dm.externalLattice, qcall=qcall
+            )
             if "optimizerSettings" not in dm:
                 dm.optimizerSettings = cls.default_optimizer_settings(
                     dm.externalLattice.models
@@ -203,6 +205,14 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
+        if "controlSettings" in data.models:
+            n = data.models.controlSettings.inputLogFile
+            if n:
+                return [
+                    cls.lib_file_name_with_model_field(
+                        "controlSettings", "inputLogFile", n
+                    )
+                ]
         return []
 
     @classmethod
@@ -217,17 +227,17 @@ class SimData(sirepo.sim_data.SimDataBase):
 
 class AmpConverter:
     _GEV_TO_KG = 1.78266192e-27
-    _DEFAULT_FACTOR = 100
     # Coulomb
     _ELEMENTARY_CHARGE = 1.602176634e-19
     _SCHEMA = SimData.schema()
 
-    def __init__(self, beam, amp_table=None):
+    def __init__(self, beam, amp_table=None, default_factor=100):
         if amp_table and len(amp_table[0]) < 2:
             raise AssertionError("invalid amp_table: {}".format(amp_table))
         self._computed_reverse_table = False
         self._amp_table = [r for r in map(lambda x: [x[0], x[1]], amp_table or [])]
         self._beam_info = self.__beam_info(beam)
+        self._default_factor = default_factor
 
     def current_to_kick(self, current):
         return self.__compute_kick(current, self.__interpolate_table(current, 0, 1))
@@ -279,6 +289,6 @@ class AmpConverter:
 
     def __interpolate_table(self, value, from_index, to_index):
         if not self._amp_table:
-            return self._DEFAULT_FACTOR
+            return self._default_factor
         table = numpy.vstack(self._amp_table)
         return numpy.interp(value, table[:, from_index], table[:, to_index])

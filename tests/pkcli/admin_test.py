@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import pytest
 
 
@@ -25,22 +24,20 @@ def setup_module(module):
 
 def test_delete_user():
     from pykern import pkunit
-    from sirepo import auth
-    from sirepo import auth_db
-    from sirepo import simulation_db
+    from sirepo import simulation_db, srunit
     from sirepo.pkcli import admin
     from sirepo.sim_api import jupyterhublogin
 
     _init_db()
-    with auth_db.session_and_lock():
-        pkunit.pkeq(_UID_IN_DB, auth.unchecked_get_user(_UID_IN_DB))
+    with srunit.quest_start() as qcall:
+        pkunit.pkeq(_UID_IN_DB, qcall.auth.unchecked_get_user(_UID_IN_DB))
     admin.delete_user(_UID_IN_DB)
-    with auth_db.session_and_lock():
-        _is_empty_table(jupyterhublogin.JupyterhubUser)
-        _is_empty_table(auth_db.UserRegistration)
-        _is_empty_table(auth_db.UserRoleInvite)
-    _is_empty_dir(jupyterhublogin.cfg.user_db_root_d)
-    _is_empty_dir(simulation_db.user_path())
+    with srunit.quest_start() as qcall:
+        _is_empty_table(qcall.auth_db.model("JupyterhubUser"))
+        _is_empty_table(qcall.auth_db.model("UserRegistration"))
+        _is_empty_table(qcall.auth_db.model("UserRoleInvite"))
+    _is_empty_dir(jupyterhublogin.cfg().user_db_root_d)
+    _is_empty_dir(simulation_db.user_path_root())
 
 
 def test_no_user():
@@ -72,4 +69,4 @@ def _is_empty_dir(path):
 
 
 def _is_empty_table(table):
-    _is_empty(table.search_all_by())
+    _is_empty(table.query().all())

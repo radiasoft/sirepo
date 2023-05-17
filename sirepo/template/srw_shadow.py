@@ -233,6 +233,7 @@ class Convert:
 
     _SOURCE_TYPE = PKDict(
         g="geometricSource",
+        t="undulator",
         u="undulator",
         m="bendingMagnet",
     )
@@ -262,12 +263,13 @@ class Convert:
         self.__sim_to_srw(data, res.models)
         PKDict(
             u=self.__undulator_to_srw,
+            t=self.__undulator_to_srw,
             g=self.__geometric_source_to_srw,
             m=self.__multipole_to_srw,
         )[res.models.simulation.sourceType](data, res.models)
         self.__beamline_to_srw(data, res.models)
         res.models.beamline = self.beamline
-        _SRW.fixup_old_data(res)
+        _SRW.fixup_old_data(res, qcall=None)
         return res
 
     def to_shadow(self, models):
@@ -283,7 +285,7 @@ class Convert:
         self.__beamline_to_shadow(models, res.models)
         if res.models.simulation.sourceType == "undulator":
             self.__fix_undulator_gratings(res.models)
-        _SHADOW.fixup_old_data(res)
+        _SHADOW.fixup_old_data(res, qcall=None)
         return res
 
     def __beam_to_shadow(self, srw, shadow):
@@ -548,7 +550,7 @@ class Convert:
                 else:
                     from_f, scale = fields[f], 1
                 v = input[from_f] if is_item else input[from_name][from_f]
-                if schema[from_f][1] == "Float":
+                if schema[from_f][1] in ("Float", "Integer"):
                     v = float(v) * scale
                 if is_item:
                     out[f] = v
@@ -639,7 +641,6 @@ class Convert:
             "sphericalMirror",
             "toroidalMirror",
         ):
-
             self.beamline.append(
                 self.__copy_item(
                     item,

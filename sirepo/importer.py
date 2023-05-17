@@ -10,13 +10,12 @@ from pykern.pkdebug import pkdp
 from pykern import pkcompat
 import base64
 import pykern.pkio
-import sirepo.http_request
 import sirepo.util
 import six
 import zipfile
 
 
-def do_form(form, sapi):
+def do_form(form, qcall):
     """Self-extracting archive post
 
     Args:
@@ -28,14 +27,14 @@ def do_form(form, sapi):
     from sirepo import simulation_db
 
     if not "zip" in form:
-        sirepo.util.raise_not_found("missing zip in form")
-    data = read_zip(base64.decodebytes(pkcompat.to_bytes(form["zip"])), sapi)
+        raise sirepo.util.NotFound("missing zip in form")
+    data = read_zip(base64.decodebytes(pkcompat.to_bytes(form["zip"])), qcall)
     data.models.simulation.folder = "/Import"
     data.models.simulation.isExample = False
-    return simulation_db.save_new_simulation(data)
+    return simulation_db.save_new_simulation(data, qcall=qcall)
 
 
-def read_json(text, sapi, sim_type=None):
+def read_json(text, qcall, sim_type=None):
     """Read json file and return
 
     Args:
@@ -52,17 +51,17 @@ def read_json(text, sapi, sim_type=None):
     # need to verify_app_directory here, because this may be the
     # first point we know sim_type.
     data = simulation_db.json_load(text)
-    data = simulation_db.fixup_old_data(data)[0]
+    data = simulation_db.fixup_old_data(data, qcall=qcall)[0]
     assert (
         not sim_type or data.simulationType == sim_type
     ), "simulationType={} invalid, expecting={}".format(
         data.simulationType,
         sim_type,
     )
-    return sapi.parse_post(req_data=data).req_data
+    return qcall.parse_post(req_data=data).req_data
 
 
-def read_zip(zip_bytes, sapi, sim_type=None):
+def read_zip(zip_bytes, qcall, sim_type=None):
     """Read zip file and store contents
 
     Args:
@@ -75,7 +74,7 @@ def read_zip(zip_bytes, sapi, sim_type=None):
     from sirepo import simulation_db
     import sirepo.sim_data
 
-    with simulation_db.tmp_dir() as tmp:
+    with simulation_db.tmp_dir(qcall=qcall) as tmp:
         data = None
         zipped = PKDict()
         with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
@@ -84,7 +83,7 @@ def read_zip(zip_bytes, sapi, sim_type=None):
                 c = z.read(i)
                 if b.lower() == simulation_db.SIMULATION_DATA_FILE:
                     assert not data, "too many db files {} in archive".format(b)
-                    data = read_json(c, sapi, sim_type)
+                    data = read_json(c, qcall, sim_type)
                     continue
                 if "__MACOSX" in i.filename:
                     continue
@@ -97,15 +96,16 @@ def read_zip(zip_bytes, sapi, sim_type=None):
         assert data, "missing {} in archive".format(simulation_db.SIMULATION_DATA_FILE)
         needed = set()
         s = sirepo.sim_data.get_class(data.simulationType)
+        u = qcall.auth.logged_in_user()
         for n in s.lib_file_basenames(data):
             # TODO(robnagler) this does not allow overwrites of lib files,
             # but it needs to be modularized
-            if s.lib_file_exists(n):
+            if s.lib_file_exists(n, qcall=qcall):
                 continue
             # TODO(robnagler) raise useralert instead of an assert
             assert n in zipped, "auxiliary file={} missing in archive".format(n)
             needed.add(n)
         for b, src in zipped.items():
             if b in needed:
-                src.copy(s.lib_file_write_path(b))
+                src.copy(s.lib_file_write_path(b, qcall=qcall))
         return data

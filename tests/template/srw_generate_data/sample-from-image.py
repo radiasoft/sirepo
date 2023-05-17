@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import os
 try:
     __IPYTHON__
@@ -17,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['Sample', 'Watchpoint']
+        names = ['Sample']
     for el_name in names:
         if el_name == 'Sample':
             # Sample: sample 20.0m
@@ -52,9 +53,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 output_image_format=v.op_Sample_outputImageFormat,
             ))
             pp.append(v.op_Sample_pp)
-        elif el_name == 'Watchpoint':
-            # Watchpoint: watch 20.0m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -66,7 +64,7 @@ varParam = [
     ['name', 's', 'Sample from Image', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'Sample_from_Image/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -94,21 +92,24 @@ varParam = [
     ['ebm_etayp', 'f', 0.0, 'vertical dispersion function derivative [rad]'],
 
 #---Undulator
+#---idealized params
     ['und_bx', 'f', 0.0, 'undulator horizontal peak magnetic field [T]'],
     ['und_by', 'f', 0.88770981, 'undulator vertical peak magnetic field [T]'],
     ['und_phx', 'f', 0.0, 'initial phase of the horizontal magnetic field [rad]'],
     ['und_phy', 'f', 0.0, 'initial phase of the vertical magnetic field [rad]'],
-    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
-    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
-    ['und_per', 'f', 0.02, 'undulator period [m]'],
-    ['und_len', 'f', 3.0, 'undulator length [m]'],
-    ['und_zc', 'f', 0.0, 'undulator center longitudinal position [m]'],
     ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
     ['und_sy', 'i', -1, 'undulator vertical magnetic field symmetry vs longitudinal position'],
-    ['und_g', 'f', 6.72, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
-    ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
-    ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
-    ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
+    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
+    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
+#---tabulated params
+#    ['und_g', 'f', 6.72, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
+#    ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
+#    ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
+#    ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
+#---both  params
+    ['und_zc', 'f', 0.0, 'undulator center longitudinal position [m]'],
+    ['und_per', 'f', 0.02, 'undulator period [m]'],
+    ['und_len', 'f', 3.0, 'undulator length [m]'],
 
 
 
@@ -241,7 +242,7 @@ varParam = [
 
 #---Beamline optics:
     # Sample: sample
-    ['op_Sample_file_path', 's', 'sample.tif', 'imageFile'],
+    ['op_Sample_file_path', 's', 'Sample_from_Image/sample.tif', 'imageFile'],
     ['op_Sample_outputImageFormat', 's', 'tif', 'outputImageFormat'],
     ['op_Sample_position', 'f', 20.0, 'position'],
     ['op_Sample_resolution', 'f', 2.480469e-09, 'resolution'],
@@ -318,10 +319,11 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['Sample','Watchpoint']
+    names = ['Sample']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True

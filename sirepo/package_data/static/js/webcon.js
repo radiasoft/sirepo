@@ -186,7 +186,9 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
             },
             {
                 method: 'column_info',
-                analysisData: appState.models.analysisData,
+                args: {
+                    analysisData: appState.models.analysisData,
+                }
             }
         );
     }
@@ -350,13 +352,15 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         if (steering.useSteering == '1') {
             $scope.$broadcast('sr-clearPointData');
         }
-        requestSender.getApplicationData(
+        requestSender.sendAnalysisJob(
+            appState,
+            function(data) {},
             {
                 method: 'enable_steering',
-                simulationId: appState.models.simulation.simulationId,
+                modelName: "epicsServerAnimation",
                 beamSteering: steering,
             },
-            function(data) {});
+        );
         if (! isSteeringBeam()) {
             stopSteering(null);
         }
@@ -440,11 +444,8 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
     }
 
     function updateKickersFromEPICSAndRunSimulation() {
-        requestSender.getApplicationData(
-            {
-                method: 'read_kickers',
-                epicsServerAnimation: appState.applicationState().epicsServerAnimation,
-            },
+        requestSender.sendAnalysisJob(
+            appState,
             function(data) {
                 if (data.kickers) {
                     var modelNames = kickerModelNames();
@@ -454,7 +455,13 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
                     });
                     appState.saveChanges(modelNames, self.simState.runSimulation);
                 }
-            });
+            },
+            {
+                method: 'read_kickers',
+                modelName: "epicsServerAnimation",
+                epicsServerAnimation: appState.applicationState().epicsServerAnimation,
+            },
+        );
     }
 
     function updateKicker(name) {
@@ -466,17 +473,19 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         if (! epicsField) {
             throw new Error('invalid kicker name: ' + name);
         }
-        requestSender.getApplicationData(
-            {
-                method: 'update_kicker',
-                epics_field: epicsField,
-                kicker: appState.models[name],
-                epicsServerAnimation: appState.applicationState().epicsServerAnimation,
-                simulationId: appState.models.simulation.simulationId,
-            },
+        requestSender.sendAnalysisJob(
+            appState,
             function(data) {
                 //TODO(pjm): look for error from epics
-            });
+            },
+            {
+                method: 'update_kicker',
+                modelName: "epicsServerAnimation",
+                epics_field: epicsField,
+                epicsServerAnimation: appState.applicationState().epicsServerAnimation,
+                kicker: appState.models[name],
+            },
+        );
     }
 
     self.isConnectedToEPICS = function() {

@@ -21,7 +21,7 @@ def test_different_email(auth_fc):
         {"email": "diff@b.c", "simulationType": fc.sr_sim_type},
     )
     s = fc.sr_auth_state(isLoggedIn=False)
-    fc.sr_email_confirm(fc, r)
+    fc.sr_email_confirm(r)
     s = fc.sr_auth_state(isLoggedIn=True, needCompleteRegistration=True)
     fc.sr_post(
         "authCompleteRegistration",
@@ -36,7 +36,7 @@ def test_different_email(auth_fc):
     r = fc.sr_post(
         "authEmailLogin", {"email": "x@y.z", "simulationType": fc.sr_sim_type}
     )
-    fc.sr_email_confirm(fc, r, "xyz")
+    fc.sr_email_confirm(r, "xyz")
     uid2 = fc.sr_auth_state(displayName="xyz", isLoggedIn=True, userName="x@y.z").uid
     pkok(uid != uid2, "did not get a new uid={}", uid)
 
@@ -59,7 +59,7 @@ def test_follow_email_auth_link_twice(auth_fc):
     # get the url twice - should still be logged in
     d = fc.sr_get(r.uri)
     assert not re.search(r"login-fail", pkcompat.from_bytes(d.data))
-    fc.sr_email_confirm(fc, r)
+    fc.sr_email_confirm(r)
     fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
     # now logged out, should see login fail for bad link
     pkre("login-fail", pkcompat.from_bytes(fc.get(r.uri).data))
@@ -72,7 +72,6 @@ def test_force_login(auth_fc):
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkok, pkre, pkeq, pkexcept
-    from sirepo import http_reply
     from sirepo import util
 
     # login as a new user, not in db
@@ -86,7 +85,7 @@ def test_force_login(auth_fc):
     r = fc.sr_post(
         "authEmailLogin", {"email": "force@b.c", "simulationType": fc.sr_sim_type}
     )
-    fc.sr_email_confirm(fc, r)
+    fc.sr_email_confirm(r)
     fc.sr_post(
         "authCompleteRegistration",
         {
@@ -130,7 +129,7 @@ def test_guest_merge(auth_fc):
         {"email": "guest.merge@b.com", "simulationType": fc.sr_sim_type},
     )
     s = fc.sr_auth_state(isLoggedIn=True, method="guest")
-    fc.sr_email_confirm(fc, r)
+    fc.sr_email_confirm(r)
     fc.sr_post(
         "authCompleteRegistration",
         {
@@ -157,7 +156,7 @@ def test_guest_merge(auth_fc):
         "authEmailLogin",
         {"email": "guest.merge@b.com", "simulationType": fc.sr_sim_type},
     )
-    fc.sr_email_confirm(fc, r)
+    fc.sr_email_confirm(r)
     d = fc.sr_post(
         "listSimulations",
         {"simulationType": fc.sr_sim_type},
@@ -177,7 +176,7 @@ def test_happy_path(auth_fc):
     r = fc.sr_post(
         "authEmailLogin", {"email": "happy@b.c", "simulationType": fc.sr_sim_type}
     )
-    fc.sr_email_confirm(fc, r)
+    fc.sr_email_confirm(r)
     fc.sr_post(
         "authCompleteRegistration",
         {
@@ -202,54 +201,13 @@ def test_happy_path(auth_fc):
     )
 
 
-def test_invalid_method(auth_fc):
-    fc = auth_fc
-
-    from pykern import pkconfig, pkunit, pkio
-    from pykern.pkunit import pkok, pkre
-    from pykern.pkdebug import pkdp
-
-    # login as a new user, not in db
-    r = fc.sr_post(
-        "authEmailLogin",
-        {"email": "will-be-invalid@b.c", "simulationType": fc.sr_sim_type},
-    )
-    fc.sr_email_confirm(fc, r)
-    fc.sr_post(
-        "authCompleteRegistration",
-        {
-            "displayName": "abc",
-            "simulationType": fc.sr_sim_type,
-        },
-    )
-    fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
-    import sirepo.auth
-
-    sirepo.auth.cfg.methods = set(["guest"])
-    sirepo.auth.cfg.deprecated_methods = set()
-    sirepo.auth.visible_methods = sirepo.auth.valid_methods = tuple(
-        sirepo.auth.cfg.methods
-    )
-    sirepo.auth.non_guest_methods = tuple()
-    fc.sr_auth_state(
-        displayName=None,
-        isLoggedIn=False,
-        needCompleteRegistration=False,
-        uid=None,
-        userName=None,
-    )
-
-
 def test_token_expired(auth_fc):
     fc = auth_fc
-
-    from sirepo import srtime
 
     r = fc.sr_post(
         "authEmailLogin",
         {"email": "expired@b.c", "simulationType": fc.sr_sim_type},
     )
-    login_url = r.uri
-    srtime.adjust_time(1)
-    r = fc.sr_email_confirm(fc, r)
-    s = fc.sr_auth_state(isLoggedIn=False)
+    with fc.sr_adjust_time(1):
+        r = fc.sr_email_confirm(r)
+        fc.sr_auth_state(isLoggedIn=False)

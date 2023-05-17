@@ -10,13 +10,16 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
 from sirepo.template import template_common
 import sirepo.job
+import sirepo.template
+import sirepo.sim_data
 
 
 def create_predefined(out_dir=None):
     from sirepo.template import srw_common
-    import sirepo.sim_data
     import srwl_uti_src
     import pykern.pkjson
+
+    sim_data = sirepo.sim_data.get_class("srw")
 
     def lib_file_path(file_type):
         return sim_data.srw_lib_file_paths_for_type(
@@ -37,7 +40,6 @@ def create_predefined(out_dir=None):
             ),
         ).dirpath(b)
 
-    sim_data = sirepo.sim_data.get_class("srw")
     beams = []
     for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
         info = beam[1]
@@ -104,18 +106,16 @@ def run(cfg_dir):
     Args:
         cfg_dir (str): directory to run srw in
     """
-    import sirepo.template.srw
-
-    sirepo.job.init()
+    srw = sirepo.template.import_module("srw")
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     r = template_common.exec_parameters()
-    # special case for importing python code
     m = sim_in.report
     if m == "backgroundImport":
+        # special case for importing python code
         template_common.write_sequential_result(
-            PKDict({sirepo.template.srw.PARSED_DATA_ATTR: r.parsed_data})
+            PKDict({srw.PARSED_DATA_ATTR: r.parsed_data})
         )
     else:
         template_common.write_sequential_result(
-            sirepo.template.srw.extract_report_data(sim_in),
+            srw.extract_report_data(sim_in),
         )

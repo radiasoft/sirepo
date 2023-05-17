@@ -10,14 +10,15 @@ from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc, pkdformat
 from sirepo import job
 import importlib
 import pykern.pkio
+import os
 import re
 import sirepo.auth
+import sirepo.const
 import sirepo.events
 import sirepo.sim_db_file
 import sirepo.simulation_db
-import sirepo.srcontext
-import sirepo.srdb
 import sirepo.tornado
+import sirepo.util
 import tornado.gen
 import tornado.ioloop
 import tornado.locks
@@ -34,7 +35,7 @@ _DEFAULT_CLASS = None
 
 _DEFAULT_MODULE = "local"
 
-cfg = None
+_cfg = None
 
 _CPU_SLOT_OPS = frozenset((job.OP_ANALYSIS, job.OP_RUN))
 
@@ -67,7 +68,6 @@ def assign_instance_op(op):
 
 
 class DriverBase(PKDict):
-
     __instances = PKDict()
 
     _AGENT_STARTING_SECS_DEFAULT = 5
@@ -127,23 +127,25 @@ class DriverBase(PKDict):
         )
 
     def make_lib_dir_symlink(self, op):
-        import sirepo.auth_db
+        import sirepo.auth
 
         m = op.msg
-        with sirepo.auth_db.session(), sirepo.auth.set_user_outside_of_http_request(
-            m.uid
-        ):
-            d = sirepo.simulation_db.simulation_lib_dir(m.simulationType)
-            op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
-            op.lib_dir_symlink.mksymlinkto(d, absolute=True)
-            m.pkupdate(
-                libFileUri=job.supervisor_file_uri(
-                    self.cfg.supervisor_uri,
-                    job.LIB_FILE_URI,
-                    op.lib_dir_symlink.basename,
-                ),
-                libFileList=[f.basename for f in d.listdir()],
-            )
+        with sirepo.quest.start() as qcall:
+            with qcall.auth.logged_in_user_set(m.uid):
+                d = sirepo.simulation_db.simulation_lib_dir(
+                    m.simulationType,
+                    qcall=qcall,
+                )
+                op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
+                op.lib_dir_symlink.mksymlinkto(d, absolute=True)
+                m.pkupdate(
+                    libFileUri=job.supervisor_file_uri(
+                        self.cfg.supervisor_uri,
+                        job.LIB_FILE_URI,
+                        op.lib_dir_symlink.basename,
+                    ),
+                    libFileList=[f.basename for f in d.listdir()],
+                )
 
     def op_is_untimed(self, op):
         return op.opName in _UNTIMED_OPS
@@ -204,6 +206,7 @@ class DriverBase(PKDict):
         return job.agent_cmd_stdin_env(
             ("sirepo", "job_agent", "start"),
             env=self._agent_env(),
+            uid=self.uid,
             **kwargs,
         )
 
@@ -211,15 +214,19 @@ class DriverBase(PKDict):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
                 PYKERN_PKDEBUG_WANT_PID_TIME="1",
+                SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
+                # POSIT: same as pkcli.job_agent.start
+                SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS=os.environ.get(
+                    "SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS",
+                    str(pkconfig.in_dev_mode()),
+                ),
+                SIREPO_PKCLI_JOB_AGENT_START_DELAY=self.get("_agent_start_delay", "0"),
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_URI=job.supervisor_file_uri(
                     self.cfg.supervisor_uri,
                     job.SIM_DB_FILE_URI,
-                    sirepo.simulation_db.USER_ROOT_DIR,
                     self.uid,
                 ),
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,
-                SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
-                SIREPO_PKCLI_JOB_AGENT_START_DELAY=self.get("_agent_start_delay", 0),
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.cfg.supervisor_uri.replace(
                     # TODO(robnagler) figure out why we need ws (wss, implicit)
                     "http",
@@ -274,7 +281,7 @@ class DriverBase(PKDict):
                 # POSIT: Canceled errors aren't smothered by any of the below calls
                 await self.kill()
                 await self._do_agent_start(op)
-            except Exception as e:
+            except (Exception, sirepo.const.ASYNC_CANCELED_ERROR) as e:
                 pkdlog("{} error={} stack={}", self, e, pkdexc())
                 self.free_resources(internal_error="failure starting agent")
                 raise
@@ -369,7 +376,7 @@ class DriverBase(PKDict):
 
         if not self._idle_timer:
             self._idle_timer = tornado.ioloop.IOLoop.current().call_later(
-                cfg.idle_check_secs,
+                _cfg.idle_check_secs,
                 _kill_if_idle,
             )
 
@@ -377,11 +384,14 @@ class DriverBase(PKDict):
         pass
 
 
-def init(job_supervisor_module):
-    global cfg, _CLASSES, _DEFAULT_CLASS, job_supervisor
-    assert not cfg
-    job_supervisor = job_supervisor_module
-    cfg = pkconfig.init(
+def init_module(**imports):
+    global _cfg, _CLASSES, _DEFAULT_CLASS
+
+    if _cfg:
+        return _cfg
+    # import sirepo.job_supervisor
+    sirepo.util.setattr_imports(imports)
+    _cfg = pkconfig.init(
         modules=((_DEFAULT_MODULE,), set, "available job driver modules"),
         idle_check_secs=(
             1800,
@@ -391,11 +401,12 @@ def init(job_supervisor_module):
     )
     _CLASSES = PKDict()
     p = pkinspect.this_module().__name__
-    for n in cfg.modules:
+    for n in _cfg.modules:
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         _CLASSES[n] = m.CLASS.init_class(job_supervisor)
     _DEFAULT_CLASS = _CLASSES.get("docker") or _CLASSES.get(_DEFAULT_MODULE)
     pkdlog("modules={}", sorted(_CLASSES.keys()))
+    return _cfg
 
 
 async def terminate():

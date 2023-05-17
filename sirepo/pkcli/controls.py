@@ -13,18 +13,25 @@ import sirepo.pkcli.madx
 import sirepo.template.controls as template
 
 
+def madx_device_server(sim_id):
+    import sirepo.pkcli.madx_device_server
+
+    sirepo.pkcli.madx_device_server.run(sim_id)
+
+
 def run(cfg_dir):
     cfg_dir = pkio.py_path(cfg_dir)
     _create_particle_file_for_external_lattice(cfg_dir)
     template_common.exec_parameters()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     res = template.extract_beam_position_report(data, pkio.py_path(cfg_dir))
-    res.summaryData = PKDict(
-        elementValues=template.read_summary_line(
-            cfg_dir,
-            simulation_db.get_schema(template.SIM_TYPE).constants.maxBPMPoints,
-        )[0],
-    )
+    if not template.is_viewing_log_file(data):
+        res.summaryData = PKDict(
+            elementValues=template.read_summary_line(
+                cfg_dir,
+                simulation_db.get_schema(template.SIM_TYPE).constants.maxBPMPoints,
+            )[0],
+        )
     template_common.write_sequential_result(res, run_dir=cfg_dir)
 
 

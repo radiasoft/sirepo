@@ -4,9 +4,6 @@
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkio
-from pykern import pkunit
-from pykern.pkcollections import PKDict
 
 
 def test_controls_monitor(fc):
@@ -59,6 +56,8 @@ def test_controls_position2(fc):
 
 
 def _run_test(sim, report, expect_file):
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
     from sirepo.template import controls
 
     if sim.models.controlSettings.operationMode == "DeviceServer":
@@ -73,5 +72,5 @@ def _run_test(sim, report, expect_file):
         )
     pkunit.file_eq(
         pkunit.data_dir().join(expect_file),
-        actual=controls.python_source_for_model(sim, report),
+        actual=controls.python_source_for_model(sim, model=report, qcall=None),
     )

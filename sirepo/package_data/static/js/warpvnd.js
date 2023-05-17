@@ -307,9 +307,6 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
 
     self.saveSTLPolys = function(reader, filename) {
         // check if exists first?
-        var data = {
-            file: filename
-        };
         var polyData = reader.getOutputData();
         polyData.buildCells();
         var polys = [];
@@ -327,10 +324,15 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
             }
             polys.push(polyVerts);
         }
-        data.method = 'save_stl_polys';
-        data.polys = polys;
-        requestSender.getApplicationData(data, function(d) {
-        });
+        requestSender.sendStatefulCompute(
+            appState,
+            function(d) {},
+            {
+                filename: filename,
+                method: 'save_stl_polys',
+                polys: polys,
+            },
+        );
     };
 
     self.setOptimizingRow = function(row) {
@@ -774,11 +776,8 @@ SIREPO.app.controller('VisualizationController', function (appState, errorServic
                 appState.saveQuietly('simulation');
             }
         }
-        requestSender.getApplicationData(
-            {
-                method: 'compute_simulation_steps',
-                simulationId: appState.models.simulation.simulationId,
-            },
+        requestSender.sendAnalysisJob(
+            appState,
             function(data) {
                 if (data.timeOfFlight || data.electronFraction) {
                     self.estimates = {
@@ -790,7 +789,13 @@ SIREPO.app.controller('VisualizationController', function (appState, errorServic
                 else {
                     self.estimates = null;
                 }
-            });
+            },
+            {
+                method: 'compute_simulation_steps',
+                simulationId: appState.models.simulation.simulationId,
+                modelName: 'fieldCalculationAnimation',
+            },
+        );
     }
 
     self.handleModalShown = function() {
@@ -4068,15 +4073,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 return [i, j, k];
             }
 
-            function largeMin(array) {
-                return utilities.seqApply(Math.min, array, Number.MAX_VALUE);
-            }
-
-            function largeMax(array) {
-                return utilities.seqApply(Math.max, array, -Number.MAX_VALUE);
-            }
-
-           function mapImpactDensity() {
+            function mapImpactDensity() {
                 // loop over conductors
                 // arr[0][0] + k * sk + l * sl
                 var doWarn = false;
@@ -4178,9 +4175,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var d = faceData.dArr;
 
                 // data can be too large for the stack
-                var smin = ! impactData.v_min ? (impactData.v_min === 0 ? 0 : largeMin(d)) : impactData.v_min ;
-                var smax = impactData.v_max || largeMax(d);
-                //srdbg('impact min/max', smin, smax, impactData.v_min, impactData.v_max);
+                var smin = ! impactData.v_min ? (impactData.v_min === 0 ? 0 : SIREPO.UTILS.arrayMin(d)) : impactData.v_min ;
+                var smax = impactData.v_max || SIREPO.UTILS.arrayMax(d);
 
                 var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
                 var dataColors = [];

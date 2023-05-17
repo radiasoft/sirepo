@@ -10,7 +10,9 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo import util
 from sirepo.template import template_common
+import numpy
 import re
+import sirepo.feature_config
 import sirepo.sim_data
 
 
@@ -19,19 +21,51 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
 def _percent_complete(run_dir, is_running):
+    RE_F = "\d*\.\d+"
+
+    def _get_groups(match, *args):
+        res = []
+        for i in args:
+            g = match.group(i)
+            if g is not None:
+                res.append(g.strip())
+        return res
+
     res = PKDict(
         frameCount=0,
         percentComplete=0,
     )
     with pkio.open_text(str(run_dir.join(template_common.RUN_LOG))) as f:
+        res.eigenvalue = None
+        res.results = None
+        has_results = False
         for line in f:
             m = re.match(r"^ Simulating batch (\d+)", line)
             if m:
                 res.frameCount = int(m.group(1))
                 continue
-            m = re.match(r"^\s+(\d+)/1\s+\d", line)
+            m = re.match(
+                rf"^\s+(\d+)/1\s+({RE_F})\s*({RE_F})?\s*(\+/-)?\s*({RE_F})?", line
+            )
             if m:
                 res.frameCount = int(m.group(1))
+                res.eigenvalue = res.eigenvalue or []
+                res.eigenvalue.append(
+                    PKDict(
+                        batch=res.frameCount,
+                        val=_get_groups(m, 2, 3, 5),
+                    )
+                )
+                continue
+            if not has_results:
+                has_results = re.match(r"\s*=+>\s+RESULTS\s+<=+\s*", line)
+                if not has_results:
+                    continue
+            m = re.match(rf"^\s+(.+)\s=\s({RE_F})\s+\+/-\s+({RE_F})", line)
+            if m:
+                res.results = res.results or []
+                res.results.append(_get_groups(m, 1, 2, 3))
+
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
         res.percentComplete = res.frameCount * 100 / data.models.settings.batches
@@ -57,10 +91,18 @@ def background_percent_complete(report, run_dir, is_running):
     return _percent_complete(run_dir, is_running)
 
 
+def extract_report_data(run_dir, sim_in):
+    # dummy result
+    if sim_in.report == "tallyReport":
+        template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
+
+
 def get_data_file(run_dir, model, frame, options):
     sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    if model == "geometry3DReport":
+        return _SIM_DATA.dagmc_filename(sim_in)
     if model == "dagmcAnimation":
-        return PKDict(filename=run_dir.join(f"{frame}.zip"))
+        return f"{frame}.zip"
     if model == "openmcAnimation":
         if options.suffix == "log":
             return template_common.text_data_file(template_common.RUN_LOG, run_dir)
@@ -70,20 +112,27 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError("no data file for model={model} and options={options}")
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=True, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
     return _parse_run_log(run_dir)
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 
-def stateless_compute_read_tallies(data):
-    pass
+def stateful_compute_download_remote_lib_file(data, **kwargs):
+    return template_common.remote_file_to_simulation_lib(
+        _SIM_DATA,
+        "{}/{}".format(
+            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+            data.args.exampleURL,
+        ),
+        False,
+        "geometryInput",
+        "dagmcFile",
+    )
 
 
 def sim_frame(frame_args):
@@ -118,27 +167,27 @@ def sim_frame(frame_args):
     )
 
 
-def stateless_compute_validate_material_name(data):
+def stateless_compute_validate_material_name(data, **kwargs):
     import openmc
 
     res = PKDict()
     m = openmc.Material(name="test")
-    method = getattr(m, data.component)
+    method = getattr(m, data.args.component)
     try:
-        if data.component == "add_macroscopic":
-            method(data.name)
-        elif data.component == "add_nuclide":
-            method(data.name, 1)
-            if not re.search(r"^[^\d]+\d+$", data.name):
+        if data.args.component == "add_macroscopic":
+            method(data.args.name)
+        elif data.args.component == "add_nuclide":
+            method(data.args.name, 1)
+            if not re.search(r"^[^\d]+\d+$", data.args.name):
                 raise ValueError("invalid nuclide name")
-        elif data.component == "add_s_alpha_beta":
-            method(data.name)
-        elif data.component == "add_elements_from_formula":
-            method(data.name)
-        elif data.component == "add_element":
-            method(data.name, 1)
+        elif data.args.component == "add_s_alpha_beta":
+            method(data.args.name)
+        elif data.args.component == "add_elements_from_formula":
+            method(data.args.name)
+        elif data.args.component == "add_element":
+            method(data.args.name, 1)
         else:
-            raise AssertionError(f"unknown material component: {data.component}")
+            raise AssertionError(f"unknown material component: {data.args.component}")
     except ValueError as e:
         res.error = "invalid material name"
     return res
@@ -147,7 +196,7 @@ def stateless_compute_validate_material_name(data):
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data),
+        _generate_parameters_file(data, run_dir=run_dir),
     )
 
 
@@ -176,8 +225,11 @@ def _generate_call(name, args):
 
 
 def _generate_distribution(dist):
+    import sirepo.csv
+
     if dist._type == "None":
         return dist._type
+    t = dist._type
     args = []
     if "probabilityValue" in dist:
         x = []
@@ -188,6 +240,17 @@ def _generate_distribution(dist):
             x.append(v.x)
             p.append(v.p)
         for v in (x, p):
+            args.append(_generate_array(v))
+    if "file" in dist:
+        for v in numpy.array(
+            sirepo.csv.read_as_number_list(
+                _SIM_DATA.lib_file_abspath(
+                    _SIM_DATA.lib_file_name_with_model_field(
+                        dist._type, "file", dist.file
+                    )
+                )
+            )
+        ).T.tolist():
             args.append(_generate_array(v))
     if dist._type == "discrete":
         pass
@@ -201,7 +264,9 @@ def _generate_distribution(dist):
         args += [str(v) for v in [dist.mean_value, dist.std_dev]]
     elif dist._type == "powerLaw":
         args += [str(v) for v in [dist.a, dist.b, dist.n]]
-    elif dist._type == "tabular":
+    elif dist._type in ("tabular", "tabularFromFile"):
+        if dist._type == "tabularFromFile":
+            t = "tabular"
         args += [
             f'"{dist.interpolation}"',
             "True" if dist.ignore_negative == "1" else "False",
@@ -210,7 +275,7 @@ def _generate_distribution(dist):
         args += [str(v) for v in [dist.a, dist.b]]
     else:
         raise AssertionError("unknown distribution type: {}".format(dist._type))
-    return _generate_call(dist._type, args)
+    return _generate_call(t, args)
 
 
 def _generate_materials(data):
@@ -262,15 +327,20 @@ def _generate_materials(data):
     return res
 
 
-def _generate_parameters_file(data):
+def _generate_parameters_file(data, run_dir=None):
     report = data.get("report", "")
-    res, v = template_common.generate_parameters_file(data)
-    if report == "dagmcAnimation":
+    for f in [b.basename for b in _SIM_DATA.sim_file_basenames(data)]:
+        pkio.unchecked_remove(f)
+    if report in ("dagmcAnimation", "tallyReport"):
         return ""
+    res, v = template_common.generate_parameters_file(data)
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
+    v.simId = data.models.simulation.simulationId
+    v.statepointFilename = _statepoint_filename(data)
     v.materials = _generate_materials(data)
     v.sources = _generate_sources(data)
     v.tallies = _generate_tallies(data)
+    v.hasGraveyard = _has_graveyard(data)
     return template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -287,14 +357,16 @@ def _generate_range(filter):
 
 
 def _generate_source(source):
+    if source.get("type") == "file" and source.get("file"):
+        return f"openmc.Source(filename=\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
     return f"""openmc.Source(
-    space={_generate_space(source.space)},
-    angle={_generate_angle(source.angle)},
-    energy={_generate_distribution(source.energy)},
-    time={_generate_distribution(source.time)},
-    strength={source.strength},
-    particle="{source.particle}",
-)"""
+        space={_generate_space(source.space)},
+        angle={_generate_angle(source.angle)},
+        energy={_generate_distribution(source.energy)},
+        time={_generate_distribution(source.time)},
+        strength={source.strength},
+        particle="{source.particle}",
+    )"""
 
 
 def _generate_sources(data):
@@ -419,18 +491,8 @@ def _grid_to_poly(path):
         return l
 
     with pkio.open_text(path) as f:
-        in_points = False
-        points_done = False
+        state = "header"
         lines = []
-        poly_lines = []
-        nx = 0
-        ny = 0
-        nz = 0
-        num_cells = 0
-        # cube
-        points_per_poly = 4
-        polys_per_cell = 1
-        num_polys = 0
         for line in f:
             # force version 4.1
             if line.startswith("# vtk DataFile Version"):
@@ -441,34 +503,22 @@ def _grid_to_poly(path):
                 lines.append("DATASET POLYDATA\n")
                 continue
             if line.startswith("DIMENSIONS"):
-                l = line.strip().split()
-                # if the number of points in a dimension is n, the number of cells is n - 1
-                nx, ny, nz = (int(l[1]) - 1), (int(l[2]) - 1), (int(l[3]) - 1)
-                num_cells = nx * ny * nz
-                num_polys = polys_per_cell * num_cells
-                # DIMENSIONS is not a legal keyword in a polydata file
                 continue
-            lines.append(line)
-            if not in_points:
-                if "POINTS" not in line:
-                    continue
-                in_points = True
-                poly_lines.append("\n")
-                poly_lines.append(
-                    f"POLYGONS {num_polys} {num_polys * (points_per_poly + 1)}\n"
-                )
-                poly_lines.extend(_poly_lines(nx, ny, nz))
-                poly_lines.append("\n")
-                continue
-            if not points_done:
-                try:
-                    [float(x) for x in line.strip().split()]
-                except ValueError:
-                    points_done = True
-                    # we've already added the non-point line
-                    lines[-1:-1] = poly_lines
-                    continue
+            if "POINTS" in line:
+                state = "points"
+                lines.append("POINTS 0 double\nPOLYGONS 0 0\n")
+            if "CELL_DATA" in line:
+                state = "cells"
+            if state != "points":
+                lines.append(line)
     return "".join(lines)
+
+
+def _has_graveyard(data):
+    for v in data.models.volumes.values():
+        if v.name and v.name.lower() == "graveyard":
+            return True
+    return False
 
 
 def _parse_run_log(run_dir):

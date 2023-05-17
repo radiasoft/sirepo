@@ -48,9 +48,9 @@ def test_elegant_data_file(fc):
         ),
     )
     pkunit.pkeq(200, r.status_code)
-    pkunit.pkre("no-cache", r.headers.get("Cache-Control"))
-    rows = csv.reader(six.StringIO(pkcompat.from_bytes(r.data)))
-    pkunit.pkeq(50001, len(list(rows)), "50,000 particles plus header row")
+    pkunit.pkre("no-cache", r.header_get("Cache-Control"))
+    # 50,000 particles plus header row
+    pkunit.pkeq(50001, len(list(csv.reader(six.StringIO(pkcompat.from_bytes(r.data))))))
     r = fc.sr_get(
         "downloadDataFile",
         PKDict(
@@ -63,16 +63,13 @@ def test_elegant_data_file(fc):
     pkunit.pkeq(200, r.status_code)
     m = re.search(
         r'attachment; filename="([^"]+)"',
-        r.headers.get("Content-Disposition"),
+        r.header_get("Content-Disposition"),
     )
     d = pkunit.work_dir()
     path = d.join(m.group(1))
     path.write_binary(r.data)
-    assert (
-        sdds.sddsdata.InitializeInput(0, str(path)) == 1
-    ), "{}: sdds failed to open".format(path)
-    # Verify we can read something
-    assert 0 <= len(sdds.sddsdata.GetColumnNames(0))
+    pkunit.pkeq(1, sdds.sddsdata.InitializeInput(0, str(path)))
+    pkunit.pkne(0, len(sdds.sddsdata.GetColumnNames(0)))
     sdds.sddsdata.Terminate(0)
 
 
@@ -109,68 +106,3 @@ def test_srw(fc):
                 "/find-by-name-auth/srw/default/Undulator{}Radiation".format(sep)
             ).status_code,
         )
-
-
-def test_synergia_data_file(fc):
-    from pykern import pkunit, pkcompat, pkio
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp
-    import h5py
-
-    data = fc.sr_sim_data("IOTA 6-6 Bare")
-    run = fc.sr_post(
-        "runSimulation",
-        PKDict(
-            forceRun=True,
-            models=data.models,
-            report="animation",
-            simulationId=data.models.simulation.simulationId,
-            simulationType=data.simulationType,
-        ),
-    )
-    pkunit.pkeq("pending", run.state, "not pending, run={}", run)
-    for _ in range(40):
-        if run.state == "completed":
-            break
-        run = fc.sr_post("runStatus", run.nextRequest)
-        time.sleep(1)
-    else:
-        pkunit.pkfail("runStatus: failed to complete: {}", run)
-    r = fc.sr_get(
-        "downloadDataFile",
-        PKDict(
-            simulation_type=data.simulationType,
-            simulation_id=data.models.simulation.simulationId,
-            model="bunchAnimation",
-            frame="1",
-        ),
-    )
-    pkunit.pkeq(200, r.status_code)
-    m = re.search(
-        r'attachment; filename="([^"]+)"',
-        r.headers.get("Content-Disposition"),
-    )
-    d = pkunit.work_dir()
-    path = d.join(m.group(1))
-    path.write_binary(r.data)
-    with h5py.File(str(path), "r") as f:
-        pkunit.pkok(f["charge"], "missing charge from {}", path)
-    r = fc.sr_get(
-        "downloadDataFile",
-        PKDict(
-            simulation_type=data.simulationType,
-            simulation_id=data.models.simulation.simulationId,
-            model="beamEvolutionAnimation",
-            frame="1",
-        ),
-    )
-    pkunit.pkeq(200, r.status_code)
-    m = re.search(
-        r'attachment; filename="([^"]+)"',
-        r.headers.get("Content-Disposition"),
-    )
-    d = pkunit.work_dir()
-    path = d.join(m.group(1))
-    path.write_binary(r.data)
-    with h5py.File(str(path), "r") as f:
-        pkunit.pkok(f["num_particles"], "missing num_particles from {}", path)

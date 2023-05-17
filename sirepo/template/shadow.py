@@ -10,7 +10,6 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo.template import template_common
-from sirepo import simulation_db
 from sirepo.template.template_common import ModelUnits
 import sirepo.template.srw_shadow
 import re
@@ -160,11 +159,11 @@ _LOWERCASE_FIELDS = set(["focal_x", "focal_z"])
 _WIGGLER_TRAJECTORY_FILENAME = "xshwig.sha"
 
 
-def stateless_compute_compute_harmonic_photon_energy(data):
-    return _compute_harmonic_photon_energy(data)
+def stateless_compute_harmonic_photon_energy(data, **kwargs):
+    return _compute_harmonic_photon_energy(data.args)
 
 
-def stateful_compute_convert_to_srw(data):
+def stateful_compute_convert_to_srw(data, **kwargs):
     return sirepo.template.srw_shadow.Convert().to_srw(data)
 
 
@@ -174,15 +173,13 @@ def get_data_file(run_dir, model, frame, options):
     return _SHADOW_OUTPUT_FILE
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit or is_parallel:
         return None
     return _parse_shadow_log(run_dir)
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     data.report = model
     if not model:
         beamline = data.models.beamline
@@ -424,7 +421,6 @@ def _generate_crl(item, source_distance, count, res, calc_beam_stats):
 
 
 def _generate_crl_lens(item, is_first, is_last, count, source, calc_beam_stats):
-
     half_lens = item.lensThickness / 2.0
     source_width = item.pilingThickness / 2.0 - half_lens
     diameter = item.rmirr * 2.0

@@ -5,37 +5,18 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
+import sirepo.raydata.scans
+import sirepo.raydata.replay
+import sirepo.raydata.scan_monitor
 
 
-def create_scans(num_scans, delay=True):
-    from sirepo.template import raydata
-    import bluesky
-    import bluesky.plans
-    import databroker
-    import ophyd.sim
-    import time
+def create_scans(num_scans, catalog_name, delay=True):
+    sirepo.raydata.scans.create(num_scans, catalog_name, delay)
 
-    num_scans = int(num_scans)
-    assert num_scans > 0, f"num_scans={num_scans} must be > 0"
-    d = databroker.Broker.named(raydata.catalog().name)
-    RE = bluesky.RunEngine({})
-    RE.subscribe(d.insert)
-    for i in range(num_scans):
-        RE(
-            bluesky.plans.count(
-                [ophyd.sim.det1, ophyd.sim.det2],
-                num=5,
-                md={
-                    "T_sample_": i,
-                    "owner": "foo",
-                    "sequence id": i,
-                },
-            )
-        )
-        if delay:
-            time.sleep(2)
+
+def replay(source_catalog, destination_catalog, num_scans):
+    sirepo.raydata.replay.begin(source_catalog, destination_catalog, num_scans)
 
 
 def run(cfg_dir):
@@ -45,6 +26,10 @@ def run(cfg_dir):
 
 def run_background(cfg_dir):
     _run()
+
+
+def scan_monitor():
+    sirepo.raydata.scan_monitor.start()
 
 
 def _run():

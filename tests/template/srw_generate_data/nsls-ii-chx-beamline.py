@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import os
 try:
     __IPYTHON__
@@ -17,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['S0', 'S0_HDM', 'HDM', 'HDM_S1', 'S1', 'S1_S2', 'S2', 'S2_CRL1', 'CRL1', 'CRL2', 'CRL2_KLA', 'KLA', 'KL', 'KL_S3', 'S3', 'S3_Sample', 'Sample']
+        names = ['S0', 'S0_HDM', 'HDM', 'HDM_S1', 'S1', 'S1_S2', 'S2', 'S2_CRL1', 'CRL1', 'CRL2', 'CRL2_KLA', 'KLA', 'KL', 'KL_S3', 'S3', 'S3_Sample']
     for el_name in names:
         if el_name == 'S0':
             # S0: aperture 20.5m
@@ -171,9 +172,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_S3_Sample_L,
             ))
             pp.append(v.op_S3_Sample_pp)
-        elif el_name == 'Sample':
-            # Sample: watch 48.7m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -185,7 +183,7 @@ varParam = [
     ['name', 's', 'NSLS-II CHX beamline', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'NSLS-II_CHX_beamline/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -213,21 +211,24 @@ varParam = [
     ['ebm_etayp', 'f', 0.0, 'vertical dispersion function derivative [rad]'],
 
 #---Undulator
+#---idealized params
     ['und_bx', 'f', 0.0, 'undulator horizontal peak magnetic field [T]'],
     ['und_by', 'f', 0.88770981, 'undulator vertical peak magnetic field [T]'],
     ['und_phx', 'f', 0.0, 'initial phase of the horizontal magnetic field [rad]'],
     ['und_phy', 'f', 0.0, 'initial phase of the vertical magnetic field [rad]'],
-    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
-    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
-    ['und_per', 'f', 0.02, 'undulator period [m]'],
-    ['und_len', 'f', 3.0, 'undulator length [m]'],
-    ['und_zc', 'f', 0.0, 'undulator center longitudinal position [m]'],
     ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
     ['und_sy', 'i', -1, 'undulator vertical magnetic field symmetry vs longitudinal position'],
-    ['und_g', 'f', 6.72, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
-    ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
-    ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
-    ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
+    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
+    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
+#---tabulated params
+#    ['und_g', 'f', 6.72, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
+#    ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
+#    ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
+#    ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
+#---both  params
+    ['und_zc', 'f', 0.0, 'undulator center longitudinal position [m]'],
+    ['und_per', 'f', 0.02, 'undulator period [m]'],
+    ['und_len', 'f', 3.0, 'undulator length [m]'],
 
 
 
@@ -370,7 +371,7 @@ varParam = [
     ['op_S0_HDM_L', 'f', 6.899999999999999, 'length'],
 
     # HDM: mirror
-    ['op_HDM_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_HDM_hfn', 's', 'NSLS-II_CHX_beamline/mirror_1d.dat', 'heightProfileFile'],
     ['op_HDM_dim', 's', 'x', 'orientation'],
     ['op_HDM_ang', 'f', 0.0031415926, 'grazingAngle'],
     ['op_HDM_amp_coef', 'f', 1.0, 'heightAmplification'],
@@ -501,10 +502,11 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['S0','S0_HDM','HDM','HDM_S1','S1','S1_S2','S2','S2_CRL1','CRL1','CRL2','CRL2_KLA','KLA','KL','KL_S3','S3','S3_Sample','Sample']
+    names = ['S0','S0_HDM','HDM','HDM_S1','S1','S1_S2','S2','S2_CRL1','CRL1','CRL2','CRL2_KLA','KLA','KL','KL_S3','S3','S3_Sample']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True

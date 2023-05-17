@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import os
 try:
     __IPYTHON__
@@ -17,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['M1', 'M1_Grating', 'Grating', 'GA', 'GA_M3A', 'M3A', 'M3', 'M3_SSA', 'SSA', 'SSA_KBAperture', 'KBAperture', 'KBh', 'KBh_KBv', 'KBv', 'KBv_Sample', 'Sample']
+        names = ['M1', 'M1_Grating', 'Grating', 'GA', 'GA_M3A', 'M3A', 'M3', 'M3_SSA', 'SSA', 'SSA_KBAperture', 'KBAperture', 'KBh', 'KBh_KBv', 'KBv', 'KBv_Sample']
     for el_name in names:
         if el_name == 'M1':
             # M1: mirror 34.366m
@@ -196,9 +197,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_KBv_Sample_L,
             ))
             pp.append(v.op_KBv_Sample_pp)
-        elif el_name == 'Sample':
-            # Sample: watch 104.557m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -210,7 +208,7 @@ varParam = [
     ['name', 's', 'NSLS-II ESM beamline', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'NSLS-II_ESM_beamline/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -238,21 +236,24 @@ varParam = [
     ['ebm_etayp', 'f', 0.0, 'vertical dispersion function derivative [rad]'],
 
 #---Undulator
+#---idealized params
     ['und_bx', 'f', 0.0, 'undulator horizontal peak magnetic field [T]'],
     ['und_by', 'f', 0.187782, 'undulator vertical peak magnetic field [T]'],
     ['und_phx', 'f', 0.0, 'initial phase of the horizontal magnetic field [rad]'],
     ['und_phy', 'f', 0.0, 'initial phase of the vertical magnetic field [rad]'],
-    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
-    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
-    ['und_per', 'f', 0.057, 'undulator period [m]'],
-    ['und_len', 'f', 3.5055, 'undulator length [m]'],
-    ['und_zc', 'f', 0.0, 'undulator center longitudinal position [m]'],
     ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
     ['und_sy', 'i', 1, 'undulator vertical magnetic field symmetry vs longitudinal position'],
-    ['und_g', 'f', 6.72, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
-    ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
-    ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
-    ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
+    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
+    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
+#---tabulated params
+#    ['und_g', 'f', 6.72, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
+#    ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
+#    ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
+#    ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
+#---both  params
+    ['und_zc', 'f', 0.0, 'undulator center longitudinal position [m]'],
+    ['und_per', 'f', 0.057, 'undulator period [m]'],
+    ['und_len', 'f', 3.5055, 'undulator length [m]'],
 
 
 
@@ -385,7 +386,7 @@ varParam = [
 
 #---Beamline optics:
     # M1: mirror
-    ['op_M1_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_M1_hfn', 's', 'NSLS-II_ESM_beamline/mirror_1d.dat', 'heightProfileFile'],
     ['op_M1_dim', 's', 'x', 'orientation'],
     ['op_M1_ang', 'f', 0.043633200000000004, 'grazingAngle'],
     ['op_M1_amp_coef', 'f', 1.0, 'heightAmplification'],
@@ -402,12 +403,12 @@ varParam = [
     ['op_Grating_size_sag', 'f', 0.015, 'sagittalSize'],
     ['op_Grating_nvx', 'f', 0.0, 'nvx'],
     ['op_Grating_nvy', 'f', 0.9999160776602402, 'nvy'],
-    ['op_Grating_nvz', 'f', -0.012955216577139016, 'nvz'],
+    ['op_Grating_nvz', 'f', -0.012955216577138128, 'nvz'],
     ['op_Grating_tvx', 'f', 0.0, 'tvx'],
-    ['op_Grating_tvy', 'f', 0.012955216577139016, 'tvy'],
+    ['op_Grating_tvy', 'f', 0.012955216577138128, 'tvy'],
     ['op_Grating_x', 'f', 0.0, 'horizontalOffset'],
     ['op_Grating_y', 'f', 0.0, 'verticalOffset'],
-    ['op_Grating_m', 'f', 1.0, 'diffractionOrder'],
+    ['op_Grating_m', 'f', 1, 'diffractionOrder'],
     ['op_Grating_grDen', 'f', 1800.0, 'grooveDensity0'],
     ['op_Grating_grDen1', 'f', 0.08997, 'grooveDensity1'],
     ['op_Grating_grDen2', 'f', 3.004e-06, 'grooveDensity2'],
@@ -418,8 +419,8 @@ varParam = [
     ['op_Grating_ang', 'f', 0.012955579, 'grazingAngle'],
     ['op_Grating_rollAngle', 'f', 0.0, 'rollAngle'],
     ['op_Grating_outoptvx', 'f', 0.0, 'outoptvx'],
-    ['op_Grating_outoptvy', 'f', 0.08093357816613847, 'outoptvy'],
-    ['op_Grating_outoptvz', 'f', 0.996719497113017, 'outoptvz'],
+    ['op_Grating_outoptvy', 'f', 0.08093357816613758, 'outoptvy'],
+    ['op_Grating_outoptvz', 'f', 0.9967194971130171, 'outoptvz'],
     ['op_Grating_outframevx', 'f', 1.0, 'outframevx'],
     ['op_Grating_outframevy', 'f', 0.0, 'outframevy'],
     ['op_Grating_computeParametersFrom', 'f', 2, 'computeParametersFrom'],
@@ -443,7 +444,7 @@ varParam = [
     ['op_M3A_y', 'f', 0.0, 'verticalOffset'],
 
     # M3: ellipsoidMirror
-    ['op_M3_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_M3_hfn', 's', '', 'heightProfileFile'],
     ['op_M3_dim', 's', 'x', 'orientation'],
     ['op_M3_p', 'f', 89.63, 'firstFocusLength'],
     ['op_M3_q', 'f', 8.006, 'focalLength'],
@@ -480,7 +481,7 @@ varParam = [
     ['op_KBAperture_y', 'f', 0.0, 'verticalOffset'],
 
     # KBh: ellipsoidMirror
-    ['op_KBh_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_KBh_hfn', 's', '', 'heightProfileFile'],
     ['op_KBh_dim', 's', 'x', 'orientation'],
     ['op_KBh_p', 'f', 6.01, 'firstFocusLength'],
     ['op_KBh_q', 'f', 0.911, 'focalLength'],
@@ -500,7 +501,7 @@ varParam = [
     ['op_KBh_KBv_L', 'f', 0.5, 'length'],
 
     # KBv: ellipsoidMirror
-    ['op_KBv_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_KBv_hfn', 's', '', 'heightProfileFile'],
     ['op_KBv_dim', 's', 'x', 'orientation'],
     ['op_KBv_p', 'f', 6.51, 'firstFocusLength'],
     ['op_KBv_q', 'f', 0.411, 'focalLength'],
@@ -564,10 +565,11 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['M1','M1_Grating','Grating','GA','GA_M3A','M3A','M3','M3_SSA','SSA','SSA_KBAperture','KBAperture','KBh','KBh_KBv','KBv','KBv_Sample','Sample']
+    names = ['M1','M1_Grating','Grating','GA','GA_M3A','M3A','M3','M3_SSA','SSA','SSA_KBAperture','KBAperture','KBh','KBh_KBv','KBv','KBv_Sample']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True

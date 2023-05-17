@@ -82,8 +82,12 @@ SIREPO.app.factory('shadowService', function(appState, beamlineService, panelSta
     };
 
     self.sendStatelessCompute = function(method, appState, callback, args) {
-        args.method = method;
-        requestSender.sendStatelessCompute(appState, callback, args);
+        requestSender.sendStatelessCompute(appState, callback,
+            {
+                method: method,
+                args: args,
+            }
+        );
     };
 
     self.initAutoTuneView = function(scope, watchFields, callback) {
@@ -275,7 +279,7 @@ SIREPO.viewLogic('undulatorView', function(appState, panelState, shadowService, 
             return;
         }
         shadowService.sendStatelessCompute(
-            'compute_harmonic_photon_energy',
+            'harmonic_photon_energy',
             appState,
             function(data) {
                 if (appState.isLoaded()) {

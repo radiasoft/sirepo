@@ -6,57 +6,75 @@
 from pykern import pkcompat, pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
-from sirepo import api_perm
-from sirepo import http_reply
 from sirepo import simulation_db
 from sirepo.template import template_common
+import asyncio
+import contextlib
 import inspect
 import pykern.pkconfig
 import pykern.pkio
 import re
-import requests
-import sirepo.api
 import sirepo.auth
-import sirepo.http_reply
-import sirepo.http_request
+import sirepo.flask
 import sirepo.job
-import sirepo.mpi
+import sirepo.quest
 import sirepo.sim_data
 import sirepo.uri_router
 import sirepo.util
+import tornado.httpclient
 
 
 #: how many call frames to search backwards to find the api_.* caller
 _MAX_FRAME_SEARCH_DEPTH = 6
 
+_MUST_HAVE_METHOD = ("api_analysisJob", "api_statefulCompute", "api_statelessCompute")
 
-class API(sirepo.api.Base):
-    @sirepo.api.Spec("internal_test", days="TimeDeltaDays")
-    def api_adjustSupervisorSrtime(self, days):
-        return self.request(
+_JSON_TYPE = re.compile(r"^application/json")
+
+
+class API(sirepo.quest.API):
+    @sirepo.quest.Spec("internal_test", days="TimeDeltaDays")
+    async def api_adjustSupervisorSrtime(self, days):
+        return await self._request_api(
             api_name="not used",
             _request_content=PKDict(days=days),
             _request_uri=self._supervisor_uri(sirepo.job.SERVER_SRTIME_URI),
         )
 
-    @sirepo.api.Spec("require_adm")
-    def api_admJobs(self):
-        return self.request(
-            _request_content=PKDict(**self.parse_post()),
+    @sirepo.quest.Spec("require_adm")
+    async def api_admJobs(self):
+        return await self._request_api(
+            _request_content=PKDict(**self._parse_post_just_data()),
         )
 
-    @sirepo.api.Spec("require_user")
-    def api_analysisJob(self):
-        return self.request()
+    @sirepo.quest.Spec("require_user")
+    async def api_analysisJob(self):
+        # TODO(robnagler): computeJobHash has to be checked
+        return await self._request_api()
 
-    @sirepo.api.Spec(
+    @sirepo.quest.Spec("require_user")
+    async def api_beginSession(self):
+        """Starts beginSession request asynchronously
+
+        Returns:
+            SReply: always OK
+        """
+        return await self._request_api(
+            _create_task=not sirepo.flask.in_request(),
+            _request_content=PKDict(
+                uid=self.auth.logged_in_user(),
+                userDir=str(sirepo.simulation_db.user_path(qcall=self)),
+            ),
+        )
+
+    @sirepo.quest.Spec(
         "require_user",
         sid="SimId",
         model="AnalysisModel",
         frame="DataFileIndex",
         suffix="FileSuffix optional",
     )
-    def api_downloadDataFile(
+    async def api_downloadDataFile(
         self, simulation_type, simulation_id, model, frame, suffix=None
     ):
         # TODO(robnagler) validate suffix and frame
@@ -68,12 +86,12 @@ class API(sirepo.api.Base):
         )
         s = suffix and sirepo.srschema.parse_name(suffix)
         t = None
-        with simulation_db.tmp_dir() as d:
+        with simulation_db.tmp_dir(qcall=self) as d:
             # TODO(e-carlin): computeJobHash
             t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
             t.mksymlinkto(d, absolute=True)
             try:
-                r = self.request(
+                r = await self._request_api(
                     computeJobHash="unused",
                     dataFileKey=t.basename,
                     frame=int(frame),
@@ -85,25 +103,23 @@ class API(sirepo.api.Base):
                 f = d.listdir()
                 if len(f) > 0:
                     assert len(f) == 1, "too many files={}".format(f)
-                    return self.reply_file(f[0])
-            except requests.exceptions.HTTPError:
-                # TODO(robnagler) HTTPError is too coarse a check
+                    return self.reply_attachment(f[0])
+            except tornado.httpclient.HTTPClientError:
+                # TODO(robnagler) HTTPClientError is too coarse a check
                 pass
             finally:
                 if t:
                     pykern.pkio.unchecked_remove(t)
-            raise sirepo.util.raise_not_found(
-                "frame={} not found {id} {type}".format(frame, **req)
+            raise sirepo.util.NotFound(
+                f"frame={frame} not found sid={req.id} sim_type={req.type}",
             )
 
-    @sirepo.api.Spec("allow_visitor")
-    def api_jobSupervisorPing(self):
-        import requests.exceptions
-
+    @sirepo.quest.Spec("allow_visitor")
+    async def api_jobSupervisorPing(self):
         e = None
         try:
             k = sirepo.job.unique_key()
-            r = self.request(
+            r = await self._request_api(
                 _request_content=PKDict(ping=k),
                 _request_uri=self._supervisor_uri(sirepo.job.SERVER_PING_URI),
             )
@@ -111,42 +127,45 @@ class API(sirepo.api.Base):
                 return r
             try:
                 x = r.pknested_get("ping")
+            except KeyError:
+                e = "incorrectly formatted reply"
+            else:
                 if x == k:
                     return r
                 e = "expected={} but got ping={}".format(k, x)
-            except KeyError:
-                e = "incorrectly formatted reply"
-                pkdlog(r)
-        except requests.exceptions.ConnectionError:
+        except tornado.httpclient.HTTPClientError as e2:
+            pkdlog("HTTPClientError={}", e2)
             e = "unable to connect to supervisor"
-        except Exception as e:
-            pkdlog(e)
+        except Exception as e2:
+            pkdlog("unexpected exception={} exc={} stack={}", type(e2), e2, pkdexc())
             e = "unexpected exception"
         return PKDict(state="error", error=e)
 
-    @sirepo.api.Spec("require_user")
-    def api_ownJobs(self):
-        return self.request(
-            _request_content=self.parse_post().pkupdate(
-                uid=sirepo.auth.logged_in_user(),
+    @sirepo.quest.Spec("require_user")
+    async def api_ownJobs(self):
+        return await self._request_api(
+            _request_content=self._parse_post_just_data().pkupdate(
+                uid=self.auth.logged_in_user(),
             ),
         )
 
-    @sirepo.api.Spec("require_user")
-    def api_runCancel(self):
+    @sirepo.quest.Spec("require_user")
+    async def api_runCancel(self):
         try:
-            return self.request()
+            return await self._request_api()
         except Exception as e:
             pkdlog("ignoring exception={} stack={}", e, pkdexc())
         # Always true from the client's perspective
         return self.reply_json({"state": "canceled"})
 
-    @sirepo.api.Spec("require_user", data="RunMultiSpec")
-    def api_runMulti(self):
+    @sirepo.quest.Spec("require_user", data="RunMultiSpec")
+    async def api_runMulti(self):
         def _api(api):
             # SECURITY: Make sure we have permission to call API
             sirepo.uri_router.assert_api_name_and_auth(
-                api, ("runSimulation", "runStatus")
+                self,
+                api,
+                ("runSimulation", "runStatus"),
             )
             # Necessary so dispatch to job supervisor works correctly
             return "api_" + api
@@ -154,37 +173,37 @@ class API(sirepo.api.Base):
         r = []
         for m in self.parse_json():
             c = self._request_content(PKDict(req_data=m))
-            c.data.pkupdate(api=_api(c.data.api), awaitReply=m.awaitReply)
+            c.data.pkupdate(api=_api(c.data.api), asyncReply=m.awaitReply)
             r.append(c)
-        return self.request(
+        return await self._request_api(
             _request_content=PKDict(data=r),
             _request_uri=self._supervisor_uri(sirepo.job.SERVER_RUN_MULTI_URI),
         )
 
-    @sirepo.api.Spec("require_user")
-    def api_runSimulation(self):
+    @sirepo.quest.Spec("require_user")
+    async def api_runSimulation(self):
         r = self._request_content(PKDict(fixup_old_data=True))
         if r.isParallel:
-            r.isPremiumUser = sirepo.auth.is_premium_user()
-        return self.request(_request_content=r)
+            r.isPremiumUser = self.auth.is_premium_user()
+        return await self._request_api(_request_content=r)
 
-    @sirepo.api.Spec("require_user")
-    def api_runStatus(self):
-        return self.request()
+    @sirepo.quest.Spec("require_user")
+    async def api_runStatus(self):
+        return await self._request_api()
 
-    @sirepo.api.Spec("require_user")
-    def api_sbatchLogin(self):
+    @sirepo.quest.Spec("require_user")
+    async def api_sbatchLogin(self):
         r = self._request_content(
             PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),
         )
         r.sbatchCredentials = r.pkdel("data")
-        return self.request(_request_content=r)
+        return await self._request_api(_request_content=r)
 
-    @sirepo.api.Spec("require_user", frame_id="SimFrameId")
-    def api_simulationFrame(self, frame_id):
-        return template_common.sim_frame(
+    @sirepo.quest.Spec("require_user", frame_id="SimFrameId")
+    async def api_simulationFrame(self, frame_id):
+        return await template_common.sim_frame(
             frame_id,
-            lambda a: self.request(
+            lambda a: self._request_api(
                 analysisModel=a.frameReport,
                 # simulation frames are always sequential requests even though
                 # the report name has 'animation' in it.
@@ -194,18 +213,25 @@ class API(sirepo.api.Base):
             self,
         )
 
-    @sirepo.api.Spec("require_user")
-    def api_statefulCompute(self):
-        return self._request_compute()
+    @sirepo.quest.Spec("require_user")
+    async def api_statefulCompute(self):
+        return await self._request_compute()
 
-    @sirepo.api.Spec("require_user")
-    def api_statelessCompute(self):
-        return self._request_compute()
+    @sirepo.quest.Spec("require_user")
+    async def api_statelessCompute(self):
+        return await self._request_compute()
 
-    def request(self, **kwargs):
-        def get_api_name():
-            if "api_name" in kwargs:
-                return kwargs["api_name"]
+    def _parse_post_just_data(self):
+        """Remove computed objects"""
+        r = self.parse_post()
+        r.pkdel("qcall")
+        r.pkdel("template")
+        return r
+
+    async def _request_api(self, **kwargs):
+        def _api_name(value):
+            if value:
+                return value
             f = inspect.currentframe()
             for _ in range(_MAX_FRAME_SEARCH_DEPTH):
                 m = re.search(r"^api_.*$", f.f_code.co_name)
@@ -217,33 +243,70 @@ class API(sirepo.api.Base):
                     "{}: max frame search depth reached".format(f.f_code)
                 )
 
-        k = PKDict(kwargs)
-        u = k.pkdel("_request_uri") or self._supervisor_uri(sirepo.job.SERVER_URI)
-        c = (
-            k.pkdel("_request_content")
-            if "_request_content" in k
-            else self._request_content(k)
-        )
-        c.pkupdate(
-            api=get_api_name(),
-            serverSecret=sirepo.job.cfg.server_secret,
-        )
-        pkdlog("api={} runDir={}", c.api, c.get("runDir"))
-        r = requests.post(
-            u,
-            data=pkjson.dump_bytes(c),
-            headers=PKDict({"Content-type": "application/json"}),
-            verify=sirepo.job.cfg.verify_tls,
-        )
-        r.raise_for_status()
-        return pkjson.load_any(r.content)
+        def _args(kwargs):
+            res = PKDict()
+            k = PKDict(kwargs)
+            res.uri = k.pkdel("_request_uri") or self._supervisor_uri(
+                sirepo.job.SERVER_URI
+            )
+            res.create_task = k.pkdel("_create_task")
+            res.api = _api_name(k.pkdel("api_name"))
+            c = (
+                k.pkdel("_request_content")
+                if "_request_content" in k
+                else self._request_content(k)
+            )
+            c.pkupdate(
+                api=res.api,
+                serverSecret=sirepo.job.cfg().server_secret,
+            )
+            if c.api in _MUST_HAVE_METHOD:
+                # TODO(robnagler) should be error reply
+                assert (
+                    "method" in c.data
+                ), f"missing method for api={c.api} in content={list(c.keys())}"
+            if c.api not in ("api_runStatus",):
+                pkdlog("api={} runDir={}", c.api, c.get("runDir"))
+            res.content = c
+            return res
 
-    def _request_compute(self):
-        return self.request(
+        async def _wrap_future(value):
+            await value
+
+        a = _args(kwargs)
+        with self._reply_maybe_file(a.content) as d:
+            r = tornado.httpclient.AsyncHTTPClient().fetch(
+                tornado.httpclient.HTTPRequest(
+                    body=pkjson.dump_bytes(a.content),
+                    connect_timeout=60,
+                    headers=PKDict({"Content-type": "application/json"}),
+                    method="POST",
+                    request_timeout=0,
+                    url=a.uri,
+                    validate_cert=sirepo.job.cfg().verify_tls,
+                ),
+            )
+            if a.create_task:
+                asyncio.create_task(_wrap_future(r))
+                return self.reply_ok()
+            r = await r
+            if not _JSON_TYPE.search(r.headers["content-type"]):
+                raise AssertionError(
+                    f"expected json content-type={r.headers['content-type']}"
+                )
+            j = pkjson.load_any(r.body)
+            if d and (
+                sirepo.job.is_ok_reply(j) or j.get("state") == sirepo.job.COMPLETED
+            ):
+                return self._reply_with_file(d)
+            return j
+
+    async def _request_compute(self):
+        return await self._request_api(
             jobRunMode=sirepo.job.SEQUENTIAL,
-            req_data=PKDict(**self.parse_post().req_data,).pkupdate(
+            req_data=PKDict(**self.parse_post().req_data).pkupdate(
                 computeJobHash="unused",
-                report="statefulOrStatelessCompute",
+                report="unused",
             ),
             runDir=None,
         )
@@ -251,7 +314,7 @@ class API(sirepo.api.Base):
     def _request_content(self, kwargs):
         d = kwargs.pkdel("req_data")
         if not d:
-            # TODO(robnagler) need to use parsed values, ok for now, becasue none of
+            # TODO(robnagler) need to use parsed values, ok for now, because none of
             # of the used values are modified by parse_post. If we have files (e.g. file_type, filename),
             # we need to use those values from parse_post
             d = self.parse_post(
@@ -266,22 +329,56 @@ class API(sirepo.api.Base):
         # TODO(e-carlin): some of these fields are only used for some type of reqs
         b.pksetdefault(
             analysisModel=lambda: s.parse_model(d),
-            computeJobHash=lambda: d.get("computeJobHash") or s.compute_job_hash(d),
+            computeJobHash=lambda: d.get("computeJobHash")
+            or s.compute_job_hash(d, qcall=self),
             computeJobSerial=lambda: d.get("computeJobSerial", 0),
             computeModel=lambda: s.compute_model(d),
             isParallel=lambda: s.is_parallel(d),
-            runDir=lambda: str(simulation_db.simulation_run_dir(d)),
+            runDir=lambda: str(simulation_db.simulation_run_dir(d, qcall=self)),
             # TODO(robnagler) relative to srdb root
             simulationId=lambda: s.parse_sid(d),
             simulationType=lambda: d.simulationType,
         ).pkupdate(
             reqId=sirepo.job.unique_key(),
-            uid=sirepo.auth.logged_in_user(),
+            uid=self.auth.logged_in_user(),
         ).pkupdate(
             computeJid=s.parse_jid(d, uid=b.uid),
-            userDir=str(sirepo.simulation_db.user_path(b.uid)),
+            userDir=str(sirepo.simulation_db.user_path(qcall=self)),
         )
+        self.bucket_set("sim_data", s)
         return self._run_mode(b)
+
+    @contextlib.contextmanager
+    def _reply_maybe_file(self, content):
+        s = self.bucket_unchecked_get("sim_data")
+        if (
+            not s
+            or content.api not in _MUST_HAVE_METHOD
+            or not s.does_api_reply_with_file(
+                content.api,
+                content.data.get("method"),
+            )
+        ):
+            yield None
+            return
+        with simulation_db.tmp_dir(qcall=self) as d:
+            t = None
+            try:
+                t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
+                t.mksymlinkto(d, absolute=True)
+                content.dataFileKey = t.basename
+                yield d
+            finally:
+                if t:
+                    pykern.pkio.unchecked_remove(t)
+
+    def _reply_with_file(self, tmp_dir):
+        f = tmp_dir.listdir()
+        if len(f) != 1:
+            raise AssertionError(
+                f"too many files={f}" if f else f"no files in tmp_dir={tmp_dir}",
+            )
+        return self.reply_file(f[0])
 
     def _run_mode(self, request_content):
         if "models" not in request_content.data or "jobRunMode" in request_content:
@@ -308,12 +405,12 @@ class API(sirepo.api.Base):
         return self._validate_and_add_sbatch_fields(request_content, m)
 
     def _supervisor_uri(self, path):
-        return cfg.supervisor_uri + path
+        return _cfg.supervisor_uri + path
 
     def _validate_and_add_sbatch_fields(self, request_content, compute_model):
         m = compute_model
         c = request_content
-        d = simulation_db.cfg.get("sbatch_display")
+        d = simulation_db.cfg().get("sbatch_display")
         if d and "nersc" in d.lower():
             assert (
                 m.sbatchQueue in sirepo.job.NERSC_QUEUES
@@ -326,23 +423,6 @@ class API(sirepo.api.Base):
         return request_content
 
 
-def begin_session():
-    try:
-        u = sirepo.auth.logged_in_user()
-        # begin_session is called before we are inside of an API so need to create one manually
-        API().request(
-            api_name="api_beginSession",
-            _request_content=PKDict(
-                uid=u,
-                userDir=str(sirepo.simulation_db.user_path(u)),
-            ),
-        )
-    except sirepo.util.Reply:
-        # If we get any Sirepo generated errors (ex. user dir not found) then just ignore and don't
-        # try to start session (ex. agent would be started in user dir which may not exist).
-        pass
-
-
 def init_apis(*args, **kwargs):
     # TODO(robnagler) if we recover connections with agents and running jobs remove this
     pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT, sirepo.job.DATA_FILE_ROOT)
@@ -350,6 +430,6 @@ def init_apis(*args, **kwargs):
     pykern.pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
 
 
-cfg = pykern.pkconfig.init(
+_cfg = pykern.pkconfig.init(
     supervisor_uri=sirepo.job.DEFAULT_SUPERVISOR_URI_DECL,
 )

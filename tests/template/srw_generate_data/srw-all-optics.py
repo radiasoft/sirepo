@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import os
 try:
     __IPYTHON__
@@ -17,7 +18,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     el = []
     pp = []
     if not names:
-        names = ['Lens', 'Lens_CRL', 'CRL', 'CRL_Zone_Plate', 'Zone_Plate', 'Zone_Plate_Fiber', 'Fiber', 'Fiber_Aperture', 'Aperture', 'Aperture_Obstacle', 'Obstacle', 'Obstacle_Mask', 'Mask', 'Mask_Sample', 'Sample', 'Sample_Planar', 'Planar', 'Planar_Circular_Cylinder', 'Circular_Cylinder', 'Circular_Cylinder_Circular_Cylinder2', 'Circular_Cylinder2', 'Circular_Cylinder2_Elliptical_Cylinder', 'Elliptical_Cylinder', 'Elliptical_Cylinder_Elliptical_Cylinder2', 'Elliptical_Cylinder2', 'Elliptical_Cylinder2_Toroid', 'Toroid', 'Toroid_Toroid2', 'Toroid2', 'Toroid2_Crystal', 'Crystal', 'Crystal_Crystal2', 'Crystal2', 'Crystal2_Grating', 'Grating', 'Grating_Watchpoint', 'Watchpoint']
+        names = ['Lens', 'Lens_CRL', 'CRL', 'CRL_Zone_Plate', 'Zone_Plate', 'Zone_Plate_Fiber', 'Fiber', 'Fiber_Aperture', 'Aperture', 'Aperture_Obstacle', 'Obstacle', 'Obstacle_Mask', 'Mask', 'Mask_Sample', 'Sample', 'Sample_Planar', 'Planar', 'Planar_Circular_Cylinder', 'Circular_Cylinder', 'Circular_Cylinder_Circular_Cylinder2', 'Circular_Cylinder2', 'Circular_Cylinder2_Elliptical_Cylinder', 'Elliptical_Cylinder', 'Elliptical_Cylinder_Elliptical_Cylinder2', 'Elliptical_Cylinder2', 'Elliptical_Cylinder2_Toroid', 'Toroid', 'Toroid_Toroid2', 'Toroid2', 'Toroid2_Crystal', 'Crystal', 'Crystal_Crystal2', 'Crystal2', 'Crystal2_Grating', 'Grating', 'Grating_Watchpoint']
     for el_name in names:
         if el_name == 'Lens':
             # Lens: lens 20.0m
@@ -488,9 +489,6 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _L=v.op_Grating_Watchpoint_L,
             ))
             pp.append(v.op_Grating_Watchpoint_pp)
-        elif el_name == 'Watchpoint':
-            # Watchpoint: watch 34.0m
-            pass
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
@@ -502,7 +500,7 @@ varParam = [
     ['name', 's', 'All optical elements', 'simulation name'],
 
 #---Data Folder
-    ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
+    ['fdir', 's', 'All_optical_elements/', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
     ['ebm_nm', 's', '', 'standard electron beam name'],
@@ -530,21 +528,24 @@ varParam = [
     ['ebm_etayp', 'f', 0.0, 'vertical dispersion function derivative [rad]'],
 
 #---Undulator
+#---idealized params
     ['und_bx', 'f', 0.0, 'undulator horizontal peak magnetic field [T]'],
     ['und_by', 'f', 0.88770981, 'undulator vertical peak magnetic field [T]'],
     ['und_phx', 'f', 0.0, 'initial phase of the horizontal magnetic field [rad]'],
     ['und_phy', 'f', 0.0, 'initial phase of the vertical magnetic field [rad]'],
-    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
-    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
-    ['und_per', 'f', 0.02, 'undulator period [m]'],
-    ['und_len', 'f', 3.0, 'undulator length [m]'],
-    ['und_zc', 'f', 0.0, 'undulator center longitudinal position [m]'],
     ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
     ['und_sy', 'i', -1, 'undulator vertical magnetic field symmetry vs longitudinal position'],
-    ['und_g', 'f', 6.72, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
-    ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
-    ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
-    ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
+    ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
+    ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
+#---tabulated params
+#    ['und_g', 'f', 6.72, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
+#    ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
+#    ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
+#    ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
+#---both  params
+    ['und_zc', 'f', 0.0, 'undulator center longitudinal position [m]'],
+    ['und_per', 'f', 0.02, 'undulator period [m]'],
+    ['und_len', 'f', 3.0, 'undulator length [m]'],
 
 
 
@@ -772,7 +773,7 @@ varParam = [
     ['op_Mask_Sample_L', 'f', 1.0, 'length'],
 
     # Sample: sample
-    ['op_Sample_file_path', 's', 'sample.tif', 'imageFile'],
+    ['op_Sample_file_path', 's', 'All_optical_elements/sample.tif', 'imageFile'],
     ['op_Sample_outputImageFormat', 's', 'tif', 'outputImageFormat'],
     ['op_Sample_position', 'f', 27.0, 'position'],
     ['op_Sample_resolution', 'f', 2.480469e-09, 'resolution'],
@@ -822,7 +823,7 @@ varParam = [
     ['op_Sample_Planar_L', 'f', 1.0, 'length'],
 
     # Planar: mirror
-    ['op_Planar_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_Planar_hfn', 's', 'All_optical_elements/mirror_1d.dat', 'heightProfileFile'],
     ['op_Planar_dim', 's', 'x', 'orientation'],
     ['op_Planar_ang', 'f', 0.0031415926, 'grazingAngle'],
     ['op_Planar_amp_coef', 'f', 1.0, 'heightAmplification'],
@@ -852,7 +853,7 @@ varParam = [
     ['op_Circular_Cylinder_Circular_Cylinder2_L', 'f', 0.5, 'length'],
 
     # Circular_Cylinder2: sphericalMirror
-    ['op_Circular_Cylinder2_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_Circular_Cylinder2_hfn', 's', 'All_optical_elements/mirror_1d.dat', 'heightProfileFile'],
     ['op_Circular_Cylinder2_dim', 's', 'x', 'orientation'],
     ['op_Circular_Cylinder2_r', 'f', 1049.0, 'radius'],
     ['op_Circular_Cylinder2_size_tang', 'f', 0.3, 'tangentialSize'],
@@ -891,7 +892,7 @@ varParam = [
     ['op_Elliptical_Cylinder_Elliptical_Cylinder2_L', 'f', 0.5, 'length'],
 
     # Elliptical_Cylinder2: ellipsoidMirror
-    ['op_Elliptical_Cylinder2_hfn', 's', 'mirror_2d.dat', 'heightProfileFile'],
+    ['op_Elliptical_Cylinder2_hfn', 's', 'All_optical_elements/mirror_2d.dat', 'heightProfileFile'],
     ['op_Elliptical_Cylinder2_dim', 's', 'x', 'orientation'],
     ['op_Elliptical_Cylinder2_p', 'f', 35.0, 'firstFocusLength'],
     ['op_Elliptical_Cylinder2_q', 'f', 1.7, 'focalLength'],
@@ -932,7 +933,7 @@ varParam = [
     ['op_Toroid_Toroid2_L', 'f', 0.5, 'length'],
 
     # Toroid2: toroidalMirror
-    ['op_Toroid2_hfn', 's', 'mirror2_1d.dat', 'heightProfileFile'],
+    ['op_Toroid2_hfn', 's', 'All_optical_elements/mirror2_1d.dat', 'heightProfileFile'],
     ['op_Toroid2_dim', 's', 'x', 'orientation'],
     ['op_Toroid2_ap_shape', 's', 'r', 'apertureShape'],
     ['op_Toroid2_rt', 'f', 7592.12, 'tangentialRadius'],
@@ -979,7 +980,7 @@ varParam = [
     ['op_Crystal_Crystal2_L', 'f', 0.5, 'length'],
 
     # Crystal2: crystal
-    ['op_Crystal2_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_Crystal2_hfn', 's', 'All_optical_elements/mirror_1d.dat', 'heightProfileFile'],
     ['op_Crystal2_dim', 's', 'x', 'orientation'],
     ['op_Crystal2_d_sp', 'f', 3.1355713563754857, 'dSpacing'],
     ['op_Crystal2_psi0r', 'f', -1.2078420054211536e-05, 'psi0r'],
@@ -1011,12 +1012,12 @@ varParam = [
     ['op_Grating_size_sag', 'f', 0.015, 'sagittalSize'],
     ['op_Grating_nvx', 'f', 0.0, 'nvx'],
     ['op_Grating_nvy', 'f', 0.99991607766, 'nvy'],
-    ['op_Grating_nvz', 'f', -0.012955216595673743, 'nvz'],
+    ['op_Grating_nvz', 'f', -0.012955216595673965, 'nvz'],
     ['op_Grating_tvx', 'f', 0.0, 'tvx'],
-    ['op_Grating_tvy', 'f', 0.012955216595673743, 'tvy'],
+    ['op_Grating_tvy', 'f', 0.012955216595673965, 'tvy'],
     ['op_Grating_x', 'f', 0.0, 'horizontalOffset'],
     ['op_Grating_y', 'f', 0.0, 'verticalOffset'],
-    ['op_Grating_m', 'f', 1.0, 'diffractionOrder'],
+    ['op_Grating_m', 'f', 1, 'diffractionOrder'],
     ['op_Grating_grDen', 'f', 1800.0, 'grooveDensity0'],
     ['op_Grating_grDen1', 'f', 0.08997, 'grooveDensity1'],
     ['op_Grating_grDen2', 'f', 3.004e-06, 'grooveDensity2'],
@@ -1103,10 +1104,11 @@ def epilogue():
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    names = ['Lens','Lens_CRL','CRL','CRL_Zone_Plate','Zone_Plate','Zone_Plate_Fiber','Fiber','Fiber_Aperture','Aperture','Aperture_Obstacle','Obstacle','Obstacle_Mask','Mask','Mask_Sample','Sample','Sample_Planar','Planar','Planar_Circular_Cylinder','Circular_Cylinder','Circular_Cylinder_Circular_Cylinder2','Circular_Cylinder2','Circular_Cylinder2_Elliptical_Cylinder','Elliptical_Cylinder','Elliptical_Cylinder_Elliptical_Cylinder2','Elliptical_Cylinder2','Elliptical_Cylinder2_Toroid','Toroid','Toroid_Toroid2','Toroid2','Toroid2_Crystal','Crystal','Crystal_Crystal2','Crystal2','Crystal2_Grating','Grating','Grating_Watchpoint','Watchpoint']
+    names = ['Lens','Lens_CRL','CRL','CRL_Zone_Plate','Zone_Plate','Zone_Plate_Fiber','Fiber','Fiber_Aperture','Aperture','Aperture_Obstacle','Obstacle','Obstacle_Mask','Mask','Mask_Sample','Sample','Sample_Planar','Planar','Planar_Circular_Cylinder','Circular_Cylinder','Circular_Cylinder_Circular_Cylinder2','Circular_Cylinder2','Circular_Cylinder2_Elliptical_Cylinder','Elliptical_Cylinder','Elliptical_Cylinder_Elliptical_Cylinder2','Elliptical_Cylinder2','Elliptical_Cylinder2_Toroid','Toroid','Toroid_Toroid2','Toroid2','Toroid2_Crystal','Crystal','Crystal_Crystal2','Crystal2','Crystal2_Grating','Grating','Grating_Watchpoint']
     op = set_optics(v, names, True)
     v.ws = True
     v.ws_pl = 'xy'
+    v.wm = False
     v.ss = True
     v.ss_pl = 'e'
     v.sm = True

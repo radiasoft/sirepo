@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """Common functionality that is shared between the server, supervisor, and driver.
 
-:copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2019-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import pykern.pkdebug
+import sirepo.const
+import sirepo.feature_config
 import sirepo.srdb
 import sirepo.util
 import re
@@ -26,6 +27,8 @@ OP_ALIVE = "alive"
 OP_RUN = "run"
 OP_SBATCH_LOGIN = "sbatch_login"
 OP_BEGIN_SESSION = "begin_session"
+
+_OK_REPLY = PKDict(state="ok")
 
 #: path supervisor registers to receive messages from agent
 AGENT_URI = "/job-agent-websocket"
@@ -72,12 +75,12 @@ SUPERVISOR_SRV_ROOT = None
 #: address where supervisor binds to
 DEFAULT_IP = "127.0.0.1"
 
-#: port supervisor is listening on
+#: port supervisor listens on
 DEFAULT_PORT = 8001
 
-#: cfg declaration for supervisor_uri for drivers and
+#: _cfg declaration for supervisor_uri for drivers
 DEFAULT_SUPERVISOR_URI_DECL = (
-    "http://{}:{}".format(DEFAULT_IP, DEFAULT_PORT),
+    "http://{}:{}".format(DEFAULT_IP, sirepo.const.PORT_DEFAULTS.supervisor),
     str,
     "how to reach supervisor",
 )
@@ -134,10 +137,14 @@ UNIQUE_KEY_CHARS_RE = r"\w+"
 UNIQUE_KEY_RE = re.compile(r"^{}$".format(UNIQUE_KEY_CHARS_RE))
 
 
-cfg = None
+_cfg = None
 
 
-def agent_cmd_stdin_env(cmd, env, cwd=".", source_bashrc=""):
+#: use to separate components of job_id
+_JOB_ID_SEP = "-"
+
+
+def agent_cmd_stdin_env(cmd, env, uid, cwd=".", source_bashrc=""):
     """Convert `cmd` with `env` to script and cmd
 
     Uses tempfile so the file can be closed after the subprocess
@@ -148,15 +155,17 @@ def agent_cmd_stdin_env(cmd, env, cwd=".", source_bashrc=""):
     Args:
         cmd (iter): list of words to be quoted
         env (str): empty or result of `agent_env`
-        cwd (str): directory for the agent to run in (will be created if it doesn't exist)
         uid (str): which user should be logged in
+        cwd (str): directory for the agent to run in (will be created if it doesn't exist)
 
     Returns:
-        tuple: new cmd (tuple), stdin (file), env (PKDict)
+        tuple: new cmd (tuple), stdin (file), env (PKDict or None)
     """
     import os
     import tempfile
 
+    if sirepo.feature_config.cfg().trust_sh_env:
+        source_bashrc = ""
     t = tempfile.TemporaryFile()
     c = "exec " + " ".join(("'{}'".format(x) for x in cmd))
     # POSIT: we control all these values
@@ -171,18 +180,30 @@ cd '{}'
             source_bashrc,
             cwd,
             cwd,
-            env or agent_env(),
+            env or agent_env(uid=uid),
             c,
         ).encode()
     )
     t.seek(0)
+    if sirepo.feature_config.cfg().trust_sh_env:
+        # Trust the local environment
+        return ("bash", t, None)
     # it's reasonable to hardwire this path, even though we don't
     # do that with others. We want to make sure the subprocess starts
     # with a clean environment (no $PATH). You have to pass HOME.
     return ("/bin/bash", "-l"), t, PKDict(HOME=os.environ["HOME"])
 
 
-def agent_env(env=None, uid=None):
+def agent_env(uid, env=None):
+    """Convert to bash environment
+
+    Args:
+        uid (str): which user is running this agent process
+        env (str): empty or base environment
+
+    Returns:
+        str: bash environment ``export`` commands
+    """
     x = pkconfig.to_environ(
         (
             "pykern.*",
@@ -196,17 +217,21 @@ def agent_env(env=None, uid=None):
             **x,
         )
         .pksetdefault(
-            PYTHONPATH="",
-            PYTHONSTARTUP="",
             PYTHONUNBUFFERED="1",
-            SIREPO_AUTH_LOGGED_IN_USER=lambda: uid or sirepo.auth.logged_in_user(),
-            SIREPO_JOB_VERIFY_TLS=cfg.verify_tls,
-            SIREPO_JOB_MAX_MESSAGE_BYTES=cfg.max_message_bytes,
-            SIREPO_JOB_PING_INTERVAL_SECS=cfg.ping_interval_secs,
-            SIREPO_JOB_PING_TIMEOUT_SECS=cfg.ping_timeout_secs,
+            SIREPO_AUTH_LOGGED_IN_USER=uid,
+            SIREPO_JOB_MAX_MESSAGE_BYTES=_cfg.max_message_bytes,
+            SIREPO_JOB_PING_INTERVAL_SECS=_cfg.ping_interval_secs,
+            SIREPO_JOB_PING_TIMEOUT_SECS=_cfg.ping_timeout_secs,
+            SIREPO_JOB_VERIFY_TLS=_cfg.verify_tls,
+            SIREPO_SIMULATION_DB_LOGGED_IN_USER=uid,
             SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),
         )
     )
+    if not sirepo.feature_config.cfg().trust_sh_env:
+        env.pksetdefault(
+            PYTHONPATH="",
+            PYTHONSTARTUP="",
+        )
     for k in env.keys():
         assert not pykern.pkdebug.SECRETS_RE.search(
             k
@@ -217,13 +242,16 @@ def agent_env(env=None, uid=None):
     return "\n".join(("export {}='{}'".format(k, v) for k, v in env.items()))
 
 
-def init():
-    global cfg
+def cfg():
+    return _cfg or init_module()
 
-    if cfg:
-        return
 
-    cfg = pkconfig.init(
+def init_module():
+    global _cfg
+
+    if _cfg:
+        return _cfg
+    _cfg = pkconfig.init(
         max_message_bytes=(
             int(2e8),
             pkconfig.parse_bytes,
@@ -255,16 +283,48 @@ def init():
     SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
     LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
     DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
+    return _cfg
 
 
-def init_by_server(app):
-    """Initialize module"""
-    init()
+def is_ok_reply(value):
+    if not isinstance(value, PKDict):
+        return False
+    return value == _OK_REPLY or value.get("state") == COMPLETED
 
-    from sirepo import job_api
-    from sirepo import uri_router
 
-    uri_router.register_api_module(job_api)
+def join_jid(uid, sid, compute_model):
+    """A Job is a tuple of user, sid, and compute_model.
+
+    A jid is words and dashes.
+
+    Args:
+        uid (str): user id
+        sid (str): simulation id
+        compute_model (str): model name
+    Returns:
+        str: unique name (treat opaquely)
+    """
+    return _JOB_ID_SEP.join((uid, sid, compute_model))
+
+
+def ok_reply():
+    return _OK_REPLY.copy()
+
+
+def split_jid(jid):
+    """Split jid into named parts
+
+    Args:
+        jid (str): properly formed job identifier
+    Returns:
+        PKDict: parts named uid, sid, compute_model.
+    """
+    return PKDict(
+        zip(
+            ("uid", "sid", "compute_model"),
+            jid.split(_JOB_ID_SEP),
+        )
+    )
 
 
 def supervisor_file_uri(supervisor_uri, *args):

@@ -10,6 +10,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc
 from sirepo.template import flash_parser
 import re
+import sirepo.mpi
 import sirepo.sim_data
 import sirepo.util
 import subprocess
@@ -17,7 +18,6 @@ import zipfile
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-
     COMPILE_LOG = "compile.log"
     FLASH_PAR_FILE = "flash.par"
     SETUP_LOG = "setup.log"
@@ -27,7 +27,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     _FLASH_SRC_TARBALL_BASENAME = "flash.tar.gz"
 
     @classmethod
-    def fixup_old_data(cls, data):
+    def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
         cls._init_models(
             dm,
@@ -323,10 +323,8 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def __run_make(cls, make_dir):
-        import sirepo.mpi
-
         cls.__run_command_and_parse_log_on_error(
-            ["make", f"-j{sirepo.mpi.cfg.cores}"],
+            ["make", f"-j{sirepo.mpi.cfg().cores}"],
             make_dir,
             cls.COMPILE_LOG,
             "Compile",

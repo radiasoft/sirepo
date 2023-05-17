@@ -4,9 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import ast
-import astunparse
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
@@ -14,6 +11,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import code_variable
+from sirepo.template import hdf5_util
 from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
@@ -115,7 +113,7 @@ class OpalElementIterator(lattice.ElementIterator):
         super().end(model)
 
     def is_ignore_field(self, field):
-        return field == "name"
+        return field == "name" or field == self.IS_DISABLED_FIELD
 
 
 class OpalOutputFileIterator(lattice.ModelIterator):
@@ -127,6 +125,8 @@ class OpalOutputFileIterator(lattice.ModelIterator):
         self.preserve_output_filenames = preserve_output_filenames
 
     def field(self, model, field_schema, field):
+        if field == lattice.ElementIterator.IS_DISABLED_FIELD or field == "_super":
+            return
         self.field_index += 1
         # for now only interested in element outfn output files
         if field == "outfn" and field_schema[1] == "OutputFile":
@@ -245,8 +245,8 @@ class OpalMadxConverter(MadxConverter):
         ],
     ]
 
-    def __init__(self):
-        super().__init__(SIM_TYPE, self._FIELD_MAP)
+    def __init__(self, qcall, **kwargs):
+        super().__init__(SIM_TYPE, self._FIELD_MAP, qcall=qcall, **kwargs)
 
     def to_madx(self, data):
         def _get_len_by_id(data, id):
@@ -346,19 +346,13 @@ class OpalMadxConverter(MadxConverter):
                     d1 = 2 * length / angle
                     element_out.l = d1 * math.sin(length / d1)
             if element_in.type in ("SBEND", "RBEND"):
-                # kenetic energy in MeV
+                # kinetic energy in MeV
                 element_out.designenergy = round(
-                    (
-                        math.sqrt(
-                            self.particle_energy.energy**2 + self.beam.mass**2
-                        )
-                        - self.beam.mass
-                    )
-                    * 1e3,
+                    (self.particle_energy.energy - self.beam.mass) * 1e3,
                     6,
                 )
                 element_out.gap = 2 * self.__val(element_in.hgap)
-                element_out.fmapfn = "hard_edge_profile.txt"
+                # element_out.fmapfn = "hard_edge_profile.txt"
             if element_in.type == "QUADRUPOLE":
                 k1 = self.__val(element_out.k1)
                 if self.beam.charge < 0:
@@ -412,6 +406,14 @@ class OpalMadxConverter(MadxConverter):
         return self.vars.eval_var_with_assert(var_value)
 
 
+def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
+    return template_common.compute_field_range(
+        data,
+        _compute_range_across_frames,
+        run_dir,
+    )
+
+
 def background_percent_complete(report, run_dir, is_running):
     res = PKDict(
         percentComplete=0,
@@ -428,6 +430,29 @@ def background_percent_complete(report, run_dir, is_running):
             res.percentComplete = 100
             res.outputInfo = _output_info(run_dir)
     return res
+
+
+def bunch_plot(model, run_dir, frame_index, filename=_OPAL_H5_FILE):
+    def _points(file, frame_index, name):
+        return np.array(file["/Step#{}/{}".format(frame_index, name)])
+
+    def _title(file, frame_index):
+        t = "Step {}".format(frame_index)
+        if "SPOS" in file["/Step#{}".format(frame_index)].attrs:
+            t += ", SPOS {0:.5f}m".format(
+                file["/Step#{}".format(frame_index)].attrs["SPOS"][0]
+            )
+        return t
+
+    return hdf5_util.HDF5Util(str(run_dir.join(filename))).heatmap(
+        PKDict(
+            format_plot=_units_from_hdf5,
+            frame_index=frame_index,
+            model=model,
+            points=_points,
+            title=_title,
+        )
+    )
 
 
 def code_var(variables):
@@ -452,38 +477,34 @@ def code_var(variables):
     )
 
 
-def get_application_data(data, **kwargs):
-    if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(data, _compute_range_across_frames)
-    if code_var(data.variables).get_application_data(
-        data, SCHEMA, ignore_array_values=True
-    ):
-        return data
-
-
 def get_data_file(run_dir, model, frame, options):
-    if frame < 0:
-        return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)
     if model in ("bunchAnimation", "plotAnimation") or "bunchReport" in model:
         return _OPAL_H5_FILE
+    if frame < 0:
+        return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)
     if model == "plot2Animation":
         return _OPAL_SDDS_FILE
     if model == "beamline3dAnimation":
         return _OPAL_VTK_FILE
     if "elementAnimation" in model:
-        return _file_name_for_element_animation(run_dir, model)
+        return _file_name_for_element_animation(
+            PKDict(
+                run_dir=run_dir,
+                frameReport=model,
+            )
+        )
     raise AssertionError("unknown model={}".format(model))
 
 
-def import_file(req, unit_test_mode=False, **kwargs):
+async def import_file(req, unit_test_mode=False, **kwargs):
     from sirepo.template import opal_parser
 
-    text = pkcompat.from_bytes(req.file_stream.read())
+    text = req.form_file.as_str()
     if re.search(r"\.in$", req.filename, re.IGNORECASE):
         data, input_files = opal_parser.parse_file(text, filename=req.filename)
         missing_files = []
         for infile in input_files:
-            if not _SIM_DATA.lib_file_exists(infile.lib_filename):
+            if not _SIM_DATA.lib_file_exists(infile.lib_filename, qcall=req.qcall):
                 missing_files.append(infile)
         if missing_files:
             return PKDict(
@@ -491,7 +512,7 @@ def import_file(req, unit_test_mode=False, **kwargs):
                 missingFiles=missing_files,
             )
     elif re.search(r"\.madx$", req.filename, re.IGNORECASE):
-        data = OpalMadxConverter().from_madx_text(text)
+        data = OpalMadxConverter(qcall=req.qcall).from_madx_text(text)
         data.models.simulation.name = re.sub(
             r"\.madx$", "", req.filename, flags=re.IGNORECASE
         )
@@ -500,13 +521,11 @@ def import_file(req, unit_test_mode=False, **kwargs):
     return data
 
 
-def new_simulation(data, new_simulation_data):
+def new_simulation(data, new_simulation_data, qcall, **kwargs):
     data.models.simulation.elementPosition = new_simulation_data.elementPosition
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=True, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
     if is_parallel:
@@ -514,7 +533,7 @@ def post_execution_processing(
     return _parse_opal_log(run_dir)
 
 
-def prepare_for_client(data):
+def prepare_for_client(data, qcall, **kwargs):
     code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
     return data
 
@@ -532,17 +551,17 @@ def prepare_sequential_output_file(run_dir, data):
                 pass
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     if model == "madx":
-        return OpalMadxConverter().to_madx_text(data)
-    return _generate_parameters_file(data)
+        return OpalMadxConverter(qcall=qcall).to_madx_text(data)
+    return _generate_parameters_file(data, qcall=qcall)
 
 
 def save_sequential_report_data(data, run_dir):
     report = data.models[data.report]
     res = None
     if "bunchReport" in data.report:
-        res = _bunch_plot(report, run_dir, 0)
+        res = bunch_plot(report, run_dir, 0)
         res.title = ""
     else:
         raise AssertionError("unknown report: {}".format(report))
@@ -554,7 +573,7 @@ def save_sequential_report_data(data, run_dir):
 
 def sim_frame(frame_args):
     # elementAnimations
-    return _bunch_plot(
+    return bunch_plot(
         frame_args,
         frame_args.run_dir,
         frame_args.frameIndex,
@@ -599,7 +618,7 @@ def sim_frame_beamline3dAnimation(frame_args):
 def sim_frame_bunchAnimation(frame_args):
     a = frame_args.sim_in.models.bunchAnimation
     a.update(frame_args)
-    return _bunch_plot(a, a.run_dir, a.frameIndex)
+    return bunch_plot(a, a.run_dir, a.frameIndex)
 
 
 def sim_frame_plotAnimation(frame_args):
@@ -611,73 +630,35 @@ def sim_frame_plotAnimation(frame_args):
             for field in res.values():
                 _units_from_hdf5(h5file, field)
 
-    res = PKDict()
-    for dim in "x", "y1", "y2", "y3":
-        parts = frame_args[dim].split(" ")
-        if parts[0] == "none":
-            continue
-        res[dim] = PKDict(
-            label=frame_args[dim],
-            dim=dim,
-            points=[],
-            name=parts[0],
-            index=_DIM_INDEX[parts[1]] if len(parts) > 1 else 0,
-        )
-    _iterate_hdf5_steps(frame_args.run_dir.join(_OPAL_H5_FILE), _walk_file, res)
-    plots = []
-    for field in res.values():
-        if field.dim != "x":
-            plots.append(field)
-    return template_common.parameter_plot(
-        res.x.points,
-        plots,
-        PKDict(),
+    return hdf5_util.HDF5Util(frame_args.run_dir.join(_OPAL_H5_FILE)).lineplot(
         PKDict(
-            dynamicYLabel=True,
-            title="",
-            y_label="",
-            x_label=res.x.label,
-        ),
+            model=frame_args,
+            index=lambda parts: _DIM_INDEX[parts[1]] if len(parts) > 1 else 0,
+            format_plots=lambda h5file, plots: _iterate_hdf5_steps_from_handle(
+                h5file,
+                _walk_file,
+                plots,
+            ),
+        )
     )
 
 
 def sim_frame_plot2Animation(frame_args):
     from sirepo.template import sdds_util
 
-    x = None
-    plots = []
-    for f in ("x", "y1", "y2", "y3"):
-        name = frame_args[f].replace(" ", "_")
-        if name == "none":
-            continue
-        col = sdds_util.extract_sdds_column(
-            str(frame_args.run_dir.join(_OPAL_SDDS_FILE)), name, 0
+    def _format_col_name(name):
+        return name.replace(" ", "_")
+
+    def _format_plot(plot, sdds_units):
+        _field_units(sdds_units, plot)
+
+    return sdds_util.SDDSUtil(str(frame_args.run_dir.join(_OPAL_SDDS_FILE))).lineplot(
+        PKDict(
+            format_col_name=_format_col_name,
+            format_plot=_format_plot,
+            model=template_common.model_from_frame_args(frame_args),
+            dynamicYLabel=True,
         )
-        if col.err:
-            return col.err
-        field = PKDict(
-            points=col["values"],
-            label=frame_args[f],
-        )
-        _field_units(col.column_def[1], field)
-        if f == "x":
-            x = field
-        else:
-            plots.append(field)
-    # independent reads of file may produce more columns, trim to match x length
-    for p in plots:
-        if len(x.points) < len(p.points):
-            p.points = p.points[: len(x.points)]
-    return template_common.parameter_plot(
-        x.points,
-        plots,
-        {},
-        {
-            "title": "",
-            "dynamicYLabel": True,
-            "y_label": "",
-            "x_label": x.label,
-        },
     )
 
 
@@ -695,8 +676,9 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 class _Generate(sirepo.lib.GenerateBase):
-    def __init__(self, data):
+    def __init__(self, data, qcall=None):
         self.data = data
+        self.qcall = qcall
         self._schema = SCHEMA
 
     def sim(self):
@@ -879,37 +861,11 @@ def _compute_3d_bounds(run_dir):
     return bounds
 
 
-def _generate_parameters_file(data):
-    return _Generate(data).sim()
+def _generate_parameters_file(data, qcall=None):
+    return _Generate(data, qcall=qcall).sim()
 
 
-def _bunch_plot(report, run_dir, idx, filename=_OPAL_H5_FILE):
-    res = PKDict()
-    title = "Step {}".format(idx)
-    with h5py.File(str(run_dir.join(filename)), "r") as f:
-        for field in ("x", "y"):
-            res[field] = PKDict(
-                name=report[field],
-                points=np.array(f["/Step#{}/{}".format(idx, report[field])]),
-                label=report[field],
-            )
-            _units_from_hdf5(f, res[field])
-        if "SPOS" in f["/Step#{}".format(idx)].attrs:
-            title += ", SPOS {0:.5f}m".format(
-                f["/Step#{}".format(idx)].attrs["SPOS"][0]
-            )
-    return template_common.heatmap(
-        [res.x.points, res.y.points],
-        report,
-        PKDict(
-            x_label=res.x.label,
-            y_label=res.y.label,
-            title=title,
-        ),
-    )
-
-
-def _compute_range_across_frames(run_dir, data):
+def _compute_range_across_frames(run_dir, **kwargs):
     def _walk_file(h5file, key, step, res):
         if key:
             for field in res:
@@ -1088,14 +1044,18 @@ def _generate_beamline(
 
 def _iterate_hdf5_steps(path, callback, state):
     with h5py.File(str(path), "r") as f:
-        step = 0
-        key = "Step#{}".format(step)
-        while key in f:
-            callback(f, key, step, state)
-            step += 1
-            key = "Step#{}".format(step)
-        callback(f, None, -1, state)
+        _iterate_hdf5_steps_from_handle(f, callback, state)
     return state
+
+
+def _iterate_hdf5_steps_from_handle(h5file, callback, state):
+    step = 0
+    key = "Step#{}".format(step)
+    while key in h5file:
+        callback(h5file, key, step, state)
+        step += 1
+        key = "Step#{}".format(step)
+    callback(h5file, None, -1, state)
 
 
 def _output_info(run_dir):

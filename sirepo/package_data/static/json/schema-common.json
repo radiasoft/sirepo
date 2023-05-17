@@ -28,10 +28,6 @@
             "longName": "GENESIS 1.3",
             "shortName": "GENESIS 1.3"
         },
-        "irad": {
-            "longName": "IRAD",
-            "shortName": "IRAD"
-        },
         "jspec": {
             "longName": "JSPEC",
             "shortName": "JSPEC"
@@ -56,13 +52,9 @@
             "longName": "Raydata",
             "shortName": "Raydata"
         },
-        "rcscon": {
-            "longName": "RCSCON",
-            "shortName": "RCSCON"
-        },
-        "rs4pi": {
-            "longName": "RS4PI",
-            "shortName": "RS4PI"
+        "rshellweg": {
+            "longName": "RSHellweg",
+            "shortName": "RSHellweg"
         },
         "shadow": {
             "longName": "SHADOW",
@@ -75,10 +67,6 @@
         "srw": {
             "longName": "Synchrotron Radiation Workshop",
             "shortName": "SRW"
-        },
-        "synergia": {
-            "longName": "Synergia",
-            "shortName": "Synergia"
         },
         "warppba": {
             "longName": "Warp PBA",
@@ -121,13 +109,13 @@
         "authGithubAuthorized": "/auth-github-authorized",
         "authGithubLogin": "/auth-github-login/<simulation_type>",
         "authGuestLogin": "/auth-guest-login/<simulation_type>",
+        "authLdapLogin": "/auth-ldap-login",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
+        "authState2": "/auth-state2",
         "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
         "checkAuthJupyterhub": "/check-auth-jupyterhub",
-        "comsol": "/comsol",
-        "comsolRegister": "/comsol-register",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteFile": "/delete-file",
@@ -137,14 +125,15 @@
         "errorLogging": "/error-logging",
         "exportArchive": "/export-archive/<simulation_type>/<simulation_id>/<filename>",
         "exportJupyterNotebook": "/export-jupyter-notebook/<simulation_type>/<simulation_id>/?<model>/?<title>",
+        "exportJupyterNotebook2": "/export-jupyter-notebook2/<simulation_type>",
         "favicon": "/favicon.ico",
+        "faviconPng": "/favicon.png",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
         "forbidden": "/forbidden",
-        "getApplicationData": "/get-application-data/?<filename>",
+        "notFound": "/not-found",
         "getModerationRequestRows": "/get-moderation-request-rows",
         "homePage": "/en/*<path_info>",
-        "importArchive": "/import-archive",
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
         "jupyterHub": "/jupyter",
@@ -155,6 +144,7 @@
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "ownJobs": "/own-jobs",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
+        "pythonSource2": "/python-source2/<simulation_type>",
         "redirectJupyterHub": "/redirect-jupyterhub",
         "robotsTxt": "/robots.txt",
         "root": "/*<path_info>",
@@ -169,8 +159,8 @@
         "simOauthFlashAuthorized": "/sim-oauth-flash-authorized",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
         "simulationFrame": "/simulation-frame/<frame_id>",
+        "simulationRedirect": "/simulation-redirect/<simulation_type>/<local_route>/<simulation_id>",
         "simulationSchema": "/simulation-schema",
-        "srUnit": "/ srunit",
         "srwLight": "/light",
         "statefulCompute": "/stateful-compute",
         "statelessCompute": "/stateless-compute",
@@ -204,6 +194,7 @@
             "clientCookie": "sirepo_cookie_js",
             "hasJupyterExport": false,
             "hasMadxExport": false,
+            "logFileFrameId": -1,
             "maxSimCopies": 100,
             "oneDayMillis": 86400000,
             "paymentPlans": {
@@ -318,6 +309,20 @@
                 ["fit", "Fit Data"],
                 ["fixed", "Fixed"]
             ]
+        },
+        "reactRoutes": {
+            "completeRegistration": {
+                "route": "/complete-registration"
+            },
+            "login": {
+                "route": "/login"
+            },
+            "loginWithEmailConfirm": {
+                "route": "/login-confirm/email/:token/:needCompleteRegistration"
+            },
+            "source": {
+                "route": "/:simulationId"
+            }
         },
         "localRoutes": {
             "admJobs": {

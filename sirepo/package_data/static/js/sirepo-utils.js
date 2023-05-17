@@ -31,28 +31,42 @@ class SirepoUtils {
         return SirepoUtils.formatFloat(SirepoUtils.orderOfMagnitude(val, binary).mantissa, decimals);
     }
 
-    static indexArray(size) {
+    static indexArray(size, offset=0) {
         const res = [];
-        for (let i = 0; i < size; res.push(i++)) {}
+        for (let i = 0; i < size; res.push(offset + i++)) {}
         return res;
     }
 
     /**
-     * The min value of an array too large for Math.min
+     * The min value of an array
      * @param {number[]} array
      * @returns {number}
      */
-    static largeMin(array) {
-        return this.seqApply(Math.min, array, Number.MAX_VALUE);
+    static arrayMin(array) {
+        return this.applyInChunks(Math.min, array, Number.MAX_VALUE);
     }
 
     /**
-     * The max value of an array too large for Math.max
+     * The max value of an array
      * @param {number[]} array
      * @returns {number}
      */
-    static largeMax(array) {
-        return this.seqApply(Math.max, array, -Number.MAX_VALUE);
+    static arrayMax(array) {
+        return this.applyInChunks(Math.max, array, -Number.MAX_VALUE);
+    }
+
+    // regular cloning etc. does not include methods on class instances
+    static copyInstance(o, excludedProperties=[]) {
+        const c = new o.constructor();
+        // NOTE: structuredClone is recommended, but not defined according to the current jslinter
+        const s = JSON.parse(JSON.stringify(o));  //structuredClone(o);
+        for (const p in s) {
+            if (excludedProperties.includes(p)) {
+                continue;
+            }
+            c[p] = s[p];
+        }
+        return c;
     }
 
     static linearlySpacedArray(start, stop, nsteps) {
@@ -79,6 +93,14 @@ class SirepoUtils {
         });
     }
 
+    static randomString(length=32) {
+        const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        return new Array(length)
+            .fill('')
+            .map(x => BASE62[Math.floor(BASE62.length * Math.random())])
+            .join('');
+    }
+
     static roundToPlaces(val, p) {
         if (p < 0) {
             return val;
@@ -88,23 +110,22 @@ class SirepoUtils {
     }
 
     /**
-     * Some functions that take array arguments (e.g. Math.min) can break the stack if the array is too
-     * large. This applies the function in chunks to avoid such cases
+     * Functions that take "varargs" (e.g. Math.min) can break the stack if the number of args is too
+     * large. This applies the function to an array in chunks to avoid such cases
      * @param {function} fn - the function to apply
      * @param {*[]} array - the array of interest
      * @param {*} initVal - default return value for empty arrays
      * @returns {*}
      */
-    static seqApply(fn, arr, initVal) {
-        let start = 0;
-        const inc = 1000;
+    static applyInChunks(fn, arr, initVal) {
         let res = initVal;
-        do {
-            const sub = fn.apply(null, arr.slice(start, Math.min(arr.length, start + inc)));
+        let i = 0;
+        while (i < arr.length) {
+            const j = Math.min(i + 1000, arr.length);
+            const sub = fn.apply(null, arr.slice(i, j));
             res = fn.apply(null, [res, sub]);
-            start += inc;
-        } while (start < arr.length);
-
+            i = j;
+        }
         return res;
     }
 
@@ -134,6 +155,28 @@ class SirepoUtils {
 
     static minForIndex(arr, i) {
         return Math.min(...arr.map(x => x[i]));
+    }
+
+    static reshape(arr, dims) {
+        if (dims.length === 0) {
+            return arr;
+        }
+        const a = Array.from(arr).slice();
+        if (dims.length === 1) {
+            return a;
+        }
+        const n = dims.reduce((p, c) => p * c, 1);
+        if (a.length !== n) {
+            throw new Error(`Product of shape dimensions must equal array length: ${a.length} != ${n}`);
+        }
+        const b = [];
+        const d = dims[0];
+        const m = a.length / d;
+        for (let i = 0; i < d; ++i) {
+            const s = a.slice(m * i, m * (i + 1));
+            b.push(SirepoUtils.reshape(s, dims.slice(1)));
+        }
+        return b;
     }
 
     static wordSplits(s) {

@@ -4,10 +4,15 @@
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcli
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
+import pyisemail
+import sirepo.auth
+import sirepo.auth_role
+import sirepo.quest
+import sirepo.sim_api.jupyterhublogin
+import sirepo.template
 
 
 def create_user(email, display_name):
@@ -26,57 +31,36 @@ def create_user(email, display_name):
     Returns:
         user_name (str): The jupyterhub user_name of the user
     """
-    import pyisemail
-    import sirepo.auth
-    import sirepo.auth_db
-    import sirepo.auth_role
-    import sirepo.server
-    import sirepo.sim_api.jupyterhublogin
-    import sirepo.template
 
-    def maybe_create_sirepo_user(module, email, display_name):
-        u = module.unchecked_user_by_user_name(email)
+    def maybe_create_sirepo_user(qcall, email, display_name):
+        m = qcall.auth_db.model("AuthEmailUser")
+        u = m.unchecked_uid(user_name=email)
         if u:
+            if qcall.auth.need_complete_registration(u):
+                pkcli.command_error("email={} needs to complete registration", email)
             # Fully registered email user
-            assert sirepo.auth_db.UserRegistration.search_by(
-                uid=u
-            ).display_name, f"uid={u} authorized AuthEmailUser record but no UserRegistration.display_name"
             return u
-        m = module.AuthEmailUser.search_by(unverified_email=email)
-        if m:
-            # Email user that needs to complete registration (no display_name but have unverified_email)
-            assert sirepo.auth.need_complete_registration(
-                m
-            ), "email={email} has no display_name but does not need to complete registration"
-            pkcli.command_error(
-                "email={} needs complete registration but we do not have their uid (in cookie)",
-                email,
-            )
+        u = m.unchecked_search_by(unverified_email=email)
+        if u:
+            pkcli.command_error("email={} is not verified", email)
         # Completely new Sirepo user
-        u = sirepo.auth.create_new_user(
-            lambda u: sirepo.auth.user_registration(u, display_name=display_name),
-            module,
-        )
-        module.AuthEmailUser(
-            unverified_email=email,
-            uid=u,
-            user_name=email,
-        ).save()
-        return u
+        return qcall.auth.create_user_from_email(email=email, display_name=display_name)
 
     if not pyisemail.is_email(email):
         pkcli.command_error("invalid email={}", email)
-    sirepo.server.init()
     sirepo.template.assert_sim_type("jupyterhublogin")
-    with sirepo.auth_db.session_and_lock():
+    with sirepo.quest.start() as qcall:
         u = maybe_create_sirepo_user(
-            sirepo.auth.get_module("email"),
+            qcall,
             email,
             display_name,
         )
-        with sirepo.auth.set_user_outside_of_http_request(u):
-            n = sirepo.sim_api.jupyterhublogin.create_user(check_dir=True)
-        sirepo.auth_db.UserRole.add_roles(
-            u, sirepo.auth_role.for_sim_type("jupyterhublogin")
-        )
+        with qcall.auth.logged_in_user_set(u, method=sirepo.auth.METHOD_EMAIL):
+            n = sirepo.sim_api.jupyterhublogin.create_user(
+                qcall=qcall,
+                check_dir=True,
+            )
+            qcall.auth_db.model("UserRole").add_roles(
+                roles=[sirepo.auth_role.for_sim_type("jupyterhublogin")],
+            )
         return PKDict(email=email, jupyterhub_user_name=n)

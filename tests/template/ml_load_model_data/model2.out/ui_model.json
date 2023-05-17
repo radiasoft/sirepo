@@ -1,0 +1,171 @@
+[
+    {
+        "activation": "relu",
+        "children": [],
+        "dimensionality": 12,
+        "layer": "Dense"
+    },
+    {
+        "children": [
+            {
+                "layers": [
+                    {
+                        "children": [
+                            {
+                                "layers": [
+                                    {
+                                        "activation": "relu",
+                                        "children": [],
+                                        "dimensionality": 10,
+                                        "layer": "Dense"
+                                    },
+                                    {
+                                        "children": [
+                                            {
+                                                "layers": [
+                                                    {
+                                                        "activation": "relu",
+                                                        "children": [],
+                                                        "dimensionality": 10,
+                                                        "layer": "Dense"
+                                                    },
+                                                    {
+                                                        "activation": "relu",
+                                                        "children": [],
+                                                        "dimensionality": 10,
+                                                        "layer": "Dense"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "layers": [
+                                                    {
+                                                        "activation": "relu",
+                                                        "children": [],
+                                                        "dimensionality": 10,
+                                                        "layer": "Dense"
+                                                    }
+                                                ]
+                                            }
+                                        ],
+                                        "layer": "Add"
+                                    },
+                                    {
+                                        "activation": "relu",
+                                        "children": [],
+                                        "dimensionality": 10,
+                                        "layer": "Dense"
+                                    }
+                                ]
+                            },
+                            {
+                                "layers": [
+                                    {
+                                        "activation": "relu",
+                                        "children": [],
+                                        "dimensionality": 10,
+                                        "layer": "Dense"
+                                    }
+                                ]
+                            }
+                        ],
+                        "layer": "Add"
+                    },
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "dimensionality": 10,
+                        "layer": "Dense"
+                    }
+                ]
+            },
+            {
+                "layers": [
+                    {
+                        "activation": "relu",
+                        "children": [],
+                        "dimensionality": 10,
+                        "layer": "Dense"
+                    },
+                    {
+                        "children": [
+                            {
+                                "layers": [
+                                    {
+                                        "children": [
+                                            {
+                                                "layers": [
+                                                    {
+                                                        "activation": "relu",
+                                                        "children": [],
+                                                        "dimensionality": 10,
+                                                        "layer": "Dense"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "layers": [
+                                                    {
+                                                        "activation": "relu",
+                                                        "children": [],
+                                                        "dimensionality": 10,
+                                                        "layer": "Dense"
+                                                    }
+                                                ]
+                                            }
+                                        ],
+                                        "layer": "Add"
+                                    }
+                                ]
+                            },
+                            {
+                                "layers": [
+                                    {
+                                        "children": [
+                                            {
+                                                "layers": [
+                                                    {
+                                                        "activation": "relu",
+                                                        "children": [],
+                                                        "dimensionality": 10,
+                                                        "layer": "Dense"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "layers": [
+                                                    {
+                                                        "activation": "relu",
+                                                        "children": [],
+                                                        "dimensionality": 10,
+                                                        "layer": "Dense"
+                                                    }
+                                                ]
+                                            }
+                                        ],
+                                        "layer": "Add"
+                                    }
+                                ]
+                            }
+                        ],
+                        "layer": "Add"
+                    }
+                ]
+            }
+        ],
+        "layer": "Add"
+    },
+    {
+        "activation": "relu",
+        "children": [],
+        "dimensionality": 10,
+        "layer": "Dense"
+    },
+    {
+        "activation": "linear",
+        "children": [],
+        "dimensionality": 1,
+        "layer": "Dense",
+        "outbound": []
+    }
+]

@@ -10,35 +10,31 @@ from pykern import pkcollections
 from sirepo import srunit
 
 
-@srunit.wrap_in_request(sim_types="myapp", want_user=False)
 def test_login():
-    from pykern import pkunit, pkcompat
-    from pykern.pkunit import pkeq, pkok, pkre, pkfail, pkexcept
-    from sirepo import auth
-    import flask
-    import sirepo.api
-    import sirepo.auth.guest
-    import sirepo.cookie
-    import sirepo.http_request
-    import sirepo.uri_router
-    import sirepo.util
+    from sirepo import srunit
 
-    r = sirepo.uri_router.call_api("authState")
-    pkre('LoggedIn": false.*Registration": false', pkcompat.from_bytes(r.data))
-    with pkunit.pkexcept("SRException.*routeName=login"):
-        auth.logged_in_user()
-    with pkexcept("SRException.*routeName=login"):
-        auth.require_user()
-    sirepo.cookie.set_sentinel()
-    # copying examples for new user takes time
-    try:
-        # TODO(rorour): get sapi from current request
-        r = auth.login(sirepo.auth.guest, sim_type="myapp", sapi=sirepo.api.Base())
-        pkfail("expecting sirepo.util.Response")
-    except sirepo.util.Response as e:
-        r = e.sr_args.response
-    pkre(r'LoggedIn":\s*true.*Registration":\s*false', pkcompat.from_bytes(r.data))
-    u = auth.logged_in_user()
-    pkok(u, "user should exist")
-    # guests do not require completeRegistration
-    auth.require_user()
+    with srunit.quest_start() as qcall:
+        from pykern import pkunit, pkcompat
+        from pykern.pkunit import pkeq, pkok, pkre, pkfail, pkexcept
+        from sirepo import util
+        from sirepo.auth import guest
+
+        r = qcall.call_api_sync("authState")
+        pkre('LoggedIn": false.*Registration": false', r.content_as_str())
+        r.destroy()
+        r = None
+        with pkunit.pkexcept("SRException.*routeName=login"):
+            qcall.auth.logged_in_user()
+        with pkexcept("SRException.*routeName=login"):
+            qcall.auth.require_user()
+        qcall.cookie.set_sentinel()
+        try:
+            r = qcall.auth.login("guest", sim_type="myapp")
+            pkfail("expecting sirepo.util.SReplyExc")
+        except util.SReplyExc as e:
+            r = e.sr_args.sreply
+        pkre(r'LoggedIn":\s*true.*Registration":\s*false', r.content_as_str())
+        u = qcall.auth.logged_in_user()
+        pkok(u, "user should exist")
+        # guests do not require completeRegistration
+        qcall.auth.require_user()

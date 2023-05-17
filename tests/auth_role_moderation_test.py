@@ -21,58 +21,50 @@ def setup_module(module):
 
 def test_moderation(auth_fc):
     from pykern import pkunit
-    from sirepo import srunit
-    import sirepo.auth_db
-    import sirepo.pkcli.roles
+    from sirepo import auth_role, srunit
+    from sirepo.pkcli import roles
 
-    fc = auth_fc
-    fc.sr_email_register("x@x.x", sim_type="srw")
-    fc.sr_sim_type = "myapp"
-    with srunit.auth_db_session():
-        sirepo.auth_db.UserRole.delete_all()
-        sirepo.auth_db.UserRoleInvite.delete_all()
+    auth_fc.sr_email_login("x@x.x", sim_type="srw")
+    auth_fc.sr_sim_type_set("myapp")
+    with srunit.quest_start() as qcall:
+        qcall.auth_db.model("UserRole").delete_all()
+        qcall.auth_db.model("UserRoleInvite").delete_all()
     with pkunit.pkexcept("SRException.*moderationRequest"):
-        fc.sr_sim_data()
-    fc.sr_post(
+        auth_fc.sr_sim_data()
+    auth_fc.sr_post(
         "saveModerationReason",
         PKDict(
-            simulationType=fc.sr_sim_type,
+            simulationType=auth_fc.sr_sim_type,
             reason="reason for needing moderation",
         ),
     )
-    r = fc.sr_post(
+    r = auth_fc.sr_post(
         "getModerationRequestRows",
         PKDict(),
         raw_response=True,
     )
     pkunit.pkeq(403, r.status_code)
-    sirepo.pkcli.roles.add_roles(
-        fc.sr_auth_state().uid,
-        sirepo.auth_role.ROLE_ADM,
-    )
-    r = fc.sr_post(
-        "getModerationRequestRows",
-        PKDict(),
-    )
+    roles.add(auth_fc.sr_auth_state().uid, auth_role.ROLE_ADM)
+    r = auth_fc.sr_post("getModerationRequestRows", PKDict())
     pkunit.pkeq(len(r.rows), 1)
-    fc.sr_post(
+    auth_fc.sr_post(
         "admModerate",
         PKDict(
             token=r.rows[0].token,
             status="approve",
         ),
     )
-    r = fc.sr_sim_data()
+    r = auth_fc.sr_sim_data()
     pkunit.pkok(r.get("models"), "no models r={}", r)
 
 
-def test_no_guest(fc):
+def test_no_guest(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
     from pykern.pkcollections import PKDict
 
-    fc.sr_login_as_guest(sim_type="srw")
-    r = fc.sr_post(
+    auth_fc.sr_login_as_guest(sim_type="srw")
+    r = auth_fc.sr_post(
         "saveModerationReason",
         PKDict(
             simulationType="myapp",

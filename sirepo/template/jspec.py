@@ -82,57 +82,33 @@ _SPECIES_MASS_AND_CHARGE = PKDict(
 _X_FIELD = "t"
 
 
-def background_percent_complete(report, run_dir, is_running):
-    if is_running:
-        count, settings, has_rates = _background_task_info(run_dir)
-        if settings.model == "particle" and settings.save_particle_interval > 0:
-            percent_complete = (
-                count * 100 / (1 + int(settings.time / settings.save_particle_interval))
-            )
-            # the most recent file may not yet be fully written
-            if count > 0:
-                count -= 1
-            return PKDict(
-                percentComplete=percent_complete,
-                frameCount=count,
-                hasParticles=True,
-                hasRates=has_rates,
-            )
-        else:
-            # estimate the percent complete from the simulation time in sdds file
-            if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
-                return _beam_evolution_status(run_dir, settings, has_rates)
-            return PKDict(
-                percentComplete=0,
-                frameCount=0,
-            )
-    if run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME).exists():
-        count, settings, has_rates = _background_task_info(run_dir)
-        has_force_table = run_dir.join(_FORCE_TABLE_FILENAME).exists()
-        if count:
-            return PKDict(
-                percentComplete=100,
-                frameCount=count,
-                hasParticles=True,
-                hasRates=has_rates,
-                hasForceTable=has_force_table,
-            )
-        return PKDict(
-            percentComplete=100,
-            frameCount=1,
-            hasRates=has_rates,
-            hasForceTable=has_force_table,
-        )
-    return PKDict(
-        percentComplete=0,
-        frameCount=0,
+def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
+    return template_common.compute_field_range(
+        data,
+        _compute_range_across_files,
+        run_dir,
     )
 
 
-def get_application_data(data, **kwargs):
-    if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(data, _compute_range_across_files)
-    assert False, "unknown application data method={}".format(data.method)
+def background_percent_complete(report, run_dir, is_running):
+    res = _v2_report_status(run_dir, is_running)
+
+    # convert v2 format to original format for old client
+    t = None
+    for r in res.reports:
+        if r.modelName == "particleAnimation":
+            res.hasParticles = True
+            res.frameCount = r.frameCount
+        elif r.modelName == "beamEvolutionAnimation":
+            t = r.lastUpdateTime
+        elif r.modelName == "coolingRatesAnimation":
+            res.hasRates = True
+        elif r.modelName == "forceTableAnimation":
+            res.hasForceTable = True
+    if "frameCount" not in res and t:
+        res.frameCount = t
+
+    return res
 
 
 def get_rates(run_dir):
@@ -142,6 +118,11 @@ def get_rates(run_dir):
         # TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
         x_range=[],
         rate=[],
+        headings=[
+            "Horizontal",
+            "Vertical",
+            "Longitudinal",
+        ],
     )
     for l in pkio.read_text(f).split("\n"):
         m = re.match(r"^(.*? rate.*?)\:\s+(\S+)\s+(\S+)\s+(\S+)", l)
@@ -161,15 +142,13 @@ def get_data_file(run_dir, model, frame, options):
     return _ion_files(run_dir)[frame]
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if not success_exit or not is_parallel:
         return None
     return _get_time_step_warning(run_dir)
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     ring = data.models.ring
     elegant_twiss_file = None
     if ring.latticeSource == "elegant":
@@ -228,42 +207,34 @@ def sim_frame_forceTableAnimation(frame_args):
 
 
 def sim_frame_particleAnimation(frame_args):
-    page_index = frame_args.frameIndex
-    xfield = _map_field_name(frame_args.x)
-    yfield = _map_field_name(frame_args.y)
-    filename = _ion_files(frame_args.run_dir)[page_index]
-    data = frame_args.sim_in
-    settings = data.models.simulationSettings
-    time = (
-        settings.time
-        / settings.step_number
-        * settings.save_particle_interval
-        * page_index
-    )
-    if time > settings.time:
-        time = settings.time
-    x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
-    if x_col.err:
-        return x_col.err
-    x = x_col["values"]
-    y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
-    if y_col.err:
-        return y_col.err
-    y = y_col["values"]
-    model = data.models.particleAnimation
-    model.update(frame_args)
-    return template_common.heatmap(
-        [x, y],
-        model,
-        {
-            "x_label": _field_label(xfield, x_col.column_def),
-            "y_label": _field_label(yfield, y_col.column_def),
-            "title": "Ions at time {:.2f} [s]".format(time),
-        },
+    def _format_plot(field, sdds_units):
+        field.label = _field_label(field.label, sdds_units)
+
+    def _title(frame_args):
+        settings = frame_args.sim_in.models.simulationSettings
+        time = (
+            settings.time
+            / settings.step_number
+            * settings.save_particle_interval
+            * frame_args.frameIndex
+        )
+        if time > settings.time:
+            time = settings.time
+        return "Ions at time {:.2f} [s]".format(time)
+
+    return sdds_util.SDDSUtil(
+        _ion_files(frame_args.run_dir)[frame_args.frameIndex]
+    ).heatmap(
+        plot_attrs=PKDict(
+            format_col_name=_map_field_name,
+            title=_title(frame_args),
+            model=template_common.model_from_frame_args(frame_args),
+            format_plot=_format_plot,
+        )
     )
 
 
-def stateful_compute_get_elegant_sim_list(data):
+def stateful_compute_get_elegant_sim_list(data, **kwargs):
     tp = _SIM_DATA.jspec_elegant_twiss_path()
     res = []
     for f in pkio.sorted_glob(
@@ -314,35 +285,7 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _background_task_info(run_dir):
-    files = _ion_files(run_dir)
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    settings = data.models.simulationSettings
-    has_rates = settings.ibs == "1" or settings.e_cool == "1"
-    return len(files), settings, has_rates
-
-
-def _beam_evolution_status(run_dir, settings, has_rates):
-    try:
-        filename = str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME))
-        col = sdds_util.extract_sdds_column(filename, "t", 0)
-        t_max = max(col["values"])
-        if t_max and settings.time > 0:
-            return PKDict(
-                # use current time as frameCount for uniqueness until simulation is completed
-                frameCount=int(float(os.path.getmtime(filename))),
-                percentComplete=100.0 * t_max / settings.time,
-                hasRates=has_rates,
-            )
-    except Exception:
-        pass
-    return PKDict(
-        frameCount=0,
-        percentComplete=0,
-    )
-
-
-def _compute_range_across_files(run_dir, data):
+def _compute_range_across_files(run_dir, **kwargs):
     res = PKDict(
         {
             _X_FIELD: [],
@@ -422,8 +365,7 @@ def _field_direction(field):
     assert False, "invalid direction field: {}".format(field)
 
 
-def _field_label(field, field_def):
-    units = field_def[1]
+def _field_label(field, units):
     field = _FIELD_LABEL.get(field, field)
     if units == "NULL":
         return field
@@ -501,15 +443,6 @@ def _map_field_name(f):
     return _FIELD_MAP.get(f, f)
 
 
-def _resort_vtrans(x, plots):
-    # special case - the force_table.txt vTrans is not sequential
-    x = np.array(x)
-    sort_idx = np.argsort(x)
-    for p in plots:
-        p.points = np.array(p.points)[sort_idx].tolist()
-    return x[sort_idx].tolist()
-
-
 def _safe_sdds_value(v):
     if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
         return 0
@@ -517,57 +450,42 @@ def _safe_sdds_value(v):
 
 
 def _sdds_report(frame_args, filename, x_field):
-    xfield = _map_field_name(x_field)
-    x_col = sdds_util.extract_sdds_column(filename, xfield, 0)
-    if x_col.err:
-        return x_col.err
-    x = x_col["values"]
-    if "fieldRange" in frame_args.sim_in.models.particleAnimation:
-        frame_args.fieldRange = frame_args.sim_in.models.particleAnimation.fieldRange
-    plots = []
-    for f in ("y1", "y2", "y3"):
-        if f not in frame_args or frame_args[f] == "none":
-            continue
-        yfield = _map_field_name(frame_args[f])
-        y_col = sdds_util.extract_sdds_column(filename, yfield, 0)
-        if y_col.err:
-            return y_col.err
-        y = y_col["values"]
+    def _force_scale_and_label_prefix(plot):
         label_prefix = ""
         # TODO(pjm): the forceScale feature makes the code unmanageable
-        # it might be simpler if this was done on the client
+        #  it might be simpler if this was done on the client
         if (
             "forceScale" in frame_args
-            and yfield in ("f_x", "f_long")
+            and plot.col_name in ("f_x", "f_long")
             and frame_args.forceScale == "negative"
         ):
-            y = [-v for v in y]
+            plot.points = [-v for v in plot.points]
             label_prefix = "-"
             if "fieldRange" in frame_args:
-                r = frame_args.fieldRange[frame_args[f]]
-                frame_args.fieldRange[frame_args[f]] = [-r[1], -r[0]]
-        plots.append(
-            PKDict(
-                field=frame_args[f],
-                points=y,
-                label="{}{}{}".format(
-                    label_prefix,
-                    _field_label(yfield, y_col.column_def),
-                    _field_description(yfield, frame_args.sim_in),
-                ),
+                r = frame_args.fieldRange[plot.label]
+                frame_args.fieldRange[plot.label] = [-r[1], -r[0]]
+        return label_prefix
+
+    def _format_plot(plot, sdds_units):
+        if x_field == plot.col_name:
+            plot.label = _field_label(plot.col_name, sdds_units)
+        else:
+            plot.label = "{}{}{}".format(
+                _force_scale_and_label_prefix(plot),
+                _field_label(plot.col_name, sdds_units),
+                _field_description(plot.col_name, frame_args.sim_in),
             )
-        )
-    if xfield == "V_trans":
-        x = _resort_vtrans(x, plots)
+
+    if "fieldRange" in frame_args.sim_in.models.particleAnimation:
+        frame_args.fieldRange = frame_args.sim_in.models.particleAnimation.fieldRange
     frame_args.x = x_field
-    return template_common.parameter_plot(
-        x,
-        plots,
-        frame_args,
+
+    return sdds_util.SDDSUtil(filename).lineplot(
         PKDict(
-            y_label="",
-            x_label=_field_label(xfield, x_col.column_def),
-        ),
+            format_col_name=_map_field_name,
+            model=template_common.model_from_frame_args(frame_args),
+            format_plot=_format_plot,
+        )
     )
 
 
@@ -576,3 +494,74 @@ def _set_mass_and_charge(ion_beam):
         ion_beam.mass, ion_beam.charge_number = _SPECIES_MASS_AND_CHARGE[
             ion_beam.particle
         ]
+
+
+def _v2_add_report_mtime(reports, model_name, path):
+    if path.exists():
+        reports.append(
+            PKDict(
+                modelName=model_name,
+                lastUpdateTime=int(float(os.path.getmtime(str(path)))),
+            )
+        )
+
+
+def _v2_percent_complete(settings, evolution_file):
+    if not evolution_file.exists():
+        return 0
+    try:
+        col = sdds_util.extract_sdds_column(str(evolution_file), "t", 0)
+        if "values" in col:
+            t_max = max(col["values"])
+            if t_max and settings.time > 0:
+                return 100.0 * t_max / settings.time
+    except Exception:
+        # TODO(pjm): sdds read may have failed, use a better exception subclass
+        pass
+    return 0
+
+
+def _v2_report_status(run_dir, is_running):
+    # forceTableAnimation
+    #   _FORCE_TABLE_FILENAME exists
+    #   lastUpdateTime: _FORCE_TABLE_FILENAME.lastModified
+    # beamEvolutionAnimation:
+    #   _BEAM_EVOLUTION_OUTPUT_FILENAME exists
+    #   lastUpdateTime: _BEAM_EVOLUTION_OUTPUT_FILENAME.lastModified
+    # coolingRatesAnimation
+    #   _BEAM_EVOLUTION_OUTPUT_FILENAME exists
+    #     and  settings.ibs == "1" or settings.e_cool == "1"
+    #   lastUpdateTime: _BEAM_EVOLUTION_OUTPUT_FILENAME.lastModified
+    # particleAnimation
+    #   settings.model == "particle" and settings.save_particle_interval > 0:
+    #   frameCount: len(_ion_files()) - is_running ? 1 : 0
+    settings = simulation_db.read_json(
+        run_dir.join(template_common.INPUT_BASE_NAME)
+    ).models.simulationSettings
+    res = PKDict(
+        percentComplete=_v2_percent_complete(
+            settings, run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
+        ),
+        reports=[],
+    )
+    if res.percentComplete:
+        _v2_add_report_mtime(
+            res.reports, "forceTableAnimation", run_dir.join(_FORCE_TABLE_FILENAME)
+        )
+        _v2_add_report_mtime(
+            res.reports,
+            "beamEvolutionAnimation",
+            run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME),
+        )
+        if settings.ibs == "1" or settings.e_cool == "1":
+            _v2_add_report_mtime(
+                res.reports,
+                "coolingRatesAnimation",
+                run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME),
+            )
+        count = len(_ion_files(run_dir))
+        if count > 0 and is_running:
+            count -= 1
+        if count:
+            res.reports.append(PKDict(modelName="particleAnimation", frameCount=count))
+    return res

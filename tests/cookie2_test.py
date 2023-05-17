@@ -10,44 +10,16 @@ from sirepo import srunit
 import pytest
 
 
-@srunit.wrap_in_request(want_user=False)
 def test_set_get():
-    from pykern import pkunit, pkcompat
-    from pykern.pkunit import pkeq
-    from pykern.pkdebug import pkdp
-    from sirepo import cookie
-
-    with cookie.process_header("x"):
-        with pkunit.pkexcept("KeyError"):
-            cookie.get_value("hi1")
-        with pkunit.pkexcept("AssertionError"):
-            cookie.set_value("hi2", "hello")
-        pkeq(None, cookie.unchecked_get_value("hi3"))
-
-
-def test_cookie_outside_of_flask_request():
-    from pykern import pkcompat
-    from pykern.pkunit import pkeq
-    from sirepo import cookie
     from sirepo import srunit
 
-    with srunit.auth_db_session(), cookie.set_cookie_outside_of_flask_request():
-        cookie.set_value("hi4", "hello")
-        r = _Response(status_code=200)
-        cookie.save_to_cookie(r)
-        pkeq("sirepo_dev", r.args[0])
-        pkeq(False, r.kwargs["secure"])
-        pkeq("hello", cookie.get_value("hi4"))
-        cookie.unchecked_remove("hi4")
-        pkeq(None, cookie.unchecked_get_value("hi4"))
-        # Nest cookie contexts
-        with cookie.process_header(
-            "sirepo_dev={}".format(pkcompat.from_bytes(r.args[1])),
-        ):
-            pkeq("hello", cookie.get_value("hi4"))
+    with srunit.quest_start() as qcall:
+        from pykern import pkunit, pkcompat
+        from pykern.pkunit import pkeq
+        from pykern.pkdebug import pkdp
+        from sirepo import cookie
 
-
-class _Response(PKDict):
-    def set_cookie(self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
+        with pkunit.pkexcept("KeyError"):
+            qcall.cookie.get_value("hi1")
+        qcall.cookie.set_value("hi2", "hello")
+        pkeq("hello", qcall.cookie.unchecked_get_value("hi2"))

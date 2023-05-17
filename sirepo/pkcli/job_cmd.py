@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -22,6 +21,7 @@ import sirepo.template
 import sirepo.util
 import subprocess
 import sys
+import tempfile
 import time
 
 _MAX_FASTCGI_EXCEPTIONS = 3
@@ -42,7 +42,6 @@ def default_command(in_file):
         str: json output of command, e.g. status msg
     """
     try:
-        job.init()
         f = pkio.py_path(in_file)
         msg = pkjson.load_any(f)
         # TODO(e-carlin): find common place to serialize/deserialize paths
@@ -79,9 +78,38 @@ def _background_percent_complete(msg, template, is_running):
     )
 
 
-def _dispatch_compute(msg):
+def _dispatch_compute(msg, template):
+    def _op(expect_file):
+        r = getattr(template_common, f"{msg.jobCmd}_dispatch")(
+            msg.data, data_file_uri=msg.get("dataFileUri")
+        )
+        if not isinstance(r, template_common.JobCmdFile):
+            # ok to not return JobCmdFile if there was an error
+            return r
+        if not expect_file:
+            return PKDict(
+                state=job.ERROR,
+                error=f"method={template.SIM_TYPE}.{msg.jobCmd}_{msg.data.method} unexpected return=JobCmdFile uri={r.uri}",
+            )
+        e = _validate_msg(r.content)
+        if e:
+            return e
+        requests.put(
+            msg.dataFileUri + r.uri,
+            data=r.content,
+            verify=job.cfg().verify_tls,
+        ).raise_for_status()
+        return job.ok_reply()
+
     try:
-        return getattr(template_common, f"{msg.jobCmd}_dispatch")(msg.data)
+        x = sirepo.sim_data.get_class(
+            template.SIM_TYPE,
+        ).does_api_reply_with_file(msg.api, msg.data.method)
+        if x:
+            with simulation_db.tmp_dir(chdir=True) as d:
+                return _op(expect_file=x)
+        else:
+            return _op(expect_file=x)
     except Exception as e:
         return _maybe_parse_user_alert(e)
 
@@ -123,11 +151,13 @@ def _do_compute(msg, template):
             msg.isParallel,
             template,
             msg.runDir,
+            msg.computeModel,
+            msg.simulationId,
         )
 
 
 def _do_analysis_job(msg, template):
-    return _dispatch_compute(msg)
+    return _dispatch_compute(msg, template)
 
 
 def _do_download_data_file(msg, template):
@@ -158,7 +188,7 @@ def _do_download_data_file(msg, template):
         requests.put(
             msg.dataFileUri + u,
             data=c,
-            verify=job.cfg.verify_tls,
+            verify=job.cfg().verify_tls,
         ).raise_for_status()
         return PKDict()
     except Exception as e:
@@ -262,11 +292,11 @@ def _do_sequential_result(msg, template):
 
 
 def _do_stateful_compute(msg, template):
-    return _dispatch_compute(msg)
+    return _dispatch_compute(msg, template)
 
 
 def _do_stateless_compute(msg, template):
-    return _dispatch_compute(msg)
+    return _dispatch_compute(msg, template)
 
 
 def _maybe_parse_user_alert(exception, error=None):
@@ -276,7 +306,9 @@ def _maybe_parse_user_alert(exception, error=None):
     return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
-def _on_do_compute_exit(success_exit, is_parallel, template, run_dir):
+def _on_do_compute_exit(
+    success_exit, is_parallel, template, run_dir, compute_model, sim_id
+):
     # locals() must be called before anything else so we only get the function
     # arguments
     kwargs = locals()
@@ -332,7 +364,7 @@ def _parse_python_errors(text):
 
 
 def _validate_msg(msg):
-    if len(msg) >= job.cfg.max_message_bytes:
+    if len(msg) >= job.cfg().max_message_bytes:
         return PKDict(state=job.COMPLETED, error="Response is too large to send")
     return None
 

@@ -21,7 +21,6 @@ import numpy as np
 import py.path
 import re
 import sirepo.sim_data
-import werkzeug
 import zipfile
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -289,6 +288,14 @@ _TWISS_SUMMARY_LABELS = PKDict(
 )
 
 
+def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
+    return template_common.compute_field_range(
+        data,
+        _compute_range_across_frames,
+        run_dir,
+    )
+
+
 def background_percent_complete(report, run_dir, is_running):
     error = ""
     if not is_running:
@@ -433,11 +440,6 @@ def extract_tunes_report(run_dir, data):
     )
 
 
-def get_application_data(data, **kwargs):
-    if data.method == "compute_particle_ranges":
-        return template_common.compute_field_range(data, _compute_range_across_frames)
-
-
 def get_data_file(run_dir, model, frame, options):
     if options.suffix == _ZGOUBI_COMMAND_FILE:
         return TUNES_INPUT_FILE if model == "tunesReport" else _ZGOUBI_COMMAND_FILE
@@ -457,20 +459,18 @@ def sim_frame(frame_args):
     return None
 
 
-def stateful_compute_tosca_info(data):
-    return zgoubi_importer.tosca_info(data.tosca)
+def stateful_compute_tosca_info(data, **kwargs):
+    return zgoubi_importer.tosca_info(data.args.tosca)
 
 
-def import_file(req, unit_test_mode=False, **kwargs):
+async def import_file(req, unit_test_mode=False, **kwargs):
     return zgoubi_importer.import_file(
-        pkcompat.from_bytes(req.file_stream.read()),
+        req.form_file.as_str(),
         unit_test_mode=unit_test_mode,
     )
 
 
-def post_execution_processing(
-    success_exit=True, is_parallel=False, run_dir=None, **kwargs
-):
+def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
     if not is_parallel:
@@ -487,7 +487,7 @@ def prepare_sequential_output_file(run_dir, data):
             save_sequential_report_data(data, run_dir)
 
 
-def python_source_for_model(data, model=None):
+def python_source_for_model(data, qcall, model=None, **kwargs):
     return _generate_parameters_file(data)
 
 
@@ -591,15 +591,13 @@ def write_parameters(
                         z.extract(info, str(run_dir))
 
 
-def _compute_range_across_frames(run_dir, data):
+def _compute_range_across_frames(run_dir, **kwargs):
     res = PKDict()
     for v in SCHEMA.enum.PhaseSpaceCoordinate:
         res[v[0]] = []
     for v in SCHEMA.enum.EnergyPlotVariable:
         res[v[0]] = []
-    col_names, rows = _read_data_file(
-        py.path.local(run_dir).join(_ZGOUBI_FAI_DATA_FILE)
-    )
+    col_names, rows = _read_data_file(run_dir.join(_ZGOUBI_FAI_DATA_FILE))
     for field in res:
         values = column_data(field, col_names, rows)
         initial_field = _initial_phase_field(field)

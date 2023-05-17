@@ -212,7 +212,9 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
             },
             {
                 method: 'get_beam_input_type',
-                input_file: 'bunchFile-sourceFile.' + cmd.input,
+                args: {
+                    input_file: 'bunchFile-sourceFile.' + cmd.input,
+                }
             }
         );
     }
@@ -1440,6 +1442,53 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
                     ['bunch.emit_x', 'bunch.emit_y', 'bunch.emit_nx', 'bunch.emit_ny'],
                     updateEmittance);
             });
+        },
+    };
+});
+
+SIREPO.app.directive('viewLogIframeWrapper', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <a href data-ng-click="viewLog()">View Log</a>
+            <div data-view-log-iframe data-download-log="downloadLog" data-log-html="log" data-log-is-loading="logIsLoading" data-modal-id="modalId"></div>
+        `,
+        controller: function(appState, elegantService, requestSender, $scope) {
+            $scope.logIsLoading = false;
+            $scope.log = null;
+            $scope.logPath = null;
+            $scope.modalId = 'sr-view-log-iframe';
+
+            $scope.downloadLog = function() {
+                var m = appState.models.simulationStatus.animation.computeModel;
+                if (! m) {
+                    return '';
+                }
+                return requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': m,
+                    '<frame>': -1,
+                });
+            };
+
+            $scope.viewLog = function () {
+                $scope.logIsLoading = true;
+                $('#' + $scope.modalId).modal('show');
+                requestSender.sendAnalysisJob(
+                    appState,
+                    (data) => {
+                        $scope.logIsLoading = false;
+                        $scope.log = data.html;
+                    },
+                    {
+                        method: 'log_to_html',
+                        computeModel: elegantService.computeModel(),
+                        simulationId: appState.models.simulation.simulationId
+                    }
+                );
+            };
         },
     };
 });

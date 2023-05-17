@@ -4,13 +4,12 @@
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+# NOTE: limit sirepo imports here
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
-import asyncio
 import base64
-import concurrent.futures
 import hashlib
 import importlib
 import inspect
@@ -21,19 +20,12 @@ import pykern.pkjson
 import re
 import random
 import six
-import sys
 import threading
-import werkzeug.utils
+import unicodedata
 import zipfile
 
 
-cfg = None
-
-#: This should be treated as read only and used sparingly. See discussion in sirepo.server.init
-is_server = False
-
-#: All types of errors async code may throw when canceled
-ASYNC_CANCELED_ERROR = (asyncio.CancelledError, concurrent.futures.CancelledError)
+_cfg = None
 
 #: Http auth header name
 AUTH_HEADER = "Authorization"
@@ -41,7 +33,7 @@ AUTH_HEADER = "Authorization"
 #: http auth header scheme bearer
 AUTH_HEADER_SCHEME_BEARER = "Bearer"
 
-#: Lock for operations across Sirepo (flask)
+#: Lock for operations across Sirepo (server)
 THREAD_LOCK = threading.RLock()
 
 #: length of string returned by create_token
@@ -49,13 +41,13 @@ TOKEN_SIZE = 16
 
 # See https://github.com/radiasoft/sirepo/pull/3889#discussion_r738769716
 # for reasoning on why define both
-_INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)", re.IGNORECASE)
+_INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)")
 _VALID_PYTHON_IDENTIFIER = re.compile(r"^[a-z_]\w*$", re.IGNORECASE)
 
-_log_not_flask = _log_not_request = 0
+_INVALID_PATH_CHARS = re.compile(r"[^A-Za-z0-9_.-]")
 
 
-class Reply(Exception):
+class ReplyExc(Exception):
     """Raised to end the request.
 
     Args:
@@ -63,12 +55,16 @@ class Reply(Exception):
         log_fmt (str): server side log data
     """
 
-    def __init__(self, sr_args, *args, **kwargs):
-        super(Reply, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        if "sr_args" in kwargs:
+            self.sr_args = kwargs["sr_args"]
+            del kwargs["sr_args"]
+        else:
+            self.sr_args = PKDict()
         if args or kwargs:
             kwargs["pkdebug_frame"] = inspect.currentframe().f_back.f_back
             pkdlog(*args, **kwargs)
-        self.sr_args = sr_args
 
     def __repr__(self):
         a = self.sr_args
@@ -83,7 +79,19 @@ class Reply(Exception):
         return self.__repr__()
 
 
-class Error(Reply):
+class BadRequest(ReplyExc):
+    """Raised for bad request"""
+
+    pass
+
+
+class OKReplyExc(ReplyExc):
+    """When a ReplyExc exception is a successful response"""
+
+    pass
+
+
+class Error(ReplyExc):
     """Raised to send an error response
 
     Args:
@@ -95,10 +103,22 @@ class Error(Reply):
             values = PKDict(error=values)
         else:
             assert values.get("error"), 'values={} must contain "error"'.format(values)
-        super(Error, self).__init__(values, *args, **kwargs)
+        super().__init__(*args, sr_args=values, **kwargs)
 
 
-class Redirect(Reply):
+class Forbidden(ReplyExc):
+    """Raised for forbidden"""
+
+    pass
+
+
+class NotFound(ReplyExc):
+    """Raised for not found"""
+
+    pass
+
+
+class Redirect(OKReplyExc):
     """Raised to redirect
 
     Args:
@@ -107,22 +127,45 @@ class Redirect(Reply):
     """
 
     def __init__(self, uri, *args, **kwargs):
-        super(Redirect, self).__init__(PKDict(uri=uri), *args, **kwargs)
+        super().__init__(*args, sr_args=PKDict(uri=uri), **kwargs)
 
 
-class Response(Reply):
-    """Raise with a Response object
+class ServerError(ReplyExc):
+    """Raised for server error"""
+
+    pass
+
+
+class SPathNotFound(NotFound):
+    """Raised by simulation_db
 
     Args:
-        response (str): what the reply should be
+        sim_type (str): simulation type
+        uid (str): user
+        sid (str): simulation id
+    """
+
+    def __init__(self, sim_type, uid, sid, *args, **kwargs):
+        super().__init__(
+            *args,
+            sr_args=PKDict(sim_type=sim_type, uid=uid, sid=sid),
+            **kwargs,
+        )
+
+
+class SReplyExc(OKReplyExc):
+    """Raise with an SReply object
+
+    Args:
+        sreply (object): what the reply should be
         log_fmt (str): server side log data
     """
 
-    def __init__(self, response, *args, **kwargs):
-        super(Response, self).__init__(PKDict(response=response), *args, **kwargs)
+    def __init__(self, sreply, *args, **kwargs):
+        super().__init__(*args, sr_args=PKDict(sreply=sreply), **kwargs)
 
 
-class SRException(Reply):
+class SRException(ReplyExc):
     """Raised to communicate a local redirect and log info
 
     `params` may have ``sim_type`` and ``reload_js``, which
@@ -135,12 +178,20 @@ class SRException(Reply):
     """
 
     def __init__(self, route_name, params, *args, **kwargs):
-        super(SRException, self).__init__(
-            PKDict(routeName=route_name, params=params), *args, **kwargs
+        super().__init__(
+            *args,
+            sr_args=PKDict(routeName=route_name, params=params),
+            **kwargs,
         )
 
 
-class UserAlert(Reply):
+class Unauthorized(ReplyExc):
+    """Raised to generate 401 response"""
+
+    pass
+
+
+class UserAlert(ReplyExc):
     """Raised to display a user error and log info
 
     Args:
@@ -149,44 +200,48 @@ class UserAlert(Reply):
     """
 
     def __init__(self, display_text, *args, **kwargs):
-        super(UserAlert, self).__init__(PKDict(error=display_text), *args, **kwargs)
+        super().__init__(*args, sr_args=PKDict(error=display_text), **kwargs)
 
 
-class WWWAuthenticate(Reply):
-    """Raised to generate 401 response
+class UserDirNotFound(NotFound):
+    """Raised by simulation_db
 
     Args:
-        log_fmt (str): server side log data
+        user_dir (py.path): directory not found
+        uid (str): user
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(PKDict(), *args, **kwargs)
+    def __init__(self, user_dir, uid, *args, **kwargs):
+        super().__init__(
+            *args,
+            sr_args=PKDict(user_dir=user_dir, uid=uid),
+            **kwargs,
+        )
 
 
-def convert_exception(exception, display_text="unexpected error"):
-    """Convert exception so can be raised
+class WWWAuthenticate(ReplyExc):
+    """Raised to generate 401 response with WWWAuthenticate response"""
+
+    pass
+
+
+def assert_sim_type(sim_type):
+    """Validate simulation type
 
     Args:
-        exception (Exception): Reply or other exception
-        display_text (str): what to send back to the client
+        sim_type (str): to check
+
     Returns:
-        Exception: to raise
+        str: validated sim_type
     """
-    if isinstance(exception, Reply):
-        return exception
-    return UserAlert(
-        display_text,
-        "exception={} str={} stack={}",
-        type(exception),
-        exception,
-        pkdexc(),
-    )
+    assert is_sim_type(sim_type), f"invalid simulation type={sim_type}"
+    return sim_type
 
 
 def create_token(value):
-    if pkconfig.channel_in_internal_test() and cfg.create_token_secret:
+    if pkconfig.channel_in_internal_test() and _cfg.create_token_secret:
         v = base64.b32encode(
-            hashlib.sha256(pkcompat.to_bytes(value + cfg.create_token_secret)).digest()
+            hashlib.sha256(pkcompat.to_bytes(value + _cfg.create_token_secret)).digest()
         )
         return pkcompat.from_bytes(v[:TOKEN_SIZE])
     return random_base62(TOKEN_SIZE)
@@ -199,10 +254,8 @@ def err(obj, fmt="", *args, **kwargs):
 def files_to_watch_for_reload(*extensions):
     from sirepo import feature_config
 
-    if not pkconfig.channel_in("dev"):
-        return []
     for e in extensions:
-        for p in set(["sirepo", *feature_config.cfg().package_path]):
+        for p in sorted(set(["sirepo", *feature_config.cfg().package_path])):
             d = pykern.pkio.py_path(
                 getattr(importlib.import_module(p), "__file__"),
             ).dirname
@@ -226,12 +279,6 @@ def find_obj(arr, key, value):
     return None
 
 
-def flask_app():
-    import flask
-
-    return flask.current_app or None
-
-
 def import_submodule(submodule, type_or_data):
     """Import fully qualified module that contains submodule for sim type
 
@@ -246,7 +293,7 @@ def import_submodule(submodule, type_or_data):
     from sirepo import feature_config
     from sirepo import template
 
-    t = template.assert_sim_type(
+    sim_type = template.assert_sim_type(
         type_or_data.simulationType
         if isinstance(
             type_or_data,
@@ -254,44 +301,41 @@ def import_submodule(submodule, type_or_data):
         )
         else type_or_data,
     )
-    r = feature_config.cfg().package_path
-    for p in r:
+    for p in feature_config.cfg().package_path:
+        n = None
         try:
-            return importlib.import_module(f"{p}.{submodule}.{t}")
-        except ModuleNotFoundError:
+            n = f"{p}.{submodule}.{sim_type}"
+            return importlib.import_module(n)
+        except ModuleNotFoundError as e:
+            if n is not None and n != e.name:
+                # import is failing due to ModuleNotFoundError in a sub-import
+                # not the module we are looking for
+                raise
             s = pkdexc()
             pass
     # gives more debugging info (perhaps more confusion)
     pkdc(s)
     raise AssertionError(
-        f"cannot find submodule={submodule} for sim_type={t} in package_path={r}"
+        f"cannot find submodule={submodule} for sim_type={sim_type} in package_path={feature_config.cfg().package_path}"
     )
-
-
-def in_flask_request():
-    # These are globals but possibly accessed from a threaded context. That is
-    # desired so we limit logging between all threads.
-    # The number 10 below doesn't need to be exact. Just something greater than
-    # "a few" so we see logging once the app is initialized and serving requests.
-    global _log_not_flask, _log_not_request
-    f = sys.modules.get("flask")
-    if not f:
-        if _log_not_flask < 10:
-            _log_not_flask += 1
-            pkdlog("flask is not imported")
-        return False
-    if not f.request:
-        if _log_not_request < 10:
-            _log_not_request += 1
-            if is_server:
-                # This will help debug https://github.com/radiasoft/sirepo/issues/3727
-                pkdlog("flask.request is False")
-        return False
-    return True
 
 
 def is_python_identifier(name):
     return _VALID_PYTHON_IDENTIFIER.search(name)
+
+
+def is_sim_type(sim_type):
+    """Validate simulation type
+
+    Args:
+        sim_type (str): to check
+
+    Returns:
+        bool: true if is a sim_type
+    """
+    from sirepo import feature_config
+
+    return sim_type in feature_config.cfg().sim_types
 
 
 def json_dump(obj, path=None, pretty=False, **kwargs):
@@ -310,22 +354,6 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
     if path:
         pykern.pkio.atomic_write(path, res)
     return res
-
-
-def raise_bad_request(*args, **kwargs):
-    _raise("BadRequest", *args, **kwargs)
-
-
-def raise_forbidden(*args, **kwargs):
-    _raise("Forbidden", *args, **kwargs)
-
-
-def raise_not_found(*args, **kwargs):
-    _raise("NotFound", *args, **kwargs)
-
-
-def raise_unauthorized(*args, **kwargs):
-    _raise("Unauthorized", *args, **kwargs)
 
 
 def random_base62(length=32):
@@ -363,12 +391,6 @@ def read_zip(path_or_bytes):
             yield pykern.pkio.py_path(i.filename).basename, z.read(i)
 
 
-def safe_path(*paths):
-    p = werkzeug.utils.safe_join(*paths)
-    assert p is not None, f"could not join in a safe manner paths={paths}"
-    return p
-
-
 def sanitize_string(string):
     """Remove special characters from string
 
@@ -387,9 +409,32 @@ def sanitize_string(string):
 
 
 def secure_filename(path):
-    import werkzeug.utils
+    """Converts a user supplied path to a secure file
 
-    return werkzeug.utils.secure_filename(path)
+    Args:
+        path (str): contains anything
+    Returns:
+        str: does not contain special file system chars or path chars
+    """
+    p = (
+        unicodedata.normalize(
+            "NFKD",
+            path,
+        )
+        .encode(
+            "ascii",
+            "ignore",
+        )
+        .decode(
+            "ascii",
+        )
+        .replace(
+            "/",
+            " ",
+        )
+    )
+    p = _INVALID_PATH_CHARS.sub("", "_".join(p.split())).strip("._")
+    return "file" if p == "" else p
 
 
 def setattr_imports(imports):
@@ -410,6 +455,31 @@ def url_safe_hash(value):
     return hashlib.md5(pkcompat.to_bytes(value)).hexdigest()
 
 
+def validate_path(uri):
+    """Ensures path component of uri is safe
+
+    Very strict. Doesn't allow any dot files and few specials.
+
+    Args:
+        uri (str): uncheck path
+    Returns:
+        str: validated path
+    """
+    if uri == "" or uri is None:
+        raise AssertionError(f"empty uri")
+    res = []
+    for p in uri.split("/"):
+        if _INVALID_PATH_CHARS.search(p):
+            raise AssertionError(f"illegal char(s) in component={p} uri={uri}")
+        if p == "":
+            # covers absolute path case
+            raise AssertionError(f"empty component in uri={uri}")
+        if p.startswith("."):
+            raise AssertionError(f"dot prefix in component={p} uri={uri}")
+        res.append(p)
+    return "/".join(res)
+
+
 def write_zip(path):
     return zipfile.ZipFile(
         path,
@@ -418,14 +488,6 @@ def write_zip(path):
     )
 
 
-def _raise(exc, fmt, *args, **kwargs):
-    import werkzeug.exceptions
-
-    kwargs["pkdebug_frame"] = inspect.currentframe().f_back.f_back
-    pkdlog(fmt, *args, **kwargs)
-    raise getattr(werkzeug.exceptions, exc)()
-
-
-cfg = pkconfig.init(
+_cfg = pkconfig.init(
     create_token_secret=("oh so secret!", str, "used for internal test only"),
 )

@@ -1,0 +1,183 @@
+from pykern.pkcollections import PKDict
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from pykern.pkdebug import pkdp
+import h5py
+import keras
+import math
+import numpy
+{% if inputsScaler != "None" and inputsScaler != "MinMaxScaler" %}
+from sklearn.preprocessing import {{ inputsScaler }}
+{% endif %}
+{% if outputsScaler != "None" and outputsScaler != "MinMaxScaler" %}
+from sklearn.preprocessing import {{ outputsScaler }}
+{% endif %}
+
+
+class SirepoHDF5Sequence(keras.utils.Sequence):
+    def __init__(
+        self,
+        filename,
+        x,
+        y,
+        indices,
+        shuffle,
+        batch_size,
+        in_scaler=None,
+        out_scaler=None,
+    ):
+        self.filename = filename
+        self.x = x
+        self.y = y
+        self.indices = indices
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.return_value = None
+        self.inScaler = self._scaler(in_scaler)
+        self.outScaler = self._scaler(out_scaler)
+        self._fit()
+
+    def set_return_value(self, name):
+        self.return_value = name
+        return self
+
+    def _scaler(self, scaler):
+        if scaler is None:
+            return
+        if scaler == MinMaxScaler:
+            return scaler(feature_range=({{ feature_min }}, {{ feature_max }}))
+        return scaler()
+
+    def _fit(self):
+        if not self.inScaler and not self.outScaler:
+            return
+        with h5py.File(self.filename, "r") as f:
+            self.original_shape_x = f[self.x.key].shape
+            self.original_shape_y = f[self.y.key].shape
+            self.x_channels = self.original_shape_x[-1]
+            self.y_channels = self.__y_channels(numpy.array(f[self.y.key]))
+            if self.inScaler:
+                self.inScaler.fit(numpy.array(f[self.x.key]).reshape(-1, self.x_channels))
+            if self.outScaler:
+                self.outScaler.fit(numpy.array(f[self.y.key]).reshape(-1, self.y_channels))
+
+    def __y_channels(self, y):
+        if y.ndim > 1:
+            return y.shape[-1]
+        return y.ndim
+
+    def __len__(self):
+        return math.ceil(len(self.indices) / self.batch_size)
+
+    def __getitem__(self, idx):
+        indices = numpy.sort(
+            self.indices[idx * self.batch_size : (idx + 1) * self.batch_size]
+        )
+        with h5py.File(self.filename, "r", libver="latest", swmr=True) as f:
+            x = f[self.x.key][indices]
+            y = f[self.y.key][indices]
+            if self.inScaler:
+                x = self.inScaler.transform(numpy.array(x).reshape(-1, self.x_channels))
+                x = x.reshape(len(indices), *self.original_shape_x[1:])
+            if self.outScaler:
+                y = self.outScaler.transform(numpy.array(y).reshape(-1, self.y_channels))
+                y = y.reshape(len(indices), *self.original_shape_y[1:])
+            if self.return_value:
+                if self.return_value == "x":
+                    return x
+                elif self.return_value == "y":
+                    return y
+                raise AssertionError(f"invalid return_value specified: {return_value}")
+            return (x, y)
+
+    def on_epoch_end(self):
+        if self.shuffle and not self.return_value:
+            numpy.random.shuffle(self.indices)
+
+
+def _split_indices(indices_all):
+    test_and_validate = (100 - {{partition_training}}) / 100
+    validation_size = ((test_and_validate * 100) - {{partition_testing}}) / 100
+    train_indices, tvx, _, tvy = train_test_split(
+        indices_all,
+        indices_all,
+        test_size=test_and_validate,
+        random_state=42,
+        shuffle=True,
+    )
+    test_indices, val_indices, _, _ = train_test_split(
+        tvx,
+        tvy,
+        test_size=validation_size / test_and_validate,
+        random_state=42,
+        shuffle=True,
+    )
+    return PKDict(
+        train=train_indices,
+        val=val_indices,
+        test=test_indices,
+    )
+
+
+def image_train_val_test_split(
+    filename,
+    xkey,
+    ykey,
+    shuffle,
+    batch_size,
+    output_shape,
+    **kwargs
+):
+    with h5py.File(filename, "r") as f:
+        indices_all = numpy.arange(f[xkey].shape[0])
+        xs = f[xkey]
+        ys = f[ykey]
+    s = _split_indices(indices_all)
+    r = PKDict()
+    for k in s:
+        r[k + "_gen"] = SirepoHDF5Sequence(
+            filename=filename,
+            x=PKDict(
+                key=xkey,
+            ),
+            y=PKDict(
+                key=ykey,
+            ),
+            indices=s[k],
+            batch_size=batch_size,
+            shuffle=shuffle,
+            {% if inputsScaler %}
+            in_scaler=kwargs.get('in_scaler'),
+            {% endif %}
+            {%if outputsScaler %}
+            out_scaler=kwargs.get('out_scaler'),
+            {% endif %}
+        )
+    return r
+
+with h5py.File("{{ dataFile }}", "r") as f:
+    input_shape = f["{{ inPath }}"].shape[1:]
+    o = f["{{outPath}}"][0].shape
+    if len(input_shape) < 3:
+        input_shape += (1,)
+output_shape = {{outputShape}}
+split = image_train_val_test_split(
+    "{{ dataFile }}",
+    "{{ inPath }}",
+    "{{ outPath }}",
+    {{shuffleEachEpoch}},
+    {{neuralNet_batch_size}},
+    output_shape,
+    {% if inputsScaler %}
+    in_scaler={{ inputsScaler }},
+    {% endif %}
+    {%if outputsScaler %}
+    out_scaler={{ outputsScaler }},
+    {% endif %}
+)
+
+
+testy = []
+for y in split.test_gen.set_return_value("y"):
+    testy += y.tolist()
+testx = split.test_gen.set_return_value("x")

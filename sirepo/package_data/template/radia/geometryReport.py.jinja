@@ -4,7 +4,6 @@ import re
 from pykern.pkcollections import PKDict
 import sirepo.mpi
 import sirepo.util
-from sirepo.template import radia_examples
 from sirepo.template import radia_util
 from sirepo.template import template_common
 
@@ -18,11 +17,13 @@ _MODEL_ELL = 'ell'
 _MODEL_JAY= 'jay'
 _MODEL_GROUP = 'geomGroup'
 _MODEL_OBJECT = 'geomObject'
+_MODEL_EXTRUDED_POINTS = 'extrudedPoints'
 _MODEL_EXTRUDED_POLY = 'extrudedPoly'
 _MODEL_RACETRACK = 'racetrack'
-_EXTRUDED_MODELS = [_MODEL_CEE, _MODEL_ELL, _MODEL_JAY, _MODEL_EXTRUDED_POLY]
-_GROUP_MODELS = [_MODEL_GROUP]
-_OBJ_MODELS = [_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT] + _EXTRUDED_MODELS
+_MODEL_STL = 'stl'
+_EXTRUDED_MODELS = (_MODEL_CEE, _MODEL_ELL, _MODEL_JAY, _MODEL_EXTRUDED_POINTS, _MODEL_EXTRUDED_POLY)
+_GROUP_MODELS = (_MODEL_GROUP,)
+_OBJ_MODELS = (_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT, _MODEL_STL) + _EXTRUDED_MODELS
 _MODELS = _OBJ_MODELS + _GROUP_MODELS
 
 sirepo_objs = {{ objects }}
@@ -33,14 +34,13 @@ def _add_object(o, radia_objs, id_map):
     sc = o.get('super_classes', [])
     mat = {{ matrix }}
     if _MODEL_OBJECT in sc:
-        ctr = sirepo.util.split_comma_delimited_string(o.center, float)
-        sz = sirepo.util.split_comma_delimited_string(o.size, float)
-        m = radia_util.multiply_vector_by_matrix(sirepo.util.split_comma_delimited_string(o.magnetization, float), mat)
-        segs = radia_util.multiply_vector_by_matrix(sirepo.util.split_comma_delimited_string(o.segments, int), mat)
+        m = radia_util.multiply_vector_by_matrix(o.magnetization, mat)
+        segs = radia_util.multiply_vector_by_matrix(o.segments, mat)
+    #TODO(mvk): dispatch object building
     if t == _MODEL_CUBOID:
         g_id = radia_util.build_cuboid(
-            center=ctr,
-            size=sz,
+            center=o.center,
+            size=o.size,
             material=o.material,
             magnetization=m,
             rem_mag=o.remanentMag,
@@ -49,7 +49,7 @@ def _add_object(o, radia_objs, id_map):
         )
     if t == _MODEL_CYLINDER:
         g_id = radia_util.build_cylinder(
-            center=ctr,
+            center=o.center,
             extrusion_axis=o.extrusionAxis,
             h_m_curve=o.h_m_curve,
             material=o.material,
@@ -58,13 +58,13 @@ def _add_object(o, radia_objs, id_map):
             radius=o.radius,
             rem_mag=o.remanentMag,
             segments=segs,
-            size=sz,
+            size=o.size,
         )
     if _MODEL_EXTRUDED_POLY in sc:
         g_id = radia_util.extrude(
             area=o.area,
-            center=ctr,
-            size=sz,
+            center=o.center,
+            size=o.size,
             extrusion_axis=o.extrusionAxis,
             points=o.points,
             material=o.material,
@@ -73,38 +73,46 @@ def _add_object(o, radia_objs, id_map):
             segments=segs,
             t_level=o.triangulationLevel,
             h_m_curve=o.h_m_curve
-    )
+        )
     if t == _MODEL_RACETRACK:
         g_id = radia_util.build_racetrack(
-            center=sirepo.util.split_comma_delimited_string(o.center, float),
+            center=o.center,
             axis=o.axis,
             calc=o.fieldCalc,
-            radii=sirepo.util.split_comma_delimited_string(o.radii, float),
-            sides=sirepo.util.split_comma_delimited_string(o.sides, float),
+            radii=o.radii,
+            sides=o.sides,
             height=o.height,
             num_segs=o.numSegments,
             curr_density=o.currentDensity,
         )
+    if t == _MODEL_STL:
+        g_id = radia_util.build_stl(
+            filename = o.get('file'),
+            center=o.center,
+            centroid=o.stlCentroid,
+            size=o.size,
+            vertices=o.stlVertices,
+            faces=o.stlFaces,
+            magnetization=m,
+            material=o.material,
+            rem_mag=o.remanentMag,
+            segments=segs,
+            h_m_curve=o.h_m_curve,
+            #TODO: Not implemented
+            #slices=o.stlSlices
+        )
     if t in _OBJ_MODELS:
-        for b in o.get('bevels', []):
-            g_id = radia_util.apply_bevel(
+        for b in o.get('modifications', []):
+            g_id = radia_util.apply_modification(
                 g_id,
-                center=ctr,
-                lenDir=b['cutDir'],
-                size=sz,
-                **b
-            )
-        for f in o.get('fillets', []):
-            g_id = radia_util.apply_fillet(
-                g_id,
-                center=ctr,
-                size=sz,
+                center=o.center,
+                size=o.size,
                 material=o.material,
                 magnetization=m,
                 rem_mag=o.remanentMag,
                 segments=segs,
                 h_m_curve=o.h_m_curve,
-                **f
+                **b
             )
         radia_util.apply_color(
             g_id,
@@ -125,7 +133,7 @@ def _add_object(o, radia_objs, id_map):
                 )
         g_id = radia_util.build_container(grp)
     for transform in o.transforms:
-        radia_util.apply_transform(g_id, PKDict(transform))
+        radia_util.apply_transform(g_id, **transform)
     id_map[g_id] = o.id
     # don't add objects if they are already in a group
     if not o.groupId:
@@ -136,9 +144,7 @@ def _add_object(o, radia_objs, id_map):
 def _build_radia_geom():
     id_map = PKDict()
     radia_objs = []
-{% if is_raw %}
-    g_id, id_map = radia_examples.EXAMPLES['{{ exampleName }}']()
-{% elif dmpImportFile %}
+{% if dmpImportFile %}
     with open('{{ dmpImportFile }}', 'rb') as f:
         b = f.read()
         g_id = radia_util.load_bin(b)
@@ -168,7 +174,7 @@ def _write_dmp(g_id, f_path):
         f.write(radia_util.dump_bin(g_id))
 
 with radia_util.MPI() as m:
-{% if doReset %}
+{% if solverMode == "reset" %}
     radia_util.reset()
 {% endif %}
     g_id, id_map = _build_radia_geom()
@@ -176,7 +182,7 @@ with radia_util.MPI() as m:
     _write_dict_to_h5(g_data, '{{ h5ObjPath }}')
     _write_dict_to_h5(id_map, '{{ h5IdMapPath }}')
 
-{% if doSolve %}
+{% if solverMode == "solve" %}
     res = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
     m.barrier()
     _write_dict_to_h5(res, '{{ h5SolutionPath }}')

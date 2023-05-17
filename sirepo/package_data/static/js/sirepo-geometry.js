@@ -40,6 +40,48 @@ class GeometryUtils {
         };
     }
 
+    static axisIndex(axis) {
+        return GeometryUtils.BASIS().indexOf(axis);
+    }
+
+    static bounds(points, useRadius=false) {
+        let b = {
+            x: [Number.MAX_VALUE, -Number.MAX_VALUE],
+            y: [Number.MAX_VALUE, -Number.MAX_VALUE],
+        };
+        if (points[0].dimension === 3) {
+            b.z = [Number.MAX_VALUE, -Number.MAX_VALUE];
+        }
+        const ex = GeometryUtils.extrema;
+        for (const dim in b) {
+            b[dim] = [ex(points, dim, false)[0][dim], ex(points, dim, true)[0][dim]];
+        }
+        return useRadius ? GeometryUtils.boundsRadius(b) : b;
+    }
+
+    static boundsRadius(b) {
+        const r = Math.hypot(
+            (b.x[1] - b.x[0]) / 2,
+            (b.y[1] - b.y[0]) / 2,
+            ((b.z ? b.z[1] : 0) - (b.z ? b.z[0] : 0)) / 2,
+        );
+        for (const dim in b) {
+            const c = b[dim][0] + (b[dim][1] - b[dim][0]) / 2;
+            b[dim][0] = c - r;
+            b[dim][1] = c + r;
+        }
+        return b;
+    }
+
+    /**
+     * Get the indices of the given axis and the two axes in BASIS that comes after it, wrapping around
+     * @param {string} axis - start axis (x|y|z)
+     * @returns {[number]}
+     */
+    static axisIndices(axis) {
+        return ([axis, ...GeometryUtils.nextAxes(axis)]).map(x => GeometryUtils.BASIS().indexOf(x));
+    }
+
     /**
      * Find the points with the largest or smallest value in the given dimension
      * @param {[Point]} points - the points to sort
@@ -53,13 +95,41 @@ class GeometryUtils {
     }
 
     /**
+     * Get the two axes in BASIS that comes after the given axis, wrapping around
+     * @param {string} axis - start axis (x|y|z)
+     * @returns {[string]}
+     */
+    static nextAxes(axis) {
+        const w = GeometryUtils.nextAxis(axis);
+        return [w, GeometryUtils.nextAxis(w)];
+    }
+
+    /**
      * Get the axis in BASIS that comes after the given axis, wrapping around
      * @param {string} axis - start axis (x|y|z)
      * @returns {string}
      */
     static nextAxis(axis) {
         const b = GeometryUtils.BASIS();
-        return b[(b.indexOf(axis) + 1) % b.length];
+        return b[(GeometryUtils.axisIndex(axis) + 1) % b.length];
+    }
+
+    /**
+     * Get the index of the axis in BASIS that comes after the given axis, wrapping around
+     * @param {string} axis - start axis (x|y|z)
+     * @returns {number}
+     */
+    static nextAxisIndex(axis) {
+        return GeometryUtils.BASIS().indexOf(GeometryUtils.nextAxis(axis));
+    }
+
+    /**
+     * Get the indices of the two axes in BASIS that comes after the given axis, wrapping around
+     * @param {string} axis - start axis (x|y|z)
+     * @returns {[number]}
+     */
+    static nextAxisIndices(axis) {
+        return GeometryUtils.nextAxes(axis).map(x => GeometryUtils.BASIS().indexOf(x));
     }
 
     /**
@@ -71,12 +141,21 @@ class GeometryUtils {
      * @returns {[Point]}
      */
     static sortInDimension(points, dim, doReverse = false) {
-        return points.slice(0).sort((p1, p2) => {
+        return points.slice().sort((p1, p2) => {
             // throws an exception if the points have different dimensions
             p1.dist(p2);
             return (doReverse ? -1 : 1) * (p1[dim] - p2[dim]) / Math.abs(p1[dim] - p2[dim]);
         });
     }
+
+    static toDegrees(rad) {
+        return 180.0 * rad / Math.PI;
+    }
+
+    static toRadians(deg) {
+        return Math.PI * deg / 180.0;
+    }
+
 }
 
 /**
@@ -175,6 +254,30 @@ class GeometricObject {
  */
 class Matrix extends GeometricObject {
 
+    static dot(v1, v2) {
+        return v1.reduce((sum, x, i) => sum + x * v2[i], 0);
+    }
+
+    static mult(m1, m2) {
+        let m = [];
+        for(let i in m1) {
+            let c = [];
+            for(let j in m2) {
+                c.push(m2[j][i]);
+            }
+            m.push(Matrix.vect(m1, c));
+        }
+        return m;
+    }
+
+    static vect(m, v) {
+        let r = [];
+        for (let x of m) {
+            r.push(Matrix.dot(x, v));
+        }
+        return r;
+    }
+
     /**
      * @param {[number] | [[number]]} val - an array representing the matrix
      * @throws - if the dimension is > 2
@@ -220,7 +323,6 @@ class Matrix extends GeometricObject {
     add(matrix) {
         return this.linearCombination(matrix, 1);
     }
-
 
     /**
      * Determines if this matrix is equal to another, according to the following criteria:
@@ -313,12 +415,13 @@ class Matrix extends GeometricObject {
         if (matrix.dimension > this.dimension) {
             throw new Error(this.errorMessage(`Argument must have lesser or equal dimension (${matrix.dimension} > ${this.dimension})`));
         }
+
         // vector * vector (dot product)
         if (this.dimension === 1) {
             if (this.numCols !== matrix.numCols) {
                 throw new Error(this.errorMessage(`Vectors must have same length (${this.numCols} != ${matrix.numCols})`));
             }
-            return this.val.reduce((sum, x, i) => sum + x * matrix.val[i], 0);
+            return Matrix.dot(this.val, matrix.val);
         }
 
         if (this.numRows !== matrix.numCols) {
@@ -327,23 +430,11 @@ class Matrix extends GeometricObject {
 
         // matrix * vector
         if (matrix.dimension === 1) {
-            let v = [];
-            for (let x of this.val) {
-                v.push((new Matrix(x)).multiply(matrix));
-            }
-            return new Matrix(v);
+            return new Matrix(Matrix.vect(this.val, matrix.val));
         }
 
         // matrix * matrix
-        let m = [];
-        for(let i in this.val) {
-            let c = [];
-            for(let j in matrix.val) {
-                c.push(matrix.val[j][i]);
-            }
-            m.push(this.multiply(new Matrix(c)).val);
-        }
-        return (new Matrix(m)).transpose();
+        return (new Matrix(Matrix.mult(this.val, matrix.val))).transpose();
     }
 
     /**
@@ -432,10 +523,10 @@ class SquareMatrix extends Matrix {
         }
         const mx = this.transpose();
         let inv = [];
-        for (let i = 0; i < mx.length; ++i) {
+        for (let i = 0; i < mx.size; ++i) {
             let invRow = [];
             let mult = 1;
-            for(let j = 0; j < mx.length; ++j) {
+            for(let j = 0; j < mx.size; ++j) {
                 mult = Math.pow(-1,i + j);
                 invRow.push((mult / d) * mx.minor(i, j).det());
             }
@@ -465,14 +556,186 @@ class SquareMatrix extends Matrix {
         }
         return new SquareMatrix(m);
     }
+
+    /**
+     * Trace of this matrix
+     */
+    trace() {
+        return this.val.reduce((p, n, i) => p + n[i], 0);
+    }
+
+    /**
+     * Transpose of this matrix, as a SquareMatrix
+     * @returns {SquareMatrix}
+     */
+    transpose() {
+        return new SquareMatrix(super.transpose().val);
+    }
 }
 
 /*
- * The 2-dimensional identity matrix
+ * The n-dimensional identity matrix
  */
 class IdentityMatrix extends SquareMatrix {
-    constructor() {
-        super([[1, 0, 0], [0, 1, 0], [0, 0, 1]]);
+    /**
+     * @param {number} size - number of rows/columms
+     */
+    constructor(size=3) {
+        const m = [];
+        for (let i = 0; i < size; ++i) {
+            const n = [];
+            for (let j = 0; j < size; ++j) {
+                n.push(i === j ? 1 : 0);
+            }
+            m.push(n);
+        }
+        super(m);
+    }
+}
+
+/**
+ * 4-dimensional transformation matrix
+ */
+class AffineMatrix extends SquareMatrix {
+    constructor(val=new IdentityMatrix(4).val) {
+        if (val.length !== 4) {
+            throw new Error ('Affine Matrix must be 4x4: ' + val);
+        }
+        super(val);
+    }
+
+    multiplyAffine(matrix) {
+        return new AffineMatrix(this.multiply(matrix).val);
+    }
+
+    getLinearMinor() {
+        return this.minor(3, 3);
+    }
+
+    getRotation() {
+        return RotationMatrix.fromVal(this.val);
+    }
+
+    getTranslation() {
+        return new TranslationMatrix(this.transpose().val[3].slice(0, 3));
+    }
+}
+
+/*
+ * Rotation about arbitrary axis - note this is 4 x 4 and will need to multiply a vector [x, y, z, 0]
+ */
+class RotationMatrix extends AffineMatrix {
+
+    static fromVal(val) {
+        const r = new RotationMatrix();
+        r.val = val;
+        const m = r.minor(3, 3);
+        if (! m.equalWithin(m.det(), 1) || ! m.inverse().equals(m.transpose())) {
+            throw new Error('Not a rotation: ' + val);
+        }
+        return r;
+    }
+
+    /**
+     * @param {[number]} axis - axis of rotation
+     * @param {[number]} point - a point that the axis contains
+     * @param {number} angle - rotation angle in radians
+     */
+    constructor(axis=[0, 0, 1], point=[0, 0, 0], angle=0.0) {
+        const cs = Math.cos(angle);
+        const cs1 = 1 - cs;
+        const s = Math.sin(angle);
+
+        const A = point[0];
+        const B = point[1];
+        const C = point[2];
+
+        const nv = VectorUtils.normalize(axis);
+        const u = nv[0];
+        const v = nv[1];
+        const w = nv[2];
+        const m = [
+            [
+                u * u + (v * v + w * w) * cs,
+                u * v * cs1 - w * s,
+                u * w * cs1 + v * s,
+                (A * (v * v + w * w) - u * (B * v + C * w)) * cs1 + (B * w - C * v) * s
+            ],
+            [
+                u * v * cs1 + w * s,
+                v * v + (u * u + w * w) * cs,
+                v * w * cs1 - u * s,
+                (B * (u * u + w * w) - v * (A * u + C * w)) * cs1 + (C * u - A * w) * s
+            ],
+            [
+                u * w * cs1 - v * s,
+                v * w * cs1 + u * s,
+                w * w + (u * u + v * v) * cs,
+                (C * (u * u + v * v) - w * (A * u + B * v)) * cs1 + (A * v - B * u) * s
+            ],
+            [0, 0, 0, 1]
+        ];
+        super(m);
+    }
+
+    toEuler(toDegrees=false) {
+        let theta = -Math.asin(this.val[2][0]);
+        const c = Math.cos(theta);
+        let psi = 0;
+        let phi = 0;
+        if (c === 0) {
+            if (this.val[2][0] === -1) {
+                theta = Math.PI / 2;
+                psi = phi + Math.atan2(this.val[0][1], this.val[0][0]);
+            }
+            else {
+                theta = -Math.PI / 2;
+                psi = -phi + Math.atan2(-this.val[0][1], -this.val[0][0]);
+            }
+        }
+        else {
+            psi = Math.atan2(this.val[2][1] / c, this.val[2][2] / c);
+            phi = Math.atan2(this.val[1][0] / c, this.val[0][0] / c);
+        }
+        return [psi, theta, phi].map(x => toDegrees ? GeometryUtils.toDegrees(x) : x);
+    }
+}
+
+/**
+ * Affine transformation for reflections through an arbitrary plane
+ */
+class ReflectionMatrix extends AffineMatrix {
+    /**
+     * @param {Plane} plane - reflection plane
+     */
+    constructor(plane) {
+        const n = plane.norm;
+        const p = plane.point.coords();
+        const d = -n[0] * p[0] - n[1] * p[1] - n[2] * p[2];
+        const m = [
+            [1 - 2 * n[0] * n[0], -2 * n[0] * n[1], -2 * n[0] * n[2], -2 * n[0] * d],
+            [-2 * n[1] * n[0], 1 - 2 * n[1] * n[1], -2 * n[1] * n[2], -2 * n[1] * d],
+            [-2 * n[2] * n[0], -2 * n[2] * n[1], 1 - 2 * n[2] * n[2], -2 * n[2] * d],
+            [0, 0, 0, 1]
+        ];
+        super(m);
+        this.plane = plane;
+    }
+}
+
+/**
+ * Affine transformation for translations
+ */
+class TranslationMatrix extends AffineMatrix {
+    /**
+     * @param {[number]} deltas - translation in each direction
+     */
+    constructor(deltas) {
+        super();
+        for (let i in deltas) {
+            this.val[i][3] = deltas[i];
+        }
+        this.deltas = deltas;
     }
 }
 
@@ -550,13 +813,13 @@ class Transform extends GeometricObject {
         }
         return str;
     }
-
 }
 
 /*
  * A point in 2 or 3 dimensions
  */
 class Point extends GeometricObject {
+
     /**
      * @param {number} x - the x coordinate
      * @param {number} y - the y coordinate
@@ -583,7 +846,18 @@ class Point extends GeometricObject {
      * @returns {[number]}
      */
     coords() {
-        return [this.x, this.y, this.z];
+        return [this.x, this.y, this.z].slice(0, this.dimension);
+    }
+
+    /**
+     * Determines whether the coordinate at the given index of this point and the given point are
+     * equal according to equalWithin
+     * @param {Point} point - another Point
+     * @param {number} index - index of the coordinate
+     * @returns {boolean}
+     */
+    coordEquals(point, index) {
+        return this.equalWithin(this.coords()[index], point.coords()[index]);
     }
 
     /**
@@ -593,7 +867,7 @@ class Point extends GeometricObject {
      * @throws - if the two points have different dimensions
      */
     dist(point) {
-        if (this.dimension != point.dimension) {
+        if (this.dimension !== point.dimension) {
             throw new Error('Points in array have different dimensions: ' + this.dimension + ' != ' + point.dimension);
         }
         return Math.hypot(point.x - this.x, point.y - this.y, point.z - this.z);
@@ -644,7 +918,143 @@ class Point extends GeometricObject {
         }
         return new Point(0, 0, 0);
     }
+}
 
+/**
+ * A plane defined by a normal vector and a point
+ */
+class Plane extends GeometricObject {
+    /**
+     * @param {[number]} normal vector - will be normalized
+     * @param {Point} point
+     */
+    constructor(norm, point=new Point()) {
+        if (VectorUtils.isZero(norm)) {
+            throw new Error('Must specify a non-zero plane normal: ' + norm);
+        }
+        super();
+        this.norm = VectorUtils.normalize(norm);
+        this.point = point;
+        this.pointCoords = point.coords();
+        this.A = this.norm[0];
+        this.B = this.norm[1];
+        this.C = this.norm[2];
+        this.D = VectorUtils.dot(this.norm, this.pointCoords);
+    }
+
+    closestPointToPoint(p) {
+        const d = this.distToPoint(p, true);
+        const pc = p.coords();
+        return new Point(...[pc[0] - d * this.A, pc[1] - d * this.B, pc[2] - d * this.C]);
+    }
+
+    containsPoint(p) {
+        return this.equalWithin(VectorUtils.dot(this.norm, p.coords()), this.D);
+    }
+
+    distToPoint(p, signed) {
+        const d = (1 / Math.hypot(...this.norm) *
+            (VectorUtils.dot(this.norm, p.coords()) - this.D));
+        return signed ? d : Math.abs(d);
+    }
+
+    equals(otherPlane) {
+        if (! this.isParallelTo(otherPlane)) {
+            return false;
+        }
+        return this.D === otherPlane.D;
+    }
+
+    intersection(otherPlane) {
+        if (this.equals(otherPlane)) {
+            // planes are equal, return an arbitrary line containing the point
+            // need ensure they are not the same point!  Use random number?
+            return new Line(this.point, this.pointInPlane());
+        }
+        // parallel but not equal, there is no intersection
+        if (this.isParallelTo(otherPlane)) {
+            return null;
+        }
+        const p1 = this.paramLine(otherPlane)(0);
+        const p2 = this.paramLine(otherPlane)(1);
+        return new Line(new Point(...p1), new Point(...p2));
+    }
+
+    intersectsLine(l) {
+        const pts = l.points();
+        const p1 = pts[0].coords();
+        const p2 = pts[1].coords();
+        let dp = VectorUtils.dot(
+            [p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]],
+            this.norm
+        );
+        if (dp !== 0) {
+            return true;
+        }
+        const pp = this.pointInPlane().coords();
+        const d = [pp[0] - p1[0], pp[1] - p1[1], pp[2] - p1[2]];
+        dp = VectorUtils.dot(d, this.norm);
+        return dp === 0;
+    }
+
+    isParallelTo(otherPlane) {
+        return this.equalWithin(this.A, otherPlane.A) &&
+            this.equalWithin(this.B, otherPlane.B) &&
+            this.equalWithin(this.C, otherPlane.C);
+    }
+
+    mirrorPoint(p) {
+        const cp = this.closestPointToPoint(p).coords();
+        const d = this.distToPoint(p, true);
+        return new Point(...[cp[0] - d * this.A,  cp[1] - d * this.B,  cp[2] - d * this.C]);
+    }
+
+    paramLine(otherPlane, t) {
+        let freeIndex = 0;
+        let i = 1;
+        let j = 2;
+        let d = 0;
+        for (freeIndex = 0; freeIndex < 3; ++freeIndex) {
+            i = (freeIndex + 1) % 3;
+            j = (freeIndex + 2) % 3;
+            d = this.norm[i] * otherPlane.norm[j] - this.norm[j] * otherPlane.norm[i];
+            if (d !== 0) {
+                break;
+            }
+        }
+        return t => {
+            const p = [0, 0, 0];
+            p[freeIndex] = t;
+            p[i] = ((otherPlane.norm[j] * this.D - this.norm[j] * otherPlane.D) +
+                t * (this.norm[j] * otherPlane.norm[freeIndex] - otherPlane.norm[j] * this.norm[freeIndex])) / d;
+            p[j] = ((this.norm[i] * otherPlane.D - otherPlane.norm[i] * this.D) +
+                t * (this.norm[i] * otherPlane.norm[freeIndex] - otherPlane.norm[i] * this.norm[freeIndex])) / d;
+            return p;
+        };
+    }
+
+    pointInPlane(fixedVal) {
+        if (fixedVal !== 0 && ! fixedVal) {
+            fixedVal = 1;
+        }
+        // check if plane norm is along a basis vector - if so, any values in the remaining coords
+        // satisfy the plane's equation
+        for (let v of GeometryUtils.BASIS_VECTORS()) {
+            if (VectorUtils.dot(v, this.norm) === 1) {
+                return new Point(VectorUtils.subtract([1, 1, 1], v));
+            }
+        }
+        // if a coord is 0 - can't all be 0 so at most one - the equation of the plane
+        // is also the equation of a line.  If no coords are 0 we can arbitrarily set z to 0
+        const non0 = [[1, 2], [0, 2], [0, 1]];
+        const ptArr = [0, 0, 0];
+        let zIdx = this.norm.indexOf(0);
+        zIdx = zIdx >= 0 ? zIdx : 2;
+        const nzIdxs = non0[zIdx];
+        ptArr[nzIdxs[0]] = fixedVal;
+        ptArr[nzIdxs[1]] = -fixedVal * this.norm[nzIdxs[0]] / this.norm[nzIdxs[1]];
+        return new Point(...ptArr);
+    }
 }
 
 /*
@@ -662,6 +1072,27 @@ class Line extends GeometricObject {
         this.points = [point1, point2];
     }
 
+    /**
+     * Compares a given Point to this line, in the following sense:
+     * - if the Point is on this Line, return 0
+     * - if the Line is vertical, return 1 if the x coordinate of the Point is greater than the Line's, else -1
+     * - if the Line is horizontal, return 1 if the y coordinate of the Point is greater than the Line's, else -1
+     * - otherwise, return 1 if the y coordinate of the Point lies above the Line, else -1
+     * @param {Point} point - the point to compare
+     * @returns {number} - -1|0|1
+     */
+    comparePoint(point) {
+        if (this.contains(point)) {
+            return 0;
+        }
+        if (this.slope() === Infinity) {
+            return point.x > this.points[0].x ? 1 : -1;
+        }
+        if (this.slope() === 0) {
+            return point.y > this.points[0].y ? 1 : -1;
+        }
+        return point.y > this.slope() * point.x + this.intercept() ? 1 : -1;
+    }
 
     /**
      * Determines whether the given Point is on this Line, that is it satisfies:
@@ -676,7 +1107,7 @@ class Line extends GeometricObject {
         }
         return this.equalWithin(point.y, s * point.x + this.intercept());
     }
-
+    
     /**
      * Determines whether this Line is equal to another, according to the following criteria:
      *  - if the slopes of each are Infinite, and they have the same x coordinate, they are equal
@@ -730,23 +1161,6 @@ class Line extends GeometricObject {
     slope() {
         return this.points[1].x === this.points[0].x ? Infinity :
             (this.points[1].y - this.points[0].y) / (this.points[1].x - this.points[0].x);
-    }
-
-    /**
-     * Compares a given Point to this line, in the following sense:
-     * - if the Point is on this Line, return 0
-     * - if the Line is vertical, return 1 if the x coordinate of the Point is greater than the Line's, else -1
-     * - otherwise, return 1 if the y coordinate of the Point lies above the Line, else -1
-     * @returns {number} - -1|0|1
-     */
-    comparePoint(point) {
-        if (this.contains(point)) {
-            return 0;
-        }
-        if (this.slope() === Infinity) {
-            return point.x > this.points[0].x ? 1 : -1;
-        }
-        return point.y > this.slope() * point.x + this.intercept() ? 1 : -1;
     }
 
     /**
@@ -1055,6 +1469,47 @@ class Rect extends GeometricObject {
      */
     width() {
         return this.sides()[1].length();
+    }
+}
+
+/**
+ * Vector-specific utilities
+ */
+class VectorUtils {
+
+    static dot(v1, v2) {
+        return v1.reduce((prev, curr, i) => prev + curr * v2[i], 1);
+    }
+
+    static isZero(v) {
+        return v.every(c => c === 0);
+    }
+
+    /**
+     * Normalize a vector
+     * @param {[number]} v
+     * @returns {[number]}
+     */
+    static normalize(v) {
+        return v.map(c => c / Math.hypot(...v));
+    }
+
+    /**
+     * Add two vectors
+     * @param {[number]} v1
+     * @param {[number]} v2
+     * @returns {[number]}
+     */
+    static add(v1, v2) {
+        return this.combine(v1, v2, 1);
+    }
+
+    static combine(v1, v2, c) {
+        return v1.map((x, i) => x + c * v2[i]);
+    }
+
+    static subtract(v1, v2) {
+        return this.combine(v1, v2, -1);
     }
 }
 
@@ -1423,7 +1878,7 @@ SIREPO.app.service('geometry', function(utilities) {
             }
             var p1 = this.paramLine(pl2)(0);  // random t?
             var p2 = this.paramLine(pl2)(1);
-            return svc.line(svc.pointFromArr(p1), svc.pointFromArr(p2));
+            return new Line(new Point(...p1), new Point(...p2));
         };
         pl.intersectsLine = function (l) {
             var pts = l.points();
@@ -1772,43 +2227,6 @@ SIREPO.app.service('geometry', function(utilities) {
         });
     };
 
-    // for rotation about arbitrary axis - note this is 4 x 4 and will need to multiply a vector [x, y, z, 0]
-    this.rotationMatrix = function(pointCoords, vector, angle) {
-        var cs = Math.cos(angle);
-        var cs1 = 1 - cs;
-        var s = Math.sin(angle);
-
-        var A = pointCoords[0];
-        var B = pointCoords[1];
-        var C = pointCoords[2];
-
-        var nv = svc.normalize(vector);
-        var u = nv[0];
-        var v = nv[1];
-        var w = nv[2];
-        return [
-            [
-                u * u + (v * v + w * w) * cs,
-                u * v * cs1 - w * s,
-                u * w * cs1 + v * s,
-                (A * (v * v + w * w) - u * (B * v + C * w)) * cs1 + (B * w - C * v) * s
-            ],
-            [
-                u * v * cs1 + w * s,
-                v * v + (u * u + w * w) * cs,
-                v * w * cs1 - u * s,
-                (B * (u * u + w * w) - v * (A * u + C * w)) * cs1 + (C * u - A * w) * s
-            ],
-            [
-                u * w * cs1 - v * s,
-                v * w * cs1 + u * s,
-                w * w + (u * u + v * v) * cs,
-                (C * (u * u + v * v) - w * (A * u + B * v)) * cs1 + (A * v - B * u) * s
-            ],
-            [0, 0, 0, 1]
-        ];
-    };
-
     this.transform = function (matrix) {
 
         var identityMatrix = [
@@ -2074,13 +2492,19 @@ SIREPO.app.service('geometry', function(utilities) {
 });
 
 SIREPO.GEOMETRY = {
+    AffineMatrix: AffineMatrix,
     GeometricObject: GeometricObject,
     GeometryUtils: GeometryUtils,
     IdentityMatrix: IdentityMatrix,
+    Line: Line,
     LineSegment: LineSegment,
     Matrix: Matrix,
+    Plane: Plane,
     Point: Point,
     Rect: Rect,
+    ReflectionMatrix: ReflectionMatrix,
+    RotationMatrix: RotationMatrix,
     SquareMatrix: SquareMatrix,
     Transform: Transform,
+    TranslationMatrix: TranslationMatrix,
 };

@@ -2,26 +2,28 @@ import numpy as np
 import os
 import sirepo.numpy
 import sirepo.sim_data.activait
+from sklearn.preprocessing import MinMaxScaler
 
-{% if dataFile_inputsScaler != 'None' %}
+
+{% if dataFile_inputsScaler != 'None' and dataFile_inputsScaler != "MinMaxScaler" %}
 from sklearn.preprocessing import {{ dataFile_inputsScaler }}
 {% endif %}
-{% if dataFile_outputsScaler != 'None' and dataFile_outputsScaler != dataFile_inputsScaler %}
+{% if dataFile_outputsScaler != 'None' and dataFile_outputsScaler != dataFile_inputsScaler  and dataFile_outputsScaler != "MinMaxScaler" %}
 from sklearn.preprocessing import {{ dataFile_outputsScaler }}
 {% endif %}
 
-def read_data(data_reader, data_path, **kwargs):
-    return sirepo.numpy.ndarray_from_ctx(
-        data_reader.data_context_manager(data_path),
+def read_data(data_reader, **kwargs):
+    return sirepo.numpy.ndarray_from_generator(
+        data_reader.csv_generator(),
         {{ 1 if columnInfo_hasHeaderRow else 0 }},
         **kwargs,
     )
 
 
 {% if dataFile_appMode == 'classification' or dataFile_appMode == 'regression' %}
-def read_data_and_encode_output_column(data_reader, data_path, column_types):
+def read_data_and_encode_output_column(data_reader, column_types):
     from sklearn.preprocessing import LabelEncoder
-    _DATA_TYPE = np.float
+    _DATA_TYPE = np.double
 
     def save_encoding_file(encoder):
         from pykern import pkjson
@@ -36,7 +38,7 @@ def read_data_and_encode_output_column(data_reader, data_path, column_types):
             filename='{{ classificationOutputColEncodingFile }}',
         )
 
-    v = read_data(data_reader, data_path, dtype=None, encoding='utf=8')
+    v = read_data(data_reader, dtype=None, encoding='utf=8')
     if len(v.dtype.descr) > 1:
         descr = v.dtype.descr
         output_encoding = None
@@ -45,7 +47,7 @@ def read_data_and_encode_output_column(data_reader, data_path, column_types):
             if np.dtype(ft[1]).kind == 'U':
                 if column_types[idx] == 'none':
                     v[ft[0]] = 0
-                    descr[idx] = (ft[0], np.float)
+                    descr[idx] = (ft[0], np.double)
                 else:
                     encoder = LabelEncoder().fit(v[ft[0]])
                     v[ft[0]] = encoder.transform(v[ft[0]])
@@ -60,16 +62,24 @@ def read_data_and_encode_output_column(data_reader, data_path, column_types):
 
 def scale_columns(values, column_types, col_type, scaler):
     columns = list(filter(lambda idx: column_types[idx] == col_type, range(len(column_types))))
-    if scaler and len(columns):
+    if not len(columns):
+        return columns
+    if scaler and scaler == MinMaxScaler:
+        values[:, columns] = scaler(feature_range=({{ feature_min }}, {{ feature_max }})).fit_transform(values[:, columns])
+    if scaler:
         values[:, columns] = scaler().fit_transform(values[:, columns])
     return columns
 
 
-def scale_file(data_reader, data_path, column_types, inputs_scaler, outputs_scaler):
+def scale_file(data_reader, column_types, inputs_scaler, outputs_scaler):
     {% if dataFile_appMode == 'classification' or dataFile_appMode == 'regression' %}
-    v = read_data_and_encode_output_column(data_reader, data_path, column_types)
+    {% if image_data %}
+    v = read_data(data_reader)
     {% else %}
-    v = read_data(data_reader, data_path)
+    v = read_data_and_encode_output_column(data_reader, column_types)
+    {% endif %}
+    {% else %}
+    v = read_data(data_reader)
     {% endif %}
     in_idx = scale_columns(v, column_types, 'input', inputs_scaler)
     out_idx = scale_columns(v, column_types, 'output', outputs_scaler)
@@ -79,8 +89,7 @@ def scale_file(data_reader, data_path, column_types, inputs_scaler, outputs_scal
 
 
 scaled, in_idx, out_idx = scale_file(
-    sirepo.sim_data.activait.DataReader('{{ dataFile }}'),
-    '{{ dataPath }}',
+    sirepo.sim_data.activait.DataReaderFactory.build('{{ dataFile }}', '{{ dataPath }}'),
     {{ columnTypes }},
     {{ dataFile_inputsScaler }},
 {% if dataFile_appMode == 'classification' %}
@@ -89,3 +98,6 @@ scaled, in_idx, out_idx = scale_file(
     {{ dataFile_outputsScaler }},
 {% endif %}
 )
+
+input_shape = (len(in_idx),)
+output_shape = len(out_idx)

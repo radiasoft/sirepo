@@ -4,11 +4,9 @@
 :copyright: Copyright (c) 2015-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from openpmd_viewer import OpenPMDTimeSeries
 from openpmd_viewer.openpmd_timeseries import main
 from openpmd_viewer.openpmd_timeseries.data_reader import field_reader
-from pykern import pkcollections
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
@@ -18,8 +16,8 @@ import h5py
 import numpy
 import os
 import os.path
-import py.path
 import re
+import sirepo.feature_config
 import sirepo.sim_data
 
 
@@ -49,10 +47,27 @@ def background_percent_complete(report, run_dir, is_running):
         percent_complete = 0
     elif percent_complete > 1.0:
         percent_complete = 1.0
+    fc = file_index + 1
     return PKDict(
         lastUpdateTime=last_update_time,
         percentComplete=percent_complete * 100,
-        frameCount=file_index + 1,
+        frameCount=fc,
+        reports=[
+            PKDict(
+                modelName="fieldAnimation",
+                frameCount=fc,
+            ),
+            PKDict(
+                modelName="particleAnimation",
+                frameCount=fc,
+            ),
+            PKDict(
+                modelName="beamAnimation",
+                frameCount=fc
+                if data.models.simulation.sourceType == "electronBeam"
+                else 0,
+            ),
+        ],
     )
 
 
@@ -90,47 +105,62 @@ def extract_field_report(field, coordinate, mode, data_file):
 
 def extract_particle_report(frame_args, particle_type):
     data_file = open_data_file(frame_args.run_dir, frame_args.frameIndex)
-    xarg = frame_args.x
-    yarg = frame_args.y
-    nbins = frame_args.histogramBins
     opmd = _opmd_time_series(data_file)
     data_list = opmd.get_particle(
-        var_list=[xarg, yarg],
+        var_list=[frame_args.x, frame_args.y],
         species=particle_type,
         iteration=numpy.array([data_file.iteration]),
         select=None,
         output=True,
         plot=False,
     )
-    with h5py.File(data_file.filename) as f:
-        data_list.append(main.read_species_data(f, particle_type, "w", ()))
+    if sirepo.feature_config.cfg().is_fedora_36:
+        from openpmd_viewer.openpmd_timeseries.data_reader import h5py_reader
+        from openpmd_viewer.openpmd_timeseries.data_reader import particle_reader
+
+        data_list.append(
+            h5py_reader.particle_reader.read_species_data(
+                data_file.filename, data_file.iteration, particle_type, "w", ()
+            )
+        )
+    else:
+        with h5py.File(data_file.filename) as f:
+            data_list.append(main.read_species_data(f, particle_type, "w", ()))
     select = _particle_selection_args(frame_args)
     if select:
-        with h5py.File(data_file.filename) as f:
-            main.apply_selection(f, data_list, select, particle_type, ())
-    xunits = " [m]" if len(xarg) == 1 else ""
-    yunits = " [m]" if len(yarg) == 1 else ""
+        if sirepo.feature_config.cfg().is_fedora_36:
+            from openpmd_viewer.openpmd_timeseries.data_reader import particle_reader
 
-    if xarg == "z":
+            # TODO(e-carlin): use with to close file
+            main.apply_selection(
+                h5py.File(data_file.filename, "r"),
+                particle_reader,
+                data_list,
+                select,
+                particle_type,
+                (),
+            )
+        else:
+            with h5py.File(data_file.filename) as f:
+                main.apply_selection(f, data_list, select, particle_type, ())
+
+    if frame_args.x == "z":
         data_list = _adjust_z_width(data_list, data_file)
 
-    hist, edges = numpy.histogramdd(
-        [data_list[0], data_list[1]],
-        template_common.histogram_bins(nbins),
+    return template_common.heatmap(
+        values=[data_list[0], data_list[1]],
+        model=PKDict(histogramBins=frame_args.histogramBins),
+        plot_fields=PKDict(
+            x_label="{}{}".format(
+                frame_args.x, " [m]" if len(frame_args.x) == 1 else ""
+            ),
+            y_label="{}{}".format(
+                frame_args.y, " [m]" if len(frame_args.y) == 1 else ""
+            ),
+            title="t = {}".format(_iteration_title(opmd, data_file)),
+            frameCount=data_file.num_frames,
+        ),
         weights=data_list[2],
-        range=[
-            _select_range(data_list[0], xarg, select),
-            _select_range(data_list[1], yarg, select),
-        ],
-    )
-    return PKDict(
-        x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
-        y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        x_label="{}{}".format(xarg, xunits),
-        y_label="{}{}".format(yarg, yunits),
-        title="t = {}".format(_iteration_title(opmd, data_file)),
-        z_matrix=hist.T.tolist(),
-        frameCount=data_file.num_frames,
     )
 
 
@@ -160,7 +190,7 @@ def get_data_file(run_dir, model, frame, options):
     return files[int(frame)]
 
 
-def new_simulation(data, new_simulation_data):
+def new_simulation(data, new_simulation_data, qcall, **kwargs):
     source = new_simulation_data["sourceType"]
     if not source:
         source = "laserPulse"
@@ -199,7 +229,7 @@ def open_data_file(run_dir, file_index=None):
     """Opens data file_index'th in run_dir
 
     Args:
-        run_dir (py.path): has subdir ``hdf5``
+        run_dir (pkio.py_path): has subdir ``hdf5``
         file_index (int): which file to open (default: last one)
         files (list): list of files (default: load list)
 
@@ -215,7 +245,7 @@ def open_data_file(run_dir, file_index=None):
     return res
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model, qcall, **kwargs):
     return generate_parameters_file(data, is_parallel=True)
 
 
@@ -251,7 +281,7 @@ def write_parameters(data, run_dir, is_parallel):
 
     Args:
         data (dict): input
-        run_dir (py.path): where to write
+        run_dir (pkio.py_path): where to write
         is_parallel (bool): run in background?
     """
     pkio.write_text(
@@ -290,14 +320,32 @@ def _iteration_title(opmd, data_file):
 
 
 def _opmd_time_series(data_file):
-    prev = None
-    try:
-        prev = main.list_h5_files
-        main.list_h5_files = lambda x: ([data_file.filename], [data_file.iteration])
-        return OpenPMDTimeSeries(py.path.local(data_file.filename).dirname)
-    finally:
-        if prev:
-            main.list_h5_files = prev
+    # OpenPMDTimeSeries uses list_files or list_h5_files to collect
+    # all h5 files in the current directory. We only want the file for
+    # a specific iteration. So, monkeypatch the method to return just
+    # the file we are interested in.
+    if sirepo.feature_config.cfg().is_fedora_36:
+        from openpmd_viewer.openpmd_timeseries.data_reader import h5py_reader
+
+        p = h5py_reader.list_files
+        try:
+            d = PKDict()
+            d[data_file.iteration] = data_file.filename
+            h5py_reader.list_files = lambda x: ([data_file.iteration], d)
+            return OpenPMDTimeSeries(
+                pkio.py_path(data_file.filename).dirname, backend="h5py"
+            )
+        finally:
+            h5py_reader.list_files = p
+    else:
+        prev = None
+        try:
+            prev = main.list_h5_files
+            main.list_h5_files = lambda x: ([data_file.filename], [data_file.iteration])
+            return OpenPMDTimeSeries(pkio.py_path(data_file.filename).dirname)
+        finally:
+            if prev:
+                main.list_h5_files = prev
 
 
 def _particle_selection_args(args):

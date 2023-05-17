@@ -1,0 +1,38 @@
+{
+    "models": {
+        "analysisAnimation": {},
+        "inputFiles": {
+            "mask": null
+        },
+        "metadataColumns": {
+            "selected": []
+        },
+        "simulation": {
+            "folder": "/Examples",
+            "isExample": true,
+            "name": "CHX Analysis"
+        },
+        "catalog": {
+            "catalogName": "chx"
+        },
+        "executedScans": {
+            "searchStartTime": null,
+            "searchStopTime": null,
+            "scans": []
+        },
+        "queuedScans": {
+            "scans": []
+        },
+        "replay": {
+            "sourceCatalog": null,
+            "destinationCatalog": null,
+            "numScans": null
+        },
+        "runAnalysis": {
+            "searchStartTime": null,
+            "searchStopTime": null,
+            "scans": []
+        }
+    },
+    "simulationType": "raydata"
+}

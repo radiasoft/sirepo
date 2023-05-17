@@ -81,6 +81,34 @@ _SETTINGS_KICKER_SYMBOLS = PKDict(
 )
 
 
+def analysis_job_enable_steering(data, run_dir, **kwargs):
+    if run_dir.exists():
+        simulation_db.write_json(run_dir.join(STEERING_FILE), data["beamSteering"])
+    return PKDict()
+
+
+def analysis_job_read_epics_kickers(data, **kwargs):
+    return PKDict(
+        kickers=read_epics_values(
+            data.epicsServerAnimation.serverAddress,
+            CURRENT_FIELDS,
+        ),
+    )
+
+
+def analysis_job_update_kicker(data, run_dir, **kwargs):
+    # data validation is done by casting values to int() or float()
+    prefix = "sr_epics:corrector{}:".format(int(data["epics_field"]))
+    fields = []
+    values = []
+    for f in "h", "v":
+        field = "{}{}Current".format(prefix, f.upper())
+        fields.append(field)
+        values.append(float(data["kicker"]["{}kick".format(f)]))
+    update_epics_kickers(data.epicsServerAnimation, run_dir, fields, values)
+    return PKDict()
+
+
 def background_percent_complete(report, run_dir, is_running):
     if report == "epicsServerAnimation" and is_running:
         monitor_file = run_dir.join(MONITOR_LOGFILE)
@@ -164,16 +192,6 @@ def get_analysis_report(run_dir, data):
             summaryData=PKDict(),
         ),
     )
-
-
-def get_application_data(data, **kwargs):
-    if data["method"] == "update_kicker":
-        return _update_epics_kicker(data)
-    if data["method"] == "read_kickers":
-        return _read_epics_kickers(data)
-    if data["method"] == "enable_steering":
-        return _enable_steering(data)
-    assert False, "unknown application_data method: {}".format(data["method"])
 
 
 def get_beam_pos_report(run_dir, data):
@@ -346,7 +364,7 @@ def get_settings_report(run_dir, data):
 #    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
-def export_jupyter_notebook(data):
+def export_jupyter_notebook(data, qcall, **kwargs):
     import sirepo.jupyter
 
     nb = sirepo.jupyter.Notebook(data)
@@ -366,7 +384,8 @@ def export_jupyter_notebook(data):
     nb.add_markdown_cell("Exported Data", header_level=2)
     nb.add_code_cell(
         _data_cell(
-            str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data))), data_var
+            str(_SIM_DATA.lib_file_abspath(_analysis_data_path(data), qcall=qcall)),
+            data_var,
         ),
         hide=True,
     )
@@ -463,8 +482,8 @@ def export_jupyter_notebook(data):
     return nb
 
 
-def python_source_for_model(data, model):
-    return _generate_parameters_file(None, data)
+def python_source_for_model(data, model, qcall, **kwargs):
+    return _generate_parameters_file(None, data, qcall=qcall)
 
 
 def read_epics_values(server_address, fields):
@@ -481,10 +500,10 @@ def run_epics_command(server_address, cmd):
     return template_common.subprocess_output(cmd, epics_env(server_address))
 
 
-def stateful_compute_column_info(data):
+def stateful_compute_column_info(data, **kwargs):
     data = PKDict(
         models=PKDict(
-            analysisData=data["analysisData"],
+            analysisData=data.args["analysisData"],
         ),
     )
     return PKDict(
@@ -660,7 +679,6 @@ def _beam_pos_plots(data, history, start_time):
 
 # arrange historical data for ease of plotting
 def _bpm_readings_for_plots(data, history, start_time):
-
     bpms = _monitor_data_for_plots(data, history, start_time, "WATCH")
     all_times = numpy.array([])
     z = numpy.array([])
@@ -927,16 +945,10 @@ def _elements_of_types(data, types):
     return [m for m in data.models.elements if "type" in m and m.type in types]
 
 
-def _enable_steering(data):
-    sim_dir = _epics_dir(data["simulationId"])
-    if sim_dir.exists():
-        # TODO(pjm): use save to tmp followed by mv for atomicity
-        simulation_db.write_json(sim_dir.join(STEERING_FILE), data["beamSteering"])
-    return PKDict()
-
-
-def _epics_dir(sim_id):
-    return simulation_db.simulation_dir(SIM_TYPE, sim_id).join("epicsServerAnimation")
+def _epics_dir(sim_id, qcall):
+    return simulation_db.simulation_dir(SIM_TYPE, sim_id, qcall=qcall).join(
+        "epicsServerAnimation",
+    )
 
 
 def _fit_to_equation(x, y, equation, var, params):
@@ -1009,7 +1021,7 @@ def _fit_to_equation(x, y, equation, var, params):
     )
 
 
-def _generate_parameters_file(run_dir, data):
+def _generate_parameters_file(run_dir, data, qcall=None):
     report = data.get("report", None)
     if report and report != "epicsServerAnimation":
         return ""
@@ -1040,7 +1052,7 @@ def _generate_parameters_file(run_dir, data):
     # TODO(pjm): calling private template.elegant._build_beamline_map()
     data.models.commands = []
     v["currentFile"] = CURRENT_FILE
-    v["fodoLattice"] = elegant.webcon_generate_lattice(data)
+    v["fodoLattice"] = elegant.webcon_generate_lattice(data, qcall=qcall)
     v["BPM_FIELDS"] = BPM_FIELDS
     v["CURRENT_FIELDS"] = CURRENT_FIELDS
     return res + template_common.render_jinja(SIM_TYPE, v)
@@ -1194,13 +1206,6 @@ def _position_of_element(data, id):
     return p[i]
 
 
-def _read_epics_kickers(data):
-    epics_settings = data.epicsServerAnimation
-    return PKDict(
-        kickers=read_epics_values(epics_settings.serverAddress, CURRENT_FIELDS),
-    )
-
-
 def _read_monitor_file(monitor_path, history=False):
     from datetime import datetime
 
@@ -1351,20 +1356,6 @@ def _tokenize_equation(eq):
         for t in re.split(r"[-+*/^|%().0-9\s]", (eq if eq is not None else ""))
         if len(t) > 0
     ]
-
-
-def _update_epics_kicker(data):
-    epics_settings = data.epicsServerAnimation
-    # data validation is done by casting values to int() or float()
-    prefix = "sr_epics:corrector{}:".format(int(data["epics_field"]))
-    fields = []
-    values = []
-    for f in "h", "v":
-        field = "{}{}Current".format(prefix, f.upper())
-        fields.append(field)
-        values.append(float(data["kicker"]["{}kick".format(f)]))
-    update_epics_kickers(epics_settings, _epics_dir(data.simulationId), fields, values)
-    return PKDict()
 
 
 def _validate_eq_var(val):

@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import pytest
 from pykern.pkcollections import PKDict
 import os
@@ -29,7 +28,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
     from pykern import pkio
     from pykern import pkunit
     from pykern.pkdebug import pkdp
-    import sirepo.auth_role
+    from sirepo import auth_role
 
     def _check_run_dir(should_exist=0):
         f = pkio.walk_tree(fc.sr_user_dir(), file_re=m)
@@ -37,14 +36,14 @@ def test_myapp_free_user_sim_purged(auth_fc):
 
     def _make_user_premium(uid):
         from sirepo import srunit
-        import sirepo.pkcli.roles
+        from sirepo.pkcli import roles
 
-        sirepo.pkcli.roles.add_roles(
+        roles.add(
             uid,
-            sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
+            auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
         )
-        with srunit.auth_db_session():
-            r = sirepo.auth_db.UserRole.search_all_for_column("uid")
+        with srunit.quest_start() as qcall:
+            r = qcall.auth_db.model("UserRole").search_all_for_column("uid")
         pkunit.pkeq(r, [uid], "expecting one premium user with same id")
 
     def _run_sim(data):
@@ -61,22 +60,19 @@ def test_myapp_free_user_sim_purged(auth_fc):
     m = "heightWeightReport"
     user_free = "free@b.c"
     user_premium = "premium@x.y"
-    fc.sr_email_register(user_free)
-    fc.sr_email_register(user_premium)
+    fc.sr_email_login(user_free)
+    fc.sr_email_login(user_premium)
     _make_user_premium(fc.sr_auth_state().uid)
     next_req_premium = _run_sim(fc.sr_sim_data())
     fc.sr_email_login(user_free)
     next_req_free = _run_sim(fc.sr_sim_data())
-    fc.sr_get_json(
-        "adjustTime",
-        params=PKDict(days=_PURGE_FREE_AFTER_DAYS + 1),
-    )
-    time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 1)
-    _status_eq(next_req_free, "job_run_purged")
-    _check_run_dir(should_exist=0)
-    fc.sr_email_login(user_premium)
-    _status_eq(next_req_premium, "completed")
-    _check_run_dir(should_exist=7)
+    with fc.sr_adjust_time(_PURGE_FREE_AFTER_DAYS + 1):
+        time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 1)
+        _status_eq(next_req_free, "job_run_purged")
+        _check_run_dir(should_exist=0)
+        fc.sr_email_login(user_premium)
+        _status_eq(next_req_premium, "completed")
+        _check_run_dir(should_exist=7)
 
 
 def test_elegant_no_frame_after_purge(auth_fc):
@@ -86,26 +82,23 @@ def test_elegant_no_frame_after_purge(auth_fc):
 
     fc = auth_fc
     user_free = "free@b.c"
-    fc.sr_email_register(user_free)
+    fc.sr_email_login(user_free)
     d = fc.sr_sim_data(sim_name="Compact Storage Ring", sim_type="elegant")
     r = fc.sr_run_sim(d, "animation")
-    fc.sr_get_json(
-        "adjustTime",
-        params=PKDict(days=_PURGE_FREE_AFTER_DAYS + 1),
-    )
-    time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 1)
-    s = fc.sr_post(
-        "runStatus",
-        PKDict(
-            computeJobHash=r.computeJobHash,
-            models=d.models,
-            report="animation",
-            simulationId=d.models.simulation.simulationId,
-            simulationType=d.simulationType,
-        ),
-    )
-    pkunit.pkeq("job_run_purged", s.state)
-    pkunit.pkeq(
-        0,
-        s.frameCount,
-    )
+    with fc.sr_adjust_time(_PURGE_FREE_AFTER_DAYS + 1):
+        time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 1)
+        s = fc.sr_post(
+            "runStatus",
+            PKDict(
+                computeJobHash=r.computeJobHash,
+                models=d.models,
+                report="animation",
+                simulationId=d.models.simulation.simulationId,
+                simulationType=d.simulationType,
+            ),
+        )
+        pkunit.pkeq("job_run_purged", s.state)
+        pkunit.pkeq(
+            0,
+            s.frameCount,
+        )
