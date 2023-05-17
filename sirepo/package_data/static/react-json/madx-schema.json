@@ -9231,6 +9231,120 @@
                                                                 }
                                                             }
                                                         ]
+                                                    },
+                                                    {
+                                                        "type": "heatplot",
+                                                        "outputInfoUsage": {
+                                                            "schemaModel": "elementAnimation",
+                                                            "modelAlias": "elementAnimation",
+                                                            "xDependency": "elementAnimation.x",
+                                                            "xDefault": "s",
+                                                            "y1Dependency": "elementAnimation.y1",
+                                                            "y1Default": null,
+                                                            "y2Dependency": "elementAnimation.y2",
+                                                            "y2Default": null,
+                                                            "y3Dependency": "elementAnimation.y3",
+                                                            "y3Default": null
+                                                        },
+                                                        "items": [
+                                                            {
+                                                                "layout": "panel",
+                                                                "config": {
+                                                                    "title": "$(outputInfo.title)",
+                                                                    "basic": [
+                                                                        {
+                                                                            "layout": "manualRunReport",
+                                                                            "config": {
+                                                                                "reportGroupName": "animation",
+                                                                                "reportName": "$(outputInfo.modelName)",
+                                                                                "frameIdFields": [
+                                                                                    "elementAnimation.x",
+                                                                                    "elementAnimation.y1",
+                                                                                    "elementAnimation.y2",
+                                                                                    "elementAnimation.y3",
+                                                                                    "elementAnimation.histogramBins",
+                                                                                    "elementAnimation.plotRangeType",
+                                                                                    "elementAnimation.horizontalSize",
+                                                                                    "elementAnimation.horizontalOffset",
+                                                                                    "elementAnimation.verticalSize",
+                                                                                    "elementAnimation.verticalOffset"
+                                                                                ],
+                                                                                "reportLayout": {
+                                                                                    "layout": "heatplot",
+                                                                                    "config": {}
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    ],
+                                                                    "advanced": [
+                                                                        {
+                                                                            "layout": "hStack",
+                                                                            "config": {
+                                                                                "items": [
+                                                                                    {
+                                                                                        "layout": "vStack",
+                                                                                        "config": {
+                                                                                            "items": [
+                                                                                                {
+                                                                                                    "layout": "text",
+                                                                                                    "config": {
+                                                                                                        "type": "header",
+                                                                                                        "align": "left",
+                                                                                                        "text": "Horizontal"
+                                                                                                    }
+                                                                                                },
+                                                                                                {
+                                                                                                    "layout": "fieldList",
+                                                                                                    "config": {
+                                                                                                        "fields": [
+                                                                                                            "elementAnimation.x"
+                                                                                                        ]
+                                                                                                    }
+                                                                                                }
+                                                                                            ]
+                                                                                        }
+                                                                                    },
+                                                                                    {
+                                                                                        "layout": "vStack",
+                                                                                        "config": {
+                                                                                            "items": [
+                                                                                                {
+                                                                                                    "layout": "text",
+                                                                                                    "config": {
+                                                                                                        "type": "header",
+                                                                                                        "align": "left",
+                                                                                                        "text": "Vertical"
+                                                                                                    }
+                                                                                                },
+                                                                                                {
+                                                                                                    "layout": "fieldList",
+                                                                                                    "config": {
+                                                                                                        "fields": [
+                                                                                                            "elementAnimation.y1",
+                                                                                                            "elementAnimation.y2",
+                                                                                                            "elementAnimation.y3"
+                                                                                                        ]
+                                                                                                    }
+                                                                                                }
+                                                                                            ]
+                                                                                        }
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "layout": "fieldList",
+                                                                            "config": {
+                                                                                "fields": [
+                                                                                    "elementAnimation.includeLattice",
+                                                                                    "elementAnimation.notes"
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
                                                     }
                                                 ]
                                             }

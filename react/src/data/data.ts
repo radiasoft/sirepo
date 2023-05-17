@@ -39,6 +39,7 @@ export const getValueSelector = <F>(storeType: StoreType<any, F>): ((v: F) => an
 }
 
 export function newModelFromSchema(modelSchema: SchemaModel, overrides: {[key: string]: any}): ModelState {
+    console.log("modelSchema", modelSchema);
     let defaults = Object.fromEntries(Object.entries(modelSchema).filter(([name, value]) => value.defaultValue !== undefined).map(([name, value]) => [name, value.defaultValue]))
     return Object.assign(defaults, overrides);
 }

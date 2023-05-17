@@ -108,15 +108,21 @@ export function useAnimationReader(reportName: string, reportGroupName: string, 
     let reportEventsVersionRef = useRef(uuidv4())
     let frameIdHandles = frameIdFields.map(f => new Dependency(f)).map(d => handleFactory.createHandle(d, StoreTypes.Models).hook());
 
-    function reportStatus(reportName, simulationData) {
+    function reportStatus(reportName: string, simulationData: ResponseHasState) {
         if (simulationData.reports) {
             for (const r of simulationData.reports) {
                 if (r.modelName === reportName) {
                     return {
-                        frameCount: r.frameCount || r.lastUpdateTime || 0,
+                        frameCount: r.frameCount !== undefined ? r.frameCount : (r.lastUpdateTime || 0),
                         hasAnimationControls: ! r.lastUpdateTime,
                     };
                 }
+            }
+        } else if(simulationData.outputInfo) {
+            let frameCount = (simulationData.outputInfo as any[]).find(o => o.modelKey === reportName).pageCount
+            return {
+                frameCount,
+                hasAnimationControls: frameCount > 1
             }
         }
         return {
@@ -131,10 +137,12 @@ export function useAnimationReader(reportName: string, reportGroupName: string, 
                 updateAnimationReader(undefined);
             },
             onReportData: (simulationData: ResponseHasState) => {
+                console.log("onData");
                 simulationInfoPromise.then(({models, simulationId}) => {
                     let { computeJobHash, computeJobSerial } = simulationData;
                     const s = reportStatus(reportName, simulationData);
                     if (!animationReader || s.frameCount !== animationReader?.frameCount) {
+                        console.log("frameCount", s.frameCount);
                         if (s.frameCount > 0) {
                             let newAnimationReader = new AnimationReader(routeHelper, {
                                 reportName,
@@ -189,6 +197,9 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         //let reportModel = useModelValue(reportName, StoreTypes.Models);
         let reportModel = handleFactory.createModelHandle(reportName, StoreTypes.Models).hook().value;
         let animationReader = useAnimationReader(reportName, reportGroupName, frameIdFields);
+        console.log("shown", shown);
+        console.log("reportLayout", this.reportLayout);
+        console.log("animationReader", animationReader);
         return (
             <>
                 {shown && this.reportLayout &&

@@ -7,10 +7,11 @@ import { ResponseHasState } from "../../utility/compute";
 import { useDispatch, useSelector, useStore } from "react-redux";
 import { modelActions, modelSelectors } from "../../store/models";
 import { CHandleFactory } from "../../data/handle";
-import { newModelFromSchema, StoreType, StoreTypes } from "../../data/data";
+import { newModelFromSchema, StoreTypes } from "../../data/data";
 import { CSchema } from "../../data/appwrapper";
 import { LAYOUTS } from "../layouts";
-import { HandleFactoryWithArrayAliases, HandleFactoryWithOverrides, HandleFactoryWithSimpleAliases } from "../../data/alias";
+import { HandleFactoryWithOverrides, HandleFactoryWithSimpleAliases } from "../../data/alias";
+import { Dependency } from "../../data/dependency";
 
 export type MadxBeamlineReportConfig = {
     type: 'histogram' | 'matchSummary' | 'graph2d',
@@ -38,7 +39,6 @@ export type OutputInfo = {
     filename: string,
     isHistogram: boolean,
     modelKey: string,
-    modelAlias: string,
     pageCount: number,
     plottableColumns: string[],
     _version: string
@@ -93,9 +93,12 @@ export class MadxBeamlineReportsLayout extends Layout<MadxBeamlineReportsConfig>
         return (
             <CReportEventManager.Provider value={customReportEventManager}>
                 {(outputInfo || []).map(o => {
-                    let config = this.config.reports.find(r => r.type === (o.isHistogram ? "histogram" : "graph2d"))
+                    let type = (o.isHistogram ? "heatplot" : "graph2d");
+                    console.log("type", type);
+                    let config = this.config.reports.find(r => r.type === type);
+
                     return (
-                        <MadxBeamlineReportComponent outputInfo={o} config={config} childLayouts={this.childLayouts[config.type]}/>
+                        <MadxBeamlineReportComponent key={o.modelKey} outputInfo={o} config={config} childLayouts={this.childLayouts[config.type]}/>
                     )
                 })}
             </CReportEventManager.Provider>
@@ -119,32 +122,36 @@ export function MadxBeamlineReportComponent(props: {
 
     let chosenNames = [];
     let setPlotColumn = (dep: Dependency, defaultColumn: string) => {
-        let handle = handleFactory.createHandle(dep, StoreTypes.Models).hook();
-        let v = handle.value;
-        if(v === undefined) {
-            if(defaultColumn) {
-                v = defaultColumn;
-            } else {
-                v = props.outputInfo.plottableColumns.find(n => !chosenNames.includes(n));
+        let m = handleFactory.createModelHandle(dep.modelName, StoreTypes.Models).initialize(store.getState()).value;
+
+        if(m) {
+            let handle = handleFactory.createHandle(dep, StoreTypes.Models).initialize(store.getState());
+            let v = handle.value;
+            if(v !== undefined) {
+                chosenNames.push(v);
+                return;
             }
-        } 
+        } else {
+            m = newModelFromSchema(schema.models[props.config.outputInfoUsage.schemaModel], {});
+            dispatch(modelActions.updateModel({
+                name: dep.modelName,
+                value: m
+            }))
+        }
+        
+        let v = undefined;
+        if(defaultColumn) {
+            v = defaultColumn;
+        } else {
+            v = props.outputInfo.plottableColumns.find(n => !chosenNames.includes(n));
+        }
         chosenNames.push(v);
-        handle.write(v, store.getState(), dispatch);
+        handleFactory.createHandle(dep, StoreTypes.Models).initialize(store.getState()).write(v, store.getState(), dispatch);
     }
 
     let [hasInit, updateHasInit] = useState<boolean>(false);
 
-    let modelNames = useSelector(modelSelectors.selectModelNames());
     useEffect(() => {
-        if(!modelNames.includes(props.outputInfo.modelKey)) {
-            let schemaModel = schema.models[props.config.outputInfoUsage.schemaModel];
-            let nm = newModelFromSchema(schemaModel, {});
-            dispatch(modelActions.updateModel({
-                name: props.outputInfo.modelKey,
-                value: nm
-            }))
-        }
-
         ["x", "y1", "y2", "y3"].forEach(n => {
             setPlotColumn(new Dependency(props.config.outputInfoUsage[`${n}Dependency`]), props.config.outputInfoUsage[`${n}Default`] || undefined)
         })
@@ -154,7 +161,7 @@ export function MadxBeamlineReportComponent(props: {
 
     let aliasedHandleFactory = new HandleFactoryWithSimpleAliases(schema, [{
         real: props.outputInfo.modelKey,
-        fake: props.outputInfo.modelAlias
+        fake: props.config.outputInfoUsage.modelAlias
     }], handleFactory);
 
     let overridesHandleFactory = new HandleFactoryWithOverrides(schema, [{
@@ -167,14 +174,16 @@ export function MadxBeamlineReportComponent(props: {
 
     return (
         <>
+            <CHandleFactory.Provider value={overridesHandleFactory}>
             {hasInit && (
-                <CHandleFactory.Provider value={aliasedHandleFactory}>
+                <>
                     {(props.childLayouts || []).map((l, i) => {
                         let Comp = l.component;
                         return <Comp key={i}/>
                     })}
-                </CHandleFactory.Provider>
+                </>
             )}
+            </CHandleFactory.Provider>
         </>
     )
 }

@@ -668,7 +668,12 @@ class LatticeUtil(object):
         By default the commands and elements containers are iterated.
         """
         iterator.id_map = self.id_map
-        e = [self.data.models[name]] if name else self.data.models.commands + list(map(lambda i: i.item, self.data.models.elements.elements))
+        o = None
+        if name == "elements":
+            o = self.data.models.elements.elements
+        elif name == "beamlines":
+            o = self.data.models.lattice.beamlines
+        e = (list(map(lambda i: i.item, o)) if o is not None else self.data.models[name]) if name else self.data.models.commands + list(map(lambda i: i.item, self.data.models.elements.elements))
         for m in e:
             model_schema = self.schema.model[self.model_name_for_data(m)]
             iterator.start(m)

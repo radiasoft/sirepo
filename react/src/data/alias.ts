@@ -42,10 +42,7 @@ export class HandleFactoryWithArrayAliases extends HandleFactory {
     }
 
     createHandle = <M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F, DataHandle<M, F>> => {
-        console.log(`alias handle factory creating handle for ${dependency.getDependencyString()}`);
         let alias = this.aliases.find(a => a.fake === dependency.modelName);
-        console.log(`alias=${alias}`);
-        console.log(`aliases`, this.aliases);
         let getAE = this.getArrayElementFromParentHandle;
         if(alias !== undefined) {
             let edh = this.emptyAliasedHandle(alias.realDataLocation, type);
@@ -141,8 +138,6 @@ export class HandleFactoryWithOverrides extends HandleFactory {
         overrides.forEach(ov => {
             ov.formValue = mapProperties(ov.value, (n, i) => initialFormStateFromValue(i));
         })
-
-        console.log("overrides", overrides);
     }
 
     save: FormActionFunc = (state: any, dispatch: Dispatch<AnyAction>) => {
@@ -182,14 +177,14 @@ export class HandleFactoryWithOverrides extends HandleFactory {
     createHandle = <M, F>(dependency: Dependency, type: StoreType<M, F>): EmptyDataHandle<M, F, DataHandle<M, F>> => {
         let override = this.overrides.find(a => a.fake === dependency.modelName);
         let inst = this;
-        console.log(`resolving dependency=${dependency.getDependencyString()}`)
+        //console.log(`resolving dependency=${dependency.getDependencyString()}`)
         if(override !== undefined) {
-            console.log(`overriding handle for dependency=${dependency.getDependencyString()}, override=${JSON.stringify(override)}`);
+            //console.log(`overriding handle for dependency=${dependency.getDependencyString()}, override=${JSON.stringify(override)}`);
             return new (class implements EmptyDataHandle<M, F> {
                 private createDummyHandle(): DataHandle<M, F> {
                     let mv = type === StoreTypes.Models ? override.value : override.formValue;
                     let fv = mv[dependency.fieldName] as F;
-                    console.log(`${dependency.getDependencyString()} = ${JSON.stringify(fv)}`)
+                    //console.log(`${dependency.getDependencyString()} = ${JSON.stringify(fv)}`)
                     return new (class extends DataHandle<M, F> {
                         write(value: F, state: any, dispatch: Dispatch<AnyAction>) {
                             inst.notify(dependency);
@@ -198,9 +193,7 @@ export class HandleFactoryWithOverrides extends HandleFactory {
                             if(type === StoreTypes.FormState) {
                                 let type = inst.schema.models[dependency.modelName][dependency.fieldName].type
                                 let rawValue = revertDataStructure(value as any, getValueSelector(StoreTypes.FormState));
-                                console.log("rawValue", rawValue);
                                 let v = type.toModelValue(rawValue);
-                                console.log("value", v);
                                 override.value[dependency.fieldName] = v;
                             }
                         }
