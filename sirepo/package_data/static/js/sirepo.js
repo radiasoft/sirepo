@@ -1302,6 +1302,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         };
 
         const requestFunction = function() {
+            const i = appState.models.simulation.simulationId;
             setTimeout(() => {
                 if (! waitTimeHasElapsed) {
                     panelState.setLoading(modelName, true);
@@ -1313,10 +1314,11 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                     '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
+                    const c = appState.models.simulation.simulationId;
                     if (!appState.isLoaded()) {
-                        // TODO 'is it the same simulation that made the request?'
-                        srdbg("appState not loaded");
-                        return
+                        if (! c || c != i) {
+                            return;
+                        }
                     }
                     waitTimeHasElapsed = true;
                     panelState.setLoading(modelName, false);
