@@ -15,14 +15,30 @@
                 "y2": "LLRFSim_Cav1:tphase",
                 "y3": "LLRFSim_Cav1:rphase"
             },
+            "waveformCReport": {
+                "x": "LLRFSim_Sim:timestep",
+                "y1": "LLRFSim_Gen:Ig",
+                "y2": "LLRFSim_Cav2:Vt",
+                "y3": "LLRFSim_Cav2:Vr"
+            },
+            "waveformDReport": {
+                "x": "LLRFSim_Sim:timestep",
+                "y1": "LLRFSim_Gen:phase",
+                "y2": "LLRFSim_Cav2:tphase",
+                "y3": "LLRFSim_Cav2:rphase"
+            },
             "plotLabels": {
                 "LLRFSim_Sim:timestep": "Time [s]",
-                "LLRFSim_Gen:Ig": "Incoming [rad]",
-                "LLRFSim_Cav1:Vt": "Transmitted [rad]",
+                "LLRFSim_Gen:Ig": "Forward [rad]",
+                "LLRFSim_Cav1:Vt": "Probe [rad]",
                 "LLRFSim_Cav1:Vr": "Reflected",
-                "LLRFSim_Gen:phase": "Incoming [rad]",
-                "LLRFSim_Cav1:tphase": "Transmitted [rad]",
-                "LLRFSim_Cav1:rphase": "Reflected"
+                "LLRFSim_Gen:phase": "Forward [rad]",
+                "LLRFSim_Cav1:tphase": "Probe [rad]",
+                "LLRFSim_Cav1:rphase": "Reflected",
+                "LLRFSim_Cav2:Vt": "Probe [rad]",
+                "LLRFSim_Cav2:Vr": "Reflected",
+                "LLRFSim_Cav2:tphase": "Probe [rad]",
+                "LLRFSim_Cav2:rphase": "Reflected"
             }
         }
     },
@@ -54,21 +70,6 @@
         }
     },
     "model": {
-        "LLRFSim_Beam": {
-            "I0S": ["I0S", "ReadOnlyFloat", []],
-            "Ib": ["Ib", "ReadOnlyFloatArray", []],
-            "amp": ["amp", "ReadOnlyFloat", 0],
-            "duration": ["duration", "ReadOnlyFloat", 0],
-            "noise": ["Noise", "EpicsFloat", 0.000],
-            "phase": ["", "ReadOnlyFloatArray", []],
-            "phiB": ["phiB", "EpicsFloat", 0.000],
-            "phiS": ["phiS", "ReadOnlyFloat", 0],
-            "rho": ["rho", "ReadOnlyFloat", 0],
-            "signal_type": ["Signal Type", "EpicsEnum", "flat"],
-            "start": ["start", "ReadOnlyFloat", 0],
-            "wB": ["wB", "EpicsFloat", 0.000],
-            "wS": ["wS", "ReadOnlyFloat", 0]
-        },
         "LLRFSim_Gen": {
             "noise": ["Noise [A]", "EpicsFloat", 0, "standard deviation for generator current white noise"],
             "phiG": ["phiG [rad]", "EpicsFloat", 0, "current envelope phiG"],
@@ -83,18 +84,6 @@
             "duration": ["duration", "ReadOnlyFloat", 0],
             "Ig": ["", "ReadOnlyFloatArray", []],
             "phase": ["", "ReadOnlyFloatArray", []]
-        },
-        "LLRFSim_GenTee": {
-            "alpha": ["alpha", "EpicsFloat", 0],
-            "beta": ["beta", "EpicsFloat", 0],
-            "length": ["length", "EpicsFloat", 1]
-        },
-        "LLRFSim_Feedback": {
-            "delay": ["delay", "ReadOnlyFloat", 0],
-            "int_err": ["int_err", "ReadOnlyFloat", 0],
-            "ki": ["ki", "ReadOnlyFloat", 0],
-            "kp": ["kp", "ReadOnlyFloat", 0],
-            "path": ["path", "String", "accel_feedback.py"]
         },
         "LLRFSim_Cav1": {
             "Q": ["Q", "EpicsFloat", 0, "quality factor"],
@@ -133,94 +122,23 @@
         },
         "simulationStatus": {},
         "waveformAReport": {},
-        "waveformBReport": {}
+        "waveformBReport": {},
+        "waveformCReport": {},
+        "waveformDReport": {}
     },
     "strings": {
         "completionState": "",
         "typeOfSimulation": "monitor"
     },
     "view": {
-        "LLRFSim_Beam": {
-            "title": "Beam",
-            "basic": [
-                "I0S",
-                "Ib",
-                "amp",
-                "duration",
-                "noise",
-                "phase",
-                "phiB",
-                "phiS",
-                "rho",
-                "signal_type",
-                "start",
-                "wB",
-                "wS"
-            ],
-            "advanced": []
-        },
         "LLRFSim_Gen": {
             "title": "Gen",
             "basic": [
-                "noise",
                 "phiG",
-                "signal_type",
                 "wG",
                 "amp",
                 "start",
-                "duration",
-                "rho",
-                "wS",
-                "phiS",
-                "I0S"
-            ],
-            "advanced": []
-        },
-        "LLRFSim_GenTee": {
-            "title": "Gen",
-            "basic": [
-                "alpha",
-                "beta",
-                "length"
-            ],
-            "advanced": []
-        },
-        "LLRFSim_Feedback": {
-            "title": "Feedback",
-            "basic": [
-                "delay",
-                "int_err",
-                "ki",
-                "kp",
-                "path"
-            ],
-            "advanced": []
-        },
-        "LLRFSim_Cav1": {
-            "title": "Cav1",
-            "basic": [
-                "Q",
-                "R",
-                "Z0",
-                "beta",
-                "dw",
-                "phiC",
-                "w0",
-                "wC"
-            ],
-            "advanced": []
-        },
-        "LLRFSim_Cav2": {
-            "title": "Cav2",
-            "basic": [
-                "Q",
-                "R",
-                "Z0",
-                "beta",
-                "dw",
-                "phiC",
-                "w0",
-                "wC"
+                "duration"
             ],
             "advanced": []
         },
@@ -231,11 +149,19 @@
             ]
         },
         "waveformAReport": {
-            "title": "Voltage",
+            "title": "Voltage Cav1",
             "advanced": []
         },
         "waveformBReport": {
-            "title": "Phase",
+            "title": "Phase Cav1",
+            "advanced": []
+        },
+        "waveformCReport": {
+            "title": "Voltage Cav2",
+            "advanced": []
+        },
+        "waveformDReport": {
+            "title": "Phase Cav2",
             "advanced": []
         }
     }
