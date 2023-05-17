@@ -105,31 +105,40 @@ SIREPO.app.controller('epicsllrfController', function (epicsllrfService, appStat
             2000,
             1,
         );
-        $scope.$on('LLRFSim_Gen.changed', () => {
-            const l = SIREPO.APP_SCHEMA.model.LLRFSim_Gen
-            var e = [];
-            for (const k in l){
-                e.push(k)
-            }
-            var diff = [];
-            e.forEach(field => {
-                var ev = epicsllrfService.getEpicsValue("LLRFSim_Gen", field)
-                if (appState.models.LLRFSim_Gen[field] != ev) {
-                    if (! l[field][1].includes("ReadOnly")){
-                        diff.push({
-                            field: field,
-                            value: appState.models.LLRFSim_Gen[field],
-                        });
-                    }
+
+        const getGenDiff = () => {
+            const l = SIREPO.APP_SCHEMA.model.LLRFSim_Gen;
+            var d = [];
+            for (const field in l){
+                var e = epicsllrfService.getEpicsValue("LLRFSim_Gen", field)
+                if (diffAndNotReadOnly(e, appState.models.LLRFSim_Gen[field], readOnly(l, field))
+                ) {
+                    d.push({
+                        field: field,
+                        value: appState.models.LLRFSim_Gen[field],
+                    });
                 }
-            })
-            if (diff.length) {
+            }
+            return d;
+        }
+
+        const diffAndNotReadOnly = (epicsValue, clientValue, readOnly) => {
+            return (clientValue != epicsValue) && (! readOnly);
+        }
+
+        const readOnly = (model, field) => {
+            return model[field][1].includes('ReadOnly');
+        }
+
+        $scope.$on('LLRFSim_Gen.changed', () => {
+            const d = getGenDiff();
+            if (d.length) {
                 requestSender.sendStatelessCompute(
                     appState,
                     (data) => {},
                     {
                         method: 'update_epics_value',
-                        fields: diff,
+                        fields: d,
                         model: "LLRFSim:Gen",
                     }
                 )
