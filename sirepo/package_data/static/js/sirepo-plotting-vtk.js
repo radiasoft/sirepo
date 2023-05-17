@@ -2607,7 +2607,7 @@ SIREPO.app.directive('objectTable', function(appState) {
                         <span style="font-size: large; color: {{o.color || '#cccccc'}};">■</span>
                           <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': expanded[o.id], 'glyphicon-chevron-up': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
                             <span>{{ o.name }}</span>
-                            <span class="sr-button-bar-parent" data-ng-if="isGroup(o)">
+                            <span class="sr-button-bar-parent" data-ng-if="isGroup(o) && memberObjects(o).length > 1">
                               <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(o, t.type)"><img alt="{{ t.title }}" data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
                             </span>
                       </td>
