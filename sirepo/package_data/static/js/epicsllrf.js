@@ -279,7 +279,6 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
         `,
         controller: function($scope, $rootScope) {
             let plotData, plotScope;
-
             function updatePlot() {
                 const x = plotData[1];
                 const y1 = plotData[2];
