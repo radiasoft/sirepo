@@ -53,4 +53,5 @@ def _epics_fields():
         if SCHEMA.constants.epicsModelPrefix in model:
             for k in SCHEMA.model[model]:
                 r.append(model.replace("_", ":") + ":" + k)
+    pkdp("\n\n\nr={}", "\n ".join(r))
     return " ".join(r)

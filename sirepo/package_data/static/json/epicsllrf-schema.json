@@ -54,6 +54,21 @@
         }
     },
     "model": {
+        "LLRFSim_Beam": {
+            "I0S": ["I0S", "ReadOnlyFloat", []],
+            "Ib": ["", "ReadOnlyFloatArray", []],
+            "amp": ["amp", "ReadOnlyFloat", 0],
+            "duration": ["duration", "ReadOnlyFloat", 0],
+            "noise": ["Noise", "EpicsFloat", 0],
+            "phase": ["", "ReadOnlyFloatArray", []],
+            "phiB": ["phiB", "EpicsFloat", 0],
+            "phiS": ["phiS", "ReadOnlyFloat", 0],
+            "rho": ["rho", "ReadOnlyFloat", 0],
+            "signal_type": ["Signal Type", "EpicsEnum", "flat"],
+            "start": ["start", "ReadOnlyFloat", 0],
+            "wB": ["wB", "EpicsFloat", 0],
+            "wS": ["wS", "ReadOnlyFloat", 0]
+        },
         "LLRFSim_Gen": {
             "noise": ["Noise [A]", "EpicsFloat", 0, "standard deviation for generator current white noise"],
             "phiG": ["phiG [rad]", "EpicsFloat", 0, "current envelope phiG"],
@@ -69,7 +84,7 @@
             "Ig": ["", "ReadOnlyFloatArray", []],
             "phase": ["", "ReadOnlyFloatArray", []]
         },
-        "LLRFSim_Cav": {
+        "LLRFSim_Cav1": {
             "Q": ["Q", "EpicsFloat", 0, "quality factor"],
             "R": ["R [Ohm]", "EpicsFloat", 0, "shunt resistance"],
             "Z0": ["Z0 [Ohm]", "EpicsFloat", 0, "characteristic impedance"],
@@ -99,6 +114,25 @@
         "typeOfSimulation": "monitor"
     },
     "view": {
+        "LLRFSim_Beam": {
+            "title": "Beam",
+            "basic": [
+                "I0S",
+                "Ib",
+                "amp",
+                "duration",
+                "noise",
+                "phase",
+                "phiB",
+                "phiS",
+                "rho",
+                "signal_type",
+                "start",
+                "wB",
+                "wS"
+            ],
+            "advanced": []
+        },
         "LLRFSim_Gen": {
             "title": "Gen",
             "basic": [
@@ -116,8 +150,8 @@
             ],
             "advanced": []
         },
-        "LLRFSim_Cav": {
-            "title": "Cav",
+        "LLRFSim_Cav1": {
+            "title": "Cav1",
             "basic": [
                 "Q",
                 "R",
