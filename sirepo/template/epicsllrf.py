@@ -62,6 +62,11 @@ def stateless_compute_read_epics_values(data, **kwargs):
     )
 
 
+def stateless_compute_update_epics_value(data, **kwargs):
+    pkdp("\n\n\n data.target={}", data.target)
+    assert 0, f"HIT"
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
