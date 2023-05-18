@@ -11,26 +11,14 @@ import sirepo.pkcli.nersc_test
 import pykern.pksubprocess
 
 
-_SIREPO_RUN_DIR_FILES = [
-    "in.json",
-    "nersc_sequential.log",
-    "out.json",
-    "parameters.py",
-    "res_int_se.dat",
-    "run.log",
-    "sequential_test.sh",
-    "sequential_test.sh.jinja",
-]
-
-
 def test_sequential():
     w = pykern.pkunit.work_dir()
     with pykern.pkio.save_chdir(w):
         pykern.pksubprocess.check_call_with_signals(
-            ["sirepo", "nersc_test", "sequential"]
+            ["sirepo", "nersc_test", "sequential"],
+            output="result.log",
         )
-        o = list(sorted([w.bestrelpath(f) for f in pykern.pkio.walk_tree(w)]))
     pykern.pkunit.pkeq(
-        o,
-        ["sirepo_run_dir/" + f for f in _SIREPO_RUN_DIR_FILES],
+        pykern.pkio.read_text(w.join("result.log")).strip(),
+        "nersc_test.sequential PASS",
     )

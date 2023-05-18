@@ -1,6 +1,7 @@
 #!/bin/bash
 set -eou pipefail
 cd sirepo_run_dir
+{# POSIT: matches minimum required env vars required by job_cmd #}
 export SIREPO_MPI_CORES=1
 export PYKERN_PKCONFIG_CHANNEL=dev
 export PYKERN_PKDEBUG_WANT_PID_TIME=1

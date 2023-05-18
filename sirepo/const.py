@@ -13,8 +13,7 @@ STATIC_D = "static"
 
 JSON_SUFFIX = ".json"
 
-# standin for user ID needed for testing purposes
-# see sirepo.pkcli.nersc_test.sequential
+# matches requirements for uid and isn't actually put in the db
 MOCK_UID = "someuser"
 
 MPI_LOG = "mpi_run.log"
