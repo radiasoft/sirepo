@@ -16,7 +16,7 @@ import sirepo.const
 import sirepo.resource
 
 
-def sequential():
+def sequential(*args):
     """Test sequential process for use by NERSC inside SHIFTER
 
     Simulates the operation that Sirepo does when it executes a
@@ -29,7 +29,7 @@ def sequential():
     """
     s = _Sequential()
     try:
-        s.prepare()
+        s.prepare(args)
         s.execute()
         return "nersc_test.sequential PASS"
     except Exception as e:
@@ -45,13 +45,13 @@ class _Sequential(PKDict):
     RUN_DIR = "sirepo_run_dir"
     RUN_FILE = "sequential_run.sh"
 
-    def prepare(self):
+    def prepare(self, args=None):
         self.run_dir = pykern.pkio.py_path(self.RUN_DIR)
         pykern.pkio.unchecked_remove(self.run_dir)
         self.run_dir.ensure(dir=True)
         self.result_file = self.run_dir.join(self.RESULT_FILE)
         self.user = sirepo.const.MOCK_UID
-        self.job_cmd_file = self._render_resource(self.JOB_CMD_FILE)
+        self.job_cmd_file = self._render_resource(self.JOB_CMD_FILE, args=args)
         self.run_file = self._render_resource(self.RUN_FILE)
 
     def execute(self):
@@ -80,10 +80,11 @@ class _Sequential(PKDict):
                 res += "result_text=" + self.result_text
         return res
 
-    def _render_resource(self, filename):
+    def _render_resource(self, filename, args=None):
         res = self.run_dir.join(filename)
+        p = self._valid_args(args)
         pykern.pkjinja.render_file(
-            self._file_path(filename),
+            p if p else self._file_path(filename),
             PKDict(
                 job_cmd_file=self.get("job_cmd_file"),
                 run_dir=self.run_dir,
@@ -92,3 +93,11 @@ class _Sequential(PKDict):
             output=res,
         )
         return res
+
+    def _valid_args(self, args):
+        if not args:
+            return None
+        a = args[0].split("=")
+        if a[0] == "job_cmd_in_path":
+            return a[1]
+        raise RuntimeError(f"Invalid argument {a[0]} passed to sequential")
