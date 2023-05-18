@@ -1,9 +1,6 @@
-import React, { MutableRefObject } from "react"
-import { SimulationInfo, SimulationInfoRaw } from "../component/simulation"
-import { StoreState } from "../store/common"
-import { ModelState } from "../store/models"
-import { RouteHelper } from "../utility/route"
-import { Schema } from "../utility/schema"
+import React, { MutableRefObject } from "react";
+import { RouteHelper } from "../utility/route";
+import { Schema } from "../utility/schema";
 
 export type ApiSimulation = {
     documentationUrl: string,
@@ -45,7 +42,6 @@ export type LoginStatus = {
 }
 
 export const CSimulationList = React.createContext<SimulationListItem[]>(undefined);
-export const CSimulationInfoPromise = React.createContext<Promise<SimulationInfo>>(undefined);
 export const CAppName = React.createContext<string>(undefined);
 export const CSchema = React.createContext<Schema>(undefined);
 export const CLoginStatusRef = React.createContext<MutableRefObject<LoginStatus>>(undefined);

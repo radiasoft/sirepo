@@ -51,6 +51,8 @@ export class MadxBeamlineElementsLayout extends Layout<MadxBeamlineElmenetsConfi
         }
 
         let currentBeamline = beamlinesValue.find(beam => beam.item.id === selectedBeamlineHandle.value).item;
+        console.log("during update", currentBeamline.items);
+        console.log("elements during update", _allItems.map(i => i.item.id || i.item._id))
         let beamlineElements = (currentBeamline.items as number[]).map(findBeamlineOrElementById)
 
         let [shownElement, updateShownElement] = useState<{

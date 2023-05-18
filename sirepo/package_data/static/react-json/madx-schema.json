@@ -7599,6 +7599,8 @@
                                                         "layout": "madxAllBeamlineElements",
                                                         "config": {
                                                             "elementsDependency": "elements.elements",
+                                                            "beamlinesDependency": "lattice.beamlines",
+                                                            "selectedBeamlineDependency": "simulation.activeBeamlineId",
                                                             "templateGroups": [
                                                                 {
                                                                     "name": "Basic",

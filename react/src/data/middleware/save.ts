@@ -1,6 +1,7 @@
-import { SimulationInfo } from "../../component/simulation";
+import { MiddlewareAPI, Store } from "redux";
+import { SimulationInfo, SimulationInfoRaw } from "../../component/simulation";
 import { StoreState } from "../../store/common";
-import { ModelState } from "../../store/models";
+import { modelActions, ModelState } from "../../store/models";
 import { StoreTypes } from "../data";
 import { ConfigurableMiddleware } from "./middleware"
 
@@ -9,15 +10,28 @@ export type SaveMiddlewareConfig = {
     maxIntervalSeconds: number
 }
 
-const saveModelsToServer = (simulationInfo: SimulationInfo, models: StoreState<ModelState>): Promise<Response> => {
-    simulationInfo = {...simulationInfo}; // clone, no mutations
-    simulationInfo.models = models;
+const saveModelsToServer = (simulationInfo: SimulationInfo, store: MiddlewareAPI): Promise<Response> => {
+    console.log("simulationInfo", simulationInfo)
+    let newInfo = {
+        version: simulationInfo.version,
+        simulationId: simulationInfo.simulationId,
+        simulationType: simulationInfo.simulationType,
+        models: store.getState()[StoreTypes.Models.name]
+    }; // clone, no mutations
     return fetch("/save-simulation", {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(simulationInfo)
+        body: JSON.stringify(newInfo)
+    }).then(async resp => {
+        let simInfo: SimulationInfoRaw = await resp.json();
+        store.dispatch(modelActions.updateModel({
+            name: "simulation",
+            value: simInfo.models["simulation"]
+        }))
+
+        return resp;
     })
 }
 
@@ -25,7 +39,7 @@ export const saveMiddleware: ConfigurableMiddleware<SaveMiddlewareConfig> = (con
     let saveTimeout = undefined;
     let firstUpdateInSave = undefined;
     return store => next => action => {
-        if(action.type === "models/updateModel") {
+        if(action.type === "models/updateModel" && action.payload.name !== "simulation") {
             if(firstUpdateInSave === undefined) {
                 firstUpdateInSave = Date.now();
             }
@@ -37,9 +51,7 @@ export const saveMiddleware: ConfigurableMiddleware<SaveMiddlewareConfig> = (con
 
             saveTimeout = setTimeout(() => {
                 firstUpdateInSave = undefined;
-                console.log("simulationInfo", simulationInfo);
-                console.log("models", store.getState()[StoreTypes.Models.name])
-                saveModelsToServer(simulationInfo, store.getState()[StoreTypes.Models.name])
+                saveModelsToServer(store.getState()[StoreTypes.Models.name].simulation, store)
             }, timeUntilSave)
         }
         return next(action);

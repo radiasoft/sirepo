@@ -5,14 +5,12 @@ import { useDispatch, useStore } from "react-redux";
 import { EditorPanel, EditorPanelProps } from "../component/reusable/panel";
 import "./panel.scss";
 import React from "react";
-import { CAppWrapper, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
 import { useShown } from "../hook/shown";
 import { StoreTypes } from "../data/data";
 import { CHandleFactory } from "../data/handle";
 import { FormStateHandleFactory } from "../data/form";
-import { AnyAction, Dispatch } from "redux";
 
 export type PanelConfig = {
     basic: SchemaLayout[],

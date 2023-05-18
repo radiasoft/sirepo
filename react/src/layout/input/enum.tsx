@@ -1,5 +1,5 @@
 import React, { ChangeEventHandler, useContext, useEffect, useState } from "react";
-import { AppWrapper, CAppName, CSimulationInfoPromise } from "../../data/appwrapper";
+import { AppWrapper, CAppName } from "../../data/appwrapper";
 import { CRouteHelper } from "../../utility/route";
 import { Dependency } from "../../data/dependency";
 import { Form } from "react-bootstrap";
@@ -9,6 +9,7 @@ import { LayoutProps } from "../layout";
 import { pollStatefulCompute } from "../../utility/compute";
 import { CHandleFactory } from "../../data/handle";
 import { getValueSelector, StoreType, StoreTypes } from "../../data/data";
+import { useSimulationInfo } from "../../hook/simulationInfo";
 
 export type EnumAllowedValues = { value: string, displayName: string }[]
 
@@ -143,20 +144,20 @@ export class ComputeResultEnumInputLayout extends EnumInputBaseLayout<ComputeRes
 
     component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = props => {
         const appName = useContext(CAppName);
-        const simulationInfoPromise = useContext(CSimulationInfoPromise);
+        let handleFactory = useContext(CHandleFactory);
+        let simulationInfo = useSimulationInfo(handleFactory);
         const routeHelper = useContext(CRouteHelper);
         const [optionList, updateOptionList] = useState(undefined);
         useEffect(() => {
             let enumOptionsPromise = new Promise<any>((resolve, reject) => {
-                simulationInfoPromise.then(({simulationId, version}) => {
-                    pollStatefulCompute(routeHelper, {
-                        method: this.config.computeMethod,
-                        appName,
-                        simulationId,
-                        callback: respObj => {
-                            resolve(respObj[this.config.resultName]);
-                        }
-                    })
+                let { simulationId } = simulationInfo;
+                pollStatefulCompute(routeHelper, {
+                    method: this.config.computeMethod,
+                    appName,
+                    simulationId,
+                    callback: respObj => {
+                        resolve(respObj[this.config.resultName]);
+                    }
                 })
             })
             enumOptionsPromise.then(result => updateOptionList(

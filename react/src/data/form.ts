@@ -77,9 +77,7 @@ export class FormStateHandleFactory extends HandleFactory {
     }
 
     private addToUpdated = (key: any, value: FormActions) => {
-        console.log("add to updated");
         this.updated.put(key, value);
-        console.log("updated", this.updated);
         this.notifyListeners();
     }
 

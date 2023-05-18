@@ -20,6 +20,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import "./allBeamlineElements.scss";
 import "./beamlines.scss";
+import { FormFieldState, FormModelState } from "../../store/formState";
+import { cloneDeep } from "lodash";
 
 export type TemplateSettings = {
     type: string,
@@ -30,6 +32,8 @@ export type TemplateSettings = {
 
 export type MadxAllBeamlineElementsConfig = {
     elementsDependency: string,
+    selectedBeamlineDependency: string,
+    beamlinesDependency: string,
     templateGroups: {
         name: string,
         types: string[]
@@ -66,7 +70,7 @@ export function MadxBeamlineElementEditor(props: MadxBeamlineElementEditorCommon
     )
 }
 
-export function MadxBeamlineNewElementEditor(props: MadxBeamlineElementEditorCommonProps & { onComplete: (modelState: ModelState, model: string) => void, name: string }) {
+export function MadxBeamlineNewElementEditor(props: MadxBeamlineElementEditorCommonProps & { onComplete: (modelState: ModelState, model: string) => void, name: string, id: number }) {
     let parentHandleFactory = useContext(CHandleFactory);
     let schema = useContext(CSchema);
     let store = useStore();
@@ -74,7 +78,7 @@ export function MadxBeamlineNewElementEditor(props: MadxBeamlineElementEditorCom
     let overridesHandleFactory = new HandleFactoryWithOverrides(schema, [
         {
             fake: props.template.modelName,
-            value: newModelFromSchema(schema.models[props.template.modelName], { name: props.name }),
+            value: newModelFromSchema(schema.models[props.template.modelName], { name: props.name, _id: props.id }),
             onSave: (v) => props.onComplete(v, props.template.modelName)
         }
     ], parentHandleFactory);
@@ -153,6 +157,9 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
         //let activeBeamlineId = handleFactory.createHandle(new Dependency(this.config.activeBeamlineDependency), StoreTypes.Models).hook().value;
         let elementsHandle = handleFactory.createHandle(new Dependency(this.config.elementsDependency), StoreTypes.FormState).hook();
         let elementsValue = revertDataStructure(elementsHandle.value, getValueSelector(StoreTypes.FormState)) as ArrayFieldState<ModelState>;
+        let beamlinesHandle = handleFactory.createHandle(new Dependency(this.config.beamlinesDependency), StoreTypes.FormState).hook();
+        let beamlinesValue = revertDataStructure(beamlinesHandle.value, getValueSelector(StoreTypes.FormState)) as ArrayFieldState<ModelState>;
+        let selectedBeamlineHandle = handleFactory.createHandle(new Dependency(this.config.selectedBeamlineDependency), StoreTypes.Models).hook();
 
         let [newElementModalShown, updateNewElementModalShown] = useState(false);
         let [shownModalTemplate, updateShownModalTemplate] = useState<TemplateSettings>(undefined);
@@ -166,9 +173,14 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
             return `${type.charAt(0)}${maxId + 1}`
         }
 
+        let findNextId = () => {
+            let _allItems = [...elementsValue, ...beamlinesValue];
+            return _allItems.reduce((prev, cur) => Math.max(prev, parseInt((cur.item._id || cur.item.id) as string)), 0);
+        }
+
         
 
-        let addBeamlineElement = (template: TemplateSettings, modelValue: ModelState, model: string) => {
+        let addNewElement = (template: TemplateSettings, modelValue: ModelState, model: string) => {
             console.log(`adding beamline element with type=${template.type}`, modelValue);
 
             let nv = [...(elementsHandle.value.value as any[])];
@@ -187,13 +199,40 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
             }, store.getState(), dispatch);
         }
 
-        let { cancel, submit } = formActionFunctions({
-            formHandleFactory: handleFactory,
-            store, 
-            dispatch
-        });
+        let addElementToBeamline = (elementId: number | string, beamlineId: number) => {
+            console.log("adding element", elementId);
+            let v = cloneDeep(beamlinesHandle.value) as FormFieldState<ArrayFieldState<FormModelState>>;
+            let beamline = v.value.find(b => b.item.id.value == beamlineId);
+            console.log("before add", beamline.item.items.value);
+            beamline.item.items.value.push(elementId);
+            console.log("after add", beamline.item.items.value);
+            beamlinesHandle.write(v, store.getState(), dispatch);
+        }
 
-        let actionButtons = handleFactory.isDirty() ? <ViewPanelActionButtons onSave={submit} onCancel={cancel} canSave={handleFactory.isValid(store.getState())}/> : undefined;
+        let removeElement = (elementId: number | string) => {
+            let v = cloneDeep(beamlinesHandle.value) as FormFieldState<ArrayFieldState<FormModelState>>;
+            let changed = false;
+            v.value.forEach(b => {
+                let idx = b.item.items.value.findIndex(e => e == elementId);
+                if(idx > 0) {
+                    changed = true;
+                    let v = [...b.item.items.value];
+                    v.splice(idx, 1);
+                    b.item.items.value = v;
+                }
+            });
+            if(changed) {
+                beamlinesHandle.write(v, store.getState(), dispatch);
+            }
+            
+            let nv = [...(elementsHandle.value.value as any[])];
+            let idx = nv.findIndex(e => e.item._id.value == elementId);
+            nv.splice(idx, 1);
+            elementsHandle.write({
+                ...elementsHandle.value,
+                value: nv
+            }, store.getState(), dispatch);
+        }
 
         return (
             <>
@@ -228,14 +267,13 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                 </Modal>
                 {
                     shownModalTemplate && (
-                        <MadxBeamlineNewElementEditor name={uniqueNameForType(shownModalTemplate.type)} onHide={() => {
+                        <MadxBeamlineNewElementEditor name={uniqueNameForType(shownModalTemplate.type)} id={findNextId()} onHide={() => {
                             updateShownModalTemplate(undefined);
                             updateNewElementModalShown(false);
-                        }} template={shownModalTemplate} onComplete={(mv, m) => addBeamlineElement(shownModalTemplate, mv, m)}/>
+                        }} template={shownModalTemplate} onComplete={(mv, m) => addNewElement(shownModalTemplate, mv, m)}/>
                     )
                 }
                 <div className="d-flex flex-column">
-                    {actionButtons}
                     <div className="d-flex flex-row flew-nowrap justify-content-right">
                         <Button variant="primary" size="sm" onClick={() => updateNewElementModalShown(true)}>New Element</Button>
                     </div>
@@ -278,6 +316,7 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                                                                         </h6>
                                                                     </td>
                                                                     <td>
+                                                                        {ev.item._id as string}
                                                                         {/*??? TODO: garsuga: where does description come from*/}
                                                                     </td>
                                                                     <td>
@@ -290,13 +329,13 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                                                                         hover.checkHover(id) && (
                                                                             <div className="popover-buttons-outer">
                                                                                 <div className="popover-buttons">
-                                                                                    <Button className="popover-button" size="sm">
+                                                                                    <Button className="popover-button" size="sm" onClick={() => addElementToBeamline(id, selectedBeamlineHandle.value as number)}>
                                                                                         Add To Beamline
                                                                                     </Button>
                                                                                     <Button className="popover-button" size="sm">
                                                                                         Edit
                                                                                     </Button>
-                                                                                    <Button className="popover-button" size="sm" variant="danger">
+                                                                                    <Button className="popover-button" size="sm" variant="danger" onClick={() => removeElement(id)}>
                                                                                         <FontAwesomeIcon icon={Icon.faClose}/>
                                                                                     </Button>
                                                                                 </div>
@@ -317,7 +356,6 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                             }
                         </HoverController>
                     </Table>
-                    {actionButtons}
                 </div>
             </>
             

@@ -94,6 +94,7 @@ export function FormStateInitializer(props) {
                 value: mapProperties(value, (_, fv) => initialFormStateFromValue(fv))
             }));
         });
+        console.log("fs store", store.getState());
         updateHasInit(true);
     })
 

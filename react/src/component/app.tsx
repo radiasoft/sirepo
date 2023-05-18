@@ -16,7 +16,7 @@ import { getAppCombinedSchema } from "../utility/schema";
 export const AppContextWrapper = (props) => {
     
     let appName = useContext(CAppName);
-    const [hasAppSchema, schema] = useSetup(true, getAppCombinedSchema(appName));
+    const [hasAppSchema, schema] = useSetup(true, () => getAppCombinedSchema(appName));
 
     if(hasAppSchema) {
         const routeHelper = new RouteHelper(appName, schema);
@@ -69,7 +69,7 @@ export const AppRoot = (props) => {
 export const SimulationListInitializer = (props) => {
     let appWrapper = useContext(CAppWrapper);
 
-    const [hasSimulationList, simulationList] = useSetup(true, appWrapper.getSimulationList());
+    const [hasSimulationList, simulationList] = useSetup(true, () => appWrapper.getSimulationList());
     return (
         <>
             {hasSimulationList && 
