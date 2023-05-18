@@ -328,6 +328,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                         return;
                     }
                     panelState.setError(scope.modelName, null);
+                    srdbg("data before load", data);
                     scope.load(data);
                     if (data.summaryData) {
                         broadcastSummaryData(scope.modelName, data.summaryData);
@@ -3483,7 +3484,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             $scope.focusStrategy = 'closest';
             $scope.latexTitle = '';
             $scope.wantLegend = true;
-
             function build2dPointsForPlot(plotIndex) {
                 var pts = [];
                 var xPoints = $scope.axes.y.plots[plotIndex].x_points || $scope.axes.x.points;
@@ -3541,7 +3541,23 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return true;
             }
 
+            function cachedToggleOff(pIndex, modelName) {
+                if (! appState.models.toggled) {
+                    appState.models.toggled = {};
+                    appState.models.toggled[modelName] = {};
+                    appState.models.toggled[modelName][pIndex] = false;
+                    return false;
+                }
+                if (!appState.models.toggled[modelName][pIndex]) {
+                    appState.models.toggled[modelName][pIndex] = false;
+                    return false;
+                }
+                return appState.models.toggled[modelName][pIndex];
+            }
+
             function createLegend() {
+                srdbg("creating legend for plot with $scope.modelName=", $scope.modelName);
+                // TODO (gurhar1133): cache the toggled off
                 const plots = $scope.axes.y.plots;
                 var legend = $scope.select('.sr-plot-legend');
                 legend.selectAll('.sr-plot-legend-item').remove();
@@ -3552,7 +3568,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 var count = 0;
 
                 buildSymbols(legend, legendSymbolSize, 'legend');
-
                 plots.forEach(function(plot, i) {
                     if (! plot.label) {
                         return;
@@ -3564,7 +3579,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         .attr('y', 17 + count * 20)
                         .text(vIconText(true))
                         .on('click', function() {
-                            togglePlot(i);
+                            togglePlot(i, $scope.modelName);
                             $scope.$applyAsync();
                         });
                     itemWidth = item.node().getBBox().width;
@@ -3594,6 +3609,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         .attr('y', 16 + count * 20)
                         .text(plot.label);
                     count++;
+
                 });
                 return count;
             }
@@ -3690,9 +3706,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 });
             }
 
-            function togglePlot(pIndex) {
+            function togglePlot(pIndex, modelName) {
                 setPlotVisible(pIndex, ! isPlotVisible(pIndex));
                 updateYLabel();
+                if (appState.models.toggled) {
+                    appState.models.toggled[modelName][pIndex] = !appState.models.toggled[modelName][pIndex];
+                }
+
+                srdbg(appState.models);
             }
 
             function updateYLabel() {
@@ -3822,6 +3843,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             };
 
             $scope.load = function(json) {
+                srdbg("data in scope.load", json);
+                // TODO (gurhar1133): loading the plots for deselected legend stuff
                 if (! json.plots && ! json.points) {
                     //TODO(pjm): plot may be loaded with { state: 'canceled' }?
                     return;
@@ -4014,6 +4037,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     setPlotVisible(ip, true);
                 });
                 updateYLabel();
+                plots.forEach(function(plot, i) {
+                    if (cachedToggleOff(i, $scope.modelName)) {
+                        srdbg("about to toggle off i", i);
+                        setPlotVisible(i, ! isPlotVisible(i));
+                        // togglePlot(i, $scope.modelName);
+                    }
+                    srdbg(appState.models);
+                })
             };
 
             $scope.recalculateYDomain = function() {
