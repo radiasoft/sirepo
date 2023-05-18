@@ -2813,7 +2813,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.$on('fieldPaths.saved', () => {
                 if (appState.models.magnetDisplay.viewType === 'fields') {
-                    updateViewer();
+                    updateViewer(true);
                 }
             });
 
@@ -2851,7 +2851,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     return;
                 }
                 if (appState.models.magnetDisplay.viewType === 'fields') {
-                    updateViewer();
+                    updateViewer(true);
                 }
             });
 
