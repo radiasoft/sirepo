@@ -281,10 +281,10 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                                                                         {/*??? TODO: garsuga: where does description come from*/}
                                                                     </td>
                                                                     <td>
-                                                                        {ev.item.l !== undefined ? `${(ev.item.l as number).toPrecision(4)}m` : ""}
+                                                                        {ev.item.l !== undefined ? `${(ev.item.l)}m` : ""}
                                                                     </td>
                                                                     <td>
-                                                                        {ev.item.angle !== undefined ? (ev.item.angle as number).toPrecision(3) : ""}
+                                                                        {ev.item.angle !== undefined ? `${ev.item.angle}` : ""}
                                                                     </td>
                                                                     {
                                                                         hover.checkHover(id) && (

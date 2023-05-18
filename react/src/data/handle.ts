@@ -58,8 +58,11 @@ export class BaseHandleFactory extends HandleFactory {
         let ms = this.modelSelector(dependency.modelName, type);
         let mac = getModelWriteActionCreator(type);
         let cdh = (value: F): DataHandle<M, F> => {
+            let lastValue = value;
             return new (class extends DataHandle<M, F> {
                 write = (value: F, state: any, dispatch: Dispatch<AnyAction>) => {
+                    console.log(`writing value to ${dependency.getDependencyString()}`, value);
+                    console.log(`last value for ${dependency.getDependencyString()}`, lastValue);
                     let mv = {...state[type.name][dependency.modelName]};
                     mv[dependency.fieldName] = value;
                     dispatch(mac(dependency.modelName, mv));
