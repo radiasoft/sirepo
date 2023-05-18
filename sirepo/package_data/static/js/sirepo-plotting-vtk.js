@@ -2614,9 +2614,9 @@ SIREPO.app.directive('objectTable', function(appState) {
                         <td style="text-align: right">
                           <div class="sr-button-bar-parent">
                             <div class="sr-button-bar sr-button-bar-active">
-                               <button data-ng-if="isArrangeable(o)" class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)"><span class="glyphicon glyphicon-arrow-up"></span></button>
-                               <button data-ng-if="isArrangeable(o)" class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)"><span class="glyphicon glyphicon-arrow-down"></span></button>
-                               <button data-ng-if="! isGroup(o)" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-copy"></span></button>
+                               <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)"><span class="glyphicon glyphicon-arrow-up"></span></button>
+                               <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)"><span class="glyphicon glyphicon-arrow-down"></span></button>
+                               <button data-ng-disabled="isGroup(o)" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-copy"></span></button>
                                <button data-ng-click="editObject(o)" class="btn btn-info btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
                                <button data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
                             </div>
@@ -2694,12 +2694,10 @@ SIREPO.app.directive('objectTable', function(appState) {
             $scope.isInGroup = $scope.source.isInGroup;
 
             $scope.isMoveDisabled = (direction, o) => {
-                const objects = $scope.objectArray(o);
+                const objects = $scope.arrayContaining(o);
                 let i = objects.indexOf(o);
                 return direction === -1 ? i === 0 : i === objects.length - 1;
             };
-
-            $scope.isArrangeable = o => $scope.objectArray(o).length > 1;
 
             $scope.isNotInGroup = o => ! $scope.isInGroup(o);
 
@@ -2717,7 +2715,7 @@ SIREPO.app.directive('objectTable', function(appState) {
                 return n;
             };
 
-            $scope.objectArray = o => $scope.isInGroup(o) ? $scope.memberObjects($scope.getParent(o)) : $scope.getObjects();
+            $scope.arrayContaining = o => $scope.isInGroup(o) ? $scope.memberObjects($scope.getParent(o)) : $scope.getObjects();
 
             $scope.toggleExpand = o => {
                 $scope.expanded[o.id] = ! $scope.expanded[o.id];

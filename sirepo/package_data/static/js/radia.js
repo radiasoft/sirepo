@@ -553,18 +553,26 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.isGroup = o => o.members !== undefined;
 
+    self.isMoveDisabled = (direction, o) => {
+        const objects = self.arrayContaining(o);
+        let i = objects.indexOf(self.isInGroup(o) ? o.id : o);
+        srdbg('can move', o, 'at', i, 'in', objects, '?', direction === -1 ? i === 0 : i === objects.length - 1);
+        return direction === -1 ? i === 0 : i === objects.length - 1;
+    };
+
     self.loadObjectViews = loadObjectViews;
 
     self.moveObject = (direction, o) => {
-        const objects = self.objectArray(o);
-        let i = objects.indexOf(o);
+        const objects = self.arrayContaining(o);
+        let i = objects.indexOf(self.isInGroup(o) ? o.id : o);
         const j = i + direction;
         if (j >= 0 && j < objects.length) {
             objects.splice(j, 0, objects.splice(i, 1)[0]);
+            radiaService.saveGeometry(false, true);
         }
     };
 
-    self.objectArray = o => self.isInGroup(o) ? self.getMembers(self.getObject(o.groupId)) : self.getObjects();
+    self.arrayContaining = o => self.isInGroup(o) ? self.getMembers(self.getObject(o.groupId)) : self.getObjects();
 
     self.objectsOfType = type => appState.models.geometryReport.objects.filter(o => o.type === type);
 
