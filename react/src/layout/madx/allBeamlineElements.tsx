@@ -61,8 +61,14 @@ export function MadxBeamlineElementEditor(props: MadxBeamlineElementEditorCommon
             <MadxBeamlineElementEditorBase
             template={props.template}
             onHide={props.onHide}
-            formSave={props.onHide}
-            formCancel={props.onHide}
+            formSave={() => {
+                formHandleFactory.save(store.getState(), store.dispatch);
+                props.onHide();
+            }}
+            formCancel={() => {
+                formHandleFactory.cancel(store.getState(), store.dispatch);
+                props.onHide();
+            }}
             canSave={formHandleFactory.isValid(store.getState())}
             />
         </CHandleFactory.Provider>
@@ -234,6 +240,11 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
             }, store.getState(), dispatch);
         }
 
+        let [shownElement, updateShownElement] = useState<{
+            template: TemplateSettings,
+            aliases: ArrayAliases
+        }>(undefined);
+
         return (
             <>
                 <Modal show={newElementModalShown} onHide={() => updateNewElementModalShown(false)}>
@@ -273,6 +284,7 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                         }} template={shownModalTemplate} onComplete={(mv, m) => addNewElement(shownModalTemplate, mv, m)}/>
                     )
                 }
+                {shownElement && <MadxBeamlineElementEditor aliases={shownElement.aliases} template={shownElement.template} onHide={() => updateShownElement(undefined)}/>}
                 <div className="d-flex flex-column">
                     <div className="d-flex flex-row flew-nowrap justify-content-right">
                         <Button variant="primary" size="sm" onClick={() => updateNewElementModalShown(true)}>New Element</Button>
@@ -302,9 +314,19 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                                                 {
                                                     elementsValue.filter(ev => ev.model == category).map((ev: ArrayFieldElement<ModelState>) => {
                                                         let id = ev.item._id as string;
-                                                        if(category === "COLLIMATOR") {
-                                                            console.log(`${category}`, ev.item);
-                                                        }
+                                                        let elementsDependency = new Dependency(this.config.elementsDependency);
+                                                        let template = ev.item.type !== undefined ? getTemplateSettingsByType((ev.item.type as string), this.config.elementTemplates) : undefined;
+                                                        let aliases: ArrayAliases = ev.item.type !== undefined ? [
+                                                            {
+                                                                realSchemaName: ev.item.type as string,
+                                                                realDataLocation: {
+                                                                    modelName: elementsDependency.modelName,
+                                                                    fieldName: elementsDependency.fieldName,
+                                                                    index: elementsValue.findIndex(e => e.item._id === id)
+                                                                },
+                                                                fake: ev.item.type as string
+                                                            }
+                                                        ] : undefined;
                                                         return (
                                                             <React.Fragment key={id}>
                                                                 <tr onMouseEnter={() => hover.aquireHover(id)} onMouseLeave={() => hover.releaseHover(id)}>
@@ -332,7 +354,13 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                                                                                     <Button className="popover-button" size="sm" onClick={() => addElementToBeamline(id, selectedBeamlineHandle.value as number)}>
                                                                                         Add To Beamline
                                                                                     </Button>
-                                                                                    <Button className="popover-button" size="sm">
+                                                                                    <Button className="popover-button" size="sm" onClick={() => {
+                                                                                            updateShownElement({
+                                                                                                template,
+                                                                                                aliases
+                                                                                            })
+                                                                                        }
+                                                                                    }>
                                                                                         Edit
                                                                                     </Button>
                                                                                     <Button className="popover-button" size="sm" variant="danger" onClick={() => removeElement(id)}>

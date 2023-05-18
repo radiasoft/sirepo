@@ -36,6 +36,7 @@ export function initialFormStateFromValue<T>(value: T): FormFieldState<T> {
 
 export const callNextParentFunction = (inst: HandleFactory, fnName: 'save' | 'cancel', state: any, dispatch: Dispatch<AnyAction>) => {
     let p = inst.parent;
+
     while(p) {
         let fn: FormActionFunc = p[fnName];
         if(fn) {
