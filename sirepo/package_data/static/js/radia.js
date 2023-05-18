@@ -2850,7 +2850,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (! initDone) {
                     return;
                 }
-                updateViewer(true);
+                if (appState.models.magnetDisplay.viewType === 'fields') {
+                    updateViewer();
+                }
             });
 
             $scope.$on('$destroy', () => {
