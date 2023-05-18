@@ -94,7 +94,6 @@ export class MadxBeamlineReportsLayout extends Layout<MadxBeamlineReportsConfig>
             <CReportEventManager.Provider value={customReportEventManager}>
                 {(outputInfo || []).map(o => {
                     let type = (o.isHistogram ? "heatplot" : "graph2d");
-                    console.log("type", type);
                     let config = this.config.reports.find(r => r.type === type);
 
                     return (
