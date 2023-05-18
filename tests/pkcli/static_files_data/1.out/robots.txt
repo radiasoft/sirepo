@@ -4,13 +4,13 @@ Disallow: /cloudmc
 Disallow: /controls
 Disallow: /elegant
 Disallow: /genesis
+Disallow: /hellweg
 Disallow: /jspec
 Disallow: /madx
 Disallow: /myapp
 Disallow: /omega
 Disallow: /opal
 Disallow: /radia
-Disallow: /rshellweg
 Disallow: /shadow
 Disallow: /silas
 Disallow: /srw

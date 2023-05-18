@@ -84,6 +84,7 @@
             ["normal", "Normal"],
             ["powerLaw", "PowerLaw"],
             ["tabular", "Tabular"],
+            ["tabularFromFile", "From File"],
             ["uniform", "Uniform"],
             ["watt", "Watt"]
         ],
@@ -397,6 +398,7 @@
         },
         "settings": {
             "batches": ["Number of batches to simulation", "Integer", 1],
+            "eigenvalueHistory": ["Eigenvalue History", "Integer", 5],
             "inactive": ["Number of inactive batches", "Integer", 0],
             "particles": ["Number of particles per generation", "Integer", 5000],
             "photon_transport": ["Photon transport", "Boolean", "0", "Simulate the passage of photons through matter."],
@@ -405,7 +407,6 @@
             "run_mode": ["Run mode", "RunMode", "eigenvalue", "The type of calculation to perform"],
             "materialLibrary": ["Material data library", "MaterialLibrary", "ENDFB-7.1-NNDC"]
         },
-        "simulationStatus": {},
         "source": {
             "angle": ["Angular distribution", "UnitSphere", {"_type": "None"}],
             "energy": ["Energy distribution", "Univariate", {"_type": "None"}],
@@ -429,6 +430,12 @@
         "tabular": {
             "_super": [ "_", "model", "univariate"],
             "probabilityValue": ["", "ModelArray", ""],
+            "interpolation": ["Interpolation", "Interpolation", "linear-linear"],
+            "ignore_negative": ["Ignore negative probabilities", "Boolean", "0"]
+        },
+        "tabularFromFile": {
+            "_super": [ "_", "model", "univariate"],
+            "file": ["File", "InputFile", "", "", false],
             "interpolation": ["Interpolation", "Interpolation", "linear-linear"],
             "ignore_negative": ["Ignore negative probabilities", "Boolean", "0"]
         },
@@ -673,6 +680,7 @@
                     "inactive",
                     "particles",
                     "run_mode",
+                    "eigenvalueHistory",
                     "materialLibrary",
                     "photon_transport"
                 ]],
@@ -715,7 +723,9 @@
         },
         "simulationStatus": {
             "title": "Simulation Status",
-            "advanced": [],
+            "advanced": [
+                "eigenvalueHistory"
+            ],
             "basic": []
         },
         "sphericalIndependent": {
@@ -731,6 +741,13 @@
                 "interpolation",
                 "ignore_negative",
                 "probabilityValue"
+            ]
+        },
+        "tabularFromFile": {
+            "advanced": [
+                "file",
+                "interpolation",
+                "ignore_negative"
             ]
         },
         "tally": {

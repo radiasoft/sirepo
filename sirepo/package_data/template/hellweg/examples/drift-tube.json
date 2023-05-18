@@ -1,25 +1,24 @@
 {
     "models": {
         "beam": {
-            "current": 1,
+            "current": 0,
             "longitudinalDistribution": "norm2d",
-            "numberOfParticles": 1000,
-            "spaceCharge": "elliptic",
+            "numberOfParticles": 10000,
+            "spaceCharge": "none",
             "spaceChargeCore": 3,
-            "transversalDistribution": "twiss4d"
+            "transversalDistribution": "sph2d"
         },
         "beamAnimation": {
             "framesPerSecond": "5",
             "histogramBins": 100,
             "reportType": "r-ar",
-            "startTime": 1490893953,
-            "plotRangeType": "none"
+            "startTime": 1490893613
         },
         "beamHistogramAnimation": {
             "framesPerSecond": "5",
             "histogramBins": 100,
             "reportType": "r",
-            "startTime": 1490893953
+            "startTime": 1490893613
         },
         "beamHistogramReport": {
             "histogramBins": 100,
@@ -32,9 +31,9 @@
         "beamline": [
             {
                 "id": 2,
-                "length": 30,
+                "length": 10,
                 "meshPoints": 500,
-                "radius": 10,
+                "radius": 2.5,
                 "type": "driftElement"
             }
         ],
@@ -48,18 +47,21 @@
             "distributionType": "uniform",
             "energyDeviation": 0.25,
             "energySpread": 0.001,
-            "meanEnergy": 0.1,
-            "meanPhase": 90,
+            "meanEnergy": 1,
+            "meanPhase": 0,
             "phaseDeviation": 20,
-            "phaseLength": 10
+            "phaseLength": 180
+        },
+        "panelState": {
+            "hidden": []
         },
         "simulation": {
             "folder": "/",
             "isExample": true,
-            "name": "Space Charge",
+            "name": "Drift Tube",
             "outOfSessionSimulationId": "",
-            "simulationId": "Wc0Nn2js",
-            "simulationSerial": 1490894235883413
+            "simulationId": "kc2EEDr4",
+            "simulationSerial": 1490894013614259
         },
         "simulationSettings": {
             "allowBackwardWaves": "0",
@@ -76,18 +78,18 @@
         },
         "sphericalDistribution": {
             "curvature": "flat",
-            "curvatureFactor": 1,
-            "radialLimit": 0.564,
-            "thermalEmittance": 0
+            "curvatureFactor": 0,
+            "radialLimit": 5,
+            "thermalEmittance": 10
         },
         "twissDistribution": {
-            "horizontalAlpha": 0,
-            "horizontalBeta": 3,
-            "horizontalEmittance": 0.004,
-            "verticalAlpha": 0,
+            "horizontalAlpha": 0.14,
+            "horizontalBeta": 2,
+            "horizontalEmittance": 0.0005,
+            "verticalAlpha": 0.28,
             "verticalBeta": 4,
-            "verticalEmittance": 0.004
+            "verticalEmittance": 0.0015
         }
     },
-    "simulationType": "rshellweg"
+    "simulationType": "hellweg"
 }
