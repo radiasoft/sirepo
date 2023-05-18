@@ -3542,17 +3542,19 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function cachedToggleOff(pIndex, modelName) {
-                if (! appState.models.toggled) {
-                    appState.models.toggled = {};
-                    appState.models.toggled[modelName] = {};
-                    appState.models.toggled[modelName][pIndex] = false;
+                if (! appState.models.toggledOff) {
+                    appState.models.toggledOff = {};
+                }
+                if (! appState.models.toggledOff[modelName]) {
+                    appState.models.toggledOff[modelName] = {};
+                    appState.models.toggledOff[modelName][pIndex] = false;
+                    return false;e
+                }
+                if (! appState.models.toggledOff[modelName][pIndex]) {
+                    appState.models.toggledOff[modelName][pIndex] = false;
                     return false;
                 }
-                if (!appState.models.toggled[modelName][pIndex]) {
-                    appState.models.toggled[modelName][pIndex] = false;
-                    return false;
-                }
-                return appState.models.toggled[modelName][pIndex];
+                return appState.models.toggledOff[modelName][pIndex];
             }
 
             function createLegend() {
@@ -3709,8 +3711,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             function togglePlot(pIndex, modelName) {
                 setPlotVisible(pIndex, ! isPlotVisible(pIndex));
                 updateYLabel();
-                if (appState.models.toggled) {
-                    appState.models.toggled[modelName][pIndex] = !appState.models.toggled[modelName][pIndex];
+                if (appState.models.toggledOff) {
+                    appState.models.toggledOff[modelName][pIndex] = !appState.models.toggledOff[modelName][pIndex];
                 }
 
                 srdbg(appState.models);
