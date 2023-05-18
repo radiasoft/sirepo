@@ -555,6 +555,17 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.loadObjectViews = loadObjectViews;
 
+    self.moveObject = (direction, o) => {
+        const objects = self.objectArray(o);
+        let i = objects.indexOf(o);
+        const j = i + direction;
+        if (j >= 0 && j < objects.length) {
+            objects.splice(j, 0, objects.splice(i, 1)[0]);
+        }
+    };
+
+    self.objectArray = o => self.isInGroup(o) ? self.getMembers(self.getObject(o.groupId)) : self.getObjects();
+
     self.objectsOfType = type => appState.models.geometryReport.objects.filter(o => o.type === type);
 
     self.objectTypes = () => {
