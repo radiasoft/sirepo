@@ -12,14 +12,13 @@
             "framesPerSecond": "5",
             "histogramBins": 100,
             "reportType": "x-y",
-            "startTime": 1490895426,
-            "plotRangeType": "none"
+            "startTime": 1490895219
         },
         "beamHistogramAnimation": {
             "framesPerSecond": "5",
             "histogramBins": 100,
             "reportType": "r",
-            "startTime": 1490895426
+            "startTime": 1490895219
         },
         "beamHistogramReport": {
             "histogramBins": 100,
@@ -33,19 +32,26 @@
             {
                 "frequency": 2856,
                 "id": 2,
-                "inputPower": 1,
+                "inputPower": 5,
                 "phaseShift": 0,
                 "type": "powerElement"
             },
             {
-                "acceleratingInvariant": 50,
-                "aperture": 0.1,
+                "acceleratingInvariant": 500,
+                "aperture": 0,
                 "attenuation": 0,
                 "id": 3,
                 "phaseAdvance": 120,
-                "phaseVelocity": 0.3,
-                "repeat": 24,
+                "phaseVelocity": 0.999,
+                "repeat": 6,
                 "type": "cellsElement"
+            },
+            {
+                "id": 4,
+                "length": 5,
+                "meshPoints": 100,
+                "radius": 10,
+                "type": "driftElement"
             }
         ],
         "ellipticalDistribution": {
@@ -57,19 +63,19 @@
         "energyPhaseDistribution": {
             "distributionType": "uniform",
             "energyDeviation": 0.25,
-            "energySpread": 1e-05,
-            "meanEnergy": 0.025,
-            "meanPhase": 90,
+            "energySpread": 0.001,
+            "meanEnergy": 0.3,
+            "meanPhase": 0,
             "phaseDeviation": 20,
-            "phaseLength": 180
+            "phaseLength": 1
         },
         "simulation": {
             "folder": "/",
             "isExample": true,
-            "name": "RF Fields",
+            "name": "Emittance Conservation",
             "outOfSessionSimulationId": "",
-            "simulationId": "gfqdzAqI",
-            "simulationSerial": 1490895481759865
+            "simulationId": "FIhkFoFj",
+            "simulationSerial": 1490895275688315
         },
         "simulationSettings": {
             "allowBackwardWaves": "0",
@@ -87,8 +93,8 @@
         "sphericalDistribution": {
             "curvature": "flat",
             "curvatureFactor": 0,
-            "radialLimit": 0.001,
-            "thermalEmittance": 0
+            "radialLimit": 0.564,
+            "thermalEmittance": 0.5
         },
         "twissDistribution": {
             "horizontalAlpha": 0.14,
@@ -99,5 +105,5 @@
             "verticalEmittance": 0.0015
         }
     },
-    "simulationType": "rshellweg"
+    "simulationType": "hellweg"
 }
