@@ -3541,20 +3541,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function cachedToggleOff(pIndex, modelName) {
-                if (! appState.models.toggledOff) {
-                    appState.models.toggledOff = {};
-                }
-                if (! appState.models.toggledOff[modelName]) {
-                    appState.models.toggledOff[modelName] = {};
-                    appState.models.toggledOff[modelName][pIndex] = false;
-                    return false;
-                }
-                if (! appState.models.toggledOff[modelName][pIndex]) {
-                    appState.models.toggledOff[modelName][pIndex] = false;
-                    return false;
+                appState.models.toggledOff = appState.models.toggledOff || {};
+                appState.models.toggledOff[modelName] = appState.models.toggledOff[modelName] || {};
+                if (!appState.models.toggledOff[modelName].hasOwnProperty(pIndex)) {
+                  appState.models.toggledOff[modelName][pIndex] = false;
+                  return false;
                 }
                 return appState.models.toggledOff[modelName][pIndex];
-            }
+              }
 
             function createLegend() {
                 const plots = $scope.axes.y.plots;
