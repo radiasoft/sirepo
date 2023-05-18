@@ -6,8 +6,8 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
-import pykern.pkio
 import os
+import pykern.pkio
 import pykern.pkjson
 import pykern.pksubprocess
 import pykern.pkjinja
@@ -18,7 +18,6 @@ import shutil
 
 
 _SEQUENTIAL_BASH_FILE = "sequential_test.sh"
-_SEQUENTIAL_BASH_TEMPLATE = _SEQUENTIAL_BASH_FILE + pykern.pkjinja.RESOURCE_SUFFIX
 _RESOURCE_DIR = "nersc_test/"
 _RUN_DIR = "sirepo_run_dir"
 _SEQUENTIAL_JOB_CMD_INPUT = "nersc_sequential.json"
@@ -34,15 +33,8 @@ def sequential():
         pykern.pkio.unchecked_remove(s)
         s.ensure(dir=True)
         o = s.join(_SEQUENTIAL_RESULT_FILE)
-        pykern.pkjinja.render_file(
-            _file(_SEQUENTIAL_BASH_TEMPLATE),
-            PKDict(
-                user=sirepo.const.MOCK_UID,
-                sirepo_run_dir=s.basename,
-                json_in_path=_file(_SEQUENTIAL_JOB_CMD_INPUT),
-            ),
-            output=s.join(_SEQUENTIAL_BASH_FILE),
-        )
+        for f in (_SEQUENTIAL_JOB_CMD_INPUT, _SEQUENTIAL_BASH_FILE):
+            _render(f, s)
         pykern.pksubprocess.check_call_with_signals(
             ["bash", s.join(_SEQUENTIAL_BASH_FILE)],
             output=str(o),
@@ -52,8 +44,22 @@ def sequential():
             raise RuntimeError(f"incomplete result {r.state}")
         return "nersc_test.sequential PASS"
     except Exception as e:
-        return f"error={e} user={os.geteuid()}"
+        return f"nersc_test sequential fail: error={e}\n{pkdexc()}\nunix_uid={os.geteuid()}"
 
 
-def _file(filename):
-    return sirepo.resource.file_path(_RESOURCE_DIR + filename)
+def _file_path(filename):
+    return sirepo.resource.file_path(
+        _RESOURCE_DIR + filename + pykern.pkjinja.RESOURCE_SUFFIX
+    )
+
+
+def _render(filename, run_dir):
+    pykern.pkjinja.render_file(
+        _file_path(filename),
+        PKDict(
+            user=sirepo.const.MOCK_UID,
+            sirepo_run_dir=run_dir,
+            jobCmdIn=run_dir.join(_SEQUENTIAL_JOB_CMD_INPUT),
+        ),
+        output=run_dir.join(filename),
+    )
