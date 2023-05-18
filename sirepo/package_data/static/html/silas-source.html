@@ -3,13 +3,18 @@
     <div class="col-md-6 col-xl-6">
       <div data-basic-editor-panel="" data-view-name="laserPulse"></div>
     </div>
+    <div class="col-md-6 col-xl-6">
+      <div data-simple-panel="simulationStatus">
+        <div data-sim-status-panel="source.simState"></div>
+      </div>
+    </div>
   </div>
   <div class="row">
-    <div class="col-md-6 col-xl-6">
-      <div data-report-panel="3d" data-model-name="initialIntensityReport"></div>
+    <div class="col-md-6 col-xl-4" data-ng-if="source.simState.hasFrames()">
+      <div data-report-panel="{{ source.laserPulsePlotType('laserPulseAnimation') }}" data-model-name="laserPulseAnimation"></div>
     </div>
-    <div class="col-md-6 col-xl-6">
-      <div data-report-panel="3d" data-model-name="initialPhaseReport"></div>
+    <div class="col-md-6 col-xl-4" data-ng-if="source.simState.hasFrames()">
+      <div data-report-panel="{{ source.laserPulsePlotType('laserPulse2Animation') }}" data-model-name="laserPulse2Animation"></div>
     </div>
   </div>
 </div>
