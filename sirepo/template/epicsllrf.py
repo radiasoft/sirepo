@@ -9,6 +9,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import sirepo.util
 import filecmp
 import os
 import re
@@ -77,10 +78,14 @@ def stateless_compute_read_epics_values(data, **kwargs):
 def stateless_compute_update_epics_value(data, **kwargs):
     for f in data.fields:
         # TODO (gurhar1133): pvput should cause error when epics server not running
-        run_epics_cmd(
+        if run_epics_cmd(
             f"pvput {epics_field_name(data.model, f.field)} {f.value}",
             data.serverAddress,
-        )
+        ) != 0:
+            return PKDict(
+                success=False,
+                error=f"Unable to connect to EPICS server: {data.serverAddress}",
+            )
     return PKDict(success=True)
 
 
