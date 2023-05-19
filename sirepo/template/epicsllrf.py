@@ -76,6 +76,7 @@ def stateless_compute_read_epics_values(data, **kwargs):
 
 def stateless_compute_update_epics_value(data, **kwargs):
     for f in data.fields:
+        # TODO (gurhar1133): pvput should cause error when epics server not running
         run_epics_cmd(
             f"pvput {epics_field_name(data.model, f.field)} {f.value}",
             data.serverAddress,
@@ -88,19 +89,6 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
-
-
-def _check_connection(process_variables):
-    for k in process_variables:
-        if type(process_variables[k]) == float:
-            continue
-        for e in (
-            PKDict(value="disconnected", error="Disconnected from EPICS"),
-            PKDict(value="(PV not found)", error="No EPICS process found"),
-        ):
-            if e.value in process_variables[k]:
-                return PKDict(error=e.error)
-    return process_variables
 
 
 def _generate_parameters_file(data):
@@ -127,5 +115,5 @@ def _read_epics_data(run_dir):
             else:
                 v = float(v)
             d[f] = v
-        return _check_connection(d)
+        return d
     return PKDict()
