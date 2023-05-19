@@ -1981,7 +1981,6 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                             radiaService.syncReports();
                         }
                         solving = false;
-                        radiaService.saveGeometry(false, true);
                     }
                 }
             };
@@ -2710,6 +2709,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setupSceneData(data) {
+                radiaService.saveGeometry(false, true);
                 cachedDisplayVals = appState.clone(getDisplayVals());
                 $rootScope.$broadcast('radiaViewer.loaded');
                 $rootScope.$broadcast('vtk.hideLoader');
