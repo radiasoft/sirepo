@@ -9,7 +9,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
-import sirepo.util
 import filecmp
 import os
 import re
