@@ -3540,14 +3540,13 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return true;
             }
 
-            function cachedToggleOff(pIndex, modelName) {
-                appState.models.toggledOff = appState.models.toggledOff || {};
-                appState.models.toggledOff[modelName] = appState.models.toggledOff[modelName] || {};
-                if (!appState.models.toggledOff[modelName].hasOwnProperty(pIndex)) {
-                  appState.models.toggledOff[modelName][pIndex] = false;
-                  return false;
+            function cachedPlotVisibilty(pIndex, modelName) {
+                appState.models.plotVisibilty = appState.models.plotVisibilty || {};
+                appState.models.plotVisibilty[modelName] = appState.models.plotVisibilty[modelName] || {};
+                if (! appState.models.plotVisibilty[modelName].hasOwnProperty(pIndex)) {
+                  appState.models.plotVisibilty[modelName][pIndex] = false;
                 }
-                return appState.models.toggledOff[modelName][pIndex];
+                return appState.models.plotVisibilty[modelName][pIndex];
               }
 
             function createLegend() {
@@ -3702,10 +3701,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             function togglePlot(pIndex, modelName) {
                 setPlotVisible(pIndex, ! isPlotVisible(pIndex));
                 updateYLabel();
-                if (appState.models.toggledOff) {
-                    appState.models.toggledOff[modelName][pIndex] = !appState.models.toggledOff[modelName][pIndex];
+                if (appState.models.plotVisibilty) {
+                    appState.models.plotVisibilty[modelName][pIndex] = ! appState.models.plotVisibilty[modelName][pIndex];
                 }
-                appState.saveChanges("toggledOff");
+                appState.saveChanges('plotVisibilty');
             }
 
             function updateYLabel() {
@@ -4028,7 +4027,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 });
                 updateYLabel();
                 plots.forEach(function(plot, i) {
-                    if (cachedToggleOff(i, $scope.modelName)) {
+                    if (cachedPlotVisibilty(i, $scope.modelName)) {
                         setPlotVisible(i, ! isPlotVisible(i));
                     }
                 });
