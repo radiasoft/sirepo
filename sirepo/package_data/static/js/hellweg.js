@@ -154,8 +154,8 @@ SIREPO.app.controller('HellwegLatticeController', function (appState, panelState
     };
 
 
-    self.itemValues = function(item) {
-        const itemLabels = {
+    self.itemLabels = function(key) {
+        return {
             'aperture': 'Aperture',
             'attenuation': 'Attenuation',
             'phaseVelocity': 'Phase Velocity',
@@ -164,15 +164,12 @@ SIREPO.app.controller('HellwegLatticeController', function (appState, panelState
             'phaseAdvance': 'Advance [deg]',
             'length': 'Length [cm]',
             'radius': 'Radius [cm]',
-            'meshPoints': 'meshPoints',
+            'meshPoints': 'Mesh Points',
             'inputPower': 'Input Power [MW]',
             'frequency': 'Frequency [MHz]',
             'phaseShift': 'Phase Shift [deg]',
-        };
-        return appState.viewInfo(item.type).advanced.map(function(f) {
-            return `${itemLabels[f]}: ${item[f]} ` ;
-        }).join(' ');
-    };
+        }[key];
+    }
 
     self.selectItem = function(item) {
         self.selectedItem = angular.isObject(item) ? item : null;
