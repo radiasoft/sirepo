@@ -104,7 +104,7 @@ def test_radia(fc):
     )
 
 
-def test_rshellweg(fc):
+def test_hellweg(fc):
     fc.sr_animation_run(
         fc.sr_sim_data("RF Fields"),
         "beamAnimation",
