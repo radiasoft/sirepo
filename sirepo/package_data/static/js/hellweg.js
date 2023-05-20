@@ -153,9 +153,24 @@ SIREPO.app.controller('HellwegLatticeController', function (appState, panelState
         return '';
     };
 
+
     self.itemValues = function(item) {
+        const itemLabels = {
+            'aperture': 'Aperture',
+            'attenuation': 'Attenuation',
+            'phaseVelocity': 'Phase Velocity',
+            'repeat': 'Repeat Count',
+            'acceleratingInvariant': 'Field Invariant',
+            'phaseAdvance': 'Advance [deg]',
+            'length': 'Length [cm]',
+            'radius': 'Radius [cm]',
+            'meshPoints': 'meshPoints',
+            'inputPower': 'Input Power [MW]',
+            'frequency': 'Frequency [MHz]',
+            'phaseShift': 'Phase Shift [deg]',
+        };
         return appState.viewInfo(item.type).advanced.map(function(f) {
-            return item[f];
+            return `${itemLabels[f]}: ${item[f]} ` ;
         }).join(' ');
     };
 
