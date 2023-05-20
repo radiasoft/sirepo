@@ -169,7 +169,7 @@ SIREPO.app.controller('HellwegLatticeController', function (appState, panelState
             'frequency': 'Frequency [MHz]',
             'phaseShift': 'Phase Shift [deg]',
         }[key];
-    }
+    };
 
     self.selectItem = function(item) {
         self.selectedItem = angular.isObject(item) ? item : null;
