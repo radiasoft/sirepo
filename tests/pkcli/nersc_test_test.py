@@ -5,49 +5,59 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import pytest
-import pykern.pkio
-import pykern.pkunit
-import sirepo.pkcli.nersc_test
-import pykern.pksubprocess
 
 
 class _SequentialTest:
     def __init__(self):
-        self._CMD_BASIC = ["sirepo", "nersc_test", "sequential"]
-        self._work_dir = pykern.pkunit.work_dir()
-        self._data_dir = pykern.pkunit.data_dir()
+        from pykern import pkunit
+
+        self._work_dir = pkunit.work_dir()
+        self._data_dir = pkunit.data_dir()
         self._output = "result.log"
 
-    def test(self):
-        self._success_case()
-        self._failure_case()
-
-    def _failure_case(self):
-        self._exec_cmd(
-            [
-                *self._CMD_BASIC,
-                f"job_cmd_in_path={self._data_dir.join('failure_in.json.jinja')}",
-            ]
-        )
-        pykern.pkunit.pkeq(
-            pykern.pkio.read_text(self._work_dir.join("result.log")).split("\n")[0],
-            "nersc_test sequential fail: error=unexpected result state=error",
-        )
-
-    def _success_case(self):
-        self._exec_cmd(self._CMD_BASIC)
-        pykern.pkunit.pkeq(
-            pykern.pkio.read_text(self._work_dir.join("result.log")).strip(),
+    def conformance(self):
+        self._test(
             "nersc_test.sequential PASS",
+            lambda s: s.strip(),
         )
 
-    def _exec_cmd(self, cmd):
-        with pykern.pkio.save_chdir(self._work_dir):
-            pykern.pksubprocess.check_call_with_signals(
-                cmd,
+    def deviance(self):
+        self._test(
+            "nersc_test sequential fail: error=unexpected result state=error",
+            lambda s: s.split("\n")[0],
+            cmd_arg=f"job_cmd_in_path={self._data_dir.join('failure_in.json.jinja')}",
+        )
+
+    def _test(self, expect, out_fn, cmd_arg=None):
+        from pykern import pkio
+        from pykern import pkunit
+
+        self._exec_cmd(cmd_arg)
+        pkunit.pkeq(
+            out_fn(pkio.read_text(self._work_dir.join(self._output))),
+            expect,
+        )
+
+    def _cmd(self, cmd_arg=None):
+        c = ["sirepo", "nersc_test", "sequential"]
+        if cmd_arg:
+            c.append(cmd_arg)
+        return c
+
+    def _exec_cmd(self, cmd_arg=None):
+        from pykern import pksubprocess
+        from pykern import pkio
+
+        with pkio.save_chdir(self._work_dir):
+            pksubprocess.check_call_with_signals(
+                self._cmd(cmd_arg),
                 output=self._output,
             )
 
 
-def test_sequential():
-    _SequentialTest().test()
+def test_conformance():
+    _SequentialTest().conformance()
+
+
+def test_deviance():
+    _SequentialTest().deviance()
