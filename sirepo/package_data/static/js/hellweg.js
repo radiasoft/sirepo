@@ -177,7 +177,8 @@ SIREPO.app.controller('HellwegLatticeController', function (appState, panelState
 
     self.selectedItemName = function() {
         if (self.selectedItem) {
-            return self.itemName(self.selectedItem) + ' ' + self.itemValues(self.selectedItem);
+            srdbg(self.itemName(self.selectedItem) + ' ' + self.itemLabels(self.itemName(self.selectedItem)))
+            return self.itemName(self.selectedItem) + ' ' + self.itemLabels(self.itemName(self.selectedItem));
         }
         return '';
     };
