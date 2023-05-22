@@ -77,21 +77,19 @@ export class MadxBeamlinesPickerLayout extends Layout<MadxBeamlinesPickerConfig>
                                         <td>
                                             
                                             {(bl.angle as number).toPrecision(4)}
-                                        </td>
-                                        {
-                                            hover.checkHover(id) && (
-                                                <div className="popover-buttons-outer">
-                                                    <div className="popover-buttons">
-                                                        <Button className="popover-button" size="sm" variant="primary" onClick={() => selectBeamline(id)}>
-                                                            Select
-                                                        </Button>
-                                                        <Button className="popover-button" size="sm" variant="primary" onClick={() => selectBeamline(id)}>
-                                                            Select
-                                                        </Button>
+
+                                            {
+                                                hover.checkHover(id) && (
+                                                    <div className="popover-buttons-outer">
+                                                        <div className="popover-buttons">
+                                                            <Button className="popover-button" size="sm" variant="primary" onClick={() => selectBeamline(id)}>
+                                                                Select
+                                                            </Button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )
-                                        }
+                                                )
+                                            }
+                                        </td>
                                     </tr>
                                 )
                             })

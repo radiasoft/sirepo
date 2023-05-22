@@ -1,6 +1,6 @@
 import React, { useContext, useState } from "react";
 import { FunctionComponent } from "react";
-import { Badge, Button, Modal, Tab, Table, Tabs } from "react-bootstrap";
+import { Badge, Button, Container, Form, Modal, Tab, Table, Tabs } from "react-bootstrap";
 import { useDispatch, useStore } from "react-redux";
 import { formActionFunctions } from "../../component/reusable/form";
 import { HoverController } from "../../component/reusable/hover";
@@ -130,12 +130,15 @@ export function MadxBeamlineElementEditorBase(props: MadxBeamlineElementEditorCo
                 {props.template.name}
             </Modal.Header>
             <Modal.Body>
-                {layouts.map((l, idx) => {
-                    let Comp = l.component;
-                    return <Comp key={idx}/>;
-                })}
+                <div style={{ margin: "10px" }}>
+                    {layouts.map((l, idx) => {
+                        let Comp = l.component;
+                        return <Comp key={idx}/>;
+                    })}
+                    <ViewPanelActionButtons onSave={props.formSave} onCancel={props.formCancel} canSave={props.canSave}/>
+                </div>
             </Modal.Body>
-            <ViewPanelActionButtons onSave={props.formSave} onCancel={props.formCancel} canSave={props.canSave}/>
+            
         </Modal>
     )
 }
@@ -257,6 +260,7 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                                 this.config.templateGroups?.map(tg => {
                                     return (
                                         <Tab eventKey={tg.name} title={tg.name} key={tg.name}>
+                                            <div className="d-flex flex-row" style={{ margin: "10px", flexWrap: "wrap", gap: ".5rem" }}>
                                             {
                                                 ([...new Set(tg.types)].sort((a,b) => a.localeCompare(b))).map(t => {
                                                     let s = getTemplateSettingsByType(t, this.config.elementTemplates);
@@ -269,6 +273,8 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                                                     )
                                                 })
                                             }
+                                            </div>
+                                            
                                         </Tab>
                                     )
                                 })
@@ -346,30 +352,32 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                                                                     </td>
                                                                     <td>
                                                                         {ev.item.angle !== undefined ? `${ev.item.angle}` : ""}
-                                                                    </td>
-                                                                    {
-                                                                        hover.checkHover(id) && (
-                                                                            <div className="popover-buttons-outer">
-                                                                                <div className="popover-buttons">
-                                                                                    <Button className="popover-button" size="sm" onClick={() => addElementToBeamline(id, selectedBeamlineHandle.value as number)}>
-                                                                                        Add To Beamline
-                                                                                    </Button>
-                                                                                    <Button className="popover-button" size="sm" onClick={() => {
-                                                                                            updateShownElement({
-                                                                                                template,
-                                                                                                aliases
-                                                                                            })
-                                                                                        }
-                                                                                    }>
-                                                                                        Edit
-                                                                                    </Button>
-                                                                                    <Button className="popover-button" size="sm" variant="danger" onClick={() => removeElement(id)}>
-                                                                                        <FontAwesomeIcon icon={Icon.faClose}/>
-                                                                                    </Button>
+
+                                                                        {
+                                                                            hover.checkHover(id) && (
+                                                                                <div className="popover-buttons-outer">
+                                                                                    <div className="popover-buttons">
+                                                                                        <Button className="popover-button" size="sm" onClick={() => addElementToBeamline(id, selectedBeamlineHandle.value as number)}>
+                                                                                            Add To Beamline
+                                                                                        </Button>
+                                                                                        <Button className="popover-button" size="sm" onClick={() => {
+                                                                                                updateShownElement({
+                                                                                                    template,
+                                                                                                    aliases
+                                                                                                })
+                                                                                            }
+                                                                                        }>
+                                                                                            Edit
+                                                                                        </Button>
+                                                                                        <Button className="popover-button" size="sm" variant="danger" onClick={() => removeElement(id)}>
+                                                                                            <FontAwesomeIcon icon={Icon.faClose}/>
+                                                                                        </Button>
+                                                                                    </div>
                                                                                 </div>
-                                                                            </div>
-                                                                        )
-                                                                    }
+                                                                            )
+                                                                        }
+                                                                    </td>
+                                                                    
                                                                 </tr>
                                                             </React.Fragment>
                                                             

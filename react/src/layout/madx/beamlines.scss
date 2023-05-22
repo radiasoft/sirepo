@@ -1,17 +1,14 @@
 .popover-buttons {
-    flex-flow: row nowrap;
-    justify-content: flex-end; 
-    display: flex;
-    align-items: normal;
+    top: -2px;
     position: absolute; 
     right: 0px;
     white-space: nowrap;
+    display: inline;
+    float: inline-end;
 }
 
 .popover-buttons-outer {
-    width: 0;
     position: relative;
-    display: inline-block;
 }
 
 .popover-button {
@@ -19,6 +16,3 @@
     color: white !important;
 }
 
-table > tr, table > thead, table > tbody {
-    width: 100%;
-}

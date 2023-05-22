@@ -16,6 +16,8 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { LAYOUTS } from "../layouts";
 import { ArrayAliases } from "../../data/alias";
 import { HoverController } from "../../component/reusable/hover";
+import { FormFieldState, FormModelState } from "../../store/formState";
+import { cloneDeep } from "lodash";
 
 export type MadxBeamlineElmenetsConfig = {
     selectedBeamlineDependency: string,
@@ -51,6 +53,23 @@ export class MadxBeamlineElementsLayout extends Layout<MadxBeamlineElmenetsConfi
         }
 
         let currentBeamline = beamlinesValue.find(beam => beam.item.id === selectedBeamlineHandle.value).item;
+        let removeElement = (elementId: number | string) => {
+            let v = cloneDeep(beamlinesHandle.value) as FormFieldState<ArrayFieldState<FormModelState>>;
+            let changed = false;
+            let b = v.value.find(b => b.item.id.value === selectedBeamlineHandle.value);
+            console.log("b", b);
+            let idx = b.item.items.value.findIndex(e => e == elementId);
+            if(idx > 0) {
+                changed = true;
+                let v = [...b.item.items.value];
+                v.splice(idx, 1);
+                b.item.items.value = v;
+            }
+            if(changed) {
+                beamlinesHandle.write(v, store.getState(), dispatch);
+            }
+        }
+
         console.log("during update", currentBeamline.items);
         console.log("elements during update", _allItems.map(i => i.item.id || i.item._id))
         let beamlineElements = (currentBeamline.items as number[]).map(findBeamlineOrElementById)
@@ -62,7 +81,7 @@ export class MadxBeamlineElementsLayout extends Layout<MadxBeamlineElmenetsConfi
 
         return (
             <>
-                <div className="d-flex flex-row" style={{ flexWrap: "wrap" }}>
+                <div className="d-flex flex-row" style={{ flexWrap: "wrap", rowGap: "1rem" }}>
                     <HoverController>
                         {
                             (hover) => {
@@ -91,9 +110,9 @@ export class MadxBeamlineElementsLayout extends Layout<MadxBeamlineElmenetsConfi
                                             }>
                                                 {`${e.item.name as string}`}
                                             </Badge>
-                                            <div style={{width: "25px", height: "25px"}}>
+                                            <div style={{width: "25px", height: "25px", marginLeft: "5px"}}>
                                                 <div style={{ display: hover.checkHover(id) ? "block" : "none" }}>
-                                                    <FontAwesomeIcon icon={Icon.faClose} onClick={() => null}/>
+                                                    <FontAwesomeIcon icon={Icon.faClose} onClick={() => removeElement(id)}/>
                                                 </div>
                                             </div>
                                         </div>
