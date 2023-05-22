@@ -601,10 +601,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
     };
 
-    self.saveObjects = () => {
-        radiaService.saveGeometry(false, true);
-    };
-
     self.selectObject = o => {
         if (o) {
             self.selectedObject = o;
