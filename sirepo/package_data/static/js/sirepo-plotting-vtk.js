@@ -2702,7 +2702,7 @@ SIREPO.app.directive('objectTable', function(appState) {
 
             $scope.isGroup = $scope.source.isGroup;
 
-            $scope.isAlignDisabled = o => ! $scope.isGroup(o) || getMemberObjects(o).length < 2
+            $scope.isAlignDisabled = o => ! $scope.isGroup(o) || getMemberObjects(o).length < 2;
 
             $scope.isMoveDisabled = (direction, o) => {
                 const objects = isInGroup(o) ?
