@@ -513,6 +513,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.getMagnetType = () => appState.models.simulation.magnetType;
 
+    self.getMemberObjects = o => (self.getMembers(o) || []).map(mId => self.getObject(mId));
+
     self.getMembers = o => o.members;
 
     self.getObject = radiaService.getObject;
@@ -604,6 +606,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         else {
             save(s);
         }
+    };
+
+    self.saveObjects = () => {
+        radiaService.saveGeometry(false, true);
     };
 
     self.selectObject = o => {

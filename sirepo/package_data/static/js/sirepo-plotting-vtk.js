@@ -2611,7 +2611,7 @@ SIREPO.app.directive('objectTable', function(appState) {
                         <td style="text-align: right">
                           <div class="sr-button-bar-parent">
                             <div class="sr-button-bar sr-button-bar-active">
-                               <button data-ng-disabled="! isGroup(o) || memberObjects(o).length < 2" class="dropdown-toggle btn btn-info btn-xs" title="align" data-toggle="dropdown"><span class="glyphicon glyphicon-move"></span></button>
+                               <button data-ng-disabled="isAlignDisabled(o)" class="dropdown-toggle btn btn-info btn-xs" title="align" data-toggle="dropdown"><span class="glyphicon glyphicon-move"></span></button>
                                <ul class="dropdown-menu">
                                  <div class="container col-sm-8">
                                    <div class="row">
@@ -2640,6 +2640,9 @@ SIREPO.app.directive('objectTable', function(appState) {
         controller: function($scope) {
             $scope.expanded = {};
 
+            const isInGroup = $scope.source.isInGroup;
+            const getMemberObjects = $scope.source.getMemberObjects;
+
             function init() {
                 for (const o of $scope.getObjects()) {
                     $scope.expanded[o.id] = true;
@@ -2651,14 +2654,14 @@ SIREPO.app.directive('objectTable', function(appState) {
                 const arranged = [];
 
                 function addGroup(o) {
-                    const p = $scope.getParent(o);
+                    const p = getParent(o);
                     if (p && ! arranged.includes(p)) {
                         return;
                     }
                     if (! arranged.includes(o)) {
                         arranged.push(o);
                     }
-                    for (const m of $scope.memberObjects(o)) {
+                    for (const m of getMemberObjects(o)) {
                         if ($scope.isGroup(m)) {
                             addGroup(m);
                         }
@@ -2672,7 +2675,7 @@ SIREPO.app.directive('objectTable', function(appState) {
                     if (arranged.includes(o)) {
                         continue;
                     }
-                    if ($scope.isNotInGroup(o)) {
+                    if (! isInGroup(o)) {
                         arranged.push(o);
                     }
                     if ($scope.isGroup(o)) {
@@ -2680,6 +2683,18 @@ SIREPO.app.directive('objectTable', function(appState) {
                     }
                 }
                 return arranged;
+            }
+
+            function arrayContaining(o, filter=null) {
+                if (isInGroup(o)) {
+                    return getMemberObjects(getParent(o))
+                }
+                const objs = $scope.getObjects();
+                return filter ? objs.filter(filter) : objs;
+            }
+
+            function getParent(o) {
+                return $scope.source.getObject(o.groupId);
             }
 
             $scope.align = (o, alignType) => {
@@ -2692,51 +2707,39 @@ SIREPO.app.directive('objectTable', function(appState) {
 
             $scope.editObject = $scope.source.editObject;
 
-            $scope.getParent = o => $scope.source.getObject(o.groupId);
-
             $scope.getObjects = () => {
                 return arrange((appState.models[$scope.modelName] || {}).objects);
             };
 
             $scope.isGroup = $scope.source.isGroup;
 
-            $scope.isInGroup = $scope.source.isInGroup;
+            $scope.isAlignDisabled = o => ! $scope.isGroup(o) || getMemberObjects(o).length < 2
 
             $scope.isMoveDisabled = (direction, o) => {
-                const objects = $scope.arrayContaining(o);
+                const objects = arrayContaining(o, x => ! isInGroup(x));
                 let i = objects.indexOf(o);
                 return direction === -1 ? i === 0 : i === objects.length - 1;
-            };
-
-            $scope.isNotInGroup = o => ! $scope.isInGroup(o);
-
-            $scope.memberObjects = o => {
-                return ($scope.source.getMembers(o) || []).map(mId => $scope.source.getObject(mId));
             };
 
             $scope.moveObject = $scope.source.moveObject;
 
             $scope.nestLevel = o => {
                 let n = 0;
-                if ($scope.isInGroup(o)) {
+                if (isInGroup(o)) {
                     n += (1 + $scope.nestLevel($scope.source.getObject(o.groupId)));
                 }
                 return n;
             };
-
-            $scope.arrayContaining = o => $scope.isInGroup(o) ?
-                $scope.memberObjects($scope.getParent(o)) :
-                $scope.getObjects().filter(x => ! $scope.isInGroup(x));
 
             $scope.toggleExpand = o => {
                 $scope.expanded[o.id] = ! $scope.expanded[o.id];
             };
 
             $scope.areAllParentsExpanded = o => {
-                if ($scope.isNotInGroup(o)) {
+                if (! isInGroup(o)) {
                     return true;
                 }
-                const p = $scope.getParent(o);
+                const p = getParent(o);
                 if (! $scope.expanded[p.id]) {
                     return false;
                 }
