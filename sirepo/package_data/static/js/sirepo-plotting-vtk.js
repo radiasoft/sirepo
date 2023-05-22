@@ -2623,8 +2623,8 @@ SIREPO.app.directive('objectTable', function(appState) {
                                    <div>
                                  <div>
                                </ul>
-                               <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)"><span class="glyphicon glyphicon-arrow-up"></span></button>
-                               <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)"><span class="glyphicon glyphicon-arrow-down"></span></button>
+                               <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)" title="move up"><span class="glyphicon glyphicon-arrow-up"></span></button>
+                               <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)" title="move down"><span class="glyphicon glyphicon-arrow-down"></span></button>
                                <button data-ng-disabled="isGroup(o)" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-duplicate"></span></button>
                                <button data-ng-click="editObject(o)" class="btn btn-info btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
                                <button data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
