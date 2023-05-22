@@ -190,11 +190,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         };
     };
 
-    self.getGroup = function(id) {
-        const o = self.getObject(id);
-        return o ? self.getObject(o.groupId) : null;
-    };
-
     self.getObject = function(id) {
         let objs = appState.models.geometryReport.objects || [];
         for (const o of objs) {
@@ -509,7 +504,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return appState.models.simulation.dipoleType;
     };
 
-    self.getGroup = radiaService.getGroup;
+    self.getGroup = o => self.getObject(o.groupId);
 
     self.getMagnetType = () => appState.models.simulation.magnetType;
 
@@ -558,7 +553,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.loadObjectViews = loadObjectViews;
 
     self.moveObject = (direction, o) => {
-        const objects = self.arrayContaining(o);
+        const objects = self.isInGroup(o) ? self.getMembers(self.getObject(o.groupId)) : self.getObjects();
         let i = objects.indexOf(self.isInGroup(o) ? o.id : o);
         const j = i + direction;
         if (j >= 0 && j < objects.length) {
@@ -566,8 +561,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             radiaService.saveGeometry(false, true);
         }
     };
-
-    self.arrayContaining = o => self.isInGroup(o) ? self.getMembers(self.getObject(o.groupId)) : self.getObjects();
 
     self.objectsOfType = type => appState.models.geometryReport.objects.filter(o => o.type === type);
 
