@@ -553,13 +553,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.isGroup = o => o.members !== undefined;
 
-    self.isMoveDisabled = (direction, o) => {
-        const objects = self.arrayContaining(o);
-        let i = objects.indexOf(self.isInGroup(o) ? o.id : o);
-        srdbg('can move', o, 'at', i, 'in', objects, '?', direction === -1 ? i === 0 : i === objects.length - 1);
-        return direction === -1 ? i === 0 : i === objects.length - 1;
-    };
-
     self.loadObjectViews = loadObjectViews;
 
     self.moveObject = (direction, o) => {

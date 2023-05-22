@@ -2715,7 +2715,9 @@ SIREPO.app.directive('objectTable', function(appState) {
                 return n;
             };
 
-            $scope.arrayContaining = o => $scope.isInGroup(o) ? $scope.memberObjects($scope.getParent(o)) : $scope.getObjects();
+            $scope.arrayContaining = o => $scope.isInGroup(o) ?
+                $scope.memberObjects($scope.getParent(o)) :
+                $scope.getObjects().filter(x => ! $scope.isInGroup(x));
 
             $scope.toggleExpand = o => {
                 $scope.expanded[o.id] = ! $scope.expanded[o.id];
