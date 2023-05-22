@@ -2607,16 +2607,25 @@ SIREPO.app.directive('objectTable', function(appState) {
                         <span style="font-size: large; color: {{o.color || '#cccccc'}};">■</span>
                           <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': expanded[o.id], 'glyphicon-chevron-up': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
                             <span>{{ o.name }}</span>
-                            <span class="sr-button-bar-parent" data-ng-if="isGroup(o) && memberObjects(o).length > 1">
-                              <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(o, t.type)"><img alt="{{ t.title }}" data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
-                            </span>
                       </td>
                         <td style="text-align: right">
                           <div class="sr-button-bar-parent">
                             <div class="sr-button-bar sr-button-bar-active">
+                               <button data-ng-disabled="! isGroup(o) || memberObjects(o).length < 2" class="dropdown-toggle btn btn-info btn-xs" title="align" data-toggle="dropdown"><span class="glyphicon glyphicon-move"></span></button>
+                               <ul class="dropdown-menu">
+                                 <div class="container col-sm-8">
+                                   <div class="row">
+                                     <li style="display: inline-block">
+                                        <span class="sr-button-bar-parent">
+                                          <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(o, t.type)"><img alt="{{ t.title }}" data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
+                                        </span>
+                                      </li>
+                                   <div>
+                                 <div>
+                               </ul>
                                <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)"><span class="glyphicon glyphicon-arrow-up"></span></button>
                                <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)"><span class="glyphicon glyphicon-arrow-down"></span></button>
-                               <button data-ng-disabled="isGroup(o)" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-copy"></span></button>
+                               <button data-ng-disabled="isGroup(o)" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-duplicate"></span></button>
                                <button data-ng-click="editObject(o)" class="btn btn-info btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
                                <button data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
                             </div>
