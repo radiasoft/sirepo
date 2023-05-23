@@ -58,7 +58,7 @@ def run_elegant(run_dir, elegant_id, prev_sim=None):
             p.copy(sim_lib_file('elegant', 'bunchFile', 'sourceFile', filename))
             p.copy(sim_lib_file('elegant', 'command_run_setup', 'expand_for', filename))
         elif prev_sim.sim_type == 'genesis':
-            raise NotImplementedError, "genesis is only supported as a final step sim"
+            raise NotImplementedError("genesis is only supported as a final step sim")
         else:
             sw = switchyard.Switchyard()
             sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
@@ -80,21 +80,20 @@ def run_genesis(run_dir, genesis_id, prev_sim=None):
         update_genesis_sim(data, filename)
         sw = switchyard.Switchyard()
         sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
-        assert 0, "finish"
-        sw.write(sim_lib_file('genesis', 'bunchFile', 'sourceFile', filename), 'elegant')
-     # data.computeModel = 'animation'
-    # if 'report' in data:
-    #     del data['report']
-    # with pkio.save_chdir(prep_run_dir(run_dir, data)):
-    #     sirepo.pkcli.elegant.run_elegant()
-    # return f'{run_dir}/run_setup.output.sdds'
+        sw.write(sim_lib_file('genesis', 'io', 'distFile', filename), 'genesis')
+    data.computeModel = 'animation'
+    if 'report' in data:
+        del data['report']
+    with pkio.save_chdir(prep_run_dir(run_dir, data)):
+        sirepo.pkcli.genesis.run_genesis()
+    return f'{run_dir}/genesis.dat'
 
 
 def run_opal(run_dir, opal_id, prev_sim=None):
     data = read_sim('opal', opal_id)
     if prev_sim:
         if prev_sim.sim_type == 'genesis':
-            raise NotImplementedError, "genesis is only supported as a final step sim"
+            raise NotImplementedError("genesis is only supported as a final step sim")
         assert prev_sim.outfile_path
         filename = file_name_from_sim_name('opal', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
         update_opal_sim(data, filename)
@@ -142,8 +141,7 @@ def update_elegant_sim(data, filename):
 
 
 def update_genesis_sim(data, filename):
-    # TODO(rorour): implement
-    pass
+   data.models.io.distfile = filename
 
 
 def update_opal_sim(data, filename):
