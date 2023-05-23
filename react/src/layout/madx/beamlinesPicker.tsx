@@ -59,38 +59,38 @@ export class MadxBeamlinesPickerLayout extends Layout<MadxBeamlinesPickerConfig>
                                 let id = bl.id as number;
                                 let isSelected = selectedBeamline === id;
                                 return (
-                                    <tr key={id} onMouseEnter={() => hover.aquireHover(id)} onMouseLeave={() => hover.releaseHover(id)} style={
-                                        {
-                                            backgroundColor: isSelected ? "#dff0d8" : undefined,
-                                            /*filter: isHovered ? "brightness(75%)" : undefined*/
-                                        }
-                                    }>
-                                        <td>
-                                            {`${name}`}
-                                        </td>
-                                        <td>
-                                            {/* TODO: description */}
-                                        </td>
-                                        <td>
-                                            {(bl.length as number).toPrecision(4)}
-                                        </td>
-                                        <td>
-                                            
-                                            {(bl.angle as number).toPrecision(4)}
-
+                                    <>
+                                        <tr key={id} onMouseEnter={() => hover.aquireHover(id)} onMouseLeave={() => hover.releaseHover(id)} style={
                                             {
-                                                hover.checkHover(id) && (
-                                                    <div className="popover-buttons-outer">
-                                                        <div className="popover-buttons">
-                                                            <Button className="popover-button" size="sm" variant="primary" onClick={() => selectBeamline(id)}>
-                                                                Select
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                )
+                                                backgroundColor: isSelected ? "#dff0d8" : undefined,
+                                                /*filter: isHovered ? "brightness(75%)" : undefined*/
                                             }
-                                        </td>
-                                    </tr>
+                                        }>
+                                            <td>
+                                                {`${name}`}
+                                            </td>
+                                            <td>
+                                                {/* TODO: description */}
+                                            </td>
+                                            <td>
+                                                {(bl.length as number).toPrecision(4)}
+                                            </td>
+                                            <td>
+                                                {(bl.angle as number).toPrecision(4)}
+                                            </td>
+                                        </tr>
+                                        {
+                                            hover.checkHover(id) && (
+                                                <tr className="popover-buttons-outer" onMouseEnter={() => hover.aquireHover(id)} onMouseLeave={() => hover.releaseHover(id)}>
+                                                    <td className="popover-buttons" style={{ bottom: "-2px" }}>
+                                                        <Button className="popover-button" size="sm" variant="primary" onClick={() => selectBeamline(id)}>
+                                                            Select
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        }
+                                    </>
                                 )
                             })
                         }

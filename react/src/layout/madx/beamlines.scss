@@ -1,14 +1,16 @@
 .popover-buttons {
-    top: -2px;
+    bottom: 0;
     position: absolute; 
-    right: 0px;
+    right: 5px;
     white-space: nowrap;
     display: inline;
     float: inline-end;
+    border: none !important;
 }
 
 .popover-buttons-outer {
     position: relative;
+    width: 0;
 }
 
 .popover-button {

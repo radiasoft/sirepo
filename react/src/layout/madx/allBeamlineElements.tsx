@@ -352,33 +352,31 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                                                                     </td>
                                                                     <td>
                                                                         {ev.item.angle !== undefined ? `${ev.item.angle}` : ""}
-
-                                                                        {
-                                                                            hover.checkHover(id) && (
-                                                                                <div className="popover-buttons-outer">
-                                                                                    <div className="popover-buttons">
-                                                                                        <Button className="popover-button" size="sm" onClick={() => addElementToBeamline(id, selectedBeamlineHandle.value as number)}>
-                                                                                            Add To Beamline
-                                                                                        </Button>
-                                                                                        <Button className="popover-button" size="sm" onClick={() => {
-                                                                                                updateShownElement({
-                                                                                                    template,
-                                                                                                    aliases
-                                                                                                })
-                                                                                            }
-                                                                                        }>
-                                                                                            Edit
-                                                                                        </Button>
-                                                                                        <Button className="popover-button" size="sm" variant="danger" onClick={() => removeElement(id)}>
-                                                                                            <FontAwesomeIcon icon={Icon.faClose}/>
-                                                                                        </Button>
-                                                                                    </div>
-                                                                                </div>
-                                                                            )
-                                                                        }
                                                                     </td>
-                                                                    
                                                                 </tr>
+                                                                {
+                                                                    hover.checkHover(id) && (
+                                                                        <tr className="popover-buttons-outer" onMouseEnter={() => hover.aquireHover(id)} onMouseLeave={() => hover.releaseHover(id)}>
+                                                                            <td className="popover-buttons">
+                                                                                <Button className="popover-button" size="sm" onClick={() => addElementToBeamline(id, selectedBeamlineHandle.value as number)}>
+                                                                                    Add To Beamline
+                                                                                </Button>
+                                                                                <Button className="popover-button" size="sm" onClick={() => {
+                                                                                        updateShownElement({
+                                                                                            template,
+                                                                                            aliases
+                                                                                        })
+                                                                                    }
+                                                                                }>
+                                                                                    Edit
+                                                                                </Button>
+                                                                                <Button className="popover-button" size="sm" variant="danger" onClick={() => removeElement(id)}>
+                                                                                    <FontAwesomeIcon icon={Icon.faClose}/>
+                                                                                </Button>
+                                                                            </td>
+                                                                        </tr>
+                                                                    )
+                                                                }
                                                             </React.Fragment>
                                                             
                                                         )
