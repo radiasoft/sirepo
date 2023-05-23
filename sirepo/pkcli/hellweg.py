@@ -4,15 +4,14 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc
-from rshellweg import solver
 from sirepo import simulation_db
 from sirepo.template import template_common
 import copy
 import py.path
-import sirepo.template.rshellweg as template
+import rshellweg.solver
+import sirepo.template
 
 
 def run(cfg_dir):
@@ -32,7 +31,7 @@ def run(cfg_dir):
                 frameReport=r.replace("Report", "Animation"),
                 run_dir=pkio.py_path(cfg_dir),
                 sim_in=sim_in,
-                simulationType="rshellweg",
+                simulationType="hellweg",
             ),
         ),
     )
@@ -43,10 +42,11 @@ def run_background(cfg_dir):
 
 
 def _run_hellweg(cfg_dir):
+    t = sirepo.template.import_module("hellweg")
     r = template_common.exec_parameters()
-    pkio.write_text(template.HELLWEG_INPUT_FILE, r.input_file)
-    pkio.write_text(template.HELLWEG_INI_FILE, r.ini_file)
-    s = solver.BeamSolver(template.HELLWEG_INI_FILE, template.HELLWEG_INPUT_FILE)
+    pkio.write_text(t.HELLWEG_INPUT_FILE, r.input_file)
+    pkio.write_text(t.HELLWEG_INI_FILE, r.ini_file)
+    s = rshellweg.solver.BeamSolver(t.HELLWEG_INI_FILE, t.HELLWEG_INPUT_FILE)
     s.solve()
-    s.save_output(template.HELLWEG_SUMMARY_FILE)
-    s.dump_bin(template.HELLWEG_DUMP_FILE)
+    s.save_output(t.HELLWEG_SUMMARY_FILE)
+    s.dump_bin(t.HELLWEG_DUMP_FILE)

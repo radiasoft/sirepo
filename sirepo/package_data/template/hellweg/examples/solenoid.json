@@ -12,13 +12,13 @@
             "framesPerSecond": "5",
             "histogramBins": 100,
             "reportType": "x-y",
-            "startTime": 1490895219
+            "startTime": 1490894383
         },
         "beamHistogramAnimation": {
             "framesPerSecond": "5",
             "histogramBins": 100,
             "reportType": "r",
-            "startTime": 1490895219
+            "startTime": 1490894383
         },
         "beamHistogramReport": {
             "histogramBins": 100,
@@ -30,27 +30,10 @@
         },
         "beamline": [
             {
-                "frequency": 2856,
                 "id": 2,
-                "inputPower": 5,
-                "phaseShift": 0,
-                "type": "powerElement"
-            },
-            {
-                "acceleratingInvariant": 500,
-                "aperture": 0,
-                "attenuation": 0,
-                "id": 3,
-                "phaseAdvance": 120,
-                "phaseVelocity": 0.999,
-                "repeat": 6,
-                "type": "cellsElement"
-            },
-            {
-                "id": 4,
-                "length": 5,
-                "meshPoints": 100,
-                "radius": 10,
+                "length": 25,
+                "meshPoints": 500,
+                "radius": 1,
                 "type": "driftElement"
             }
         ],
@@ -63,19 +46,19 @@
         "energyPhaseDistribution": {
             "distributionType": "uniform",
             "energyDeviation": 0.25,
-            "energySpread": 0.001,
-            "meanEnergy": 0.3,
+            "energySpread": 1e-05,
+            "meanEnergy": 0.03,
             "meanPhase": 0,
             "phaseDeviation": 20,
-            "phaseLength": 1
+            "phaseLength": 180
         },
         "simulation": {
             "folder": "/",
             "isExample": true,
-            "name": "Emittance Conservation",
+            "name": "Solenoid",
             "outOfSessionSimulationId": "",
-            "simulationId": "FIhkFoFj",
-            "simulationSerial": 1490895275688315
+            "simulationId": "LUV9dLw2",
+            "simulationSerial": 1490894709088191
         },
         "simulationSettings": {
             "allowBackwardWaves": "0",
@@ -84,17 +67,17 @@
             "splineInterpolation": "0"
         },
         "solenoid": {
-            "fieldStrength": 1000,
+            "fieldStrength": 500,
             "fringeRegion": 1,
-            "length": 20,
-            "sourceDefinition": "none",
-            "z0": 0
+            "length": 25,
+            "sourceDefinition": "values",
+            "z0": 1
         },
         "sphericalDistribution": {
             "curvature": "flat",
             "curvatureFactor": 0,
-            "radialLimit": 0.564,
-            "thermalEmittance": 0.5
+            "radialLimit": 0.5,
+            "thermalEmittance": 0
         },
         "twissDistribution": {
             "horizontalAlpha": 0.14,
@@ -105,5 +88,5 @@
             "verticalEmittance": 0.0015
         }
     },
-    "simulationType": "rshellweg"
+    "simulationType": "hellweg"
 }

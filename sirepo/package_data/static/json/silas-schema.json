@@ -9,9 +9,18 @@
             ["new", "New"],
             ["reuse", "Use Existing"]
         ],
-        "DataType": [
-            ["intensity", "Intensity"],
-            ["phase", "Phase"]
+        "CrystalPlot": [
+            ["excited_states", "Excited States by Slice"],
+            ["excited_states_longitudinal", "Excited States Longitudinal Distribution"]
+        ],
+        "WatchpointPlot": [
+            ["intensity", "Intensity by Slice"],
+            ["phase", "Phase by Slice"],
+            ["photons", "Number of Photons by Slice"],
+            ["longitudinal_photons", "Longitudinal Photons"],
+            ["longitudinal_intensity", "Longitudinal Central Intensity"],
+            ["total_intensity", "Total Intensity"],
+            ["total_phase", "Total Phase"]
         ],
         "DistributionType": [
             ["gaussian", "Gaussian"],
@@ -21,10 +30,9 @@
             ["1", "Linear Horizontal"]
         ],
         "PropagationType": [
-            ["abcd_lct", "ABCD LCT"],
-            ["attenuate", "Attenuate"],
             ["default", "Default"],
-            ["gain_calc", "Gain Calculation"],
+            ["abcd_lct", "ABCD LCT"],
+            ["gain_calc", "Laser Gain Calculation Only"],
             ["n0n2_srw", "N0N2 SRW"],
             ["n0n2_lct", "N0N2 LCT"]
         ],
@@ -77,6 +85,9 @@
         }
     },
     "frameIdFields": {
+        "beamlineAnimation": ["watchpointPlot", "crystalPlot"],
+        "laserPulseAnimation": ["watchpointPlot"],
+        "laserPulse2Animation": ["watchpointPlot"],
         "crystalAnimation": [],
         "crystal3dAnimation": [],
         "plotAnimation": [],
@@ -101,7 +112,7 @@
             "D": ["D", "Float", 0.99892682],
             "length": ["Length [cm]", "Float", 2],
             "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
-            "radial_n2": ["Include Transverse Variation", "Boolean", "0"],
+            "radial_n2": ["Transverse Variation of Thermal Lensing", "Boolean", "0"],
             "calc_gain": ["Include Gain Calculations", "Boolean", "0"],
             "inversion_n_cells": ["Inversion Mesh Cell Count", "Integer", 64],
             "inversion_mesh_extent": ["Inversion Mesh Extent [m]", "Float", 0.01],
@@ -151,14 +162,16 @@
             "sigx_waist": ["Horizontal RMS Waist Size [m]", "Float", 0.001],
             "sigy_waist": ["Vertical RMS Waist Size [m]", "Float", 0.001]
         },
-        "initialIntensityReport": {
-            "dataType": ["Value to Plot", "DataType", "intensity"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "sliceNumber": ["Slice Number", "SliceNumber", 0]
+        "laserPulseAnimation": {
+            "_super": ["_", "model", "initialIntensityReport"]
         },
-        "initialPhaseReport": {
+        "laserPulse2Animation": {
+            "_super": ["_", "model", "initialIntensityReport"],
+            "watchpointPlot": ["Value to Plot", "WatchpointPlot", "phase"]
+        },
+        "initialIntensityReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "sliceNumber": ["Slice Number", "SliceNumber", 0]
+            "watchpointPlot": ["Value to Plot", "WatchpointPlot", "intensity"]
         },
         "lens": {
             "_super": ["_", "model", "beamElement"],
@@ -179,7 +192,8 @@
             "title": ["Element Name", "SafePath", "Watchpoint"]
         },
         "watchpointReport": {
-            "_super": ["_", "model", "initialIntensityReport"]
+            "_super": ["_", "model", "initialIntensityReport"],
+            "crystalPlot": ["Value to Plot", "CrystalPlot", "excited_states"]
         }
     },
     "view": {
@@ -203,18 +217,19 @@
                     "B",
                     "C",
                     "D",
-                    "l_scale"
-                ]],
-                ["Gain", [
+                    "l_scale",
                     "radial_n2",
-                    "calc_gain",
+                    "calc_gain"
+                ]],
+                ["Laser Gain", [
                     "inversion_n_cells",
                     "inversion_mesh_extent",
                     "crystal_alpha",
                     "pump_type",
                     "pump_waist",
                     "pump_wavelength",
-                    "pump_energy"
+                    "pump_energy",
+                    "pump_gaussian_order"
                 ]]
             ]
         },
@@ -294,17 +309,16 @@
                 ]]
             ]
         },
-        "initialIntensityReport": {
-            "title": "Intensity",
-            "advanced": [
-                "sliceNumber",
-                "colorMap"
-            ]
+        "laserPulseAnimation": {
+            "_super": ["_", "view", "initialIntensityReport"]
         },
-        "initialPhaseReport": {
-            "title": "Phase",
+        "laserPulse2Animation": {
+            "_super": ["_", "view", "initialIntensityReport"]
+        },
+        "initialIntensityReport": {
+            "title": "Laser Pulse",
             "advanced": [
-                "sliceNumber",
+                "watchpointPlot",
                 "colorMap"
             ]
         },
@@ -340,7 +354,7 @@
         "watchpointReport": {
             "_super": ["_", "view", "initialIntensityReport"],
             "advanced": [
-                "dataType"
+                "crystalPlot"
             ]
         }
     }
