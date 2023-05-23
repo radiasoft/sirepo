@@ -539,12 +539,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 const polys = [];
                 fieldData = [];
                 const fd = getFieldData();
+                const norm = appState.models.settings.sourceNormalization / appState.models.settings.particles;
                 minField = Number.MAX_VALUE;
                 maxField = -Number.MAX_VALUE;
                 for (let zi = 0; zi < nz; zi++) {
                     for (let yi = 0; yi < ny; yi++) {
                         for (let xi = 0; xi < nx; xi++) {
-                            const f = fd[zi * nx * ny + yi * nx + xi];
+                            const f = norm * fd[zi * nx * ny + yi * nx + xi];
                             if (! isInFieldThreshold(f)) {
                                 continue;
                             }
@@ -787,6 +788,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 appState.models.tallyReport.colorMap = appState.models.voxels.colorMap;
                 appState.saveChanges('tallyReport');
                 const cellsPerVoxel = voxelPoly.length;
+                srdbg('min', minField, 'max', maxField);
                 const s = SIREPO.PLOTTING.Utils.colorScale(
                     minField,
                     maxField,
