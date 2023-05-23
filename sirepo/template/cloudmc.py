@@ -474,21 +474,6 @@ t{tally._index + 1}.nuclides = [{','.join(["'" + s.nuclide + "'" for s in tally.
 
 
 def _grid_to_poly(path):
-    def _poly_lines(nx, ny, nz):
-        l = []
-        for k in range(nz):
-            # only rects
-            z = k * (nx + 1) * (ny + 1)
-            for j in range(ny):
-                y = j * (nx + 1)
-                d = y + z
-                c = [0, 1, nx + 2, nx + 1]
-                for i in range(nx):
-                    l.append("4 ")
-                    for n in range(len(c)):
-                        l.append(f"{c[n] + d + i} ")
-                    l.append("\n")
-        return l
 
     with pkio.open_text(path) as f:
         state = "header"
