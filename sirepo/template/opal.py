@@ -113,7 +113,7 @@ class OpalElementIterator(lattice.ElementIterator):
         super().end(model)
 
     def is_ignore_field(self, field):
-        return field == "name"
+        return field == "name" or field == self.IS_DISABLED_FIELD
 
 
 class OpalOutputFileIterator(lattice.ModelIterator):
@@ -125,6 +125,8 @@ class OpalOutputFileIterator(lattice.ModelIterator):
         self.preserve_output_filenames = preserve_output_filenames
 
     def field(self, model, field_schema, field):
+        if field == lattice.ElementIterator.IS_DISABLED_FIELD or field == "_super":
+            return
         self.field_index += 1
         # for now only interested in element outfn output files
         if field == "outfn" and field_schema[1] == "OutputFile":
@@ -476,16 +478,21 @@ def code_var(variables):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if frame < 0:
-        return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)
     if model in ("bunchAnimation", "plotAnimation") or "bunchReport" in model:
         return _OPAL_H5_FILE
+    if frame < 0:
+        return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)
     if model == "plot2Animation":
         return _OPAL_SDDS_FILE
     if model == "beamline3dAnimation":
         return _OPAL_VTK_FILE
     if "elementAnimation" in model:
-        return _file_name_for_element_animation(run_dir, model)
+        return _file_name_for_element_animation(
+            PKDict(
+                run_dir=run_dir,
+                frameReport=model,
+            )
+        )
     raise AssertionError("unknown model={}".format(model))
 
 

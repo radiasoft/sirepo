@@ -201,6 +201,8 @@ class OutputFileIterator(lattice.ModelIterator):
         self._update_filenames = update_filenames
 
     def field(self, model, field_schema, field):
+        if field == lattice.ElementIterator.IS_DISABLED_FIELD or field == "_super":
+            return
         self.field_index += 1
         if field_schema[1] == "OutputFile" and model[field]:
             if self._update_filenames:
@@ -941,8 +943,14 @@ def write_parameters(data, run_dir, is_parallel):
         ),
     )
     for b in _SIM_DATA.lib_file_basenames(data):
-        if re.search(r"SCRIPT-commandFile", b):
-            os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
+        if not b.startswith("SCRIPT-commandFile"):
+            continue
+        f = run_dir.join(b)
+        if f.check(link=True):
+            x = f.read_binary()
+            f.remove()
+            f.write_binary(x)
+        f.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
 
 class _Generate(sirepo.lib.GenerateBase):
@@ -1050,10 +1058,16 @@ class _Generate(sirepo.lib.GenerateBase):
         ).result
         res = ""
         for c in commands:
-            res += "\n" + "&{}".format(c[0]._type) + "\n"
+            prefix = (
+                "! "
+                if CommandIterator.IS_DISABLED_FIELD in c[0]
+                and c[0][CommandIterator.IS_DISABLED_FIELD] == "1"
+                else ""
+            )
+            res += "\n" + prefix + "&{}".format(c[0]._type) + "\n"
             for f in c[1]:
-                res += "  {} = {},".format(f[0], f[1]) + "\n"
-            res += "&end" + "\n"
+                res += prefix + "  {} = {},".format(f[0], f[1]) + "\n"
+            res += prefix + "&end" + "\n"
         return res
 
     def _format_field_value(self, state, model, field, el_type):

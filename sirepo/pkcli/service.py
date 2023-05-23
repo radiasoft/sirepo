@@ -56,7 +56,9 @@ def flask():
         serving.click = None
         app.run(
             exclude_patterns=[str(r.join("*"))],
-            extra_files=sirepo.util.files_to_watch_for_reload("json"),
+            extra_files=sirepo.util.files_to_watch_for_reload("json")
+            if _cfg().use_reloader
+            else [],
             host=_cfg().ip,
             port=_cfg().port,
             reloader_type="stat",
@@ -245,7 +247,7 @@ def tornado():
                     tornado.autoreload.watch(f)
         pkdlog("ip={} port={}", _cfg().ip, _cfg().port)
         sirepo.modules.import_and_init("sirepo.uri_router").start_tornado(
-            debug=d,
+            debug=sirepo.feature_config.cfg().debug_mode,
             ip=_cfg().ip,
             port=_cfg().port,
         )
@@ -278,11 +280,6 @@ def _cfg():
                 _cfg_port,
                 "port on which jupyterhub listens",
             ),
-            jupyterhub_debug=(
-                True,
-                bool,
-                "turn on debugging for jupyterhub (hub, spawner, ConfigurableHTTPProxy)",
-            ),
             nginx_proxy_port=(
                 sirepo.const.PORT_DEFAULTS.nginx_proxy,
                 _cfg_port,
@@ -294,7 +291,7 @@ def _cfg():
                 "port on which uwsgi or http listens",
             ),
             react_port=(
-                sirepo.const.PORT_DEFAULTS.react,
+                sirepo.const.PORT_DEFAULTS.react if pkconfig.in_dev_mode() else None,
                 _cfg_port,
                 "port on which react listens",
             ),
