@@ -44,7 +44,7 @@ _NON_PROD_FOSS_CODES = frozenset(
         "epicsllrf",
         "myapp",
         "silas",
-        "rshellweg",
+        "hellweg",
     )
 )
 

@@ -72,10 +72,6 @@
             "dataType": "intensity",
             "sliceNumber": 0
         },
-        "initialPhaseReport": {
-            "colorMap": "viridis",
-            "sliceNumber": 0
-        },
         "laserPulse": {
             "ccd": "",
             "chirp": 0,

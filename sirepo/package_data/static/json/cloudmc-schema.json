@@ -84,12 +84,17 @@
             ["normal", "Normal"],
             ["powerLaw", "PowerLaw"],
             ["tabular", "Tabular"],
+            ["tabularFromFile", "From File"],
             ["uniform", "Uniform"],
             ["watt", "Watt"]
         ],
         "RunMode": [
             ["eigenvalue", "eigenvalue"],
             ["fixed source", "fixed source"]
+        ],
+        "SourceSettings": [
+            ["manual", "Manual"],
+            ["file", "From File"]
         ],
         "SpatialDistribution": [
             ["None", "None"],
@@ -393,6 +398,7 @@
         },
         "settings": {
             "batches": ["Number of batches to simulation", "Integer", 1],
+            "eigenvalueHistory": ["Eigenvalue History", "Integer", 5],
             "inactive": ["Number of inactive batches", "Integer", 0],
             "particles": ["Number of particles per generation", "Integer", 5000],
             "photon_transport": ["Photon transport", "Boolean", "0", "Simulate the passage of photons through matter."],
@@ -401,14 +407,15 @@
             "run_mode": ["Run mode", "RunMode", "eigenvalue", "The type of calculation to perform"],
             "materialLibrary": ["Material data library", "MaterialLibrary", "ENDFB-7.1-NNDC"]
         },
-        "simulationStatus": {},
         "source": {
-            "space": ["Spatial distribution", "Spatial", {"_type": "None"}],
             "angle": ["Angular distribution", "UnitSphere", {"_type": "None"}],
             "energy": ["Energy distribution", "Univariate", {"_type": "None"}],
-            "time": ["Time distribution", "Univariate", {"_type": "None"}],
+            "file": ["File", "InputFile", "", "openmc source file in hdf5 format", false],
+            "particle": ["Particle", "Particle", "neutron"],
+            "space": ["Spatial distribution", "Spatial", {"_type": "None"}],
             "strength": ["Strength", "Float", 1],
-            "particle": ["Particle", "Particle", "neutron"]
+            "time": ["Time distribution", "Univariate", {"_type": "None"}],
+            "type": ["Source Settings", "SourceSettings", "manual"]
         },
         "spatial": {
             "_type": ["", "SpatialDistribution"]
@@ -423,6 +430,12 @@
         "tabular": {
             "_super": [ "_", "model", "univariate"],
             "probabilityValue": ["", "ModelArray", ""],
+            "interpolation": ["Interpolation", "Interpolation", "linear-linear"],
+            "ignore_negative": ["Ignore negative probabilities", "Boolean", "0"]
+        },
+        "tabularFromFile": {
+            "_super": [ "_", "model", "univariate"],
+            "file": ["File", "InputFile", "", "", false],
             "interpolation": ["Interpolation", "Interpolation", "linear-linear"],
             "ignore_negative": ["Ignore negative probabilities", "Boolean", "0"]
         },
@@ -667,6 +680,7 @@
                     "inactive",
                     "particles",
                     "run_mode",
+                    "eigenvalueHistory",
                     "materialLibrary",
                     "photon_transport"
                 ]],
@@ -689,6 +703,10 @@
         "source": {
             "title": "Source",
             "advanced": [
+                ["Type", [
+                    "type",
+                    "file"
+                ]],
                 ["Space", [
                     "space"
                 ]],
@@ -705,7 +723,9 @@
         },
         "simulationStatus": {
             "title": "Simulation Status",
-            "advanced": [],
+            "advanced": [
+                "eigenvalueHistory"
+            ],
             "basic": []
         },
         "sphericalIndependent": {
@@ -721,6 +741,13 @@
                 "interpolation",
                 "ignore_negative",
                 "probabilityValue"
+            ]
+        },
+        "tabularFromFile": {
+            "advanced": [
+                "file",
+                "interpolation",
+                "ignore_negative"
             ]
         },
         "tally": {
