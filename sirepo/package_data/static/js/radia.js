@@ -3689,17 +3689,19 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
         return appState.models.optimizer.fields.filter(x => x.id === id)[0];
     }
 
-    function getOptFields(modelName) {
-        const info = appState.modelInfo(modelName);
-        return Object.keys(info).filter(
-            x => OPTIMIZIBLE_TYPES.includes(info[x][SIREPO.INFO_INDEX_TYPE])
-        );
-    }
 
-    function optFields(modelName) {
+    function optFieldsOfModelAndSupers(modelName) {
+
+        function optFieldsOfModel(modelName) {
+            const info = appState.modelInfo(modelName);
+            return Object.keys(info).filter(
+                x => OPTIMIZIBLE_TYPES.includes(info[x][SIREPO.INFO_INDEX_TYPE])
+            );
+        }
+
         const s = new Set();
-        for (const m of appState.superClasses(modelName)) {
-            for (const f of getOptFields(m)) {
+        for (const m of [modelName, ...appState.superClasses(modelName)]) {
+            for (const f of optFieldsOfModel(m)) {
                 s.add(f);
             }
         }
@@ -3710,12 +3712,10 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
 
         function objectOptFields(o, key) {
             const fields = {};
+            fields[key] = {};
             const m = o.type;
-            for (const f of Object.keys(o).filter(x => optFields(m).has(x))) {
+            for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(m).has(x))) {
                 const id = `${m}.${f}`;
-                if (! fields[key]) {
-                    fields[key] = {};
-                }
                 fields[key][f] = appState.setModelDefaults(
                     {
                         field: appState.optFieldName(m, f),
@@ -3732,13 +3732,13 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
             const key = o.name;
             fields = {...fields, ...objectOptFields(o, key)};
             for (const mod of (o.modifications || [])) {
-                if (! fields[key]) {
-                    fields[key] = {};
-                }
                 if (! fields[key].modifications) {
                     fields[key].modifications = [];
                 }
-                fields[key].modifications.push(objectOptFields(mod, o.type));
+                fields[key].modifications.push(objectOptFields(mod, mod.type));
+            }
+            if ($.isEmptyObject(fields[key])) {
+                delete fields[key];
             }
         }
         return fields;
@@ -3776,7 +3776,7 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];
         $scope.optimizibleObjects = getObjectFields();
-        srdbg('opt oobjs', $scope.optimizibleObjects);
+        srdbg('opt oojs', $scope.optimizibleObjects);
     };
 
     $scope.$on(`${$scope.modelName}.changed`, () => {});
