@@ -232,8 +232,10 @@ export class ShadowBeamlineLayout extends Layout<ShadowBeamlineConfig, {}> {
                             </small>
                         </p>
                     </div>
-                    <div style={{ display: "flex", flexFlow: "row nowrap", justifyContent: "center" }}>
-                        {beamlineComponents}
+                    <div className="beamline-outer">
+                        <div className="beamline">
+                            {beamlineComponents}
+                        </div>
                     </div>
                     <div>
                         {isDirty && actionButtons}
