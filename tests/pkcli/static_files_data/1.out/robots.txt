@@ -1,9 +1,9 @@
 User-agent: *
-Disallow: /epicsllrf
 Disallow: /activait
 Disallow: /cloudmc
 Disallow: /controls
 Disallow: /elegant
+Disallow: /epicsllrf
 Disallow: /genesis
 Disallow: /jspec
 Disallow: /madx
