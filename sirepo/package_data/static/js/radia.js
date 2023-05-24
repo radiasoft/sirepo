@@ -3354,7 +3354,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
         panelState.enableField('geomObject', 'size', true);
-        panelState.showField('geomObject', 'segments', ! editedModels.includes('extrudedObject'));
+        panelState.showField('geomObject', 'segments', editedModels.includes('cylinder') || ! editedModels.includes('extrudedObject'));
 
         if (modelType === 'stl') {
             panelState.enableField('geomObject', 'size', false);

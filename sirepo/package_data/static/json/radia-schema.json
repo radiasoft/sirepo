@@ -805,17 +805,17 @@
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
             "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "segments": ["Num Segments", "IntArray", [1, 1, 1], "", ["N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$", "N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$", "N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "modifications": ["", "ModelArrayTable", [], "", ["objectBevel", "objectFillet"]],
-            "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B Curve from File", "HBFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns (H, B in Tesla)"],
+            "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
+            "segments": ["Num Segments", "IntArray", [1, 1, 1], "", ["N$_{{ appState.models.geomObject.type == 'cylinder' ? '{rad}' : 'x' }}$", "N$_{{ appState.models.geomObject.type == 'cylinder' ? '{az}' : 'y' }}$", "N$_{{ appState.models.geomObject.type == 'cylinder' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
             "shapeButton": ["Shape", "ShapeButton", {}],
-            "type": ["Shape Type", "ObjectType", "cuboid"],
-            "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]]
+            "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]],
+            "type": ["Shape Type", "ObjectType", "cuboid"]
         },
         "jay": {
             "_super": ["_", "model", "stemmed"],
