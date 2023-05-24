@@ -4,53 +4,51 @@
         "epicsModelPrefix": "LLRFSim",
         "epicsPlots": {
             "waveformAReport": {
-                "x": "LLRFSim_Sim:timestep",
+                "x": "LLRFSim_Pulse:time_step",
                 "y1": "LLRFSim_Gen:Ig",
                 "y2": "LLRFSim_Cav1:Vt",
                 "y3": "LLRFSim_Cav1:Vr"
             },
             "waveformBReport": {
-                "x": "LLRFSim_Sim:timestep",
+                "x": "LLRFSim_Pulse:time_step",
                 "y1": "LLRFSim_Gen:phase",
                 "y2": "LLRFSim_Cav1:tphase",
                 "y3": "LLRFSim_Cav1:rphase"
             },
             "waveformCReport": {
-                "x": "LLRFSim_Sim:timestep",
+                "x": "LLRFSim_Pulse:time_step",
                 "y1": "LLRFSim_Gen:Ig",
                 "y2": "LLRFSim_Cav2:Vt",
                 "y3": "LLRFSim_Cav2:Vr"
             },
             "waveformDReport": {
-                "x": "LLRFSim_Sim:timestep",
+                "x": "LLRFSim_Pulse:time_step",
                 "y1": "LLRFSim_Gen:phase",
                 "y2": "LLRFSim_Cav2:tphase",
                 "y3": "LLRFSim_Cav2:rphase"
             },
             "plotLabels": {
-                "LLRFSim_Sim:timestep": "Time [s]",
-                "LLRFSim_Gen:Ig": "Forward [rad]",
-                "LLRFSim_Cav1:Vt": "Probe [rad]",
-                "LLRFSim_Cav1:Vr": "Reflected",
+                "LLRFSim_Pulse:time_step": "Time [s]",
+                "LLRFSim_Gen:Ig": "Forward [V]",
+                "LLRFSim_Cav1:Vt": "Probe [V]",
+                "LLRFSim_Cav1:Vr": "Reflected [V]",
                 "LLRFSim_Gen:phase": "Forward [rad]",
                 "LLRFSim_Cav1:tphase": "Probe [rad]",
-                "LLRFSim_Cav1:rphase": "Reflected",
-                "LLRFSim_Cav2:Vt": "Probe [rad]",
-                "LLRFSim_Cav2:Vr": "Reflected",
+                "LLRFSim_Cav1:rphase": "Reflected [rad]",
+                "LLRFSim_Cav2:Vt": "Probe [V]",
+                "LLRFSim_Cav2:Vr": "Reflected [V]",
                 "LLRFSim_Cav2:tphase": "Probe [rad]",
-                "LLRFSim_Cav2:rphase": "Reflected"
+                "LLRFSim_Cav2:rphase": "Reflected [rad]"
             }
         }
     },
     "enum": {
-        "signal_type": [
-            ["flat", "flat"],
-            ["sawtooth", "sawtooth"],
-            ["sine", "sine"],
-            ["square", "square"],
-            ["step", "step"],
-            ["tophat", "tophat"],
-            ["triangle", "triangle"]
+        "UpdateFrequency": [
+            ["0.5", "0.5"],
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"]
         ]
     },
     "dynamicFiles": {
@@ -71,17 +69,14 @@
     },
     "model": {
         "LLRFSim_Gen": {
-            "noise": ["Noise [A]", "EpicsFloat", 0, "standard deviation for generator current white noise"],
-            "phiG": ["phiG [rad]", "EpicsFloat", 0, "current envelope phiG"],
-            "signal_type": ["Signal Type", "EpicsEnum", "flat"],
-            "wG": ["wG [rad/s]", "EpicsFloat", 0, "current envelope frequency"],
-            "amp": ["amp", "ReadOnlyFloat", 0],
-            "start": ["start", "ReadOnlyFloat", 0],
-            "rho": ["rho", "ReadOnlyFloat", 0],
-            "wS": ["wS", "ReadOnlyFloat", 0],
-            "phiS": ["phiS", "ReadOnlyFloat", 0],
-            "I0S": ["I0S", "ReadOnlyFloat", []],
-            "duration": ["duration", "ReadOnlyFloat", 0],
+            "phiG": ["Drive Phase [rad]", "EpicsFloat", 0, "Generator current envelope"],
+            "amp": ["Amplitude [V]", "EpicsFloat", 0],
+            "start": ["Start of Pulse [s]", "EpicsFloat", 0],
+            "duration": ["Pulse Duration [s]", "EpicsFloat", 0],
+            "rho": ["rho", "EpicsFloat", 0],
+            "wS": ["wS", "EpicsFloat", 0],
+            "phiS": ["phiS", "EpicsFloat", 0],
+            "I0S": ["I0S", "EpicsFloat", 0],
             "Ig": ["", "ReadOnlyFloatArray", []],
             "phase": ["", "ReadOnlyFloatArray", []]
         },
@@ -113,12 +108,13 @@
             "tphase": ["", "ReadOnlyFloatArray", []],
             "rphase": ["", "ReadOnlyFloatArray", []]
         },
-        "LLRFSim_Sim": {
-            "num_pulse": ["Pulse Number", "EpicsInteger", 0, "number of pulses"],
-            "timestep": ["Timestep", "EpicsFloat", 0]
+        "LLRFSim_Pulse": {
+            "num_pulses": ["Pulse Number", "EpicsInteger", 0, "number of pulses"],
+            "time_step": ["Timestep", "EpicsFloat", 0]
         },
         "epicsServer": {
-            "serverAddress": ["Network Address", "String", "localhost:5064", "EPICS server network address, $\\text{<host>:<port>}$"]
+            "serverAddress": ["Network Address", "String", "localhost:5064", "EPICS server network address, $\\text{<host>:<port>}$"],
+            "updateFrequency": ["Update Frequency [Hz]", "UpdateFrequency", "0.5"]
         },
         "simulationStatus": {},
         "waveformAReport": {},
@@ -135,33 +131,38 @@
             "title": "Gen",
             "basic": [
                 "phiG",
-                "wG",
                 "amp",
                 "start",
-                "duration"
+                "duration",
+                "rho"
             ],
             "advanced": []
         },
         "simulationStatus": {
             "title": "EPICS Monitor",
             "advanced": [
-                "epicsServer.serverAddress"
+                "epicsServer.serverAddress",
+                "epicsServer.updateFrequency"
             ]
         },
         "waveformAReport": {
             "title": "Voltage Cav1",
+            "hasDataFile": false,
             "advanced": []
         },
         "waveformBReport": {
             "title": "Phase Cav1",
+            "hasDataFile": false,
             "advanced": []
         },
         "waveformCReport": {
             "title": "Voltage Cav2",
+            "hasDataFile": false,
             "advanced": []
         },
         "waveformDReport": {
             "title": "Phase Cav2",
+            "hasDataFile": false,
             "advanced": []
         }
     }

@@ -42,6 +42,15 @@ def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 
+def run_epics_cmd(cmd, env=None):
+    subprocess.Popen(
+        cmd,
+        env=env,
+        shell=True,
+        stdin=subprocess.PIPE,
+    ).wait()
+
+
 def stateless_compute_read_epics_values(data, **kwargs):
     _PREV_EPICS_FILE = "prev-status.json"
     # TODO(pjm): hacked in animation directory
@@ -63,21 +72,10 @@ def stateless_compute_read_epics_values(data, **kwargs):
     )
 
 
-def run_epics_cmd(cmd, env=None):
-    subprocess.Popen(
-        cmd,
-        env=env,
-        shell=True,
-        stdin=subprocess.PIPE,
-    ).wait()
-
-
 def stateless_compute_update_epics_value(data, **kwargs):
     for f in data.fields:
         # TODO (gurhar1133): validate model and field
-        run_epics_cmd(
-            f"pvput {data.model}:{f.field} {f.value}"
-        )
+        run_epics_cmd(f"pvput {data.model}:{f.field} {f.value}")
     return PKDict(success=True)
 
 
@@ -86,6 +84,19 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
+
+
+def _check_connection(process_variables):
+    for k in process_variables:
+        if type(process_variables[k]) == float:
+            continue
+        for e in (
+            PKDict(value="disconnected", error="Disconnected from EPICS"),
+            PKDict(value="(PV not found)", error="No EPICS process found"),
+        ):
+            if e.value in process_variables[k]:
+                return PKDict(error=e.error)
+    return process_variables
 
 
 def _generate_parameters_file(data):
@@ -112,20 +123,5 @@ def _read_epics_data(run_dir):
             else:
                 v = float(v)
             d[f] = v
-        d = _check_connection(d)
-        pkdp("\n\n\nd={}", d)
-        return d
+        return _check_connection(d)
     return PKDict()
-
-
-def _check_connection(process_variables):
-    for k in process_variables:
-        if type(process_variables[k]) == float:
-            continue
-        for e in (
-            PKDict(value="disconnected", error="Disconnected from EPICS"),
-            PKDict(value="(PV not found)", error="No EPICS process found"),
-        ):
-            if e.value in process_variables[k]:
-                return PKDict(error=e.error)
-    return process_variables

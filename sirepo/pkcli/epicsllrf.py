@@ -14,6 +14,7 @@ import subprocess
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
+
 def run(cfg_dir):
     plots = [
         PKDict(
@@ -42,7 +43,7 @@ def run_background(cfg_dir):
             simulation_db.read_json(
                 template_common.INPUT_BASE_NAME
             ).models.epicsServer.serverAddress
-        )
+        ),
     )
 
 

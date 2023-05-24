@@ -50,10 +50,16 @@ SIREPO.app.factory('epicsllrfService', function(appState) {
 });
 
 
-SIREPO.app.controller('epicsllrfController', function (epicsllrfService, appState, panelState, errorService, persistentSimulation, requestSender, $interval, $scope, $rootScope) {
+SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfService, errorService, persistentSimulation, requestSender, $interval, $scope) {
     const self = this;
     let prevEpicsData;
+    let noCache = true;
+    let inRequest = false;
     self.simScope = $scope;
+
+    function diffAndNotReadOnly(epicsValue, clientValue, readOnly) {
+        return (clientValue != epicsValue) && (! readOnly);
+    }
 
     function fieldType(modelName, field) {
         if (SIREPO.APP_SCHEMA.model[modelName] && SIREPO.APP_SCHEMA.model[modelName][field]) {
@@ -62,89 +68,24 @@ SIREPO.app.controller('epicsllrfController', function (epicsllrfService, appStat
         return null;
     }
 
-    self.simHandleStatus = data => {
-        if (self.simState.isStateRunning() && data.hasEpicsData) {
-            readEpicsData();
-        }
-    };
-
-    let noCache = true;
-    let inRequest = false;
-    function readEpicsData() {
-        $interval(
-            () => {
-                if (inRequest) {
-                    return;
-                }
-                inRequest = true;
-                requestSender.sendStatelessCompute(
-                    appState,
-                    function (data) {
-                        inRequest = false;
-                        noCache = false;
-                        if (! appState.isLoaded()) {
-                            return;
-                        }
-                        if (data.epicsData) {
-                            loadEpicsData(data.epicsData);
-                        }
-                    },
-                    {
-                        method: 'read_epics_values',
-                        simulationId: appState.models.simulation.simulationId,
-                        report: 'animation',
-                        noCache: noCache,
-                    }
-                );
-            },
-            //TODO(pjm): calculate based on 2 seconds, 4 * 500ms
-            //500,
-            //4,
-
-            //TODO(pjm): for dev, use a slower rate, 1 * 2s
-            2000,
-            1,
-        );
-
-        const getGenDiff = () => {
-            const l = SIREPO.APP_SCHEMA.model.LLRFSim_Gen;
-            var d = [];
-            for (const field in l){
-                var e = epicsllrfService.getEpicsValue("LLRFSim_Gen", field)
-                if (diffAndNotReadOnly(e, appState.models.LLRFSim_Gen[field], readOnly(l, field))
-                ) {
-                    d.push({
-                        field: field,
-                        value: appState.models.LLRFSim_Gen[field],
-                    });
-                }
+    function getGenDiff() {
+        const l = SIREPO.APP_SCHEMA.model.LLRFSim_Gen;
+        var d = [];
+        for (const field in l) {
+            var e = epicsllrfService.getEpicsValue("LLRFSim_Gen", field);
+            if (diffAndNotReadOnly(e, appState.models.LLRFSim_Gen[field], isFieldReadOnly(l, field))
+            ) {
+                d.push({
+                    field: field,
+                    value: appState.models.LLRFSim_Gen[field],
+                });
             }
-            return d;
         }
+        return d;
+    }
 
-        const diffAndNotReadOnly = (epicsValue, clientValue, readOnly) => {
-            return (clientValue != epicsValue) && (! readOnly);
-        }
-
-        const readOnly = (model, field) => {
-            return model[field][1].includes('ReadOnly') || field == 'signal_type';
-        }
-
-        $scope.$on('LLRFSim_Gen.changed', () => {
-            const d = getGenDiff();
-            srdbg(d);
-            if (d.length) {
-                requestSender.sendStatelessCompute(
-                    appState,
-                    (data) => {},
-                    {
-                        method: 'update_epics_value',
-                        fields: d,
-                        model: "LLRFSim:Gen",
-                    }
-                )
-            }
-        });
+    function isFieldReadOnly(model, field) {
+        return model[field][1].includes('ReadOnly');
     }
 
     function loadEpicsData(epicsData) {
@@ -211,6 +152,61 @@ SIREPO.app.controller('epicsllrfController', function (epicsllrfService, appStat
         }
     }
 
+    function readEpicsData() {
+        const d = 1000 / parseFloat(appState.applicationState().epicsServer.updateFrequency);
+        // per 2000ms, ex 2 Hz --> delay 500, repeat 4
+        $interval(
+            () => {
+                if (inRequest) {
+                    return;
+                }
+                inRequest = true;
+                requestSender.sendStatelessCompute(
+                    appState,
+                    function (data) {
+                        inRequest = false;
+                        noCache = false;
+                        if (! appState.isLoaded()) {
+                            return;
+                        }
+                        if (data.epicsData) {
+                            loadEpicsData(data.epicsData);
+                        }
+                    },
+                    {
+                        method: 'read_epics_values',
+                        simulationId: appState.models.simulation.simulationId,
+                        report: 'animation',
+                        noCache: noCache,
+                    }
+                );
+            },
+            d,
+            2000 / d,
+        );
+    }
+
+    self.simHandleStatus = data => {
+        if (self.simState.isStateRunning() && data.hasEpicsData) {
+            readEpicsData();
+        }
+    };
+
+    $scope.$on('LLRFSim_Gen.changed', () => {
+        const d = getGenDiff();
+        if (d.length) {
+            requestSender.sendStatelessCompute(
+                appState,
+                (data) => {},
+                {
+                    method: 'update_epics_value',
+                    fields: d,
+                    model: "LLRFSim:Gen",
+                }
+            );
+        }
+    });
+
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
@@ -252,7 +248,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('epicsValue', function(appState, epicsllrfService, $timeout) {
+SIREPO.app.directive('epicsValue', function(appState, epicsllrfService) {
     return {
         restrict: 'A',
         scope: {
@@ -335,7 +331,7 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
                             Math.max(...x),
                         ],
                         y_label: "",
-                        x_label: "Time",
+                        x_label: l[e[$scope.modelName].x],
                         x_points: x,
                         plots: [
                             {
