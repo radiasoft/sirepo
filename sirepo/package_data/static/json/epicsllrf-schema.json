@@ -81,36 +81,19 @@
             "phase": ["", "ReadOnlyFloatArray", []]
         },
         "LLRFSim_Cav1": {
-            "Q": ["Q", "EpicsFloat", 0, "quality factor"],
-            "R": ["R [Ohm]", "EpicsFloat", 0, "shunt resistance"],
-            "Z0": ["Z0 [Ohm]", "EpicsFloat", 0, "characteristic impedance"],
-            "beta": ["beta", "EpicsFloat", 0, "coupling factor"],
-            "dw": ["dw", "EpicsFloat", 0, "cavity detuning"],
-            "phiC": ["phiC [rad]", "EpicsFloat", 0, "voltage IQ-demodulation phase"],
-            "w0": ["w0 [rad/s]", "EpicsFloat", 0, "resonance frequency"],
-            "wC": ["wC [rad/s]", "EpicsFloat", 0, "voltage IQ-demodulation frequency"],
             "Vt": ["", "ReadOnlyFloatArray", []],
             "Vr": ["", "ReadOnlyFloatArray", []],
             "tphase": ["", "ReadOnlyFloatArray", []],
             "rphase": ["", "ReadOnlyFloatArray", []]
         },
         "LLRFSim_Cav2": {
-            "Q": ["Q", "EpicsFloat", 0, "quality factor"],
-            "R": ["R [Ohm]", "EpicsFloat", 0, "shunt resistance"],
-            "Z0": ["Z0 [Ohm]", "EpicsFloat", 0, "characteristic impedance"],
-            "beta": ["beta", "EpicsFloat", 0, "coupling factor"],
-            "dw": ["dw", "EpicsFloat", 0, "cavity detuning"],
-            "phiC": ["phiC [rad]", "EpicsFloat", 0, "voltage IQ-demodulation phase"],
-            "w0": ["w0 [rad/s]", "EpicsFloat", 0, "resonance frequency"],
-            "wC": ["wC [rad/s]", "EpicsFloat", 0, "voltage IQ-demodulation frequency"],
             "Vt": ["", "ReadOnlyFloatArray", []],
             "Vr": ["", "ReadOnlyFloatArray", []],
             "tphase": ["", "ReadOnlyFloatArray", []],
             "rphase": ["", "ReadOnlyFloatArray", []]
         },
         "LLRFSim_Pulse": {
-            "num_pulses": ["Pulse Number", "EpicsInteger", 0, "number of pulses"],
-            "time_step": ["Timestep", "EpicsFloat", 0]
+            "time_step": ["Timestep", "ReadOnlyFloat", 0]
         },
         "epicsServer": {
             "serverAddress": ["Network Address", "String", "localhost:5064", "EPICS server network address, $\\text{<host>:<port>}$"],

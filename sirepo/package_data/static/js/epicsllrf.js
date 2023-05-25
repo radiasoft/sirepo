@@ -41,6 +41,10 @@ SIREPO.app.factory('epicsllrfService', function(appState) {
         return null;
     };
 
+    self.isEpicsModel = modelName => {
+        return modelName.startsWith(SIREPO.APP_SCHEMA.constants.epicsModelPrefix);
+    };
+
     self.setEpicsData = epics => {
         epicsData = epics;
     };
@@ -57,10 +61,6 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
     let inRequest = false;
     self.simScope = $scope;
 
-    function diffAndNotReadOnly(epicsValue, clientValue, readOnly) {
-        return (clientValue != epicsValue) && (! readOnly);
-    }
-
     function fieldType(modelName, field) {
         if (SIREPO.APP_SCHEMA.model[modelName] && SIREPO.APP_SCHEMA.model[modelName][field]) {
             return SIREPO.APP_SCHEMA.model[modelName][field][1];
@@ -68,24 +68,24 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
         return null;
     }
 
-    function getGenDiff() {
-        const l = SIREPO.APP_SCHEMA.model.LLRFSim_Gen;
-        var d = [];
-        for (const field in l) {
-            var e = epicsllrfService.getEpicsValue("LLRFSim_Gen", field);
-            if (diffAndNotReadOnly(e, appState.models.LLRFSim_Gen[field], isFieldReadOnly(l, field))
-            ) {
+    function getDiff(modelName) {
+        const d = [];
+        for (const f in SIREPO.APP_SCHEMA.model[modelName]) {
+            const e = epicsllrfService.getEpicsValue(modelName, f);
+            const s = appState.models[modelName][f];
+            if (e != s && isEditable(modelName, f)) {
                 d.push({
-                    field: field,
-                    value: appState.models.LLRFSim_Gen[field],
+                    field: f,
+                    value: s,
                 });
             }
         }
         return d;
     }
 
-    function isFieldReadOnly(model, field) {
-        return model[field][1].includes('ReadOnly');
+    function isEditable(modelName, field) {
+        const t = fieldType(modelName, field);
+        return t && ! t.startsWith('ReadOnly');
     }
 
     function loadEpicsData(epicsData) {
@@ -99,7 +99,7 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
             epicsllrfService.setEpicsData(epicsData);
             const changed = [];
             for (const f in epicsData) {
-                let [modelName, field] = f.split(':');
+                const [modelName, field] = f.split(':');
                 if (fieldType(modelName, field) == 'ReadOnlyFloatArray') {
                     if (
                         (
@@ -192,18 +192,34 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
         }
     };
 
-    $scope.$on('LLRFSim_Gen.changed', () => {
-        const d = getGenDiff();
-        if (d.length) {
-            requestSender.sendStatelessCompute(
-                appState,
-                (data) => {},
-                {
-                    method: 'update_epics_value',
-                    fields: d,
-                    model: "LLRFSim:Gen",
+    $scope.$on('modelChanged', (event, modelName) => {
+        if (epicsllrfService.isEpicsModel(modelName)) {
+            const d = getDiff(modelName);
+            if (d.length) {
+                requestSender.sendStatelessCompute(
+                    appState,
+                    data => {},
+                    {
+                        method: 'update_epics_value',
+                        fields: d,
+                        model: modelName,
+                        serverAddress: appState.applicationState().epicsServer.serverAddress,
+                    }
+                );
+            }
+        }
+    });
+
+    $scope.$on('cancelChanges', (event, modelName) => {
+        if (epicsllrfService.isEpicsModel(modelName)) {
+            // epics model canceled, set values from epicsData
+            for (const f in SIREPO.APP_SCHEMA.model[modelName]) {
+                const v = epicsllrfService.getEpicsValue(modelName, f);
+                if (v !== null) {
+                    appState.models[modelName][f] = v;
                 }
-            );
+            }
+            appState.saveChanges(modelName);
         }
     });
 
@@ -279,23 +295,17 @@ SIREPO.app.directive('epicsInput', function(appState, epicsllrfService) {
           <input data-string-to-number="" data-ng-class="{'highlight-cell': isDiff}" data-ng-change="{{ changed() }}" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
           `,
         controller: function($scope) {
+            // check dirty initially when first loading data
+            let checkDirty = true;
             $scope.epicsllrfService = epicsllrfService;
             $scope.changed = () => {
-                const v = epicsllrfService.getEpicsValue($scope.modelName, $scope.field);
-                if (nonReadOnlyDiff(appState.models[$scope.modelName][$scope.field], v, $scope.field)) {
-                    $scope.isDiff = true;
-                } else {
-                    $scope.isDiff = false;
+                const e = epicsllrfService.getEpicsValue($scope.modelName, $scope.field);
+                const s = $scope.model[$scope.field];
+                $scope.isDiff = e != s && e !== null;
+                if (checkDirty && $scope.isDiff) {
+                    checkDirty = false;
+                    $scope.$parent.form.$setDirty();
                 }
-            };
-
-            const nonReadOnlyDiff = (inputVal, epicsVal, pvName) => {
-                if (! ["MinValue", "MaxValue", "MeanValue"].includes(pvName)){
-                    if (inputVal != epicsVal && epicsVal !== null) {
-                        return true;
-                    }
-                }
-                return false;
             };
         },
     };

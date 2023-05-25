@@ -37,14 +37,13 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
-    epicsllrf.run_epics_cmd(
-        f"pvmonitor {_epics_fields()} | python parameters.py",
-        env=epicsllrf.epics_env(
-            simulation_db.read_json(
-                template_common.INPUT_BASE_NAME
-            ).models.epicsServer.serverAddress
-        ),
-    )
+    f = _epics_fields()
+    s = simulation_db.read_json(
+        template_common.INPUT_BASE_NAME
+    ).models.epicsServer.serverAddress
+    if epicsllrf.run_epics_cmd(f"pvget {f[0]}", s) != 0:
+        raise AssertionError("Unable to connect to EPICS server: {}".format(s))
+    epicsllrf.run_epics_cmd(f"pvmonitor {' '.join(f)} | python parameters.py", s)
 
 
 def _epics_fields():
@@ -52,5 +51,5 @@ def _epics_fields():
     for model in SCHEMA.model:
         if SCHEMA.constants.epicsModelPrefix in model:
             for k in SCHEMA.model[model]:
-                r.append(model.replace("_", ":") + ":" + k)
-    return " ".join(r)
+                r.append(epicsllrf.epics_field_name(model, k))
+    return r

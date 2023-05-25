@@ -12,6 +12,8 @@ pvs = PKDict()
 
 for line in sys.stdin:
     if line != '\n':
+        if re.search('No broadcast addresses found or specified', line):
+            raise AssertionError(line)
         m = re.match(r'^(\S+)\s+(\S+\s\S+)\s+(.*?)\s*((UDF INVALID)|(STATE .*))?$', line)
         if not m:
             print(f'unmatched: {line}')

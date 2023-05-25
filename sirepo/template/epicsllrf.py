@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """epicsllrf execution template.
 
-:copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkio
@@ -30,20 +30,24 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def epics_env(server_address):
-    env = os.environ.copy()
-    env["EPICS_CA_AUTO_ADDR_LIST"] = "NO"
-    env["EPICS_CA_ADDR_LIST"] = server_address
-    env["EPICS_CA_SERVER_PORT"] = server_address.split(":")[1]
-    return env
+def epics_field_name(model_name, field):
+    return model_name.replace("_", ":") + ":" + field
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 
-def run_epics_cmd(cmd, env=None):
-    subprocess.Popen(
+def run_epics_cmd(cmd, server_address):
+    env = os.environ.copy()
+    env["EPICS_PVA_AUTO_ADDR_LIST"] = "NO"
+    if ":" in server_address:
+        env["EPICS_PVA_ADDR_LIST"] = server_address.split(":")[0]
+        env["EPICS_PVA_SERVER_PORT"] = server_address.split(":")[1]
+    else:
+        env["EPICS_PVA_ADDR_LIST"] = server_address
+    # TODO (gurhar1133): validate cmd
+    return subprocess.Popen(
         cmd,
         env=env,
         shell=True,
@@ -74,8 +78,10 @@ def stateless_compute_read_epics_values(data, **kwargs):
 
 def stateless_compute_update_epics_value(data, **kwargs):
     for f in data.fields:
-        # TODO (gurhar1133): validate model and field
-        run_epics_cmd(f"pvput {data.model}:{f.field} {f.value}")
+        run_epics_cmd(
+            f"pvput {epics_field_name(data.model, f.field)} {f.value}",
+            data.serverAddress,
+        )
     return PKDict(success=True)
 
 
