@@ -276,9 +276,8 @@
             ["dipoleC", "C-Bend"],
             ["dipoleH", "H-Bend"]
         ],
-        "DivisionType": [
+        "SegmentationType": [
             ["cyl", "Cylindrical"],
-            ["", "None"],
             ["pln", "Planar"]
         ],
         "Elevation": [
@@ -424,6 +423,7 @@
             "_super": ["_", "model", "extrudedObject"],
             "numSides": ["Number of Sides", "Integer", 10, "A cylinder is approximated by a regular polyhedron of this number of sides", 6],
             "radius": ["Radius", "Float", 5.0, "", 0.0],
+            "segmentation": ["Segmentation Type", "SegmentationType", "cyl"],
             "type": ["_", "ObjectType", "cylinder"]
         },
         "cee": {
@@ -812,7 +812,10 @@
             "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B Curve from File", "HBFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns (H, B in Tesla)"],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
-            "segments": ["Num Segments", "IntArray", [1, 1, 1], "", ["N$_{{ appState.models.geomObject.type == 'cylinder' ? '{rad}' : 'x' }}$", "N$_{{ appState.models.geomObject.type == 'cylinder' ? '{az}' : 'y' }}$", "N$_{{ appState.models.geomObject.type == 'cylinder' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
+            "segmentation": ["Segmentation Type", "SegmentationType", "pln"],
+            "segmentationCylAxis": ["Cylindrical Segment Axis", "BeamAxis", "z"],
+            "segmentationCylPoint": ["Cylindrical Segment Origin", "FloatArray", [0, 0, 0]],
+            "segments": ["Segments", "IntArray", [1, 1, 1], "", ["N$_{{ appState.models.geomObject.segmentation == 'cyl' ? '{rad}' : 'x' }}$", "N$_{{ appState.models.geomObject.segmentation == 'cyl' ? '{az}' : 'y' }}$", "N$_{{ appState.models.geomObject.segmentation == 'cyl' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
             "shapeButton": ["Shape", "ShapeButton", {}],
             "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]],
             "type": ["Shape Type", "ObjectType", "cuboid"]
@@ -1314,6 +1317,9 @@
                     "extrudedPoints.referencePoints",
                     "center",
                     "size",
+                    "segmentation",
+                    "segmentationCylAxis",
+                    "segmentationCylPoint",
                     "segments",
                     "cylinder.radius",
                     "extrudedObject.extrusionAxis",

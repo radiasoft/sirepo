@@ -3219,7 +3219,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     $scope.watchFields = [
         [
-            'geomObject.type',
+            'geomObject.type', 'geomObject.segmentation',
             'cylinder.radius',
             'extrudedPoly.extrusionAxisSegments', 'extrudedPoly.triangulationLevel',
             'extrudedObject.extrusionAxis',
@@ -3355,6 +3355,8 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
         panelState.enableField('geomObject', 'size', true);
         panelState.showField('geomObject', 'segments', editedModels.includes('cylinder') || ! editedModels.includes('extrudedObject'));
+        panelState.showField('geomObject', 'segmentationCylAxis', o.segmentation === 'cyl');
+        panelState.showField('geomObject', 'segmentationCylPoint', o.segmentation === 'cyl');
 
         if (modelType === 'stl') {
             panelState.enableField('geomObject', 'size', false);
