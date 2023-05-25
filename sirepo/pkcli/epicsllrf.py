@@ -8,11 +8,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common, epicsllrf
 from sirepo import simulation_db
-import sirepo.sim_data
-import subprocess
-
-
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
 def run(cfg_dir):
@@ -48,8 +43,8 @@ def run_background(cfg_dir):
 
 def _epics_fields():
     r = []
-    for model in SCHEMA.model:
-        if SCHEMA.constants.epicsModelPrefix in model:
-            for k in SCHEMA.model[model]:
+    for model in epicsllrf.SCHEMA.model:
+        if epicsllrf.SCHEMA.constants.epicsModelPrefix in model:
+            for k in epicsllrf.SCHEMA.model[model]:
                 r.append(epicsllrf.epics_field_name(model, k))
     return r

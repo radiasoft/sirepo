@@ -5,7 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkio
-from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
@@ -15,7 +14,6 @@ import os
 import re
 import shutil
 import sirepo.sim_data
-import sirepo.util
 import subprocess
 
 _STATUS_FILE = "status.json"

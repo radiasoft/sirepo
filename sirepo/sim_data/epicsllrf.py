@@ -11,6 +11,12 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if "Report" in analysis_model:
+            return "waveformReport"
+        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+
+    @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         cls._init_models(data.models)
 
