@@ -10,8 +10,8 @@ from sirepo.template import template_common
 
 def run_background(cfg_dir):
     # TODO(e-carlin): use the mpi version of genesis?
-    run_genesis(cfg_dir)
+    run_genesis()
 
 
-def run_genesis(dir):
+def run_genesis():
     template_common.exec_parameters()
