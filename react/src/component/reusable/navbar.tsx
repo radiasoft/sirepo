@@ -24,7 +24,7 @@ export function SrNavbar(props) {
                     <Navbar.Brand href={titleHref} className="order-1">
                         <img
                         alt=""
-                        src="/react/img/sirepo.gif"
+                        src="/static/img/sirepo.gif"
                         width="38"
                         height="38"
                         className="d-inline-block align-top"
