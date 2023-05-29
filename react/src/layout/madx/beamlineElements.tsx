@@ -53,21 +53,14 @@ export class MadxBeamlineElementsLayout extends Layout<MadxBeamlineElmenetsConfi
         }
 
         let currentBeamline = beamlinesValue.find(beam => beam.item.id === selectedBeamlineHandle.value).item;
-        let removeElement = (elementId: number | string) => {
-            let v = cloneDeep(beamlinesHandle.value) as FormFieldState<ArrayFieldState<FormModelState>>;
-            let changed = false;
-            let b = v.value.find(b => b.item.id.value === selectedBeamlineHandle.value);
+        let removeElement = (index: number) => {
+            let bv = cloneDeep(beamlinesHandle.value) as FormFieldState<ArrayFieldState<FormModelState>>;
+            let b = bv.value.find(b => b.item.id.value === selectedBeamlineHandle.value);
             console.log("b", b);
-            let idx = b.item.items.value.findIndex(e => e == elementId);
-            if(idx > 0) {
-                changed = true;
-                let v = [...b.item.items.value];
-                v.splice(idx, 1);
-                b.item.items.value = v;
-            }
-            if(changed) {
-                beamlinesHandle.write(v, store.getState(), dispatch);
-            }
+            let v = [...b.item.items.value];
+            v.splice(index, 1);
+            b.item.items.value = v;
+            beamlinesHandle.write(bv, store.getState(), dispatch);
         }
 
         console.log("during update", currentBeamline.items);
@@ -85,7 +78,7 @@ export class MadxBeamlineElementsLayout extends Layout<MadxBeamlineElmenetsConfi
                     <HoverController>
                         {
                             (hover) => {
-                                return beamlineElements.map(e => {
+                                return beamlineElements.map((e, idx) => {
                                     let id = (e.item._id !== undefined ? e.item._id : e.item.id) as number;
                                     let template = e.item.type !== undefined ? getTemplateSettingsByType((e.item.type as string), this.config.elementTemplates) : undefined;
                                     let aliases: ArrayAliases = e.item.type !== undefined ? [
@@ -100,7 +93,7 @@ export class MadxBeamlineElementsLayout extends Layout<MadxBeamlineElmenetsConfi
                                         }
                                     ] : undefined;
                                     return (
-                                        <div key={id} className="d-flex flex-row flex-nowrap" onMouseEnter={() => hover.aquireHover(id)} onMouseLeave={() => hover.releaseHover(id)}>
+                                        <div key={`${id}-${idx}`} className="d-flex flex-row flex-nowrap" onMouseEnter={() => hover.aquireHover(idx)} onMouseLeave={() => hover.releaseHover(idx)}>
                                             <Badge bg="primary" onDoubleClick={() => {
                                                     updateShownElement({
                                                         template,
@@ -111,8 +104,8 @@ export class MadxBeamlineElementsLayout extends Layout<MadxBeamlineElmenetsConfi
                                                 {`${e.item.name as string}`}
                                             </Badge>
                                             <div style={{width: "25px", height: "25px", marginLeft: "5px"}}>
-                                                <div style={{ display: hover.checkHover(id) ? "block" : "none" }}>
-                                                    <FontAwesomeIcon icon={Icon.faClose} onClick={() => removeElement(id)}/>
+                                                <div style={{ display: hover.checkHover(idx) ? "block" : "none" }}>
+                                                    <FontAwesomeIcon icon={Icon.faClose} onClick={() => removeElement(idx)}/>
                                                 </div>
                                             </div>
                                         </div>

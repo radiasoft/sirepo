@@ -39,9 +39,9 @@ export class MadxBeamlinesPickerLayout extends Layout<MadxBeamlinesPickerConfig>
                         <th>
                             Name
                         </th>
-                        <th>
+                        {/*<th>
                             Description
-                        </th>
+                         </th>*/}
                         <th>
                             Length
                         </th>
@@ -69,9 +69,9 @@ export class MadxBeamlinesPickerLayout extends Layout<MadxBeamlinesPickerConfig>
                                             <td>
                                                 {`${name}`}
                                             </td>
-                                            <td>
-                                                {/* TODO: description */}
-                                            </td>
+                                            {/*<td>
+                                                TODO: description
+                                            </td>*/}
                                             <td>
                                                 {(bl.length as number).toPrecision(4)}
                                             </td>

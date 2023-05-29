@@ -299,7 +299,7 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                         <thead style={{position: "sticky", top: "0", background: "#fff"}}>
                             <tr>
                                 <th>Name</th>
-                                <th>Description</th>
+                                {/*<th>Description</th>*/}
                                 <th>Length</th>
                                 <th>Bend</th>
                             </tr>
@@ -343,10 +343,9 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                                                                             </Badge>
                                                                         </h6>
                                                                     </td>
-                                                                    <td>
-                                                                        {ev.item._id as string}
-                                                                        {/*??? TODO: garsuga: where does description come from*/}
-                                                                    </td>
+                                                                    {/*<td>
+                                                                        {??? TODO: garsuga: where does description come from}
+                                                                    </td>*/}
                                                                     <td>
                                                                         {ev.item.l !== undefined ? `${(ev.item.l)}m` : ""}
                                                                     </td>
