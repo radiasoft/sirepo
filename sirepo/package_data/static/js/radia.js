@@ -3225,13 +3225,13 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             'extrudedObject.extrusionAxis',
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
-        ], updateObjectEditor
+        ], updateEditor
     ];
 
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];
         editedModels = radiaService.updateModelAndSuperClasses($scope.modelData.type, $scope.modelData);
-        updateObjectEditor();
+        updateEditor();
     };
 
     $scope.$on('modelChanged', (e, modelName) => {
@@ -3334,7 +3334,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         appState.saveQuietly(editedModels);
     }
 
-    function updateObjectEditor() {
+    function updateEditor() {
         const o = $scope.modelData;
         if (! o) {
             return;
@@ -3355,8 +3355,9 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
         panelState.enableField('geomObject', 'size', true);
         panelState.showField('geomObject', 'segments', editedModels.includes('cylinder') || ! editedModels.includes('extrudedObject'));
-        panelState.showField('geomObject', 'segmentationCylAxis', o.segmentation === 'cyl');
-        panelState.showField('geomObject', 'segmentationCylPoint', o.segmentation === 'cyl');
+        ['segmentationCylAxis', 'segmentationCylPoint', 'segmentationCylRadius'].forEach(f => {
+            panelState.showField('geomObject', f, o.segmentation === 'cyl');
+        });
 
         if (modelType === 'stl') {
             panelState.enableField('geomObject', 'size', false);

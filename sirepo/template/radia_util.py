@@ -158,6 +158,11 @@ def _apply_fillet(g_id, **kwargs):
     return build_container([g_id, c_id])
 
 
+def _apply_material(g_id, **kwargs):
+    d = PKDict(kwargs)
+    radia.MatApl(g_id, _radia_material(d.material, d.remanentMag, d.h_m_curve))
+
+
 def _apply_rotation(g_id, xform):
     xform = PKDict(xform)
     radia.TrfOrnt(
@@ -174,22 +179,22 @@ def _apply_rotation(g_id, xform):
     )
 
 
-def _apply_segments(g_id, segments, seg_type="pln", **kwargs):
-    if segments and any([s > 1 for s in segments]):
-        if seg_type == "pln":
-            radia.ObjDivMag(g_id, segments)
+def _apply_segments(g_id, **kwargs):
+    d = PKDict(kwargs)
+    if d.segments and any([s > 1 for s in d.segments]):
+        if d.segmentation == "pln":
+            radia.ObjDivMag(g_id, d.segments)
         # cylindrical division does not seem to work properly in the local frame if the
         # axis is not "x" and the center is not [0, 0, 0]
-        if seg_type == "cyl":
-            d = PKDict(kwargs)
+        if d.segmentation == "cyl":
             radia.ObjDivMag(
                 g_id,
-                segments,
-                seg_type,
+                d.segments,
+                d.segmentation,
                 [
-                    d.center,
-                    d.axis,
-                    d.perp_axis,
+                    d.segmentationCylPoint,
+                    AXIS_VECTORS[d.segmentationCylAxis].tolist(),
+                    (d.segmentationCylRadius * AXIS_VECTORS[next_axis(d.segmentationCylAxis)] + d.center).tolist(),
                     1.0,
                 ],
                 "Frame->Lab",
@@ -311,10 +316,7 @@ def build_container(g_ids):
 
 def build_cuboid(**kwargs):
     d = PKDict(kwargs)
-    g_id = radia.ObjRecMag(d.center, d.size, d.magnetization)
-    _apply_segments(g_id, d.segments)
-    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
-    return g_id
+    return radia.ObjRecMag(d.center, d.size, d.magnetization)
 
 
 def build_stl(**kwargs):
@@ -349,6 +351,22 @@ def build_cylinder(**kwargs):
         perp_axis=(d.radius * AXIS_VECTORS[next_axis(axis)] + d.center).tolist(),
     )
     radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
+    return g_id
+
+
+def build_object(**kwargs):
+    g_id = PKDict(
+        cee=extrude,
+        cuboid=build_cuboid,
+        cylinder=build_cylinder,
+        ell=extrude,
+        extrudedPoints=extrude,
+        jay=extrude,
+        racetrack=build_racetrack,
+        stl=build_stl,
+    )[kwargs.get("type")](**kwargs)
+    _apply_segments(g_id, **kwargs)
+    _apply_material(g_id, **kwargs)
     return g_id
 
 
