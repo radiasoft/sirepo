@@ -341,8 +341,6 @@ def apply_modification(g_id, **kwargs):
     return PKDict(
         objectBevel=_apply_bevel,
         objectFillet=_apply_fillet,
-        rotate=_apply_rotation,
-        translate=_apply_translation,
     )[kwargs.get("type")](g_id, **kwargs)
 
 
