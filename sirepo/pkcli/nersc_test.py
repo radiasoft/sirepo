@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""allow NERSC to run tests of Sirepo images in their infrastructure
+"""Allow NERSC to run tests of Sirepo images in their infrastructure
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,52 +14,81 @@ import pykern.pkjinja
 import sirepo.sim_data
 import sirepo.const
 import sirepo.resource
-import shutil
-
-
-_SEQUENTIAL_BASH_FILE = "sequential_test.sh"
-_RESOURCE_DIR = "nersc_test/"
-_RUN_DIR = "sirepo_run_dir"
-_SEQUENTIAL_JOB_CMD_INPUT = "nersc_sequential.json"
-_SEQUENTIAL_RESULT_FILE = "nersc_sequential.log"
 
 
 def sequential():
-    """Sequential testing of job_cmd for nersc. Generates bash script
-    that invokes job_cmd on a srw in.json with one MPI core.
+    """Test sequential process for use by NERSC inside SHIFTER
+
+    Simulates the operation that Sirepo does when it executes a
+    sequential process on a login node in SHIFTER.
+
+    On success, will return (output) ``nersc_test.sequential PASS``
+
+    Returns:
+        str: PASS or fail with diagnostic information
     """
+    s = _Sequential()
     try:
-        s = pykern.pkio.py_path(_RUN_DIR)
-        pykern.pkio.unchecked_remove(s)
-        s.ensure(dir=True)
-        o = s.join(_SEQUENTIAL_RESULT_FILE)
-        for f in (_SEQUENTIAL_JOB_CMD_INPUT, _SEQUENTIAL_BASH_FILE):
-            _render(f, s)
-        pykern.pksubprocess.check_call_with_signals(
-            ["bash", s.join(_SEQUENTIAL_BASH_FILE)],
-            output=str(o),
-        )
-        r = pykern.pkjson.load_any(o)
-        if r.state != "completed":
-            raise RuntimeError(f"incomplete result {r.state}")
+        s.prepare()
+        s.execute()
         return "nersc_test.sequential PASS"
     except Exception as e:
-        return f"nersc_test sequential fail: error={e}\n{pkdexc()}\nunix_uid={os.geteuid()}"
+        return f"nersc_test sequential fail: error={e}\nunix_uid={os.geteuid()}\n{s}{pkdexc()}"
 
 
-def _file_path(filename):
-    return sirepo.resource.file_path(
-        _RESOURCE_DIR + filename + pykern.pkjinja.RESOURCE_SUFFIX
-    )
+class _Sequential(PKDict):
+    """Run a sequential job by mocking the input to job_cmd"""
 
+    JOB_CMD_FILE = "sequential_job_cmd.json"
+    RESOURCE_DIR = "nersc_test/"
+    RESULT_FILE = "sequential_result.json"
+    RUN_DIR = "sirepo_run_dir"
+    RUN_FILE = "sequential_run.sh"
 
-def _render(filename, run_dir):
-    pykern.pkjinja.render_file(
-        _file_path(filename),
-        PKDict(
-            user=sirepo.const.MOCK_UID,
-            sirepo_run_dir=run_dir,
-            jobCmdIn=run_dir.join(_SEQUENTIAL_JOB_CMD_INPUT),
-        ),
-        output=run_dir.join(filename),
-    )
+    def prepare(self):
+        self.run_dir = pykern.pkio.py_path(self.RUN_DIR)
+        pykern.pkio.unchecked_remove(self.run_dir)
+        self.run_dir.ensure(dir=True)
+        self.result_file = self.run_dir.join(self.RESULT_FILE)
+        self.user = sirepo.const.MOCK_UID
+        self.job_cmd_file = self._render_resource(self.JOB_CMD_FILE)
+        self.run_file = self._render_resource(self.RUN_FILE)
+
+    def execute(self):
+        pykern.pksubprocess.check_call_with_signals(
+            ["bash", self.run_file],
+            output=str(self.result_file),
+        )
+        self.result_text = pykern.pkio.read_text(self.result_file)
+        self.result_parsed = pykern.pkjson.load_any(self.result_text)
+        if self.result_parsed.state != "completed":
+            raise RuntimeError(f"unexpected result state={self.result_parsed.state}")
+
+    def _file_path(self, filename):
+        return sirepo.resource.file_path(
+            self.RESOURCE_DIR + filename + pykern.pkjinja.RESOURCE_SUFFIX
+        )
+
+    def __str__(self):
+        res = "Internal state:\n"
+        for k in ("run_dir", "run_file", "result_file"):
+            res += f"{k}={self.get(k)}\n"
+        if "result_text" in self:
+            if "result_parsed" in self:
+                res += "result_parsed=" + pykern.pkjson.dump_pretty(self.result_parsed)
+            else:
+                res += "result_text=" + self.result_text
+        return res
+
+    def _render_resource(self, filename):
+        res = self.run_dir.join(filename)
+        pykern.pkjinja.render_file(
+            self._file_path(filename),
+            PKDict(
+                job_cmd_file=self.get("job_cmd_file"),
+                run_dir=self.run_dir,
+                user=self.user,
+            ),
+            output=res,
+        )
+        return res
