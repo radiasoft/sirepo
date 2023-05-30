@@ -333,25 +333,14 @@ def build_stl(**kwargs):
 
 def build_cylinder(**kwargs):
     d = PKDict(kwargs)
-    axis = d.extrusion_axis
-    g_id = radia.ObjCylMag(
+    return radia.ObjCylMag(
         d.center,
         d.radius,
-        d.size[axes_index(axis)],
-        d.num_sides,
-        d.extrusion_axis,
+        d.size[axes_index(d.extrusionAxis)],
+        d.numSides,
+        d.extrusionAxis,
         d.magnetization,
     )
-    _apply_segments(
-        g_id,
-        d.segments,
-        seg_type=d.get("seg_type", "cyl"),
-        center=d.center,
-        axis=AXIS_VECTORS[axis].tolist(),
-        perp_axis=(d.radius * AXIS_VECTORS[next_axis(axis)] + d.center).tolist(),
-    )
-    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
-    return g_id
 
 
 def build_object(**kwargs):
