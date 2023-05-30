@@ -18,3 +18,19 @@
     color: white !important;
 }
 
+.table-text {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 100%;
+    display: inline-block;
+}
+
+.table-cell {
+    overflow: hidden;
+}
+
+table {
+    width: 100%;
+    table-layout: fixed;
+}

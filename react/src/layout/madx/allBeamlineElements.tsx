@@ -22,6 +22,7 @@ import "./allBeamlineElements.scss";
 import "./beamlines.scss";
 import { FormFieldState, FormModelState } from "../../store/formState";
 import { cloneDeep } from "lodash";
+import { SchemaModel } from "../../utility/schema";
 
 export type TemplateSettings = {
     type: string,
@@ -153,6 +154,13 @@ export function getTemplateSettingsByType(type: string, templates: TemplateSetti
     return ret;
 }
 
+function getElementDescription(element: ModelState, modelSchema: SchemaModel): string {
+    return Object.entries(element).filter(([name, ]) => !(name == 'name' || name == 'l' || name == 'angle'))
+    .sort(([a, ], [b, ]) => a.localeCompare(b))
+    .filter(([name, value]) => name in modelSchema && value !== modelSchema[name].defaultValue)
+    .map(([name, value]) => `${name}=${value}`).join(", ");
+}
+
 export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElementsConfig, {}> {
     constructor(config: MadxAllBeamlineElementsConfig) {
         super(config);
@@ -163,6 +171,7 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
         handleFactory.useUpdates(MadxAllBeamlineElementsLayout);
         let store = useStore();
         let dispatch = useDispatch();
+        let schema = useContext(CSchema);
         //let activeBeamlineId = handleFactory.createHandle(new Dependency(this.config.activeBeamlineDependency), StoreTypes.Models).hook().value;
         let elementsHandle = handleFactory.createHandle(new Dependency(this.config.elementsDependency), StoreTypes.FormState).hook();
         let elementsValue = revertDataStructure(elementsHandle.value, getValueSelector(StoreTypes.FormState)) as ArrayFieldState<ModelState>;
@@ -295,100 +304,103 @@ export class MadxAllBeamlineElementsLayout extends Layout<MadxAllBeamlineElement
                     <div className="d-flex flex-row flew-nowrap justify-content-right">
                         <Button variant="primary" size="sm" onClick={() => updateNewElementModalShown(true)}>New Element</Button>
                     </div>
-                    <Table className="overflow-scroll w-100" style={{ maxHeight: "80vh" }}>
-                        <thead style={{position: "sticky", top: "0", background: "#fff"}}>
-                            <tr>
-                                <th>Name</th>
-                                {/*<th>Description</th>*/}
-                                <th>Length</th>
-                                <th>Bend</th>
-                            </tr>
-                        </thead>
-                        <HoverController>
-                            {
-                                (hover) => {
-                                    return [...new Set(elementsValue.map((ev: ArrayFieldElement<ModelState>) => ev.model))].sort((a: string, b: string) => a.localeCompare(b)).map((category: string) => {
-                                        return (
-                                            <tbody key={category}>
-                                                <tr>
-                                                    <td>
-                                                        <span>
-                                                            {category}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                                {
-                                                    elementsValue.filter(ev => ev.model == category).map((ev: ArrayFieldElement<ModelState>) => {
-                                                        let id = ev.item._id as string;
-                                                        let elementsDependency = new Dependency(this.config.elementsDependency);
-                                                        let template = ev.item.type !== undefined ? getTemplateSettingsByType((ev.item.type as string), this.config.elementTemplates) : undefined;
-                                                        let aliases: ArrayAliases = ev.item.type !== undefined ? [
-                                                            {
-                                                                realSchemaName: ev.item.type as string,
-                                                                realDataLocation: {
-                                                                    modelName: elementsDependency.modelName,
-                                                                    fieldName: elementsDependency.fieldName,
-                                                                    index: elementsValue.findIndex(e => e.item._id === id)
-                                                                },
-                                                                fake: ev.item.type as string
-                                                            }
-                                                        ] : undefined;
-                                                        return (
-                                                            <React.Fragment key={id}>
-                                                                <tr onMouseEnter={() => hover.aquireHover(id)} onMouseLeave={() => hover.releaseHover(id)}>
-                                                                    <td>
-                                                                        <h6>
-                                                                            <Badge bg="secondary">
-                                                                                {ev.item.name as string}
-                                                                            </Badge>
-                                                                        </h6>
-                                                                    </td>
-                                                                    {/*<td>
-                                                                        {??? TODO: garsuga: where does description come from}
-                                                                    </td>*/}
-                                                                    <td>
-                                                                        {ev.item.l !== undefined ? `${(ev.item.l)}m` : ""}
-                                                                    </td>
-                                                                    <td>
-                                                                        {ev.item.angle !== undefined ? `${ev.item.angle}` : ""}
-                                                                    </td>
-                                                                </tr>
+                    <div>
+                        <Table className="overflow-scroll w-100" style={{ maxHeight: "80vh" }}>
+                            <thead style={{position: "sticky", top: "0", background: "#fff"}}>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Length</th>
+                                    <th>Bend</th>
+                                </tr>
+                            </thead>
+                            <HoverController>
+                                {
+                                    (hover) => {
+                                        return [...new Set(elementsValue.map((ev: ArrayFieldElement<ModelState>) => ev.model))].sort((a: string, b: string) => a.localeCompare(b)).map((category: string) => {
+                                            return (
+                                                <tbody key={category}>
+                                                    <tr>
+                                                        <td>
+                                                            <span>
+                                                                {category}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                    {
+                                                        elementsValue.filter(ev => ev.model == category).map((ev: ArrayFieldElement<ModelState>) => {
+                                                            let id = ev.item._id as string;
+                                                            let description = getElementDescription(ev.item, schema.models[ev.model]);
+                                                            let elementsDependency = new Dependency(this.config.elementsDependency);
+                                                            let template = ev.item.type !== undefined ? getTemplateSettingsByType((ev.item.type as string), this.config.elementTemplates) : undefined;
+                                                            let aliases: ArrayAliases = ev.item.type !== undefined ? [
                                                                 {
-                                                                    hover.checkHover(id) && (
-                                                                        <tr className="popover-buttons-outer" onMouseEnter={() => hover.aquireHover(id)} onMouseLeave={() => hover.releaseHover(id)}>
-                                                                            <td className="popover-buttons">
-                                                                                <Button className="popover-button" size="sm" onClick={() => addElementToBeamline(id, selectedBeamlineHandle.value as number)}>
-                                                                                    Add To Beamline
-                                                                                </Button>
-                                                                                <Button className="popover-button" size="sm" onClick={() => {
-                                                                                        updateShownElement({
-                                                                                            template,
-                                                                                            aliases
-                                                                                        })
-                                                                                    }
-                                                                                }>
-                                                                                    Edit
-                                                                                </Button>
-                                                                                <Button className="popover-button" size="sm" variant="danger" onClick={() => removeElement(id)}>
-                                                                                    <FontAwesomeIcon icon={Icon.faClose}/>
-                                                                                </Button>
-                                                                            </td>
-                                                                        </tr>
-                                                                    )
+                                                                    realSchemaName: ev.item.type as string,
+                                                                    realDataLocation: {
+                                                                        modelName: elementsDependency.modelName,
+                                                                        fieldName: elementsDependency.fieldName,
+                                                                        index: elementsValue.findIndex(e => e.item._id === id)
+                                                                    },
+                                                                    fake: ev.item.type as string
                                                                 }
-                                                            </React.Fragment>
-                                                            
-                                                        )
-                                                    })
-                                                }
-                                            </tbody>
-                                        )
-                                        
-                                    })
+                                                            ] : undefined;
+                                                            return (
+                                                                <React.Fragment key={id}>
+                                                                    <tr onMouseEnter={() => hover.aquireHover(id)} onMouseLeave={() => hover.releaseHover(id)}>
+                                                                        <td>
+                                                                            <h6>
+                                                                                <Badge bg="secondary">
+                                                                                    {ev.item.name as string}
+                                                                                </Badge>
+                                                                            </h6>
+                                                                        </td>
+                                                                        <td className="table-cell">
+                                                                            <span title={description} className="table-text">{description}</span>
+                                                                        </td>
+                                                                        <td className="table-cell">
+                                                                            <span className="table-text">{ev.item.l !== undefined ? `${(ev.item.l)}m` : ""}</span>
+                                                                        </td>
+                                                                        <td className="table-cell">
+                                                                            <span className="table-text">{ev.item.angle !== undefined ? `${ev.item.angle}` : ""}</span>
+                                                                        </td>
+                                                                    </tr>
+                                                                    {
+                                                                        hover.checkHover(id) && (
+                                                                            <tr className="popover-buttons-outer" onMouseEnter={() => hover.aquireHover(id)} onMouseLeave={() => hover.releaseHover(id)}>
+                                                                                <td className="popover-buttons">
+                                                                                    <Button className="popover-button" size="sm" onClick={() => addElementToBeamline(id, selectedBeamlineHandle.value as number)}>
+                                                                                        Add To Beamline
+                                                                                    </Button>
+                                                                                    <Button className="popover-button" size="sm" onClick={() => {
+                                                                                            updateShownElement({
+                                                                                                template,
+                                                                                                aliases
+                                                                                            })
+                                                                                        }
+                                                                                    }>
+                                                                                        Edit
+                                                                                    </Button>
+                                                                                    <Button className="popover-button" size="sm" variant="danger" onClick={() => removeElement(id)}>
+                                                                                        <FontAwesomeIcon icon={Icon.faClose}/>
+                                                                                    </Button>
+                                                                                </td>
+                                                                            </tr>
+                                                                        )
+                                                                    }
+                                                                </React.Fragment>
+                                                                
+                                                            )
+                                                        })
+                                                    }
+                                                </tbody>
+                                            )
+                                            
+                                        })
+                                    }
                                 }
-                            }
-                        </HoverController>
-                    </Table>
+                            </HoverController>
+                        </Table>
+                    </div>
                 </div>
             </>
             
