@@ -15,6 +15,7 @@ import pykern.pkconfig
 import pykern.pkio
 import re
 import sirepo.auth
+import sirepo.feature_config
 import sirepo.flask
 import sirepo.job
 import sirepo.quest
@@ -324,6 +325,10 @@ class API(sirepo.quest.API):
                 check_sim_exists=True,
             ).req_data
         s = sirepo.sim_data.get_class(d)
+        if sirepo.feature_config.is_react_sim_type(s.sim_type()):
+            # TODO(pjm): need to know if this is the full sirepo data
+            if d.get("models"):
+                s.react_unformat_data(d)
         ##TODO(robnagler) this should be req_data
         b = PKDict(data=d, **kwargs)
         # TODO(e-carlin): some of these fields are only used for some type of reqs

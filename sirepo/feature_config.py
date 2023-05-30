@@ -96,6 +96,10 @@ def for_sim_type(sim_type):
     )
 
 
+def is_react_sim_type(sim_type):
+    return sim_type in cfg().react_sim_types
+
+
 def proprietary_sim_types():
     """All sim types that have proprietary information and require granted access to use
 

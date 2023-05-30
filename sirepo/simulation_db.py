@@ -249,7 +249,10 @@ def fixup_old_data(data, force=False, path=None, qcall=None):
             data.models.simulation.lastModified = _last_modified(data, path)
         from sirepo import sim_data
 
-        sim_data.get_class(data.simulationType).fixup_old_data(data, qcall=qcall)
+        s = sim_data.get_class(data.simulationType)
+        if sirepo.feature_config.is_react_sim_type(s.sim_type()):
+            s.react_unformat_data(data)
+        s.fixup_old_data(data, qcall=qcall)
         data.pkdel("fixup_old_version")
         return data, True
     except Exception as e:
