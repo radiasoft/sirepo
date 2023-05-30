@@ -34,53 +34,10 @@ def _add_object(o, radia_objs, id_map):
     sc = o.get("super_classes", [])
     mat = {{ matrix }}
     if _MODEL_OBJECT in sc:
-        m = radia_util.multiply_vector_by_matrix(o.magnetization, mat)
-        segs = radia_util.multiply_vector_by_matrix(o.segments, mat)
-    #TODO(mvk): dispatch object building
-    if t == _MODEL_CUBOID:
-        g_id = radia_util.build_object(**o)
-    if t == _MODEL_CYLINDER:
-        g_id = radia_util.build_object(**o)
-    if _MODEL_EXTRUDED_POLY in sc:
-        g_id = radia_util.extrude(
-            area=o.area,
-            center=o.center,
-            size=o.size,
-            extrusion_axis=o.extrusionAxis,
-            points=o.points,
-            material=o.material,
-            magnetization=m,
-            rem_mag=o.remanentMag,
-            segments=segs,
-            t_level=o.triangulationLevel,
-            h_m_curve=o.h_m_curve
-        )
-    if t == _MODEL_RACETRACK:
-        g_id = radia_util.build_racetrack(
-            center=o.center,
-            axis=o.axis,
-            calc=o.fieldCalc,
-            radii=o.radii,
-            sides=o.sides,
-            height=o.height,
-            num_segs=o.numSegments,
-            curr_density=o.currentDensity,
-        )
-    if t == _MODEL_STL:
-        g_id = radia_util.build_stl(
-            filename = o.get("file"),
-            center=o.center,
-            centroid=o.stlCentroid,
-            size=o.size,
-            vertices=o.stlVertices,
-            faces=o.stlFaces,
-            magnetization=m,
-            material=o.material,
-            rem_mag=o.remanentMag,
-            segments=segs,
-            h_m_curve=o.h_m_curve,
-        )
+        o.magnetization = radia_util.multiply_vector_by_matrix(o.magnetization, mat)
+        o.segments = radia_util.multiply_vector_by_matrix(o.segments, mat)
     if t in _OBJ_MODELS:
+        g_id = radia_util.build_object(**o)
         for b in o.get("modifications", []):
             g_id = radia_util.apply_modification(
                 g_id,

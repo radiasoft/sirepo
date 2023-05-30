@@ -147,7 +147,7 @@ def _apply_fillet(g_id, **kwargs):
         + h_offset
         - (numpy.array(d.size) / 2) * dirs.lenDir
     )
-    c_id = build_cylinder(
+    c_id = _build_cylinder(
         extrusion_axis=d.cutAxis,
         center=ctr,
         num_sides=d.numSides,
@@ -219,15 +219,45 @@ def _apply_translation(g_id, xform):
     )
 
 
-def axes_index(axis):
-    return AXES.index(axis)
-
-
 def _bevel_offsets_for_axes(edge_index, **kwargs):
     d = PKDict(kwargs)
     return (
         d.amountHoriz * numpy.array(d.widthDir) * [1, -1, -1, 1][edge_index],
         d.amountVert * numpy.array(d.heightDir) * [-1, -1, 1, 1][edge_index],
+    )
+
+
+def _build_cuboid(**kwargs):
+    d = PKDict(kwargs)
+    return radia.ObjRecMag(d.center, d.size, d.magnetization)
+
+
+def _build_stl(**kwargs):
+    d = PKDict(kwargs)
+    g_id = radia.ObjPolyhdr(
+        d.stlVertices, (numpy.array(d.stlFaces) + 1).tolist(), d.magnetization
+    )
+    center = [x - d.stlCentroid[i] for i, x in enumerate(d.center)]
+    radia.TrfOrnt(g_id, radia.TrfTrsl([center[0], center[1], center[2]]))
+    return g_id
+
+
+def _build_cylinder(**kwargs):
+    d = PKDict(kwargs)
+    return radia.ObjCylMag(
+        d.center,
+        d.radius,
+        d.size[axes_index(d.extrusionAxis)],
+        d.numSides,
+        d.extrusionAxis,
+        d.magnetization,
+    )
+
+
+def _build_racetrack(**kwargs):
+    d = PKDict(kwargs)
+    return radia.ObjRaceTrk(
+        d.center, d.radii, d.sides, d.height, d.numSegments, d.currentDensity, d.fieldCalc, d.axis
     )
 
 
@@ -263,6 +293,20 @@ def _corner_for_axes(edge_index, **kwargs):
     )
 
 
+def _extrude(**kwargs):
+    d = PKDict(kwargs)
+    b = AXIS_VECTORS[d.extrusionAxis]
+    return radia.ObjMltExtTri(
+        numpy.sum(b * d.center),
+        numpy.sum(b * d.size),
+        d.points,
+        numpy.full((len(d.points), 2), [1, 1]).tolist(),
+        d.extrusionAxis,
+        d.magnetization,
+        f"TriAreaMax->{0.125 * d.area * (1.04 - d.triangulationLevel)}" if d.triangulationLevel > 0 else "",
+    )
+
+
 def _geom_bounds(g_id):
     bnds = radia.ObjGeoLim(g_id)
     return PKDict(
@@ -279,91 +323,55 @@ def _radia_material(material_type, magnetization_magnitude, h_m_curve):
     return radia.MatStd(material_type, magnetization_magnitude)
 
 
-_MODS = PKDict(
-    objectBevel=_apply_bevel,
-    objectFillet=_apply_fillet,
-    rotate=_apply_rotation,
-    translate=_apply_translation,
-)
-
-_TRANSFORMS = PKDict(
-    cloneTransform=_apply_clone,
-    symmetryTransform=_apply_symmetry,
-    rotate=_apply_rotation,
-    translate=_apply_translation,
-)
-
 
 def apply_color(g_id, color):
     radia.ObjDrwAtr(g_id, color)
 
 
-def multiply_vector_by_matrix(v, m):
-    return numpy.array(m).dot(numpy.array(v)).tolist()
-
-
 def apply_transform(g_id, **kwargs):
-    _TRANSFORMS[kwargs["type"]](g_id, kwargs)
+    PKDict(
+        cloneTransform=_apply_clone,
+        symmetryTransform=_apply_symmetry,
+        rotate=_apply_rotation,
+        translate=_apply_translation,
+    )[kwargs.get("type")](g_id, kwargs)
 
 
 def apply_modification(g_id, **kwargs):
-    return _MODS[kwargs["type"]](g_id, **kwargs)
+    return PKDict(
+        objectBevel=_apply_bevel,
+        objectFillet=_apply_fillet,
+        rotate=_apply_rotation,
+        translate=_apply_translation,
+    )[kwargs.get("type")](g_id, **kwargs)
+
+
+def axes_index(axis):
+    return AXES.index(axis)
 
 
 def build_container(g_ids):
     return radia.ObjCnt(g_ids)
 
 
-def build_cuboid(**kwargs):
-    d = PKDict(kwargs)
-    return radia.ObjRecMag(d.center, d.size, d.magnetization)
-
-
-def build_stl(**kwargs):
-    d = PKDict(kwargs)
-    g_id = radia.ObjPolyhdr(
-        d.vertices, (numpy.array(d.faces) + 1).tolist(), d.magnetization
-    )
-    center = [x - d.centroid[i] for i, x in enumerate(d.center)]
-    radia.TrfOrnt(g_id, radia.TrfTrsl([center[0], center[1], center[2]]))
-    _apply_segments(g_id, d.segments)
-    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
-    return g_id
-
-
-def build_cylinder(**kwargs):
-    d = PKDict(kwargs)
-    return radia.ObjCylMag(
-        d.center,
-        d.radius,
-        d.size[axes_index(d.extrusionAxis)],
-        d.numSides,
-        d.extrusionAxis,
-        d.magnetization,
-    )
-
-
 def build_object(**kwargs):
+    t = kwargs.get("type")
     g_id = PKDict(
-        cee=extrude,
-        cuboid=build_cuboid,
-        cylinder=build_cylinder,
-        ell=extrude,
-        extrudedPoints=extrude,
-        jay=extrude,
-        racetrack=build_racetrack,
-        stl=build_stl,
-    )[kwargs.get("type")](**kwargs)
+        cee=_extrude,
+        cuboid=_build_cuboid,
+        cylinder=_build_cylinder,
+        ell=_extrude,
+        _extrudedPoints=_extrude,
+        jay=_extrude,
+        racetrack=_build_racetrack,
+        stl=_build_stl,
+    )[t](**kwargs)
+    # no materials or segmentation for coils
+    if t == "racetrack":
+        return g_id
     _apply_segments(g_id, **kwargs)
     _apply_material(g_id, **kwargs)
     return g_id
-
-
-def build_racetrack(**kwargs):
-    d = PKDict(kwargs)
-    return radia.ObjRaceTrk(
-        d.center, d.radii, d.sides, d.height, d.num_segs, d.curr_density, d.calc, d.axis
-    )
 
 
 def dump(g_id):
@@ -372,23 +380,6 @@ def dump(g_id):
 
 def dump_bin(g_id):
     return radia.UtiDmp(g_id, "bin")
-
-
-def extrude(**kwargs):
-    d = PKDict(kwargs)
-    b = AXIS_VECTORS[d.extrusion_axis]
-    g_id = radia.ObjMltExtTri(
-        numpy.sum(b * d.center),
-        numpy.sum(b * d.size),
-        d.points,
-        numpy.full((len(d.points), 2), [1, 1]).tolist(),
-        d.extrusion_axis,
-        d.magnetization,
-        f"TriAreaMax->{0.125 * d.area * (1.04 - d.t_level)}" if d.t_level > 0 else "",
-    )
-    _apply_segments(g_id, d.segments)
-    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
-    return g_id
 
 
 # only i (?), m, h
@@ -551,6 +542,10 @@ def kick_map(
 
 def load_bin(data):
     return radia.UtiDmpPrs(data)
+
+
+def multiply_vector_by_matrix(v, m):
+    return numpy.array(m).dot(numpy.array(v)).tolist()
 
 
 def new_geom_object():
