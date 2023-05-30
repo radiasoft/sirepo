@@ -391,7 +391,7 @@ SIREPO.app.directive('scansTable', function() {
                       </div>
                       <br/>
                       <div class="row">
-                        <div class="col-sm-offset-6 col-sm-3">
+                        <div class="col-sm-offset-4 col-sm-4">
                         <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
                         </div>
                       </div>
