@@ -778,6 +778,10 @@ class API(sirepo.quest.API):
 
     def _simulation_data_reply(self, req, data):
         if hasattr(req.template, "prepare_for_client"):
+            # TODO(pjm): for some reason _simulation_data_reply() can be called twice in one request
+            # see madx FODO PTC example
+            if sirepo.feature_config.is_react_sim_type(req.type):
+                req.sim_data.react_unformat_data(data)
             d = req.template.prepare_for_client(data, qcall=self)
         if sirepo.feature_config.is_react_sim_type(req.type):
             req.sim_data.react_format_data(data)
