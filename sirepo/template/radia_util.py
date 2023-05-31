@@ -145,14 +145,13 @@ def _apply_fillet(g_id, **kwargs):
         _corner_for_axes(int(d.edge), **dirs, **kwargs)
         + w_offset
         + h_offset
-        - (numpy.array(d.size) / 2) * dirs.lenDir
+        - (numpy.array(d.obj_size) / 2) * dirs.lenDir
     )
     c_id = _build_cylinder(
-        extrusion_axis=d.cutAxis,
+        extrusionAxis=d.cutAxis,
         center=ctr,
-        num_sides=d.numSides,
-        seg_type="pln",
-        **{k: v for k, v in kwargs.items() if k != "center"},
+        segmentation="cyl",
+        **kwargs,
     )
     c_id = _apply_bevel(c_id, cutRemoval=-1, **cut_amts, **kwargs)
     return build_container([g_id, c_id])
@@ -286,8 +285,8 @@ def _corner_for_axes(edge_index, **kwargs):
     h = numpy.array(d.heightDir)
     w = numpy.array(d.widthDir)
     return (
-        numpy.array(d.center)
-        + numpy.array(d.size)
+        numpy.array(d.obj_center)
+        + numpy.array(d.obj_size)
         / 2
         * [-w + h + l, w + h + l, w - h + l, -w - h + l][edge_index]
     )
@@ -353,13 +352,14 @@ def build_container(g_ids):
 
 
 def build_object(**kwargs):
-    t = kwargs.get("type")
+    d = PKDict(kwargs)
+    t = d.type
     g_id = PKDict(
         cee=_extrude,
         cuboid=_build_cuboid,
         cylinder=_build_cylinder,
         ell=_extrude,
-        _extrudedPoints=_extrude,
+        extrudedPoints=_extrude,
         jay=_extrude,
         racetrack=_build_racetrack,
         stl=_build_stl,
@@ -369,7 +369,18 @@ def build_object(**kwargs):
         return g_id
     _apply_segments(g_id, **kwargs)
     _apply_material(g_id, **kwargs)
-    return g_id
+    for m in d.get("modifications", []):
+        g_id = apply_modification(
+            g_id,
+            magnetization=d.magnetization,
+            material=d.material,
+            obj_center=d.center,
+            obj_size=d.size,
+            remanentMag=d.remanentMag,
+            h_m_curve=d.h_m_curve,
+            **m
+        )
+        return g_id
 
 
 def dump(g_id):
