@@ -4,6 +4,10 @@
             "longName": "MyApp",
             "shortName": "MyApp"
         },
+        "epicsllrf": {
+            "longName": "Epicsllrf",
+            "shortName": "Epicsllrf"
+        },
         "activait": {
             "longName": "Activait",
             "shortName": "Activait"
