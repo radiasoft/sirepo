@@ -194,12 +194,13 @@ def _apply_segments(g_id, **kwargs):
         # cylindrical division does not seem to work properly in the local frame if the
         # axis is not "x" and the center is not [0, 0, 0]
         if d.segmentation == "cyl":
+            p = d.center if d.segmentationCylUseObjectCenter == "1" else d.segmentationCylPoint
             radia.ObjDivMag(
                 g_id,
                 d.segments,
                 d.segmentation,
                 [
-                    d.segmentationCylPoint,
+                    p,
                     AXIS_VECTORS[d.segmentationCylAxis].tolist(),
                     (d.segmentationCylRadius * AXIS_VECTORS[next_axis(d.segmentationCylAxis)] + d.center).tolist(),
                     1.0,

@@ -3219,7 +3219,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     $scope.watchFields = [
         [
-            'geomObject.type', 'geomObject.segmentation',
+            'geomObject.type', 'geomObject.segmentation', 'geomObject.segmentationCylUseObjectCenter',
             'cylinder.radius',
             'extrudedPoly.extrusionAxisSegments', 'extrudedPoly.triangulationLevel',
             'extrudedObject.extrusionAxis',
@@ -3355,9 +3355,17 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
         panelState.enableField('geomObject', 'size', true);
         panelState.showField('geomObject', 'segments', editedModels.includes('cylinder') || ! editedModels.includes('extrudedObject'));
-        ['segmentationCylAxis', 'segmentationCylPoint', 'segmentationCylRadius'].forEach(f => {
+        ['segmentationCylAxis', 'segmentationCylPoint', 'segmentationCylRadius', 'segmentationCylUseObjectCenter'].forEach(f => {
             panelState.showField('geomObject', f, o.segmentation === 'cyl');
         });
+
+        if (o.segmentationCylUseObjectCenter === '1') {
+            o.segmentationCylPoint = o.center.slice();
+            panelState.enableField('geomObject', 'segmentationCylPoint', false);
+        }
+        else {
+            panelState.enableField('geomObject', 'segmentationCylPoint', true);
+        }
 
         if (modelType === 'stl') {
             panelState.enableField('geomObject', 'size', false);
