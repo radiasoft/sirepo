@@ -524,6 +524,9 @@ class API(sirepo.quest.API):
         req = self.parse_post(id=True, template=True)
         d = req.req_data
         simulation_db.validate_serial(d, qcall=self)
+        # TODO(pjm): this should happen with the fixup below, but is not
+        if sirepo.feature_config.is_react_sim_type(req.type):
+            req.sim_data.react_unformat_data(d)
         return self._simulation_data_reply(
             req,
             simulation_db.save_simulation_json(
