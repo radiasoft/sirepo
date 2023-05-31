@@ -195,14 +195,17 @@ def _apply_segments(g_id, **kwargs):
         # axis is not "x" and the center is not [0, 0, 0]
         if d.segmentation == "cyl":
             p = d.center if d.segmentationCylUseObjectCenter == "1" else d.segmentationCylPoint
+            # The radial segment number is "number of segments between 0 and the given radius",
+            # except when it is 1 in which case it's "none". We ignore it and prompt the user
+            # for the radial size. Since 1 is special we say "2 segments in twice the radius"
             radia.ObjDivMag(
                 g_id,
-                d.segments,
+                [2, d.segments[1], d.segments[2]],
                 d.segmentation,
                 [
                     p,
                     AXIS_VECTORS[d.segmentationCylAxis].tolist(),
-                    (d.segmentationCylRadius * AXIS_VECTORS[next_axis(d.segmentationCylAxis)] + d.center).tolist(),
+                    (2.0 * d.segmentationCylRadius * AXIS_VECTORS[next_axis(d.segmentationCylAxis)] + p).tolist(),
                     1.0,
                 ],
                 "Frame->Lab",

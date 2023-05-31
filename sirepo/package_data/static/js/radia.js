@@ -3355,9 +3355,18 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
         panelState.enableField('geomObject', 'size', true);
         panelState.showField('geomObject', 'segments', editedModels.includes('cylinder') || ! editedModels.includes('extrudedObject'));
-        ['segmentationCylAxis', 'segmentationCylPoint', 'segmentationCylRadius', 'segmentationCylUseObjectCenter'].forEach(f => {
-            panelState.showField('geomObject', f, o.segmentation === 'cyl');
+
+        const isSegCyl = o.segmentation === 'cyl';
+        const segCylFields = [
+            'segmentationCylAxis',
+            'segmentationCylPoint',
+            'segmentationCylRadius',
+            'segmentationCylUseObjectCenter',
+        ];
+        segCylFields.forEach(f => {
+            panelState.showField('geomObject', f, isSegCyl);
         });
+        panelState.enableArrayField('geomObject', 'segments', 0, ! isSegCyl);
 
         if (o.segmentationCylUseObjectCenter === '1') {
             o.segmentationCylPoint = o.center.slice();
