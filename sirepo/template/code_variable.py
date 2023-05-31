@@ -281,7 +281,7 @@ class CodeVarIterator(lattice.ModelIterator):
         if not schema.get("model") or not schema.model.get("beamline"):
             return
         bs = schema.model.beamline
-        for bl in map(lambda i: i.item, data.models.lattice.beamlines):
+        for bl in data.models.beamlines:
             if "positions" not in bl:
                 continue
             for f in bs:

@@ -175,13 +175,13 @@ class LatticeParser(object):
         for v in self.data.models.rpnVariables:
             if CodeVar.is_var_value(v.value):
                 v.value = _fix_value(v.value, names)
-        for el in map(lambda i: i.item, self.data.models.elements.elements):
+        for el in self.data.models.elements:
             for f in el:
                 v = el[f]
                 if CodeVar.is_var_value(v):
                     el[f] = _fix_value(v, names)
         for name in names:
-            for el in map(lambda i: i.item, self.data.models.elements.elements):
+            for el in self.data.models.elements:
                 if el.name.lower() == names[name][0]:
                     f = names[name][1]
                     if f in el:
@@ -206,7 +206,7 @@ class LatticeParser(object):
 
     def _compute_drifts(self, code_var):
         drifts = PKDict()
-        for el in map(lambda i: i.item, self.data.models.elements.elements):
+        for el in self.data.models.elements:
             if el.type == "DRIFT":
                 length = self._format_length(self._eval_var(code_var, el.l))
                 if length not in drifts:
@@ -257,10 +257,7 @@ class LatticeParser(object):
                 type="DRIFT",
             )
             self.sim_data.update_model_defaults(drift, "DRIFT")
-            self.data.models.elements.elements.append(PKDict(
-                model="DRIFT",
-                item=drift
-            ))
+            self.data.models.elements.append(drift)
             drifts[length] = drift._id
         return drifts[length]
 
@@ -280,8 +277,8 @@ class LatticeParser(object):
         beamline_id = None
         if name:
             beamline_id = self.elements_by_name[name].id
-        elif self.data.models.lattice and self.data.models.lattice.beamlines:
-            beamline_id = self.data.models.lattice.beamlines[-1].item.id
+        elif self.data.models.beamlines:
+            beamline_id = self.data.models.beamlines[-1].id
         self.data.models.simulation.activeBeamlineId = (
             self.data.models.simulation.visualizationBeamlineId
         ) = beamline_id
@@ -334,10 +331,7 @@ class LatticeParser(object):
             label.upper() not in self.elements_by_name
         ), "duplicate beamline: {}".format(label)
         self.elements_by_name[label.upper()] = res
-        self.data.models.lattice.beamlines.append(PKDict(
-            item=res,
-            model="Beamline"
-        ))
+        self.data.models.beamlines.append(res)
 
     def __parse_element(self, cmd, label, values):
         res = self.__parse_fields(
@@ -387,10 +381,7 @@ class LatticeParser(object):
             # assert label.upper() not in self.elements_by_name, \
             #     'duplicate element labeled: {}'.format(label)
             self.elements_by_name[label.upper()] = res
-        self.data.models.elements.elements.append(PKDict(
-            item=res,
-            model=res.type
-        ))
+        self.data.models.elements.append(res)
 
     def __parse_fields(self, cmd, values, res):
         model_schema = self.schema.model.get(cmd)
@@ -672,36 +663,28 @@ class LatticeUtil(object):
         By default the commands and elements containers are iterated.
         """
         iterator.id_map = self.id_map
-        o = None
-        if name == "elements":
-            o = self.data.models.elements.elements
-        elif name == "beamlines":
-            o = self.data.models.lattice.beamlines
-        e = (list(map(lambda i: i.item, o)) if o is not None else self.data.models[name]) if name else self.data.models.commands + list(map(lambda i: i.item, self.data.models.elements.elements))
-        for m in e:
-            model_schema = self.schema.model[self.model_name_for_data(m)]
-            iterator.start(m)
-            for k in sorted(m):
-                if k in model_schema:
-                    iterator.field(m, model_schema[k], k)
-            iterator.end(m)
+        names = (name,) if name else ("commands", "elements")
+        for name in names:
+            for m in self.data.models[name]:
+                model_schema = self.schema.model[self.model_name_for_data(m)]
+                iterator.start(m)
+                for k in sorted(m):
+                    if k in model_schema:
+                        iterator.field(m, model_schema[k], k)
+                iterator.end(m)
         return iterator
 
     @classmethod
     def max_id(cls, data):
         max_id = 1
-        e = []
-        if "elements" in data.models:
-            e += map(lambda i: i.item, data.models.elements.elements)
-        if "lattice" in data.models:
-            e += map(lambda i: i.item, data.models.lattice.beamlines)
-        if "commands" in data.models:
-            e += data.models.commands
-        for m in e:
-            assert "_id" in m or "id" in m, "Missing id: {}".format(m)
-            i = m._id if "_id" in m else m.id
-            if i > max_id:
-                max_id = i
+        for model_type in "elements", "beamlines", "commands":
+            if model_type not in data.models:
+                continue
+            for m in data.models[model_type]:
+                assert "_id" in m or "id" in m, "Missing id: {}".format(m)
+                i = m._id if "_id" in m else m.id
+                if i > max_id:
+                    max_id = i
         return max_id
 
     @classmethod
@@ -773,15 +756,15 @@ class LatticeUtil(object):
             beamline_id = sim.activeBeamlineId
         else:
             if "visualizationBeamlineId" not in sim or not sim.visualizationBeamlineId:
-                sim.visualizationBeamlineId = self.data.models.lattice.beamlines[0].item.id
+                sim.visualizationBeamlineId = self.data.models.beamlines[0].id
             beamline_id = sim.visualizationBeamlineId
         return self.id_map[int(beamline_id)]
 
     def sort_elements_and_beamlines(self):
         """Sort elements and beamline models in place, by (type, name) and (name)"""
         m = self.data.models
-        m.elements.elements = sorted(m.elements.elements, key=lambda e: (e.item.type, e.item.name.lower()))
-        m.lattice.beamlines = sorted(m.lattice.beamlines, key=lambda e: e.item.name.lower())
+        m.elements = sorted(m.elements, key=lambda e: (e.type, e.name.lower()))
+        m.beamlines = sorted(m.beamlines, key=lambda e: e.name.lower())
 
     @classmethod
     def type_for_data(cls, model):
@@ -799,9 +782,9 @@ class LatticeUtil(object):
     def __build_id_map(self, data):
         """Returns a map of beamlines and elements, (id => model)."""
         res = {}
-        for bl in map(lambda i: i.item, data.models.lattice.beamlines):
+        for bl in data.models.beamlines:
             res[bl.id] = bl
-        for el in map(lambda i: i.item, data.models.elements.elements):
+        for el in data.models.elements:
             res[el._id] = el
         if "commands" in data.models:
             for cmd in data.models.commands:

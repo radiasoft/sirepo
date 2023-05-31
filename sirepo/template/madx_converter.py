@@ -108,15 +108,12 @@ class MadxConverter:
         return self.result
 
     def _copy_beamlines(self, data):
-        for bl in map(lambda i: i.item, data.models.lattice.beamlines):
+        for bl in data.models.beamlines:
             self.result.models.beamlines.append(
                 PKDict(
-                    item=PKDict(
-                        name=bl.name,
-                        items=bl["items"],
-                        id=bl.id,
-                    ),
-                    model="Beamline"
+                    name=bl.name,
+                    items=bl["items"],
+                    id=bl.id,
                 )
             )
         for f in ("name", "visualizationBeamlineId", "activeBeamlineId"):
@@ -140,7 +137,7 @@ class MadxConverter:
         self.result.models.rpnVariables = res
 
     def _copy_elements(self, data):
-        for el in map(lambda i: i.item, data.models.elements.elements):
+        for el in data.models.elements:
             if el.type not in self.field_map:
                 pkdlog("Unhandled element type: {}", el.type)
                 el.type = self.drift_type
@@ -161,10 +158,7 @@ class MadxConverter:
                 values[f1] = el[f2]
             self._fixup_element(el, values)
             self.to_class.update_model_defaults(values, values.type)
-            self.result.models.elements.elements.append(PKDict(
-                item=values,
-                model=values.type
-            ))
+            self.result.models.elements.append(values)
 
     def _find_var(self, data, name):
         name = self._var_name(name)

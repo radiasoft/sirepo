@@ -184,7 +184,6 @@ def python_source_for_model(data, model, qcall, **kwargs):
     if not model:
         beamline = data.models.beamline
         watch_id = None
-        watch_index = None
         for b in beamline:
             if b.type == "watch":
                 watch_id = b.id
