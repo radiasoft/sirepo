@@ -148,9 +148,10 @@ def _apply_fillet(g_id, **kwargs):
         - (numpy.array(d.obj_size) / 2) * dirs.lenDir
     )
     c_id = _build_cylinder(
-        extrusionAxis=d.cutAxis,
         center=ctr,
+        extrusionAxis=d.cutAxis,
         segmentation="cyl",
+        size=d.obj_size,
         **kwargs,
     )
     c_id = _apply_bevel(c_id, cutRemoval=-1, **cut_amts, **kwargs)
@@ -160,6 +161,13 @@ def _apply_fillet(g_id, **kwargs):
 def _apply_material(g_id, **kwargs):
     d = PKDict(kwargs)
     radia.MatApl(g_id, _radia_material(d.material, d.remanentMag, d.h_m_curve))
+
+
+def _apply_modification(g_id, **kwargs):
+    return PKDict(
+        objectBevel=_apply_bevel,
+        objectFillet=_apply_fillet,
+    )[kwargs.get("type")](g_id, **kwargs)
 
 
 def _apply_rotation(g_id, xform):
@@ -336,13 +344,6 @@ def apply_transform(g_id, **kwargs):
     )[kwargs.get("type")](g_id, kwargs)
 
 
-def apply_modification(g_id, **kwargs):
-    return PKDict(
-        objectBevel=_apply_bevel,
-        objectFillet=_apply_fillet,
-    )[kwargs.get("type")](g_id, **kwargs)
-
-
 def axes_index(axis):
     return AXES.index(axis)
 
@@ -364,13 +365,13 @@ def build_object(**kwargs):
         racetrack=_build_racetrack,
         stl=_build_stl,
     )[t](**kwargs)
-    # no materials or segmentation for coils
+    # coils get no extra handling
     if t == "racetrack":
         return g_id
     _apply_segments(g_id, **kwargs)
     _apply_material(g_id, **kwargs)
     for m in d.get("modifications", []):
-        g_id = apply_modification(
+        g_id = _apply_modification(
             g_id,
             magnetization=d.magnetization,
             material=d.material,
@@ -380,7 +381,7 @@ def build_object(**kwargs):
             h_m_curve=d.h_m_curve,
             **m
         )
-        return g_id
+    return g_id
 
 
 def dump(g_id):
