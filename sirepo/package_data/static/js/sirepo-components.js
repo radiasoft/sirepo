@@ -3360,7 +3360,7 @@ SIREPO.app.directive('splitPanels', function($window) {
     };
 });
 
-SIREPO.app.directive('stringToNumber', function() {
+SIREPO.app.directive('stringToNumber', function(appState) {
     return {
         restrict: 'A',
         require: 'ngModel',
@@ -3409,9 +3409,7 @@ SIREPO.app.directive('stringToNumber', function() {
                     return value;
                 }
                 if (scope.numberType != 'integer') {
-                    if (Math.abs(value) >= 10000 || (value != 0 && Math.abs(value) < 0.001)) {
-                        value = (+value).toExponential(9).replace(/\.?0+e/, 'e');
-                    }
+                    value = appState.formatExponential(value);
                 }
                 return value.toString();
             });
