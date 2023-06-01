@@ -594,9 +594,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             }
 
             function getFieldData() {
+                const n = SIREPO.APP_SCHEMA.constants.normalizableScores.includes(appState.models.openmcAnimation.score) ?
+                    appState.models.settings.sourceNormalization :
+                    appState.models.settings.particles;
                 return basePolyData.getFieldData().getArrayByName(model().aspect)
                     .getData().map(
-                        x => (appState.models.settings.sourceNormalization / appState.models.settings.particles) * x
+                        x => (n / appState.models.settings.particles) * x
                     );
             }
 

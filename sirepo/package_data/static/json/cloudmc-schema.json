@@ -6,7 +6,23 @@
     },
     "constants": {
         "maxFilters": 5,
-        "volumeProperties": ["color", "opacity"],
+        "normalizableScores": [
+            "flux",
+            "delayed-nu-fission",
+            "prompt-nu-fission",
+            "nu-fission",
+            "nu-scatter",
+            "H1-production",
+            "H2-production",
+            "H3-production",
+            "He3-production",
+            "He4-production",
+            "current",
+            "events",
+            "heating",
+            "heating-local",
+            "damage-energy"
+        ],
         "scoreUnits": {
             "damage-energy": "eV",
             "decay-rate": "$s^{-1}$",
@@ -17,7 +33,8 @@
             "heating-local": "eV",
             "inverse-velocity": "cm/s",
             "kappa-fission": "eV"
-        }
+        },
+        "volumeProperties": ["color", "opacity"]
     },
     "enum": {
         "Axis": [
