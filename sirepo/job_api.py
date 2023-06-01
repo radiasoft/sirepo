@@ -183,14 +183,16 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user")
     async def api_runSimulation(self):
-        r = self._request_content(PKDict(fixup_old_data=True))
+        r = self._request_content(PKDict(is_sim_data=True))
         if r.isParallel:
             r.isPremiumUser = self.auth.is_premium_user()
         return await self._request_api(_request_content=r)
 
     @sirepo.quest.Spec("require_user")
     async def api_runStatus(self):
-        return await self._request_api()
+        # runStatus receives models when an animation status if first queried
+        r = self._request_content(PKDict(is_sim_data=True))
+        return await self._request_api(_request_content=r)
 
     @sirepo.quest.Spec("require_user")
     async def api_sbatchLogin(self):
@@ -319,16 +321,12 @@ class API(sirepo.quest.API):
             # of the used values are modified by parse_post. If we have files (e.g. file_type, filename),
             # we need to use those values from parse_post
             d = self.parse_post(
-                fixup_old_data=kwargs.pkdel("fixup_old_data", False),
+                is_sim_data=kwargs.pkdel("is_sim_data", False),
                 id=True,
                 model=True,
                 check_sim_exists=True,
             ).req_data
         s = sirepo.sim_data.get_class(d)
-        if sirepo.feature_config.is_react_sim_type(s.sim_type()):
-            # TODO(pjm): need to know if this is the full sirepo data
-            if d.get("models"):
-                s.react_unformat_data(d)
         ##TODO(robnagler) this should be req_data
         b = PKDict(data=d, **kwargs)
         # TODO(e-carlin): some of these fields are only used for some type of reqs
