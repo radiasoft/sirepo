@@ -1843,6 +1843,12 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
     };
 
+    self.showArrayField = function(model, field, index, isShown) {
+        const f = $(fieldClass(model, field)).find('input.form-control').eq(index);
+        showValue(f, isShown);
+        showValue(f.prev('label'), isShown);
+    };
+
     self.showField = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
         // try show/hide immediately, followed by timeout if UI hasn't finished layout yet

@@ -3366,7 +3366,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         segCylFields.forEach(f => {
             panelState.showField('geomObject', f, isSegCyl);
         });
-        panelState.enableArrayField('geomObject', 'segments', 0, ! isSegCyl);
+        panelState.showArrayField('geomObject', 'segments', 0, ! isSegCyl);
 
         if (o.segmentationCylUseObjectCenter === '1') {
             o.segmentationCylPoint = o.center.slice();
