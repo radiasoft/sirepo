@@ -4108,7 +4108,9 @@
                                                                 "electronBeam.*",
                                                                 "geometricSource.*",
                                                                 "rayFilter.*",
-                                                                "simulation.*",
+                                                                "simulation.sourceType",
+                                                                "simulation.npoint",
+                                                                "simulation.istar1",
                                                                 "sourceDivergence.*",
                                                                 "undulator.*",
                                                                 "undulatorBeam.*",
@@ -4153,7 +4155,9 @@
                                                                 "electronBeam.*",
                                                                 "geometricSource.*",
                                                                 "rayFilter.*",
-                                                                "simulation.*",
+                                                                "simulation.sourceType",
+                                                                "simulation.npoint",
+                                                                "simulation.istar1",
                                                                 "sourceDivergence.*",
                                                                 "undulator.*",
                                                                 "undulatorBeam.*",
@@ -5073,7 +5077,9 @@
                                                                             "electronBeam.*",
                                                                             "geometricSource.*",
                                                                             "rayFilter.*",
-                                                                            "simulation.*",
+                                                                            "simulation.sourceType",
+                                                                            "simulation.npoint",
+                                                                            "simulation.istar1",
                                                                             "sourceDivergence.*",
                                                                             "undulator.*",
                                                                             "undulatorBeam.*",
@@ -5177,7 +5183,9 @@
                                                                             "electronBeam.*",
                                                                             "geometricSource.*",
                                                                             "rayFilter.*",
-                                                                            "simulation.*",
+                                                                            "simulation.sourceType",
+                                                                            "simulation.npoint",
+                                                                            "simulation.istar1",
                                                                             "sourceDivergence.*",
                                                                             "undulator.*",
                                                                             "undulatorBeam.*",
@@ -5221,7 +5229,7 @@
                     }
                 ]
             }
-            
+
         }
     ]
 }

@@ -29,7 +29,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def react_format_data(cls, data):
-        pkdp("madx format data")
         dm = data.models
         if "beamlines" in dm:
             assert isinstance(dm.beamlines, list)
@@ -46,7 +45,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def react_unformat_data(cls, data):
-        pkdp("madx unformat data")
         dm = data.models
         if isinstance(dm.elements, list):
             return

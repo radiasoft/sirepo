@@ -98,7 +98,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        assert r in data.models
+        assert r in data.models, f"unknown report: {r}"
         res = cls._non_analysis_fields(data, r) + [
             "bendingMagnet",
             "electronBeam",
