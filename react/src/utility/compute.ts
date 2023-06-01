@@ -85,14 +85,12 @@ export function pollRunReport(routeHelper: RouteHelper, { appName, models, simul
 
     doFetch().then(resp => {
         callback(resp);
-        pollRunStatus(routeHelper, {
-            callback,
-            simulationId,
-            models,
-            appName,
-            report,
-            forceRun
-        });
+        if (resp.nextRequest) {
+            pollRunStatus(routeHelper, {
+                callback: callback,
+                ...resp.nextRequest,
+            });
+        }
     });
 }
 
@@ -121,7 +119,7 @@ export function cancelReport(routeHelper: RouteHelper, { appName, models, simula
 
 export type RunStatusParams = {
     appName: string,
-    models: StoreState<ModelState>,
+    models?: StoreState<ModelState>,
     simulationId: string,
     report: string,
     forceRun: boolean
@@ -142,7 +140,7 @@ export function getRunStatusOnce(routeHelper: RouteHelper, { appName, ...otherPa
     return new Promise<ResponseHasState>((resolve, reject) => {
         doStatus().then(async lastResp => resolve(await lastResp.json()));
     })
-    
+
 }
 
 export type RunStatusPollParams = {
