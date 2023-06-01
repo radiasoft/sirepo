@@ -20,6 +20,16 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="Color" data-ng-class="fieldClass">
           <input type="color" data-ng-model="model[field]" class="sr-color-button">
         </div>
+        <div data-ng-switch-when="Equation" class="col-sm-7">
+          <div data-equation="equation" data-model="model" data-field="field" data-form="form"></div>
+          <div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>
+        </div>
+        <div data-ng-switch-when="EquationVariables" class="col-sm-7">
+          <div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="true"></div>
+        </div>
+        <div data-ng-switch-when="EquationParameters" class="col-sm-7">
+          <div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>
+        </div>
         <div data-ng-switch-when="FieldPaths" class="col-sm-7">
           <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
         </div>
@@ -1227,6 +1237,114 @@ SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) 
                 setPanelHidden(d);
             });
         },
+    };
+});
+
+SIREPO.app.directive('equation', function(appState, $timeout) {
+    return {
+        scope: {
+            model: '=',
+            field: '=',
+            form: '=',
+        },
+        template: `
+            <div>
+                <input type="text" data-ng-change="validateAll()" data-ng-model="model[field]" class="form-control" required>
+                <input type="checkbox" data-ng-model="model.autoFill" data-ng-change="validateAll()"> Auto-fill variables
+            </div>
+        `,
+        controller: function ($scope) {
+
+            const defaultFitVars = ['x', 'y', 'z', 't'];
+
+            function tokenizeExpression(eq) {
+                return (eq || '')
+                    .split(/[-+*/^|%().0-9\s]/)
+                    .filter(t => t.length > 0 && ! SIREPO.APP_SCHEMA.constants.allowedExpressionOps.includes(t));
+            }
+
+            function tokenizeParams(val) {
+                return (val || '').split(/\s*,\s*/).filter(t => t.length > 0);
+            }
+
+            function extractParams() {
+
+                const params = tokenizeParams($scope.model.fitParameters).sort();
+                const tokens = tokenizeExpression($scope.model[$scope.field]).filter(t => t !== $scope.model.fitVariable);
+
+                // remove parameters no longer in the equation
+                params.reverse().forEach( (p, i) => {
+                    if (tokens.indexOf(p) < 0) {
+                        params.splice(i, 1);
+                    }
+                });
+
+                // add tokens not represented
+                tokens.forEach(t => {
+                    if (params.indexOf(t) < 0) {
+                        params.push(t);
+                    }
+                });
+                params.sort();
+
+                return params;
+            }
+
+            function extractVar() {
+                const tokens = tokenizeExpression($scope.model[$scope.field]);
+                let indVar = $scope.model.fitVariable;
+
+                if (! indVar|| tokens.indexOf(indVar) < 0) {
+                    indVar = null;
+                    tokens.forEach(t => {
+                        if (indVar) {
+                            return;
+                        }
+                        if (defaultFitVars.indexOf(t) >= 0) {
+                            indVar = t;
+                        }
+                    });
+                }
+                return indVar;
+            }
+
+            $scope.validateAll = () => {
+                if ($scope.model.autoFill) {
+                    // allow time for models to be set before validating
+                    $timeout(() => {
+                        $scope.model.fitVariable = extractVar();
+                        $scope.model.fitParameters = extractParams().join(',');
+                    });
+                }
+
+                $scope.form.$$controls.forEach(c => {
+                    c.$setDirty();
+                    c.$validate();
+                });
+            };
+
+            if ($scope.model.autoFill === null) {
+                $scope.model.autoFill = true;
+            }
+        },
+    };
+});
+
+SIREPO.app.directive('equationVariables', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            form: '=',
+            isVariable: '<',
+            model: '=',
+        },
+        template: `
+            <div>
+                <input type="text" data-ng-model="model[field]" data-valid-variable-or-param="" class="form-control" required />
+            </div>
+            <div class="sr-input-warning" data-ng-show="warningText.length > 0">{{ warningText }}</div>
+        `,
     };
 });
 

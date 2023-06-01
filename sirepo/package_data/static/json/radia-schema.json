@@ -10,6 +10,9 @@
         }
     },
     "constants": {
+        "allowedExpressionOps": [
+            "abs", "cos", "cot", "csc", "exp", "log", "pi", "sec", "sin", "tan", "sqrt"
+        ],
         "alignmentTools": [
             {
                 "title": "Center Horizontal",
@@ -909,7 +912,8 @@
         },
         "objectiveFunction": {
             "inputs": ["Inputs", "OptimizableModel", {}],
-            "function": ["Function", "ObjectiveFunction", "uniformity"]
+            "fitVariable": ["Independent Variable", "EquationVariables", "x"],
+            "function": ["Function", "Equation", "a * x + b", "Functions limited to trig, exp, log, abs. Use 'pi' for π. Variable and parameter names limited to 1 letter"]
         },
         "objectOptimizerField": {
             "_super": ["_", "model", "optimizerField"],
