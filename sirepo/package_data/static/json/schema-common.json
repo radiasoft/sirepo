@@ -4,6 +4,10 @@
             "longName": "MyApp",
             "shortName": "MyApp"
         },
+        "epicsllrf": {
+            "longName": "Epicsllrf",
+            "shortName": "Epicsllrf"
+        },
         "activait": {
             "longName": "Activait",
             "shortName": "Activait"
@@ -52,9 +56,9 @@
             "longName": "Raydata",
             "shortName": "Raydata"
         },
-        "rshellweg": {
-            "longName": "RSHellweg",
-            "shortName": "RSHellweg"
+        "hellweg": {
+            "longName": "Hellweg",
+            "shortName": "Hellweg"
         },
         "shadow": {
             "longName": "SHADOW",

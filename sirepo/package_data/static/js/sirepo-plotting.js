@@ -615,6 +615,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             var m = appState.models[modelName];
             var zMin = plotRange.min;
             var zMax = plotRange.max;
+            if (zMin == zMax) {
+                // draw single value plot as lowest colormap value
+                zMax += 1;
+            }
             if (m.colorRangeType == 'fixed') {
                 zMin = m.colorMin;
                 zMax = m.colorMax;
@@ -827,7 +831,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                         scope.modelChanged();
                     }
                     panelState.clear(scope.modelName);
-                    requestData();
+                    if (! scope.isClientOnly) {
+                        requestData();
+                    }
                 });
 
             scope.isLoading = () => panelState.isLoading(scope.modelName);
@@ -1728,75 +1734,115 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
 
     svc.parseLabelAndUnits = function(label, isFixedUnits) {
         const re = isFixedUnits ? /\((.*?)\)/ : /\[(.*?)\]/;
-        let units = '';
-        let match = label.match(re);
+        const match = label.match(re);
         if (match) {
-            units = match[1];
-            label = label.replace(re, '').trim();
+            return {
+                label: label.replace(re, '').trim(),
+                units: match[1],
+            };
         }
         return {
             label: label,
-            units: units
+            units: '',
         };
     };
 
     svc.plotAxis = function(margin, dimension, orientation, refresh) {
-        var MAX_TICKS = 10;
-        var ZERO_REGEX = /^\-?0(\.0+)?(e\+0)?$/;
+        const MAX_TICKS = 10;
+        const ZERO_REGEX = /^\-?0(\.0+)?(e\+0)?$/;
 
         // Using https://bl.ocks.org/mbostock/7621155 as a reference for log scales
-        var superscript = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+        const superscript = "⁰¹²³⁴⁵⁶⁷⁸⁹";
 
         // global value, don't allow margin updates during zoom/pad handling
         svc.plotAxis.allowUpdates = true;
 
-        var self = {};
-        var debouncedRefresh = utilities.debounce(function() {
-            var sum = margin.left + margin.right;
+        const self = {};
+        const debouncedRefresh = utilities.debounce(function() {
+            const sum = margin.left + margin.right;
             refresh();
             if (sum != margin.left + margin.right) {
                 refresh();
             }
         }, 500);
 
-        function applyUnit(v, unit) {
+
+        ///////
+        // these 3 methods are from a future version of d3, backported to this version of sirepo
+        function d3_exponent(x) {
+            x = d3_formatDecimalParts(Math.abs(x));
+            return x ? x[1] : NaN;
+        }
+
+        function d3_formatDecimalParts(x, p) {
+            if ((i = (x = p ? x.toExponential(p - 1) : x.toExponential()).indexOf("e")) < 0) {
+                return null;
+            }
+            var i, coefficient = x.slice(0, i);
+            return [
+                coefficient.length > 1 ? coefficient[0] + coefficient.slice(2) : coefficient,
+                +x.slice(i + 1)
+            ];
+        }
+
+        function d3_precisionRound(step, max) {
+            step = Math.abs(step);
+            max = Math.abs(max) - step;
+            return Math.max(0, d3_exponent(max) - d3_exponent(step)) + 1;
+        }
+        ///////
+
+        function applyUnit(v, base, unit) {
+            if (base) {
+                v -= base;
+            }
             return unit ? unit.scale(v) : v;
         }
 
-        function calcFormat(count, unit, base, isBaseFormat) {
+        function baseLabel() {
+            // remove any parenthesis first, ex. "p (mec)" --> "p"
+            const label = (self.label || '').replace(/\s\(.*/, '');
+            const res = label.length > 4 ? dimension : label;
+            // padding is unicode thin-space
+            return res ? ('< ' + res + ' >') : '';
+        }
+
+        function calcFormat(count, unit, base) {
             let code = 'e';
-            const tickValues = self.scale.ticks(count);
-            const v0 = applyUnit(tickValues[0] - (base || 0), unit);
-            const v1 = applyUnit(tickValues[tickValues.length - 1] - (base || 0), unit);
-            const p0 = valuePrecision(v0);
-            const p1 = valuePrecision(v1);
-            let decimals = valuePrecision(applyUnit(tickValues[1] - tickValues[0], unit));
-            if (isBaseFormat || useFloatFormat(decimals)) {
-                if ((v0 == 0 && useFloatFormat(p1)) || (v1 == 0 && useFloatFormat(p0)) || (useFloatFormat(p0) && useFloatFormat(p1))) {
-                    code = 'f';
-                }
+            let tickValues = self.scale.ticks(count);
+            if (tickValues.length < 2) {
+                tickValues = self.scale.ticks(count + 1);
+            }
+            const v0 = applyUnit(tickValues[0], base, unit);
+            const v1 = applyUnit(tickValues[1], base, unit);
+            const vn = applyUnit(tickValues[tickValues.length - 1], base, unit);
+            let decimals;
+            if (Math.abs(v0) > Math.abs(vn)) {
+                decimals = d3_precisionRound(v1 - v0, Math.abs(v0));
             }
             else {
-                if (p0 == 0) {
-                    decimals -= p1;
-                }
-                else if (p1 == 0) {
-                    decimals -= p0;
-                }
-                else {
-                    decimals -= Math.max(p0, p1);
+                decimals = d3_precisionRound(v1 - v0, vn);
+            }
+            if (decimals > 1) {
+                decimals -= 1;
+            }
+            if (useFloatFormat(v0) && useFloatFormat(vn)) {
+                code = 'f';
+                decimals -= valuePrecision(vn);
+                if (decimals < 0) {
+                    decimals = 0;
                 }
             }
-            if (code == 'e' && decimals >= 0) {
-                decimals = -(p0 - decimals);
-            }
-            if (v0 == v1) {
-                decimals = 1;
-            }
-            else {
-                decimals = decimals < 0 ? Math.abs(decimals) : 0;
+            const f = d3.format('.' + decimals + code);
+            if (decimals && tickValues.every(v => {
+                const vf = f(applyUnit(v, base, unit));
+                return vf.search(/\.\d*0e/) >= 0 || vf.search(/\.\d*0$/) >= 0;
+            })) {
+                decimals -= 1;
             }
             return {
+                base: base,
+                tickCount: tickValues.length,
                 decimals: decimals,
                 code: code,
                 unit: unit,
@@ -1805,14 +1851,10 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             };
         }
 
-        function calcTickCount(format, canvasSize, unit, base, fontSize) {
-            var d = self.scale.domain();
-            var width = Math.max(
-                4,
-                Math.max(format(applyUnit(d[0] - (base || 0), unit)).length, format(applyUnit(d[1] - (base || 0), unit)).length)
-            );
-            var tickCount;
+        function calcTickCount(formatInfo, canvasSize, fontSize) {
+            let tickCount;
             if (dimension == 'x') {
+                const width = Math.max(4, maxDomainWidth(formatInfo));
                 tickCount = Math.min(MAX_TICKS, Math.round(canvasSize.width / (width * fontSize)));
             }
             else {
@@ -1821,42 +1863,38 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             return Math.max(2, tickCount);
         }
 
-        //TODO(pjm): this could be refactored, moving the base recalc out
-        function calcTicks(formatInfo, canvasSize, unit, fontSize) {
-            var d = self.scale.domain();
-            var tickCount = calcTickCount(formatInfo.format, canvasSize, unit, null, fontSize);
-            formatInfo = calcFormat(tickCount, unit);
-            if (formatInfo.decimals > 3 && ! canvasSize.scaleFunction) {
-                var baseFormat = calcFormat(tickCount, unit, null, true).format;
-                var base = midPoint(formatInfo, d);
-                if (unit) {
-                    unit = formatPrefix(d, base);
-                }
-                formatInfo = calcFormat(tickCount, unit, base);
-                tickCount = calcTickCount(formatInfo.format, canvasSize, unit, base, fontSize);
-                var f2 = calcFormat(tickCount, unit);
-                base = midPoint(f2, d);
-                if (unit) {
-                    unit = formatPrefix(d, base);
-                }
-                formatInfo = calcFormat(tickCount, unit, base);
-                formatInfo.base = base;
+        function calcTicks(formatInfo, canvasSize, fontSize) {
+            formatInfo = calcFormat(
+                calcTickCount(formatInfo, canvasSize, fontSize),
+                formatInfo.unit,
+            );
+
+            if (formatInfo.decimals > 3 && ! canvasSize.scaleFunction && ! self.noBaseFormat) {
+                const baseFormat = formatInfo.format;
+                formatInfo = midPoint(formatInfo.tickValues, formatInfo.unit);
+                formatInfo = midPoint(
+                    calcFormat(
+                        calcTickCount(formatInfo, canvasSize, fontSize),
+                        formatInfo.unit,
+                    ).tickValues,
+                    formatInfo.unit,
+                );
                 formatInfo.baseFormat = baseFormat;
             }
             if ((orientation === 'left' || orientation === 'right') && ! canvasSize.isPlaying) {
-                var w = Math.max(formatInfo.format(applyUnit(d[0] - (formatInfo.base || 0), unit)).length, formatInfo.format(applyUnit(d[1] - (formatInfo.base || 0), unit)).length);
+                let w = maxDomainWidth(formatInfo) + 6;
                 if (canvasSize.scaleFunction) {
                     w += 2;
                 }
-                margin[orientation] = (w + 6) * (fontSize / 2);
+                margin[orientation] = w * (fontSize / 2);
             }
-            self.svgAxis.ticks(tickCount);
-            self.tickCount = tickCount;
-            self.svgAxis.tickFormat(function(v) {
+            self.svgAxis.ticks(formatInfo.tickCount);
+            self.tickCount = formatInfo.tickCount;
+            self.svgAxis.tickFormat(v => {
                 if (canvasSize.scaleFunction) {
                     return formatScale(v, canvasSize.scaleFunction);
                 }
-                var res = formatInfo.format(applyUnit(v - (formatInfo.base || 0), unit));
+                const res = formatInfo.format(applyUnit(v, formatInfo.base, formatInfo.unit));
                 // format zero values as '0'
                 if (ZERO_REGEX.test(res)) {
                     return '0';
@@ -1867,13 +1905,36 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             return formatInfo;
         }
 
+        function formatBase(formatInfo, unit) {
+            let v = '';
+            if (formatInfo.base) {
+                let label = baseLabel();
+                if (label) {
+                    label += ' = ';
+                }
+                else {
+                    if (formatInfo.base > 0) {
+                        label = '+';
+                    }
+                }
+                v = label + formatInfo.baseFormat(applyUnit(formatInfo.base, 0, unit))
+                                      .replace(/(\.\d+?)0+($|e)/, '$1$2')
+                                      .replace(/\.0+($|e)/, '$1');
+                if (unit) {
+                    v += unit.symbol + self.units;
+                }
+            }
+            return v;
+        }
+
         // If the axis is set to preserve units, use whatever prefix the plot started
         // with regardless of zoom.  Useful for non-linear units (1/sec, m^2, etc)
-        function formatPrefix(dom, base) {
+        function formatPrefix(base) {
+            const d = self.scale.domain();
             if (! base) {
                 base = 0;
             }
-            return d3.formatPrefix(Math.max(Math.abs(dom[0] - base), Math.abs(dom[1] - base)), 0);
+            return d3.formatPrefix(Math.max(Math.abs(d[0] - base), Math.abs(d[1] - base)), 0);
         }
 
         function formatScale(v, scaleFunction) {
@@ -1887,21 +1948,37 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             return '';
         }
 
-        function midPoint(formatInfo, domain) {
-            // find the tickValue which is closest to the domain midpoint
-            var mid = domain[0] + (domain[1] - domain[0]) / 2;
-            var values = formatInfo.tickValues;
-            var v = (values.length - 1) / 2;
-            var i1 = Math.floor(v);
-            var i2 = Math.ceil(v);
-            if (Math.abs(values[i1] - mid) > Math.abs(values[i2] - mid)) {
-                return values[i2];
-            }
-            return values[i1];
+        function maxDomainWidth(formatInfo) {
+            const d = self.scale.domain();
+            return Math.max(
+                formatInfo.format(applyUnit(d[0], formatInfo.base, formatInfo.unit)).length,
+                formatInfo.format(applyUnit(d[1], formatInfo.base, formatInfo.unit)).length,
+            );
         }
 
-        function useFloatFormat(logV) {
-            return logV >= -2 && logV <= 3;
+        function midPoint(tickValues, unit) {
+            // find the tickValue which is closest to the domain midpoint
+            const d = self.scale.domain();
+            const mid = d[0] + (d[1] - d[0]) / 2;
+            const v = (tickValues.length - 1) / 2;
+            const i1 = Math.floor(v);
+            const i2 = Math.ceil(v);
+            let base;
+            if (Math.abs(tickValues[i1] - mid) > Math.abs(tickValues[i2] - mid)) {
+                base = tickValues[i2];
+            }
+            else {
+                base = tickValues[i1];
+            }
+            if (unit) {
+                unit = formatPrefix(base);
+            }
+            return calcFormat(tickValues.length, unit, base);
+        }
+
+        function useFloatFormat(v) {
+            v = valuePrecision(v);
+            return v >= -2 && v <= 3;
         }
 
         function valuePrecision(v) {
@@ -1933,7 +2010,7 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
         };
 
         self.parseLabelAndUnits = function(label) {
-            var lu = svc.parseLabelAndUnits(label);
+            const lu = svc.parseLabelAndUnits(label);
             self.units = lu.units;
             self.unitSymbol = '';
             self.label = lu.label;
@@ -1944,55 +2021,28 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             select(`.${dimension}-axis-label`).text(label);
         };
 
-        function baseLabel() {
-            // remove any parenthesis first, ex. "p (mec)" --> "p"
-            var label = (self.label || '').replace(/\s\(.*/, '');
-            var res = label.length > 4 ? dimension : label;
-            // padding is unicode thin-space
-            return res ? ('< ' + res + ' >') : '';
-        }
-
         self.updateLabelAndTicks = function(canvasSize, select, cssPrefix) {
             if (svc.plotAxis.allowUpdates) {
                 // update the axis to get the tick font size from the css
                 select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
-                var fontSize = plotting.tickFontSize(select('.sr-plot .axis text'));
-                var formatInfo, unit;
+                const fontSize = plotting.tickFontSize(select('.sr-plot .axis text'));
+                let formatInfo, unit;
                 if (self.units) {
-                    var d = self.scale.domain();
-                    unit = formatPrefix(d, 0);
-                    formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, unit, fontSize);
+                    unit = formatPrefix(0);
+                    formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, fontSize);
                     select('.' + dimension + '-axis-label').text(
                         self.label + (formatInfo.base ? (' - ' + baseLabel()) : '')
                         + ' ' + svc.formatUnits(formatInfo.unit.symbol + self.units));
                 }
                 else {
-                    formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize, null, fontSize);
+                    formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize, fontSize);
                     if (self.label) {
                         select('.' + dimension + '-axis-label').text(
                             self.label + (formatInfo.base ? (' - ' + baseLabel()) : ''));
                     }
                 }
-                var formattedBase = '';
-                if (formatInfo.base) {
-                    var label = baseLabel();
-                    if (label) {
-                        label += ' = ';
-                    }
-                    else {
-                        if (formatInfo.base > 0) {
-                            label = '+';
-                        }
-                    }
-                    formattedBase = label + formatInfo.baseFormat(applyUnit(formatInfo.base, unit));
-                    formattedBase = formattedBase.replace(/0+$/, '');
-                    formattedBase = formattedBase.replace(/0+e/, 'e');
-                    if (unit) {
-                        formattedBase += unit.symbol + self.units;
-                    }
-                }
                 if (! self.noBaseFormat) {
-                    select('.' + dimension + '-base').text(formattedBase);
+                    select('.' + dimension + '-base').text(formatBase(formatInfo, unit));
                 }
             }
             select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
@@ -3027,7 +3077,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 axes.y.grid = axes.y.createAxis('left');
                 resetZoom();
                 canvas = select('canvas').node();
-                ctx = canvas.getContext('2d');
+                ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
                 axes.x.cutLine = d3.svg.line()
                     .x(function(d) {return axes.x.scale(d[0]);})
@@ -3335,7 +3385,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     mouseMovePoint = d3.mouse(this);
                     mouseMove();
                 });
-                ctx = canvas.getContext('2d');
+                ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
                 colorbar = Colorbar()
                     .margin({top: 10, right: 100, bottom: 20, left: 10})
