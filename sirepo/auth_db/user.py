@@ -33,15 +33,12 @@ class UserRole(sirepo.auth_db.UserDbBase):
     def add_roles(self, roles, expiration=None):
         from sirepo import sim_data
 
-        cls = self.__class__
         with sirepo.util.THREAD_LOCK:
             u = self.logged_in_user()
             for r in roles:
-                try:
-                    self.new(uid=u, role=r, expiration=expiration).save()
-                except sqlalchemy.exc.IntegrityError:
-                    # role already exists
-                    pass
+                if self.has_role(r):
+                    continue
+                self.new(uid=u, role=r, expiration=expiration).save()
             sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall)
 
     def add_role_or_update_expiration(self, role, expiration):
