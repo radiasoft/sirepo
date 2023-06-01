@@ -3224,6 +3224,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, plotToPNG, srwSe
                     container: $('.sr-beamline3d-content')[0],
                 });
                 labelCanvas = document.createElement('canvas');
+                labelCanvas.getContext('2d', { willReadFrequently: true,});
                 fsRenderer.getInteractor().onAnimation(vtk.macro.debounce(updateOrientation, 250));
                 plotToPNG.initVTK($element, fsRenderer);
             };
@@ -3349,87 +3350,6 @@ SIREPO.app.directive('srwNumberList', function(appState) {
                 }
                 return $scope.values;
             };
-        },
-    };
-});
-
-SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: `
-          <div class="col-sm-3">
-            <button class="btn btn-default pull-right" data-ng-click="start()" data-ng-show="simState.isStopped()">Start New Simulation</button>
-            <button class="btn btn-default pull-right" data-ng-click="simState.cancelSimulation()" data-ng-show="simState.isProcessing()">End Simulation</button>
-          </div>
-          <div data-ng-show="simState.isStateError()" class="col-sm-9" style="margin-top: 1ex">
-            Error: {{ simState.getError() }}
-          </div>
-          <div class="col-sm-5 col-md-4 col-lg-3" style="margin-top: 1ex">
-            <div data-pending-link-to-simulations="" data-sim-state="simState"></div>
-            <div data-ng-show="simState.isStateRunning()">
-              <div class="progress">
-                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
-              </div>
-            </div>
-          </div>
-          <div style="margin-bottom: 1em" class="clearfix"></div>
-          <div data-ng-repeat="report in reports" data-ng-if="simState.hasFrames()">
-            <div data-watchpoint-report="" data-item-id="report.id"></div>
-            <div class="clearfix hidden-xl" data-ng-hide="($index + 1) % 2"></div>
-            <div class="clearfix visible-xl" data-ng-hide="($index + 1) % 3"></div>
-          </div>
-        `,
-        controller: function($scope, $rootScope) {
-            $scope.reports = [];
-            $scope.simScope = $scope;
-            $scope.simComputeModel = 'beamlineAnimation';
-            $scope.$on('framesCleared', () => {
-                $scope.reports = [];
-            });
-
-            $scope.start = function() {
-                $rootScope.$broadcast('saveLattice', appState.models);
-                appState.models.simulation.framesCleared = false;
-                appState.saveChanges(
-                    [$scope.simState.model, 'simulation'],
-                    $scope.simState.runSimulation);
-            };
-
-            $scope.simHandleStatus = (data) => {
-                if (appState.models.simulation.framesCleared) {
-                    return;
-                }
-                if (! data.outputInfo) {
-                    return;
-                }
-                for (let i = 0; i < data.frameCount; i++) {
-                    if ($scope.reports.length != i) {
-                        continue;
-                    }
-                    let info = data.outputInfo[i];
-                    $scope.reports.push({
-                        id: info.id,
-                        modelAccess: {
-                            modelKey: info.modelKey,
-                        },
-                    });
-                    frameCache.setFrameCount(1, info.modelKey);
-                }
-                frameCache.setFrameCount(data.frameCount || 0);
-            };
-
-            $scope.simState = persistentSimulation.initSimulationState($scope);
-
-            $scope.$on('modelChanged', (e, name) => {
-                if (! appState.isReportModelName(name)) {
-                    if (frameCache.getFrameCount() > 0) {
-                        frameCache.setFrameCount(0);
-                        appState.models.simulation.framesCleared = true;
-                        appState.saveQuietly('simulation');
-                    }
-                }
-            });
         },
     };
 });

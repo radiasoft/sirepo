@@ -728,7 +728,8 @@ class API(sirepo.quest.API):
 
         def _build():
             p = path
-            if re.search(r"^\w+$", p):
+            m = re.search(r"^(\w+)(?:$|/)", p)
+            if m and m.group(1) in sirepo.feature_config.cfg().sim_types:
                 p = "index.html"
             # do not call api_staticFile due to recursion of proxy_react()
             r = self.reply_file(
@@ -835,8 +836,8 @@ def init_module(**imports):
 def _cfg_react_server(value):
     if value is None:
         return None
-    if not pkconfig.channel_in("dev"):
-        pkconfig.raise_error("invalid channel={}; must be dev", pkconfig.cfg.channel)
+    # if not pkconfig.channel_in("dev"):
+    #     pkconfig.raise_error("invalid channel={}; must be dev", pkconfig.cfg.channel)
     if value == _REACT_SERVER_BUILD:
         return value
     u = urllib.parse.urlparse(value)

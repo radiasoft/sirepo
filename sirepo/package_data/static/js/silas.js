@@ -4,7 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.INITIAL_INTENSITY_REPORT_TITLE = 'Initial Intensity';
+    SIREPO.INITIAL_INTENSITY_REPORT_TITLE = 'Initial Laser Pulse';
     SIREPO.SINGLE_FRAME_ANIMATION = [
         'plotAnimation',
         'plot2Animation',
@@ -20,9 +20,6 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="SelectCrystal" data-ng-class="fieldClass">
           <div data-select-crystal="" data-model="model" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="SliceNumber" data-ng-class="fieldClass">
-          <div data-slice-number="" data-model="model" data-field="field"></div>
-        </div>
         <div data-ng-switch-when="Float6">
           <div data-float-6="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
@@ -33,6 +30,8 @@ SIREPO.app.config(function() {
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
     `;
+    SIREPO.BEAMLINE_WATCHPOINT_MODEL_PREFIX = 'beamlineAnimation';
+    SIREPO.BEAMLINE_WATCHPOINT_REPORT_ELEMENTS = ['watch', 'crystal'];
 });
 
 SIREPO.app.factory('silasService', function(appState) {
@@ -42,7 +41,10 @@ SIREPO.app.factory('silasService', function(appState) {
         if (['crystalAnimation', 'crystal3dAnimation', 'plotAnimation', 'plot2Animation'].indexOf(analysisModel) >= 0) {
             return 'crystalAnimation';
         }
-        return 'animation';
+        if (['laserPulseAnimation', 'laserPulse2Animation'].includes(analysisModel)) {
+            return 'laserPulseAnimation';
+        }
+        return 'beamlineAnimation';
     };
 
     self.getCrystal = itemId =>  appState.models.beamline.filter(e => e.id === itemId)[0];
@@ -82,10 +84,32 @@ SIREPO.app.factory('silasService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('SourceController', function (appState, silasService, $scope) {
+SIREPO.app.controller('SourceController', function (appState, frameCache, persistentSimulation, silasService, $scope) {
+    const self = this;
+    self.simScope = $scope;
+    self.simAnalysisModel = 'laserPulseAnimation';
+
+    self.simHandleStatus = (data) => {
+        if (! appState.isLoaded()) {
+            return;
+        }
+        if (data.outputInfo) {
+            for (const m of data.outputInfo) {
+                frameCache.setFrameCount(m.frameCount, m.modelKey);
+            }
+        }
+        frameCache.setFrameCount(data.frameCount || 0);
+    };
+
+    self.laserPulsePlotType = (modelName) => {
+        return appState.applicationState()[modelName].watchpointPlot.includes('longitudinal')
+             ? 'parameter' : '3d';
+    };
+
+    self.simState = persistentSimulation.initSimulationState(self);
 });
 
-SIREPO.app.controller('BeamlineController', function (appState, beamlineService, frameCache, persistentSimulation, silasService, $scope) {
+SIREPO.app.controller('BeamlineController', function (appState, beamlineService, $scope) {
     var self = this;
     self.appState = appState;
     self.beamlineModels = ['beamline'];
@@ -120,6 +144,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
     $scope.$watchCollection('appState.models.beamline', updateCrystals);
     $scope.$on('beamline.changed', () => {
         updateCrystals();
+        beamlineService.createWatchModel(0);
         appState.saveQuietly('beamline');
     });
 });
@@ -250,7 +275,7 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
                 || item.radial_n2 === '1' || item.calc_gain == '1',
             [
                 'inversion_n_cells', 'inversion_mesh_extent', 'crystal_alpha',
-                'pump_wavelength', 'pump_energy', 'pump_type',
+                'pump_wavelength', 'pump_energy', 'pump_type', 'pump_gaussian_order',
             ], item.calc_gain === '1' || item.propagationType === 'gain_calc',
             ['calc_gain'], item.propagationType !== 'gain_calc',
             ['radial_n2'], item.propagationType == 'n0n2_srw',
@@ -258,10 +283,17 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
             ['reuseCrystal'], item.origin === 'reuse',
             ['title', 'length', 'nslice'], item.origin === 'new',
             ['A', 'B', 'C', 'D'], item.propagationType == 'abcd_lct',
+            ['n0', 'n2'], item.propagationType != 'gain_calc',
         ]);
         panelState.showTab(item.type, 2, item.origin === 'new');
-        panelState.showTab(item.type, 3, item.origin === 'new');
+        panelState.showTab(item.type, 3, propOrGain(item));
     }
+
+    const propOrGain = (item) => {
+        return item.origin === 'new'
+        && ((item.propagationType == 'n0n2_srw' && item.radial_n2 == '1')
+        || item.calc_gain === '1' || item.propagationType === 'gain_calc');
+    };
 
     $scope.whenSelected = updateCrystalFields;
     $scope.watchFields = [
@@ -585,32 +617,6 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plo
     };
 });
 
-SIREPO.app.directive('sliceNumber', function(appState) {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-        },
-        template: `
-            <select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in sliceNumbers()"></select>
-        `,
-        controller: function($scope) {
-            let numbers = [];
-            $scope.sliceNumbers = () => {
-                const count = appState.applicationState().laserPulse.nslice;
-                if (numbers.length != count) {
-                    numbers = [];
-                    for (let i = 0; i < count; i++) {
-                        numbers.push([i, i + 1]);
-                    }
-                }
-                return numbers;
-            };
-        },
-    };
-});
-
 SIREPO.app.directive('float6', function(appState) {
     return {
         restrict: 'A',
@@ -641,3 +647,66 @@ SIREPO.app.directive('float6', function(appState) {
         },
     };
 });
+
+const intensityViewHandler = function(appState, beamlineService, panelState, $scope) {
+
+    function model() {
+        return $scope.modelData
+             ? $scope.modelData.getData()
+             : appState.models[modelKey()];
+    }
+
+    function modelKey() {
+        return $scope.modelData
+             ? $scope.modelData.modelKey
+             : $scope.modelName;
+    }
+
+    function element() {
+        return $scope.modelData
+             ? beamlineService.getItemById($scope.modelData.modelKey.match(/(\d+)/)[1])
+             : null;
+    }
+
+    function updateIntensityReport() {
+        //TODO(pjm): maybe keep the id on the model
+        //const e = beamlineService.getItemById($scope.modelData.modelKey.match(/(\d+)/)[1]);
+        const e = element();
+        const m = model();
+        panelState.showFields('watchpointReport', [
+            ['watchpointPlot'], ! e || e.type == 'watch',
+            ['crystalPlot'], e && e.type == 'crystal',
+        ]);
+
+        const getAndSavePlot = (model, element) => {
+            let p = element && element.type == 'crystal' ? model.crystalPlot : model.watchpointPlot;
+            model.reportType = p.includes('longitudinal')
+                        ? 'parameter'
+                        : '3d';
+            appState.saveQuietly(modelKey());
+        };
+
+        getAndSavePlot(m, e);
+        const idx = SIREPO.SINGLE_FRAME_ANIMATION.indexOf(modelKey());
+        if (m.reportType == 'parameter' || ['total_intensity', 'total_phase'].includes(m.watchpointPlot)) {
+            if (idx < 0) {
+                SIREPO.SINGLE_FRAME_ANIMATION.push(modelKey());
+            }
+        }
+        else if (idx >= 0) {
+            SIREPO.SINGLE_FRAME_ANIMATION.splice(idx, 1);
+        }
+    }
+
+    $scope.whenSelected = updateIntensityReport;
+    $scope.$on('modelChanged', (e, name) => {
+        if (name == modelKey()) {
+            updateIntensityReport();
+        }
+    });
+};
+
+SIREPO.viewLogic('watchpointReportView', intensityViewHandler);
+SIREPO.viewLogic('laserPulseAnimationView', intensityViewHandler);
+SIREPO.viewLogic('laserPulse2AnimationView', intensityViewHandler);
+SIREPO.viewLogic('initialIntensityReportView', intensityViewHandler);

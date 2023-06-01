@@ -190,6 +190,11 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         };
     };
 
+    self.getGroup = function(id) {
+        const o = self.getObject(id);
+        return o ? self.getObject(o.groupId) : null;
+    };
+
     self.getObject = function(id) {
         let objs = appState.models.geometryReport.objects || [];
         for (const o of objs) {
@@ -315,12 +320,12 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.validateMagnetization = (magnetization, material) => {
-        const mag = Math.hypot(magnetization || SIREPO.ZERO_ARR);
+        const mag = Math.hypot(...(magnetization || SIREPO.ZERO_ARR));
         validationService.validateField(
             'geomObject',
             'material',
             'select',
-            SIREPO.APP_SCHEMA.constants.anisotropicMaterials.indexOf(material) < 0 || mag > 0,
+            ! SIREPO.APP_SCHEMA.constants.anisotropicMaterials.includes(material) || mag > 0,
             'Anisotropic materials require non-zero magnetization'
         );
     };
@@ -420,14 +425,33 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.align = (group, alignType, axesInds) => {
-        const m = group.members;
-        for (let i = 1; i < m.length; ++i) {
-            self[alignType](
-                self.getObject(m[i]),
-                self.getObject(m[0]),
-                axesInds
-            );
-            self.saveObject(m[i]);
+
+        function getFirstNotInGroup(arr) {
+            let m0 = null;
+            let i = 0;
+            for (i = 0; i < arr.length; ++i) {
+                const m = self.getObject(arr[i]);
+                if (self.isGroup(m)) {
+                    continue;
+                }
+                m0 = m;
+                break;
+            }
+            return [i + 1, m0];
+        }
+
+        const d = getDescendents(group);
+        if (d.length <= 1) {
+            return;
+        }
+        const [start, m0] = getFirstNotInGroup(d);
+        if (! m0) {
+            return;
+        }
+        for (let i = start; i < d.length; ++i) {
+            const m = self.getObject(d[i]);
+            self[alignType](m, m0, axesInds);
+            self.saveObject(m.id);
         }
         radiaService.saveGeometry(true);
     };
@@ -485,17 +509,15 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return appState.models.simulation.dipoleType;
     };
 
-    self.getMagnetType = () => {
-        return appState.models.simulation.magnetType;
-    };
+    self.getGroup = radiaService.getGroup;
 
-    self.getObject = id => {
-        return radiaService.getObject(id);
-    };
+    self.getMagnetType = () => appState.models.simulation.magnetType;
 
-    self.getObjects = () => {
-        return radiaService.getObjects();
-    };
+    self.getMembers = o => o.members;
+
+    self.getObject = radiaService.getObject;
+
+    self.getObjects = radiaService.getObjects;
 
     self.getShape = id => {
         return self.shapes.filter(s => s.id === id)[0];
@@ -512,9 +534,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return self.shapes.concat(s);
     };
 
-    self.getObjectView = id => {
-        return self.views.filter( s => s.id === id)[0];
-    };
+    self.getObjectView = id => self.views.filter(s => s.id === id)[0];
 
     self.getObjectViews = () => self.views;
 
@@ -526,6 +546,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.getView = () => `${appState.models.simulation[`${self.getMagnetType()}Type`]}`;
+
+    self.isInGroup = o => ! ! o.groupId;
 
     self.isDropEnabled = () => self.dropEnabled;
 
@@ -769,6 +791,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function deleteShapesForObject(o) {
         self.views.splice(indexOfViews(self.viewsForObject(o)), 1);
+    }
+
+    function getDescendents(group) {
+        let d = [];
+        for (const m of (group.members || [])) {
+            d.push(m);
+            const o = self.getObject(m);
+            if (self.isGroup(o)) {
+                d = d.concat(getDescendents(o));
+            }
+        }
+        return d;
     }
 
     function groupBounds(objs) {
@@ -1487,7 +1521,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             $scope.showFieldLineoutPanel = () => $scope.hasPaths();
 
             $scope.$on('fieldLineoutAnimation.saved', runSimulation);
-            $scope.$on('fieldPaths.changed', updatePath);
+            $scope.$on('fieldPaths.saved', updatePath);
             $scope.$on('solve.complete', runSimulation);
 
             appState.watchModelFields($scope, [`${modelName}.fieldPath`],  () => {
@@ -1873,7 +1907,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
                 }
                 const o = selectedItem.object;
                 radiaService.validateMagnetization(o.magnetization, o.material);
-            });
+            }, true);
 
         },
     };
@@ -2375,6 +2409,17 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function handlePick(callData) {
+
+                function getClosestActor(pickedActors) {
+                    for (const a of pickedActors) {
+                        const i = getInfoForActor(a);
+                        if (i) {
+                            return [a, i];
+                        }
+                    }
+                    return [null, null];
+                }
+
                 if (renderer !== callData.pokedRenderer) {
                     return;
                 }
@@ -2408,14 +2453,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                     return;
                 }
 
-                const pas = picker.getActors();
-
                 let selectedValue = Number.NaN;
                 let highlightVectColor = [255, 0, 0];
-                // the 1st actor in the array is the closest to the viewer
-                const actor = pas[0];
+
                 vtkSelection = {};
-                const info = getInfoForActor(actor);
+                const [actor, info] = getClosestActor(picker.getActors());
                 selectedInfo = info;
                 if (! info || ! info.pData) {
                     return;
@@ -3172,6 +3214,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     const ctl = angular.element($('div[data-ng-controller]').eq(0)).controller('ngController');
     let editedModels = [];
+    const materialFields = ['geomObject.magnetization', 'geomObject.material'];
     const parent = $scope.$parent;
 
     $scope.watchFields = [
@@ -3338,6 +3381,9 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         panelState.enableField('extrudedPoints', 'pointsFile', ! hasPoints());
     }
 
+    appState.watchModelFields($scope, materialFields, () => {
+        radiaService.validateMagnetization($scope.modelData.magnetization, $scope.modelData.material);
+    }, true);
 
     buildTriangulationLevelDelegate();
     const self = {};
@@ -3415,6 +3461,7 @@ for(const m of ['Dipole', 'Undulator']) {
             ];
 
             let editedModels = [];
+            const materialFields = ['geomObject.magnetization', 'geomObject.material'];
             let models = {};
             for (const p of $scope.$parent.advancedFields) {
                 const page = p[0];
@@ -3510,11 +3557,14 @@ for(const m of ['Dipole', 'Undulator']) {
                 );
             }
 
-            //TODO(mvk): implement validation for parameterized magnets - this is a placeholder
-            const e = `watch${m}Editor`;
-            if (e in SIREPO) {
-                SIREPO[e]($scope, appState, panelState, radiaService, validationService);
-            }
+            appState.watchModelFields($scope, materialFields, () => {
+                const o = getObjFromGeomRpt();
+                if (! o) {
+                    return;
+                }
+                radiaService.validateMagnetization(o.magnetization, o.material);
+            }, true);
+
         });
     }
 }
