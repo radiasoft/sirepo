@@ -164,10 +164,9 @@ def _apply_material(g_id, **kwargs):
 
 
 def _apply_modification(g_id, **kwargs):
-    return PKDict(
-        objectBevel=_apply_bevel,
-        objectFillet=_apply_fillet,
-    )[kwargs.get("type")](g_id, **kwargs)
+    return PKDict(objectBevel=_apply_bevel, objectFillet=_apply_fillet,)[
+        kwargs.get("type")
+    ](g_id, **kwargs)
 
 
 def _apply_rotation(g_id, xform):
@@ -194,7 +193,11 @@ def _apply_segments(g_id, **kwargs):
         # cylindrical division does not seem to work properly in the local frame if the
         # axis is not "x" and the center is not [0, 0, 0]
         if d.segmentation == "cyl":
-            p = d.center if d.segmentationCylUseObjectCenter == "1" else d.segmentationCylPoint
+            p = (
+                d.center
+                if d.segmentationCylUseObjectCenter == "1"
+                else d.segmentationCylPoint
+            )
             # The radial segment number is "number of segments between 0 and the given radius",
             # except when it is 1 in which case it's "none". We ignore it and prompt the user
             # for the radial size. Since 1 is special we say "2 segments in twice the radius"
@@ -205,7 +208,12 @@ def _apply_segments(g_id, **kwargs):
                 [
                     p,
                     AXIS_VECTORS[d.segmentationCylAxis].tolist(),
-                    (2.0 * d.segmentationCylRadius * AXIS_VECTORS[next_axis(d.segmentationCylAxis)] + p).tolist(),
+                    (
+                        2.0
+                        * d.segmentationCylRadius
+                        * AXIS_VECTORS[next_axis(d.segmentationCylAxis)]
+                        + p
+                    ).tolist(),
                     1.0,
                 ],
                 "Frame->Lab",
@@ -268,7 +276,14 @@ def _build_cylinder(**kwargs):
 def _build_racetrack(**kwargs):
     d = PKDict(kwargs)
     return radia.ObjRaceTrk(
-        d.center, d.radii, d.sides, d.height, d.numSegments, d.currentDensity, d.fieldCalc, d.axis
+        d.center,
+        d.radii,
+        d.sides,
+        d.height,
+        d.numSegments,
+        d.currentDensity,
+        d.fieldCalc,
+        d.axis,
     )
 
 
@@ -314,7 +329,9 @@ def _extrude(**kwargs):
         numpy.full((len(d.points), 2), [1, 1]).tolist(),
         d.extrusionAxis,
         d.magnetization,
-        f"TriAreaMax->{0.125 * d.area * (1.04 - d.triangulationLevel)}" if d.triangulationLevel > 0 else "",
+        f"TriAreaMax->{0.125 * d.area * (1.04 - d.triangulationLevel)}"
+        if d.triangulationLevel > 0
+        else "",
     )
 
 
@@ -332,7 +349,6 @@ def _radia_material(material_type, magnetization_magnitude, h_m_curve):
             [[_MU_0 * h_m_curve[i][0], h_m_curve[i][1]] for i in range(len(h_m_curve))]
         )
     return radia.MatStd(material_type, magnetization_magnitude)
-
 
 
 def apply_color(g_id, color):
@@ -383,7 +399,7 @@ def build_object(**kwargs):
             obj_size=d.size,
             remanentMag=d.remanentMag,
             h_m_curve=d.h_m_curve,
-            **m
+            **m,
         )
     return g_id
 
