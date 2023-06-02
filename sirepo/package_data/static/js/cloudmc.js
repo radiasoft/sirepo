@@ -978,9 +978,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             });
 
             $scope.$on('openmcAnimation.saved', () => {
-                frameCache.getFrame('openmcAnimation', -1, false, (i, d) => {
-                    $scope.load(d);
-                });
+                if (frameCache.getFrameCount()) {
+                    frameCache.getFrame('openmcAnimation', -1, false, (i, d) => {
+                        $scope.load(d);
+                    });
+                }
             });
 
             $scope.$on('vtk-init', (e, d) => {
