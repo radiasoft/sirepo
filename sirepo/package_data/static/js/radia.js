@@ -170,7 +170,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         // if object was in a group, remove from that group
         removeFromGroup(o);
         appState.models.geometryReport.objects.splice(i, 1);
-        self.saveGeometry(true, false);
+        //self.saveGeometry(true, false);
     };
 
     self.getAxisIndices = function() {
@@ -790,6 +790,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function deleteShapesForObject(o) {
+        srdbg('del sh', o);
         self.views.splice(indexOfViews(self.viewsForObject(o)), 1);
     }
 

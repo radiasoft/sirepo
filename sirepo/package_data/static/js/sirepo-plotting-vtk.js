@@ -2599,6 +2599,7 @@ SIREPO.app.directive('objectTable', function(appState) {
           <div class="panel panel-info">
             <div class="panel-heading"><span class="sr-panel-heading">Objects</span></div>
             <div class="panel-body">
+            <form name="form">
               <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
                 <thead></thead>
                   <tbody>
@@ -2625,9 +2626,14 @@ SIREPO.app.directive('objectTable', function(appState) {
                 </table>
             </div>
           </div>
+          <div data-buttons="" data-model-name="modelName" data-fields="fields"></div>
+          </form>
         `,
-        controller: function($scope) {
+        controller: function($scope, $element) {
+            $scope.haveObjectsChanged = false;
             $scope.expanded = {};
+            $scope.fields = ['objects'];
+            $scope.form = angular.element($($element).find('form').eq(0));
 
             function init() {
                 for (const o of $scope.getObjects()) {
