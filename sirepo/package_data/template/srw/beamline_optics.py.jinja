@@ -16,7 +16,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 _dim={{ field(item, 'orientation') }},
                 _ang=abs({{ field(item, 'grazingAngle') }}),
                 _amp_coef={{ field(item, 'heightAmplification') }},
-{% if 'horizontalTransverseSize' in item %}
+{% if 'horizontalTransverseSize' in item and item.type == 'mirror' %}
                 _size_x={{ field(item, 'horizontalTransverseSize') }},
                 _size_y={{ field(item, 'verticalTransverseSize') }},
 {% endif %}

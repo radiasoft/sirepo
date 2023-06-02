@@ -51,3 +51,9 @@ def test_srw_auth_login(fc):
     req.authHash = "not match"
     resp = fc.sr_post("authBlueskyLogin", req, raw_response=True)
     pkeq(401, resp.status_code)
+    # DEPRECATED
+    fc.cookie_jar.clear()
+    bluesky.auth_hash(req)
+    resp = fc.sr_post("blueskyAuth", req)
+    pkeq("ok", resp["state"])
+    pkeq(req.simulationId, resp.data.models.simulation.simulationId)
