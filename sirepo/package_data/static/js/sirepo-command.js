@@ -82,7 +82,7 @@ SIREPO.app.factory('commandService', function(appState, latticeService, panelSta
         return value;
     };
 
-    self.getNextCommand = (type) => {
+    self.getNextCommand = type => {
          return {
              _id: latticeService.nextId(),
              type: type,
@@ -251,9 +251,8 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
                 return -1;
             }
 
-            $scope.copyCommand = function(cmd) {
-                const copy = $.extend({}, commandService.commandForId(cmd._id), commandService.getNextCommand(cmd._type));
-                $scope.editCommand(copy);
+            $scope.copyCommand = cmd => {
+                $scope.editCommand({...commandService.commandForId(cmd._id), ...commandService.getNextCommand(cmd._type)});
             };
 
             $scope.commandName = function(cmd) {
