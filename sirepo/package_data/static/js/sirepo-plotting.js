@@ -831,7 +831,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                         scope.modelChanged();
                     }
                     panelState.clear(scope.modelName);
-                    requestData();
+                    if (! scope.isClientOnly) {
+                        requestData();
+                    }
                 });
 
             scope.isLoading = () => panelState.isLoading(scope.modelName);
