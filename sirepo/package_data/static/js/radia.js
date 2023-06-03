@@ -1930,7 +1930,6 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                             radiaService.syncReports();
                         }
                         solving = false;
-                        radiaService.saveGeometry(false, true);
                     }
                 }
             };
@@ -2659,6 +2658,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setupSceneData(data) {
+                radiaService.saveGeometry(false, true);
                 cachedDisplayVals = appState.clone(getDisplayVals());
                 $rootScope.$broadcast('radiaViewer.loaded');
                 $rootScope.$broadcast('vtk.hideLoader');
@@ -2762,7 +2762,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.$on('fieldPaths.saved', () => {
                 if (appState.models.magnetDisplay.viewType === 'fields') {
-                    updateViewer();
+                    updateViewer(true);
                 }
             });
 
@@ -2799,7 +2799,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (! initDone) {
                     return;
                 }
-                updateViewer(true);
+                if (appState.models.magnetDisplay.viewType === 'fields') {
+                    updateViewer(true);
+                }
             });
 
             $scope.$on('$destroy', () => {
