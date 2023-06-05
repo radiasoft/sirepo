@@ -198,7 +198,11 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
             if (d.length) {
                 requestSender.sendStatelessCompute(
                     appState,
-                    data => {},
+                    data => {
+                        if (data.error) {
+                            errorService.alertText(data.error);
+                        }
+                    },
                     {
                         method: 'update_epics_value',
                         fields: d,
