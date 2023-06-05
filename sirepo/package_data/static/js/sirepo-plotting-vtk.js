@@ -2529,10 +2529,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     replot();
                 });
 
-                $scope.$on('cancelChanges', function(e, name) {
-                    refresh();
-                });
-
                 select('svg').attr('height', plotting.initialHeight($scope));
 
                 $.each(axes, function(dim, axis) {
