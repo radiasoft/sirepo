@@ -2625,11 +2625,10 @@ SIREPO.app.directive('objectTable', function(appState) {
           <div data-buttons="" data-model-name="modelName" data-fields="fields"></div>
           </form>
         `,
-        controller: function($scope, $element) {
+        controller: function($scope) {
             $scope.haveObjectsChanged = false;
             $scope.expanded = {};
             $scope.fields = ['objects'];
-            $scope.form = angular.element($($element).find('form').eq(0));
 
             function init() {
                 for (const o of $scope.getObjects()) {
