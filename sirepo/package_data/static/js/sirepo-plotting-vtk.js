@@ -2626,7 +2626,6 @@ SIREPO.app.directive('objectTable', function(appState) {
           </form>
         `,
         controller: function($scope) {
-            $scope.haveObjectsChanged = false;
             $scope.expanded = {};
             $scope.fields = ['objects'];
 
