@@ -154,20 +154,20 @@ SIREPO.app.controller('HellwegLatticeController', function (appState, panelState
     };
 
 
-    self.itemLabels = function(key) {
+    self.itemLabels = (key) => {
         return {
-            'aperture': 'Aperture',
-            'attenuation': 'Attenuation',
-            'phaseVelocity': 'Phase Velocity',
-            'repeat': 'Repeat Count',
-            'acceleratingInvariant': 'Field Invariant',
-            'phaseAdvance': 'Advance [deg]',
-            'length': 'Length [cm]',
-            'radius': 'Radius [cm]',
-            'meshPoints': 'Mesh Points',
-            'inputPower': 'Input Power [MW]',
-            'frequency': 'Frequency [MHz]',
-            'phaseShift': 'Phase Shift [deg]',
+            aperture: 'Aperture',
+            attenuation: 'Attenuation',
+            phaseVelocity: 'Phase Velocity',
+            repeat: 'Repeat Count',
+            acceleratingInvariant: 'Field Invariant',
+            phaseAdvance: 'Advance [deg]',
+            length: 'Length [cm]',
+            radius: 'Radius [cm]',
+            meshPoints: 'Mesh Points',
+            inputPower: 'Input Power [MW]',
+            frequency: 'Frequency [MHz]',
+            phaseShift: 'Phase Shift [deg]',
         }[key];
     };
 
