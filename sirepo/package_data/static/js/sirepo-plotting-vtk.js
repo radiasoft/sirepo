@@ -2602,20 +2602,31 @@ SIREPO.app.directive('objectTable', function(appState) {
               <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
                 <thead></thead>
                   <tbody>
-                    <tr data-ng-show="areAllParentsExpanded(o)" data-ng-attr-id="{{ o.id }}" data-ng-repeat="o in getObjects() track by $index">
+                    <tr data-ng-show="areAllGroupsExpanded(o)" data-ng-attr-id="{{ o.id }}" data-ng-repeat="o in getObjects() track by $index">
                       <td style="padding-left: {{ nestLevel(o) }}em; cursor: pointer; white-space: nowrap">
                         <span style="font-size: large; color: {{o.color || '#cccccc'}};">■</span>
                           <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': expanded[o.id], 'glyphicon-chevron-up': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
                             <span>{{ o.name }}</span>
-                            <span class="sr-button-bar-parent" data-ng-if="isGroup(o)">
-                              <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(o, t.type)"><img alt="{{ t.title }}" data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
-                            </span>
                       </td>
                         <td style="text-align: right">
                           <div class="sr-button-bar-parent">
                             <div class="sr-button-bar sr-button-bar-active">
-                               <button data-ng-if="! isGroup(o)" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy">Copy</button>
-                               <button data-ng-click="editObject(o)" class="btn btn-info btn-xs" title="edit">Edit</button>
+                               <button data-ng-disabled="isAlignDisabled(o)" class="dropdown-toggle btn btn-info btn-xs" title="align" data-toggle="dropdown"><span class="glyphicon glyphicon-move"></span></button>
+                               <ul class="dropdown-menu">
+                                 <div class="container col-sm-8">
+                                   <div class="row">
+                                     <li style="display: inline-block">
+                                        <span class="sr-button-bar-parent">
+                                          <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(o, t.type)"><img alt="{{ t.title }}" data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
+                                        </span>
+                                      </li>
+                                   <div>
+                                 <div>
+                               </ul>
+                               <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)" title="move up"><span class="glyphicon glyphicon-arrow-up"></span></button>
+                               <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)" title="move down"><span class="glyphicon glyphicon-arrow-down"></span></button>
+                               <button data-ng-disabled="isGroup(o)" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-duplicate"></span></button>
+                               <button data-ng-click="editObject(o)" class="btn btn-info btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
                                <button data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
                             </div>
                           </div>
@@ -2629,6 +2640,10 @@ SIREPO.app.directive('objectTable', function(appState) {
         controller: function($scope) {
             $scope.expanded = {};
 
+            const isInGroup = $scope.source.isInGroup;
+            const getGroup = $scope.source.getGroup;
+            const getMemberObjects = $scope.source.getMemberObjects;
+
             function init() {
                 for (const o of $scope.getObjects()) {
                     $scope.expanded[o.id] = true;
@@ -2640,14 +2655,14 @@ SIREPO.app.directive('objectTable', function(appState) {
                 const arranged = [];
 
                 function addGroup(o) {
-                    const p = $scope.getParent(o);
+                    const p = getGroup(o);
                     if (p && ! arranged.includes(p)) {
                         return;
                     }
                     if (! arranged.includes(o)) {
                         arranged.push(o);
                     }
-                    for (const m of $scope.memberObjects(o)) {
+                    for (const m of getMemberObjects(o)) {
                         if ($scope.isGroup(m)) {
                             addGroup(m);
                         }
@@ -2661,7 +2676,7 @@ SIREPO.app.directive('objectTable', function(appState) {
                     if (arranged.includes(o)) {
                         continue;
                     }
-                    if ($scope.isNotInGroup(o)) {
+                    if (! isInGroup(o)) {
                         arranged.push(o);
                     }
                     if ($scope.isGroup(o)) {
@@ -2681,26 +2696,28 @@ SIREPO.app.directive('objectTable', function(appState) {
 
             $scope.editObject = $scope.source.editObject;
 
-            $scope.getParent = o => $scope.source.getObject(o.groupId);
-
             $scope.getObjects = () => {
                 return arrange((appState.models[$scope.modelName] || {}).objects);
             };
 
-            $scope.isInGroup = $scope.source.isInGroup;
-
-            $scope.isNotInGroup = o => ! $scope.isInGroup(o);
-
             $scope.isGroup = $scope.source.isGroup;
 
-            $scope.memberObjects = o => {
-                return ($scope.source.getMembers(o) || []).map(mId => $scope.source.getObject(mId));
+            $scope.isAlignDisabled = o => ! $scope.isGroup(o) || getMemberObjects(o).length < 2;
+
+            $scope.isMoveDisabled = (direction, o) => {
+                const objects = isInGroup(o) ?
+                    getMemberObjects(getGroup(o)) :
+                    $scope.getObjects().filter(x => ! isInGroup(x));
+                let i = objects.indexOf(o);
+                return direction === -1 ? i === 0 : i === objects.length - 1;
             };
+
+            $scope.moveObject = $scope.source.moveObject;
 
             $scope.nestLevel = o => {
                 let n = 0;
-                if ($scope.isInGroup(o)) {
-                    n += (1 + $scope.nestLevel($scope.source.getObject(o.groupId)));
+                if (isInGroup(o)) {
+                    n += (1 + $scope.nestLevel(getGroup(o)));
                 }
                 return n;
             };
@@ -2709,15 +2726,15 @@ SIREPO.app.directive('objectTable', function(appState) {
                 $scope.expanded[o.id] = ! $scope.expanded[o.id];
             };
 
-            $scope.areAllParentsExpanded = o => {
-                if ($scope.isNotInGroup(o)) {
+            $scope.areAllGroupsExpanded = o => {
+                if (! isInGroup(o)) {
                     return true;
                 }
-                const p = $scope.getParent(o);
+                const p = getGroup(o);
                 if (! $scope.expanded[p.id]) {
                     return false;
                 }
-                return $scope.areAllParentsExpanded(p);
+                return $scope.areAllGroupsExpanded(p);
             };
 
             init();
