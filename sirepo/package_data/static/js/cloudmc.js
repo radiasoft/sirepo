@@ -978,9 +978,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             });
 
             $scope.$on('openmcAnimation.saved', () => {
-                frameCache.getFrame('openmcAnimation', -1, false, (i, d) => {
-                    $scope.load(d);
-                });
+                if (frameCache.getFrameCount()) {
+                    frameCache.getFrame('openmcAnimation', -1, false, (i, d) => {
+                        $scope.load(d);
+                    });
+                }
             });
 
             $scope.$on('vtk-init', (e, d) => {
@@ -1817,6 +1819,42 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
 
 });
 
+SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
+
+    let name = null;
+
+    $scope.whenSelected = () => {
+        $scope.appState = appState;
+        name = model().name;
+    };
+
+    function isStd() {
+        return model() && model().standardType !== 'None';
+    }
+
+    function model() {
+        return appState.models[$scope.modelName];
+    }
+
+    function updateMaterial() {
+        if (! model()) {
+            return;
+        }
+        if (isStd()) {
+            // don't change the name as it came from the loaded volume
+            appState.models[$scope.modelName] = appState.setModelDefaults({name: name}, model().standardType);
+        }
+    }
+
+    // only update when the user makes a change, not on the initial model load
+    $scope.$watch(`appState.models['${$scope.modelName}']['standardType']`, (newVal, oldVal) => {
+        if (oldVal === undefined || oldVal === newVal) {
+            return;
+        }
+        updateMaterial();
+    });
+
+});
 
 SIREPO.app.directive('simpleListEditor', function(panelState) {
     return {
