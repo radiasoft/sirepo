@@ -102,6 +102,22 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
+def _disconnect_alert(error_line):
+    def _join(segment):
+        return ":".join(segment)
+
+    def _segment(line, index):
+        return line.split(":")[index]
+
+    def _message(line):
+        return _segment(line, 1)
+
+    def _addr(line):
+        return _join([_segment(line, 2), _segment(line, 3)])
+
+    return _join([_message(error_line), _addr(error_line)])
+
+
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     v.statusFile = _STATUS_FILE
@@ -131,18 +147,9 @@ def _read_epics_data(run_dir):
 
 
 def _parse_epics_log(run_dir):
-    def _message(error_line):
-        return line.split(":")[1]
-
-    def _addr(error_line):
-        return ":".join([line.split(":")[2], line.split(":")[3]])
-
-    def _alert(error_line):
-        return ":".join([_message(line), _addr(line)])
-
     res = ""
     with pkio.open_text(run_dir.join(template_common.RUN_LOG)) as f:
         for line in f:
             if re.search(r"sirepo.template.epicsllrf.EpicsDisconnectError", line):
-                return _alert(line)
+                return _disconnect_alert(line)
     return res
