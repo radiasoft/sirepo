@@ -3486,6 +3486,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             $scope.focusStrategy = 'closest';
             $scope.latexTitle = '';
             $scope.wantLegend = true;
+
             function build2dPointsForPlot(plotIndex) {
                 var pts = [];
                 var xPoints = $scope.axes.y.plots[plotIndex].x_points || $scope.axes.x.points;
@@ -3603,7 +3604,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         .attr('y', 16 + count * 20)
                         .text(plot.label);
                     count++;
-
                 });
                 return count;
             }
