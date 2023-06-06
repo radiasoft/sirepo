@@ -21,9 +21,14 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
 def background_percent_complete(report, run_dir, is_running):
+    a = ""
+    if "Unable to connect to EPICS server" in pkio.read_text(run_dir.join("run.log")):
+        # TODO (gurhar1133): get the port and host into the alert
+        a = "Failed to connect to EPICS server"
     return PKDict(
         percentComplete=100,
         frameCount=0,
+        alert=a,
         hasEpicsData=run_dir.join(_STATUS_FILE).exists(),
     )
 
