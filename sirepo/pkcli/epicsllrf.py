@@ -37,7 +37,9 @@ def run_background(cfg_dir):
         template_common.INPUT_BASE_NAME
     ).models.epicsServer.serverAddress
     if epicsllrf.run_epics_cmd(f"pvget {f[0]}", s) != 0:
-        raise epicsllrf.EpicsDisconnectError("Unable to connect to EPICS server: {}".format(s))
+        raise epicsllrf.EpicsDisconnectError(
+            "Unable to connect to EPICS server: {}".format(s)
+        )
     epicsllrf.run_epics_cmd(f"pvmonitor {' '.join(f)} | python parameters.py", s)
 
 

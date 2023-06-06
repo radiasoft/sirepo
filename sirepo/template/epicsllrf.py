@@ -131,9 +131,18 @@ def _read_epics_data(run_dir):
 
 
 def _parse_epics_log(run_dir):
+    def _message(error_line):
+        return line.split(":")[1]
+
+    def _addr(error_line):
+        return ":".join([line.split(":")[2], line.split(":")[3]])
+
+    def _alert(error_line):
+        return ":".join([_message(line), _addr(line)])
+
     res = ""
-    with pkio.open_text(run_dir.join("run.log")) as f:
+    with pkio.open_text(run_dir.join(template_common.RUN_LOG)) as f:
         for line in f:
-            if re.search(r"EpicsDisconnectError: Unable to connect", line):
-                res += ":".join(line.split(":")[1:])
+            if re.search(r"sirepo.template.epicsllrf.EpicsDisconnectError", line):
+                return _alert(line)
     return res
