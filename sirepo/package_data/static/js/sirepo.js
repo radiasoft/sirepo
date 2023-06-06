@@ -1322,8 +1322,8 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                 },
                 function(data) {
                     const c = appState.models.simulation.simulationId;
-                    if (!appState.isLoaded()) {
-                        if (! c || c != i) {
+                    if (! appState.isLoaded()) {
+                        if (! c || c !== i) {
                             return;
                         }
                     }
