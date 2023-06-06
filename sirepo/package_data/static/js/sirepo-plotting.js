@@ -3563,6 +3563,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 var count = 0;
 
                 buildSymbols(legend, legendSymbolSize, 'legend');
+
                 plots.forEach(function(plot, i) {
                     if (! plot.label) {
                         return;
