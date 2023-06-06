@@ -20,15 +20,15 @@ _STATUS_FILE = "status.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
+class EpicsDisconnectError(Exception):
+    pass
+
+
 def background_percent_complete(report, run_dir, is_running):
-    a = ""
-    if "Unable to connect to EPICS server" in pkio.read_text(run_dir.join("run.log")):
-        # TODO (gurhar1133): get the port and host into the alert
-        a = "Failed to connect to EPICS server"
     return PKDict(
         percentComplete=100,
         frameCount=0,
-        alert=a,
+        alert=_parse_epics_log(run_dir),
         hasEpicsData=run_dir.join(_STATUS_FILE).exists(),
     )
 
@@ -128,3 +128,12 @@ def _read_epics_data(run_dir):
             d[f] = v
         return d
     return PKDict()
+
+
+def _parse_epics_log(run_dir):
+    res = ""
+    with pkio.open_text(run_dir.join("run.log")) as f:
+        for line in f:
+            if re.search(r"EpicsDisconnectError: Unable to connect", line):
+                res += ":".join(line.split(":")[1:])
+    return res
