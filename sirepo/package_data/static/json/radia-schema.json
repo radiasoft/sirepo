@@ -10,9 +10,62 @@
         }
     },
     "constants": {
-        "allowedExpressionOps": [
-            "abs", "cos", "cot", "csc", "exp", "log", "pi", "sec", "sin", "tan", "sqrt"
-        ],
+        "allowedExpressionOps": {
+            "math": {
+                "title": "Math",
+                "ops": [
+                    {
+                        "label": "N$||$",
+                        "op": "abs()"
+                    },
+                    {
+                        "label": "N$cos$",
+                        "op": "cos()"
+                    },
+                    {
+                        "label": "N$cot$",
+                        "op": "cot()"
+                    },
+                    {
+                        "label": "N$csc$",
+                        "op": "csc()"
+                    },
+                    {
+                        "label": "N$exp$",
+                        "op": "exp()"
+                    },
+                    {
+                        "label": "N$pi$",
+                        "op": "pi"
+                    },
+                    {
+                        "label": "N$sec$",
+                        "op": "sec()"
+                    },
+                    {
+                        "label": "N$sin$",
+                        "op": "sin()"
+                    },
+                    {
+                        "label": "N$tan$",
+                        "op": "tan()"
+                    },
+                    {
+                        "label": "N$sqrt$",
+                        "op": "sqrt()"
+                    }
+                ]
+            },
+            "radia": {
+                "title": "Radia",
+                "ops": [
+                    {
+                        "label": "",
+                        "op": "radia.FldInt(g_id, 'inf', f_type, p1, p2)"
+                    }
+                ]
+            }
+        },
         "alignmentTools": [
             {
                 "title": "Center Horizontal",
