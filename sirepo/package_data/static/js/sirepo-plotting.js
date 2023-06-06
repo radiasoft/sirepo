@@ -3471,6 +3471,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             var includeForDomain = [];
             var childPlots = {};
             var scaleFunction;
+            var plotVisibilty = {};
             let dynamicYLabel = false;
 
             // for built-in d3 symbols - the units are *pixels squared*
@@ -3543,13 +3544,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function cachedPlotVisibilty(pIndex, modelName) {
-                appState.models.plotVisibilty = appState.models.plotVisibilty || {};
-                appState.models.plotVisibilty[modelName] = appState.models.plotVisibilty[modelName] || {};
-                if (! appState.models.plotVisibilty[modelName].hasOwnProperty(pIndex)) {
-                  appState.models.plotVisibilty[modelName][pIndex] = false;
-                }
-                return appState.models.plotVisibilty[modelName][pIndex];
-              }
+                plotVisibilty[modelName] = plotVisibilty[modelName] || {};
+                if (! plotVisibilty[modelName].hasOwnProperty(pIndex)) {
+                    plotVisibilty[modelName][pIndex] = false;
+                  }
+                return plotVisibilty[modelName][pIndex];
+            }
 
             function createLegend() {
                 const plots = $scope.axes.y.plots;
@@ -3703,10 +3703,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             function togglePlot(pIndex, modelName) {
                 setPlotVisible(pIndex, ! isPlotVisible(pIndex));
                 updateYLabel();
-                if (appState.models.plotVisibilty) {
-                    appState.models.plotVisibilty[modelName][pIndex] = ! appState.models.plotVisibilty[modelName][pIndex];
+                if (plotVisibilty) {
+                    plotVisibilty[modelName][pIndex] = ! plotVisibilty[modelName][pIndex];
                 }
-                appState.saveChanges('plotVisibilty');
             }
 
             function updateYLabel() {
@@ -4033,6 +4032,15 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         setPlotVisible(i, ! isPlotVisible(i));
                     }
                 });
+
+                $scope.$on(
+                    $scope.modelName + '.changed',
+                    () => {
+                        plots.forEach((plot, i) => {
+                            plotVisibilty[$scope.modelName][i] = false;
+                        });
+                    }
+                );
             };
 
             $scope.recalculateYDomain = function() {
