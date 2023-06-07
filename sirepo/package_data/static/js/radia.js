@@ -38,9 +38,6 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="ObjectType" class="col-sm-7">
             <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="model[field]" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
         </div>
-        <div data-ng-switch-when="FieldPaths" class="col-sm-7">
-          <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
-        </div>
         <div data-ng-switch-when="OptimizableModel" data-ng-class="fieldClass">
           <div data-optimizable-model="" data-model-name="modelName" data-model="model" data-field="model[field]"></div>
         </div>

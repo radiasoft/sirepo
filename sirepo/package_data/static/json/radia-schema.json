@@ -916,7 +916,6 @@
             "begin": ["Start [mm]", "FloatArray", [-10.0, 0, 0], "", ["x", "y", "z"]],
             "deviation": ["Deviation [mm]", "FloatArray", [0, 1.0, 0], "", ["∂x", "∂y", "∂z"]],
             "end": ["End [mm]", "FloatArray", [10.0, 0, 0], "", ["x", "y", "z"]],
-            "fieldPaths": ["Path", "FieldPaths", []],
             "type": ["Objective Function", "ObjectiveFunction", "quality"],
             "useFieldPath": ["Use Field Path", "Boolean", "0"]
         },
@@ -1527,7 +1526,6 @@
             "basic": [
                 "objective",
                 "quality.useFieldPath",
-                "quality.fieldPaths",
                 "quality.begin",
                 "quality.end",
                 "quality.deviation"
