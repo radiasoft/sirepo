@@ -93,13 +93,11 @@ def _apply_bevel(g_id, **kwargs):
         + numpy.array(dirs.heightDir) * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
     )
 
-    # args are object id, point in plane, plane normal - returns array of new ids
-    return radia.ObjCutMag(
+    return _apply_cut(
         g_id,
-        (_corner_for_axes(e, **dirs, **kwargs) + w_offset).tolist(),
-        plane.tolist(),
-        "Frame->Lab",
-    )[0]
+        cutPoint=(_corner_for_axes(e, **dirs, **kwargs) + w_offset).tolist(),
+        cutPlane=plane.tolist(),
+    )
 
 
 def _apply_clone(g_id, xform):
@@ -122,6 +120,18 @@ def _apply_clone(g_id, xform):
     if xform.alternateFields != "0":
         total_xform = radia.TrfCmbL(total_xform, radia.TrfInv())
     radia.TrfMlt(g_id, total_xform, xform.numCopies + 1)
+
+
+def _apply_cut(g_id, **kwargs):
+    d = PKDict(kwargs)
+
+    # args are object id, point in plane, plane normal - returns array of new ids
+    return radia.ObjCutMag(
+        g_id,
+        d.cutPoint,
+        d.cutPlane,
+        "Frame->Lab",
+    )[0]
 
 
 def _apply_fillet(g_id, **kwargs):
@@ -164,7 +174,7 @@ def _apply_material(g_id, **kwargs):
 
 
 def _apply_modification(g_id, **kwargs):
-    return PKDict(objectBevel=_apply_bevel, objectFillet=_apply_fillet,)[
+    return PKDict(objectBevel=_apply_bevel, objectCut=_apply_cut, objectFillet=_apply_fillet,)[
         kwargs.get("type")
     ](g_id, **kwargs)
 
