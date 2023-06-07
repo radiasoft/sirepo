@@ -140,7 +140,7 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def sim_frame_fieldDistributionAnimation(frame_args):
-    r = _get_field_distribution(frame_args.sim_in)
+    r = _get_field_distribution(frame_args.run_dir, frame_args.sim_in)
     d = np.abs(r[int(frame_args.frameIndex), 0, :, :])
     s = d.shape[0]
     return PKDict(
@@ -190,7 +190,9 @@ def sim_frame_particleAnimation(frame_args):
         )
 
     n = frame_args.sim_in.models.electronBeam.npart
-    d = np.fromfile(_PARTICLE_OUTPUT_FILENAME, dtype=np.float64)
+    d = np.fromfile(
+        str(frame_args.run_dir.join(_PARTICLE_OUTPUT_FILENAME)), dtype=np.float64
+    )
     b = d.reshape(
         int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
         len(SCHEMA.enum.ParticleColumn),
@@ -257,14 +259,20 @@ def _generate_parameters_file(data):
 
 def _genesis_success_exit(run_dir):
     # Genesis exits with a 0 status regardless of whether it succeeded or failed
-    # Assume success if _OUTPUT_FILENAME exists
-    return run_dir.join(_OUTPUT_FILENAME).exists()
+    # Assume success if output files exists
+    return (
+        run_dir.join(_OUTPUT_FILENAME).exists()
+        and run_dir.join(_PARTICLE_OUTPUT_FILENAME).exists()
+        and run_dir.join(_PARTICLE_OUTPUT_FILENAME).size() > 0
+    )
 
 
-def _get_field_distribution(data):
+def _get_field_distribution(run_dir, data):
     n = 1  # TODO(e-carlin): Will be different for time dependent
     p = data.models.mesh.ncar
-    d = np.fromfile(_FIELD_DISTRIBUTION_OUTPUT_FILENAME, dtype=np.float64)
+    d = np.fromfile(
+        str(run_dir.join(_FIELD_DISTRIBUTION_OUTPUT_FILENAME)), dtype=np.float64
+    )
     # Divide by 2 to combine real and imaginary parts which are written separately
     s = int(d.shape[0] / (n * p * p) / 2)
     d = d.reshape(s, n, 2, p, p)
@@ -281,7 +289,7 @@ def _get_lattice_and_slice_data(run_dir):
     f = run_dir.join(_LATTICE_DATA_FILENAME)
     if f.exists():
         return np.load(str(f)), np.load(str(run_dir.join(_SLICE_DATA_FILENAME)))
-    o = pkio.read_text(_OUTPUT_FILENAME)
+    o = pkio.read_text(run_dir.join(_OUTPUT_FILENAME))
     return (
         _reshape_and_persist(
             np.fromstring(_LATTICE_RE.search(o)[1], sep="\t"),

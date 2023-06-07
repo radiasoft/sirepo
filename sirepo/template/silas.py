@@ -300,16 +300,14 @@ def _generate_crystal(crystal):
                 B={crystal.B},
                 C={crystal.C},
                 D={crystal.D},
-                population_inversion=PKDict(
-                    n_cells={crystal.inversion_n_cells},
-                    mesh_extent={crystal.inversion_mesh_extent},
-                    crystal_alpha={crystal.crystal_alpha},
-                    pump_waist={crystal.pump_waist},
-                    pump_wavelength={crystal.pump_wavelength},
-                    pump_gaussian_order={crystal.pump_gaussian_order},
-                    pump_energy={crystal.pump_energy},
-                    pump_type="{crystal.pump_type}",
-                ),
+                pop_inversion_n_cells={crystal.inversion_n_cells},
+                pop_inversion_mesh_extent={crystal.inversion_mesh_extent},
+                pop_inversion_crystal_alpha={crystal.crystal_alpha},
+                pop_inversion_pump_waist={crystal.pump_waist},
+                pop_inversion_pump_wavelength={crystal.pump_wavelength},
+                pop_inversion_pump_gaussian_order={crystal.pump_gaussian_order},
+                pop_inversion_pump_energy={crystal.pump_energy},
+                pop_inversion_pump_type="{crystal.pump_type}",
             ),
         ),
         ["{crystal.propagationType}", {crystal.calc_gain == "1"}, {crystal.radial_n2 == "1"}],
@@ -390,12 +388,12 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
     def _is_longitudinal_plot(plot_type):
         return "longitudinal" in plot_type
 
-    def _label(plot_type):
+    def _label(plot_type, slice_index):
         if plot_type == "longitudinal_intensity":
             return "Intensity"
         if plot_type == "longitudinal_photons":
             return "Total Number of Photons"
-        return "Excited States"
+        return _title(plot_type, slice_index)
 
     def _nslice(element, file):
         if _is_crystal(element):
@@ -403,9 +401,9 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
         return len(file)
 
     def _title(plot_type, slice_index):
-        if plot_type in ("total_intensity", "total_phase", "excited_states"):
+        if plot_type in ("total_intensity", "total_phase"):
             return plot_type.replace("_", " ").title()
-        return plot_type.capitalize() + " Slice #" + str(slice_index + 1)
+        return plot_type.replace("_", " ").title() + " Slice #" + str(slice_index + 1)
 
     def _y_value(element, index, file, cell_volume):
         if _is_crystal(element):
@@ -430,7 +428,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
                 [
                     PKDict(
                         points=y,
-                        label=_label(plot_type),
+                        label=_label(plot_type, slice_index),
                     ),
                 ],
                 PKDict(),
