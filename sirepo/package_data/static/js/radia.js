@@ -206,6 +206,8 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         return self.selectedObject;
     };
 
+    self.isLinearPath = p => p.type === 'axisPath' || p.type === 'linePath';
+
     // In order to associate VTK objects in the viewer with Radia objects, we need a mapping between them.
     // When we create objects on the client side we don't yet know the Radia id so we cannot use it directly.
     // Instead, generate an id here and map it when the Radia object is created. A random string is good enough
@@ -1471,9 +1473,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 return vals.map(v => utilities.roundToPlaces(v, 4));
             };
 
-            $scope.isLine = p => p.type === 'linePath' || p.type === 'axisPath';
-
-            $scope.linePaths =  () => (($scope.model || {}).paths || []).filter($scope.isLine);
+            $scope.linePaths =  () => (($scope.model || {}).paths || []).filter(radiaService.isLinearPath);
 
             function updateTable() {
                 appState.models.fieldIntegralReport.lastCalculated = Date.now();
@@ -1740,7 +1740,7 @@ SIREPO.app.directive('multipleModelArray', function(appState, panelState, radiaS
     };
 });
 
-SIREPO.app.directive('optimizibleModel', function() {
+SIREPO.app.directive('optimizableModel', function() {
     return {
         restrict: 'A',
         scope: {
@@ -1779,7 +1779,7 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
             </form>
         `,
         controller: function($scope, $element) {
-            const OPTIMIZIBLE_TYPES = ['Float', 'FloatArray'];
+            const OPTIMIZABLE_TYPES = ['Float', 'FloatArray'];
 
             $scope.appState = appState;
             $scope.form = angular.element($($element).find('form').eq(0));
@@ -1818,7 +1818,7 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
                 const optFields = Object.keys(info).filter(
                     x => {
                         const t = info[x][SIREPO.INFO_INDEX_TYPE]
-                        return OPTIMIZIBLE_TYPES.includes(t);
+                        return OPTIMIZABLE_TYPES.includes(t);
                     }
                 );
                 for (const o of radiaService.getObjects()) {
@@ -3649,16 +3649,18 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
     buildTriangulationLevelDelegate();
 });
 
-SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, radiaService, $scope) {
+SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, radiaService, utilities, $scope) {
 
-    const OPTIMIZIBLE_TYPES = ['Float', 'FloatArray'];
+    const OPTIMIZABLE_TYPES = ['Float', 'FloatArray'];
     $scope.watchFields = [
         [
-            'optimizer.objective.type',
+            'optimizer.objective',
+            'quality.fieldPath', 'quality.useFieldPath',
         ],
         updateEditor,
     ];
-    $scope.optimizibleObjects = {};
+    $scope.objectiveFunctionUpdaters = {};
+    $scope.optimizableObjects = {};
 
     function addField(modelName, fieldName) {
 
@@ -3674,7 +3676,7 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
         function optFieldsOfModel(modelName) {
             const info = appState.modelInfo(modelName);
             return Object.keys(info).filter(
-                x => OPTIMIZIBLE_TYPES.includes(info[x][SIREPO.INFO_INDEX_TYPE])
+                x => OPTIMIZABLE_TYPES.includes(info[x][SIREPO.INFO_INDEX_TYPE])
             );
         }
 
@@ -3690,6 +3692,9 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
     function getObjectFields() {
 
         function objectOptFields(o, key) {
+            if (! o.type) {
+                return {};
+            }
             const fields = {};
             fields[key] = {};
             const m = o.type;
@@ -3749,14 +3754,53 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
     }
 
     function updateEditor() {
+        updateObjectiveFunction(appState.models[$scope.modelName].objective);
+    }
 
+    function updateObjectiveFunction(fn) {
+        const fns = appState.enumVals('ObjectiveFunction');
+        if (! fn) {
+            return;
+        }
+        for (const f of $scope.$parent.advancedFields) {
+            const md = appState.parseModelField(f);
+            if (! md || ! fns.includes(md[0])) {
+                continue;
+            }
+            panelState.showField(md[0], md[1], md[0] === fn);
+        }
+        $scope[`update${SirepoUtils.capitalize(fn)}`](appState.models[fn]);
+    }
+
+    $scope.updateIntegral = fn => {};
+
+    $scope.updateNone = fn => {};
+
+    $scope.updateQuality = fn => {
+
+        const pathFields = ['begin', 'end'];
+        const useFieldPath = fn.useFieldPath === '1' &&
+            (appState.models.fieldPaths.paths || []).filter(radiaService.isLinearPath).length;
+        pathFields.forEach(f => {
+            panelState.enableField(fn.type, f, ! useFieldPath);
+        });
+        panelState.showField(fn.type, 'fieldPaths', useFieldPath);
+        const currentPath = fn.fieldPath;
+        if (! currentPath) {
+            return;
+        }
+        if (useFieldPath) {
+            pathFields.forEach(f => {
+                fn[f] = currentPath[f];
+            });
+        }
     }
 
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];
-        srdbg('m', $scope.modelData);
-        $scope.optimizibleObjects = getObjectFields();
-        srdbg('opt oojs', $scope.optimizibleObjects);
+        $scope.optimizableObjects = getObjectFields();
+        srdbg('opt oojs', $scope.optimizableObjects);
+        updateEditor();
     };
 
     $scope.$on(`${$scope.modelName}.changed`, () => {});

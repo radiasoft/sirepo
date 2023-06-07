@@ -327,7 +327,8 @@
             ["objectFillet", "Fillet"]
         ],
         "ObjectiveFunction": [
-            ["none", "none"],
+            ["none", "None"],
+            ["integral", "Field Integral"],
             ["quality", "Field Quality"]
         ],
         "ObjectType": [
@@ -909,13 +910,14 @@
             "type": ["_", "ObjectCutType", "objectFillet"]
         },
         "objectiveFunction": {
-            "type": ["_", "ObjectiveFunction", "quality"]
+            "type": ["_", "ObjectiveFunction", "none"]
         },
         "quality": {
             "_super": ["_", "model", "objectiveFunction"],
             "begin": ["Start [mm]", "FloatArray", [-10.0, 0, 0], "", ["x", "y", "z"]],
             "deviation": ["Deviation [mm]", "FloatArray", [0, 1.0, 0], "", ["∂x", "∂y", "∂z"]],
             "end": ["End [mm]", "FloatArray", [10.0, 0, 0], "", ["x", "y", "z"]],
+            "fieldPaths": ["Path", "FieldPaths", []],
             "type": ["Objective Function", "ObjectiveFunction", "quality"],
             "useFieldPath": ["Use Field Path", "Boolean", "0"]
         },
@@ -931,7 +933,7 @@
             "continuousFieldSteps": ["Continuous Field Divisions", "Integer", 20, "Number of times to subdivide non-gridded fields, ex. Current or Voltage"],
             "fields": ["Inputs", "MultipleModelArray", [], "", ["optimizerField" , "objectOptimizerField"]],
             "initialSteps": ["Initial Simulation Steps", "Integer", 500],
-            "objective": ["Objective Function", "Objective Function", "quality"],
+            "objective": ["Objective Function", "ObjectiveFunction", "quality"],
             "optimizerSteps": ["Optimizer Steps Between Tolerance Checks", "Integer", 250],
             "timeLimit": ["Time Limit Per Run (s)", "Integer", 60],
             "tolerance": ["Tolerance", "Float", 0.001]
@@ -1526,6 +1528,7 @@
             "basic": [
                 "objective",
                 "quality.useFieldPath",
+                "quality.fieldPaths",
                 "quality.begin",
                 "quality.end",
                 "quality.deviation"
