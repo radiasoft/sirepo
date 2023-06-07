@@ -223,6 +223,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 model.segmentationCylPoint = [0, 0, 0]
             if not model.get("segmentationCylRadius"):
                 model.segmentationCylRadius = 5.0
+            if not model.get("segmentationCylUseObjectCenter"):
+                model.segmentationCylUseObjectCenter = "0"
+
 
         def _fixup_terminations(model):
             for t in filter(
