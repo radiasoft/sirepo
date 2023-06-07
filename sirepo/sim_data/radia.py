@@ -226,7 +226,6 @@ class SimData(sirepo.sim_data.SimDataBase):
             if not model.get("segmentationCylUseObjectCenter"):
                 model.segmentationCylUseObjectCenter = "0"
 
-
         def _fixup_terminations(model):
             for t in filter(
                 lambda x: x,

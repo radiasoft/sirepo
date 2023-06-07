@@ -174,9 +174,11 @@ def _apply_material(g_id, **kwargs):
 
 
 def _apply_modification(g_id, **kwargs):
-    return PKDict(objectBevel=_apply_bevel, objectCut=_apply_cut, objectFillet=_apply_fillet,)[
-        kwargs.get("type")
-    ](g_id, **kwargs)
+    return PKDict(
+        objectBevel=_apply_bevel,
+        objectCut=_apply_cut,
+        objectFillet=_apply_fillet,
+    )[kwargs.get("type")](g_id, **kwargs)
 
 
 def _apply_rotation(g_id, xform):
