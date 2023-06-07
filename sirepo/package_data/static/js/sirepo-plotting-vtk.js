@@ -2529,10 +2529,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     replot();
                 });
 
-                $scope.$on('cancelChanges', function(e, name) {
-                    refresh();
-                });
-
                 select('svg').attr('height', plotting.initialHeight($scope));
 
                 $.each(axes, function(dim, axis) {
@@ -2599,6 +2595,7 @@ SIREPO.app.directive('objectTable', function(appState) {
           <div class="panel panel-info">
             <div class="panel-heading"><span class="sr-panel-heading">Objects</span></div>
             <div class="panel-body">
+            <form name="form">
               <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
                 <thead></thead>
                   <tbody>
@@ -2636,9 +2633,12 @@ SIREPO.app.directive('objectTable', function(appState) {
                 </table>
             </div>
           </div>
+          <div data-buttons="" data-model-name="modelName" data-fields="fields"></div>
+          </form>
         `,
         controller: function($scope) {
             $scope.expanded = {};
+            $scope.fields = ['objects'];
 
             const isInGroup = $scope.source.isInGroup;
             const getGroup = $scope.source.getGroup;

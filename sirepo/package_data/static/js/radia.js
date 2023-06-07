@@ -170,7 +170,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         // if object was in a group, remove from that group
         removeFromGroup(o);
         appState.models.geometryReport.objects.splice(i, 1);
-        self.saveGeometry(true, false);
     };
 
     self.getAxisIndices = function() {
@@ -351,7 +350,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     return self;
 });
 
-SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $scope) {
+SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $rootScope, $scope) {
     //TODO(mvk): a lot of this is specific to freehand magnets and should be moved to a directive
 
     let self = this;
@@ -463,8 +462,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.deleteObject = o => {
-        deleteShapesForObject(o);
         radiaService.deleteObject(o);
+        loadObjectViews();
     };
 
     self.dipoleTitle = () => {
@@ -791,10 +790,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
     }
 
-    function deleteShapesForObject(o) {
-        self.views.splice(indexOfViews(self.viewsForObject(o)), 1);
-    }
-
     function getDescendents(group) {
         let d = [];
         for (const m of (group.members || [])) {
@@ -840,11 +835,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function loadObjectViews() {
         self.views = [];
+        self.shapes = [];
         if (! self.showDesigner()) {
             return;
         }
         appState.models.geometryReport.objects.forEach(addViewsForObject);
         addBeamAxis();
+        $rootScope.$broadcast('shapes.loaded');
     }
 
     function newObjectName(o) {
@@ -878,6 +875,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         appState.models.geometryReport.objects = [];
     }
     loadObjectViews();
+
+    $scope.$on('cancelChanges', function(e, name) {
+        if (name === 'geometryReport') {
+            loadObjectViews();
+        }
+    });
 
     $scope.$on('modelChanged', function(e, modelName) {
 
@@ -3278,7 +3281,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     function updateShapes() {
         radiaService.saveGeometry(true, false, () => {
             ctl.loadObjectViews();
-            $rootScope.$broadcast('shapes.loaded');
         });
     }
 
