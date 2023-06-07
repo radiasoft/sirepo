@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -23,7 +22,6 @@ import re
 import sirepo.job
 import sirepo.mpi
 import sirepo.sim_data
-import sirepo.uri_router
 import sirepo.util
 import srwl_bl
 import srwlib
@@ -650,9 +648,7 @@ def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
     sim.sourceType = new_simulation_data.sourceType
     if new_simulation_data.get("sourceSimType") == "radia":
         _sim_from_radia(data.models, new_simulation_data)
-    if _SIM_DATA.srw_is_gaussian_source(sim):
-        data.models.initialIntensityReport.sampleFactor = 0
-    elif _SIM_DATA.srw_is_dipole_source(sim):
+    if _SIM_DATA.srw_is_dipole_source(sim):
         data.models.intensityReport.method = "2"
     elif _SIM_DATA.srw_is_arbitrary_source(sim):
         data.models.sourceIntensityReport.method = "2"
