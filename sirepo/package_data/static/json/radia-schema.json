@@ -10,62 +10,6 @@
         }
     },
     "constants": {
-        "allowedExpressionOps": {
-            "math": {
-                "title": "Math",
-                "ops": [
-                    {
-                        "label": "N$||$",
-                        "op": "abs()"
-                    },
-                    {
-                        "label": "N$cos$",
-                        "op": "cos()"
-                    },
-                    {
-                        "label": "N$cot$",
-                        "op": "cot()"
-                    },
-                    {
-                        "label": "N$csc$",
-                        "op": "csc()"
-                    },
-                    {
-                        "label": "N$exp$",
-                        "op": "exp()"
-                    },
-                    {
-                        "label": "N$pi$",
-                        "op": "pi"
-                    },
-                    {
-                        "label": "N$sec$",
-                        "op": "sec()"
-                    },
-                    {
-                        "label": "N$sin$",
-                        "op": "sin()"
-                    },
-                    {
-                        "label": "N$tan$",
-                        "op": "tan()"
-                    },
-                    {
-                        "label": "N$sqrt$",
-                        "op": "sqrt()"
-                    }
-                ]
-            },
-            "radia": {
-                "title": "Radia",
-                "ops": [
-                    {
-                        "label": "",
-                        "op": "radia.FldInt(g_id, 'inf', f_type, p1, p2)"
-                    }
-                ]
-            }
-        },
         "alignmentTools": [
             {
                 "title": "Center Horizontal",
@@ -383,7 +327,8 @@
             ["objectFillet", "Fillet"]
         ],
         "ObjectiveFunction": [
-            ["uniformity", "Field Uniformity"]
+            ["none", "none"],
+            ["quality", "Field Quality"]
         ],
         "ObjectType": [
             ["cuboid", "Cuboid"],
@@ -964,9 +909,16 @@
             "type": ["_", "ObjectCutType", "objectFillet"]
         },
         "objectiveFunction": {
-            "inputs": ["Inputs", "OptimizableModel", {}],
-            "fitVariable": ["Independent Variable", "EquationVariables", "x"],
-            "function": ["Function", "Equation", "a * x + b", "Functions limited to trig, exp, log, abs. Use 'pi' for π. Variable and parameter names limited to 1 letter"]
+            "type": ["_", "ObjectiveFunction", "quality"]
+        },
+        "quality": {
+            "_super": ["_", "model", "objectiveFunction"],
+            "begin": ["Start [mm]", "FloatArray", [-10.0, 0, 0], "", ["x", "y", "z"]],
+            "deviation": ["Deviation [mm]", "FloatArray", [0, 1.0, 0], "", ["∂x", "∂y", "∂z"]],
+            "end": ["End [mm]", "FloatArray", [10.0, 0, 0], "", ["x", "y", "z"]],
+            "fieldPaths": ["Path", "FieldPaths", []],
+            "type": ["Objective Function", "ObjectiveFunction", "quality"],
+            "useFieldPath": ["Use Field Path", "Boolean", "0"]
         },
         "objectOptimizerField": {
             "_super": ["_", "model", "optimizerField"],
@@ -980,7 +932,7 @@
             "continuousFieldSteps": ["Continuous Field Divisions", "Integer", 20, "Number of times to subdivide non-gridded fields, ex. Current or Voltage"],
             "fields": ["Inputs", "MultipleModelArray", [], "", ["optimizerField" , "objectOptimizerField"]],
             "initialSteps": ["Initial Simulation Steps", "Integer", 500],
-            "objective": ["Objective Function", "model.objectiveFunction", {}],
+            "objective": ["Objective Function", "Objective Function", "quality"],
             "optimizerSteps": ["Optimizer Steps Between Tolerance Checks", "Integer", 250],
             "timeLimit": ["Time Limit Per Run (s)", "Integer", 60],
             "tolerance": ["Tolerance", "Float", 0.001]
@@ -1573,8 +1525,12 @@
         "optimizer": {
             "title": "Optimization",
             "basic": [
-                "optimizer.objective.function",
-                "optimizer.objective.inputs"
+                "objective",
+                "quality.useFieldPath",
+                "quality.fieldPaths",
+                "quality.begin",
+                "quality.end",
+                "quality.deviation"
             ],
             "advanced": [
                 "tolerance",
@@ -1832,6 +1788,15 @@
                 ["Termination", [
                     "terminations"
                 ]]
+            ]
+        },
+        "quality": {
+            "title": "Field Quality",
+            "advanced": [],
+            "basic": [
+                "begin",
+                "end",
+                "deviation"
             ]
         }
     }
