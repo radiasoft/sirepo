@@ -778,7 +778,13 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 for (var xi = 0; xi < xSize; ++xi) {
                     var v = heatmap[yi][xi];
                     if (scaleFunction) {
+                        const old = v;
                         v = scaleFunction(v);
+                        if (! v && plotRange.min === 0 && old) {
+                            // special case for 0..n range with log scale
+                            // scale log(1) to a nonzero value
+                            v = 0.5;
+                        }
                     }
                     var c = d3.rgb(colorScale(v));
                     img.data[++p] = c.r;
