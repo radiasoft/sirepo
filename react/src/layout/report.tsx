@@ -454,6 +454,10 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                                 <span>{'Simulation Completed'}</span>
                                 <span>{stopwatch.formatElapsedTime()}</span>
                                 <div>{children}</div>
+                                { simState.alert && <div className="card card-body bg-light">
+                                    <pre>{simState.alert}</pre>
+                                  </div>
+                                }
                                 {startSimulationButton}
                             </Stack>
                         )
@@ -471,6 +475,9 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                             <Stack gap={2}>
                                 <span>{'Simulation Error'}</span>
                                 <span>{stopwatch.formatElapsedTime()}</span>
+                                <div className="card card-body bg-light">
+                                    <pre>{simState.alert || simState.error}</pre>
+                                </div>
                                 <div>{children}</div>
                                 {startSimulationButton}
                             </Stack>
