@@ -413,6 +413,17 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             return y
         return numpy.sum(y)
 
+    def _z_label(plot_type):
+        return plot_type
+        # return PKDict(
+        #     total_phase="",
+        #     total_intensity="",
+        #     intensity="",
+        #     phase="",
+        #     excited_states="",
+
+        # )[plot_type]
+
     with h5py.File(run_dir.join(_fname(element).format(element_index)), "r") as f:
         if _is_longitudinal_plot(plot_type):
             x = []
@@ -442,6 +453,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             y_range=[r.y[0], r.y[1], len(z[0])],
             x_label="Horizontal Position [m]",
             y_label="Vertical Position [m]",
+            z_label=_z_label(plot_type),
             z_matrix=z,
         )
 
