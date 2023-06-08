@@ -323,6 +323,7 @@
             ["custom", "Custom"]
         ],
         "ObjectCutType": [
+            ["objectCut", "Plane"],
             ["objectBevel", "Bevel"],
             ["objectFillet", "Fillet"]
         ],
@@ -825,7 +826,7 @@
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "modifications": ["", "MultipleModelArray", [], "", ["objectBevel", "objectFillet"]],
+            "modifications": ["", "ModelArrayTable", [], "", ["objectCut", "objectBevel", "objectFillet"]],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B Curve from File", "HBFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns (H, B in Tesla)"],
@@ -890,17 +891,18 @@
             "_super": ["_", "model", "objectCut"],
             "amountVert": ["Vertical Cut [mm]", "Float", 1.0],
             "amountHoriz": ["Horizontal Cut [mm]", "Float", 1.0],
+            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "cutDir": ["", "Array", [0, 0, 1]],
+            "cutRemoval": ["Removal Side", "CutRemoval", "1", "Determines which side of the cut plane to remove"],
             "edge": ["Corner", "BevelEdge", "0", "Corner of cross-sectional footprint to cut"],
             "heightDir": ["", "Array", [0, 1, 0]],
             "type": ["_", "ObjectCutType", "objectBevel"],
             "widthDir": ["", "Array", [1, 0, 0]]
         },
         "objectCut": {
-            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
-            "cutRemoval": ["Removal Side", "CutRemoval", "1", "Determines which side of the cut plane to remove"],
+            "cutPlane": ["Cut Plane", "FloatArray", [0, 0, 1], "Normal of the cut plane", ["x", "y", "z"]],
             "cutPoint": ["Cut Point", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
-            "type": ["_", "ObjectCutType", "objectBevel"]
+            "type": ["_", "ObjectCutType", "objectCut"]
         },
         "objectFillet": {
             "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
@@ -1476,6 +1478,17 @@
                 "amountHoriz",
                 "amountVert",
                 "cutRemoval"
+            ]
+        },
+        "objectCut": {
+            "title": "Plane",
+            "basic": [
+                "cutPlane",
+                "cutPoint"
+            ],
+            "advanced": [
+                "cutPlane",
+                "cutPoint"
             ]
         },
         "objectFillet": {

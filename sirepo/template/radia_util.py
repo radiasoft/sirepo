@@ -93,11 +93,21 @@ def _apply_bevel(g_id, **kwargs):
         + numpy.array(dirs.heightDir) * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
     )
 
+    return _apply_cut(
+        g_id,
+        cutPoint=(_corner_for_axes(e, **dirs, **kwargs) + w_offset).tolist(),
+        cutPlane=plane.tolist(),
+    )
+
+
+def _apply_cut(g_id, **kwargs):
+    d = PKDict(kwargs)
+
     # args are object id, point in plane, plane normal - returns array of new ids
     return radia.ObjCutMag(
         g_id,
-        (_corner_for_axes(e, **dirs, **kwargs) + w_offset).tolist(),
-        plane.tolist(),
+        d.cutPoint,
+        d.cutPlane,
         "Frame->Lab",
     )[0]
 
@@ -275,6 +285,7 @@ def _radia_material(material_type, magnetization_magnitude, h_m_curve):
 
 
 _MODS = PKDict(
+    objectCut=_apply_cut,
     objectBevel=_apply_bevel,
     objectFillet=_apply_fillet,
     rotate=_apply_rotation,
