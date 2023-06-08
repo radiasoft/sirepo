@@ -38,7 +38,7 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="ObjectType" class="col-sm-7">
             <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="model[field]" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
         </div>
-        <div data-ng-switch-when="ObjectOptimizerField" data-ng-class="fieldClass"  class="col-sm-12">
+        <div data-ng-switch-when="ObjectOptimizerField" class="col-sm-12">
           <div data-object-optimizer-field="" data-model-name="modelName" data-model="model" data-field="model[field]"></div>
         </div>
         <div data-ng-switch-when="MultipleModelArray" class="col-sm-12">
@@ -1791,7 +1791,8 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
             </div>
         `,
         controller: function($scope) {
-            const OPTIMIZABLE_TYPES = ['Float', 'FloatArray'];
+            //const OPTIMIZABLE_TYPES = ['Float', 'FloatArray'];
+            const OPTIMIZABLE_TYPES = ['Float'];
 
             function getObjectFields() {
 
@@ -1828,7 +1829,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                         }
                         fields[key].modifications.push(objectOptFields(mod, mod.type));
                     }
-                    if ($.isEmptyObject(fields[key])) {
+                    if ($.isEmptyObject(fields[key].fields)) {
                         delete fields[key];
                     }
                 }
@@ -1869,6 +1870,18 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
 
             $scope.fieldsForObject = name => {
                 return $scope.optimizableObjects[name].fields;
+            }
+
+            function schemaVal(modelName, fieldName, index) {
+                return appState.modelInfo(modelName)[fieldName][index];
+            }
+
+            function maxValForField(modelName, fieldName) {
+                return schemaVal(modelName, fieldName, SIREPO.INFO_INDEX_MAX);
+            }
+
+            function minValForField(modelName, fieldName) {
+                return schemaVal(modelName, fieldName, SIREPO.INFO_INDEX_MIN);
             }
 
             $scope.optimizableObjects = getObjectFields();
