@@ -113,6 +113,7 @@
             "length": ["Length [cm]", "Float", 2],
             "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
             "radial_n2": ["Transverse Variation of Thermal Lensing", "Boolean", "0"],
+            "include_thermal": ["Include Thermal Lensing", "Boolean", "0"],
             "calc_gain": ["Include Gain Calculations", "Boolean", "0"],
             "inversion_n_cells": ["Inversion Mesh Cell Count", "Integer", 64],
             "inversion_mesh_extent": ["Inversion Mesh Extent [m]", "Float", 0.01],
@@ -218,6 +219,7 @@
                     "C",
                     "D",
                     "l_scale",
+                    "include_thermal",
                     "radial_n2",
                     "calc_gain"
                 ]],
