@@ -38,8 +38,8 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="ObjectType" class="col-sm-7">
             <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="model[field]" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
         </div>
-        <div data-ng-switch-when="OptimizableModel" data-ng-class="fieldClass">
-          <div data-optimizable-model="" data-model-name="modelName" data-model="model" data-field="model[field]"></div>
+        <div data-ng-switch-when="ObjectOptimizerField" data-ng-class="fieldClass"  class="col-sm-12">
+          <div data-object-optimizer-field="" data-model-name="modelName" data-model="model" data-field="model[field]"></div>
         </div>
         <div data-ng-switch-when="MultipleModelArray" class="col-sm-12">
           <div data-multiple-model-array="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName" data-item-class="Modification" data-models="info[4]"></div>
@@ -1743,7 +1743,7 @@ SIREPO.app.directive('multipleModelArray', function(appState, panelState, radiaS
     };
 });
 
-SIREPO.app.directive('optimizableModel', function() {
+SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radiaService) {
     return {
         restrict: 'A',
         scope: {
@@ -1752,13 +1752,127 @@ SIREPO.app.directive('optimizableModel', function() {
             modelName: '=',
         },
         template: `
-          <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
+            <div>
+              <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
+              <table class="table table-striped table-condensed">
+                <thead>
+                  <th>Object</th>
+                  <th>Field</th>
+                  <th>Min</th>
+                  <th>Max</th>
+                </thead>
+                <tbody>
+                <tr data-ng-repeat="item in field track by $index">
+                  <td style="display: inline-flex; flex-wrap: wrap;">
+                    {{ item.name }}
+                  </td>
+                  <td>
+                    <select class="form-control" data-ng-model="item.field" data-ng-options="f for (f, o) in fieldsForObject(item.name)">
+                      <option value="" disabled selected>select field</option>
+                    </select>
+                  </td>
+                  <td>
+                    <input data-string-to-number="" data-ng-model="item.min" class="form-control" style="text-align: right" data-lpignore="true" required />
+                  </td>
+                  <td>
+                    <input data-string-to-number="" data-ng-model="item.max" class="form-control" style="text-align: right" data-lpignore="true" required />
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="100%">
+                    <select class="form-control" data-ng-model="selectedItem" data-ng-options="name for (name, o) in optimizableObjects" data-ng-change="addItem()">
+                      <option value="" disabled selected>select object</option>
+                    </select>
+                  </td>
+               </tr>
+               </tbody>
+              </table>
+            </div>
+            </div>
         `,
         controller: function($scope) {
-            $scope.isExpanded = false;
-            $scope.toggleExpand = () => {
-                $scope.isExpanded = ! $scope.isExpanded;
+            const OPTIMIZABLE_TYPES = ['Float', 'FloatArray'];
+
+            function getObjectFields() {
+
+                function objectOptFields(o, key) {
+                    if (! o.type) {
+                        return {};
+                    }
+                    const obj = {};
+                    obj[key] = {
+                        name: key,
+                        fields: {},
+                    };
+                    const m = o.type;
+                    for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(m).has(x))) {
+                        const id = `${m}.${f}`;
+                        obj[key].fields[f] = appState.setModelDefaults(
+                            {
+                                field: appState.optFieldName(m, f),
+                                id: id,
+                            },
+                            'optimizerField'
+                        );
+                    }
+                    return obj;
+                }
+
+                let fields = {};
+                for (const o of radiaService.getObjects()) {
+                    const key = o.name;
+                    fields = {...fields, ...objectOptFields(o, key)};
+                    for (const mod of (o.modifications || [])) {
+                        if (! fields[key].modifications) {
+                            fields[key].modifications = [];
+                        }
+                        fields[key].modifications.push(objectOptFields(mod, mod.type));
+                    }
+                    if ($.isEmptyObject(fields[key])) {
+                        delete fields[key];
+                    }
+                }
+                return fields;
+            }
+
+            function optFieldsOfModelAndSupers(modelName) {
+
+                function optFieldsOfModel(modelName) {
+                    const info = appState.modelInfo(modelName);
+                    return Object.keys(info).filter(
+                        x => OPTIMIZABLE_TYPES.includes(info[x][SIREPO.INFO_INDEX_TYPE])
+                    );
+                }
+
+                const s = new Set();
+                for (const m of [modelName, ...appState.superClasses(modelName)]) {
+                    for (const f of optFieldsOfModel(m)) {
+                        s.add(f);
+                    }
+                }
+                return s;
+            }
+
+            $scope.addItem = () => {
+                if (! $scope.selectedItem) {
+                    return;
+                }
+                const m = {
+                    name: $scope.selectedItem.name,
+                    field: null,
+                    min: -1,
+                    max: 1,
+                }
+                $scope.field.push(m);
+                $scope.selectedItem = null;
             };
+
+            $scope.fieldsForObject = name => {
+                return $scope.optimizableObjects[name].fields;
+            }
+
+            $scope.optimizableObjects = getObjectFields();
+            srdbg('opt objs', $scope.optimizableObjects);
         },
     };
 });
@@ -3801,7 +3915,7 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];
         $scope.optimizableObjects = getObjectFields();
-        srdbg('opt oojs', $scope.optimizableObjects);
+        //srdbg('opt oojs', $scope.optimizableObjects);
         updateEditor();
     };
 

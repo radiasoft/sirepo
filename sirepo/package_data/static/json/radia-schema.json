@@ -923,17 +923,12 @@
             "type": ["Objective Function", "ObjectiveFunction", "quality"],
             "useFieldPath": ["Use Field Path", "Boolean", "0"]
         },
-        "objectOptimizerField": {
-            "_super": ["_", "model", "optimizerField"],
-            "object": ["Object", ""],
-            "type": ["_", "OptimizerFieldType", "objectOptimizerField"]
-        },
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
         "optimizer": {
             "continuousFieldSteps": ["Continuous Field Divisions", "Integer", 20, "Number of times to subdivide non-gridded fields, ex. Current or Voltage"],
-            "fields": ["Inputs", "MultipleModelArray", [], "", ["optimizerField" , "objectOptimizerField"]],
+            "fields": ["Inputs", "ObjectOptimizerField", []],
             "initialSteps": ["Initial Simulation Steps", "Integer", 500],
             "objective": ["Objective Function", "ObjectiveFunction", "quality"],
             "optimizerSteps": ["Optimizer Steps Between Tolerance Checks", "Integer", 250],
@@ -1544,7 +1539,8 @@
                 "quality.fieldPaths",
                 "quality.begin",
                 "quality.end",
-                "quality.deviation"
+                "quality.deviation",
+                "fields"
             ],
             "advanced": [
                 "tolerance",
