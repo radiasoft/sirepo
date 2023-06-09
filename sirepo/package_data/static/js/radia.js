@@ -1760,6 +1760,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                   <th>Field</th>
                   <th>Min</th>
                   <th>Max</th>
+                  <th></th>
                 </thead>
                 <tbody>
                 <tr data-ng-repeat="item in field track by $index">
@@ -1773,6 +1774,13 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                   </td>
                   <td data-ng-repeat="attr in ['min', 'max']">
                     <input data-ng-if="item.field" data-string-to-number="" data-min="attrForField(item.field, attr)" data-ng-model="item[attr]" class="form-control" style="text-align: right" data-lpignore="true" required />
+                  </td>
+                  <td>
+                    <div class="sr-button-bar-parent">
+                      <div class="sr-button-bar">
+                        <button data-ng-click="deleteItem($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                      </div>                      
+                    </div>
                   </td>
                 </tr>
                 <tr>
@@ -1804,15 +1812,9 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     };
                     const m = o.type;
                     for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(m).has(x))) {
-                        const id = `${m}.${f}`;
-                        obj[key].fields[f] = appState.setModelDefaults(
-                            {
-                                field: appState.optFieldName(m, f),
-                                id: id,
-                                info: appState.modelInfo(m)[f],
-                            },
-                            'optimizerField'
-                        );
+                        obj[key].fields[f] = {
+                            id: `${m}.${f}`,
+                        };
                     }
                     return obj;
                 }
@@ -1864,6 +1866,10 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                 }
                 $scope.field.push(m);
                 $scope.selectedItem = null;
+            };
+
+            $scope.deleteItem = index => {
+                $scope.field.splice(index, 1);
             };
 
             $scope.attrForField = (field, attr) => {
