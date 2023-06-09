@@ -943,8 +943,14 @@ def write_parameters(data, run_dir, is_parallel):
         ),
     )
     for b in _SIM_DATA.lib_file_basenames(data):
-        if re.search(r"SCRIPT-commandFile", b):
-            os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
+        if not b.startswith("SCRIPT-commandFile"):
+            continue
+        f = run_dir.join(b)
+        if f.check(link=True):
+            x = f.read_binary()
+            f.remove()
+            f.write_binary(x)
+        f.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
 
 class _Generate(sirepo.lib.GenerateBase):

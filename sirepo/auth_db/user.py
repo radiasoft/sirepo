@@ -33,11 +33,13 @@ class UserRole(sirepo.auth_db.UserDbBase):
     def add_roles(self, roles, expiration=None):
         from sirepo import sim_data
 
-        cls = self.__class__
         u = self.logged_in_user()
         for r in roles:
             try:
-                self.new(uid=u, role=r, expiration=expiration).save()
+                # Check here, because sqlite doesn't through IntegrityErrors
+                # at the point of the new() operation.
+                if not self.has_role(r):
+                    self.new(uid=u, role=r, expiration=expiration).save()
             except sqlalchemy.exc.IntegrityError:
                 # role already exists
                 pass

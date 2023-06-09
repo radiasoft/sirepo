@@ -74,6 +74,12 @@
             ["fit", "Fit Data"],
             ["fixed", "Fixed"]
         ],
+        "PlotScale": [
+            ["linear", "Linear"],
+            ["log10", "Base-10 Logarithm"],
+            ["log", "Natural Logarithm"],
+            ["log2", "Base-2 Logarithm"]
+        ],
         "SaveFileFormat": [
             ["PID", "CST PID Format"],
             ["PIT", "CST PIT Format"],
@@ -112,10 +118,10 @@
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
-                "rshellweg.js"
+                "hellweg.js"
             ],
             "css": [
-                "rshellweg.css"
+                "hellweg.css"
             ]
         }
     },
@@ -138,21 +144,21 @@
         "source": {
             "config": {
                 "controller": "HellwegSourceController as source",
-                "templateUrl": "/static/html/rshellweg-source.html"
+                "templateUrl": "/static/html/hellweg-source.html"
             }
         },
         "lattice": {
             "route": "/lattice/:simulationId",
             "config": {
                 "controller": "HellwegLatticeController as lattice",
-                "templateUrl": "/static/html/rshellweg-lattice.html"
+                "templateUrl": "/static/html/hellweg-lattice.html"
             }
         },
         "visualization": {
             "route": "/visualization/:simulationId",
             "config": {
                 "controller": "HellwegVisualizationController as visualization",
-                "templateUrl": "/static/html/rshellweg-visualization.html"
+                "templateUrl": "/static/html/hellweg-visualization.html"
             }
         }
     },
@@ -182,6 +188,7 @@
             "verticalSize": ["Vertical Size", "Float", 0],
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
             "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "notes": ["Notes", "Text", ""]
         },
         "beamHistogramAnimation": {
@@ -359,7 +366,8 @@
                     "histogramBins",
                     "framesPerSecond",
                     "colorMap",
-                    "notes"
+                    "notes",
+                    "plotScale"
                 ]],
                 ["Plot Range", [
                     "plotRangeType",
