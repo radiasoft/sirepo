@@ -13,7 +13,6 @@ from sirepo import simulation_db
 import re
 import sirepo.const
 import sirepo.feature_config
-import sirepo.file_lock
 import sirepo.flask
 import sirepo.quest
 import sirepo.resource
