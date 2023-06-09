@@ -369,7 +369,7 @@ def migrate_guest_to_persistent_user(guest_uid, to_uid, qcall):
         to_uid (str): dest user
     """
     with user_lock(uid=guest_uid, qcall=qcall) as g:
-        with user_lock(uid=uid, qcall=qcall):
+        with user_lock(uid=to_uid, qcall=qcall):
             for p in glob.glob(
                 str(g.join("*", "*", SIMULATION_DATA_FILE)),
             ):
