@@ -1743,7 +1743,7 @@ SIREPO.app.directive('multipleModelArray', function(appState, panelState, radiaS
     };
 });
 
-SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radiaService) {
+SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radiaService, $compile, $sce) {
     return {
         restrict: 'A',
         scope: {
@@ -1771,11 +1771,8 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                       <option value="" disabled selected>select field</option>
                     </select>
                   </td>
-                  <td>
-                    <input data-string-to-number="" data-ng-model="item.min" class="form-control" style="text-align: right" data-lpignore="true" required />
-                  </td>
-                  <td>
-                    <input data-string-to-number="" data-ng-model="item.max" class="form-control" style="text-align: right" data-lpignore="true" required />
+                  <td data-ng-repeat="attr in ['min', 'max']">
+                    <input data-ng-if="item.field" data-string-to-number="" data-min="attrForField(item.field, attr)" data-ng-model="item[attr]" class="form-control" style="text-align: right" data-lpignore="true" required />
                   </td>
                 </tr>
                 <tr>
@@ -1791,7 +1788,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
             </div>
         `,
         controller: function($scope) {
-            //const OPTIMIZABLE_TYPES = ['Float', 'FloatArray'];
+            //TODO(mvk): other types such as FloatArray
             const OPTIMIZABLE_TYPES = ['Float'];
 
             function getObjectFields() {
@@ -1812,6 +1809,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                             {
                                 field: appState.optFieldName(m, f),
                                 id: id,
+                                info: appState.modelInfo(m)[f],
                             },
                             'optimizerField'
                         );
@@ -1868,20 +1866,13 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                 $scope.selectedItem = null;
             };
 
+            $scope.attrForField = (field, attr) => {
+                const i = field ? field.info : null;
+                return i ? i[SIREPO[`INFO_INDEX_${attr.toUpperCase()}`]] : null;
+            };
+
             $scope.fieldsForObject = name => {
                 return $scope.optimizableObjects[name].fields;
-            }
-
-            function schemaVal(modelName, fieldName, index) {
-                return appState.modelInfo(modelName)[fieldName][index];
-            }
-
-            function maxValForField(modelName, fieldName) {
-                return schemaVal(modelName, fieldName, SIREPO.INFO_INDEX_MAX);
-            }
-
-            function minValForField(modelName, fieldName) {
-                return schemaVal(modelName, fieldName, SIREPO.INFO_INDEX_MIN);
             }
 
             $scope.optimizableObjects = getObjectFields();
