@@ -28,13 +28,20 @@ class FileLock:
 
     def __enter__(self):
         def _unchecked_close(handle):
-            """Close lock path safely
+            """Close lock path ignoring errors
+
+            We want to ensure the loop continues, and there's
+            nothing we can do at this point so close ignoring
+            exceptions.
+
+            Args:
+               handle (IO): possibly opened file
 
             """
             if not handle:
                 return
             try:
-                os.close(f)
+                os.close(handle)
             except Exception:
                 pass
 
@@ -54,11 +61,11 @@ class FileLock:
             Return:
                 bool: True if `handle` and `self._path` are same inode
             """
-            return os.stat(handle).st_ino == os.stat(self._path).st_ino:
+            return os.stat(handle).st_ino == os.stat(self._path).st_ino
 
         for _ in range(_LOOP_COUNT):
-            f = None
             try:
+                f = None
                 f = os.open(self._path, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
                 fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 if _verify_lock_path(f):
