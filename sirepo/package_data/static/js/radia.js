@@ -1768,7 +1768,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     {{ item.name }}
                   </td>
                   <td>
-                    <select class="form-control" data-ng-model="item.field" data-ng-options="f for (f, o) in fieldsForObject(item.name)">
+                    <select class="form-control" data-ng-model="item.field" data-ng-options="f for f in fieldsForObject(item.name)">
                       <option value="" disabled selected>select field</option>
                     </select>
                   </td>
@@ -1808,13 +1808,11 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     const obj = {};
                     obj[key] = {
                         name: key,
-                        fields: {},
+                        fields: [],
                     };
                     const m = o.type;
                     for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(m).has(x))) {
-                        obj[key].fields[f] = {
-                            id: `${m}.${f}`,
-                        };
+                        obj[key].fields.push(f);
                     }
                     return obj;
                 }
@@ -1878,7 +1876,10 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
             };
 
             $scope.fieldsForObject = name => {
-                return $scope.optimizableObjects[name].fields;
+                srdbg($scope.field);
+                const f = $scope.field.filter(x => x.name === name).map(x => x.field);
+                srdbg(f, 'avail', $scope.optimizableObjects[name].fields.filter(x => ! f.includes(x)));
+                return $scope.optimizableObjects[name].fields;  //.filter(x => ! f.includes(x));
             }
 
             $scope.optimizableObjects = getObjectFields();
