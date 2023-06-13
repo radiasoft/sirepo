@@ -1,3 +1,4 @@
+import { layoutForArrayLike } from "../layout/input/array";
 import { InputLayout } from "../layout/input/input";
 import { TYPE_BASES } from "../layout/input/inputs";
 import { mapProperties } from "./object";
@@ -32,13 +33,19 @@ export type SchemaRoutesJson = {
     [key: string]: string
 }
 
+export type SchemaMiddlewareJson = {
+    type: string,
+    config: {[key: string]: any}
+}
+
 export type SchemaJson = {
     constants: {[key: string]: any},
     type: {[typeName: string]: SchemaTypeJson},
     model: SchemaModelsJson,
     view: SchemaLayoutJson[],
     route: SchemaRoutesJson,
-    reactRoute: SchemaRoutesJson
+    reactRoute: SchemaRoutesJson,
+    middleware: SchemaMiddlewareJson[]
 }
 
 export type SchemaLayout = SchemaLayoutJson;
@@ -46,6 +53,7 @@ export type SchemaLayout = SchemaLayoutJson;
 export type SchemaField<T> = {
     displayName: string,
     type: InputLayout,
+    typeName: string,
     defaultValue?: T,
     description?: string,
     shown?: string,
@@ -63,19 +71,23 @@ export type SchemaRoutes = {
     [key: string]: string
 }
 
+export type SchemaMiddleware = SchemaMiddlewareJson;
+
 export type Schema = {
     constants: {[key: string]: any},
     models: SchemaModels,
     views: SchemaLayout[],
+    types: {[key: string]: InputLayout},
     route: SchemaRoutes,
-    reactRoute: SchemaRoutes
+    reactRoute: SchemaRoutes,
+    middleware: SchemaMiddleware[]
 }
 
 export const getAppCombinedSchema = (appName: string): Promise<Schema> => {
     return new Promise<Schema>((resolve, reject) => {
         Promise.all([
             fetch(`/static/react-json/common-schema.json`),
-            fetch(`/static/react-json/${appName}-schema.json`)
+            fetch(`/static/react-json/${appName.toLocaleLowerCase()}-schema.json`)
         ]).then(([commonResp, appResp]) => {
             Promise.all([
                 commonResp.json(), 
@@ -120,7 +132,11 @@ export function mergeSchemaJson(original: SchemaJson, overrides: SchemaJson): Sc
         reactRoute: {
             ...(original.reactRoute || {}),
             ...(overrides.reactRoute || {})
-        }
+        },
+        middleware: [
+            ...(original.middleware || []),
+            ...(overrides.middleware || [])
+        ]
     }
 }
 
@@ -143,16 +159,25 @@ export function compileSchemaFromJson(schemaObj: SchemaJson): Schema {
     if(schemaObj.model) {
         let missingTypeNames = [];
 
-        models = mapProperties(schemaObj.model, (_, modelObj) => {
-            return mapProperties(modelObj, (_, field) => {
+        models = mapProperties(schemaObj.model, (modelName, modelObj) => {
+            return mapProperties(modelObj, (fieldName, field): SchemaField<unknown> => {
                 let { displayName, type: typeName, defaultValue, description, shown, min, max } = field;
+                if(!typeName) {
+                    throw new Error(`type not defined for model=${modelName} field=${fieldName}`)
+                }
                 let type = types[typeName];
                 if(!type) {
-                    missingTypeNames.push(typeName);
+                    let maybeArrayLike = layoutForArrayLike(typeName, (name) => types[name]);
+                    if(maybeArrayLike !== undefined) {
+                        types[typeName] = maybeArrayLike;
+                    } else {
+                        missingTypeNames.push(typeName);
+                    }
                 }
                 return {
                     displayName,
                     type,
+                    typeName,
                     shown,
                     defaultValue,
                     description,
@@ -172,7 +197,9 @@ export function compileSchemaFromJson(schemaObj: SchemaJson): Schema {
         constants: schemaObj.constants,
         views: schemaObj.view,
         models,
+        types,
         route: schemaObj.route,
-        reactRoute: schemaObj.reactRoute
+        reactRoute: schemaObj.reactRoute,
+        middleware: schemaObj.middleware
     }
 }
