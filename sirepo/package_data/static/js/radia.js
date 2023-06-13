@@ -1785,7 +1785,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                 </tr>
                 <tr>
                   <td colspan="100%">
-                    <select class="form-control" data-ng-model="selectedItem" data-ng-options="name for (name, o) in optimizableObjects" data-ng-change="addItem()">
+                    <select class="form-control" data-ng-model="selectedItem" data-ng-options="o.name for o in optimizableObjects" data-ng-change="addItem()">
                       <option value="" disabled selected>select object</option>
                     </select>
                   </td>
@@ -1801,37 +1801,36 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
 
             function getObjectFields() {
 
-                function objectOptFields(o, key) {
+                function objectOptFields(o) {
                     if (! o.type) {
                         return {};
                     }
                     const obj = {};
-                    obj[key] = {
-                        name: key,
+                    obj[o.name] = {
+                        name: o.name,
                         fields: [],
                     };
-                    const m = o.type;
-                    for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(m).has(x))) {
-                        obj[key].fields.push(f);
+                    for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(o.type).has(x))) {
+                        obj[o.name].fields.push(f);
                     }
                     return obj;
                 }
 
-                let fields = {};
+                let objs = {};
                 for (const o of radiaService.getObjects()) {
-                    const key = o.name;
-                    fields = {...fields, ...objectOptFields(o, key)};
+                    const name = o.name;
+                    objs = {...objs, ...objectOptFields(o, name)};
                     for (const mod of (o.modifications || [])) {
-                        if (! fields[key].modifications) {
-                            fields[key].modifications = [];
+                        if (! objs[name].modifications) {
+                            objs[name].modifications = [];
                         }
-                        fields[key].modifications.push(objectOptFields(mod, mod.type));
+                        objs[name].modifications.push(objectOptFields(mod, mod.type));
                     }
-                    if ($.isEmptyObject(fields[key].fields)) {
-                        delete fields[key];
+                    if (! objs[name].fields.length) {
+                        delete objs[name];
                     }
                 }
-                return fields;
+                return objs;
             }
 
             function optFieldsOfModelAndSupers(modelName) {
@@ -1866,24 +1865,24 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                 $scope.selectedItem = null;
             };
 
-            $scope.deleteItem = index => {
-                $scope.field.splice(index, 1);
-            };
-
             $scope.attrForField = (field, attr) => {
                 const i = field ? field.info : null;
                 return i ? i[SIREPO[`INFO_INDEX_${attr.toUpperCase()}`]] : null;
             };
 
-            $scope.fieldsForObject = name => {
-                srdbg($scope.field);
+            $scope.deleteItem = index => {
+                $scope.field.splice(index, 1);
+            };
+
+            $scope.fieldsForObject = name => $scope.optimizableObjects[name].fields;
+
+            $scope.hasUnusedFields = name => {
                 const f = $scope.field.filter(x => x.name === name).map(x => x.field);
-                srdbg(f, 'avail', $scope.optimizableObjects[name].fields.filter(x => ! f.includes(x)));
-                return $scope.optimizableObjects[name].fields;  //.filter(x => ! f.includes(x));
-            }
+                return $scope.optimizableObjects[name].fields.filter(x => ! f.includes(x)).length;
+            };
+
 
             $scope.optimizableObjects = getObjectFields();
-            srdbg('opt objs', $scope.optimizableObjects);
         },
     };
 });
