@@ -825,9 +825,7 @@ def validate_models(model_data, model_schema):
                 enum_info,
             )
     if "beamline" in model_data["models"]:
-        for m in model_data["models"]["beamline"]["elements"]:
-            if isinstance(m, PKDict):
-                m = m.item
+        for m in model_data["models"]["beamline"]:
             validate_model(m, model_schema["model"][m["type"]], enum_info)
     return enum_info
 

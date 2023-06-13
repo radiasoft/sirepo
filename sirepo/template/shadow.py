@@ -182,20 +182,13 @@ def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
 def python_source_for_model(data, model, qcall, **kwargs):
     data.report = model
     if not model:
-        beamline = list(map(lambda i: i.item, data.models.beamline.elements))
+        beamline = data.models.beamline
         watch_id = None
-        watch_index = None
         for b in beamline:
             if b.type == "watch":
                 watch_id = b.id
         if watch_id:
-            for i, w in enumerate(data.models.watchpointReports.reports):
-                if w.item.id == watch_id:
-                    watch_index = i
-            if watch_index:
-                data.report = "{}{}".format(_SIM_DATA.WATCHPOINT_REPORT, watch_index)
-            else:
-                data.report = "plotXYReport"
+            data.report = "{}{}".format(_SIM_DATA.WATCHPOINT_REPORT, watch_id)
         else:
             data.report = "plotXYReport"
     return """
@@ -295,7 +288,7 @@ def _generate_autotune_element(item):
 
 
 def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
-    beamline = list(map(lambda i: i.item, models.beamline.elements))
+    beamline = models.beamline
     res = ""
     prev_position = source_position = 0
     last_element = False
@@ -730,9 +723,8 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     _scale_units(data)
     v = template_common.flatten_data(data.models, PKDict())
     r = data.report
-
-    # report_model = data.models[r]
-    beamline = list(map(lambda i: i.item, data.models.beamline.elements))
+    report_model = data.models[r]
+    beamline = data.models.beamline
     v.shadowOutputFile = _SHADOW_OUTPUT_FILE
     if _has_zone_plate(beamline):
         v.zonePlateMethods = template_common.render_jinja(SIM_TYPE, v, "zone_plate.py")
@@ -781,11 +773,11 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
             v.photonEnergy = v.bendingMagnet_ph1
         return template_common.render_jinja(SIM_TYPE, v, "beam_statistics.py")
     elif _SIM_DATA.is_watchpoint(r):
-        di = _SIM_DATA.watchpoint_id(r)
-        rd = data.models.watchpointReports.reports[di]
-        v.beamlineOptics = _generate_beamline_optics(data.models, last_id=rd.item.id)
+        v.beamlineOptics = _generate_beamline_optics(
+            data.models, last_id=_SIM_DATA.watchpoint_id(r)
+        )
     else:
-        v.distanceFromSource = data.models[r].distanceFromSource
+        v.distanceFromSource = report_model.distanceFromSource
     return template_common.render_jinja(SIM_TYPE, v)
 
 
@@ -952,7 +944,6 @@ def _item_field(item, fields):
 def _parse_shadow_log(run_dir):
     if run_dir.join(template_common.RUN_LOG).exists():
         text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
-        pkdp(text)
         for line in text.split("\n"):
             if re.search(r"invalid chemical formula", line):
                 return "A mirror contains an invalid reflectivity material"
@@ -978,7 +969,7 @@ def _scale_units(data):
     for name in _MODEL_UNITS.unit_def:
         if name in data.models:
             _MODEL_UNITS.scale_to_native(name, data.models[name])
-    for item in list(map(lambda i: i.item, data.models.beamline.elements)):
+    for item in data.models.beamline:
         if item.type in _MODEL_UNITS.unit_def:
             _MODEL_UNITS.scale_to_native(item.type, item)
 
