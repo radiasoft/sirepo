@@ -3180,19 +3180,19 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     $scope.watchFields = [
         [
-            'geomObject.type',
+            'geomObject.type', 'geomObject.segmentation', 'geomObject.segmentationCylUseObjectCenter',
             'cylinder.radius',
             'extrudedPoly.extrusionAxisSegments', 'extrudedPoly.triangulationLevel',
             'extrudedObject.extrusionAxis',
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
-        ], updateObjectEditor
+        ], updateEditor
     ];
 
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];
         editedModels = radiaService.updateModelAndSuperClasses($scope.modelData.type, $scope.modelData);
-        updateObjectEditor();
+        updateEditor();
     };
 
     $scope.$on('modelChanged', (e, modelName) => {
@@ -3294,7 +3294,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         appState.saveQuietly(editedModels);
     }
 
-    function updateObjectEditor() {
+    function updateEditor() {
         const o = $scope.modelData;
         if (! o) {
             return;
@@ -3314,7 +3314,27 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
         panelState.enableField('geomObject', 'size', true);
-        panelState.showField('geomObject', 'segments', ! editedModels.includes('extrudedObject'));
+        panelState.showField('geomObject', 'segments', editedModels.includes('cylinder') || ! editedModels.includes('extrudedObject'));
+
+        const isSegCyl = o.segmentation === 'cyl';
+        const segCylFields = [
+            'segmentationCylAxis',
+            'segmentationCylPoint',
+            'segmentationCylRadius',
+            'segmentationCylUseObjectCenter',
+        ];
+        segCylFields.forEach(f => {
+            panelState.showField('geomObject', f, isSegCyl);
+        });
+        panelState.showArrayField('geomObject', 'segments', 0, ! isSegCyl);
+
+        if (o.segmentationCylUseObjectCenter === '1') {
+            o.segmentationCylPoint = o.center.slice();
+            panelState.enableField('geomObject', 'segmentationCylPoint', false);
+        }
+        else {
+            panelState.enableField('geomObject', 'segmentationCylPoint', true);
+        }
 
         if (modelType === 'stl') {
             panelState.enableField('geomObject', 'size', false);

@@ -1,9 +1,14 @@
 import React, { ChangeEventHandler, FunctionComponent } from "react";
 import { Form } from "react-bootstrap";
+import { interpolate } from "../../utility/string";
 import { LayoutProps } from "../layout";
 import { InputComponentProps, InputConfigBase, InputLayout } from "./input";
 
-export abstract class NumberInputLayout extends InputLayout<InputConfigBase, string, number> {
+export type NumberConfigBase = {
+    valid?: string
+} & InputConfigBase
+
+export abstract class NumberInputLayout extends InputLayout<NumberConfigBase, string, number> {
     component: FunctionComponent<LayoutProps<InputComponentProps<string>>> = (props) => {
         let onChange: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement> = (event) => {
             props.onChange(event.target.value);
@@ -24,7 +29,11 @@ export class FloatInputLayout extends NumberInputLayout {
         return `${value}`;
     }
     validate = (value: string) => {
-        return (!this.config.isRequired) || (this.hasValue(value) && FloatInputLayout.REGEXP.test(value));
+        let v = (!this.config.isRequired) || (this.hasValue(value) && FloatInputLayout.REGEXP.test(value));
+        if(this.config.valid) {
+            return v && interpolate(this.config.valid).withValues({ value }).evaluated();
+        }
+        return v;
     }
 }
 
@@ -35,6 +44,10 @@ export class IntegerInputLayout extends NumberInputLayout {
     }
     fromModelValue: (value: number) => string = (v) => `${v}`;
     validate = (value: string) => {
-        return (!this.config.isRequired) || (this.hasValue(value) && IntegerInputLayout.REGEXP.test(value));
+        let v = (!this.config.isRequired) || (this.hasValue(value) && IntegerInputLayout.REGEXP.test(value));
+        if(this.config.valid) {
+            return v && interpolate(this.config.valid).withValues({ value }).evaluated();
+        }
+        return v;
     }
 }

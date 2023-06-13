@@ -12,7 +12,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { CPanelController } from "../../data/panel"
 import { PanelController } from "../../data/panel";
 
-export function Panel(props) {
+export type PanelProps = {
+    panelBodyShown: boolean,
+    title: string,
+    buttons?: JSX.Element[] | JSX.Element,
+    children?: React.ReactNode
+}
+
+export function Panel(props: PanelProps) {
     let { title, buttons, panelBodyShown } = props;
 
     let [panelButtonsId] = useState(() => uuidv4());
@@ -47,7 +54,7 @@ export function Panel(props) {
     );
 }
 
-export function ViewPanelActionButtons(props) {
+export function ViewPanelActionButtons(props: { onSave: () => void, onCancel: () => void, canSave: boolean }) {
     let { canSave, onSave, onCancel } = props;
     return (
         <Col className="text-center sr-form-action-buttons" sm={12}>
@@ -57,7 +64,18 @@ export function ViewPanelActionButtons(props) {
     )
 }
 
-export function EditorPanel(props) {
+export type EditorPanelProps = {
+    submit: () => void,
+    cancel: () => void,
+    showButtons: boolean,
+    mainChildren: JSX.Element[],
+    modalChildren: JSX.Element[],
+    formValid: boolean,
+    title: string,
+    id: string
+}
+
+export function EditorPanel(props: EditorPanelProps) {
     let {
         submit,
         cancel,

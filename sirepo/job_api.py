@@ -15,6 +15,7 @@ import pykern.pkconfig
 import pykern.pkio
 import re
 import sirepo.auth
+import sirepo.feature_config
 import sirepo.flask
 import sirepo.job
 import sirepo.quest
@@ -182,14 +183,16 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user")
     async def api_runSimulation(self):
-        r = self._request_content(PKDict(fixup_old_data=True))
+        r = self._request_content(PKDict(is_sim_data=True))
         if r.isParallel:
             r.isPremiumUser = self.auth.is_premium_user()
         return await self._request_api(_request_content=r)
 
     @sirepo.quest.Spec("require_user")
     async def api_runStatus(self):
-        return await self._request_api()
+        # runStatus receives models when an animation status if first queried
+        r = self._request_content(PKDict(is_sim_data=True))
+        return await self._request_api(_request_content=r)
 
     @sirepo.quest.Spec("require_user")
     async def api_sbatchLogin(self):
@@ -318,7 +321,7 @@ class API(sirepo.quest.API):
             # of the used values are modified by parse_post. If we have files (e.g. file_type, filename),
             # we need to use those values from parse_post
             d = self.parse_post(
-                fixup_old_data=kwargs.pkdel("fixup_old_data", False),
+                is_sim_data=kwargs.pkdel("is_sim_data", False),
                 id=True,
                 model=True,
                 check_sim_exists=True,
