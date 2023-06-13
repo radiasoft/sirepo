@@ -45,6 +45,8 @@ def prep_run_dir(run_dir, data):
 
 
 def read_sim(sim_type, sim_id):
+    if not sirepo.simulation_db.sim_data_file(sim_type, sim_id).exists():
+        raise AssertionError(f'The referenced {sim_type.upper()} simulation no longer exists')
     return sirepo.simulation_db.read_simulation_json(sim_type, sim_id, None)
 
 
@@ -78,10 +80,11 @@ def run_genesis(run_dir, genesis_id, prev_sim=None):
     if prev_sim:
         assert prev_sim.outfile_path
         filename = file_name_from_sim_name('genesis', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
-        update_genesis_sim(data, filename)
         sw = switchyard.Switchyard()
         sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
-        sw.write(sim_lib_file('genesis', 'io', 'distfile', filename), 'genesis')
+        lib_file = sim_lib_file('genesis', 'io', 'distfile', filename)
+        sw.write(lib_file, 'genesis')
+        update_genesis_sim(data, filename, lib_file)
     data.computeModel = 'animation'
     if 'report' in data:
         del data['report']
@@ -96,11 +99,12 @@ def run_opal(run_dir, opal_id, prev_sim=None):
         if prev_sim.sim_type == 'genesis':
             raise NotImplementedError("genesis is only supported as a final step sim")
         assert prev_sim.outfile_path
-        filename = file_name_from_sim_name('opal', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
-        update_opal_sim(data, filename)
         sw = switchyard.Switchyard()
         sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
-        sw.write(sim_lib_file("opal", "command_distribution", "fname", filename), "opal")
+        filename = file_name_from_sim_name('opal', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
+        lib_file = sim_lib_file("opal", "command_distribution", "fname", filename)
+        sw.write(lib_file, "opal")
+        update_opal_sim(data, filename, lib_file)
     data.computeModel = 'animation'
     LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
     with pkio.save_chdir(prep_run_dir(run_dir, data)):
@@ -138,22 +142,52 @@ def update_elegant_sim(data, filename):
     if data.models.bunchSource.inputSource == 'bunched_beam':
         convert_bunched_beam_to_sdds_beam(data, filename)
     assert data.models.bunchSource.inputSource == 'sdds_beam'
+    cmd = LatticeUtil.find_first_command(data, "sdds_beam")
+    cmd.center_arrival_time = '1'
+    cmd.center_transversely = '1'
+    cmd.reverse_t_sign = '1'
     LatticeUtil.find_first_command(data, "run_setup").expand_for = filename
 
 
-def update_genesis_sim(data, filename):
+def update_genesis_sim(data, filename, lib_file):
     io = data.models.io
     io.distfile = filename
-    # save last frame only 
+    # save last frame only
     data.models.simulationControl.zstop = 0
     io.ippart = data.models.undulator.nwig * data.models.undulator.nsec
     io.ipradi = io.ippart
+    # fix CHARGE value, may be "CHARGE = [-1.e-09]" for opal
+    text = ""
+    charge = None
+    with pkio.open_text(lib_file) as f:
+        for line in f:
+            if charge is None:
+                g = re.match(r"^\? CHARGE = \[\-?(.*)\]", line)
+                if g:
+                    charge = g.group(1)
+                    text += f"? CHARGE = {charge}\n"
+                    continue
+            text += line
+    if charge:
+        pkio.write_text(lib_file, text)
 
 
-def update_opal_sim(data, filename):
+def update_opal_sim(data, filename, lib_file):
     d = LatticeUtil.find_first_command(data, "distribution")
     d.type = "FROMFILE"
     d.fname = filename
+    c = 0
+    sum = 0
+    # calculate z offset
+    with pkio.open_text(lib_file) as f:
+        for line in f:
+            if not c:
+                c = int(line)
+                continue
+            r = [v for v in line.split(" ")]
+            sum += float(r[4])
+    d.offsetz = -sum / c
+    LatticeUtil.find_first_command(data, "beam").npart = c
 
 
 run_sims([
