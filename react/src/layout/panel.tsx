@@ -1,22 +1,24 @@
 import { useContext } from "react";
-import { useInterpolatedString, ValueSelectors } from "../hook/string";
+import { interpolate } from "../utility/string";
 import { LayoutProps, Layout } from "./layout";
-import { useStore } from "react-redux";
-import { EditorPanel } from "../component/reusable/panel";
+import { useDispatch, useStore } from "react-redux";
+import { EditorPanel, EditorPanelProps } from "../component/reusable/panel";
 import "./panel.scss";
-import { Col } from "react-bootstrap";
 import React from "react";
-import { CFormController } from "../data/formController";
-import { CModelsWrapper } from "../data/wrapper";
-import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
+import { useShown } from "../hook/shown";
+import { StoreTypes } from "../data/data";
+import { CHandleFactory } from "../data/handle";
+import { FormStateHandleFactory } from "../data/form";
 
 export type PanelConfig = {
     basic: SchemaLayout[],
     advanced: SchemaLayout[],
-    title: string
+    title: string,
+    shown: string
 }
+
 
 export class PanelLayout extends Layout<PanelConfig, {}> {
     basic?: Layout[];
@@ -28,19 +30,16 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
         this.advanced = (!!config.advanced) ? config.advanced.map(LAYOUTS.getLayoutForSchema) : undefined;
     }
 
-    getFormDependencies = () => {
-        return [...(this.basic || []), ...(this.advanced || [])].map(childLayout => childLayout.getFormDependencies()).flat();
-    }
-
     component = (props: LayoutProps<{}>) => {
-        let modelsWrapper = useContext(CModelsWrapper);
-        let formController = useContext(CFormController);
-        let simulationInfoPromise = useContext(CSimulationInfoPromise);
-        let schema = useContext(CSchema);
+        let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
+        formHandleFactory.useUpdates(PanelLayout);
+
+        let shown = useShown(this.config.shown, true, StoreTypes.Models);
 
         let store = useStore();
+        let dispatch = useDispatch();
 
-        let title = useInterpolatedString(modelsWrapper, this.config.title, ValueSelectors.Models);
+        let title = interpolate(this.config.title).withDependencies(formHandleFactory, StoreTypes.Models).raw();
 
         let mapLayoutsToComponents = (views: Layout[]) => views.map((child, idx) => {
             let LayoutComponent = child.component;
@@ -50,19 +49,11 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
         let mainChildren = (!!this.basic) ? mapLayoutsToComponents(this.basic) : undefined;
         let modalChildren = (!!this.advanced) ? mapLayoutsToComponents(this.advanced) : undefined;
 
-        let submit = () => {
-            formController.saveToModels();
-            simulationInfoPromise.then(simulationInfo => {
-                modelsWrapper.saveToServer(simulationInfo, Object.keys(schema.models), store.getState());
-            })
-
-        }
-
-        let formProps = {
-            submit: submit,
-            cancel: formController.cancelChanges,
-            showButtons: formController.isFormStateDirty(),
-            formValid: formController.isFormStateValid(),
+        let formProps: EditorPanelProps = {
+            submit: (() => formHandleFactory.save(store.getState(), dispatch)),
+            cancel: (() => formHandleFactory.cancel(store.getState(), dispatch)),
+            showButtons: formHandleFactory.isDirty(),
+            formValid: formHandleFactory.isValid(store.getState()),
             mainChildren,
             modalChildren,
             title: title || this.name,
@@ -70,8 +61,12 @@ export class PanelLayout extends Layout<PanelConfig, {}> {
         }
 
         return (
-            <EditorPanel {...formProps}>
-            </EditorPanel>
+            <>
+                {
+                    shown && <EditorPanel {...formProps}/>
+                }
+            </>
+            
         )
     }
 }

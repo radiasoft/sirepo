@@ -23,7 +23,7 @@ export const LoginRouter = (props) => {
     let routeHelper = useContext(CRouteHelper);
     let loginStatusRef = useRef(undefined);
     let location = useLocation();
-    const [hasLoginStatus, _] = useSetup(true, updateLoginStatusRef(loginStatusRef, appWrapper));
+    const [hasLoginStatus, _] = useSetup(true, () => updateLoginStatusRef(loginStatusRef, appWrapper));
     const isSimulations = location.pathname.startsWith(routeHelper.localRoute("simulations"));
 
     return hasLoginStatus && (

@@ -1,21 +1,22 @@
 import { Nav , Modal, Col, Row } from "react-bootstrap";
 import { Navigate, useRoutes, Link, useResolvedPath, useParams } from "react-router-dom";
 import { NavbarLeftContainerId, NavbarRightContainerId } from "../component/reusable/navbar";
-import { useInterpolatedString, ValueSelectors } from "../hook/string";
+import { interpolate } from "../utility/string";
 import { useContext, useState } from "react";
 import { LayoutProps, Layout } from "./layout";
-import { useStore } from "react-redux";
+import { useDispatch, useStore } from "react-redux";
 import { ViewPanelActionButtons } from "../component/reusable/panel";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { CRelativeRouterHelper, RelativeRouteHelper } from "../utility/route";
 import React from "react";
-import { CFormController } from "../data/formController";
-import { CModelsWrapper } from "../data/wrapper";
-import { CSchema, CSimulationInfoPromise } from "../data/appwrapper";
 import { SchemaLayout } from "../utility/schema";
 import { LAYOUTS } from "./layouts";
 import { Portal } from "../component/reusable/portal";
+import { formActionFunctions } from "../component/reusable/form";
+import { CHandleFactory } from "../data/handle";
+import { StoreTypes } from "../data/data";
+import { FormStateHandleFactory } from "../data/form";
 
 export type NavBarModalButtonConfig = {
     modal: {
@@ -37,45 +38,28 @@ export class NavBarModalButton extends Layout<NavBarModalButtonConfig, {}> {
         });
     }
 
-    getFormDependencies = () => {
-        return this.children.map(child => child.getFormDependencies()).flat();
-    }
-
     component = (props: LayoutProps<{}>) => {
-        let formController = useContext(CFormController);
-        let simulationInfoPromise = useContext(CSimulationInfoPromise);
-        let modelsWrapper = useContext(CModelsWrapper);
-
-        let title = useInterpolatedString(modelsWrapper, this.config.title, ValueSelectors.Models);
-        let modalTitle = useInterpolatedString(modelsWrapper, this.config.modal.title, ValueSelectors.Models);
-
+        let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
         let [modalShown, updateModalShown] = useState(false);
-
-        let schema = useContext(CSchema);
-
-
-
+        let dispatch = useDispatch();
         let store = useStore();
 
-        let _cancel = () => {
-            updateModalShown(false);
-            formController.cancelChanges();
-        }
+        let title = interpolate(this.config.title).withDependencies(formHandleFactory, StoreTypes.Models).raw();
+        let modalTitle = interpolate(this.config.modal.title).withDependencies(formHandleFactory, StoreTypes.Models).raw();
 
-        let _submit = () => {
-            formController.saveToModels();
-            simulationInfoPromise.then(simulationInfo => {
-                modelsWrapper.saveToServer(simulationInfo, Object.keys(schema.models), store.getState());
-            })
-        }
+        let { submit: _submit, cancel: _cancel } = formActionFunctions({
+            formHandleFactory,
+            store,
+            dispatch
+        });
 
         let children = this.children.map((child, idx) => {
             let LayoutElement = child.component;
             return <LayoutElement key={idx}></LayoutElement>
         })
 
-        let isDirty = formController.isFormStateDirty();
-        let isValid = formController.isFormStateValid();
+        let isDirty = formHandleFactory.isDirty();
+        let isValid = formHandleFactory.isValid(store.getState());
         let actionButtons = <ViewPanelActionButtons canSave={isValid} onSave={_submit} onCancel={_cancel}></ViewPanelActionButtons>
 
         let { icon } = this.config;
@@ -136,11 +120,6 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
         })
     }
 
-    getFormDependencies = () => {
-        // TODO
-        return [];
-    }
-
     TabsContent = (props: { tab: NavTabWithLayouts }) => {
         let { tab, ...otherProps } = props;
 
@@ -158,8 +137,7 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
 
     TabsSwitcher = (props: LayoutProps<{}>) => {
         let { tabName: selectedTabName } = useParams();
-
-        let modelsWrapper = useContext(CModelsWrapper);
+        let handleFactory = useContext(CHandleFactory);
         let routerHelper = useContext(CRelativeRouterHelper);
 
         let ContentComponent = this.TabsContent;
@@ -167,14 +145,14 @@ export class NavTabsLayout extends Layout<NavTabsConfig, {}> {
         return (
             <>
                 <Portal targetId={NavbarRightContainerId} className="order-1">
-                    <Nav variant="tabs" defaultActiveKey={selectedTabName}>
+                    <Nav variant="tabs" navbar={true} defaultActiveKey={selectedTabName}>
                         {
                             this.tabs.map(tab => {
                                 let route = routerHelper.getRelativePath(tab.name);
                                 return (
                                     <Nav.Item key={tab.name}>
                                         <Nav.Link eventKey={`${tab.name}`} as={Link} href={`${tab.name}`} to={`${route}`}>
-                                            {useInterpolatedString(modelsWrapper, tab.title, ValueSelectors.Models)}
+                                            {interpolate(tab.title).withDependencies(handleFactory, StoreTypes.Models).raw()}
                                         </Nav.Link>
                                     </Nav.Item>
                                 )
