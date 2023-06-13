@@ -3106,7 +3106,7 @@
                 "p_upper": 0.0,
                 "prebunched": -1.0,
                 "reuse_bunch": "1",
-                "reverse_t_sign": 0.0,
+                "reverse_t_sign": "0",
                 "sample_fraction": 0.1,
                 "sample_interval": "1",
                 "save_initial_coordinates": "1",
