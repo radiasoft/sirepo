@@ -218,14 +218,14 @@
                     "C",
                     "D",
                     "l_scale",
+                    "pump_type",
                     "radial_n2",
                     "calc_gain"
                 ]],
-                ["Laser Gain", [
+                ["Pump Pulse", [
                     "inversion_n_cells",
                     "inversion_mesh_extent",
                     "crystal_alpha",
-                    "pump_type",
                     "pump_waist",
                     "pump_wavelength",
                     "pump_energy",
