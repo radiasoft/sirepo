@@ -12,7 +12,7 @@ export function LoginWithGuest(props) {
     let appWrapper = useContext(CAppWrapper);
     let loginStatusRef = useContext(CLoginStatusRef);
 
-    let [hasLoggedIn, _] = useSetup(true, appWrapper.doGuestLogin().then(() => updateLoginStatusRef(loginStatusRef, appWrapper)));
+    let [hasLoggedIn, _] = useSetup(true, () => appWrapper.doGuestLogin().then(() => updateLoginStatusRef(loginStatusRef, appWrapper)));
 
     return (
         hasLoggedIn && <Navigate to={routeHelper.localRoute('root')}/>
