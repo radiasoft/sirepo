@@ -1,0 +1,13 @@
+#!/bin/bash
+set -eou pipefail
+cd {{ run_dir }}
+{# POSIT: matches minimum required env vars required by job_cmd #}
+export SIREPO_MPI_CORES=1
+export PYKERN_PKCONFIG_CHANNEL=dev
+export PYKERN_PKDEBUG_WANT_PID_TIME=1
+export PYTHONUNBUFFERED=1
+export SIREPO_AUTH_LOGGED_IN_USER={{ user }}
+export SIREPO_SIMULATION_DB_LOGGED_IN_USER={{ user }}
+export PYTHONPATH=
+export PYTHONSTARTUP=
+exec sirepo job_cmd '{{ job_cmd_file }}'

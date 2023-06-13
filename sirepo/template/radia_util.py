@@ -100,6 +100,18 @@ def _apply_bevel(g_id, **kwargs):
     )
 
 
+def _apply_cut(g_id, **kwargs):
+    d = PKDict(kwargs)
+
+    # args are object id, point in plane, plane normal - returns array of new ids
+    return radia.ObjCutMag(
+        g_id,
+        d.cutPoint,
+        d.cutPlane,
+        "Frame->Lab",
+    )[0]
+
+
 def _apply_clone(g_id, xform):
     xform = PKDict(xform)
     # start with 'identity'

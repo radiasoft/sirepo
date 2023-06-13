@@ -1,0 +1,36 @@
+.popover-buttons {
+    bottom: 0;
+    position: absolute; 
+    right: 5px;
+    white-space: nowrap;
+    display: inline;
+    float: inline-end;
+    border: none !important;
+}
+
+.popover-buttons-outer {
+    position: relative;
+    width: 0;
+}
+
+.popover-button {
+    margin-left: 10px;
+    color: white !important;
+}
+
+.table-text {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 100%;
+    display: inline-block;
+}
+
+.table-cell {
+    overflow: hidden;
+}
+
+table {
+    width: 100%;
+    table-layout: fixed;
+}
