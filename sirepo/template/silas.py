@@ -427,9 +427,9 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
 
     def _x_label(plot_type):
         return PKDict(
-            excited_states_longitudinal="Longitudinal Slice",
+            excited_states_longitudinal="Crystal Slice",
             longitudinal_photons="Crystal width [cm]",
-            longitudinal_intensity="??",
+            longitudinal_intensity="Pulse Slice",
         )[plot_type]
 
     with h5py.File(run_dir.join(_fname(element).format(element_index)), "r") as f:
@@ -453,7 +453,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
                 PKDict(),
                 PKDict(
                     x_label=_x_label(plot_type),
-                )
+                ),
             )
         d = template_common.h5_to_dict(f, str(slice_index))
         r = d.ranges
