@@ -1765,10 +1765,10 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                 <tbody>
                 <tr data-ng-repeat="item in field track by $index">
                   <td style="display: inline-flex; flex-wrap: wrap;">
-                    {{ item.name }}
+                    {{ item.object }}
                   </td>
                   <td>
-                    <select class="form-control" data-ng-model="item.field" data-ng-options="f for f in fieldsForObject(item.name)">
+                    <select class="form-control" data-ng-model="item.field" data-ng-options="f for f in fieldsForObject(item.object)">
                       <option value="" disabled selected>select field</option>
                     </select>
                   </td>
@@ -1856,7 +1856,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     return;
                 }
                 const m = {
-                    name: $scope.selectedItem.name,
+                    object: $scope.selectedItem.name,
                     field: null,
                     min: -1,
                     max: 1,
@@ -3777,7 +3777,6 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
 SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, radiaService, utilities, $scope) {
 
-    const OPTIMIZABLE_TYPES = ['Float', 'FloatArray'];
     $scope.watchFields = [
         [
             'optimizer.objective',
@@ -3786,101 +3785,15 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
         updateEditor,
     ];
     $scope.objectiveFunctionUpdaters = {};
-    $scope.optimizableObjects = {};
 
-    function addField(modelName, fieldName) {
-
-    }
-
-    function getOptField(id) {
-        return appState.models.optimizer.fields.filter(x => x.id === id)[0];
-    }
-
-
-    function optFieldsOfModelAndSupers(modelName) {
-
-        function optFieldsOfModel(modelName) {
-            const info = appState.modelInfo(modelName);
-            return Object.keys(info).filter(
-                x => OPTIMIZABLE_TYPES.includes(info[x][SIREPO.INFO_INDEX_TYPE])
-            );
-        }
-
-        const s = new Set();
-        for (const m of [modelName, ...appState.superClasses(modelName)]) {
-            for (const f of optFieldsOfModel(m)) {
-                s.add(f);
-            }
-        }
-        return s;
-    }
-
-    function getObjectFields() {
-
-        function objectOptFields(o, key) {
-            if (! o.type) {
-                return {};
-            }
-            const fields = {};
-            fields[key] = {};
-            const m = o.type;
-            for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(m).has(x))) {
-                const id = `${m}.${f}`;
-                fields[key][f] = appState.setModelDefaults(
-                    {
-                        field: appState.optFieldName(m, f),
-                        id: id,
-                    },
-                    'optimizerField'
-                );
-            }
-            return fields;
-        }
-
-        let fields = {};
-        for (const o of radiaService.getObjects()) {
-            const key = o.name;
-            fields = {...fields, ...objectOptFields(o, key)};
-            for (const mod of (o.modifications || [])) {
-                if (! fields[key].modifications) {
-                    fields[key].modifications = [];
-                }
-                fields[key].modifications.push(objectOptFields(mod, mod.type));
-            }
-            if ($.isEmptyObject(fields[key])) {
-                delete fields[key];
-            }
-        }
-        return fields;
-    }
-
-    function schemaFields() {
-        const fields = [];
-        for (const m in SIREPO.APP_SCHEMA.model) {
-            const info = appState.modelInfo(m);
-            for (const f in info) {
-                const id = `${m}.${f}`;
-                if (
-                    info[f][SIREPO.INFO_INDEX_TYPE] !== 'OptFloat' || getOptField(id)
-                ) {
-                    continue;
-                }
-                fields.push(
-                    appState.setModelDefaults(
-                        {
-                            field: appState.optFieldName(m, f),
-                            id: id,
-                        },
-                        'optimizerField'
-                    )
-                );
-            }
-        }
-        return fields;
-    }
 
     function updateEditor() {
         updateObjectiveFunction(appState.models[$scope.modelName].objective);
+        updateInputs();
+    }
+
+    function updateInputs() {
+        panelState.showField('optimizer', 'fields', appState.models[$scope.modelName].objective !== 'none');
     }
 
     function updateObjectiveFunction(fn) {
@@ -3924,8 +3837,6 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
 
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];
-        $scope.optimizableObjects = getObjectFields();
-        //srdbg('opt oojs', $scope.optimizableObjects);
         updateEditor();
     };
 

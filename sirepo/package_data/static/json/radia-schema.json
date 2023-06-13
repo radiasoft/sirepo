@@ -941,13 +941,6 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
-        "optimizerField": {
-            "field": ["Field", "String", ""],
-            "id": ["_", "String", ""],
-            "minimum": ["Minimum", "Float"],
-            "maximum": ["Maximum", "Float"],
-            "type": ["_", "OptimizerFieldType", "optimizerField"]
-        },
         "pointsReport": {
             "doSnap": ["Snap to Grid", "Boolean", "0"],
             "gridSize": ["Grid Size [mm]", "Float", "0.5", "", "0"]
@@ -1563,25 +1556,6 @@
                 ],
                 "colorMap",
                 "notes"
-            ]
-        },
-        "objectOptimizerField": {
-            "title": "Object Field",
-            "basic": [],
-            "advanced": [
-                "object",
-                "field",
-                "minimum",
-                "maximum"
-            ]
-        },
-        "optimizerField": {
-            "title": "Built-in Field",
-            "basic": [],
-            "advanced": [
-                "field",
-                "minimum",
-                "maximum"
             ]
         },
         "optimizerStatus": {
