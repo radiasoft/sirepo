@@ -105,7 +105,6 @@ def propagate(pulse, elements, beamline):
 pulse = LaserPulse(
     params=PKDict(
         {% for f in (
-            'chirp',
             'nslice',
             'num_sig_long',
             'num_sig_trans',
@@ -115,7 +114,8 @@ pulse = LaserPulse(
             'pulseE',
             'sigx_waist',
             'sigy_waist',
-            'tau_fwhm'
+            'tau_fwhm',
+            'tau_0',
         ) %}
         {{ f }}={{ laserPulse[f] }},
         {% endfor %}

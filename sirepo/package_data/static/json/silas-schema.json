@@ -145,7 +145,6 @@
         },
         "crystal3dAnimation": {},
         "laserPulse": {
-            "chirp": ["Chirp [eV]", "Float", 0, "Energy variation from first to last slice in laser pulse"],
             "ccd": ["Intensity", "InputFile", ""],
             "meta": ["WFS Space Data", "InputFile", "", "A file describing the pixel dimensions of your wavefront sensor. Pixel dimensions are assumed to be in microns."],
             "wfs": ["Phase", "InputFile", ""],
@@ -157,6 +156,7 @@
             "photon_e_ev": ["Photon energy [eV]", "Float", 1.5],
             "poltype": ["Polarization", "GaussianBeamPolarization", "1"],
             "tau_fwhm": ["FWHM Length [s]", "Float", 2.35865e-11],
+            "tau_0": ["Fourier-limited pulse length of a given spectral bandwidth", "Float",  2.35865e-11],
             "pulseE": ["Total Laser Pulse Energy [J]", "Float", 0.001],
             "distribution": ["Distribution Type", "DistributionType", "gaussian"],
             "sigx_waist": ["Horizontal RMS Waist Size [m]", "Float", 0.001],
@@ -281,7 +281,6 @@
             "basic": [
                 ["Energy", [
                     "photon_e_ev",
-                    "chirp",
                     "pulseE"
                 ]],
                 ["Transverse", [

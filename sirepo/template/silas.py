@@ -393,6 +393,8 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             return "Intensity"
         if plot_type == "longitudinal_photons":
             return "Total Number of Photons"
+        if plot_type == "excited_states_longitudinal":
+            return "Excited States"
         return _title(plot_type, slice_index)
 
     def _nslice(element, file):
@@ -414,15 +416,21 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
         return numpy.sum(y)
 
     def _z_label(plot_type):
-        return plot_type
-        # return PKDict(
-        #     total_phase="",
-        #     total_intensity="",
-        #     intensity="",
-        #     phase="",
-        #     excited_states="",
+        return PKDict(
+            total_phase="[rad]",
+            total_intensity="",
+            intensity="",
+            phase="Phase [rad]",
+            photons="Photons [1/m³]",
+            excited_states="Number [1/m³]",
+        )[plot_type]
 
-        # )[plot_type]
+    def _x_label(plot_type):
+        return PKDict(
+            excited_states_longitudinal="Longitudinal Slice",
+            longitudinal_photons="Crystal width [cm]",
+            longitudinal_intensity="??",
+        )[plot_type]
 
     with h5py.File(run_dir.join(_fname(element).format(element_index)), "r") as f:
         if _is_longitudinal_plot(plot_type):
@@ -443,6 +451,9 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
                     ),
                 ],
                 PKDict(),
+                PKDict(
+                    x_label=_x_label(plot_type),
+                )
             )
         d = template_common.h5_to_dict(f, str(slice_index))
         r = d.ranges
