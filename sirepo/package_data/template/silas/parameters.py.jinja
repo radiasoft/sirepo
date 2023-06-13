@@ -116,7 +116,8 @@ pulse = LaserPulse(
             'pulseE',
             'sigx_waist',
             'sigy_waist',
-            'tau_fwhm'
+            'tau_fwhm',
+            'phase_flatten_cutoff',
         ) %}
         {{ f }}={{ laserPulse[f] }},
         {% endfor %}

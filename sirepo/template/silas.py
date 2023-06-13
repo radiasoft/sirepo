@@ -14,9 +14,7 @@ import h5py
 import numpy
 import re
 import sirepo.sim_data
-
-# TODO(pjm): currently aligned with rslaser version
-# git checkout `git rev-list -n 1 --first-parent --before="2023-04-24 13:37" main`
+import time
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -134,8 +132,7 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _beamline_animation_percent_complete(run_dir, res, data):
-    def _output_append(frame_count, filename, count, element, res, total_count):
-        total_count += 1
+    def _output_append(frame_count, filename, count, element, res):
         if run_dir.join(filename).exists():
             res.outputInfo.append(
                 PKDict(
@@ -165,20 +162,19 @@ def _beamline_animation_percent_complete(run_dir, res, data):
     _initial_intensity_percent_complete(run_dir, res, data, ("beamlineAnimation0",))
     count = PKDict(
         watch=1,
-        crystal=1,
+        crystal=0,
     )
     total_count = 1
     for e in data.models.beamline:
         if e.type in ("watch", "crystal"):
+            total_count += 1
             _output_append(
                 _frames(e, data),
                 _file(e, count),
                 count,
                 e,
                 res,
-                total_count,
             )
-
     res.percentComplete = res.frameCount * 100 / total_count
     return res
 
@@ -300,16 +296,17 @@ def _generate_crystal(crystal):
                 B={crystal.B},
                 C={crystal.C},
                 D={crystal.D},
-                population_inversion=PKDict(
-                    n_cells={crystal.inversion_n_cells},
-                    mesh_extent={crystal.inversion_mesh_extent},
-                    crystal_alpha={crystal.crystal_alpha},
-                    pump_waist={crystal.pump_waist},
-                    pump_wavelength={crystal.pump_wavelength},
-                    pump_gaussian_order={crystal.pump_gaussian_order},
-                    pump_energy={crystal.pump_energy},
-                    pump_type="{crystal.pump_type}",
-                ),
+                pop_inversion_n_cells={crystal.inversion_n_cells},
+                pop_inversion_mesh_extent={crystal.inversion_mesh_extent},
+                pop_inversion_crystal_alpha={crystal.crystal_alpha},
+                pop_inversion_pump_waist={crystal.pump_waist},
+                pop_inversion_pump_wavelength={crystal.pump_wavelength},
+                pop_inversion_pump_gaussian_order={crystal.pump_gaussian_order},
+                pop_inversion_pump_energy={crystal.pump_energy},
+                pop_inversion_pump_type="{crystal.pump_type}",
+                pop_inversion_pump_rep_rate={crystal.pump_rep_rate},
+                pop_inversion_pump_offset_x={crystal.pump_offset_x},
+                pop_inversion_pump_offset_y={crystal.pump_offset_y},
             ),
         ),
         ["{crystal.propagationType}", {crystal.calc_gain == "1"}, {crystal.radial_n2 == "1"}],
@@ -415,37 +412,45 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             return y
         return numpy.sum(y)
 
-    with h5py.File(run_dir.join(_fname(element).format(element_index)), "r") as f:
-        if _is_longitudinal_plot(plot_type):
-            x = []
-            y = []
-            nslice = _nslice(element, f)
-            if element:
-                element.nslice = nslice
-            for idx in range(nslice):
-                x.append(idx)
-                y.append(_y_value(element, idx, f, _cell_volume(element)))
-            return template_common.parameter_plot(
-                x,
-                [
-                    PKDict(
-                        points=y,
-                        label=_label(plot_type),
-                    ),
-                ],
-                PKDict(),
-            )
-        d = template_common.h5_to_dict(f, str(slice_index))
-        r = d.ranges
-        z = d[plot_type]
-        return PKDict(
-            title=_title(plot_type, slice_index),
-            x_range=[r.x[0], r.x[1], len(z)],
-            y_range=[r.y[0], r.y[1], len(z[0])],
-            x_label="Horizontal Position [m]",
-            y_label="Vertical Position [m]",
-            z_matrix=z,
-        )
+    tries = 3
+    for _ in range(tries):
+        try:
+            with h5py.File(
+                run_dir.join(_fname(element).format(element_index)), "r"
+            ) as f:
+                if _is_longitudinal_plot(plot_type):
+                    x = []
+                    y = []
+                    nslice = _nslice(element, f)
+                    if element:
+                        element.nslice = nslice
+                    for idx in range(nslice):
+                        x.append(idx)
+                        y.append(_y_value(element, idx, f, _cell_volume(element)))
+                    return template_common.parameter_plot(
+                        x,
+                        [
+                            PKDict(
+                                points=y,
+                                label=_label(plot_type),
+                            ),
+                        ],
+                        PKDict(),
+                    )
+                d = template_common.h5_to_dict(f, str(slice_index))
+                r = d.ranges
+                z = d[plot_type]
+                return PKDict(
+                    title=_title(plot_type, slice_index),
+                    x_range=[r.x[0], r.x[1], len(z)],
+                    y_range=[r.y[0], r.y[1], len(z[0])],
+                    x_label="Horizontal Position [m]",
+                    y_label="Vertical Position [m]",
+                    z_matrix=z,
+                )
+        except BlockingIOError as e:
+            time.sleep(3)
+    raise AssertionError("Report is unavailable")
 
 
 def _laser_pulse_report(value_index, filename, title, label):

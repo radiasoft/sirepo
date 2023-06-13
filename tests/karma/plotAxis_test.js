@@ -111,7 +111,14 @@ describe('plotting: plotAxis', function() {
             tickValues('', [-0.0002, -0.0018], {width: 315, height: 200}, 'y', 'left'),
             ['-1.5e-3', '-1.0e-3', '-5.0e-4'],
         );
-
+        assertTicks(
+            tickValues('', [-0.02, 0], {width: 350, height: 180}, 'y', 'left'),
+            ['-0.02', '-0.01', '0'],
+        );
+        assertTicks(
+            tickValues('', [0, 0.02], {width: 350, height: 180}, 'y', 'left'),
+            ['0', '0.01', '0.02'],
+        );
     }));
     it('should format units', inject(function(layoutService) {
         expect(layoutService.formatUnits('m')).toEqual('[m]');
