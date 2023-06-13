@@ -9,10 +9,8 @@ export abstract class Layout<C = unknown, P = unknown> {
     name: string;
 
     constructor(protected config: C) {
-        this.name = this.constructor.name; // this probably will always return 'Layout' with typescript
+        this.name = this.constructor.name; // TODO: this probably will always return 'Layout' with typescript
     }
-
-    abstract getFormDependencies(): Dependency[];
 
     component: React.FunctionComponent<LayoutProps<P>>;
 }

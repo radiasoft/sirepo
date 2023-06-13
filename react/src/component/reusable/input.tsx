@@ -28,7 +28,7 @@ export function FieldInput<T>(props: FieldProps<T>) {
     return (
          <InputComponent
             dependency={dependency}
-            value={value.value}
+            value={value.value as T}
             onChange={onChange}
             isInvalid={! value.valid && value.touched}
             />
