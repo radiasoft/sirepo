@@ -432,6 +432,11 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             longitudinal_intensity="Pulse Slice",
         )[plot_type]
 
+    def _index(index, plot_type):
+        if plot_type == "longitudinal_photons":
+            return index
+        return index + 1
+
     with h5py.File(run_dir.join(_fname(element).format(element_index)), "r") as f:
         if _is_longitudinal_plot(plot_type):
             x = []
@@ -440,7 +445,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             if element:
                 element.nslice = nslice
             for idx in range(nslice):
-                x.append(idx)
+                x.append(_index(idx, plot_type))
                 y.append(_y_value(element, idx, f, _cell_volume(element)))
             return template_common.parameter_plot(
                 x,
