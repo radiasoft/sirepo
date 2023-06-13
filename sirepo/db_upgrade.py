@@ -168,10 +168,6 @@ def _20210211_upgrade_runner_to_job_db(qcall):
             pkdlog(s, **k)
 
 
-def _20210218_add_flash_proprietary_lib_files_force(qcall):
-    _20210211_add_flash_proprietary_lib_files(qcall, force=True)
-
-
 def _20210301_migrate_role_jupyterhub(qcall):
     r = sirepo.auth_role.for_sim_type("jupyterhublogin")
     m = qcall.auth_db.model("UserRole")
@@ -198,6 +194,10 @@ def _20220901_migrate_ml_to_activait(qcall):
 def _20230203_drop_spa_session(qcall):
     qcall.auth_db.drop_table("session_t")
     qcall.auth_db.drop_table("spa_session_t")
+
+
+def _20230529_deploy_flash_update(qcall):
+    _20210211_add_flash_proprietary_lib_files(qcall, force=True)
 
 
 @contextlib.contextmanager

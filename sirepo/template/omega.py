@@ -7,6 +7,7 @@
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
+from sirepo import simulation_db
 from sirepo.template import template_common
 import re
 import sirepo.sim_data
@@ -15,6 +16,12 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _MAX_SIMS = 4
 _MAX_PHASE_PLOTS = 4
 _PHASE_PLOTS = PKDict(
+    genesis=[
+        ["x", "pxmc"],
+        ["y", "pymc"],
+        ["x", "y"],
+        ["psi", "gamma"],
+    ],
     opal=[
         ["x", "px"],
         ["y", "py"],
@@ -35,8 +42,16 @@ _PLOT_TITLE = PKDict(
             "y-py": "Vertical",
             "x-y": "Cross-section",
             "z-pz": "Longitudinal",
-        }
-    )
+        },
+    ),
+    genesis=PKDict(
+        {
+            "x-pxmc": "Horizontal",
+            "y-pymc": "Vertical",
+            "x-y": "Cross-section",
+            "psi-gamma": "PSI/Gamma",
+        },
+    ),
 )
 _PLOT_Y_LABEL = PKDict(
     opal=PKDict(
@@ -49,6 +64,16 @@ _PLOT_Y_LABEL = PKDict(
     )
 )
 _BEAM_PARAMETERS = PKDict(
+    genesis=PKDict(
+        rmsx="xrms",
+        rmsy="yrms",
+        rmss="none",
+        rmspx="none",
+        rmspy="none",
+        meanx="none",
+        meany="none",
+        none="none",
+    ),
     opal=PKDict(
         rmsx="rms x",
         rmsy="rms y",
@@ -72,8 +97,8 @@ _BEAM_PARAMETERS = PKDict(
 )
 _ELEGANT_BEAM_PARAMETER_FILE_DEFAULT = "run_setup.sigma.sdds"
 _ELEGANT_BEAM_PARAMETER_FILE = PKDict(
-    meanx="run_setup.centroid.sdds",
-    meany="run_setup.centroid.sdds",
+    Cx="run_setup.centroid.sdds",
+    Cy="run_setup.centroid.sdds",
 )
 
 
@@ -103,14 +128,14 @@ def _phase_plot_args(sim_type, frame_args):
 
 
 def sim_frame(frame_args):
-    sim_type, run_dir = _sim_type_and_run_dir_from_report_name(
+    sim_type, sub_dir = _sim_type_and_sub_dir_from_report_name(
         frame_args.sim_in.models,
         frame_args.frameReport,
     )
     if "Phase" in frame_args.frameReport:
-        return _plot_phase(sim_type, run_dir, frame_args)
+        return _plot_phase(sim_type, sub_dir, frame_args)
     if "Beam" in frame_args.frameReport:
-        return _plot_beam(sim_type, run_dir, frame_args)
+        return _plot_beam(sim_type, sub_dir, frame_args)
     raise AssertionError(
         "unhandled sim frame report: {}".format(frame_args.frameReport)
     )
@@ -144,7 +169,7 @@ def _completed_reports(run_dir):
     return res
 
 
-def _extract_elegant_beam_plot(run_dir, frame_args):
+def _extract_elegant_beam_plot(frame_args):
     # this is tricky because the data could come from 2 different elegant output files
     import sirepo.template.elegant
 
@@ -156,7 +181,6 @@ def _extract_elegant_beam_plot(run_dir, frame_args):
         fn = _ELEGANT_BEAM_PARAMETER_FILE.get(
             frame_args[f], _ELEGANT_BEAM_PARAMETER_FILE_DEFAULT
         )
-        frame_args[f] = _BEAM_PARAMETERS.elegant[frame_args[f]]
         if fn in files:
             files[fn].append(frame_args[f])
         else:
@@ -170,7 +194,7 @@ def _extract_elegant_beam_plot(run_dir, frame_args):
             else:
                 frame_args[f"y{i}"] = "none"
         r = sirepo.template.elegant.extract_report_data(
-            str(frame_args.run_dir.join(f"{run_dir}/{fn}")),
+            str(frame_args.run_dir.join(fn)),
             frame_args,
         )
         if res:
@@ -205,7 +229,7 @@ def _generate_parameters_file(data, run_dir=None):
     return res + template_common.render_jinja(SIM_TYPE, v)
 
 
-def _plot_phase(sim_type, run_dir, frame_args):
+def _plot_phase(sim_type, sub_dir, frame_args):
     _phase_plot_args(sim_type, frame_args)
 
     if sim_type == "opal":
@@ -213,7 +237,7 @@ def _plot_phase(sim_type, run_dir, frame_args):
 
         r = sirepo.template.opal.bunch_plot(
             frame_args,
-            frame_args.run_dir.join(run_dir),
+            frame_args.run_dir.join(sub_dir),
             frame_args.frameIndex,
         )
         return r.pkupdate(
@@ -226,28 +250,43 @@ def _plot_phase(sim_type, run_dir, frame_args):
         import sirepo.template.elegant
 
         return sirepo.template.elegant.extract_report_data(
-            str(frame_args.run_dir.join(f"{run_dir}/run_setup.output.sdds")),
+            str(frame_args.run_dir.join(sub_dir, "run_setup.output.sdds")),
             frame_args,
+        )
+    if sim_type == "genesis":
+        import sirepo.template.genesis
+
+        frame_args.sim_in = simulation_db.read_json(
+            frame_args.run_dir.join(sub_dir, template_common.INPUT_BASE_NAME)
+        )
+        frame_args.run_dir = frame_args.run_dir.join(sub_dir)
+        frame_args.frameIndex = 1
+        return sirepo.template.genesis.sim_frame_particleAnimation(frame_args).pkupdate(
+            title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
         )
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
 
 
-def _plot_beam(sim_type, run_dir, frame_args):
+def _plot_beam(sim_type, sub_dir, frame_args):
+    for f in ("y1", "y2", "y3"):
+        frame_args[f] = _BEAM_PARAMETERS[sim_type][frame_args[f]]
+    frame_args.run_dir = frame_args.run_dir.join(sub_dir)
     if sim_type == "opal":
         import sirepo.template.opal
 
         frame_args.x = "s"
-        frame_args.y1 = "rms x"
-        frame_args.y2 = "rms y"
-        frame_args.y3 = "rms s"
-        frame_args.run_dir = frame_args.run_dir.join(run_dir)
         return sirepo.template.opal.sim_frame_plot2Animation(frame_args)
     if sim_type == "elegant":
-        return _extract_elegant_beam_plot(run_dir, frame_args)
+        return _extract_elegant_beam_plot(frame_args)
+    if sim_type == "genesis":
+        import sirepo.template.genesis
+
+        return sirepo.template.genesis.sim_frame_parameterAnimation(frame_args)
+
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
 
 
-def _sim_type_and_run_dir_from_report_name(models, report):
+def _sim_type_and_sub_dir_from_report_name(models, report):
     m = re.match(r"sim(\d+).*?Animation", report)
     assert m
     idx = int(m.group(1))

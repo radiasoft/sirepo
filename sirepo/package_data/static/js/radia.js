@@ -170,7 +170,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         // if object was in a group, remove from that group
         removeFromGroup(o);
         appState.models.geometryReport.objects.splice(i, 1);
-        self.saveGeometry(true, false);
     };
 
     self.getAxisIndices = function() {
@@ -188,11 +187,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             height: geometry.basisVectors[heightAxis],
             width: geometry.basisVectors[self.calcWidthAxis(depthAxis, heightAxis)],
         };
-    };
-
-    self.getGroup = function(id) {
-        const o = self.getObject(id);
-        return o ? self.getObject(o.groupId) : null;
     };
 
     self.getObject = function(id) {
@@ -243,11 +237,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     self.setSelectedObject = function(o) {
         self.selectedObject = o;
-    };
-
-    self.showFieldDownload = function(doShow, path) {
-        self.selectedPath = path;
-        $('#sr-field-download').modal(doShow ? 'show' : 'hide');
     };
 
     self.scaledArray = function (arr=SIREPO.ZERO_ARR) {
@@ -361,7 +350,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     return self;
 });
 
-SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $scope) {
+SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $rootScope, $scope) {
     //TODO(mvk): a lot of this is specific to freehand magnets and should be moved to a directive
 
     let self = this;
@@ -473,8 +462,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     };
 
     self.deleteObject = o => {
-        deleteShapesForObject(o);
         radiaService.deleteObject(o);
+        loadObjectViews();
     };
 
     self.dipoleTitle = () => {
@@ -509,9 +498,11 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return appState.models.simulation.dipoleType;
     };
 
-    self.getGroup = radiaService.getGroup;
+    self.getGroup = o => self.getObject(o.groupId);
 
     self.getMagnetType = () => appState.models.simulation.magnetType;
+
+    self.getMemberObjects = o => (self.getMembers(o) || []).map(mId => self.getObject(mId));
 
     self.getMembers = o => o.members;
 
@@ -554,6 +545,16 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     self.isGroup = o => o.members !== undefined;
 
     self.loadObjectViews = loadObjectViews;
+
+    self.moveObject = (direction, o) => {
+        const objects = self.isInGroup(o) ? self.getMembers(self.getObject(o.groupId)) : self.getObjects();
+        let i = objects.indexOf(self.isInGroup(o) ? o.id : o);
+        const j = i + direction;
+        if (j >= 0 && j < objects.length) {
+            objects.splice(j, 0, objects.splice(i, 1)[0]);
+            radiaService.saveGeometry(false, true);
+        }
+    };
 
     self.objectsOfType = type => appState.models.geometryReport.objects.filter(o => o.type === type);
 
@@ -789,10 +790,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
     }
 
-    function deleteShapesForObject(o) {
-        self.views.splice(indexOfViews(self.viewsForObject(o)), 1);
-    }
-
     function getDescendents(group) {
         let d = [];
         for (const m of (group.members || [])) {
@@ -838,11 +835,13 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function loadObjectViews() {
         self.views = [];
+        self.shapes = [];
         if (! self.showDesigner()) {
             return;
         }
         appState.models.geometryReport.objects.forEach(addViewsForObject);
         addBeamAxis();
+        $rootScope.$broadcast('shapes.loaded');
     }
 
     function newObjectName(o) {
@@ -876,6 +875,12 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         appState.models.geometryReport.objects = [];
     }
     loadObjectViews();
+
+    $scope.$on('cancelChanges', function(e, name) {
+        if (name === 'geometryReport') {
+            loadObjectViews();
+        }
+    });
 
     $scope.$on('modelChanged', function(e, modelName) {
 
@@ -1307,107 +1312,6 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
     };
 });
 
-SIREPO.app.directive('fieldDownload', function(appState, geometry, panelState, radiaService, requestSender) {
-
-    return {
-        restrict: 'A',
-        scope: {
-        },
-        template: `
-            <div class="modal fade" tabindex="-1" role="dialog" id="sr-field-download" data-small-element-class="col-sm-2">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header bg-info">
-                            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                            <span class="lead modal-title text-info">{{ svc.selectedPath.name }}</span>
-                        </div>
-                        <div class="modal-body">
-                            <div class="form-horizontal">
-                                <div class="form-group form-group-sm" data-ng-show="! isFieldMap()">
-                                    <div class="control-label col-sm-5">
-                                        <label><span>Field</span></label>
-                                    </div>
-                                    <div class="col-sm-5">
-                                        <select data-ng-model="tModel.type" class="form-control">
-                                            <option ng-repeat="t in svc.pointFieldTypes">{{ t }}</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="control-label col-sm-5">
-                                    <label><span>Export to</span></label>
-                                </div>
-                                <div class="form-group form-group-sm">
-                                    <div class="col-sm-5">
-                                        <select data-ng-model="tModel.exportType" class="form-control">
-                                            <option ng-repeat="t in svc.pointFieldExportTypes">{{ t }}</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div data-ng-show="tModel.exportType == \'SRW\'">
-                                    <div class="control-label col-sm-5">
-                                        <label><span>Magnetic Gap [mm]</span></label>
-                                    </div>
-                                    <div class="form-group form-group-sm">
-                                        <div class="col-sm-5">
-                                            <input data-string-to-number="" data-ng-model="tModel.gap" data-min="0" required />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <button data-ng-click="download()" class="btn btn-default col-sm-offset-6">Download</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `,
-        controller: function($scope, $element) {
-            $scope.svc = radiaService;
-
-            $scope.tModel = {
-                exportType: radiaService.pointFieldExportTypes[0],
-                gap: 0.0,
-                type: radiaService.pointFieldTypes[0],
-            };
-
-            $scope.availableFieldTypes = function() {
-                return radiaService.pointFieldTypes.filter(function(t) {
-
-                });
-            };
-
-            $scope.download = function() {
-                requestSender.newWindow('downloadDataFile', {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<model>': 'fieldLineoutAnimation',
-                    '<frame>': SIREPO.nonDataFileFrame,
-                    '<suffix>': radiaService.pointFieldExports[$scope.tModel.exportType].extension
-                });
-                radiaService.showFieldDownload(false);
-            };
-
-            $scope.fieldType = function() {
-                return $scope.isFieldMap() ? 'B' : $scope.tModel.type;
-            };
-
-            $scope.exportType = function() {
-                return $scope.tModel.exportType;
-            };
-
-            $scope.isFieldMap = function() {
-                return (radiaService.selectedPath || {}).type === 'fieldMapPath';
-            };
-
-            appState.whenModelsLoaded($scope, function () {
-                $scope.tModel.gap = (appState.models.undulator || {}).gap || 0;
-            });
-        },
-    };
-});
-
-
 SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -1445,7 +1349,7 @@ SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) 
     };
 });
 
-SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimulation, frameCache) {
+SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, persistentSimulation, radiaService, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -1455,14 +1359,69 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, persistentSimul
             <div class="col-md-6">
               <div data-ng-if="showFieldLineoutPanel()" data-report-panel="parameter" data-model-name="fieldLineoutAnimation">
                 <div data-sim-status-panel="simState"></div>
+                <div data-ng-if="::canExport" class="col-sm-6 pull-right" style="padding-top: 8px;">
+                    <button data-ng-disabled="! isExportEnabled()" class="btn btn-default" data-ng-click="createSRWSimulation()">Open in SRW</button>
+                </div>
               </div>
             </div>
         `,
         controller: function($scope) {
             const modelName = $scope.modelName;
+            const simId = appState.models.simulation.simulationId;
+            const simName = appState.models.simulation.name;
+            const simType = SIREPO.APP_SCHEMA.simulationType;
+
             $scope.model = appState.models[modelName];
             $scope.simScope = $scope;
             $scope.simComputeModel = modelName;
+
+            $scope.canExport = appState.models.simulation.magnetType === 'undulator';
+
+            $scope.createSRWSimulation = () => {
+                const uName = `Radia Undulator ${simName}`;
+                requestSender.sendRequest(
+                    'newSimulation',
+                    data => {
+                        requestSender.openSimulation(
+                            'srw',
+                            'source',
+                            data.models.simulation.simulationId
+                        );
+                    },
+                    {
+                        electronBeamPosition: {
+                            drift: SIREPO.APP_SCHEMA.constants.objectScale *
+                                appState.models[modelName].fieldPath.begin[radiaService.getAxisIndices().depth],
+                        },
+                        folder: '/',
+                        name: simName,
+                        simulation: {
+                            notes: 'Tabulated undulator from radia',
+                        },
+                        simulationType: 'srw',
+                        sourceSimId: simId,
+                        sourceSimType: simType,
+                        sourceType: 't',
+                        tabulatedUndulator: {
+                            gap: appState.models[appState.models.simulation.undulatorType].gap,
+                            indexFileName: `${modelName}_sum.txt`,
+                            magneticFile: `${modelName}.zip`,
+                            name: uName,
+                            undulatorSelector: uName,
+                            undulatorType: 'u_t',
+                        }
+                    },
+                    err => {
+                        throw new Error('Simulation creation failed: ' + err);
+                    }
+                );
+            };
+
+            $scope.isExportEnabled = () => {
+                return $scope.canExport &&
+                    $scope.simState.isStateCompleted() &&
+                    frameCache.getFrameCount() > 0;
+            };
 
             $scope.simHandleStatus = data => {
                 if (data.computeModel === 'fieldLineoutAnimation' && data.state === "completed") {
@@ -1981,7 +1940,6 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                             radiaService.syncReports();
                         }
                         solving = false;
-                        radiaService.saveGeometry(false, true);
                     }
                 }
             };
@@ -2710,6 +2668,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             }
 
             function setupSceneData(data) {
+                radiaService.saveGeometry(false, true);
                 cachedDisplayVals = appState.clone(getDisplayVals());
                 $rootScope.$broadcast('radiaViewer.loaded');
                 $rootScope.$broadcast('vtk.hideLoader');
@@ -2813,7 +2772,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
 
             $scope.$on('fieldPaths.saved', () => {
                 if (appState.models.magnetDisplay.viewType === 'fields') {
-                    updateViewer();
+                    updateViewer(true);
                 }
             });
 
@@ -2850,7 +2809,9 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 if (! initDone) {
                     return;
                 }
-                updateViewer(true);
+                if (appState.models.magnetDisplay.viewType === 'fields') {
+                    updateViewer(true);
+                }
             });
 
             $scope.$on('$destroy', () => {
@@ -3320,7 +3281,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     function updateShapes() {
         radiaService.saveGeometry(true, false, () => {
             ctl.loadObjectViews();
-            $rootScope.$broadcast('shapes.loaded');
         });
     }
 

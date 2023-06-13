@@ -5,7 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import pytest
-from pykern.pkcollections import PKDict
 import os
 import time
 
@@ -25,14 +24,19 @@ def setup_module(module):
 
 
 def test_myapp_free_user_sim_purged(auth_fc):
-    from pykern import pkio
-    from pykern import pkunit
+    from pykern import pkunit, pkcollections, pkio, pkunit
     from pykern.pkdebug import pkdp
-    from sirepo import auth_role
+    from sirepo import auth_role, const, srdb
 
     def _check_run_dir(should_exist=0):
         f = pkio.walk_tree(fc.sr_user_dir(), file_re=m)
         pkunit.pkeq(should_exist, len(f), "incorrect file count")
+
+    def _make_invalid_job():
+        d = srdb.supervisor_dir()
+        d.ensure(dir=True)
+        # This will be the first file found and cause purge_non_premium to raise
+        pkunit.data_dir().join("00000001-JzccRZNg-heightWeightReport.json").copy(d)
 
     def _make_user_premium(uid):
         from sirepo import srunit
@@ -63,6 +67,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
     fc.sr_email_login(user_free)
     fc.sr_email_login(user_premium)
     _make_user_premium(fc.sr_auth_state().uid)
+    _make_invalid_job()
     next_req_premium = _run_sim(fc.sr_sim_data())
     fc.sr_email_login(user_free)
     next_req_free = _run_sim(fc.sr_sim_data())
