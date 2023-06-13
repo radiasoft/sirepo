@@ -21,7 +21,7 @@
   background-color: #d9edf7;
 }
 
-.hellweg-beamline-table td.drag-enter div {
+.hellweg-beamline-table td.drag-enter div.hellweg-icon {
   padding-top: 2em;
 }
 
