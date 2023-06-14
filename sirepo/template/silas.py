@@ -417,7 +417,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
 
     def _z_label(plot_type):
         return PKDict(
-            total_phase="[rad]",
+            total_phase="Phase [rad]",
             total_intensity="",
             intensity="",
             phase="Phase [rad]",
