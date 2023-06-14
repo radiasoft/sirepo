@@ -242,11 +242,11 @@ def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
 def _generate_beamline_elements(data):
     def _callback(state, element, dz):
         if dz:
-            state.res += f'(Drift({round(dz, 9)}), ["default"]),\n'
+            state.res += f'(Drift_srw({round(dz, 9)}), ["default"]),\n'
         if element.type == "watch" or element.get("isDisabled"):
             return
         if element.type == "lens":
-            state.res += f'(Lens({element.focalLength}), ["default"]),\n'
+            state.res += f'(Lens_srw({element.focalLength}), ["default"]),\n'
         elif element.type == "mirror":
             state.res += "(Mirror(), []),\n"
         elif element.type == "crystal":
