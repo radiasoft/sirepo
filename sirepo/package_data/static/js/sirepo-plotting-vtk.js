@@ -2167,6 +2167,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function editObject(shape) {
                 d3.event.stopPropagation();
+                if (! shape.draggable) {
+                    return;
+                }
                 $scope.$applyAsync(function() {
                     $scope.source.editObjectWithId(shape.id);
                 });
@@ -2174,6 +2177,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function formatObjectLength(val) {
                 return utilities.roundToPlaces(invObjScale * val, 4);
+            }
+
+            function getShape(id) {
+                return $scope.shapes.filter(x => x.id === id)[0];
             }
 
             function hideShapeLocation() {
@@ -2575,6 +2582,16 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             $scope.$on('shapes.loaded', drawShapes);
 
+            $scope.$on('shape.locked', (e, locks) => {
+                for (const l of locks) {
+                    const s = getShape(l.id);
+                    if (s) {
+                        s.draggable = ! l.doLock;
+                    }
+                }
+                refresh();
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -2582,7 +2599,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
     };
 });
 
-SIREPO.app.directive('objectTable', function(appState) {
+SIREPO.app.directive('objectTable', function(appState, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -2699,14 +2716,21 @@ SIREPO.app.directive('objectTable', function(appState) {
 
             function setLocked(o, doLock) {
                 $scope.locked[o.id] =  doLock;
+                let ids = [
+                    {
+                        id: o.id,
+                        doLock: doLock
+                    },
+                ];
                 if ($scope.isGroup(o)) {
                     getMemberObjects(o).forEach(x => {
-                        setLocked(x, doLock);
+                        ids = ids.concat(setLocked(x, doLock));
                         if (areObjectsUnlockable) {
                             $scope.unlockable[x.id] = ! doLock;
                         }
                     });
                 }
+                return ids;
             }
 
             $scope.align = (o, alignType) => {
@@ -2777,7 +2801,7 @@ SIREPO.app.directive('objectTable', function(appState) {
                 if (! $scope.unlockable[o.id]) {
                     return;
                 }
-                setLocked(o, ! $scope.locked[o.id]);
+                $rootScope.$broadcast('shape.locked', setLocked(o, ! $scope.locked[o.id]));
             };
 
             init();
