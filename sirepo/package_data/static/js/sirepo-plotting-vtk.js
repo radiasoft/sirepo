@@ -2601,8 +2601,8 @@ SIREPO.app.directive('objectTable', function(appState) {
                   <tbody>
                     <tr data-ng-show="areAllGroupsExpanded(o)" data-ng-attr-id="{{ o.id }}" data-ng-repeat="o in getObjects() track by $index">
                       <td style="padding-left: {{ nestLevel(o) }}em; cursor: pointer; white-space: nowrap">
-                        <span data-ng-if="locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable" data-ng-click="toggleLock(o)">🔒 </span>
-                        <span data-ng-if="! locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable" data-ng-click="toggleLock(o)">🔓 </span>
+                        <span title="{{ lockTitle(o) }}" data-ng-if="locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">🔒 </span>
+                        <span title="{{ lockTitle(o) }}" data-ng-if="! locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">🔓 </span>
                         <span style="font-size: large; color: {{o.color || '#cccccc'}}; padding-left: 1px;">■</span>
                           <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': expanded[o.id], 'glyphicon-chevron-up': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
                             <span>{{ o.name }}</span>
@@ -2642,19 +2642,22 @@ SIREPO.app.directive('objectTable', function(appState) {
             $scope.expanded = {};
             $scope.fields = ['objects'];
             $scope.locked = {};
+            $scope.unlockable = {};
 
             const isInGroup = $scope.source.isInGroup;
             const getGroup = $scope.source.getGroup;
             const getMemberObjects = $scope.source.getMemberObjects;
-            $scope.unlockable = appState.models.simulation.areObjectsUnlockable;
+            let areObjectsUnlockable = appState.models.simulation.areObjectsUnlockable;
 
             function init() {
-                if ($scope.unlockable == undefined) {
-                    $scope.unlockable = true;
+                if (areObjectsUnlockable === undefined) {
+                    areObjectsUnlockable = true;
                 }
                 for (const o of $scope.getObjects()) {
                     $scope.expanded[o.id] = true;
-                    $scope.locked[o.id] = ! $scope.unlockable;
+                    $scope.unlockable[o.id] = areObjectsUnlockable;
+                    $scope.locked[o.id] = ! areObjectsUnlockable;
+
                 }
             }
 
@@ -2699,6 +2702,9 @@ SIREPO.app.directive('objectTable', function(appState) {
                 if ($scope.isGroup(o)) {
                     getMemberObjects(o).forEach(x => {
                         setLocked(x, doLock);
+                        if (areObjectsUnlockable) {
+                            $scope.unlockable[x.id] = ! doLock;
+                        }
                     });
                 }
             }
@@ -2732,6 +2738,16 @@ SIREPO.app.directive('objectTable', function(appState) {
                 return direction === -1 ? i === 0 : i === objects.length - 1;
             };
 
+            $scope.lockTitle = o => {
+                if (! areObjectsUnlockable) {
+                    return 'designer is read-only for this magnet';
+                }
+                if (! $scope.unlockable[o.id]) {
+                    return 'cannot unlock';
+                }
+                return `click to ${$scope.locked[o.id] ? 'unlock' : 'lock'}`;
+            };
+
             $scope.moveObject = $scope.source.moveObject;
 
             $scope.nestLevel = o => {
@@ -2747,6 +2763,9 @@ SIREPO.app.directive('objectTable', function(appState) {
             };
 
             $scope.toggleLock = o => {
+                if (! $scope.unlockable[o.id]) {
+                    return;
+                }
                 setLocked(o, ! $scope.locked[o.id]);
             };
 
