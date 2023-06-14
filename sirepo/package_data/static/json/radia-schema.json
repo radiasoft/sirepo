@@ -850,6 +850,8 @@
             "color": ["Color", "Color", "#cccccc"],
             "groupId": ["_", "String", ""],
             "id": ["_", "RandomId", ""],
+            "isLocked": ["_", "Boool", false],
+            "isUnlockable": ["_", "Boool", true],
             "layoutShape":  ["_", "String", "rect"]
         },
         "linePath": {
@@ -1096,6 +1098,7 @@
                 ]
             ],
             "corePoleGroup": ["_", "model.geomGroup", {
+                "isUnlockable": false,
                 "name": "core + pole"
             }],
             "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the height axis"],
