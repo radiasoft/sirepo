@@ -2737,7 +2737,7 @@ SIREPO.app.directive('objectTable', function(appState) {
             $scope.isAlignDisabled = o => $scope.locked[o.id] || ! $scope.isGroup(o) || getMemberObjects(o).length < 2;
 
             $scope.isGroup = $scope.source.isGroup;
-            
+
             $scope.isMoveDisabled = (direction, o) => {
                 if ($scope.locked[o.id]) {
                     return true;
