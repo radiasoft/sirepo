@@ -850,8 +850,6 @@
             "color": ["Color", "Color", "#cccccc"],
             "groupId": ["_", "String", ""],
             "id": ["_", "RandomId", ""],
-            "isLocked": ["_", "Boool", false],
-            "isUnlockable": ["_", "Boool", true],
             "layoutShape":  ["_", "String", "rect"]
         },
         "linePath": {
@@ -950,6 +948,7 @@
         },
         "simulation": {
             "appMode": ["", "ApplicationMode", "default"],
+            "areObjectsUnlockable": ["_", "Boool", true],
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
             "coordinateSystem": ["Coordinate System", "CoordinateSystem" , "standard", "Ordering of spatial variables. Use Standard for [x, y, z] or Beam for [width, height, length]"],
             "dipoleType": ["Dipole Type", "DipoleType", "dipoleBasic"],

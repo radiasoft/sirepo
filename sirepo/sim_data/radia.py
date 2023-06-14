@@ -169,7 +169,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         def _fixup_geom_objects(objects, **kwargs):
             for o in objects:
-                o.isUnlockable = kwargs.get("unlockable", True)
                 if o.get("points") is not None and not o.get("triangulationLevel"):
                     o.triangulationLevel = 0.5
                 if not o.get("bevels"):
@@ -263,10 +262,11 @@ class SimData(sirepo.sim_data.SimDataBase):
             del dm.fieldPaths["path"]
         if dm.simulation.get("isExample"):
             cls._fixup_examples(dm)
+        dm.simulation.areObjectsUnlockable = dm.simulation.magnetType == "freehand"
         if dm.simulation.magnetType == "undulator":
             cls._fixup_undulator(dm)
         cls._fixup_obj_types(dm)
-        _fixup_geom_objects(dm.geometryReport.objects, unlockable=dm.simulation.magnetType == "freehand")
+        _fixup_geom_objects(dm.geometryReport.objects)
         _fixup_field_paths(dm.fieldPaths.paths)
         for name in [name for name in dm if name in sch.model]:
             _delete_old_fields(dm[name])
