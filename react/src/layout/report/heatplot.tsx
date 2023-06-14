@@ -58,10 +58,6 @@ export class HeatplotFromApi extends ReportVisual<undefined, {}, HeatplotConfigA
         return !!this.getConfigFromApiResponse(apiResponse);
     }
 
-    getFormDependencies = () => {
-        return [];
-    }
-
     component = (props: LayoutProps<{}> & ReportVisualProps<HeatPlotConfig>) => {
         let { data, model } = props;
 

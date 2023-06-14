@@ -79,7 +79,7 @@ _SLICE_RE = re.compile(
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return PKDict(percentComplete=0, frameCount=0)
-    if not _genesis_success_exit(run_dir):
+    if not genesis_success_exit(run_dir):
         return PKDict(
             percentComplete=100,
             state=sirepo.job.ERROR,
@@ -109,6 +109,16 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def genesis_success_exit(run_dir):
+    # Genesis exits with a 0 status regardless of whether it succeeded or failed
+    # Assume success if output files exists
+    return (
+        run_dir.join(_OUTPUT_FILENAME).exists()
+        and run_dir.join(_PARTICLE_OUTPUT_FILENAME).exists()
+        and run_dir.join(_PARTICLE_OUTPUT_FILENAME).size() > 0
+    )
+
+
 def get_data_file(run_dir, model, frame, options):
     if model == "particleAnimation":
         return _PARTICLE_OUTPUT_FILENAME
@@ -129,10 +139,21 @@ async def import_file(req, **kwargs):
     return _parse_namelist(res, text)
 
 
+def parse_genesis_error(run_dir):
+    return "\n".join(
+        [
+            m.group(1).strip()
+            for m in _RUN_ERROR_RE.finditer(
+                pkio.read_text(run_dir.join(template_common.RUN_LOG))
+            )
+        ],
+    )
+
+
 def post_execution_processing(run_dir, **kwargs):
-    if _genesis_success_exit(run_dir):
+    if genesis_success_exit(run_dir):
         return
-    return _parse_genesis_error(run_dir)
+    return parse_genesis_error(run_dir)
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -257,16 +278,6 @@ def _generate_parameters_file(data):
     )
 
 
-def _genesis_success_exit(run_dir):
-    # Genesis exits with a 0 status regardless of whether it succeeded or failed
-    # Assume success if output files exists
-    return (
-        run_dir.join(_OUTPUT_FILENAME).exists()
-        and run_dir.join(_PARTICLE_OUTPUT_FILENAME).exists()
-        and run_dir.join(_PARTICLE_OUTPUT_FILENAME).size() > 0
-    )
-
-
 def _get_field_distribution(run_dir, data):
     n = 1  # TODO(e-carlin): Will be different for time dependent
     p = data.models.mesh.ncar
@@ -317,17 +328,6 @@ def _get_frame_counts(run_dir):
                 if m.group(1) == "field":
                     break
     return res
-
-
-def _parse_genesis_error(run_dir):
-    return "\n".join(
-        [
-            m.group(1).strip()
-            for m in _RUN_ERROR_RE.finditer(
-                pkio.read_text(run_dir.join(template_common.RUN_LOG))
-            )
-        ],
-    )
 
 
 def _parse_namelist(data, text):
