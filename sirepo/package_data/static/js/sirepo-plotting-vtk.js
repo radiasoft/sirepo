@@ -2649,18 +2649,6 @@ SIREPO.app.directive('objectTable', function(appState) {
             const getMemberObjects = $scope.source.getMemberObjects;
             let areObjectsUnlockable = appState.models.simulation.areObjectsUnlockable;
 
-            function init() {
-                if (areObjectsUnlockable === undefined) {
-                    areObjectsUnlockable = true;
-                }
-                for (const o of $scope.getObjects()) {
-                    $scope.expanded[o.id] = true;
-                    $scope.unlockable[o.id] = areObjectsUnlockable;
-                    $scope.locked[o.id] = ! areObjectsUnlockable;
-
-                }
-            }
-
             function arrange(objects) {
 
                 const arranged = [];
@@ -2697,6 +2685,18 @@ SIREPO.app.directive('objectTable', function(appState) {
                 return arranged;
             }
 
+            function init() {
+                if (areObjectsUnlockable === undefined) {
+                    areObjectsUnlockable = true;
+                }
+                for (const o of $scope.getObjects()) {
+                    $scope.expanded[o.id] = true;
+                    $scope.unlockable[o.id] = areObjectsUnlockable;
+                    $scope.locked[o.id] = ! areObjectsUnlockable;
+
+                }
+            }
+
             function setLocked(o, doLock) {
                 $scope.locked[o.id] =  doLock;
                 if ($scope.isGroup(o)) {
@@ -2713,6 +2713,17 @@ SIREPO.app.directive('objectTable', function(appState) {
                 $scope.source.align(o, alignType, $scope.elevation.labAxisIndices());
             };
 
+            $scope.areAllGroupsExpanded = o => {
+                if (! isInGroup(o)) {
+                    return true;
+                }
+                const p = getGroup(o);
+                if (! $scope.expanded[p.id]) {
+                    return false;
+                }
+                return $scope.areAllGroupsExpanded(p);
+            };
+
             $scope.copyObject = $scope.source.copyObject;
 
             $scope.deleteObject = $scope.source.deleteObject;
@@ -2723,10 +2734,10 @@ SIREPO.app.directive('objectTable', function(appState) {
                 return arrange((appState.models[$scope.modelName] || {}).objects);
             };
 
-            $scope.isGroup = $scope.source.isGroup;
-
             $scope.isAlignDisabled = o => $scope.locked[o.id] || ! $scope.isGroup(o) || getMemberObjects(o).length < 2;
 
+            $scope.isGroup = $scope.source.isGroup;
+            
             $scope.isMoveDisabled = (direction, o) => {
                 if ($scope.locked[o.id]) {
                     return true;
@@ -2767,17 +2778,6 @@ SIREPO.app.directive('objectTable', function(appState) {
                     return;
                 }
                 setLocked(o, ! $scope.locked[o.id]);
-            };
-
-            $scope.areAllGroupsExpanded = o => {
-                if (! isInGroup(o)) {
-                    return true;
-                }
-                const p = getGroup(o);
-                if (! $scope.expanded[p.id]) {
-                    return false;
-                }
-                return $scope.areAllGroupsExpanded(p);
             };
 
             init();
