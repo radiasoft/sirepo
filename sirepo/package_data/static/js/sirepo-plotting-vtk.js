@@ -2583,13 +2583,17 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
             $scope.$on('shapes.loaded', drawShapes);
 
             $scope.$on('shape.locked', (e, locks) => {
+                let doRefresh = false;
                 for (const l of locks) {
                     const s = getShape(l.id);
                     if (s) {
+                        doRefresh = true;
                         s.draggable = ! l.doLock;
                     }
                 }
-                refresh();
+                if (doRefresh) {
+                    refresh();
+                }
             });
 
         },
