@@ -1,7 +1,6 @@
 from pykern.pkcollections import PKDict
 from rslaser.optics.crystal import Crystal
-from rslaser.optics.drift import Drift
-from rslaser.optics.lens import Lens
+from rslaser.optics.lens import Lens_srw, Drift_srw
 from rslaser.pulse.pulse import LaserPulse
 from rslaser.utils import srwl_uti_data
 from sirepo.template import template_common
@@ -105,7 +104,6 @@ def propagate(pulse, elements, beamline):
 pulse = LaserPulse(
     params=PKDict(
         {% for f in (
-            'chirp',
             'nslice',
             'num_sig_long',
             'num_sig_trans',
@@ -115,7 +113,8 @@ pulse = LaserPulse(
             'pulseE',
             'sigx_waist',
             'sigy_waist',
-            'tau_fwhm'
+            'tau_fwhm',
+            'tau_0',
         ) %}
         {{ f }}={{ laserPulse[f] }},
         {% endfor %}
