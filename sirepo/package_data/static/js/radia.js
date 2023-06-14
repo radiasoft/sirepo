@@ -1760,6 +1760,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                   <th>Field</th>
                   <th>Min</th>
                   <th>Max</th>
+                  <th>Start</th>
                   <th></th>
                 </thead>
                 <tbody>
@@ -1776,11 +1777,10 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     <input data-ng-if="item.field" data-string-to-number="" data-min="attrForField(item.field, attr)" data-ng-model="item[attr]" class="form-control" style="text-align: right" data-lpignore="true" required />
                   </td>
                   <td>
-                    <div class="sr-button-bar-parent">
-                      <div class="sr-button-bar">
-                        <button data-ng-click="deleteItem($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
-                      </div>                      
-                    </div>
+                    <input data-ng-if="item.field" data-string-to-number="" data-ng-model="item.start" class="form-control" style="text-align: right" data-lpignore="true" required />
+                  </td>
+                  <td>
+                    <button title="delete" data-ng-click="deleteItem($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
                   </td>
                 </tr>
                 <tr>
@@ -1860,6 +1860,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     field: null,
                     min: -1,
                     max: 1,
+                    start: 0,
                 }
                 $scope.field.push(m);
                 $scope.selectedItem = null;
@@ -3813,7 +3814,7 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
     }
 
     function updateInputs() {
-        panelState.showField('optimizer', 'fields', appState.models[$scope.modelName].objective !== 'none');
+        panelState.showField('optimizer', 'parameters', appState.models[$scope.modelName].objective !== 'none');
     }
 
     function updateObjectiveFunction(fn) {

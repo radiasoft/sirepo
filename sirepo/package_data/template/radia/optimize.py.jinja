@@ -1,8 +1,20 @@
-import h5py
+{%- macro rsOptFuctionSignature(addQuotes) -%}
+{%- for p in optimizer.parameters -%}
+{%- for x in e[p].initial -%}
+{%- if e[p].offsets[loop.index0] != 0 -%}
+    {% if addQuotes %}'{% endif %}{{ fixSpaces(e.title) }}_{{ e[p].fieldNames[loop.index0] }}{% if addQuotes %}'{% endif %},
+{%- endif -%}
+{%- endfor -%}
+{%- endfor -%}
+{%- endfor -%}
+{%- endmacro -%}
+
 import os
-import re
 from pykern.pkcollections import PKDict
 import sirepo.mpi
+import sirepo.util
+from sirepo.template import radia_util
+from sirepo.template import template_common
 
 VIEW_TYPE_OBJ = "objects"
 VIEW_TYPE_FIELD = "fields"
@@ -14,174 +26,107 @@ _MODEL_ELL = "ell"
 _MODEL_JAY= "jay"
 _MODEL_GROUP = "geomGroup"
 _MODEL_OBJECT = "geomObject"
+_MODEL_EXTRUDED_POINTS = "extrudedPoints"
 _MODEL_EXTRUDED_POLY = "extrudedPoly"
 _MODEL_RACETRACK = "racetrack"
-_EXTRUDED_MODELS = [_MODEL_CEE, _MODEL_ELL, _MODEL_JAY, _MODEL_EXTRUDED_POLY]
-_GROUP_MODELS = [_MODEL_GROUP]
-_OBJ_MODELS = [_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT] + _EXTRUDED_MODELS
+_MODEL_STL = "stl"
+_EXTRUDED_MODELS = (_MODEL_CEE, _MODEL_ELL, _MODEL_JAY, _MODEL_EXTRUDED_POINTS, _MODEL_EXTRUDED_POLY)
+_GROUP_MODELS = (_MODEL_GROUP,)
+_OBJ_MODELS = (_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT, _MODEL_STL) + _EXTRUDED_MODELS
 _MODELS = _OBJ_MODELS + _GROUP_MODELS
 
-{% if not dmpImportFile %}
 sirepo_objs = {{ objects }}
 
-# sirepo.util functions
-
-{% endif %}
-
-{% if is_raw %}
-{% include "radia_examples.py" %}
-{% endif %}
-
-{% include "radia_util.py" %}
-
-{% if not is_raw and not dmpImportFile  %}
 def _add_object(o, radia_objs, id_map):
     model = o.get("model")
     t = o.get("type")
     sc = o.get("super_classes", [])
     mat = {{ matrix }}
     if _MODEL_OBJECT in sc:
-        ctr = o["center"]
-        sz = o["size"]
-        m = multiply_vector_by_matrix(o["magnetization"], mat)
-        segs = multiply_vector_by_matrix(o["segments"], mat)
-    if t == _MODEL_CUBOID:
-        g_id = build_cuboid(
-            center=ctr,
-            size=sz,
-            material=o["material"],
-            magnetization=m,
-            rem_mag=o["remanentMag"],
-            segments=segs,
-            h_m_curve=o["h_m_curve"]
-        )
-    if t == _MODEL_CYLINDER:
-        g_id = build_cylinder(
-            center=ctr,
-            extrusion_axis=o["extrusionAxis"],
-            h_m_curve=o["h_m_curve"],
-            material=o["material"],
-            magnetization=m,
-            num_sides=o["numSides"],
-            radius=o["radius"],
-            rem_mag=o["remanentMag"],
-            segments=segs,
-            size=sz,
-        )
-    if _MODEL_EXTRUDED_POLY in sc:
-        g_id = extrude(
-            area=o["area"],
-            center=ctr,
-            size=sz,
-            extrusion_axis=o["extrusionAxis"],
-            points=o["points"],
-            material=o["material"],
-            magnetization=m,
-            rem_mag=o["remanentMag"],
-            segments=segs,
-            t_level=o["triangulationLevel"],
-            h_m_curve=o["h_m_curve"]
-    )
-    if t == _MODEL_RACETRACK:
-        g_id = build_racetrack(
-            center=o["center"],
-            axis=o["axis"],
-            calc=o["fieldCalc"],
-            radii=o["radii"],
-            sides=o["sides"],
-            height=o["height"],
-            num_segs=o["numSegments"],
-            curr_density=o["currentDensity"],
-        )
+        o.magnetization = radia_util.multiply_vector_by_matrix(o.magnetization, mat)
+        o.segments = radia_util.multiply_vector_by_matrix(o.segments, mat)
     if t in _OBJ_MODELS:
-        for b in o.get("bevels", []):
-            g_id = apply_bevel(
-                g_id,
-                center=ctr,
-                lenDir=b["cutDir"],
-                size=sz,
-                **b
-            )
-        for f in o.get("fillets", []):
-            g_id = apply_fillet(
-                g_id,
-                center=ctr,
-                size=sz,
-                material=o["material"],
-                magnetization=m,
-                rem_mag=o["remanentMag"],
-                segments=segs,
-                h_m_curve=o["h_m_curve"],
-                **f
-            )
-        apply_color(
+        g_id = radia_util.build_object(**o)
+        radia_util.apply_color(
             g_id,
-            [c / 255.0 for c in tuple(int(o["color"].lstrip("#")[i:i+2], 16) for i in (0, 2, 4))]
+            [c / 255.0 for c in tuple(int(o.color.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))]
         )
     if model in _GROUP_MODELS:
         grp = []
-        for obj_id in o["members"]:
+        for obj_id in o.members:
             obj = [mobj for mobj in sirepo_objs if mobj["id"] == obj_id][0]
-            if obj["id"] not in id_map.values():
+            m = PKDict(obj)
+            if m.id not in id_map.values():
                 # have not added this object yet
-                m_id = _add_object(obj, radia_objs, id_map)
+                m_id = _add_object(m, radia_objs, id_map)
                 grp.append(m_id)
             else:
                 grp.extend(
-                    [list(id_map.keys())[list(id_map.values()).index(v)] for v in id_map.values() if v == obj["id"]]
+                    [list(id_map.keys())[list(id_map.values()).index(v)] for v in id_map.values() if v == m.id]
                 )
-        g_id = build_container(grp)
-    for transform in o["transforms"]:
-        apply_transform(g_id, **transform)
-    id_map[g_id] = o["id"]
+        g_id = radia_util.build_container(grp)
+    for transform in o.transforms:
+        radia_util.apply_transform(g_id, **transform)
+    id_map[g_id] = o.id
     # don't add objects if they are already in a group
-    if not o["groupId"]:
+    if not o.groupId:
         radia_objs.append(g_id)
     return g_id
 
-{% endif %}
 
 def _build_radia_geom():
-    id_map = {}
+    id_map = PKDict()
     radia_objs = []
+{% if dmpImportFile %}
+    with open("{{ dmpImportFile }}", "rb") as f:
+        b = f.read()
+        g_id = radia_util.load_bin(b)
+{% else %}
     for obj in sirepo_objs:
-        if obj["id"] in id_map.values():
+        o = PKDict(obj)
+        if o.id in id_map.values():
             continue
-        o_id = _add_object(obj, radia_objs, id_map)
-        id_map[o_id] = obj["id"]
-    g_id = build_container(radia_objs)
+        o_id = _add_object(o, radia_objs, id_map)
+        id_map[o_id] = o.id
+    g_id = radia_util.build_container(radia_objs)
+{% endif %}
     return g_id, id_map
 
+def obj_f(g_id):
+    def _field_in_plane(y_min, y_max, obj, steps=25):
+        int_field = []
+        yc = np.linspace(y_min, y_max, steps)
+        for y in yc:
+            v = rad.FldInt(obj, 'inf', 'ibz', [-150, y, 0.], [150, y, 0.])
+            int_field.append(v)
+        return np.array([yc, int_field])
+
+    {% if optimizer.objective == "quality" %}
+    field_prof = _field_in_plane(-1., 1., obj, steps=125)
+    int_bz0 = rad.FldInt(obj, 'inf', 'ibz', [-150, 0., 0.], [150, 0., 0.])
+    res = field_prof[1, :] - int_bz0
+
+    np.save(OBJ_FILENAME, res)
+
+    return np.sum(res**2),  res
+
+
+def parallel_obj_f(_):
+    fvec =  np.load(OBJ_FILENAME)
+    return np.sum(fvec**2), fvec
+
+
 # ** Begin **
-g_id, id_map = _build_radia_geom()
+def main(radius, precision=1e-4, maxiter=4500, min_angle=20., max_area=0.5):
+    g_id, id_map = _build_radia_geom()
 
-print(f"Solving {g_id}...")
-res = radia.Solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-print(f"done: {res[3]} steps ({1000 * res[0]}ms); max |M| {res[1]} A/m; max |H| {res[2]} A/m")
+    res = radia.Solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
 
-print("Dumping to {{ dmpOutputFile }}")
-with open("{{ dmpOutputFile }}", "wb") as f:
-    f.write(dump_bin(g_id))
+    np.save('field_in_plane.npy', _field_in_plane(-1., 1., dipole, steps=125))
 
-# ** Field Calculations **
-print("Calculating Fields")
-m = get_magnetization(g_id)
+    return obj_f(g_id)
 
-{% if fieldPoints %}
-field_points = {{ fieldPoints }}
-{% for fieldType in POINT_FIELD_TYPES %}
-{{ fieldType.lower() }} = get_field(g_id, "{{ fieldType }}", field_points)
-{% endfor %}
-{% endif %}
 
-{% for fp in fieldPaths %}
-{% if fp.type == "line" or fp.type == "axis" %}
-# {{ fp.name }}
-p1 = {{ fp.begin }}
-p2 = {{ fp.end }}
-{% for fieldType in INTEGRABLE_FIELD_TYPES %}
-{{ fieldType.lower() }} = field_integral(g_id, "{{ fieldType }}", p1, p2)
-{% endfor %}
-{% endif %}
-{% endfor %}
+
+
 

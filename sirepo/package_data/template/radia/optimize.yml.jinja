@@ -5,13 +5,16 @@ codes:
             precision: 1e-4
         # Parameters will be varied by the optimizer
         parameters:
-            radius:
-                min: 0.0
-                max: 0.25
-                start: 0.01
+      parameters:
+        {% for p in optimizer.parameters %}
+          {{ p.object }}:
+          min: {{ p.min }}
+          max: {{ p.max }}
+          start: {{ p.start }}
+        {% endfor %}
         setup:
             # Name of Python file where function is defined
-            input_file: simulation.py
+            input_file: optimize.py
             # Name of function to run for every evaluation
             function: main
             execution_type: serial
@@ -20,11 +23,8 @@ options:
     # For serial execution the `main` function can directly return the objective value
     # For parallel execution a new subprocess must be used so the return value of `main` is lost
     # To calculate the objective function after each simulation the appropriate data should be saved to file and evaluated by a separate function given here. The function given to `objective_function` will be run in serial and is always used if given, even if the simulation defined above was run in serial
-    objective_function: [simulation.py, parallel_obj_f]
+    objective_function: [optimize.py, parallel_obj_f]
 
-    # Optional path to the directory (default: ./ensemble) where simulations are run. This directory must be empty or you will get an error. A new subdirectory is automatically created for each simulation to ensure files are no overwritten.
-    run_dir: optimize_shim_size
-    # The file `dipole.py` is imported by simulation.py. To ensure it is available at execution we tell rsopt to put a symlink to it.
     sym_links:
         - 'dipole.py'
     # Update history file after every evaluation. Default is to only write the history at the end. However, if rsopt ends prematurely a history up to that point will be written out regardless.

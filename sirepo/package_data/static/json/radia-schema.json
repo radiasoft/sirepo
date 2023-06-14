@@ -934,7 +934,7 @@
         },
         "optimizer": {
             "continuousFieldSteps": ["Continuous Field Divisions", "Integer", 20, "Number of times to subdivide non-gridded fields, ex. Current or Voltage"],
-            "fields": ["Inputs", "ObjectOptimizerField", []],
+            "parameters": ["Parameters", "ObjectOptimizerField", []],
             "initialSteps": ["Initial Simulation Steps", "Integer", 500],
             "objective": ["Objective Function", "ObjectiveFunction", "quality"],
             "optimizerSteps": ["Optimizer Steps Between Tolerance Checks", "Integer", 250],
@@ -1544,7 +1544,7 @@
                 "quality.begin",
                 "quality.end",
                 "quality.deviation",
-                "fields"
+                "parameters"
             ],
             "advanced": [
                 "tolerance",
