@@ -45,10 +45,6 @@ export class TableFromApi extends ReportVisual<TableFromApiConfig, {}, TableConf
         return !!this.getConfigFromApiResponse(apiResponse);
     }
 
-    getFormDependencies = () => {
-        return [];
-    }
-
     component = (props: LayoutProps<{}> & ReportVisualProps<TableConfig>) => {
         let { data } = props;
 

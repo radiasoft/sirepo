@@ -1,9 +1,5 @@
 import React, { useContext, useEffect } from "react";
-import { configureStore } from "@reduxjs/toolkit"
-import { modelsSlice } from "../store/models";
-import { formStatesSlice } from "../store/formState";
 import { useSetup } from "../hook/setup";
-import { Provider } from "react-redux";
 import { SimulationBrowserRoot } from "./simbrowser";
 import "./app.scss";
 import { AppWrapper, CAppName, CAppWrapper, CSchema, CSimulationList } from "../data/appwrapper";
@@ -14,28 +10,21 @@ import { CRouteHelper, RouteHelper } from "../utility/route";
 import { getAppCombinedSchema } from "../utility/schema";
 
 export const AppContextWrapper = (props) => {
-    const formStateStore = configureStore({
-        reducer: {
-            [modelsSlice.name]: modelsSlice.reducer,
-            [formStatesSlice.name]: formStatesSlice.reducer,
-        },
-    });
+    
     let appName = useContext(CAppName);
-    const [hasAppSchema, schema] = useSetup(true, getAppCombinedSchema(appName));
+    const [hasAppSchema, schema] = useSetup(true, () => getAppCombinedSchema(appName));
 
     if(hasAppSchema) {
         const routeHelper = new RouteHelper(appName, schema);
         let appWrapper = new AppWrapper(appName, routeHelper);
         return (
-            <Provider store={formStateStore}>
-                <CAppWrapper.Provider value={appWrapper}>
-                    <CSchema.Provider value={schema}>
-                        <CRouteHelper.Provider value={routeHelper}>
-                            {props.children}
-                        </CRouteHelper.Provider>
-                    </CSchema.Provider>
-                </CAppWrapper.Provider>
-            </Provider>
+            <CAppWrapper.Provider value={appWrapper}>
+                <CSchema.Provider value={schema}>
+                    <CRouteHelper.Provider value={routeHelper}>
+                        {props.children}
+                    </CRouteHelper.Provider>
+                </CSchema.Provider>
+            </CAppWrapper.Provider>
         )
     }
     return undefined;
@@ -76,7 +65,7 @@ export const AppRoot = (props) => {
 export const SimulationListInitializer = (props) => {
     let appWrapper = useContext(CAppWrapper);
 
-    const [hasSimulationList, simulationList] = useSetup(true, appWrapper.getSimulationList());
+    const [hasSimulationList, simulationList] = useSetup(true, () => appWrapper.getSimulationList());
     return (
         <>
             {hasSimulationList && 

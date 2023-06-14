@@ -525,12 +525,30 @@ def new_simulation(data, new_simulation_data, qcall, **kwargs):
     data.models.simulation.elementPosition = new_simulation_data.elementPosition
 
 
+def parse_opal_log(run_dir):
+    res = ""
+    p = run_dir.join((OPAL_OUTPUT_FILE))
+    if not p.exists():
+        return res
+    with pkio.open_text(p) as f:
+        visited = set()
+        for line in f:
+            if re.search(r"^Error.*?>\s*\w", line):
+                line = re.sub(r"Error.*?>\s*", "", line.rstrip()).rstrip()
+                if re.search(r"1DPROFILE1-DEFAULT", line):
+                    continue
+                if line and line not in visited:
+                    res += line + "\n"
+                    visited.add(line)
+    if res:
+        return res
+    return "An unknown error occurred"
+
+
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
-    if is_parallel:
-        return _parse_opal_log(run_dir)
-    return _parse_opal_log(run_dir)
+    return parse_opal_log(run_dir)
 
 
 def prepare_for_client(data, qcall, **kwargs):
@@ -700,7 +718,6 @@ class _Generate(sirepo.lib.GenerateBase):
         # for emitted distributions
         distribution.nbin = 0
         distribution.emissionsteps = 1
-        distribution.offsetz = 0
         self.data.models.commands = [
             LatticeUtil.find_first_command(self.data, "option"),
             beam,
@@ -1073,26 +1090,6 @@ def _output_info(run_dir):
                 )
             )
     return res
-
-
-def _parse_opal_log(run_dir):
-    res = ""
-    p = run_dir.join((OPAL_OUTPUT_FILE))
-    if not p.exists():
-        return res
-    with pkio.open_text(p) as f:
-        prev_line = ""
-        for line in f:
-            if re.search(r"^Error.*?>", line):
-                line = re.sub(r"^Error.*?>\s*\**\s*", "", line.rstrip())
-                if re.search(r"1DPROFILE1-DEFAULT", line):
-                    continue
-                if line and line != prev_line:
-                    res += line + "\n"
-                prev_line = line
-    if res:
-        return res
-    return "An unknown error occurred"
 
 
 def _read_data_file(path):

@@ -112,7 +112,7 @@
             "D": ["D", "Float", 0.99892682],
             "length": ["Length [cm]", "Float", 2],
             "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
-            "radial_n2": ["Transverse Variation of Thermal Lensing", "Boolean", "0"],
+            "radial_n2": ["Transverse Variation of Thermal Lensing", "Boolean", "0", "If selected, varies exponentially with radius. If not selected, varies independently of radius."],
             "calc_gain": ["Include Gain Calculations", "Boolean", "0"],
             "inversion_n_cells": ["Inversion Mesh Cell Count", "Integer", 64],
             "inversion_mesh_extent": ["Inversion Mesh Extent [m]", "Float", 0.01],
@@ -218,14 +218,14 @@
                     "C",
                     "D",
                     "l_scale",
+                    "pump_type",
                     "radial_n2",
                     "calc_gain"
                 ]],
-                ["Laser Gain", [
+                ["Pump Pulse", [
                     "inversion_n_cells",
                     "inversion_mesh_extent",
                     "crystal_alpha",
-                    "pump_type",
                     "pump_waist",
                     "pump_wavelength",
                     "pump_energy",

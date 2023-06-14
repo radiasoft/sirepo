@@ -274,6 +274,14 @@ class SimDataBase(object):
         raise NotImplementedError()
 
     @classmethod
+    def react_format_data(cls, data):
+        pass
+
+    @classmethod
+    def react_unformat_data(cls, data):
+        pass
+
+    @classmethod
     def frame_id(cls, data, response, model, index):
         """Generate a frame_id from values (unit testing)
 

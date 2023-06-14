@@ -16,6 +16,13 @@ import { TextLayout } from "./text";
 import { HorizontalStackLayout, VerticalStackLayout } from "./arrange/stack";
 import { ColumnLayout } from "./arrange/column";
 import { WaterfallLayout } from "./arrange/waterfall";
+import { Histogram2dFromApi } from "./report/histogram2d";
+import { ShadowBeamlineWatchpointReports } from "./shadow/beamlineWatchpointReports";
+import { ShadowBeamlineLayout } from "./shadow/beamline";
+import { MadxAllBeamlineElementsLayout } from "./madx/allBeamlineElements";
+import { MadxBeamlinesPickerLayout } from "./madx/beamlinesPicker";
+import { MadxBeamlineElementsLayout } from "./madx/beamlineElements";
+import { MadxBeamlineReportsLayout } from "./madx/beamlineReports";
 
 
 // TODO rename to LayoutsWrapper
@@ -33,6 +40,7 @@ class LayoutWrapper {
         heatplot: LayoutWithDownloadButton(HeatplotFromApi),
         graph2dPlain: Graph2dFromApi,
         heatplotPlain: HeatplotFromApi,
+        histogram2d: Histogram2dFromApi,
         navTabs: NavTabsLayout,
         table: TableFromApi,
         startSimulation: SimulationStartLayout,
@@ -40,7 +48,13 @@ class LayoutWrapper {
         column: ColumnLayout,
         hStack: HorizontalStackLayout,
         vStack: VerticalStackLayout,
-        waterfall: WaterfallLayout
+        waterfall: WaterfallLayout,
+        shadowBeamlineWatchpointReports: ShadowBeamlineWatchpointReports,
+        shadowBeamline: LayoutWithFormController(ShadowBeamlineLayout),
+        madxAllBeamlineElements: LayoutWithFormController(MadxAllBeamlineElementsLayout),
+        madxBeamlinesPicker: MadxBeamlinesPickerLayout,
+        madxBeamlineElements: LayoutWithFormController(MadxBeamlineElementsLayout),
+        madxBeamlineReports: MadxBeamlineReportsLayout
     }
 
     constructor () {
@@ -61,6 +75,20 @@ class LayoutWrapper {
     getLayoutForSchema = <C, P>(schemaLayout: SchemaLayout): Layout<C, P> => {
         let layout = this.getLayoutTypeForName(schemaLayout.layout) as LayoutType<C, P>;
         return new layout(schemaLayout.config);
+    }
+}
+
+export function createLayouts<T>(obj: T, fieldName?: string): T & { layouts: Layout[] } {
+    fieldName = fieldName || "items";
+    let v = obj[fieldName];
+    if(Array.isArray(v)) {
+        v = v.map(x => LAYOUTS.getLayoutForSchema(x));
+    } else {
+        v = [LAYOUTS.getLayoutForSchema(v)];
+    }
+    return {
+        ...obj,
+        layouts: v
     }
 }
 
