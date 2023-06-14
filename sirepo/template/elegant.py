@@ -810,6 +810,11 @@ def parse_input_text(
     )
 
 
+def parse_elegant_log(run_dir):
+    # used by omega
+    return _parse_elegant_log(run_dir)[0]
+
+
 def prepare_for_client(data, qcall, **kwargs):
     code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
     return data
