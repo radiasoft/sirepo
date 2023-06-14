@@ -167,7 +167,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             if sc:
                 _fixup_number_string_fields(sc[0], model)
 
-        def _fixup_geom_objects(objects, **kwargs):
+        def _fixup_geom_objects(objects):
             for o in objects:
                 if o.get("points") is not None and not o.get("triangulationLevel"):
                     o.triangulationLevel = 0.5
