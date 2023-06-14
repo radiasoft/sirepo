@@ -742,7 +742,14 @@ def get_data_file(run_dir, model, frame, options):
                 f"invalid suffix={options.suffix} for download path={path}"
             )
         out = elegant_common.subprocess_output(
-            ["sddsprintout", "-columns", "-spreadsheet=csv", str(path)],
+            [
+                "sddsprintout",
+                "-noTitle",
+                "-columns",
+                "-spreadsheet=delimiter=\\,",
+                "-formatDefaults=float=%1.9e,double=%1.16e,long=%1ld,short=%1hd",
+                str(path),
+            ],
         )
         assert out, f"{path}: invalid or empty output from sddsprintout"
         return PKDict(
