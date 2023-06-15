@@ -128,7 +128,6 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
                 m = re.search(r"^AssertionError: (.*)", line)
                 if m:
                     return m.group(1)
-    # can not trust success_exit because GENESIS returns success when it fails
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
     for idx in reversed(range(_MAX_SIMS)):
         sim_type, sim_id = _sim_info(dm, idx)
@@ -138,13 +137,6 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
         sim_template = sirepo.template.import_module(sim_type)
         res = f"{sim_type.upper()} failed\n"
         if success_exit:
-            if sim_type == "genesis":
-                if not sim_template.genesis_success_exit(sim_dir):
-                    # genesis gets error from run.log
-                    return res + (
-                        sim_template.parse_genesis_error(run_dir)
-                        or "An unknown GENESIS error"
-                    )
             # no error
             return
         if sim_type and sim_id:
@@ -153,6 +145,9 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
                     return res + sim_template.parse_opal_log(sim_dir)
                 if sim_type == "elegant":
                     return res + sim_template.parse_elegant_log(sim_dir)
+                if sim_type == "genesis":
+                    # genesis gets error from main run.log
+                    return res + sim_template.parse_genesis_error(run_dir)
                 return res
 
     return "An unknown error occurred"
