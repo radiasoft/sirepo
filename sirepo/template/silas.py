@@ -242,11 +242,11 @@ def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
 def _generate_beamline_elements(data):
     def _callback(state, element, dz):
         if dz:
-            state.res += f'(Drift({round(dz, 9)}), ["default"]),\n'
+            state.res += f'(Drift_srw({round(dz, 9)}), ["default"]),\n'
         if element.type == "watch" or element.get("isDisabled"):
             return
         if element.type == "lens":
-            state.res += f'(Lens({element.focalLength}), ["default"]),\n'
+            state.res += f'(Lens_srw({element.focalLength}), ["default"]),\n'
         elif element.type == "mirror":
             state.res += "(Mirror(), []),\n"
         elif element.type == "crystal":
@@ -393,6 +393,8 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             return "Intensity"
         if plot_type == "longitudinal_photons":
             return "Total Number of Photons"
+        if plot_type == "excited_states_longitudinal":
+            return "Excited States"
         return _title(plot_type, slice_index)
 
     def _nslice(element, file):
@@ -413,6 +415,28 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             return y
         return numpy.sum(y)
 
+    def _z_label(plot_type):
+        return PKDict(
+            total_phase="Phase [rad]",
+            total_intensity="",
+            intensity="",
+            phase="Phase [rad]",
+            photons="Photons [1/m³]",
+            excited_states="Number [1/m³]",
+        )[plot_type]
+
+    def _x_label(plot_type):
+        return PKDict(
+            excited_states_longitudinal="Crystal Slice",
+            longitudinal_photons="Crystal width [cm]",
+            longitudinal_intensity="Pulse Slice",
+        )[plot_type]
+
+    def _index(index, plot_type):
+        if plot_type == "longitudinal_photons":
+            return index
+        return index + 1
+
     with h5py.File(run_dir.join(_fname(element).format(element_index)), "r") as f:
         if _is_longitudinal_plot(plot_type):
             x = []
@@ -421,7 +445,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             if element:
                 element.nslice = nslice
             for idx in range(nslice):
-                x.append(idx)
+                x.append(_index(idx, plot_type))
                 y.append(_y_value(element, idx, f, _cell_volume(element)))
             return template_common.parameter_plot(
                 x,
@@ -432,6 +456,9 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
                     ),
                 ],
                 PKDict(),
+                PKDict(
+                    x_label=_x_label(plot_type),
+                ),
             )
         d = template_common.h5_to_dict(f, str(slice_index))
         r = d.ranges
@@ -442,6 +469,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             y_range=[r.y[0], r.y[1], len(z[0])],
             x_label="Horizontal Position [m]",
             y_label="Vertical Position [m]",
+            z_label=_z_label(plot_type),
             z_matrix=z,
         )
 
