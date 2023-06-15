@@ -53,7 +53,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         sim = models.simulation
         if not sim.get("exampleName"):
             sim.exampleName = sim.name
-        if sim.name in ("Parameterized C-Bend Dipole", ):
+        if sim.name in ("Parameterized C-Bend Dipole",):
             sim.beamAxis = "x"
             sim.heightAxis = "z"
             sim.widthAxis = "y"
