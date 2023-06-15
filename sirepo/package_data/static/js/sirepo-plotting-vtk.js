@@ -2622,8 +2622,8 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
                   <tbody>
                     <tr data-ng-show="areAllGroupsExpanded(o)" data-ng-attr-id="{{ o.id }}" data-ng-repeat="o in getObjects() track by $index">
                       <td style="padding-left: {{ nestLevel(o) }}em; cursor: pointer; white-space: nowrap">
-                        <span title="{{ lockTitle(o) }}" data-ng-if="locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">🔒 </span>
-                        <span title="{{ lockTitle(o) }}" data-ng-if="! locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">🔓 </span>
+                        <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/lock.svg" data-ng-show="locked[o.id]" data-ng-class="{'sr-disabled-image': ! unlockable[o.id]}" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
+                        <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/unlock.svg" data-ng-show="! locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
                         <span style="font-size: large; color: {{o.color || '#cccccc'}}; padding-left: 1px;">■</span>
                           <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': expanded[o.id], 'glyphicon-chevron-up': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
                             <span>{{ o.name }}</span>
