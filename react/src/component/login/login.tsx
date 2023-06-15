@@ -236,11 +236,13 @@ export const LoginExtraInfoForm = (props: { onComplete: ({displayName}) => void 
                 <Form.Label column sm="3">
                     Your full name
                 </Form.Label>
-                <Col sm="9">
+                <Col sm="7">
                     <Form.Control value={displayName} onChange={(e) => updateDisplayName(e.target.value)}/>
                 </Col>
+                <Col sm="2">
+                    <Button variant="primary" onClick={() => onComplete({ displayName })} disabled={! displayName}>Continue</Button>
+                </Col>
             </Form.Group>
-            <Button variant="primary" onClick={() => onComplete({ displayName })}>Continue</Button>
         </>
     )
 }
@@ -286,6 +288,7 @@ export function LogoutRoot(props) {
     let navigate = useNavigate();
     let appName = useContext(CAppName);
     let routeHelper = useContext(CRouteHelper);
+    useContext(CLoginStatusRef).current.isLoggedIn = false;
     useEffect(() => {
         fetch(routeHelper.globalRoute("authLogout", { simulation_type: appName })).then(() => navigate(routeHelper.localRoute("root")));
     })
