@@ -845,7 +845,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
           <div class="col-sm-3">
             <div data-canceled-due-to-timeout-alert="simState"></div>
             <div data-simulation-stopped-status="simState" data-ng-if="simState.stateAsText() != 'Missing' "></div>
-            <div class="col-sm-12" data-ng-show="simState.hasTimeData()" data-simulation-status-timer="simState"></div>
+            <div class="col-sm-12" data-simulation-status-timer="simState"></div>
             <button class="btn btn-default pull-right" data-ng-click="start()" data-ng-show="simState.isStopped()">Start New Simulation</button>
             <button class="btn btn-default pull-right" data-ng-click="simState.cancelSimulation()" data-ng-show="simState.isProcessing()">End Simulation</button>
           </div>
