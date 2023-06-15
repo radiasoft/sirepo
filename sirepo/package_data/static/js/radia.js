@@ -1916,66 +1916,6 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
             $scope.selectedConstraint = null;
             $scope.selectedConstraint2 = null;
 
-            function getAvaiableFields() {
-                const fields = [];
-
-                // fields from schema
-                for (const m in SIREPO.APP_SCHEMA.model) {
-                    const info = appState.modelInfo(m);
-                    for (const f in info) {
-                        const id = `${m}.${f}`;
-                        if (
-                            info[f][SIREPO.INFO_INDEX_TYPE] !== 'OptFloat' || getOptField(id)
-                        ) {
-                            continue;
-                        }
-                        fields.push(
-                            appState.setModelDefaults(
-                                {
-                                    field: appState.optFieldName(m, f),
-                                    id: id,
-                                },
-                                'optimizerField'
-                            )
-                        );
-                    }
-                }
-                // fields from objects
-                const m = 'geomObject';
-                const info = appState.modelInfo(m);
-                const optFields = Object.keys(info).filter(
-                    x => {
-                        const t = info[x][SIREPO.INFO_INDEX_TYPE]
-                        return OPTIMIZABLE_TYPES.includes(t);
-                    }
-                );
-                for (const o of radiaService.getObjects()) {
-                    for (const f of Object.keys(o).filter(x => optFields.includes(x))) {
-                        const id = `${o.id}.${f}`;
-                        if (! getOptField(id)) {
-                            fields.push(
-                                appState.setModelDefaults(
-                                    {
-                                        field: f,
-                                        id: id,
-                                    },
-                                    'objectOptimizerField'
-                                )
-                            );
-                        }
-                    }
-                }
-                return fields;
-            }
-
-            function getOptField(id) {
-                return appState.models.optimizer.fields.filter(x => x.id === id)[0];
-            }
-
-            function buildOptimizeFields() {
-                $scope.optFields = radiaService.buildOptimizeFields();
-            }
-
             function setDefaults(model) {
                 $scope.optFields.some(function(f) {
                     if (f.field == model.field) {
@@ -2115,12 +2055,8 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
             };
 
             appState.whenModelsLoaded($scope, function() {
-
-                //buildOptimizeFields();
                 //verifyBoundsAndConstraints();
             });
-
-            $scope.avaiableFields = getAvaiableFields();
         },
     };
 });
