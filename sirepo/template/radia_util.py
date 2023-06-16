@@ -124,11 +124,14 @@ def _apply_clone(g_id, xform):
 
 def _apply_cut(g_id, **kwargs):
     d = PKDict(kwargs)
+    p = d.cutPoint
+    if d.get("useObjectCenter", "0") == "1":
+        p = (numpy.array(p) + numpy.array(d.obj_center)).tolist()
 
     # args are object id, point in plane, plane normal - returns array of new ids
     return radia.ObjCutMag(
         g_id,
-        d.cutPoint,
+        p,
         d.cutPlane,
         "Frame->Lab",
     )[0]
