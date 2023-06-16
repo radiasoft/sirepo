@@ -747,7 +747,7 @@ def get_data_file(run_dir, model, frame, options):
                 "-noTitle",
                 "-columns",
                 "-spreadsheet=delimiter=\\,",
-                "-formatDefaults=float=%1.9e,double=%1.16e,long=%1ld,short=%1hd",
+                "-formatDefaults=float=%1.8e,double=%1.16e,long=%1ld,short=%1hd",
                 str(path),
             ],
         )
