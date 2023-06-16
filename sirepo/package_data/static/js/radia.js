@@ -1822,6 +1822,9 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                 for (const o of radiaService.getObjects()) {
                     const name = o.name;
                     objs = {...objs, ...objectOptFields(o, name)};
+                    if (! objs[name]) {
+                        continue;
+                    }
                     for (const mod of (o.modifications || [])) {
                         if (! objs[name].modifications) {
                             objs[name].modifications = [];
