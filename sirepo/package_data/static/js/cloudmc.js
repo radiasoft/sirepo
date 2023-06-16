@@ -191,7 +191,9 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
 
 SIREPO.app.controller('VisualizationController', function(appState, cloudmcService, frameCache, persistentSimulation, requestSender, $scope) {
     const self = this;
+    self.eigenvalue = null;
     self.frameCache = frameCache;
+    self.results = null;
     self.simScope = $scope;
     self.simComputeModel = 'openmcAnimation';
     let errorMessage;
@@ -202,8 +204,12 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         cloudmcService.validateSelectedTally();
     }
 
+    self.eigenvalueHistory = () => appState.models.settings.eigenvalueHistory;
+
     self.simHandleStatus = function (data) {
         errorMessage = data.error;
+        self.eigenvalue = data.eigenvalue;
+        self.results = data.results;
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }
@@ -632,7 +638,17 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             }
 
             function handlePick(callData) {
-                if (vtkScene.renderer !== callData.pokedRenderer || isGeometryOnly) {
+                function getClosestActor(pickedActors) {
+                    for (const a of pickedActors) {
+                        const v = getVolumeByActor(a);
+                        if (v) {
+                            return [a, v];
+                        }
+                    }
+                    return [null, null];
+                }
+
+                if (vtkScene.renderer !== callData.pokedRenderer || ! isGeometryOnly) {
                     return;
                 }
 
@@ -645,9 +661,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
                 const pos = callData.position;
                 picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
+                const [actor, v] = getClosestActor(picker.getActors());
 
-                const actor = picker.getActors()[0];
-                const v = getVolumeByActor(actor);
                 if (selectedVolume) {
                     vtkScene.removeActor(axesBoxes[selectedVolume.name]);
                     delete axesBoxes[selectedVolume.name];
@@ -963,9 +978,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             });
 
             $scope.$on('openmcAnimation.saved', () => {
-                frameCache.getFrame('openmcAnimation', -1, false, (i, d) => {
-                    $scope.load(d);
-                });
+                if (frameCache.getFrameCount()) {
+                    frameCache.getFrame('openmcAnimation', -1, false, (i, d) => {
+                        $scope.load(d);
+                    });
+                }
             });
 
             $scope.$on('vtk-init', (e, d) => {
@@ -1590,8 +1607,10 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
             };
 
             $scope.description = m => {
-                if (childModel == 'source')  {
-                    return sourceInfo('SpatialDistribution', m.space);
+                if (childModel === 'source')  {
+                    return m.type === 'file' && m.file
+                         ? `File(filename=${m.file })`
+                         : sourceInfo('SpatialDistribution', m.space);
                 }
                 return tallyInfo(m);
             };
@@ -1756,16 +1775,85 @@ SIREPO.app.directive('tallyAspects', function() {
 });
 
 SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
-    function processPlanes() {
+
+    function updateEditor() {
         panelState.showFields('reflectivePlanes', [
             ['plane1a', 'plane1b', 'plane2a', 'plane2b'],
-            appState.models.reflectivePlanes.useReflectivePlanes == '1',
+            appState.models.reflectivePlanes.useReflectivePlanes === '1',
         ]);
+
+        panelState.showField(
+            $scope.modelName,
+            'eigenvalueHistory',
+            appState.models[$scope.modelName].run_mode === 'eigenvalue'
+        );
     }
-    $scope.whenSelected = processPlanes;
+
+    $scope.whenSelected = updateEditor;
+
     $scope.watchFields = [
-        ['reflectivePlanes.useReflectivePlanes'], processPlanes,
+        [`${$scope.modelName}.run_mode`, 'reflectivePlanes.useReflectivePlanes'], updateEditor,
     ];
+
+});
+
+SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
+    $scope.whenSelected = () => {
+        $scope.modelData = appState.models[$scope.modelName];
+        updateEditor();
+    };
+
+    $scope.watchFields = [
+        [
+            'source.type',
+        ], updateEditor,
+    ];
+
+    function updateEditor() {
+        const isFile = $scope.modelData.type === 'file';
+        panelState.showField($scope.modelName, 'file', isFile);
+        $scope.$parent.advancedFields.forEach((x, i) => {
+            panelState.showTab($scope.modelName, i + 1, ! isFile || x[0] === 'Type');
+        });
+    }
+
+});
+
+SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
+
+    let name = null;
+
+    $scope.whenSelected = () => {
+        $scope.appState = appState;
+        name = model().name;
+    };
+
+    function isStd() {
+        return model() && model().standardType !== 'None';
+    }
+
+    function model() {
+        return appState.models[$scope.modelName];
+    }
+
+    function updateMaterial() {
+        if (! model()) {
+            return;
+        }
+        if (isStd()) {
+            // don't change the name as it came from the loaded volume
+            appState.models[$scope.modelName] = appState.setModelDefaults({name: name}, model().standardType);
+        }
+    }
+
+    // only update when the user makes a change, not on the initial model load
+    $scope.$watch(`appState.models['${$scope.modelName}']['standardType']`, (newVal, oldVal) => {
+        if (oldVal === undefined || oldVal === newVal) {
+            return;
+        }
+        updateMaterial();
+    });
+
 });
 
 SIREPO.app.directive('simpleListEditor', function(panelState) {

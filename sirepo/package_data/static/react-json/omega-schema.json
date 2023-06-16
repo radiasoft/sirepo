@@ -23,6 +23,45 @@
             "config": {
                 "isRequired": false
             }
+        },
+        "BeamParameter": {
+            "base": "Enum",
+            "config": {
+                "allowedValues": [
+                    [
+                        "none",
+                        "None"
+                    ],
+                    [
+                        "rmsx",
+                        "X RMS"
+                    ],
+                    [
+                        "rmsy",
+                        "Y RMS"
+                    ],
+                    [
+                        "rmss",
+                        "S RMS"
+                    ],
+                    [
+                        "rmspx",
+                        "X' RMS"
+                    ],
+                    [
+                        "rmspy",
+                        "Y' RMS"
+                    ],
+                    [
+                        "meanx",
+                        "X Mean"
+                    ],
+                    [
+                        "meany",
+                        "Y Mean"
+                    ]
+                ]
+            }
         }
     },
     "model": {
@@ -44,7 +83,8 @@
             },
             "simType_1": {
                 "displayName": "1: Simulation Type",
-                "type": "CoupledSimType"
+                "type": "CoupledSimType",
+                "defaultValue": ""
             },
             "simId_1": {
                 "displayName": "Simulation",
@@ -53,6 +93,7 @@
             "simType_2": {
                 "displayName": "2: Simulation Type",
                 "type": "CoupledSimType",
+                "defaultValue": "",
                 "shown": "$(simWorkflow.simType_1) && $(simWorkflow.simId_1) ? true : false"
             },
             "simId_2": {
@@ -63,6 +104,7 @@
             "simType_3": {
                 "displayName": "3: Simulation Type",
                 "type": "CoupledSimType",
+                "defaultValue": "",
                 "shown": "$(simWorkflow.simType_2) && $(simWorkflow.simId_2) ? true : false"
             },
             "simId_3": {
@@ -73,6 +115,7 @@
             "simType_4": {
                 "displayName": "4: Simulation Type",
                 "type": "CoupledSimType",
+                "defaultValue": "",
                 "shown": "$(simWorkflow.simType_3) && $(simWorkflow.simId_3) ? true : false"
             },
             "simId_4": {
@@ -85,6 +128,23 @@
             "histogramBins": {
                 "displayName": "Histogram Bins",
                 "type": "Integer"
+            }
+        },
+        "sim1BeamAnimation": {
+            "y1": {
+                "displayName": "Y1 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betax"
+            },
+            "y2": {
+                "displayName": "Y2 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betay"
+            },
+            "y3": {
+                "displayName": "Y3 Value",
+                "type": "BeamParameter",
+                "defaultValue": "etax"
             }
         },
         "sim1Phase1Animation": {
@@ -117,6 +177,23 @@
                 "type": "Integer"
             }
         },
+        "sim2BeamAnimation": {
+            "y1": {
+                "displayName": "Y1 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betax"
+            },
+            "y2": {
+                "displayName": "Y2 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betay"
+            },
+            "y3": {
+                "displayName": "Y3 Value",
+                "type": "BeamParameter",
+                "defaultValue": "etax"
+            }
+        },
         "sim2Phase1Animation": {
             "histogramBins": {
                 "displayName": "Histogram Bins",
@@ -147,6 +224,23 @@
                 "type": "Integer"
             }
         },
+        "sim3BeamAnimation": {
+            "y1": {
+                "displayName": "Y1 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betax"
+            },
+            "y2": {
+                "displayName": "Y2 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betay"
+            },
+            "y3": {
+                "displayName": "Y3 Value",
+                "type": "BeamParameter",
+                "defaultValue": "etax"
+            }
+        },
         "sim3Phase1Animation": {
             "histogramBins": {
                 "displayName": "Histogram Bins",
@@ -175,6 +269,23 @@
             "histogramBins": {
                 "displayName": "Histogram Bins",
                 "type": "Integer"
+            }
+        },
+        "sim4BeamAnimation": {
+            "y1": {
+                "displayName": "Y1 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betax"
+            },
+            "y2": {
+                "displayName": "Y2 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betay"
+            },
+            "y3": {
+                "displayName": "Y3 Value",
+                "type": "BeamParameter",
+                "defaultValue": "etax"
             }
         },
         "sim4Phase1Animation": {
@@ -224,12 +335,10 @@
         {
             "layout": "navTabs",
             "config": {
-                "name": "navtabs",
                 "tabs": [
                     {
                         "name": "source",
                         "title": "Source",
-                        "icon": "",
                         "items": [
                             {
                                 "layout": "waterfall",
@@ -243,11 +352,11 @@
                                         "horizontal": ".5em",
                                         "vertical": ".5em"
                                     },
+                                    "padding": ".5em",
                                     "items": [
                                         {
                                             "layout": "panel",
                                             "config": {
-                                                "name": "simWorkflow",
                                                 "title": "Simulation Workflow",
                                                 "basic": [
                                                     {
@@ -295,7 +404,44 @@
                                         "horizontal": ".5em",
                                         "vertical": ".5em"
                                     },
+                                    "padding": ".5em",
                                     "items": [
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "title": "Simulation 1 Beam Parameters",
+                                                "basic": [
+                                                    {
+                                                        "layout": "manualRunReport",
+                                                        "config": {
+                                                            "reportGroupName": "animation",
+                                                            "reportName": "sim1BeamAnimation",
+                                                            "frameIdFields": [
+                                                                "sim1BeamAnimation.y1",
+                                                                "sim1BeamAnimation.y2",
+                                                                "sim1BeamAnimation.y3"
+                                                            ],
+                                                            "reportLayout": {
+                                                                "layout": "graph2d",
+                                                                "config": {}
+                                                            }
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "sim1BeamAnimation.y1",
+                                                                "sim1BeamAnimation.y2",
+                                                                "sim1BeamAnimation.y3"
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
                                         {
                                             "layout": "panel",
                                             "config": {
@@ -368,6 +514,58 @@
                                                                         }
                                                                     }
                                                                 }
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "layout": "waterfall",
+                                "config": {
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "padding": ".5em",
+                                    "items": [
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "title": "Simulation 2 Beam Parameters",
+                                                "basic": [
+                                                    {
+                                                        "layout": "manualRunReport",
+                                                        "config": {
+                                                            "reportGroupName": "animation",
+                                                            "reportName": "sim2BeamAnimation",
+                                                            "frameIdFields": [
+                                                                "sim2BeamAnimation.y1",
+                                                                "sim2BeamAnimation.y2",
+                                                                "sim2BeamAnimation.y3"
+                                                            ],
+                                                            "reportLayout": {
+                                                                "layout": "graph2d",
+                                                                "config": {}
+                                                            }
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "sim2BeamAnimation.y1",
+                                                                "sim2BeamAnimation.y2",
+                                                                "sim2BeamAnimation.y3"
                                                             ]
                                                         }
                                                     }
@@ -451,6 +649,58 @@
                                                     }
                                                 ]
                                             }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "layout": "waterfall",
+                                "config": {
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "padding": ".5em",
+                                    "items": [
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "title": "Simulation 3 Beam Parameters",
+                                                "basic": [
+                                                    {
+                                                        "layout": "manualRunReport",
+                                                        "config": {
+                                                            "reportGroupName": "animation",
+                                                            "reportName": "sim3BeamAnimation",
+                                                            "frameIdFields": [
+                                                                "sim3BeamAnimation.y1",
+                                                                "sim3BeamAnimation.y2",
+                                                                "sim3BeamAnimation.y3"
+                                                            ],
+                                                            "reportLayout": {
+                                                                "layout": "graph2d",
+                                                                "config": {}
+                                                            }
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "sim3BeamAnimation.y1",
+                                                                "sim3BeamAnimation.y2",
+                                                                "sim3BeamAnimation.y3"
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
                                         },
                                         {
                                             "layout": "panel",
@@ -529,8 +779,59 @@
                                                     }
                                                 ]
                                             }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "layout": "waterfall",
+                                "config": {
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "padding": ".5em",
+                                    "items": [
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "title": "Simulation 4 Beam Parameters",
+                                                "basic": [
+                                                    {
+                                                        "layout": "manualRunReport",
+                                                        "config": {
+                                                            "reportGroupName": "animation",
+                                                            "reportName": "sim4BeamAnimation",
+                                                            "frameIdFields": [
+                                                                "sim4BeamAnimation.y1",
+                                                                "sim4BeamAnimation.y2",
+                                                                "sim4BeamAnimation.y3"
+                                                            ],
+                                                            "reportLayout": {
+                                                                "layout": "graph2d",
+                                                                "config": {}
+                                                            }
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "sim4BeamAnimation.y1",
+                                                                "sim4BeamAnimation.y2",
+                                                                "sim4BeamAnimation.y3"
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
                                         },
-
                                         {
                                             "layout": "panel",
                                             "config": {

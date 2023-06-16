@@ -138,7 +138,7 @@ angular.element(document).ready(function() {
         error: function(xhr, status, err) {
             if (! SIREPO.APP_SCHEMA) {
                 srlog("schema load failed: ", err);
-                if (err.match(/forbidden/i)) {
+                if (err.toString().match(/forbidden/i)) {
                     window.location.href = "/forbidden";
                     return;
                 }
@@ -590,6 +590,13 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return $filter('date')(unixTime * 1000, 'yyyy-MM-dd HH:mm:ss');
     };
 
+    self.formatExponential = function(value) {
+        if (Math.abs(value) >= 10000 || (value != 0 && Math.abs(value) < 0.001)) {
+            value = (+value).toExponential(9).replace(/\.?0+e/, 'e');
+        }
+        return value;
+    };
+
     self.formatFloat = function(v, decimals) {
         return +parseFloat(v).toFixed(decimals);
     };
@@ -883,7 +890,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return SIREPO.APP_SCHEMA.view[name] || SIREPO.APP_SCHEMA.common.view[name];
     };
 
-    self.watchModelFields = function($scope, modelFields, callback) {
+    self.watchModelFields = function($scope, modelFields, callback, useDeepEquals=false) {
         $scope.appState = self;
         modelFields.forEach(function(f) {
             // allows watching fields when creating a new simulation (isLoaded() returns false)
@@ -894,7 +901,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
                     // call in next cycle to allow UI to change layout first
                     $interval(callback, 1, 1, true, f);
                 }
-            });
+            }, useDeepEquals);
         });
     };
 
@@ -1302,6 +1309,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         };
 
         const requestFunction = function() {
+            const i = appState.models.simulation.simulationId;
             setTimeout(() => {
                 if (! waitTimeHasElapsed) {
                     panelState.setLoading(modelName, true);
@@ -1313,6 +1321,12 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                     '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
+                    const c = appState.models.simulation.simulationId;
+                    if (! appState.isLoaded()) {
+                        if (! c || c !== i) {
+                            return;
+                        }
+                    }
                     waitTimeHasElapsed = true;
                     panelState.setLoading(modelName, false);
                     if ('state' in data && data.state === 'missing') {
@@ -1841,6 +1855,12 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         else {
             $(opt).attr('disabled', 'disabled');
         }
+    };
+
+    self.showArrayField = function(model, field, index, isShown) {
+        const f = $(fieldClass(model, field)).find('input.form-control').eq(index);
+        showValue(f, isShown);
+        showValue(f.prev('label'), isShown);
     };
 
     self.showField = function(model, field, isShown) {

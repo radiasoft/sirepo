@@ -85,9 +85,6 @@ _serial_prev = 0
 #: configuration
 _cfg = None
 
-#: version for development
-_dev_version = None
-
 _SIM_DB_FILE_PATH_RE = re.compile(r"^[a-zA-Z0-9-_\.]{1,128}$")
 
 
@@ -97,8 +94,8 @@ def app_version():
     Returns:
         str: chronological version
     """
-    if pkconfig.in_dev_mode():
-        return _timestamp()
+    if _cfg.dev_version:
+        return _now_as_version()
     return SCHEMA_COMMON.version
 
 
@@ -851,6 +848,10 @@ def _create_lib_and_examples(user_dir, sim_type, qcall=None):
         save_new_example(s, qcall=qcall)
 
 
+def _extend_no_dupes(arr1, arr2):
+    arr1.extend(x for x in arr2 if x not in arr1)
+
+
 def _files_in_schema(schema):
     """Relative paths of local and external files of the given load and file type listed in the schema
     The order matters for javascript files
@@ -875,9 +876,14 @@ def _init():
     global _cfg, JOB_RUN_MODE_MAP
 
     _cfg = pkconfig.init(
+        dev_version=(
+            pkconfig.in_dev_mode(),
+            bool,
+            "Use time for schema and app version",
+        ),
+        logged_in_user=(None, str, "Used in agents"),
         sbatch_display=(None, str, "how to display sbatch cluster to user"),
         tmp_dir=(None, pkio.py_path, "Used by utilities (not regular config)"),
-        logged_in_user=(None, str, "Used in agents"),
     )
     _init_schemas()
     JOB_RUN_MODE_MAP = PKDict(
@@ -928,8 +934,8 @@ def _init_schemas():
     for s in _SCHEMA_CACHE.values():
         s.appInfo = a
     # In development, any schema update creates a new version
-    if pkconfig.in_dev_mode():
-        SCHEMA_COMMON.version = str(sirepo.srtime.utc_now_as_float())
+    if _cfg.dev_version:
+        SCHEMA_COMMON.version = _now_as_version()
     else:
         SCHEMA_COMMON.version = max(
             [m.__version__ for m in sirepo.resource.root_modules()]
@@ -969,6 +975,25 @@ def _merge_dicts(base, derived, depth=-1, extend_arrays=True):
 
 
 def _merge_subclasses(schema, item, extend_arrays=True):
+    def _unnest_subclasses(schema, item, key, subclass_keys):
+        item_schema = schema[item]
+        try:
+            if _SCHEMA_SUPERCLASS_FIELD not in item_schema[key]:
+                return
+        except TypeError:
+            # Ignore non-indexable types
+            return
+        sub_model = item_schema[key]
+        sub_item = sub_model[_SCHEMA_SUPERCLASS_FIELD][1]
+        sub_key = sub_model[_SCHEMA_SUPERCLASS_FIELD][2]
+        assert sub_item in schema, util.err(sub_item, "No such field in schema")
+        assert sub_item == item, util.err(
+            sub_item, "Superclass must be in same section of schema {}", item
+        )
+        assert sub_key in item_schema, util.err(sub_key, "No such superclass")
+        subclass_keys.append(sub_key)
+        _unnest_subclasses(schema, item, sub_key, subclass_keys)
+
     for m in schema[item]:
         item_schema = schema[item]
         model = item_schema[m]
@@ -981,28 +1006,8 @@ def _merge_subclasses(schema, item, extend_arrays=True):
             _extend_no_dupes(model[_SCHEMA_SUPERCLASS_FIELD], subclasses)
 
 
-def _extend_no_dupes(arr1, arr2):
-    arr1.extend(x for x in arr2 if x not in arr1)
-
-
-def _unnest_subclasses(schema, item, key, subclass_keys):
-    item_schema = schema[item]
-    try:
-        if _SCHEMA_SUPERCLASS_FIELD not in item_schema[key]:
-            return
-    except TypeError:
-        # Ignore non-indexable types
-        return
-    sub_model = item_schema[key]
-    sub_item = sub_model[_SCHEMA_SUPERCLASS_FIELD][1]
-    sub_key = sub_model[_SCHEMA_SUPERCLASS_FIELD][2]
-    assert sub_item in schema, util.err(sub_item, "No such field in schema")
-    assert sub_item == item, util.err(
-        sub_item, "Superclass must be in same section of schema {}", item
-    )
-    assert sub_key in item_schema, util.err(sub_key, "No such superclass")
-    subclass_keys.append(sub_key)
-    _unnest_subclasses(schema, item, sub_key, subclass_keys)
+def _now_as_version():
+    return srtime.utc_now().strftime("%Y%m%d.%H%M%S")
 
 
 def _random_id(parent_dir, simulation_type=None):
@@ -1084,14 +1089,6 @@ def _sim_from_path(path):
         prev = p
         p = p.dirpath()
     raise AssertionError("path={} is not valid simulation".format(path))
-
-
-def _timestamp(time=None):
-    if not time:
-        time = datetime.datetime.utcnow()
-    elif not isinstance(time, datetime.datetime):
-        time = datetime.datetime.fromtimestamp(time)
-    return time.strftime("%Y%m%d.%H%M%S")
 
 
 def _uid_arg(uid=None, qcall=None):

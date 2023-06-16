@@ -1,0 +1,109 @@
+{
+    "models": {
+        "beam": {
+            "current": 0,
+            "longitudinalDistribution": "norm2d",
+            "numberOfParticles": 1000,
+            "spaceCharge": "none",
+            "spaceChargeCore": 3,
+            "transversalDistribution": "sph2d"
+        },
+        "beamAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "reportType": "x-y",
+            "startTime": 1490895219
+        },
+        "beamHistogramAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "reportType": "r",
+            "startTime": 1490895219
+        },
+        "beamHistogramReport": {
+            "histogramBins": 100,
+            "reportType": "r"
+        },
+        "beamReport": {
+            "histogramBins": 100,
+            "reportType": "x-y"
+        },
+        "beamline": [
+            {
+                "frequency": 2856,
+                "id": 2,
+                "inputPower": 5,
+                "phaseShift": 0,
+                "type": "powerElement"
+            },
+            {
+                "acceleratingInvariant": 500,
+                "aperture": 0,
+                "attenuation": 0,
+                "id": 3,
+                "phaseAdvance": 120,
+                "phaseVelocity": 0.999,
+                "repeat": 6,
+                "type": "cellsElement"
+            },
+            {
+                "id": 4,
+                "length": 5,
+                "meshPoints": 100,
+                "radius": 10,
+                "type": "driftElement"
+            }
+        ],
+        "ellipticalDistribution": {
+            "aX": 2,
+            "bY": 0.5,
+            "rmsDeviationFactor": 1,
+            "rotationAngle": 0
+        },
+        "energyPhaseDistribution": {
+            "distributionType": "uniform",
+            "energyDeviation": 0.25,
+            "energySpread": 0.001,
+            "meanEnergy": 0.3,
+            "meanPhase": 0,
+            "phaseDeviation": 20,
+            "phaseLength": 1
+        },
+        "simulation": {
+            "folder": "/",
+            "isExample": true,
+            "name": "Emittance Conservation",
+            "outOfSessionSimulationId": "",
+            "simulationId": "FIhkFoFj",
+            "simulationSerial": 1490895275688315
+        },
+        "simulationSettings": {
+            "allowBackwardWaves": "0",
+            "meshPoints": 20,
+            "smoothing": 0.95,
+            "splineInterpolation": "0"
+        },
+        "solenoid": {
+            "fieldStrength": 1000,
+            "fringeRegion": 1,
+            "length": 20,
+            "sourceDefinition": "none",
+            "z0": 0
+        },
+        "sphericalDistribution": {
+            "curvature": "flat",
+            "curvatureFactor": 0,
+            "radialLimit": 0.564,
+            "thermalEmittance": 0.5
+        },
+        "twissDistribution": {
+            "horizontalAlpha": 0.14,
+            "horizontalBeta": 2,
+            "horizontalEmittance": 0.0005,
+            "verticalAlpha": 0.28,
+            "verticalBeta": 4,
+            "verticalEmittance": 0.0015
+        }
+    },
+    "simulationType": "hellweg"
+}

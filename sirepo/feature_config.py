@@ -27,6 +27,7 @@ PROD_FOSS_CODES = frozenset(
         "genesis",
         "jspec",
         "madx",
+        "omega",
         "opal",
         "radia",
         "shadow",
@@ -40,10 +41,10 @@ PROD_FOSS_CODES = frozenset(
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset(
     (
+        "epicsllrf",
         "myapp",
         "silas",
-        "omega",
-        "rshellweg",
+        "hellweg",
     )
 )
 
@@ -96,6 +97,10 @@ def for_sim_type(sim_type):
     )
 
 
+def is_react_sim_type(sim_type):
+    return sim_type in cfg().react_sim_types
+
+
 def proprietary_sim_types():
     """All sim types that have proprietary information and require granted access to use
 
@@ -140,6 +145,7 @@ def _init():
                 "url base to reach cloudmc example h5m files",
             ),
         ),
+        debug_mode=(pkconfig.in_dev_mode(), bool, "control debugging output"),
         default_proprietary_sim_types=(
             frozenset(),
             set,
@@ -177,10 +183,9 @@ def _init():
                 "url to reach scan monitor daemon",
             ),
         ),
-        # TODO(pjm): myapp can't be in react_sim_types or unit tests fail
         react_sim_types=(
-            ("jspec", "genesis", "warppba", "omega", "myapp")
-            if pkconfig.in_dev_mode()
+            ("jspec", "genesis", "warppba", "omega", "myapp", "shadow", "madx")
+            if pkconfig.channel_in("dev")
             else (),
             set,
             "React apps",

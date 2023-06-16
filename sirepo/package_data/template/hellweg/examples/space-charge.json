@@ -1,0 +1,93 @@
+{
+    "models": {
+        "beam": {
+            "current": 1,
+            "longitudinalDistribution": "norm2d",
+            "numberOfParticles": 1000,
+            "spaceCharge": "elliptic",
+            "spaceChargeCore": 3,
+            "transversalDistribution": "twiss4d"
+        },
+        "beamAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "reportType": "r-ar",
+            "startTime": 1490893953,
+            "plotRangeType": "none"
+        },
+        "beamHistogramAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "reportType": "r",
+            "startTime": 1490893953
+        },
+        "beamHistogramReport": {
+            "histogramBins": 100,
+            "reportType": "r"
+        },
+        "beamReport": {
+            "histogramBins": 100,
+            "reportType": "x-y"
+        },
+        "beamline": [
+            {
+                "id": 2,
+                "length": 30,
+                "meshPoints": 500,
+                "radius": 10,
+                "type": "driftElement"
+            }
+        ],
+        "ellipticalDistribution": {
+            "aX": 2,
+            "bY": 0.5,
+            "rmsDeviationFactor": 1,
+            "rotationAngle": 0
+        },
+        "energyPhaseDistribution": {
+            "distributionType": "uniform",
+            "energyDeviation": 0.25,
+            "energySpread": 0.001,
+            "meanEnergy": 0.1,
+            "meanPhase": 90,
+            "phaseDeviation": 20,
+            "phaseLength": 10
+        },
+        "simulation": {
+            "folder": "/",
+            "isExample": true,
+            "name": "Space Charge",
+            "outOfSessionSimulationId": "",
+            "simulationId": "Wc0Nn2js",
+            "simulationSerial": 1490894235883413
+        },
+        "simulationSettings": {
+            "allowBackwardWaves": "0",
+            "meshPoints": 20,
+            "smoothing": 0.95,
+            "splineInterpolation": "0"
+        },
+        "solenoid": {
+            "fieldStrength": 1000,
+            "fringeRegion": 1,
+            "length": 20,
+            "sourceDefinition": "none",
+            "z0": 0
+        },
+        "sphericalDistribution": {
+            "curvature": "flat",
+            "curvatureFactor": 1,
+            "radialLimit": 0.564,
+            "thermalEmittance": 0
+        },
+        "twissDistribution": {
+            "horizontalAlpha": 0,
+            "horizontalBeta": 3,
+            "horizontalEmittance": 0.004,
+            "verticalAlpha": 0,
+            "verticalBeta": 4,
+            "verticalEmittance": 0.004
+        }
+    },
+    "simulationType": "hellweg"
+}
