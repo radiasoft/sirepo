@@ -100,6 +100,11 @@ _ELEGANT_BEAM_PARAMETER_FILE = PKDict(
     Cx="run_setup.centroid.sdds",
     Cy="run_setup.centroid.sdds",
 )
+_SUCCESS_OUTPUT_FILE = PKDict(
+    elegant="run_setup.output.sdds",
+    opal="opal.h5",
+    genesis="genesis.out.par",
+)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -114,17 +119,42 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def post_execution_processing(success_exit, run_dir, **kwargs):
+    if not success_exit:
+        # first check for assertion errors in main log file
+        # AssertionError: The referenced ELEGANT simulation no longer exists
+        with pkio.open_text(run_dir.join(template_common.RUN_LOG)) as f:
+            for line in f:
+                m = re.search(r"^AssertionError: (.*)", line)
+                if m:
+                    return m.group(1)
+    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
+    for idx in reversed(range(_MAX_SIMS)):
+        sim_type, sim_id = _sim_info(dm, idx)
+        if not sim_type or not sim_id:
+            continue
+        sim_dir = run_dir.join(f"run{idx + 1}")
+        sim_template = sirepo.template.import_module(sim_type)
+        res = f"{sim_type.upper()} failed\n"
+        if success_exit:
+            # no error
+            return
+        if sim_type and sim_id:
+            if sim_dir.exists():
+                if sim_type == "opal":
+                    return res + sim_template.parse_opal_log(sim_dir)
+                if sim_type == "elegant":
+                    return res + sim_template.parse_elegant_log(sim_dir)
+                if sim_type == "genesis":
+                    # genesis gets error from main run.log
+                    return res + sim_template.parse_genesis_error(run_dir)
+                return res
+
+    return "An unknown error occurred"
+
+
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data, None)
-
-
-def _phase_plot_args(sim_type, frame_args):
-    m = re.search(r"Phase(\d+)", frame_args.frameReport)
-    if not m:
-        raise AssertionError(f"unparse-able model name: {frame_args.frameReport}")
-    xy = _PHASE_PLOTS[sim_type][int(m.group(1)) - 1]
-    frame_args.x = xy[0]
-    frame_args.y = xy[1]
 
 
 def sim_frame(frame_args):
@@ -151,7 +181,15 @@ def write_parameters(data, run_dir, is_parallel):
 def _completed_reports(run_dir):
     res = []
     for idx in range(_MAX_SIMS):
-        if run_dir.join(f"run{idx + 1}").exists():
+        sim_dir = run_dir.join(f"run{idx + 1}")
+        if sim_dir.exists():
+            has_file = False
+            for f in _SUCCESS_OUTPUT_FILE:
+                s = sim_dir.join(_SUCCESS_OUTPUT_FILE[f])
+                if s.exists() and s.size() > 0:
+                    has_file = True
+            if not has_file:
+                break
             res.append(
                 PKDict(
                     modelName=f"sim{idx + 1}BeamAnimation",
@@ -212,13 +250,12 @@ def _generate_parameters_file(data, run_dir=None):
     res, v = template_common.generate_parameters_file(data)
     sim_list = []
     for idx in range(_MAX_SIMS):
-        f = f"simType_{idx + 1}"
-        f2 = f"simId_{idx + 1}"
-        if dm.simWorkflow.get(f) and dm.simWorkflow.get(f2):
+        sim_type, sim_id = _sim_info(dm, idx)
+        if sim_type and sim_id:
             sim_list.append(
                 PKDict(
-                    sim_type=dm.simWorkflow[f],
-                    sim_id=dm.simWorkflow[f2],
+                    sim_type=sim_type,
+                    sim_id=sim_id,
                 )
             )
         else:
@@ -227,6 +264,34 @@ def _generate_parameters_file(data, run_dir=None):
         raise AssertionError("No simulations selected")
     v.simList = sim_list
     return res + template_common.render_jinja(SIM_TYPE, v)
+
+
+def _phase_plot_args(sim_type, frame_args):
+    m = re.search(r"Phase(\d+)", frame_args.frameReport)
+    if not m:
+        raise AssertionError(f"unparse-able model name: {frame_args.frameReport}")
+    xy = _PHASE_PLOTS[sim_type][int(m.group(1)) - 1]
+    frame_args.x = xy[0]
+    frame_args.y = xy[1]
+
+
+def _plot_beam(sim_type, sub_dir, frame_args):
+    for f in ("y1", "y2", "y3"):
+        frame_args[f] = _BEAM_PARAMETERS[sim_type][frame_args[f]]
+    frame_args.run_dir = frame_args.run_dir.join(sub_dir)
+    if sim_type == "opal":
+        import sirepo.template.opal
+
+        frame_args.x = "s"
+        return sirepo.template.opal.sim_frame_plot2Animation(frame_args)
+    if sim_type == "elegant":
+        return _extract_elegant_beam_plot(frame_args)
+    if sim_type == "genesis":
+        import sirepo.template.genesis
+
+        return sirepo.template.genesis.sim_frame_parameterAnimation(frame_args)
+
+    raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
 
 
 def _plot_phase(sim_type, sub_dir, frame_args):
@@ -267,23 +332,9 @@ def _plot_phase(sim_type, sub_dir, frame_args):
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
 
 
-def _plot_beam(sim_type, sub_dir, frame_args):
-    for f in ("y1", "y2", "y3"):
-        frame_args[f] = _BEAM_PARAMETERS[sim_type][frame_args[f]]
-    frame_args.run_dir = frame_args.run_dir.join(sub_dir)
-    if sim_type == "opal":
-        import sirepo.template.opal
-
-        frame_args.x = "s"
-        return sirepo.template.opal.sim_frame_plot2Animation(frame_args)
-    if sim_type == "elegant":
-        return _extract_elegant_beam_plot(frame_args)
-    if sim_type == "genesis":
-        import sirepo.template.genesis
-
-        return sirepo.template.genesis.sim_frame_parameterAnimation(frame_args)
-
-    raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
+def _sim_info(dm, idx):
+    w = dm.simWorkflow
+    return w.get(f"simType_{idx + 1}"), w.get(f"simId_{idx + 1}")
 
 
 def _sim_type_and_sub_dir_from_report_name(models, report):
