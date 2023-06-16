@@ -89,7 +89,7 @@ def run_genesis(run_dir, genesis_id, prev_sim=None):
     if 'report' in data:
         del data['report']
     with pkio.save_chdir(prep_run_dir(run_dir, data)):
-        sirepo.pkcli.genesis.run_genesis()
+        sirepo.pkcli.genesis.run_genesis(run_dir)
     return f'{run_dir}/genesis.dat'
 
 
@@ -154,7 +154,7 @@ def update_genesis_sim(data, filename, lib_file):
     io.distfile = filename
     # save last frame only
     data.models.simulationControl.zstop = 0
-    io.ippart = data.models.undulator.nwig * data.models.undulator.nsec
+    io.ippart = int(data.models.undulator.nwig * data.models.undulator.nsec / data.models.simulationControl.delz)
     io.ipradi = io.ippart
     # fix CHARGE value, may be "CHARGE = [-1.e-09]" for opal
     text = ""

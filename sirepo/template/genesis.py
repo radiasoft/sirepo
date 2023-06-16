@@ -9,7 +9,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
-import numpy as np
+import numpy
 import re
 import sirepo.job
 import sirepo.sim_data
@@ -79,11 +79,6 @@ _SLICE_RE = re.compile(
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return PKDict(percentComplete=0, frameCount=0)
-    if not genesis_success_exit(run_dir):
-        return PKDict(
-            percentComplete=100,
-            state=sirepo.job.ERROR,
-        )
     c = _get_frame_counts(run_dir)
     return PKDict(
         percentComplete=100,
@@ -110,12 +105,14 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def genesis_success_exit(run_dir):
-    # Genesis exits with a 0 status regardless of whether it succeeded or failed
-    # Assume success if output files exists
     return (
         run_dir.join(_OUTPUT_FILENAME).exists()
         and run_dir.join(_PARTICLE_OUTPUT_FILENAME).exists()
         and run_dir.join(_PARTICLE_OUTPUT_FILENAME).size() > 0
+        and not numpy.isnan(
+            numpy.fromfile(_PARTICLE_OUTPUT_FILENAME, dtype=numpy.float64)
+        ).any()
+        and _LATTICE_RE.search(pkio.read_text(run_dir.join(_OUTPUT_FILENAME)))
     )
 
 
@@ -150,9 +147,9 @@ def parse_genesis_error(run_dir):
     )
 
 
-def post_execution_processing(run_dir, **kwargs):
-    if genesis_success_exit(run_dir):
-        return
+def post_execution_processing(success_exit, run_dir, **kwargs):
+    if success_exit:
+        return None
     return parse_genesis_error(run_dir)
 
 
@@ -162,7 +159,7 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 def sim_frame_fieldDistributionAnimation(frame_args):
     r = _get_field_distribution(frame_args.run_dir, frame_args.sim_in)
-    d = np.abs(r[int(frame_args.frameIndex), 0, :, :])
+    d = numpy.abs(r[int(frame_args.frameIndex), 0, :, :])
     s = d.shape[0]
     return PKDict(
         title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ipradi),
@@ -211,8 +208,8 @@ def sim_frame_particleAnimation(frame_args):
         )
 
     n = frame_args.sim_in.models.electronBeam.npart
-    d = np.fromfile(
-        str(frame_args.run_dir.join(_PARTICLE_OUTPUT_FILENAME)), dtype=np.float64
+    d = numpy.fromfile(
+        str(frame_args.run_dir.join(_PARTICLE_OUTPUT_FILENAME)), dtype=numpy.float64
     )
     b = d.reshape(
         int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
@@ -281,8 +278,8 @@ def _generate_parameters_file(data):
 def _get_field_distribution(run_dir, data):
     n = 1  # TODO(e-carlin): Will be different for time dependent
     p = data.models.mesh.ncar
-    d = np.fromfile(
-        str(run_dir.join(_FIELD_DISTRIBUTION_OUTPUT_FILENAME)), dtype=np.float64
+    d = numpy.fromfile(
+        str(run_dir.join(_FIELD_DISTRIBUTION_OUTPUT_FILENAME)), dtype=numpy.float64
     )
     # Divide by 2 to combine real and imaginary parts which are written separately
     s = int(d.shape[0] / (n * p * p) / 2)
@@ -294,21 +291,21 @@ def _get_field_distribution(run_dir, data):
 def _get_lattice_and_slice_data(run_dir):
     def _reshape_and_persist(data, cols, filename):
         d = data.reshape(int(data.size / len(cols)), len(cols))
-        np.save(filename, d)
+        numpy.save(filename, d)
         return d
 
     f = run_dir.join(_LATTICE_DATA_FILENAME)
     if f.exists():
-        return np.load(str(f)), np.load(str(run_dir.join(_SLICE_DATA_FILENAME)))
+        return numpy.load(str(f)), numpy.load(str(run_dir.join(_SLICE_DATA_FILENAME)))
     o = pkio.read_text(run_dir.join(_OUTPUT_FILENAME))
     return (
         _reshape_and_persist(
-            np.fromstring(_LATTICE_RE.search(o)[1], sep="\t"),
+            numpy.fromstring(_LATTICE_RE.search(o)[1], sep="\t"),
             _LATTICE_COLS,
             _LATTICE_DATA_FILENAME,
         ),
         _reshape_and_persist(
-            np.fromstring(_SLICE_RE.search(o)[1], sep="\t"),
+            numpy.fromstring(_SLICE_RE.search(o)[1], sep="\t"),
             _SLICE_COLS,
             _SLICE_DATA_FILENAME,
         ),
