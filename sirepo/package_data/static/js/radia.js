@@ -1774,10 +1774,10 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     </select>
                   </td>
                   <td data-ng-repeat="attr in ['min', 'max']">
-                    <input data-ng-if="item.field" data-string-to-number="" data-min="attrForField(item.field, attr)" data-ng-model="item[attr]" class="form-control" style="text-align: right" data-lpignore="true" required />
+                    <input data-ng-if="item.field" data-string-to-number="" data-min="attrForField(item.field, attr)" data-ng-model="item[attr]" data-ng-change="validate(this, item)" class="form-control" style="text-align: right" data-lpignore="true" required />
                   </td>
                   <td>
-                    <input data-ng-if="item.field" data-string-to-number="" data-ng-model="item.start" class="form-control" style="text-align: right" data-lpignore="true" required />
+                    <input data-ng-if="item.field" data-string-to-number="" data-ng-model="item.start"  data-ng-change="validate(this, item)" class="form-control" style="text-align: right" data-lpignore="true" required />
                   </td>
                   <td>
                     <button title="delete" data-ng-click="deleteItem($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
@@ -1796,6 +1796,8 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
             </div>
         `,
         controller: function($scope) {
+
+            const form = $scope.$parent.form;
             //TODO(mvk): other types such as FloatArray
             const OPTIMIZABLE_TYPES = ['Float'];
 
@@ -1882,8 +1884,12 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                 return $scope.optimizableObjects[name].fields.filter(x => ! f.includes(x)).length;
             };
 
+            $scope.validate = (input, item) => {
+                form.$valid = item.min < item.max && item.min <= item.start && item.start <= item.max;
+            };
 
             $scope.optimizableObjects = getObjectFields();
+
         },
     };
 });
@@ -1907,8 +1913,6 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, radiaSer
             </form>
         `,
         controller: function($scope, $element) {
-            const OPTIMIZABLE_TYPES = ['Float', 'FloatArray'];
-
             $scope.appState = appState;
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.avaiableFields = [];
