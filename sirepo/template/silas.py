@@ -21,6 +21,7 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _CRYSTAL_CSV_FILE = "crystal.csv"
 _RESULTS_FILE = "results{}.h5"
 _CRYSTAL_FILE = "crystal{}.h5"
+_MAX_H5_READ_TRIES = 3
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -162,7 +163,7 @@ def _beamline_animation_percent_complete(run_dir, res, data):
     _initial_intensity_percent_complete(run_dir, res, data, ("beamlineAnimation0",))
     count = PKDict(
         watch=1,
-        crystal=0,
+        crystal=1,
     )
     total_count = 1
     for e in data.models.beamline:
@@ -436,8 +437,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             excited_states="Number [1/m³]",
         )[plot_type]
 
-    tries = 3
-    for _ in range(tries):
+    for _ in range(_MAX_H5_READ_TRIES):
         try:
             with h5py.File(
                 run_dir.join(_fname(element).format(element_index)), "r"
@@ -456,7 +456,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
                         [
                             PKDict(
                                 points=y,
-                                label=_label(plot_type),
+                                label=_label(plot_type, 0),
                             ),
                         ],
                         PKDict(),
