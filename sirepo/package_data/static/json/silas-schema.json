@@ -112,7 +112,7 @@
             "D": ["D", "Float", 0.99892682],
             "length": ["Length [cm]", "Float", 2],
             "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
-            "radial_n2": ["Transverse Variation of Thermal Lensing", "Boolean", "0"],
+            "radial_n2": ["Transverse Variation of Thermal Lensing", "Boolean", "0", "If selected, varies exponentially with radius. If not selected, varies independently of radius."],
             "calc_gain": ["Include Gain Calculations", "Boolean", "0"],
             "inversion_n_cells": ["Inversion Mesh Cell Count", "Integer", 64],
             "inversion_mesh_extent": ["Inversion Mesh Extent [m]", "Float", 0.01],
@@ -145,7 +145,6 @@
         },
         "crystal3dAnimation": {},
         "laserPulse": {
-            "chirp": ["Chirp [eV]", "Float", 0, "Energy variation from first to last slice in laser pulse"],
             "ccd": ["Intensity", "InputFile", ""],
             "meta": ["WFS Space Data", "InputFile", "", "A file describing the pixel dimensions of your wavefront sensor. Pixel dimensions are assumed to be in microns."],
             "wfs": ["Phase", "InputFile", ""],
@@ -157,6 +156,7 @@
             "photon_e_ev": ["Photon energy [eV]", "Float", 1.5],
             "poltype": ["Polarization", "GaussianBeamPolarization", "1"],
             "tau_fwhm": ["FWHM Length [s]", "Float", 2.35865e-11],
+            "tau_0": ["Fourier-limited pulse length of a given spectral bandwidth", "Float",  2.35865e-11],
             "pulseE": ["Total Laser Pulse Energy [J]", "Float", 0.001],
             "distribution": ["Distribution Type", "DistributionType", "gaussian"],
             "sigx_waist": ["Horizontal RMS Waist Size [m]", "Float", 0.001],
@@ -218,14 +218,14 @@
                     "C",
                     "D",
                     "l_scale",
+                    "pump_type",
                     "radial_n2",
                     "calc_gain"
                 ]],
-                ["Laser Gain", [
+                ["Pump Pulse", [
                     "inversion_n_cells",
                     "inversion_mesh_extent",
                     "crystal_alpha",
-                    "pump_type",
                     "pump_waist",
                     "pump_wavelength",
                     "pump_energy",
@@ -281,7 +281,6 @@
             "basic": [
                 ["Energy", [
                     "photon_e_ev",
-                    "chirp",
                     "pulseE"
                 ]],
                 ["Transverse", [
@@ -305,7 +304,8 @@
                 ["Longitudinal", [
                     "num_sig_long",
                     "nslice",
-                    "tau_fwhm"
+                    "tau_fwhm",
+                    "tau_0"
                 ]]
             ]
         },
