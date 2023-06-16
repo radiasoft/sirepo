@@ -29,6 +29,10 @@
         "GaussianBeamPolarization": [
             ["1", "Linear Horizontal"]
         ],
+        "PropCalcType": [
+            ["fenics", "Calculated by Fenics"],
+            ["analytical", "Analytical"]
+        ],
         "PropagationType": [
             ["default", "Default"],
             ["abcd_lct", "ABCD LCT"],
@@ -114,6 +118,7 @@
             "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
             "radial_n2": ["Transverse Variation of Thermal Lensing", "Boolean", "0", "If selected, varies exponentially with radius. If not selected, varies independently of radius."],
             "calc_gain": ["Include Gain Calculations", "Boolean", "0"],
+            "calc_type": ["Propagation Calculation Type", "PropCalcType", "fenics"],
             "inversion_n_cells": ["Inversion Mesh Cell Count", "Integer", 64],
             "inversion_mesh_extent": ["Inversion Mesh Extent [m]", "Float", 0.01],
             "crystal_alpha": ["Crystal Alpha [1/m]", "Float", 120.0],
@@ -230,6 +235,9 @@
                     "pump_wavelength",
                     "pump_energy",
                     "pump_gaussian_order"
+                ]],
+                ["Propagation Calculation", [
+                    "calc_type"
                 ]]
             ]
         },
