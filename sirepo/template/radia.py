@@ -269,6 +269,10 @@ def get_data_file(run_dir, model, frame, options):
         return f
 
 
+def get_g_id():
+    return radia_util.load_bin(pkio.read_binary(_DMP_FILE))
+
+
 async def import_file(req, tmp_dir=None, **kwargs):
     data = simulation_db.default_data(req.type)
     data.models.simulation.pkupdate(
@@ -1048,10 +1052,6 @@ def _get_ell_points(o, stemmed_info):
     )
 
 
-def get_g_id():
-    return radia_util.load_bin(pkio.read_binary(_DMP_FILE))
-
-
 def _get_geom_data(
     sim_id,
     g_id,
@@ -1163,6 +1163,18 @@ def _normalize_bool(x):
     return bool_map[x] if x in bool_map else x
 
 
+def _objective_function_code(**kwargs):
+    d = PKDict(kwargs)
+    t = d.objective
+    if t == "custom":
+        return d.code
+    if t == "quality":
+        return """
+        
+        """
+    pass
+
+
 def _orient_stemmed_points(o, points, plane_ctr):
     idx = [int(o.stemPosition), int(o.armPosition)]
     return [
@@ -1216,6 +1228,10 @@ def _prep_new_sim(data, new_sim_data=None):
     data.models.electronTrajectoryReport.finalBeamPosition = f
     sim.enableKickMaps = "1"
     _update_kickmap(data.models.kickMapReport, m, new_sim_data.beamAxis)
+
+
+def _process_objective_code(code):
+    return code
 
 
 def _read_data(view_type, field_type):

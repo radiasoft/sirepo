@@ -7,7 +7,7 @@ codes:
         parameters:
       parameters:
         {% for p in optimizer.parameters %}
-          {{ p.object }}:
+          {{ p.object }}_{{ p.field }}:
           min: {{ p.min }}
           max: {{ p.max }}
           start: {{ p.start }}

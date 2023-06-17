@@ -1,11 +1,6 @@
-{%- macro rsOptFuctionSignature(addQuotes) -%}
+{%- macro rsOptFuctionSignature() -%}
 {%- for p in optimizer.parameters -%}
-{%- for x in e[p].initial -%}
-{%- if e[p].offsets[loop.index0] != 0 -%}
-    {% if addQuotes %}'{% endif %}{{ fixSpaces(e.title) }}_{{ e[p].fieldNames[loop.index0] }}{% if addQuotes %}'{% endif %},
-{%- endif -%}
-{%- endfor -%}
-{%- endfor -%}
+    {{ p.object }}_{{ p.field }},
 {%- endfor -%}
 {%- endmacro -%}
 
@@ -92,7 +87,8 @@ def _build_radia_geom():
 {% endif %}
     return g_id, id_map
 
-def obj_f(g_id):
+def objective_function({{ rsOptFuctionSignature() }}):
+    {{ optimizer.objectiveFunctionCode }}
     def _field_in_plane(y_min, y_max, obj, steps=25):
         int_field = []
         yc = np.linspace(y_min, y_max, steps)
@@ -108,10 +104,10 @@ def obj_f(g_id):
 
     np.save(OBJ_FILENAME, res)
 
-    return np.sum(res**2),  res
+    return np.sum(res**2), res
 
 
-def parallel_obj_f(_):
+def objective_function_parallel():
     fvec =  np.load(OBJ_FILENAME)
     return np.sum(fvec**2), fvec
 

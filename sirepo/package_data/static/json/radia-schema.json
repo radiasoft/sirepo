@@ -919,11 +919,13 @@
             "type": ["_", "ObjectCutType", "objectFillet"]
         },
         "objectiveFunction": {
+            "code": ["Code", "String", ""],
             "type": ["_", "ObjectiveFunction", "none"]
         },
         "quality": {
             "_super": ["_", "model", "objectiveFunction"],
             "begin": ["Start [mm]", "FloatArray", [-10.0, 0, 0], "", ["x", "y", "z"]],
+            "component": ["Component", "BeamAxis", "z"],
             "deviation": ["Deviation [mm]", "FloatArray", [0, 1.0, 0], "", ["∂x", "∂y", "∂z"]],
             "end": ["End [mm]", "FloatArray", [10.0, 0, 0], "", ["x", "y", "z"]],
             "fieldPaths": ["Path", "FieldPaths", []],
@@ -1538,6 +1540,7 @@
             "title": "Optimization",
             "basic": [
                 "objective",
+                "quality.component",
                 "quality.useFieldPath",
                 "quality.fieldPaths",
                 "quality.begin",
