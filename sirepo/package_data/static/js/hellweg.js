@@ -381,7 +381,7 @@ SIREPO.app.directive('appHeader', function(appState) {
     };
 });
 
-SIREPO.app.directive('summaryTable', function() {
+SIREPO.app.directive('summaryTable', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -404,10 +404,17 @@ SIREPO.app.directive('summaryTable', function() {
             function parseSummaryRows(summaryText) {
                 var text = summaryText.replace(/^(\n|.)*RESULTS\n+==+/, '').replace(/==+/, '');
                 var label = null;
+                var meanEnergy;
                 $scope.summaryRows = [];
                 text.split(/\n+/).forEach(function(line) {
                     line.split(/\s*=\s*/).forEach(function(v) {
                         if (label) {
+                            if (label == 'Average Energy') {
+                                meanEnergy = Number(v.replace(/MeV/, ''));
+                            }
+                            if (label == 'Energy Spectrum (FWHM)') {
+                                v = energySpectrumFromPercentage(v, meanEnergy);
+                            }
                             $scope.summaryRows.push([label, v]);
                             label = null;
                         }
@@ -419,6 +426,15 @@ SIREPO.app.directive('summaryTable', function() {
                         }
                     });
                 });
+            }
+
+            function energySpectrumFromPercentage(value, meanEnergy) {
+                return String(
+                    appState.formatFloat(
+                        ((Number(value.replace(/ %/, '')) * meanEnergy) / 100) * 1000,
+                        6,
+                    )
+                ) + "KeV";
             }
 
             function updateSummaryInfo(e, summaryText) {
