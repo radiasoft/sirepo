@@ -123,7 +123,10 @@
             "pump_gaussian_order": ["Pump Gaussian Order", "Float", 2.0],
             "pump_type": ["Pump Type", "PumpType", "dual"],
             "origin": ["Crystal", "CrystalOrigin", "new"],
-            "reuseCrystal": ["Select Crystal", "SelectCrystal", 0]
+            "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
+            "pump_offset_x": ["Pump Offset X [m]", "Float", 0],
+            "pump_offset_y": ["Pump Offset X [m]", "Float", 0],
+            "pump_rep_rate": ["Pump Rep Rate", "Float", 1.0]
         },
         "crystalAnimation": {},
         "crystalSettings": {
@@ -160,7 +163,8 @@
             "pulseE": ["Total Laser Pulse Energy [J]", "Float", 0.001],
             "distribution": ["Distribution Type", "DistributionType", "gaussian"],
             "sigx_waist": ["Horizontal RMS Waist Size [m]", "Float", 0.001],
-            "sigy_waist": ["Vertical RMS Waist Size [m]", "Float", 0.001]
+            "sigy_waist": ["Vertical RMS Waist Size [m]", "Float", 0.001],
+            "phase_flatten_cutoff": ["Phase Flatten Cutoff", "Float", 0.85]
         },
         "laserPulseAnimation": {
             "_super": ["_", "model", "initialIntensityReport"]
@@ -171,7 +175,7 @@
         },
         "initialIntensityReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "watchpointPlot": ["Value to Plot", "WatchpointPlot", "intensity"]
+            "watchpointPlot": ["Value to Plot", "WatchpointPlot", "total_intensity"]
         },
         "lens": {
             "_super": ["_", "model", "beamElement"],
@@ -218,18 +222,21 @@
                     "C",
                     "D",
                     "l_scale",
-                    "pump_type",
                     "radial_n2",
                     "calc_gain"
                 ]],
                 ["Pump Pulse", [
+                    "pump_type",
                     "inversion_n_cells",
                     "inversion_mesh_extent",
                     "crystal_alpha",
                     "pump_waist",
                     "pump_wavelength",
                     "pump_energy",
-                    "pump_gaussian_order"
+                    "pump_gaussian_order",
+                    "pump_rep_rate",
+                    "pump_offset_x",
+                    "pump_offset_y"
                 ]]
             ]
         },
@@ -281,7 +288,8 @@
             "basic": [
                 ["Energy", [
                     "photon_e_ev",
-                    "pulseE"
+                    "pulseE",
+                    "phase_flatten_cutoff"
                 ]],
                 ["Transverse", [
                     "num_sig_trans",
