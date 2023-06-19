@@ -919,7 +919,6 @@ def _init_schemas():
             "notifications",
             "localRoutes",
             "model",
-            "reactRoutes",
             "strings",
             "view",
         ]:
