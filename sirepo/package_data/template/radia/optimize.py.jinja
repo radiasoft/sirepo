@@ -87,42 +87,19 @@ def _build_radia_geom():
 {% endif %}
     return g_id, id_map
 
-def objective_function({{ rsOptFuctionSignature() }}):
-    {{ optimizer.objectiveFunctionCode }}
-    def _field_in_plane(y_min, y_max, obj, steps=25):
-        int_field = []
-        yc = np.linspace(y_min, y_max, steps)
-        for y in yc:
-            v = rad.FldInt(obj, 'inf', 'ibz', [-150, y, 0.], [150, y, 0.])
-            int_field.append(v)
-        return np.array([yc, int_field])
-
-    {% if optimizer.objective == "quality" %}
-    field_prof = _field_in_plane(-1., 1., obj, steps=125)
-    int_bz0 = rad.FldInt(obj, 'inf', 'ibz', [-150, 0., 0.], [150, 0., 0.])
-    res = field_prof[1, :] - int_bz0
-
-    np.save(OBJ_FILENAME, res)
-
-    return np.sum(res**2), res
-
-
-def objective_function_parallel():
-    fvec =  np.load(OBJ_FILENAME)
-    return np.sum(fvec**2), fvec
-
+def objective_function(g_id):
+    return {{ optimizer.objectiveFunctionCode }}
 
 # ** Begin **
-def main(radius, precision=1e-4, maxiter=4500, min_angle=20., max_area=0.5):
+def main({{ rsOptFuctionSignature() }}):
+    def _get_obj(name):
+        return [o for o in sirepo_objs if o.name == name][0]
+
+    for k, v in locals():
+        mv = k.split("_")
+        _get_obj(mv[0])[mv[1]) = v
     g_id, id_map = _build_radia_geom()
-
-    res = radia.Solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-
-    np.save('field_in_plane.npy', _field_in_plane(-1., 1., dipole, steps=125))
-
-    return obj_f(g_id)
-
-
-
+    _ = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+    return objective_function(g_id)
 
 

@@ -1169,10 +1169,17 @@ def _objective_function_code(**kwargs):
     if t == "custom":
         return d.code
     if t == "quality":
-        return """
-        
-        """
-    pass
+        return f"""
+f  = numpy.array([])
+p1 = ${d.begin}
+p2 = ${d.end}
+i = radia_util.AXES.index(${d.component})
+f0 = radia_util.field_integral(g_id, 'B', p1, p2)[i]
+for d in numpy.linspace(-1 * numpy.array(${d.deviation}), 1 * numpy.array(${d.deviation}), ${d.deviationSteps}):
+f.append(radia_util.field_integral(g_id, 'B', (p1 + d).tolist(), (p2 + d).tolist())[i])
+res = numpy.sum((f - f0)**2)
+"""
+    return "res = 0"
 
 
 def _orient_stemmed_points(o, points, plane_ctr):

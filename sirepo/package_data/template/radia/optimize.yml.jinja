@@ -24,10 +24,6 @@ options:
     # For parallel execution a new subprocess must be used so the return value of `main` is lost
     # To calculate the objective function after each simulation the appropriate data should be saved to file and evaluated by a separate function given here. The function given to `objective_function` will be run in serial and is always used if given, even if the simulation defined above was run in serial
     objective_function: [optimize.py, parallel_obj_f]
-
-    sym_links:
-        - 'dipole.py'
-    # Update history file after every evaluation. Default is to only write the history at the end. However, if rsopt ends prematurely a history up to that point will be written out regardless.
     record_interval: 1
 
     # Options for setting up and terminating
