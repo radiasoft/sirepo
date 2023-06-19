@@ -864,11 +864,11 @@ def _init_proxy_react():
         f"{sirepo.const.STATIC_D}/js/bundle.js.map",
     ]
     _PROXY_REACT_URI_SET = set(p)
-    r = "^react/"
+    r = f"^{sirepo.const.REACT_ROOT_D}/"
     for x in sirepo.feature_config.cfg().react_sim_types:
         r += rf"|^{x}(?:\/|$)"
     if _cfg.react_server == _REACT_SERVER_BUILD:
-        r += rf"|^{sirepo.const.STATIC_D}/(css|js)/main\."
+        r += f"|^{sirepo.const.REACT_BUNDLE_FILE_PAT}"
     _PROXY_REACT_URI_RE = re.compile(r)
 
 

@@ -11,6 +11,10 @@ ASYNC_CANCELED_ERROR = asyncio.CancelledError
 
 STATIC_D = "static"
 
+REACT_ROOT_D = "react"
+
+REACT_BUNDLE_FILE_PAT = rf"{STATIC_D}/(css|js)/main\."
+
 JSON_SUFFIX = ".json"
 
 # matches requirements for uid and isn't actually put in the db
@@ -29,6 +33,7 @@ PORT_DEFAULTS = PKDict(
     supervisor=8001,
     uwsgi=8000,
 )
+
 
 TEST_PORT_RANGE = range(10000, 11000)
 
