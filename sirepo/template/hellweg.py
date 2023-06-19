@@ -120,7 +120,7 @@ def sim_frame_beamAnimation(frame_args):
             title=_report_title(frame_args.reportType, "BeamReportType", beam_info),
             z_label="Number of Particles",
             summaryData=_summary_text(frame_args.run_dir),
-        )
+        ),
     )
 
 

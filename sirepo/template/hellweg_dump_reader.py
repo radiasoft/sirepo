@@ -327,14 +327,10 @@ def particle_info(filename, field, count):
             lmb = beam_header.beam_lmb
             pi = 0
             for idx in indices:
-                # TODO (gurhar1133): should this be userAlert or assertion
-                # with more info
                 assert idx >= pi
                 if idx > pi:
                     f.seek((idx - pi) * particle_size, 1)
                 p = TParticle()
-                # TODO (gurhar1133): should this be userAlert or assertion
-                # with more info
                 assert f.readinto(p) == particle_size
                 if p.lost == _LIVE_PARTICLE:
                     v = yfn(p, lmb)
@@ -352,7 +348,9 @@ def particle_info(filename, field, count):
         assert f.readinto(header) == 0
         y_values = []
         for idx in sorted(y_map.keys()):
-            y_values.append((numpy.array(y_map[idx]) * _PARTICLE_Y_SCALE_FACTOR).tolist())
+            y_values.append(
+                (numpy.array(y_map[idx]) * _PARTICLE_Y_SCALE_FACTOR).tolist()
+            )
         info["y_values"] = y_values
         info["y_range"] = (numpy.array(y_range) * _PARTICLE_Y_SCALE_FACTOR).tolist()
     return info
