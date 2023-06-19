@@ -182,7 +182,9 @@ def sim_frame_particleAnimation(frame_args):
     )
     x = particle_info["z_values"]
     y = particle_info["y_values"]
-    pkdp("\n\n\ny={}", y)
+    pkdp("\n\n\nSHAPE")
+    for arr in y:
+        pkdp("\nlen(arr)={}", len(arr))
     if frame_args.reportType == "w":
         pkdp("\n\n\n\n\ny type={}, type(y[0])={}", type(y), type(y[0]))
         y = numpy.array(y)
