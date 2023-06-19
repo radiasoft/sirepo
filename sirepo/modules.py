@@ -9,10 +9,10 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import importlib
 
 
-def import_and_init(name):
+def import_and_init(name, want_flask=False):
     values = PKDict(
         want_apis=name != "sirepo.job_supervisor",
-        want_flask=name == "sirepo.server",
+        want_flask=want_flask,
     )
 
     def _base(qual):
@@ -31,10 +31,10 @@ def import_and_init(name):
     _i("sirepo.flask", ["want_flask"])
     _i("sirepo.job", [])
     # Not a real initialization, but needed in values, and actually makes sense to do
-    _i("sirepo.simulation_db", [])
+    _i("sirepo.simulation_db", ["want_flask"])
     if name != "sirepo.pkcli.job_agent":
         _i("sirepo.auth_db", [])
-        _i("sirepo.spa_session", [])
+        _i("sirepo.spa_session", ["want_flask"])
         _i("sirepo.cookie", [])
     _i("sirepo.auth", ["simulation_db"])
     if name in "sirepo.pkcli.job_agent":

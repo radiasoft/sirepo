@@ -13,6 +13,8 @@ _PURGE_FREE_AFTER_DAYS = 1
 
 
 def setup_module(module):
+    import os
+
     os.environ.update(
         SIREPO_JOB_SUPERVISOR_JOB_CACHE_SECS=str(_CACHE_AND_SIM_PURGE_PERIOD),
         SIREPO_JOB_SUPERVISOR_PURGE_NON_PREMIUM_AFTER_SECS=str(_PURGE_FREE_AFTER_DAYS)
@@ -84,6 +86,7 @@ def test_elegant_no_frame_after_purge(auth_fc):
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
+    import time
 
     fc = auth_fc
     user_free = "free@b.c"

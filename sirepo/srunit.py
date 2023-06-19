@@ -77,7 +77,7 @@ def quest_start(want_user=False, cfg=None):
     with quest.start(in_pkcli=True) as qcall:
         qcall.auth_db.create_or_upgrade()
         if want_user:
-            qcall.auth.login(is_mock=True)
+            qcall.auth.create_and_login_user()
         yield qcall
 
 
