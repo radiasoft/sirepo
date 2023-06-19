@@ -99,13 +99,14 @@ _POST_SIM_REPORTS = [
     "fieldIntegralReport",
     "kickMapReport",
 ]
-_SIM_REPORTS = ["geometryReport", "reset", "solverAnimation"]
+_SIM_REPORTS = ["geometryReport", "optimizerAnimation", "reset", "solverAnimation"]
 _REPORTS = [
     "electronTrajectoryReport",
     "fieldIntegralReport",
     "fieldLineoutAnimation",
     "geometryReport",
     "kickMapReport",
+    "optimizerAnimation",
     "reset",
     "solverAnimation",
 ]
@@ -878,6 +879,10 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     g = data.models.geometryReport
     v.simId = data.models.simulation.simulationId
 
+    if report == "optimizerAnimation":
+        v.objectiveFunctionCode = _objective_function_code(data.models)
+        v.solverMode = "solve"
+
     if report == "solverAnimation":
         v.solverMode = data.models.solverAnimation.get("mode")
     elif for_export:
@@ -1163,19 +1168,20 @@ def _normalize_bool(x):
     return bool_map[x] if x in bool_map else x
 
 
-def _objective_function_code(**kwargs):
-    d = PKDict(kwargs)
-    t = d.objective
+def _objective_function_code(models):
+    o = models.optimizer
+    t = o.objective
     if t == "custom":
-        return d.code
+        return o.code
     if t == "quality":
+        q = models.quality
         return f"""
 f  = numpy.array([])
-p1 = ${d.begin}
-p2 = ${d.end}
-i = radia_util.AXES.index(${d.component})
+p1 = ${q.begin}
+p2 = ${q.end}
+i = radia_util.AXES.index(${q.component})
 f0 = radia_util.field_integral(g_id, 'B', p1, p2)[i]
-for d in numpy.linspace(-1 * numpy.array(${d.deviation}), 1 * numpy.array(${d.deviation}), ${d.deviationSteps}):
+for d in numpy.linspace(-1 * numpy.array(${q.deviation}), 1 * numpy.array(${q.deviation}), ${q.deviationSteps}):
 f.append(radia_util.field_integral(g_id, 'B', (p1 + d).tolist(), (p2 + d).tolist())[i])
 res = numpy.sum((f - f0)**2)
 """

@@ -34,6 +34,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             return "fieldLineoutAnimation"
         elif analysis_model in ("solverAnimation", "reset"):
             return "solverAnimation"
+        elif analysis_model == "optimizerAnimation":
+            return "optimizer"
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod

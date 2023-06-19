@@ -88,7 +88,7 @@ def _build_radia_geom():
     return g_id, id_map
 
 def objective_function(g_id):
-    return {{ optimizer.objectiveFunctionCode }}
+    return {{ objectiveFunctionCode }}
 
 # ** Begin **
 def main({{ rsOptFuctionSignature() }}):
