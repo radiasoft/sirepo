@@ -276,9 +276,8 @@
             ["dipoleC", "C-Bend"],
             ["dipoleH", "H-Bend"]
         ],
-        "DivisionType": [
+        "SegmentationType": [
             ["cyl", "Cylindrical"],
-            ["", "None"],
             ["pln", "Planar"]
         ],
         "Elevation": [
@@ -323,6 +322,7 @@
             ["custom", "Custom"]
         ],
         "ObjectCutType": [
+            ["objectCut", "Plane"],
             ["objectBevel", "Bevel"],
             ["objectFillet", "Fillet"]
         ],
@@ -424,6 +424,7 @@
             "_super": ["_", "model", "extrudedObject"],
             "numSides": ["Number of Sides", "Integer", 10, "A cylinder is approximated by a regular polyhedron of this number of sides", 6],
             "radius": ["Radius", "Float", 5.0, "", 0.0],
+            "segmentation": ["Segmentation Type", "SegmentationType", "cyl"],
             "type": ["_", "ObjectType", "cylinder"]
         },
         "cee": {
@@ -805,17 +806,23 @@
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
             "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "segments": ["Num Segments", "IntArray", [1, 1, 1], "", ["N$_{{ model.type == 'cylinder' ? '{rad}' : 'x' }}$", "N$_{{ model.type == 'cylinder' ? '{az}' : 'y' }}$", "N$_{{ model.type == 'cylinder' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "modifications": ["", "ModelArrayTable", [], "", ["objectBevel", "objectFillet"]],
+            "modifications": ["", "ModelArrayTable", [], "", ["objectCut", "objectBevel", "objectFillet"]],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B Curve from File", "HBFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns (H, B in Tesla)"],
+            "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
+            "segmentation": ["Segmentation Type", "SegmentationType", "pln"],
+            "segmentationCylAxis": ["Segment Axis", "BeamAxis", "z"],
+            "segmentationCylPoint": ["Segment Origin", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
+            "segmentationCylRadius": ["Segment Radial Width [mm]", "Float", 5.0],
+            "segmentationCylUseObjectCenter": ["Use object center as origin", "Boolean", "1"],
+            "segments": ["Segments", "IntArray", [1, 1, 1], "", ["N$_{{ appState.models.geomObject.segmentation == 'cyl' ? '{rad}' : 'x' }}$", "N$_{{ appState.models.geomObject.segmentation == 'cyl' ? '{az}' : 'y' }}$", "N$_{{ appState.models.geomObject.segmentation == 'cyl' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
             "shapeButton": ["Shape", "ShapeButton", {}],
-            "type": ["Shape Type", "ObjectType", "cuboid"],
-            "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]]
+            "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]],
+            "type": ["Shape Type", "ObjectType", "cuboid"]
         },
         "jay": {
             "_super": ["_", "model", "stemmed"],
@@ -874,17 +881,19 @@
             "_super": ["_", "model", "objectCut"],
             "amountVert": ["Vertical Cut [mm]", "Float", 1.0],
             "amountHoriz": ["Horizontal Cut [mm]", "Float", 1.0],
+            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "cutDir": ["", "Array", [0, 0, 1]],
+            "cutRemoval": ["Removal Side", "CutRemoval", "1", "Determines which side of the cut plane to remove"],
             "edge": ["Corner", "BevelEdge", "0", "Corner of cross-sectional footprint to cut"],
             "heightDir": ["", "Array", [0, 1, 0]],
             "type": ["_", "ObjectCutType", "objectBevel"],
             "widthDir": ["", "Array", [1, 0, 0]]
         },
         "objectCut": {
-            "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
-            "cutRemoval": ["Removal Side", "CutRemoval", "1", "Determines which side of the cut plane to remove"],
+            "cutPlane": ["Cut Plane", "FloatArray", [0, 0, 1], "Normal of the cut plane", ["x", "y", "z"]],
             "cutPoint": ["Cut Point", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
-            "type": ["_", "ObjectCutType", "objectBevel"]
+            "useObjectCenter": ["Relative to Object Center", "Boolean", "0"],
+            "type": ["_", "ObjectCutType", "objectCut"]
         },
         "objectFillet": {
             "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
@@ -1314,6 +1323,11 @@
                     "extrudedPoints.referencePoints",
                     "center",
                     "size",
+                    "segmentation",
+                    "segmentationCylAxis",
+                    "segmentationCylUseObjectCenter",
+                    "segmentationCylPoint",
+                    "segmentationCylRadius",
                     "segments",
                     "cylinder.radius",
                     "extrudedObject.extrusionAxis",
@@ -1421,6 +1435,15 @@
                 "amountHoriz",
                 "amountVert",
                 "cutRemoval"
+            ]
+        },
+        "objectCut": {
+            "title": "Plane",
+            "basic": [],
+            "advanced": [
+                "cutPlane",
+                "cutPoint",
+                "useObjectCenter"
             ]
         },
         "objectFillet": {

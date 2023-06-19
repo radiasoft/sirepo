@@ -97,6 +97,10 @@ def for_sim_type(sim_type):
     )
 
 
+def is_react_sim_type(sim_type):
+    return sim_type in cfg().react_sim_types
+
+
 def proprietary_sim_types():
     """All sim types that have proprietary information and require granted access to use
 
@@ -180,9 +184,9 @@ def _init():
             ),
         ),
         react_sim_types=(
-            ("jspec", "genesis", "warppba", "omega", "myapp")
-            if pkconfig.in_dev_mode()
-            else ("omega",),
+            ("jspec", "genesis", "warppba", "omega", "myapp", "shadow", "madx")
+            if pkconfig.channel_in("dev")
+            else (),
             set,
             "React apps",
         ),

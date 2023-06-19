@@ -132,20 +132,24 @@ def create_user(qcall, github_handle=None, check_dir=False):
             n += _HUB_USER_SEP + sirepo.util.random_base62(3).lower()
         return n
 
-    with sirepo.util.THREAD_LOCK:
-        n = _unchecked_jupyterhub_user_name(qcall)
-        if n:
-            return n
-        u = __user_name()
-        if check_dir and _user_dir(qcall, u).exists():
-            raise AssertionError(f"existing user dir with same name={u}")
-        qcall.auth_db.model(
-            "JupyterhubUser",
-            uid=qcall.auth.logged_in_user(),
-            user_name=u,
-        ).save()
-        pkio.mkdir_parent(_user_dir(qcall))
-        return u
+    n = _unchecked_jupyterhub_user_name(qcall)
+    if n:
+        return n
+    u = __user_name()
+    # POSIT: if two creates happen simultaneously, there may be an existence
+    # collision, but the db will be consistent, because this call happens
+    # first, before db insert.
+    if check_dir and _user_dir(qcall, u).exists():
+        raise AssertionError(f"existing user dir with same name={u}")
+    qcall.auth_db.model(
+        "JupyterhubUser",
+        uid=qcall.auth.logged_in_user(),
+        user_name=u,
+    ).save()
+    # POSIT: one transaction will rollback if two creates happen at the same time,
+    # but that won't change the need for the directory.
+    pkio.mkdir_parent(_user_dir(qcall))
+    return u
 
 
 def delete_user_dir(qcall):

@@ -14,15 +14,14 @@ import h5py
 import numpy
 import re
 import sirepo.sim_data
-
-# TODO(pjm): currently aligned with rslaser version
-# git checkout `git rev-list -n 1 --first-parent --before="2023-04-24 13:37" main`
+import time
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _CRYSTAL_CSV_FILE = "crystal.csv"
 _RESULTS_FILE = "results{}.h5"
 _CRYSTAL_FILE = "crystal{}.h5"
+_MAX_H5_READ_TRIES = 3
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -134,8 +133,7 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _beamline_animation_percent_complete(run_dir, res, data):
-    def _output_append(frame_count, filename, count, element, res, total_count):
-        total_count += 1
+    def _output_append(frame_count, filename, count, element, res):
         if run_dir.join(filename).exists():
             res.outputInfo.append(
                 PKDict(
@@ -170,15 +168,14 @@ def _beamline_animation_percent_complete(run_dir, res, data):
     total_count = 1
     for e in data.models.beamline:
         if e.type in ("watch", "crystal"):
+            total_count += 1
             _output_append(
                 _frames(e, data),
                 _file(e, count),
                 count,
                 e,
                 res,
-                total_count,
             )
-
     res.percentComplete = res.frameCount * 100 / total_count
     return res
 
@@ -242,11 +239,11 @@ def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
 def _generate_beamline_elements(data):
     def _callback(state, element, dz):
         if dz:
-            state.res += f'(Drift({round(dz, 9)}), ["default"]),\n'
+            state.res += f'(Drift_srw({round(dz, 9)}), ["default"]),\n'
         if element.type == "watch" or element.get("isDisabled"):
             return
         if element.type == "lens":
-            state.res += f'(Lens({element.focalLength}), ["default"]),\n'
+            state.res += f'(Lens_srw({element.focalLength}), ["default"]),\n'
         elif element.type == "mirror":
             state.res += "(Mirror(), []),\n"
         elif element.type == "crystal":
@@ -300,16 +297,17 @@ def _generate_crystal(crystal):
                 B={crystal.B},
                 C={crystal.C},
                 D={crystal.D},
-                population_inversion=PKDict(
-                    n_cells={crystal.inversion_n_cells},
-                    mesh_extent={crystal.inversion_mesh_extent},
-                    crystal_alpha={crystal.crystal_alpha},
-                    pump_waist={crystal.pump_waist},
-                    pump_wavelength={crystal.pump_wavelength},
-                    pump_gaussian_order={crystal.pump_gaussian_order},
-                    pump_energy={crystal.pump_energy},
-                    pump_type="{crystal.pump_type}",
-                ),
+                pop_inversion_n_cells={crystal.inversion_n_cells},
+                pop_inversion_mesh_extent={crystal.inversion_mesh_extent},
+                pop_inversion_crystal_alpha={crystal.crystal_alpha},
+                pop_inversion_pump_waist={crystal.pump_waist},
+                pop_inversion_pump_wavelength={crystal.pump_wavelength},
+                pop_inversion_pump_gaussian_order={crystal.pump_gaussian_order},
+                pop_inversion_pump_energy={crystal.pump_energy},
+                pop_inversion_pump_type="{crystal.pump_type}",
+                pop_inversion_pump_rep_rate={crystal.pump_rep_rate},
+                pop_inversion_pump_offset_x={crystal.pump_offset_x},
+                pop_inversion_pump_offset_y={crystal.pump_offset_y},
             ),
         ),
         ["{crystal.propagationType}", {crystal.calc_gain == "1"}, {crystal.radial_n2 == "1"}],
@@ -384,18 +382,25 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             return _CRYSTAL_FILE
         return _RESULTS_FILE
 
+    def _index(index, plot_type):
+        if plot_type == "longitudinal_photons":
+            return index
+        return index + 1
+
     def _is_crystal(element):
         return element and element.type == "crystal"
 
     def _is_longitudinal_plot(plot_type):
         return "longitudinal" in plot_type
 
-    def _label(plot_type):
+    def _label(plot_type, slice_index):
         if plot_type == "longitudinal_intensity":
             return "Intensity"
         if plot_type == "longitudinal_photons":
             return "Total Number of Photons"
-        return "Excited States"
+        if plot_type == "excited_states_longitudinal":
+            return "Excited States"
+        return _title(plot_type, slice_index)
 
     def _nslice(element, file):
         if _is_crystal(element):
@@ -403,9 +408,16 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
         return len(file)
 
     def _title(plot_type, slice_index):
-        if plot_type in ("total_intensity", "total_phase", "excited_states"):
+        if plot_type in ("total_intensity", "total_phase"):
             return plot_type.replace("_", " ").title()
-        return plot_type.capitalize() + " Slice #" + str(slice_index + 1)
+        return plot_type.replace("_", " ").title() + " Slice #" + str(slice_index + 1)
+
+    def _x_label(plot_type):
+        return PKDict(
+            excited_states_longitudinal="Crystal Slice",
+            longitudinal_photons="Crystal width [cm]",
+            longitudinal_intensity="Pulse Slice",
+        )[plot_type]
 
     def _y_value(element, index, file, cell_volume):
         if _is_crystal(element):
@@ -415,37 +427,58 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             return y
         return numpy.sum(y)
 
-    with h5py.File(run_dir.join(_fname(element).format(element_index)), "r") as f:
-        if _is_longitudinal_plot(plot_type):
-            x = []
-            y = []
-            nslice = _nslice(element, f)
-            if element:
-                element.nslice = nslice
-            for idx in range(nslice):
-                x.append(idx)
-                y.append(_y_value(element, idx, f, _cell_volume(element)))
-            return template_common.parameter_plot(
-                x,
-                [
-                    PKDict(
-                        points=y,
-                        label=_label(plot_type),
-                    ),
-                ],
-                PKDict(),
-            )
-        d = template_common.h5_to_dict(f, str(slice_index))
-        r = d.ranges
-        z = d[plot_type]
+    def _z_label(plot_type):
         return PKDict(
-            title=_title(plot_type, slice_index),
-            x_range=[r.x[0], r.x[1], len(z)],
-            y_range=[r.y[0], r.y[1], len(z[0])],
-            x_label="Horizontal Position [m]",
-            y_label="Vertical Position [m]",
-            z_matrix=z,
-        )
+            total_phase="Phase [rad]",
+            total_intensity="",
+            intensity="",
+            phase="Phase [rad]",
+            photons="Photons [1/m³]",
+            excited_states="Number [1/m³]",
+        )[plot_type]
+
+    for _ in range(_MAX_H5_READ_TRIES):
+        try:
+            with h5py.File(
+                run_dir.join(_fname(element).format(element_index)), "r"
+            ) as f:
+                if _is_longitudinal_plot(plot_type):
+                    x = []
+                    y = []
+                    nslice = _nslice(element, f)
+                    if element:
+                        element.nslice = nslice
+                    for idx in range(nslice):
+                        x.append(_index(idx, plot_type))
+                        y.append(_y_value(element, idx, f, _cell_volume(element)))
+                    return template_common.parameter_plot(
+                        x,
+                        [
+                            PKDict(
+                                points=y,
+                                label=_label(plot_type, 0),
+                            ),
+                        ],
+                        PKDict(),
+                        PKDict(
+                            x_label=_x_label(plot_type),
+                        ),
+                    )
+                d = template_common.h5_to_dict(f, str(slice_index))
+                r = d.ranges
+                z = d[plot_type]
+                return PKDict(
+                    title=_title(plot_type, slice_index),
+                    x_range=[r.x[0], r.x[1], len(z)],
+                    y_range=[r.y[0], r.y[1], len(z[0])],
+                    x_label="Horizontal Position [m]",
+                    y_label="Vertical Position [m]",
+                    z_label=_z_label(plot_type),
+                    z_matrix=z,
+                )
+        except BlockingIOError as e:
+            time.sleep(3)
+    raise AssertionError("Report is unavailable")
 
 
 def _laser_pulse_report(value_index, filename, title, label):

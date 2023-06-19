@@ -1,7 +1,6 @@
 from pykern.pkcollections import PKDict
 from rslaser.optics.crystal import Crystal
-from rslaser.optics.drift import Drift
-from rslaser.optics.lens import Lens
+from rslaser.optics.lens import Lens_srw, Drift_srw
 from rslaser.pulse.pulse import LaserPulse
 from rslaser.utils import srwl_uti_data
 from sirepo.template import template_common
@@ -52,7 +51,7 @@ class Watchpoint:
         p = lp.extract_total_2d_phase()
         for s in range(pulse.nslice):
             nx = lp.slice[s].nx_slice
-            ny = lp.slice[s].ny_slice
+            ny = nx
             i = locals()["intensity"](pulse, s)
             h5_data[s] = PKDict(
                 ranges=locals()["ranges"](pulse, s),
@@ -105,18 +104,18 @@ def propagate(pulse, elements, beamline):
 pulse = LaserPulse(
     params=PKDict(
         {% for f in (
-            'chirp',
             'nslice',
             'num_sig_long',
             'num_sig_trans',
             'nx_slice',
-            'ny_slice',
             'photon_e_ev',
             'poltype',
             'pulseE',
             'sigx_waist',
             'sigy_waist',
-            'tau_fwhm'
+            'tau_fwhm',
+            'phase_flatten_cutoff',
+            'tau_0',
         ) %}
         {{ f }}={{ laserPulse[f] }},
         {% endfor %}
