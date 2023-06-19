@@ -35,7 +35,6 @@ _HELLWEG_PARSED_FILE = "PARSED.TXT"
 
 _PARAMETER_SCALE = PKDict(
     rb=2.0,
-    w=1e6,
 )
 
 
@@ -182,15 +181,8 @@ def sim_frame_particleAnimation(frame_args):
     )
     x = particle_info["z_values"]
     y = particle_info["y_values"]
-    pkdp("\n\n\nSHAPE")
-    for arr in y:
-        pkdp("\nlen(arr)={}", len(arr))
-    if frame_args.reportType == "w":
-        pkdp("\n\n\n\n\ny type={}, type(y[0])={}", type(y), type(y[0]))
-        y = numpy.array(y)
-        pkdp("\n\n\ny={} shape={}", y, y.shape)
-        y = _PARAMETER_SCALE[frame_args.reportType] * y
-    pkdp("\n\n\n frame_args.reportType={}", frame_args.reportType)
+    pkdp("y_range={}", particle_info["y_range"])
+    pkdp(y)
     return PKDict(
         title=_enum_text("ParticleReportType", frame_args.reportType),
         x_range=[numpy.min(x), numpy.max(x)],
