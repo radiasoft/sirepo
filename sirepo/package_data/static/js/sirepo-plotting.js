@@ -1822,19 +1822,14 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             const v0 = applyUnit(tickValues[0], base, unit);
             const v1 = applyUnit(tickValues[1], base, unit);
             const vn = applyUnit(tickValues[tickValues.length - 1], base, unit);
-            let decimals;
-            if (Math.abs(v0) > Math.abs(vn)) {
-                decimals = d3_precisionRound(v1 - v0, Math.abs(v0));
-            }
-            else {
-                decimals = d3_precisionRound(v1 - v0, vn);
-            }
+            const max = Math.abs(v0) > Math.abs(vn) ? Math.abs(v0) : vn;
+            let decimals = d3_precisionRound(v1 - v0, max);
             if (decimals > 1) {
                 decimals -= 1;
             }
             if (useFloatFormat(v0) && useFloatFormat(vn)) {
                 code = 'f';
-                decimals -= valuePrecision(vn);
+                decimals -= valuePrecision(max);
                 if (decimals < 0) {
                     decimals = 0;
                 }
