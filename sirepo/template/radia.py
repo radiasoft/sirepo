@@ -704,6 +704,30 @@ def _electron_trajectory_plot(sim_id, **kwargs):
     )
 
 
+def _export_rsopt_config(data, run_dir):
+
+    def _write_rsopt_files(run_dir, ctx):
+        for f in _export_rsopt_files().values():
+            pkio.write_text(
+                run_dir.join(f),
+                template_common.render_jinja(SIM_TYPE, ctx, f),
+            )
+
+    ctx = _rsopt_jinja_context(data)
+    _write_rsopt_files(run_dir, ctx)
+
+
+def _export_rsopt_files():
+    files = PKDict()
+    for t in (
+        "py",
+        "sh",
+        "yml",
+    ):
+        files[f"{t}FileName"] = f"optimize.{t}"
+    return files
+
+
 def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None):
     v = (
         field_data
@@ -880,8 +904,15 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.simId = data.models.simulation.simulationId
 
     if report == "optimizerAnimation":
-        v.objectiveFunctionCode = _objective_function_code(data.models)
-        v.solverMode = "solve"
+        _export_rsopt_config(data, run_dir=run_dir)
+        pkio.write_text(
+            run_dir.join("optimize.yml"),
+            template_common.render_jinja(SIM_TYPE, v, "optimize.yml"),
+        )
+        p = f"""import subprocess
+        subprocess.call(['bash', 'run_rsopt.sh'])
+        """
+
 
     if report == "solverAnimation":
         v.solverMode = data.models.solverAnimation.get("mode")
@@ -1176,13 +1207,15 @@ def _objective_function_code(models):
     if t == "quality":
         q = models.quality
         return f"""
+import numpy
+
 f  = numpy.array([])
-p1 = ${q.begin}
-p2 = ${q.end}
-i = radia_util.AXES.index(${q.component})
+p1 = {q.begin}
+p2 = {q.end}
+i = radia_util.AXES.index('{q.component}')
 f0 = radia_util.field_integral(g_id, 'B', p1, p2)[i]
-for d in numpy.linspace(-1 * numpy.array(${q.deviation}), 1 * numpy.array(${q.deviation}), ${q.deviationSteps}):
-f.append(radia_util.field_integral(g_id, 'B', (p1 + d).tolist(), (p2 + d).tolist())[i])
+for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {q.deviationSteps}):
+    f.append(radia_util.field_integral(g_id, 'B', (p1 + d).tolist(), (p2 + d).tolist())[i])
 res = numpy.sum((f - f0)**2)
 """
     return "res = 0"
@@ -1355,6 +1388,24 @@ def _rotate_fields(vectors, scipy_rotation, do_flatten):
 
 def _rotate_flat_vector_list(vectors, scipy_rotation):
     return scipy_rotation.apply(numpy.reshape(vectors, (-1, 3)))
+
+
+def _rsopt_jinja_context(data):
+    import multiprocessing
+
+    model = data.models[_SIM_DATA.EXPORT_RSOPT]
+    res = PKDict(
+        libFiles=_SIM_DATA.lib_file_basenames(data),
+        maxOuputDimension=model.maxOuputDimension,
+        numCores=int(model.numCores),
+        numWorkers=max(1, multiprocessing.cpu_count() - 1),
+        optimizer=data.models.optimizer,
+        objectiveFunctionCode=_objective_function_code(data.models),
+        outFileName=f"{_SIM_DATA.EXPORT_RSOPT}.out",
+        rsOptOutFileName="scan_results",
+    )
+    res.update(_export_rsopt_files())
+    return res
 
 
 def _save_field_csv(field_type, vectors, scipy_rotation, path):

@@ -88,16 +88,19 @@ def _build_radia_geom():
     return g_id, id_map
 
 def objective_function(g_id):
-    return {{ objectiveFunctionCode }}
+    {% filter indent(width=4) %}
+    {{ objectiveFunctionCode }}
+    {% endfilter %}
+    return res
 
-# ** Begin **
+
 def main({{ rsOptFuctionSignature() }}):
     def _get_obj(name):
         return [o for o in sirepo_objs if o.name == name][0]
 
     for k, v in locals():
         mv = k.split("_")
-        _get_obj(mv[0])[mv[1]) = v
+        _get_obj(mv[0])[mv[1]] = v
     g_id, id_map = _build_radia_geom()
     _ = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
     return objective_function(g_id)

@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+run_rsopt=( rsopt sample configuration '{{ ymlFileName }}' )
+run_post=( python '{{ postProcFileName }}' )
+"${run_rsopt[@]}" > '{{ outFileName }}' 2>&1
+if [ $? -eq 0 ]
+then
+    echo Collecting data
+    "${run_post[@]}"
+else
+    echo "ERROR: rsopt failed with return code $?, see {{ outFileName }}"
+    exit 99
+fi
