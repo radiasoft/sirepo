@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-run_rsopt=( rsopt sample configuration '{{ ymlFileName }}' )
+run_rsopt=( rsopt optimize configuration '{{ ymlFileName }}' )
 run_post=( python '{{ postProcFileName }}' )
 "${run_rsopt[@]}" > '{{ outFileName }}' 2>&1
 if [ $? -eq 0 ]

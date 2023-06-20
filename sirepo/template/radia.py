@@ -704,9 +704,8 @@ def _electron_trajectory_plot(sim_id, **kwargs):
     )
 
 
-def _export_rsopt_config(data, run_dir):
+def _export_rsopt_config(ctx, run_dir):
 
-    ctx = _rsopt_jinja_context(data)
     for f in _export_rsopt_files().values():
         pkio.write_text(
             run_dir.join(f),
@@ -999,11 +998,12 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.h5IdMapPath = _H5_PATH_ID_MAP
 
     if report == "optimizerAnimation":
-        _export_rsopt_config(data, run_dir=run_dir)
-        p = f"""import subprocess
-        subprocess.call(['bash', 'optimize.sh'])
-        """
-
+        rx = _rsopt_jinja_context(data)
+        rx.update(v)
+        _export_rsopt_config(rx, run_dir=run_dir)
+        return f"""import subprocess
+subprocess.call(['bash', 'optimize.sh'])
+"""
 
     j_file = RADIA_EXPORT_FILE if for_export else f"{rpt_out}.py"
     return template_common.render_jinja(
@@ -1387,8 +1387,6 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 
 
 def _rsopt_jinja_context(data):
-    import multiprocessing
-
     res = PKDict(
         libFiles=_SIM_DATA.lib_file_basenames(data),
         optimizer=data.models.optimizer,
