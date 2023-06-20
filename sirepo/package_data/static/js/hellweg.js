@@ -419,19 +419,18 @@ SIREPO.app.directive('summaryTable', function(appState) {
                         }
                     });
                 });
-                const meanEnergy = getMeanEnergy($scope.summaryRows);
                 $scope.summaryRows.forEach((row, index) => {
                     if (row[0] === 'Energy Spectrum (FWHM)') {
                         $scope.summaryRows[index] = [
                             row[0],
-                            energySpectrumFromPercentage(row[1], meanEnergy)
+                            energySpectrumFromPercentage(row[1], meanEnergy())
                         ];
                     }
                 });
             }
 
-            function getMeanEnergy(summaryRows) {
-                for (const row of summaryRows) {
+            function meanEnergy() {
+                for (const row of $scope.summaryRows) {
                     if (row[0] === 'Average Energy') {
                         return Number(row[1].replace(/MeV/, ''));
                     }
