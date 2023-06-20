@@ -167,7 +167,7 @@
             "transversalDistribution": ["Transversal Distribution", "TransversalDistribution"],
             "longitudinalDistribution": ["Longitudinal Distribution", "LongitudinalDistribution"],
             "current": ["Current [A]", "Float"],
-            "numberOfParticles": ["Particle Limit", "Integer"],
+            "numberOfParticles": ["Particle Limit", "Integer", 1000, "", 1000],
             "spaceCharge": ["Space Charge Algorithm", "SpaceChargeAlgorithm"],
             "spaceChargeCore": ["Space Charge Ellipsoid Core (rms)", "Float", 3.0],
             "beamDefinition": ["Beam Particle Definition", "BeamDefinition", "transverse_longitude"],
