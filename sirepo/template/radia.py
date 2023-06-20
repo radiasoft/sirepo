@@ -706,15 +706,12 @@ def _electron_trajectory_plot(sim_id, **kwargs):
 
 def _export_rsopt_config(data, run_dir):
 
-    def _write_rsopt_files(run_dir, ctx):
-        for f in _export_rsopt_files().values():
-            pkio.write_text(
-                run_dir.join(f),
-                template_common.render_jinja(SIM_TYPE, ctx, f),
-            )
-
     ctx = _rsopt_jinja_context(data)
-    _write_rsopt_files(run_dir, ctx)
+    for f in _export_rsopt_files().values():
+        pkio.write_text(
+            run_dir.join(f),
+            template_common.render_jinja(SIM_TYPE, ctx, f),
+        )
 
 
 def _export_rsopt_files():
@@ -904,15 +901,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.simId = data.models.simulation.simulationId
 
     if report == "optimizerAnimation":
-        _export_rsopt_config(data, run_dir=run_dir)
-        pkio.write_text(
-            run_dir.join("optimize.yml"),
-            template_common.render_jinja(SIM_TYPE, v, "optimize.yml"),
-        )
-        p = f"""import subprocess
-        subprocess.call(['bash', 'run_rsopt.sh'])
-        """
-
+        v.solverMode = "solve"
 
     if report == "solverAnimation":
         v.solverMode = data.models.solverAnimation.get("mode")
@@ -1008,6 +997,13 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.h5ObjPath = _geom_h5_path(SCHEMA.constants.viewTypeObjects)
     v.h5SolutionPath = _H5_PATH_SOLUTION
     v.h5IdMapPath = _H5_PATH_ID_MAP
+
+    if report == "optimizerAnimation":
+        _export_rsopt_config(data, run_dir=run_dir)
+        p = f"""import subprocess
+        subprocess.call(['bash', 'optimize.sh'])
+        """
+
 
     j_file = RADIA_EXPORT_FILE if for_export else f"{rpt_out}.py"
     return template_common.render_jinja(
@@ -1393,16 +1389,12 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 def _rsopt_jinja_context(data):
     import multiprocessing
 
-    model = data.models[_SIM_DATA.EXPORT_RSOPT]
     res = PKDict(
         libFiles=_SIM_DATA.lib_file_basenames(data),
-        maxOuputDimension=model.maxOuputDimension,
-        numCores=int(model.numCores),
-        numWorkers=max(1, multiprocessing.cpu_count() - 1),
         optimizer=data.models.optimizer,
         objectiveFunctionCode=_objective_function_code(data.models),
-        outFileName=f"{_SIM_DATA.EXPORT_RSOPT}.out",
-        rsOptOutFileName="scan_results",
+        outFileName=f"optimize.out",
+        rsOptOutFileName="optimize_results",
     )
     res.update(_export_rsopt_files())
     return res
