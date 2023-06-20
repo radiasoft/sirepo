@@ -402,19 +402,12 @@ SIREPO.app.directive('summaryTable', function(appState) {
         `,
         controller: function($scope) {
             function parseSummaryRows(summaryText) {
-                var text = summaryText.replace(/^(\n|.)*RESULTS\n+==+/, '').replace(/==+/, '');
-                var label = null;
-                var meanEnergy;
+                const text = summaryText.replace(/^(\n|.)*RESULTS\n+==+/, '').replace(/==+/, '');
+                let label = null;
                 $scope.summaryRows = [];
-                text.split(/\n+/).forEach(function(line) {
-                    line.split(/\s*=\s*/).forEach(function(v) {
+                text.split(/\n+/).forEach(line => {
+                    line.split(/\s*=\s*/).forEach(v => {
                         if (label) {
-                            if (label == 'Average Energy') {
-                                meanEnergy = Number(v.replace(/MeV/, ''));
-                            }
-                            if (label == 'Energy Spectrum (FWHM)') {
-                                v = energySpectrumFromPercentage(v, meanEnergy);
-                            }
                             $scope.summaryRows.push([label, v]);
                             label = null;
                         }
@@ -426,15 +419,32 @@ SIREPO.app.directive('summaryTable', function(appState) {
                         }
                     });
                 });
+                const meanEnergy = getMeanEnergy($scope.summaryRows);
+                $scope.summaryRows.forEach((row, index) => {
+                    if (row[0] === 'Energy Spectrum (FWHM)') {
+                        $scope.summaryRows[index] = [
+                            row[0],
+                            energySpectrumFromPercentage(row[1], meanEnergy)
+                        ];
+                    }
+                });
+            }
+
+            function getMeanEnergy(summaryRows) {
+                for (const row of summaryRows) {
+                    if (row[0] === 'Average Energy') {
+                        return Number(row[1].replace(/MeV/, ''));
+                    }
+                }
             }
 
             function energySpectrumFromPercentage(value, meanEnergy) {
                 return String(
                     appState.formatFloat(
-                        ((Number(value.replace(/ %/, '')) * meanEnergy) / 100) * 1000,
+                        ((Number(value.replace(/\s%/, '')) * meanEnergy) / 100) * 1000,
                         6,
                     )
-                ) + "KeV";
+                ) + 'KeV';
             }
 
             function updateSummaryInfo(e, summaryText) {
