@@ -181,8 +181,6 @@ def sim_frame_particleAnimation(frame_args):
     )
     x = particle_info["z_values"]
     y = particle_info["y_values"]
-    pkdp("y_range={}", particle_info["y_range"])
-    pkdp(y)
     return PKDict(
         title=_enum_text("ParticleReportType", frame_args.reportType),
         x_range=[numpy.min(x), numpy.max(x)],
