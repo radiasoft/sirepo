@@ -166,9 +166,13 @@ def jupyterhub():
     # POSIT: versions same in container-beamsim-jupyter/build.sh
     # Order is important: jupyterlab-server should be last so it isn't
     # overwritten with a newer version.
-    for m, v in ("jupyterhub", "1.4.2"), (
-        "jupyterlab",
-        "3.1.14 jupyterlab-server==2.8.2",
+    for m, v in (
+        ("jupyterhub", "1.4.2"),
+        (
+            "jupyterlab",
+            "3.1.14 jupyterlab-server==2.8.2",
+        ),
+        ("notebook", "6.5.4"),
     ):
         try:
             importlib.import_module(m)
@@ -180,22 +184,13 @@ def jupyterhub():
                 v,
             )
     with pkio.save_chdir(_run_dir().join("jupyterhub").ensure(dir=True)) as d:
-        pksubprocess.check_call_with_signals(
-            (
-                "jupyter",
-                "serverextension",
-                "enable",
-                "--py",
-                "jupyterlab",
-                "--sys-prefix",
-            )
-        )
         f = d.join("conf.py")
         pkjinja.render_resource(
             "jupyterhub_conf.py",
             PKDict(_cfg()).pkupdate(
                 # POSIT: Running with nginx and uwsgi
                 sirepo_uri=f"http://{socket.getfqdn()}:{_cfg().nginx_proxy_port}",
+                jupyterhub_debug=sirepo.feature_config.cfg().debug_mode,
                 **sirepo.sim_api.jupyterhublogin.cfg(),
             ),
             output=f,
