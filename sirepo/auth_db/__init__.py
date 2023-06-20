@@ -118,7 +118,8 @@ def init_module():
     _models = _classes()
     _engine = sqlalchemy.create_engine(
         f"sqlite:///{db_filename()}",
-        # We ensure single threaded access through locking
+        # We ensure single threaded access by not sharing connections.
+        # TODO(robnagler) set pool_class=NullPool with sqlalchemy 2.0
         connect_args={
             "check_same_thread": False,
             "timeout": _cfg.sqlite_timeout,

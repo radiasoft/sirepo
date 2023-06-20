@@ -126,29 +126,27 @@ class API(sirepo.quest.API):
         req = self.parse_post()
         u = self.auth.logged_in_user()
         r = sirepo.auth_role.for_sim_type(req.type)
-        with sirepo.util.THREAD_LOCK:
-            if self.auth_db.model("UserRole").has_role(role=r):
-                raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
-            try:
-                self.auth_db.model(
-                    "UserRoleInvite",
-                    uid=u,
-                    role=r,
-                    status=sirepo.auth_role.ModerationStatus.PENDING,
-                    token=sirepo.util.random_base62(32),
-                ).save()
-            except sqlalchemy.exc.IntegrityError as e:
-                pkdlog(
-                    "Error={} saving UserRoleInvite for uid={} role={} stack={}",
-                    e,
-                    u,
-                    r,
-                    pkdexc(),
-                )
-                raise sirepo.util.UserAlert(
-                    f"You've already submitted a moderation request.",
-                )
-
+        if self.auth_db.model("UserRole").has_role(role=r):
+            raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
+        try:
+            self.auth_db.model(
+                "UserRoleInvite",
+                uid=u,
+                role=r,
+                status=sirepo.auth_role.ModerationStatus.PENDING,
+                token=sirepo.util.random_base62(32),
+            ).save()
+        except sqlalchemy.exc.IntegrityError as e:
+            pkdlog(
+                "Error={} saving UserRoleInvite for uid={} role={} stack={}",
+                e,
+                u,
+                r,
+                pkdexc(),
+            )
+            raise sirepo.util.UserAlert(
+                "You've already submitted a moderation request.",
+            )
         l = self.absolute_uri(self.uri_for_api("admModerateRedirect"))
         if len(req.req_data.get("reason", "").strip()) == 0:
             raise sirepo.util.UserAlert("Reason for requesting access not provided")
