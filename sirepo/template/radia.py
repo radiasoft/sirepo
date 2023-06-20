@@ -901,8 +901,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
 
     if report == "optimizerAnimation":
         v.solverMode = "solve"
-
-    if report == "solverAnimation":
+    elif report == "solverAnimation":
         v.solverMode = data.models.solverAnimation.get("mode")
     elif for_export:
         v.solverMode = "solve"
