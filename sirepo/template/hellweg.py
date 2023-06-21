@@ -76,7 +76,19 @@ def get_data_file(run_dir, model, frame, options):
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
-    return _generate_parameters_file(data, is_parallel=len(data.models.beamline))
+    return """
+{}
+s = rshellweg.solver.BeamSolver("{}", "{}")
+s.solve()
+s.save_output("{}")
+s.dump_bin("{}")
+""".format(
+        _generate_parameters_file(data, is_parallel=len(data.models.beamline)),
+        HELLWEG_INI_FILE,
+        HELLWEG_INPUT_FILE,
+        HELLWEG_SUMMARY_FILE,
+        HELLWEG_DUMP_FILE,
+    )
 
 
 def remove_last_frame(run_dir):

@@ -3,15 +3,19 @@
 import pykern.pkio
 import rshellweg.solver
 
-
-pykern.pkio.write_text("{{ iniFile }}", """
+pykern.pkio.write_text(
+    "{{ iniFile }}",
+    """
 [NUMERIC]
 Number of Mesh Points = {{simulationSettings_meshPoints}}
 Spline Interpolation = {{simulationSettings_splineInterpolation}}
 Smoothing = {{simulationSettings_smoothing}}
-""")
+""",
+)
 
-pykern.pkio.write_text("{{ inputFile }}", """
+pykern.pkio.write_text(
+    "{{ inputFile }}",
+    """
 {{ optionsCommand }}
 {{ solenoidCommand }}
 {{ chargeCommand }}
@@ -19,9 +23,5 @@ pykern.pkio.write_text("{{ inputFile }}", """
 {{ currentCommand }}
 {{ latticeCommands }}
 END
-""")
-
-s = rshellweg.solver.BeamSolver("{{ iniFile }}", "{{ inputFile }}")
-s.solve()
-s.save_output("{{ outputFile }}")
-s.dump_bin("{{ dumpFile }}")
+""",
+)
