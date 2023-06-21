@@ -11,7 +11,7 @@ from sirepo.template import template_common
 import copy
 import py.path
 import rshellweg.solver
-import sirepo.template
+import sirepo.template.hellweg
 
 
 def run(cfg_dir):
@@ -20,13 +20,13 @@ def run(cfg_dir):
     Args:
         cfg_dir (str): directory to run hellweg in
     """
-    _run_hellweg(cfg_dir)
+    _run_hellweg()
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     r = sim_in.report
     template_common.write_sequential_result(
         template_common.sim_frame_dispatch(
             copy.deepcopy(sim_in.models[r]).pkupdate(
-                # TODO(e-carlin): Is this right? What should frameIndex be?
+                # show very first frame for source reports
                 frameIndex=0,
                 frameReport=r.replace("Report", "Animation"),
                 run_dir=pkio.py_path(cfg_dir),
@@ -38,14 +38,12 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
-    _run_hellweg(cfg_dir)
+    _run_hellweg()
 
 
-def _run_hellweg(cfg_dir):
-    t = sirepo.template.import_module("hellweg")
-    r = template_common.exec_parameters()
-    pkio.write_text(t.HELLWEG_INPUT_FILE, r.input_file)
-    pkio.write_text(t.HELLWEG_INI_FILE, r.ini_file)
+def _run_hellweg():
+    t = sirepo.template.hellweg
+    template_common.exec_parameters()
     s = rshellweg.solver.BeamSolver(t.HELLWEG_INI_FILE, t.HELLWEG_INPUT_FILE)
     s.solve()
     s.save_output(t.HELLWEG_SUMMARY_FILE)

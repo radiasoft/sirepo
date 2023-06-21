@@ -29,12 +29,15 @@ HELLWEG_INPUT_FILE = "input.txt"
 WANT_BROWSER_FRAME_CACHE = True
 
 # lattice element is required so make it very short and wide drift
-_DEFAULT_DRIFT_ELEMENT = "DRIFT 1e-16 1e+16 2" + "\n"
+# needs to be 3 cells or else the Space Charge example doesn't produce correct results
+_DEFAULT_DRIFT_ELEMENT = "DRIFT 1e-16 1e+16 3" + "\n"
 
 _HELLWEG_PARSED_FILE = "PARSED.TXT"
 
 _PARAMETER_SCALE = PKDict(
     rb=2.0,
+    wav=1e6,
+    wmax=1e6,
 )
 
 
@@ -68,23 +71,23 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def get_data_file(run_dir, model, frame, options):
+    return HELLWEG_DUMP_FILE
+
+
 def python_source_for_model(data, model, qcall, **kwargs):
     return """
-from rshellweg import solver
-
 {}
-
-with open('input.txt', 'w') as f:
-    f.write(input_file)
-
-with open('defaults.ini', 'w') as f:
-    f.write(ini_file)
-
-s = solver.BeamSolver('defaults.ini', 'input.txt')
+s = rshellweg.solver.BeamSolver("{}", "{}")
 s.solve()
-s.save_output('output.txt')
-    """.format(
-        _generate_parameters_file(data, is_parallel=len(data.models.beamline))
+s.save_output("{}")
+s.dump_bin("{}")
+""".format(
+        _generate_parameters_file(data, is_parallel=len(data.models.beamline)),
+        HELLWEG_INI_FILE,
+        HELLWEG_INPUT_FILE,
+        HELLWEG_SUMMARY_FILE,
+        HELLWEG_DUMP_FILE,
     )
 
 
@@ -114,13 +117,13 @@ def sim_frame_beamAnimation(frame_args):
     return template_common.heatmap(
         values,
         model,
-        {
-            "x_label": hellweg_dump_reader.get_label(x),
-            "y_label": hellweg_dump_reader.get_label(y),
-            "title": _report_title(frame_args.reportType, "BeamReportType", beam_info),
-            "z_label": "Number of Particles",
-            "summaryData": _summary_text(frame_args.run_dir),
-        },
+        PKDict(
+            x_label=hellweg_dump_reader.get_label(x),
+            y_label=hellweg_dump_reader.get_label(y),
+            title=_report_title(frame_args.reportType, "BeamReportType", beam_info),
+            z_label="Number of Particles",
+            summaryData=_summary_text(frame_args.run_dir),
+        ),
     )
 
 
@@ -132,15 +135,15 @@ def sim_frame_beamHistogramAnimation(frame_args):
     hist, edges = numpy.histogram(
         points, template_common.histogram_bins(frame_args.histogramBins)
     )
-    return {
-        "title": _report_title(
+    return PKDict(
+        title=_report_title(
             frame_args.reportType, "BeamHistogramReportType", beam_info
         ),
-        "x_range": [edges[0], edges[-1]],
-        "y_label": "Number of Particles",
-        "x_label": hellweg_dump_reader.get_label(frame_args.reportType),
-        "points": hist.T.tolist(),
-    }
+        x_range=[edges[0], edges[-1]],
+        y_label="Number of Particles",
+        x_label=hellweg_dump_reader.get_label(frame_args.reportType),
+        points=hist.T.tolist(),
+    )
 
 
 def sim_frame_parameterAnimation(frame_args):
@@ -156,20 +159,20 @@ def sim_frame_parameterAnimation(frame_args):
     y1_extent = [numpy.min(y1), numpy.max(y1)]
     y2 = _scale_structure_parameters(s, y2_var)
     y2_extent = [numpy.min(y2), numpy.max(y2)]
-    return {
-        "title": _enum_text("ParameterReportType", frame_args.reportType),
-        "x_range": [x[0], x[-1]],
-        "y_label": hellweg_dump_reader.get_parameter_label(y1_var),
-        "x_label": hellweg_dump_reader.get_parameter_label(x_field),
-        "x_points": x,
-        "points": [
+    return PKDict(
+        title=_enum_text("ParameterReportType", frame_args.reportType),
+        x_range=[x[0], x[-1]],
+        y_label=hellweg_dump_reader.get_parameter_label(y1_var),
+        x_label=hellweg_dump_reader.get_parameter_label(x_field),
+        x_points=x,
+        points=[
             y1,
             y2,
         ],
-        "y_range": [min(y1_extent[0], y2_extent[0]), max(y1_extent[1], y2_extent[1])],
-        "y1_title": hellweg_dump_reader.get_parameter_title(y1_var),
-        "y2_title": hellweg_dump_reader.get_parameter_title(y2_var),
-    }
+        y_range=[min(y1_extent[0], y2_extent[0]), max(y1_extent[1], y2_extent[1])],
+        y1_title=hellweg_dump_reader.get_parameter_title(y1_var),
+        y2_title=hellweg_dump_reader.get_parameter_title(y2_var),
+    )
 
 
 def sim_frame_particleAnimation(frame_args):
@@ -180,15 +183,16 @@ def sim_frame_particleAnimation(frame_args):
         int(frame_args.renderCount),
     )
     x = particle_info["z_values"]
-    return {
-        "title": _enum_text("ParticleReportType", frame_args.reportType),
-        "x_range": [numpy.min(x), numpy.max(x)],
-        "y_label": hellweg_dump_reader.get_label(frame_args.reportType),
-        "x_label": hellweg_dump_reader.get_label(x_field),
-        "x_points": x,
-        "points": particle_info["y_values"],
-        "y_range": particle_info["y_range"],
-    }
+    y = particle_info["y_values"]
+    return PKDict(
+        title=_enum_text("ParticleReportType", frame_args.reportType),
+        x_range=[numpy.min(x), numpy.max(x)],
+        y_label=hellweg_dump_reader.get_label(frame_args.reportType),
+        x_label=hellweg_dump_reader.get_label(x_field),
+        x_points=x,
+        points=y,
+        y_range=particle_info["y_range"],
+    )
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -378,7 +382,7 @@ def _generate_options(models):
 
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     template_common.validate_models(data, SCHEMA)
-    v = template_common.flatten_data(data["models"], {})
+    v = template_common.flatten_data(data["models"], PKDict())
     v["optionsCommand"] = _generate_options(data["models"])
     v["solenoidCommand"] = _generate_solenoid(data["models"])
     v["beamCommand"] = _generate_beam(data["models"])
@@ -388,6 +392,10 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
         v["latticeCommands"] = _generate_lattice(data["models"])
     else:
         v["latticeCommands"] = _DEFAULT_DRIFT_ELEMENT
+    v.iniFile = HELLWEG_INI_FILE
+    v.inputFile = HELLWEG_INPUT_FILE
+    v.outputFile = HELLWEG_SUMMARY_FILE
+    v.dumpFile = HELLWEG_DUMP_FILE
     return template_common.render_jinja(SIM_TYPE, v)
 
 
