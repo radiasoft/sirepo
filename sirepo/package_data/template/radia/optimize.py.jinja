@@ -1,6 +1,6 @@
-{%- macro rsOptFuctionSignature() -%}
+{%- macro objectFields() -%}
 {%- for p in optimizer.parameters -%}
-    {{ p.object }}_{{ p.field }},
+    "{{ p.object }}_{{ p.field }}",
 {%- endfor -%}
 {%- endmacro -%}
 
@@ -87,22 +87,42 @@ def _build_radia_geom():
 {% endif %}
     return g_id, id_map
 
-def objective_function(g_id):
+def objective_function(*args, **kwargs):
+    def _get_inputs(t):
+        for x in t:
+            i = x.get("inputs")
+            if i:
+                return i
+        return None
+
+
+    print("OBJ ARGS {} KWARGS {}".format(args, kwargs))
+    _update_objects(**_get_inputs(args))
+    g_id, id_map = _build_radia_geom()
+    _ = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
     {% filter indent(width=4) %}
     {{ objectiveFunctionCode }}
     {% endfilter %}
     return res
 
-
-def main({{ rsOptFuctionSignature() }}):
+def _update_objects(**kwargs):
     def _get_obj(name):
-        return [o for o in sirepo_objs if o.name == name][0]
+        return [o for o in sirepo_objs if o.get("name") == name][0]
 
-    for k, v in locals():
+    fields = ({{ objectFields() }})
+    for k, v in kwargs.items():
+        if k not in fields:
+            continue
         mv = k.split("_")
+        print("OBJ SET {} TO {}".format(mv, v))
         _get_obj(mv[0])[mv[1]] = v
-    g_id, id_map = _build_radia_geom()
-    _ = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-    return objective_function(g_id)
+
+
+def main(*args, **kwargs):
+    print("WHY IS THIS HERE {}", kwargs)
+    #_update_objects(**kwargs)
+    #g_id, id_map = _build_radia_geom()
+    #_ = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+    #return objective_function(g_id)
 
 

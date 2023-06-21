@@ -1888,7 +1888,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
             };
 
             $scope.validate = (input, item) => {
-                form.$valid = item.min < item.max && item.min <= item.start && item.start <= item.max;
+                form.$valid = item.min < item.max && item.min < item.start && item.start <= item.max;
             };
 
             $scope.optimizableObjects = getObjectFields();

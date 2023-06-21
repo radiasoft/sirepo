@@ -1210,7 +1210,7 @@ p2 = {q.end}
 i = radia_util.AXES.index('{q.component}')
 f0 = radia_util.field_integral(g_id, 'B', p1, p2)[i]
 for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {q.deviationSteps}):
-    f.append(radia_util.field_integral(g_id, 'B', (p1 + d).tolist(), (p2 + d).tolist())[i])
+    f = numpy.append(f, radia_util.field_integral(g_id, 'B', (p1 + d).tolist(), (p2 + d).tolist())[i])
 res = numpy.sum((f - f0)**2)
 """
     return "res = 0"
