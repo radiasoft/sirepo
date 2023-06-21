@@ -4,6 +4,7 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+import h5py
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
@@ -581,6 +582,13 @@ def parse_mpi_log(run_dir):
         if m:
             e = m.group(1)
     return e
+
+
+def read_dict_from_h5(file_path, h5_path=None):
+    import h5py
+
+    with h5py.File(file_path, "r") as f:
+        return h5_to_dict(f, path=h5_path)
 
 
 def read_last_csv_line(path):
