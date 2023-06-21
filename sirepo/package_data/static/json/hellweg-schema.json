@@ -172,7 +172,7 @@
             "transversalDistribution": ["Transversal Distribution", "TransversalDistribution"],
             "longitudinalDistribution": ["Longitudinal Distribution", "LongitudinalDistribution"],
             "current": ["Current [A]", "Float"],
-            "particleKeyword": ["Particle Species", "ParticleSpecies", "protons"],
+            "particleKeyword": ["Particle Species", "ParticleSpecies", "electrons"],
             "particleParamA": ["Optional Param A", "Float", 1],
             "particleParamQ": ["Optional Param Q", "Integer", 1],
             "numberOfParticles": ["Particle Limit", "Integer"],

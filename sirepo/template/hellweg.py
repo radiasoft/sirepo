@@ -292,6 +292,17 @@ def _generate_charge(models):
     )
 
 
+def _generate_particle_species(models):
+    p = models.beam.particleKeyword.upper()
+    if p == "IONS":
+        return "PARTICLES {} {} {}".format(
+            p,
+            models.beam.particleParamA,
+            models.beam.particleParamQ,
+        )
+    return "PARTICLES {}".format(p)
+
+
 def _generate_current(models):
     return "CURRENT {} {}".format(models.beam.current, models.beam.numberOfParticles)
 
@@ -384,6 +395,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v["beamCommand"] = _generate_beam(data["models"])
     v["currentCommand"] = _generate_current(data["models"])
     v["chargeCommand"] = _generate_charge(data["models"])
+    v["particleSpeciesCommand"] = _generate_particle_species(data["models"])
     if is_parallel:
         v["latticeCommands"] = _generate_lattice(data["models"])
     else:
