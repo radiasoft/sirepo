@@ -169,7 +169,7 @@ def jupyterhub():
     for m, v in (
         ("jupyterhub", "1.4.2"),
         ("jupyterlab", "3.1.14 "),
-        ("jupyterlab-server", "2.8.2"),
+        ("jupyterlab_server", "2.8.2"),
         ("notebook", "6.5.4"),
     ):
         try:
