@@ -4,10 +4,7 @@
 {%- endfor -%}
 {%- endmacro -%}
 
-import os
 from pykern.pkcollections import PKDict
-import sirepo.mpi
-import sirepo.util
 from sirepo.template import radia_util
 from sirepo.template import template_common
 
@@ -29,6 +26,8 @@ _EXTRUDED_MODELS = (_MODEL_CEE, _MODEL_ELL, _MODEL_JAY, _MODEL_EXTRUDED_POINTS, 
 _GROUP_MODELS = (_MODEL_GROUP,)
 _OBJ_MODELS = (_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT, _MODEL_STL) + _EXTRUDED_MODELS
 _MODELS = _OBJ_MODELS + _GROUP_MODELS
+
+_RSOPT_OBJECTIVE_FUNCTION_OUT = "ojective_function_results.h5"
 
 sirepo_objs = {{ objects }}
 
@@ -72,11 +71,6 @@ def _add_object(o, radia_objs, id_map):
 def _build_radia_geom():
     id_map = PKDict()
     radia_objs = []
-{% if dmpImportFile %}
-    with open("{{ dmpImportFile }}", "rb") as f:
-        b = f.read()
-        g_id = radia_util.load_bin(b)
-{% else %}
     for obj in sirepo_objs:
         o = PKDict(obj)
         if o.id in id_map.values():
@@ -84,25 +78,18 @@ def _build_radia_geom():
         o_id = _add_object(o, radia_objs, id_map)
         id_map[o_id] = o.id
     g_id = radia_util.build_container(radia_objs)
-{% endif %}
     return g_id, id_map
 
-def objective_function(*args, **kwargs):
-    def _get_inputs(t):
-        for x in t:
-            i = x.get("inputs")
-            if i:
-                return i
-        return None
+
+def load_objective_function_result(*args):
+    return template_common.read_dict_from_h5(_RSOPT_OBJECTIVE_FUNCTION_OUT).res
 
 
-    print("OBJ ARGS {} KWARGS {}".format(args, kwargs))
-    _update_objects(**_get_inputs(args))
-    g_id, id_map = _build_radia_geom()
-    _ = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+def objective_function(g_id):
     {% filter indent(width=4) %}
     {{ objectiveFunctionCode }}
     {% endfilter %}
+    template_common.write_dict_to_h5(PKDict(res=res), _RSOPT_OBJECTIVE_FUNCTION_OUT)
     return res
 
 def _update_objects(**kwargs):
@@ -113,16 +100,16 @@ def _update_objects(**kwargs):
     for k, v in kwargs.items():
         if k not in fields:
             continue
-        mv = k.split("_")
-        print("OBJ SET {} TO {}".format(mv, v))
-        _get_obj(mv[0])[mv[1]] = v
+        mf = k.split("_")
+        print("{}.{} = {}".format(mf[0], mf[1], v))
+        _get_obj(mf[0])[mf[1]] = v
 
 
 def main(*args, **kwargs):
-    print("WHY IS THIS HERE {}", kwargs)
-    #_update_objects(**kwargs)
-    #g_id, id_map = _build_radia_geom()
-    #_ = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-    #return objective_function(g_id)
+    print("MAIN")
+    _update_objects(**kwargs)
+    g_id, id_map = _build_radia_geom()
+    _ = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+    return objective_function(g_id)
 
 

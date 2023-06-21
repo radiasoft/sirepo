@@ -1,9 +1,5 @@
 codes:
     - python:
-        # Settings are held fixed for every evaluation
-        settings:
-            precision: 1e-4
-        # Parameters will be varied by the optimizer
         parameters:
         {% for p in optimizer.parameters %}
             {{ p.object }}_{{ p.field }}:
@@ -16,13 +12,12 @@ codes:
             input_file: optimize.py
             # Name of function to run for every evaluation
             function: main
-            execution_type: serial
-            serial_python_mode: process
+            execution_type: parallel
 options:
     # For serial execution the `main` function can directly return the objective value
     # For parallel execution a new subprocess must be used so the return value of `main` is lost
     # To calculate the objective function after each simulation the appropriate data should be saved to file and evaluated by a separate function given here. The function given to `objective_function` will be run in serial and is always used if given, even if the simulation defined above was run in serial
-    objective_function: [optimize.py, objective_function]
+    objective_function: [optimize.py, load_objective_function_result]
     record_interval: 1
 
     # Options for setting up and terminating
