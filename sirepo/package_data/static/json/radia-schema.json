@@ -946,10 +946,10 @@
             "tolerance": ["Tolerance", "Float", 0.001]
         },
         "optimizerAnimation": {
-            "x": ["Horizontal Value to Plot", "OptimizationField", 0],
-            "y": ["Vertical Value to Plot", "OptimizationField", 1],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "notes": ["Notes", "Text", ""]
+            "notes": ["Notes", "Text", ""],
+            "x": ["Horizontal Value to Plot", "OptimizationField", 0],
+            "y": ["Vertical Value to Plot", "OptimizationField", 1]
         },
         "pointsReport": {
             "doSnap": ["Snap to Grid", "Boolean", "0"],
