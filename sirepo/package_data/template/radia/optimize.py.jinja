@@ -92,6 +92,7 @@ def objective_function(g_id):
     template_common.write_dict_to_h5(PKDict(res=res), _RSOPT_OBJECTIVE_FUNCTION_OUT)
     return res
 
+
 def _update_objects(**kwargs):
     def _get_obj(name):
         return [o for o in sirepo_objs if o.get("name") == name][0]
@@ -101,12 +102,10 @@ def _update_objects(**kwargs):
         if k not in fields:
             continue
         mf = k.split("_")
-        print("{}.{} = {}".format(mf[0], mf[1], v))
         _get_obj(mf[0])[mf[1]] = v
 
 
 def main(*args, **kwargs):
-    print("MAIN")
     _update_objects(**kwargs)
     g_id, id_map = _build_radia_geom()
     _ = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
