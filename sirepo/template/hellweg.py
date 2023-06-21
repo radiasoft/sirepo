@@ -103,8 +103,8 @@ def sim_frame_beamAnimation(frame_args):
     )
     x, y = frame_args.reportType.split("-")
     values = [
-        hellweg_dump_reader.get_points(beam_info, x),
-        hellweg_dump_reader.get_points(beam_info, y),
+        hellweg_dump_reader.get_points(beam_info, x, model.beam.particleKeyword),
+        hellweg_dump_reader.get_points(beam_info, y, model.beam.particleKeyword),
     ]
     model["x"] = x
     model["y"] = y
@@ -128,7 +128,8 @@ def sim_frame_beamHistogramAnimation(frame_args):
     beam_info = hellweg_dump_reader.beam_info(
         _dump_file(frame_args.run_dir), frame_args.frameIndex
     )
-    points = hellweg_dump_reader.get_points(beam_info, frame_args.reportType)
+    assert 0, f"{frame_args}"
+    points = hellweg_dump_reader.get_points(beam_info, frame_args.reportType, )
     hist, edges = numpy.histogram(
         points, template_common.histogram_bins(frame_args.histogramBins)
     )
@@ -222,8 +223,9 @@ def _compute_range_across_files(run_dir, **kwargs):
     beam_header = hellweg_dump_reader.beam_header(dump_file)
     for frame in range(beam_header.NPoints):
         beam_info = hellweg_dump_reader.beam_info(dump_file, frame)
+        assert 0, f"{beam_info}"
         for field in res:
-            values = hellweg_dump_reader.get_points(beam_info, field)
+            values = hellweg_dump_reader.get_points(beam_info, field, )
             if not values:
                 pass
             elif res[field]:

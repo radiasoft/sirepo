@@ -57,8 +57,8 @@ _STRUCTURE_VALUES = [
 
 _W0_PARTICLE_CONSTANT = PKDict(
     ELECTRONS=0.5110034e6,
-    IONS=931e6,
-    PROTONS=935e6,
+    PROTONS=938.272013e6,
+    IONS=931.494028e6,
 )
 
 _We0 = 0.5110034e6
@@ -81,7 +81,7 @@ _BEAM_PARAMETER = {
     "phi": lambda p, lmb: p.phi * 180.0 / math.pi,
     "zrel": lambda p, lmb: lmb * p.phi / (2 * math.pi),
     "z0": lambda p, lmb: p.z,
-    "w": lambda p, lmb: _gamma_to_mev(p.g),
+    "w": lambda p, lmb: p.g, # NOTE: return gamma and them call function on that
 }
 
 _STRUCTURE_PARAMETER = {
@@ -275,14 +275,17 @@ def get_parameter_title(field):
     return _STRUCTURE_TITLE[field]
 
 
-def get_points(info, field):
+def get_points(info, field, particle_species):
     res = []
     fn = _BEAM_PARAMETER[field]
     lmb = info["BeamHeader"].beam_lmb
 
     for p in info["Particles"]:
         if p.lost == _LIVE_PARTICLE:
-            res.append(fn(p, lmb))
+            if field == "w":
+                res.append(_gamma_to_mev(fn(p, lmb), particle_species))
+            else:
+                res.append(fn(p, lmb))
     return res
 
 
@@ -352,6 +355,6 @@ def particle_info(filename, field, count):
     return info
 
 
-def _gamma_to_mev(g):
+def _gamma_to_mev(g, species):
     # TODO(pjm): when we add species, _We0 will be incorrect
-    return _We0 * (g - 1) * 1e-6
+    return _W0_PARTICLE_CONSTANT[species] * (g - 1) * 1e-6
