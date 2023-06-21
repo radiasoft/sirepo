@@ -114,13 +114,13 @@ def sim_frame_beamAnimation(frame_args):
     return template_common.heatmap(
         values,
         model,
-        {
-            "x_label": hellweg_dump_reader.get_label(x),
-            "y_label": hellweg_dump_reader.get_label(y),
-            "title": _report_title(frame_args.reportType, "BeamReportType", beam_info),
-            "z_label": "Number of Particles",
-            "summaryData": _summary_text(frame_args.run_dir),
-        },
+        PKDict(
+            x_label=hellweg_dump_reader.get_label(x),
+            y_label=hellweg_dump_reader.get_label(y),
+            title=_report_title(frame_args.reportType, "BeamReportType", beam_info),
+            z_label="Number of Particles",
+            summaryData=_summary_text(frame_args.run_dir),
+        ),
     )
 
 
@@ -132,15 +132,15 @@ def sim_frame_beamHistogramAnimation(frame_args):
     hist, edges = numpy.histogram(
         points, template_common.histogram_bins(frame_args.histogramBins)
     )
-    return {
-        "title": _report_title(
+    return PKDict(
+        title=_report_title(
             frame_args.reportType, "BeamHistogramReportType", beam_info
         ),
-        "x_range": [edges[0], edges[-1]],
-        "y_label": "Number of Particles",
-        "x_label": hellweg_dump_reader.get_label(frame_args.reportType),
-        "points": hist.T.tolist(),
-    }
+        x_range=[edges[0], edges[-1]],
+        y_label="Number of Particles",
+        x_label=hellweg_dump_reader.get_label(frame_args.reportType),
+        points=hist.T.tolist(),
+    )
 
 
 def sim_frame_parameterAnimation(frame_args):
@@ -156,20 +156,20 @@ def sim_frame_parameterAnimation(frame_args):
     y1_extent = [numpy.min(y1), numpy.max(y1)]
     y2 = _scale_structure_parameters(s, y2_var)
     y2_extent = [numpy.min(y2), numpy.max(y2)]
-    return {
-        "title": _enum_text("ParameterReportType", frame_args.reportType),
-        "x_range": [x[0], x[-1]],
-        "y_label": hellweg_dump_reader.get_parameter_label(y1_var),
-        "x_label": hellweg_dump_reader.get_parameter_label(x_field),
-        "x_points": x,
-        "points": [
+    return PKDict(
+        title=_enum_text("ParameterReportType", frame_args.reportType),
+        x_range=[x[0], x[-1]],
+        y_label=hellweg_dump_reader.get_parameter_label(y1_var),
+        x_label=hellweg_dump_reader.get_parameter_label(x_field),
+        x_points=x,
+        points=[
             y1,
             y2,
         ],
-        "y_range": [min(y1_extent[0], y2_extent[0]), max(y1_extent[1], y2_extent[1])],
-        "y1_title": hellweg_dump_reader.get_parameter_title(y1_var),
-        "y2_title": hellweg_dump_reader.get_parameter_title(y2_var),
-    }
+        y_range=[min(y1_extent[0], y2_extent[0]), max(y1_extent[1], y2_extent[1])],
+        y1_title=hellweg_dump_reader.get_parameter_title(y1_var),
+        y2_title=hellweg_dump_reader.get_parameter_title(y2_var),
+    )
 
 
 def sim_frame_particleAnimation(frame_args):
@@ -180,15 +180,16 @@ def sim_frame_particleAnimation(frame_args):
         int(frame_args.renderCount),
     )
     x = particle_info["z_values"]
-    return {
-        "title": _enum_text("ParticleReportType", frame_args.reportType),
-        "x_range": [numpy.min(x), numpy.max(x)],
-        "y_label": hellweg_dump_reader.get_label(frame_args.reportType),
-        "x_label": hellweg_dump_reader.get_label(x_field),
-        "x_points": x,
-        "points": particle_info["y_values"],
-        "y_range": particle_info["y_range"],
-    }
+    y = particle_info["y_values"]
+    return PKDict(
+        title=_enum_text("ParticleReportType", frame_args.reportType),
+        x_range=[numpy.min(x), numpy.max(x)],
+        y_label=hellweg_dump_reader.get_label(frame_args.reportType),
+        x_label=hellweg_dump_reader.get_label(x_field),
+        x_points=x,
+        points=y,
+        y_range=particle_info["y_range"],
+    )
 
 
 def write_parameters(data, run_dir, is_parallel):
