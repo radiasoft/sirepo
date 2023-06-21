@@ -240,6 +240,8 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
         panelState.showField('beam', 'longitudinalFile1d', beam.longitudinalDistribution == 'file1d');
         panelState.showField('beam', 'longitudinalFile2d', beam.longitudinalDistribution == 'file2d');
         panelState.showField('beam', 'cstFile', ! isDistribution);
+        // panelState.showField('beam', 'particleParamA', beam.particleKeyword == 'ions');
+        // panelState.showField('beam', 'particleParamQ', beam.particleKeyword == 'ions');
     }
 
     function updateCurvature() {

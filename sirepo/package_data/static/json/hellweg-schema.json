@@ -69,6 +69,11 @@
             ["x", "Radius (x)"],
             ["y", "Radius (y)"]
         ],
+        "ParticleSpecies": [
+            ["protons", "Protons"],
+            ["electrons", "Electrons"],
+            ["ions", "Ions"]
+        ],
         "PlotRangeType": [
             ["none", "None"],
             ["fit", "Fit Data"],
@@ -167,6 +172,9 @@
             "transversalDistribution": ["Transversal Distribution", "TransversalDistribution"],
             "longitudinalDistribution": ["Longitudinal Distribution", "LongitudinalDistribution"],
             "current": ["Current [A]", "Float"],
+            "particleKeyword": ["Particle Species", "ParticleSpecies", "protons"],
+            "particleParamA": ["Optional Param A", "Float", 1],
+            "particleParamQ": ["Optional Param Q", "Integer", 1],
             "numberOfParticles": ["Particle Limit", "Integer"],
             "spaceCharge": ["Space Charge Algorithm", "SpaceChargeAlgorithm"],
             "spaceChargeCore": ["Space Charge Ellipsoid Core (rms)", "Float", 3.0],
@@ -302,6 +310,9 @@
             "basic": [
                 ["Main", [
                     "current",
+                    "particleKeyword",
+                    "particleParamA",
+                    "particleParamQ",
                     "numberOfParticles",
                     "spaceCharge",
                     "spaceChargeCore",

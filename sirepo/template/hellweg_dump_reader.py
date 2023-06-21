@@ -352,6 +352,7 @@ def particle_info(filename, field, count):
 
 
 def _gamma_to_mev(g):
+    # TODO (gurhar1133): needs species based constant
     return _We0 * (g - 1) * 1e-6
 
 
