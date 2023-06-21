@@ -29,12 +29,15 @@ HELLWEG_INPUT_FILE = "input.txt"
 WANT_BROWSER_FRAME_CACHE = True
 
 # lattice element is required so make it very short and wide drift
-_DEFAULT_DRIFT_ELEMENT = "DRIFT 1e-16 1e+16 2" + "\n"
+# needs to be 3 cells or else the Space Charge example doesn't produce correct results
+_DEFAULT_DRIFT_ELEMENT = "DRIFT 1e-16 1e+16 3" + "\n"
 
 _HELLWEG_PARSED_FILE = "PARSED.TXT"
 
 _PARAMETER_SCALE = PKDict(
     rb=2.0,
+    wav=1e6,
+    wmax=1e6,
 )
 
 
@@ -68,23 +71,23 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def get_data_file(run_dir, model, frame, options):
+    return HELLWEG_DUMP_FILE
+
+
 def python_source_for_model(data, model, qcall, **kwargs):
     return """
-from rshellweg import solver
-
 {}
-
-with open('input.txt', 'w') as f:
-    f.write(input_file)
-
-with open('defaults.ini', 'w') as f:
-    f.write(ini_file)
-
-s = solver.BeamSolver('defaults.ini', 'input.txt')
+s = rshellweg.solver.BeamSolver("{}", "{}")
 s.solve()
-s.save_output('output.txt')
-    """.format(
-        _generate_parameters_file(data, is_parallel=len(data.models.beamline))
+s.save_output("{}")
+s.dump_bin("{}")
+""".format(
+        _generate_parameters_file(data, is_parallel=len(data.models.beamline)),
+        HELLWEG_INI_FILE,
+        HELLWEG_INPUT_FILE,
+        HELLWEG_SUMMARY_FILE,
+        HELLWEG_DUMP_FILE,
     )
 
 
@@ -392,7 +395,7 @@ def _generate_options(models):
 
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     template_common.validate_models(data, SCHEMA)
-    v = template_common.flatten_data(data["models"], {})
+    v = template_common.flatten_data(data["models"], PKDict())
     v["optionsCommand"] = _generate_options(data["models"])
     v["solenoidCommand"] = _generate_solenoid(data["models"])
     v["beamCommand"] = _generate_beam(data["models"])
@@ -403,6 +406,10 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
         v["latticeCommands"] = _generate_lattice(data["models"])
     else:
         v["latticeCommands"] = _DEFAULT_DRIFT_ELEMENT
+    v.iniFile = HELLWEG_INI_FILE
+    v.inputFile = HELLWEG_INPUT_FILE
+    v.outputFile = HELLWEG_SUMMARY_FILE
+    v.dumpFile = HELLWEG_DUMP_FILE
     return template_common.render_jinja(SIM_TYPE, v)
 
 

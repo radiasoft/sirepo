@@ -9,7 +9,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern.pkcollections import PKDict
 import ctypes
 import math
-import numpy
 
 _LIVE_PARTICLE = 0
 _LOSS_VALUES = [
@@ -61,8 +60,6 @@ _W0_PARTICLE_CONSTANT = PKDict(
     IONS=931.494028e6,
 )
 
-_We0 = 0.5110034e6
-
 _BEAM_PARAMETER = {
     # mod() in hellweg means abs()
     "r": lambda p, lmb: abs(p.r * lmb),
@@ -81,7 +78,7 @@ _BEAM_PARAMETER = {
     "phi": lambda p, lmb: p.phi * 180.0 / math.pi,
     "zrel": lambda p, lmb: lmb * p.phi / (2 * math.pi),
     "z0": lambda p, lmb: p.z,
-    "w": lambda p, lmb: p.g, # NOTE: return gamma and them call function on that
+    "w": lambda p, lmb: p.g,
 }
 
 _STRUCTURE_PARAMETER = {
@@ -138,8 +135,6 @@ _PARTICLE_LABEL = {
     "z0": "z [m]",
     "w": "W [eV]",
 }
-
-_PARTICLE_Y_SCALE_FACTOR = 1e6
 
 # some values are pointers which would never serialize correctly
 # the same size in bytes as a long integer
@@ -283,7 +278,7 @@ def get_points(info, field, particle_species):
     for p in info["Particles"]:
         if p.lost == _LIVE_PARTICLE:
             if field == "w":
-                res.append(_gamma_to_mev(fn(p, lmb), particle_species))
+                res.append(_gamma_to_ev(fn(p, lmb), particle_species))
             else:
                 res.append(fn(p, lmb))
     return res
@@ -347,14 +342,12 @@ def particle_info(filename, field, count):
         assert f.readinto(header) == 0
         y_values = []
         for idx in sorted(y_map.keys()):
-            y_values.append(
-                (numpy.array(y_map[idx]) * _PARTICLE_Y_SCALE_FACTOR).tolist()
-            )
+            y_values.append(y_map[idx])
         info["y_values"] = y_values
-        info["y_range"] = (numpy.array(y_range) * _PARTICLE_Y_SCALE_FACTOR).tolist()
+        info["y_range"] = y_range
     return info
 
 
-def _gamma_to_mev(g, species):
+def _gamma_to_ev(g, species):
     # TODO(pjm): when we add species, _We0 will be incorrect
-    return _W0_PARTICLE_CONSTANT[species] * (g - 1) * 1e-6
+    return _W0_PARTICLE_CONSTANT[species] * (g - 1)
