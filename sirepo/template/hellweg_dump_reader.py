@@ -6,6 +6,7 @@
 """
 
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkcollections import PKDict
 import ctypes
 import math
 
@@ -52,6 +53,13 @@ _STRUCTURE_VALUES = [
     "et",
     "ent",
 ]
+
+_W0_PARTICLE_CONSTANT = PKDict(
+    ELECTRONS=0.5110034e6,
+    IONS=931e6,
+    PROTONS=935e6,
+)
+
 _We0 = 0.5110034e6
 
 _BEAM_PARAMETER = {
@@ -295,6 +303,7 @@ def parameter_index(name):
 def particle_info(filename, field, count):
     info = {}
     with open(filename, "rb") as f:
+        pkdp("\n\n\n\nf={}", f)
         header = THeader()
         assert f.readinto(header) == ctypes.sizeof(header)
         info["Header"] = header
@@ -352,7 +361,6 @@ def particle_info(filename, field, count):
 
 
 def _gamma_to_mev(g):
-    # TODO (gurhar1133): needs species based constant
     return _We0 * (g - 1) * 1e-6
 
 
