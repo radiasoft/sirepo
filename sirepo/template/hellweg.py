@@ -131,7 +131,9 @@ def sim_frame_beamHistogramAnimation(frame_args):
     beam_info = hellweg_dump_reader.beam_info(
         _dump_file(frame_args.run_dir), frame_args.frameIndex
     )
-    points = hellweg_dump_reader.get_points(beam_info, frame_args.reportType, frame_args.sim_in.models.beam.particleKeyword)
+    points = hellweg_dump_reader.get_points(
+        beam_info, frame_args.reportType, frame_args.sim_in.models.beam.particleKeyword
+    )
     hist, edges = numpy.histogram(
         points, template_common.histogram_bins(frame_args.histogramBins)
     )

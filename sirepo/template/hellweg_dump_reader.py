@@ -277,10 +277,7 @@ def get_points(info, field, particle_species):
 
     for p in info["Particles"]:
         if p.lost == _LIVE_PARTICLE:
-            if field == "w":
-                res.append(_gamma_to_ev(fn(p, lmb), particle_species))
-            else:
-                res.append(fn(p, lmb))
+            res.append(_apply_beam_fn(field, fn, p, lmb, particle_species))
     return res
 
 
@@ -291,7 +288,6 @@ def parameter_index(name):
 def particle_info(filename, field, count, particle_species):
     info = {}
     with open(filename, "rb") as f:
-        pkdp("\n\n\n\nf={}", f)
         header = THeader()
         assert f.readinto(header) == ctypes.sizeof(header)
         info["Header"] = header
@@ -327,10 +323,7 @@ def particle_info(filename, field, count, particle_species):
                 p = TParticle()
                 assert f.readinto(p) == particle_size
                 if p.lost == _LIVE_PARTICLE:
-                    if field == "w":
-                        v = _gamma_to_ev(yfn(p, lmb), particle_species)
-                    else:
-                        v = yfn(p, lmb)
+                    v = _apply_beam_fn(field, yfn, p, lmb, particle_species)
                     y_map[idx].append(v)
                     if y_range:
                         if v < y_range[0]:
@@ -349,6 +342,12 @@ def particle_info(filename, field, count, particle_species):
         info["y_values"] = y_values
         info["y_range"] = y_range
     return info
+
+
+def _apply_beam_fn(field, fn, p, lmb, species):
+    if field == "w":
+        return _gamma_to_ev(fn(p, lmb), species)
+    return fn(p, lmb)
 
 
 def _gamma_to_ev(g, species):
