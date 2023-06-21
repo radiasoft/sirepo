@@ -351,5 +351,4 @@ def _apply_beam_fn(field, fn, p, lmb, species):
 
 
 def _gamma_to_ev(g, species):
-    # TODO(pjm): when we add species, _We0 will be incorrect
     return _W0_PARTICLE_CONSTANT[species] * (g - 1)
