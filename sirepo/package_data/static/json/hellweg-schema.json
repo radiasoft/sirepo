@@ -175,7 +175,7 @@
             "particleKeyword": ["Particle Species", "ParticleSpecies", "electrons"],
             "particleParamA": ["Optional Param A", "Float", 1],
             "particleParamQ": ["Optional Param Q", "Integer", 1],
-            "numberOfParticles": ["Particle Limit", "Integer"],
+            "numberOfParticles": ["Particle Limit", "Integer", 1000, "", 1000],
             "spaceCharge": ["Space Charge Algorithm", "SpaceChargeAlgorithm"],
             "spaceChargeCore": ["Space Charge Ellipsoid Core (rms)", "Float", 3.0],
             "beamDefinition": ["Beam Particle Definition", "BeamDefinition", "transverse_longitude"],
