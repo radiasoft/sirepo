@@ -55,9 +55,9 @@ _STRUCTURE_VALUES = [
 ]
 
 _W0_PARTICLE_CONSTANT = PKDict(
-    ELECTRONS=0.5110034e6,
-    PROTONS=938.272013e6,
-    IONS=931.494028e6,
+    electrons=0.5110034e6,
+    protons=938.272013e6,
+    ions=931.494028e6,
 )
 
 _BEAM_PARAMETER = {
@@ -288,7 +288,7 @@ def parameter_index(name):
     return _STRUCTURE_VALUES.index(name)
 
 
-def particle_info(filename, field, count):
+def particle_info(filename, field, count, particle_species):
     info = {}
     with open(filename, "rb") as f:
         pkdp("\n\n\n\nf={}", f)
@@ -327,7 +327,10 @@ def particle_info(filename, field, count):
                 p = TParticle()
                 assert f.readinto(p) == particle_size
                 if p.lost == _LIVE_PARTICLE:
-                    v = yfn(p, lmb)
+                    if field == "w":
+                        v = _gamma_to_ev(yfn(p, lmb), particle_species)
+                    else:
+                        v = yfn(p, lmb)
                     y_map[idx].append(v)
                     if y_range:
                         if v < y_range[0]:
