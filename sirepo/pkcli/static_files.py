@@ -7,11 +7,13 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import pykern.pkio
+import sirepo.const
 import sirepo.quest
 import sirepo.resource
-
+import re
 
 _ROOT_FILES = frozenset(("static/img/favicon.ico", "static/img/favicon.png"))
+_REACT_RE = re.compile(f"({sirepo.const.REACT_BUNDLE_FILE_PAT}.*)")
 
 
 def gen(target_dir):
@@ -21,16 +23,25 @@ def gen(target_dir):
         target_dir (str): directory must exist or be creatable
     """
 
+    def _copy(dst, rel, src):
+        tgt = dst.join(rel)
+        pykern.pkio.mkdir_parent_only(tgt)
+        src.copy(tgt, stat=True)
+
+    def _react_copy(dst, rel, src):
+        m = _REACT_RE.match(rel)
+        if m:
+            _copy(dst, m.group(1), src)
+
     def _root_copy(dst, rel, src):
         if rel in _ROOT_FILES:
-            src.copy(dst.join(src.basename))
+            _copy(dst, src.basename, src)
 
     d = pykern.pkio.py_path(target_dir)
     for r, s in sirepo.resource.static_files():
-        t = d.join(r)
-        pykern.pkio.mkdir_parent_only(t)
-        s.copy(t, stat=True)
+        _copy(d, r, s)
         _root_copy(d, r, s)
+        _react_copy(d, r, s)
     with sirepo.quest.start(in_pkcli=True) as qcall:
         pykern.pkio.write_text(
             d.join("robots.txt"),
