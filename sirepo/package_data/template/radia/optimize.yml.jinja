@@ -25,7 +25,7 @@ options:
     method: {{ optimizer.software.method }}
     exit_criteria:
         sim_max: {{ optimizer.maxIterations }}
-    {% if software.rsoptName == "dfols" %}
+    {% if optimizer.software.rsoptName == "dfols" %}
     components: {{ optimizer.software.components }}
     {% endif %}
     software_options:

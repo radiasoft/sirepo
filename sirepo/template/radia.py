@@ -1199,8 +1199,8 @@ def _objective_function_code(models):
     t = o.objective
     if t == "custom":
         return o.code
-    if t == "quality":
-        q = models.quality
+    if t == "objectiveFunctionQuality":
+        q = models.objectiveFunctionQuality
         return f"""
 import numpy
 
@@ -1389,11 +1389,13 @@ def _rsopt_jinja_context(data):
     res = PKDict(
         libFiles=_SIM_DATA.lib_file_basenames(data),
         optimizer=data.models.optimizer,
-        software=data.models.optimizationSoftware,
         objectiveFunctionCode=_objective_function_code(data.models),
-        outFileName=f"optimize.out",
+        outFileName="optimize.out",
         rsOptOutFileName="optimize_results",
     )
+    m = data.models.get(res.optimizer.software.type, {})
+    for k in m:
+        res.optimizer.software[k] = m[k]
     res.update(_export_rsopt_files())
     return res
 

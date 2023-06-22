@@ -942,9 +942,9 @@
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
         "optimizationSoftware": {
-            "method": ["Method", "OptimizationSoftwareMethod", "dfols"],
+            "method": ["Method", "OptimizationSoftwareMethodType", "dfols"],
             "rsoptName": ["_", "String", "dfols"],
-            "type": ["_", "OptimizationSoftwareType", "optimizationSoftwareDFOLS"]
+            "type": ["Optimization Package", "OptimizationSoftwareType", "optimizationSoftwareDFOLS"]
         },
         "optimizationSoftwareDFOLS": {
             "_super": ["_", "model", "optimizationSoftware"],
@@ -1560,7 +1560,7 @@
             "basic": [
                 "optimizer.software.type",
                 "optimizer.software.method",
-                "optimizer.software.components",
+                "optimizationSoftwareDFOLS.components",
                 "maxIterations",
                 "objective",
                 "objectiveFunctionQuality.component",

@@ -3777,7 +3777,7 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
     }
 
     function updateSoftware() {
-        panelState.showField('optimizationSoftwareDFOLS', 'components', appState.models[$scope.modelName].software === 'dfols');
+        panelState.showField('optimizationSoftwareDFOLS', 'components', appState.models[$scope.modelName].software.type === 'optimizationSoftwareDFOLS');
     }
 
     $scope.updateIntegral = fn => {};
