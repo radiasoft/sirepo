@@ -90,7 +90,7 @@ def propagate(pulse, elements, beamline):
         e = elements[idx]
         if isinstance(e[0], Crystal):
             # TODO (gurhar1133): is set_n = True enough or do we need return vals from calc_n0n2
-            e[0].calc_n0n2(method="fenics", set_n=True, e[2], e[3])
+            e[0].calc_n0n2(method="fenics", set_n=True, initial_temp=e[2], mesh_density=e[3])
         pulse = e[0].propagate(pulse, *e[1])
         if isinstance(e[0], Crystal):
             h5_data = PKDict()

@@ -220,8 +220,6 @@
                 ]],
                 ["Propagation", [
                     "propagationType",
-                    "n0",
-                    "n2",
                     "A",
                     "B",
                     "C",
