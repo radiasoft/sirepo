@@ -107,8 +107,8 @@
             "icon": ["", "String", "ti-sapphire-crystal.png"],
             "nslice": ["Number of Slices", "Integer", 10, "", 1],
             "propagationType": ["Propagation Type", "PropagationType", "n0n2_srw"],
-            "n0": ["Index of Refraction ($n_0$)", "Float6", [1.75, 1.75, 1.75, 1.75, 1.75, 1.75], "On axis index of refraction", 1e-24],
-            "n2": ["Thermal Lensing ($n_2$)", "Float6", [30.5, 18.3, 10.4, 5.9, 3.3, 1.9], "Quadratic variations of index of refraction, with $n(r) = n_0 - \\frac{n_2 r^2} 2  [\\frac 1 {m^2}]$", 0.0],
+            "initial_temp": ["initial_temp [degC]", "Float", 0.0],
+            "mesh_density": ["mesh_density [int]", "Integer", 80],
             "title": ["Element Name", "String", "Crystal"],
             "A": ["A", "Float", 0.99736924],
             "B": ["B", "Float", 0.0141972275],
@@ -243,9 +243,6 @@
                     "pump_rep_rate",
                     "pump_offset_x",
                     "pump_offset_y"
-                ]],
-                ["Propagation Calculation", [
-                    "calc_type"
                 ]]
             ]
         },
