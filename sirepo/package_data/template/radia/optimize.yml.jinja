@@ -21,12 +21,14 @@ options:
     record_interval: 1
 
     # Options for setting up and terminating
-    software: dfols
-    method: dfols
+    software: {{ optimizer.software.rsoptName }}
+    method: {{ optimizer.software.method }}
     exit_criteria:
-        sim_max: 50
-    components: 125
+        sim_max: {{ optimizer.maxIterations }}
+    {% if software.rsoptName == "dfols" %}
+    components: {{ optimizer.software.components }}
+    {% endif %}
     software_options:
-        dfols_kwargs:
+        {{ optimizer.software.rsoptName }}_kwargs:
               user_params:
-                  'model.rel_tol': 1e-4
+                  'model.rel_tol': {{ optimizer.tolerance }}

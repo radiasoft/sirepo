@@ -329,7 +329,7 @@
         "ObjectiveFunction": [
             ["none", "None"],
             ["integral", "Field Integral"],
-            ["quality", "Field Quality"]
+            ["objectiveFunctionQuality", "Field Quality"]
         ],
         "ObjectType": [
             ["cuboid", "Cuboid"],
@@ -341,6 +341,12 @@
             ["racetrack", "RaceTrack"],
             ["tee", "Extruded Tee"],
             ["stl", "STL"]
+        ],
+        "OptimizationSoftwareType": [
+            ["optimizationSoftwareDFOLS", "DFOLS"]
+        ],
+        "OptimizationSoftwareMethodType": [
+            ["dfols", "DFOLS"]
         ],
         "OptimizerFieldType": [
             ["optimizerField", "Built-in"],
@@ -922,28 +928,40 @@
             "code": ["Code", "String", ""],
             "type": ["_", "ObjectiveFunction", "none"]
         },
-        "quality": {
+        "objectiveFunctionQuality": {
             "_super": ["_", "model", "objectiveFunction"],
             "begin": ["Start [mm]", "FloatArray", [-10.0, 0, 0], "", ["x", "y", "z"]],
-            "component": ["Component", "BeamAxis", "z"],
-            "deviation": ["± Deviation [mm]", "FloatArray", [0, 1.0, 0], "", ["∂x", "∂y", "∂z"]],
-            "deviationSteps": ["Steps", "Integer", 25, "", 1],
+            "component": ["Field Component", "BeamAxis", "z"],
+            "deviation": ["Deviation [mm]", "FloatArray", [0, 1.0, 0], "", ["± ∂x", "± ∂y", "± ∂z"]],
             "end": ["End [mm]", "FloatArray", [10.0, 0, 0], "", ["x", "y", "z"]],
             "fieldPaths": ["Path", "FieldPaths", []],
-            "type": ["Objective Function", "ObjectiveFunction", "quality"],
+            "type": ["Objective Function", "ObjectiveFunction", "objectiveFunctionQuality"],
             "useFieldPath": ["Use Field Path", "Boolean", "0"]
         },
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
         },
+        "optimizationSoftware": {
+            "method": ["Method", "OptimizationSoftwareMethod", "dfols"],
+            "rsoptName": ["_", "String", "dfols"],
+            "type": ["_", "OptimizationSoftwareType", "optimizationSoftwareDFOLS"]
+        },
+        "optimizationSoftwareDFOLS": {
+            "_super": ["_", "model", "optimizationSoftware"],
+            "components": ["Components", "Integer", 2],
+            "rsoptName": ["_", "String", "dfols"],
+            "type": ["", "OptimizationSoftwareType", "optimizationSoftwareDFOLS"]
+        },
         "optimizer": {
-            "continuousFieldSteps": ["Continuous Field Divisions", "Integer", 20, "Number of times to subdivide non-gridded fields, ex. Current or Voltage"],
+            "maxIterations": ["Max iterations", "Integer", 50, "", 1],
+            "objective": ["Objective Function", "ObjectiveFunction", "objectiveFunctionQuality"],
             "parameters": ["Parameters", "ObjectOptimizerField", []],
-            "initialSteps": ["Initial Simulation Steps", "Integer", 500],
-            "objective": ["Objective Function", "ObjectiveFunction", "quality"],
-            "optimizerSteps": ["Optimizer Steps Between Tolerance Checks", "Integer", 250],
-            "timeLimit": ["Time Limit Per Run (s)", "Integer", 60],
-            "tolerance": ["Tolerance", "Float", 0.001]
+            "software": ["Optimization Package", "model.optimizationSoftware", {
+                "components": 100,
+                "rsoptName": "dfols",
+                "type": "optimizationSoftwareDFOLS"
+            }],
+            "tolerance": ["Tolerance", "Float", 0.0001]
         },
         "optimizerAnimation": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -1540,14 +1558,17 @@
         "optimizer": {
             "title": "Optimization",
             "basic": [
+                "optimizer.software.type",
+                "optimizer.software.method",
+                "optimizer.software.components",
+                "maxIterations",
                 "objective",
-                "quality.component",
-                "quality.useFieldPath",
-                "quality.fieldPaths",
-                "quality.begin",
-                "quality.end",
-                "quality.deviation",
-                "quality.deviationSteps",
+                "objectiveFunctionQuality.component",
+                "objectiveFunctionQuality.useFieldPath",
+                "objectiveFunctionQuality.fieldPaths",
+                "objectiveFunctionQuality.begin",
+                "objectiveFunctionQuality.end",
+                "objectiveFunctionQuality.deviation",
                 "parameters"
             ],
             "advanced": [
@@ -1789,7 +1810,7 @@
                 ]]
             ]
         },
-        "quality": {
+        "objectiveFunctionQuality": {
             "title": "Field Quality",
             "advanced": [],
             "basic": [

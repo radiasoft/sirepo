@@ -1207,13 +1207,13 @@ import numpy
 f  = numpy.array([])
 p1 = {q.begin}
 p2 = {q.end}
-i = radia_util.AXES.index('{q.component}')
-f0 = radia_util.field_integral(g_id, 'B', p1, p2)[i]
+c = 'B{q.component}'
+f0 = radia_util.field_integral(g_id, c, p1, p2)
 for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {q.deviationSteps}):
-    f = numpy.append(f, radia_util.field_integral(g_id, 'B', (p1 + d).tolist(), (p2 + d).tolist())[i])
-res = numpy.sum((f - f0)**2)
+    f = numpy.append(f, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
+res = numpy.sum((f - f0)**2), (f - f0).tolist()
 """
-    return "res = 0"
+    return "res = 0, []"
 
 
 def _orient_stemmed_points(o, points, plane_ctr):
@@ -1389,6 +1389,7 @@ def _rsopt_jinja_context(data):
     res = PKDict(
         libFiles=_SIM_DATA.lib_file_basenames(data),
         optimizer=data.models.optimizer,
+        software=data.models.optimizationSoftware,
         objectiveFunctionCode=_objective_function_code(data.models),
         outFileName=f"optimize.out",
         rsOptOutFileName="optimize_results",

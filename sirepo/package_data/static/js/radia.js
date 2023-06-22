@@ -3743,8 +3743,8 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
 
     $scope.watchFields = [
         [
-            'optimizer.objective',
-            'quality.fieldPath', 'quality.useFieldPath',
+            'optimizer.objective', 'optimizer.software',
+            'objectiveFunctionQuality.fieldPath', 'objectiveFunctionQuality.useFieldPath',
         ],
         updateEditor,
     ];
@@ -3753,6 +3753,7 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
 
     function updateEditor() {
         updateObjectiveFunction(appState.models[$scope.modelName].objective);
+        updateSoftware();
         updateInputs();
     }
 
@@ -3775,11 +3776,15 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
         $scope[`update${SirepoUtils.capitalize(fn)}`](appState.models[fn]);
     }
 
+    function updateSoftware() {
+        panelState.showField('optimizationSoftwareDFOLS', 'components', appState.models[$scope.modelName].software === 'dfols');
+    }
+
     $scope.updateIntegral = fn => {};
 
     $scope.updateNone = fn => {};
 
-    $scope.updateQuality = fn => {
+    $scope.updateObjectiveFunctionQuality = fn => {
 
         const pathFields = ['begin', 'end'];
         const useFieldPath = fn.useFieldPath === '1' &&
