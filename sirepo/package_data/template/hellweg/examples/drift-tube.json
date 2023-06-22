@@ -3,6 +3,9 @@
         "beam": {
             "current": 0,
             "longitudinalDistribution": "norm2d",
+            "particleKeyword": "electrons",
+            "particleParamA": 1,
+            "particleParamQ": 1,
             "numberOfParticles": 10000,
             "spaceCharge": "none",
             "spaceChargeCore": 3,

@@ -4,6 +4,9 @@
             "current": 0,
             "longitudinalDistribution": "norm2d",
             "numberOfParticles": 1000,
+            "particleKeyword": "electrons",
+            "particleParamA": 1,
+            "particleParamQ": 1,
             "spaceCharge": "none",
             "spaceChargeCore": 3,
             "transversalDistribution": "sph2d"
