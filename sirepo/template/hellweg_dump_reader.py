@@ -6,6 +6,7 @@
 """
 
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkcollections import PKDict
 import ctypes
 import math
 
@@ -52,7 +53,12 @@ _STRUCTURE_VALUES = [
     "et",
     "ent",
 ]
-_We0 = 0.5110034e6
+
+_W0_PARTICLE_CONSTANT = PKDict(
+    electrons=0.5110034e6,
+    protons=938.272013e6,
+    ions=931.494028e6,
+)
 
 _BEAM_PARAMETER = {
     # mod() in hellweg means abs()
@@ -72,7 +78,7 @@ _BEAM_PARAMETER = {
     "phi": lambda p, lmb: p.phi * 180.0 / math.pi,
     "zrel": lambda p, lmb: lmb * p.phi / (2 * math.pi),
     "z0": lambda p, lmb: p.z,
-    "w": lambda p, lmb: _gamma_to_ev(p.g),
+    "w": lambda p, lmb: p.g,
 }
 
 _STRUCTURE_PARAMETER = {
@@ -264,14 +270,14 @@ def get_parameter_title(field):
     return _STRUCTURE_TITLE[field]
 
 
-def get_points(info, field):
+def get_points(info, field, particle_species):
     res = []
     fn = _BEAM_PARAMETER[field]
     lmb = info["BeamHeader"].beam_lmb
 
     for p in info["Particles"]:
         if p.lost == _LIVE_PARTICLE:
-            res.append(fn(p, lmb))
+            res.append(_apply_beam_fn(field, fn, p, lmb, particle_species))
     return res
 
 
@@ -279,7 +285,7 @@ def parameter_index(name):
     return _STRUCTURE_VALUES.index(name)
 
 
-def particle_info(filename, field, count):
+def particle_info(filename, field, count, particle_species):
     info = {}
     with open(filename, "rb") as f:
         header = THeader()
@@ -317,7 +323,7 @@ def particle_info(filename, field, count):
                 p = TParticle()
                 assert f.readinto(p) == particle_size
                 if p.lost == _LIVE_PARTICLE:
-                    v = yfn(p, lmb)
+                    v = _apply_beam_fn(field, yfn, p, lmb, particle_species)
                     y_map[idx].append(v)
                     if y_range:
                         if v < y_range[0]:
@@ -338,6 +344,11 @@ def particle_info(filename, field, count):
     return info
 
 
-def _gamma_to_ev(g):
-    # TODO(pjm): when we add species, _We0 will be incorrect
-    return _We0 * (g - 1)
+def _apply_beam_fn(field, fn, p, lmb, species):
+    if field == "w":
+        return _gamma_to_ev(fn(p, lmb), species)
+    return fn(p, lmb)
+
+
+def _gamma_to_ev(g, species):
+    return _W0_PARTICLE_CONSTANT[species] * (g - 1)
