@@ -3322,6 +3322,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 lastModified: item.lastModified,
                 isExample: item.isExample,
                 notes: item.notes,
+                canExport: SIREPO.APP_SCHEMA.constants.canExportArchive,
             };
             currentFolder.children.push(newItem);
         }

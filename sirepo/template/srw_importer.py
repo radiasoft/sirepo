@@ -939,7 +939,6 @@ def _parsed_dict(v, op):
                 }
             ),
             "simulationType": "srw",
-            "version": "",
         }
     )
 
