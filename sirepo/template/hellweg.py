@@ -60,6 +60,16 @@ def background_percent_complete(report, run_dir, is_running):
         beam_header = hellweg_dump_reader.beam_header(dump_file)
         last_update_time = int(os.path.getmtime(dump_file))
         frame_count = beam_header.NPoints
+
+        # TODO(pjm): work-around #1 for rshellweg bug for RF Fields
+        if frame_count > 1:
+            beam_info = hellweg_dump_reader.beam_info(
+                _dump_file(run_dir),
+                frame_count - 1,
+            )
+            if hellweg_dump_reader.get_parameter(beam_info, "z") == 0:
+                frame_count -= 1
+
         return PKDict(
             lastUpdateTime=last_update_time,
             percentComplete=100,
@@ -158,8 +168,12 @@ def sim_frame_parameterAnimation(frame_args):
     x_field = "z"
     x = _scale_structure_parameters(s, x_field)
     y1 = _scale_structure_parameters(s, y1_var)
-    y1_extent = [numpy.min(y1), numpy.max(y1)]
     y2 = _scale_structure_parameters(s, y2_var)
+    # TODO(pjm): work-around #2 for rshellweg bug for RF Fields
+    if x[-1] == 0:
+        for v in (x, y1, y2):
+            v.pop()
+    y1_extent = [numpy.min(y1), numpy.max(y1)]
     y2_extent = [numpy.min(y2), numpy.max(y2)]
     return PKDict(
         title=_enum_text("ParameterReportType", frame_args.reportType),
