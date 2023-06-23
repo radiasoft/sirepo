@@ -322,7 +322,7 @@ def _generate_parameters_file(data):
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
     if data.report in _SIM_DATA.SOURCE_REPORTS:
         data.models.beamline = []
-    v.laserPulse = _process_laser_pulse(data.models.laserPulse)
+    v.laserPulse = _convert_laser_pulse_units(data.models.laserPulse)
     if data.models.laserPulse.distribution == "file":
         for f in ("ccd", "meta", "wfs"):
             v[f"{f}File"] = _SIM_DATA.lib_file_name_with_model_field(
@@ -518,9 +518,11 @@ def _parse_silas_log(run_dir):
     return "An unknown error occurred"
 
 
-def _process_laser_pulse(laserPulse):
+def _convert_laser_pulse_units(laserPulse):
     laserPulse.tau_0 = laserPulse.tau_0 / 1e12
     laserPulse.tau_fwhm = laserPulse.tau_fwhm / 1e12
+    laserPulse.num_sig_long = laserPulse.num_sig_long / 2
+    laserPulse.num_sig_trans = laserPulse.num_sig_trans / 2
     return laserPulse
 
 
