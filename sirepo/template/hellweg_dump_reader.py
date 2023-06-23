@@ -6,6 +6,7 @@
 """
 
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkcollections import PKDict
 import ctypes
 import math
 
@@ -52,32 +53,32 @@ _STRUCTURE_VALUES = [
     "et",
     "ent",
 ]
-_We0 = 0.5110034e6
+
+_W0_PARTICLE_CONSTANT = PKDict(
+    electrons=0.5110034e6,
+    protons=938.272013e6,
+    ions=931.494028e6,
+)
 
 _BEAM_PARAMETER = {
+    # mod() in hellweg means abs()
     "r": lambda p, lmb: abs(p.r * lmb),
     "th": lambda p, lmb: p.Th * 180.0 / math.pi,
     "x": lambda p, lmb: p.r * math.cos(p.Th) * lmb,
     "y": lambda p, lmb: p.r * math.sin(p.Th) * lmb,
-    "br": lambda p, lmb: math.copysign(p.beta.r, p.r),
-    "bth": lambda p, lmb: p.beta.th,
-    "bx": lambda p, lmb: p.beta.r * math.cos(p.Th) - p.beta.th * math.sin(p.Th) * lmb,
-    "by": lambda p, lmb: p.beta.r * math.sin(p.Th) + p.beta.th * math.cos(p.Th) * lmb,
-    "bz": lambda p, lmb: p.beta.z,
-    "ar": lambda p, lmb: math.atan2(p.beta.r, p.beta0),
-    "ath": lambda p, lmb: math.atan2(p.beta.th, p.beta0),
+    "ar": lambda p, lmb: math.atan2(p.gb.r, math.sqrt(p.g**2 - 1)),
+    "ath": lambda p, lmb: math.atan2(p.gb.th, math.sqrt(p.g**2 - 1)),
     "ax": lambda p, lmb: math.atan2(
-        p.beta.r * math.cos(p.Th) - p.beta.th * math.sin(p.Th) * lmb, p.beta.z
+        p.gb.r * math.cos(p.Th) - p.gb.th * math.sin(p.Th), p.gb.z
     ),
     "ay": lambda p, lmb: math.atan2(
-        p.beta.r * math.sin(p.Th) + p.beta.th * math.cos(p.Th) * lmb, p.beta.z
+        p.gb.r * math.sin(p.Th) + p.gb.th * math.cos(p.Th), p.gb.z
     ),
     "az": lambda p, lmb: 0,
     "phi": lambda p, lmb: p.phi * 180.0 / math.pi,
     "zrel": lambda p, lmb: lmb * p.phi / (2 * math.pi),
     "z0": lambda p, lmb: p.z,
-    "beta": lambda p, lmb: p.beta0,
-    "w": lambda p, lmb: _velocity_to_mev(p.beta0),
+    "w": lambda p, lmb: p.g,
 }
 
 _STRUCTURE_PARAMETER = {
@@ -126,20 +127,12 @@ _PARTICLE_LABEL = {
     "th": "theta [deg]",
     "x": "x [m]",
     "y": "y [m]",
-    # 'br': '',
-    # 'bth': '',
-    # 'bx': '',
-    # 'by': '',
-    # 'bz': '',
     "ar": "r' [rad]",
     "ath": "theta' [rad]",
     "ax": "x' [rad]",
     "ay": "y' [rad]",
-    # 'az': '',
     "phi": "phi [deg]",
-    # 'zrel': '',
     "z0": "z [m]",
-    # 'beta': '',
     "w": "W [eV]",
 }
 
@@ -205,10 +198,10 @@ class TParticle(ctypes.Structure):
     _fields_ = [
         ("r", ctypes.c_double),
         ("Th", ctypes.c_double),
-        ("beta", TField),
-        ("phi", ctypes.c_double),
         ("z", ctypes.c_double),
-        ("beta0", ctypes.c_double),
+        ("gb", TField),
+        ("g", ctypes.c_double),
+        ("phi", ctypes.c_double),
         ("lost", ctypes.c_int),
     ]
 
@@ -277,14 +270,14 @@ def get_parameter_title(field):
     return _STRUCTURE_TITLE[field]
 
 
-def get_points(info, field):
+def get_points(info, field, particle_species):
     res = []
     fn = _BEAM_PARAMETER[field]
     lmb = info["BeamHeader"].beam_lmb
 
     for p in info["Particles"]:
         if p.lost == _LIVE_PARTICLE:
-            res.append(fn(p, lmb))
+            res.append(_apply_beam_fn(field, fn, p, lmb, particle_species))
     return res
 
 
@@ -292,7 +285,7 @@ def parameter_index(name):
     return _STRUCTURE_VALUES.index(name)
 
 
-def particle_info(filename, field, count):
+def particle_info(filename, field, count, particle_species):
     info = {}
     with open(filename, "rb") as f:
         header = THeader()
@@ -330,7 +323,7 @@ def particle_info(filename, field, count):
                 p = TParticle()
                 assert f.readinto(p) == particle_size
                 if p.lost == _LIVE_PARTICLE:
-                    v = yfn(p, lmb)
+                    v = _apply_beam_fn(field, yfn, p, lmb, particle_species)
                     y_map[idx].append(v)
                     if y_range:
                         if v < y_range[0]:
@@ -351,13 +344,11 @@ def particle_info(filename, field, count):
     return info
 
 
-def _gamma_to_mev(g):
-    return _We0 * (g - 1) * 1e-6
+def _apply_beam_fn(field, fn, p, lmb, species):
+    if field == "w":
+        return _gamma_to_ev(fn(p, lmb), species)
+    return fn(p, lmb)
 
 
-def _velocity_to_energy(b):
-    return 1 / math.sqrt(1 - b**2)
-
-
-def _velocity_to_mev(b):
-    return _gamma_to_mev(_velocity_to_energy(b))
+def _gamma_to_ev(g, species):
+    return _W0_PARTICLE_CONSTANT[species] * (g - 1)

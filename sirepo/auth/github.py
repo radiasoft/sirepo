@@ -35,17 +35,21 @@ class API(sirepo.quest.API):
         oc, t = sirepo.oauth.check_authorized_callback(self, github_auth=True)
         d = oc.get("https://api.github.com/user").json()
         sirepo.events.emit(self, "github_authorized", PKDict(user_name=d["login"]))
-        with sirepo.util.THREAD_LOCK:
-            m = self.auth_db.model(UserModel)
-            u = m.unchecked_search_by(oauth_id=d["id"])
-            if u:
-                # always update user_name
-                u.user_name = d["login"]
-            else:
-                u = m.new(oauth_id=d["id"], user_name=d["login"])
-            u.save()
-            self.auth.login(this_module, model=u, sim_type=t, want_redirect=True)
-            raise AssertionError("auth.login returned unexpectedly")
+        m = self.auth_db.model(UserModel)
+        u = m.unchecked_search_by(oauth_id=d["id"])
+        if u:
+            # always update user_name
+            u.user_name = d["login"]
+        else:
+            u = m.new(oauth_id=d["id"], user_name=d["login"])
+        u.save()
+        self.auth.login(
+            this_module,
+            model=m.unchecked_search_by(oauth_id=d["id"]),
+            sim_type=t,
+            want_redirect=True,
+        )
+        raise AssertionError("auth.login returned unexpectedly")
 
     @sirepo.quest.Spec("require_cookie_sentinel")
     async def api_authGithubLogin(self, simulation_type):

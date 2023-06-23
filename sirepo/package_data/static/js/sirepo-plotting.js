@@ -1822,28 +1822,16 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             const v0 = applyUnit(tickValues[0], base, unit);
             const v1 = applyUnit(tickValues[1], base, unit);
             const vn = applyUnit(tickValues[tickValues.length - 1], base, unit);
-            let decimals;
-            if (Math.abs(v0) > Math.abs(vn)) {
-                decimals = d3_precisionRound(v1 - v0, Math.abs(v0));
-            }
-            else {
-                decimals = d3_precisionRound(v1 - v0, vn);
-            }
-            if (decimals > 1) {
-                decimals -= 1;
-            }
+            const max = Math.abs(v0) > Math.abs(vn) ? Math.abs(v0) : vn;
+            let decimals = d3_precisionRound(v1 - v0, max);
             if (useFloatFormat(v0) && useFloatFormat(vn)) {
                 code = 'f';
-                decimals -= valuePrecision(vn);
+                decimals -= valuePrecision(max);
                 if (decimals < 0) {
                     decimals = 0;
                 }
             }
-            const f = d3.format('.' + decimals + code);
-            if (decimals && tickValues.every(v => {
-                const vf = f(applyUnit(v, base, unit));
-                return vf.search(/\.\d*0e/) >= 0 || vf.search(/\.\d*0$/) >= 0;
-            })) {
+            while (decimals > 0 && hasTrailingZeros(unit, base, code, decimals, tickValues)) {
                 decimals -= 1;
             }
             return {
@@ -1952,6 +1940,14 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
                     }).join("");
             }
             return '';
+        }
+
+        function hasTrailingZeros(unit, base, code, decimals, tickValues) {
+            const f = d3.format('.' + decimals + code);
+            return tickValues.every(v => {
+                const vf = f(applyUnit(v, base, unit));
+                return vf.search(/\.\d*0e/) >= 0 || vf.search(/\.\d*0$/) >= 0;
+            });
         }
 
         function maxDomainWidth(formatInfo) {
