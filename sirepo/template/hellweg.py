@@ -106,8 +106,8 @@ def sim_frame_beamAnimation(frame_args):
     )
     x, y = frame_args.reportType.split("-")
     values = [
-        hellweg_dump_reader.get_points(beam_info, x),
-        hellweg_dump_reader.get_points(beam_info, y),
+        hellweg_dump_reader.get_points(beam_info, x, data.models.beam.particleKeyword),
+        hellweg_dump_reader.get_points(beam_info, y, data.models.beam.particleKeyword),
     ]
     model["x"] = x
     model["y"] = y
@@ -131,7 +131,9 @@ def sim_frame_beamHistogramAnimation(frame_args):
     beam_info = hellweg_dump_reader.beam_info(
         _dump_file(frame_args.run_dir), frame_args.frameIndex
     )
-    points = hellweg_dump_reader.get_points(beam_info, frame_args.reportType)
+    points = hellweg_dump_reader.get_points(
+        beam_info, frame_args.reportType, frame_args.sim_in.models.beam.particleKeyword
+    )
     hist, edges = numpy.histogram(
         points, template_common.histogram_bins(frame_args.histogramBins)
     )
@@ -181,6 +183,7 @@ def sim_frame_particleAnimation(frame_args):
         _dump_file(frame_args.run_dir),
         frame_args.reportType,
         int(frame_args.renderCount),
+        frame_args.sim_in.models.beam.particleKeyword,
     )
     x = particle_info["z_values"]
     y = particle_info["y_values"]
@@ -226,7 +229,13 @@ def _compute_range_across_files(run_dir, **kwargs):
     for frame in range(beam_header.NPoints):
         beam_info = hellweg_dump_reader.beam_info(dump_file, frame)
         for field in res:
-            values = hellweg_dump_reader.get_points(beam_info, field)
+            values = hellweg_dump_reader.get_points(
+                beam_info,
+                field,
+                simulation_db.read_json(
+                    run_dir.join(template_common.INPUT_BASE_NAME)
+                ).models.beam.particleKeyword,
+            )
             if not values:
                 pass
             elif res[field]:
@@ -294,6 +303,17 @@ def _generate_charge(models):
     return "SPCHARGE {} {}".format(
         models.beam.spaceCharge.upper(), models.beam.spaceChargeCore
     )
+
+
+def _generate_particle_species(models):
+    p = models.beam.particleKeyword.upper()
+    if p == "IONS":
+        return "PARTICLES {} {} {}".format(
+            p,
+            models.beam.particleParamA,
+            models.beam.particleParamQ,
+        )
+    return "PARTICLES {}".format(p)
 
 
 def _generate_current(models):
@@ -388,6 +408,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v["beamCommand"] = _generate_beam(data["models"])
     v["currentCommand"] = _generate_current(data["models"])
     v["chargeCommand"] = _generate_charge(data["models"])
+    v["particleSpeciesCommand"] = _generate_particle_species(data["models"])
     if is_parallel:
         v["latticeCommands"] = _generate_lattice(data["models"])
     else:
