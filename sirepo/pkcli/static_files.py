@@ -13,7 +13,9 @@ import sirepo.resource
 import re
 
 _ROOT_FILES = frozenset(("static/img/favicon.ico", "static/img/favicon.png"))
-_REACT_RE = re.compile(f"({sirepo.const.REACT_BUNDLE_FILE_PAT}.*)")
+_REACT_RE = re.compile(
+    f"{sirepo.const.STATIC_D}/{sirepo.const.REACT_ROOT_D}/({sirepo.const.REACT_BUNDLE_FILE_PAT}.*)"
+)
 
 
 def gen(target_dir):
@@ -23,27 +25,43 @@ def gen(target_dir):
         target_dir (str): directory must exist or be creatable
     """
 
-    def _copy(dst, rel, src):
-        tgt = dst.join(rel)
-        pykern.pkio.mkdir_parent_only(tgt)
-        src.copy(tgt, stat=True)
+    _Gen(target_dir)
 
-    def _react_copy(dst, rel, src):
+
+class _Gen(PKDict):
+    def __init__(self, target_dir):
+        self.tgt = pykern.pkio.py_path(target_dir)
+        self.count = PKDict(react=0, root=0)
+        for r, s in sirepo.resource.static_files():
+            self._copy(r, s)
+            self._maybe_react(r, s)
+            self._maybe_root(r, s)
+
+        self._verify()
+        with sirepo.quest.start(in_pkcli=True) as qcall:
+            pykern.pkio.write_text(
+                self.tgt.join("robots.txt"),
+                qcall.call_api_sync("robotsTxt").content_as_str(),
+            )
+
+    def _copy(self, rel, src):
+        t = self.tgt.join(rel)
+        pykern.pkio.mkdir_parent_only(t)
+        src.copy(t, stat=True)
+
+    def _maybe_react(self, rel, src):
         m = _REACT_RE.match(rel)
+        pkdp([m, rel])
         if m:
-            _copy(dst, m.group(1), src)
+            self._copy(m.group(1), src)
+            self.count.react += 1
 
-    def _root_copy(dst, rel, src):
+    def _maybe_root(self, rel, src):
         if rel in _ROOT_FILES:
-            _copy(dst, src.basename, src)
+            self._copy(src.basename, src)
+            self.count.root += 1
 
-    d = pykern.pkio.py_path(target_dir)
-    for r, s in sirepo.resource.static_files():
-        _copy(d, r, s)
-        _root_copy(d, r, s)
-        _react_copy(d, r, s)
-    with sirepo.quest.start(in_pkcli=True) as qcall:
-        pykern.pkio.write_text(
-            d.join("robots.txt"),
-            qcall.call_api_sync("robotsTxt").content_as_str(),
-        )
+    def _verify(self):
+        for k, v in self.count.items():
+            if v < 2:
+                raise AssertionError(f"{k} file count={v} less than 2")
