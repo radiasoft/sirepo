@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""generate static files
+"""generate static files from package_data
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -51,7 +51,6 @@ class _Gen(PKDict):
 
     def _maybe_react(self, rel, src):
         m = _REACT_RE.match(rel)
-        pkdp([m, rel])
         if m:
             self._copy(m.group(1), src)
             self.count.react += 1
