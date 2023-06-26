@@ -2383,10 +2383,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
 
                 // regular clicks are generated when spinning the scene - we'll select/deselect with ctrl-click
-                const iMode = $scope.vtkScene.interactionMode;
-                if (iMode === vtkUtils.INTERACTION_MODE_MOVE ||
-                    (iMode === vtkUtils.INTERACTION_MODE_SELECT && ! callData.controlKey)
-                ) {
+                if (! callData.controlKey) {
                     return;
                 }
 
@@ -2750,20 +2747,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 $scope.vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 init();
                 plotToPNG.initVTK($element, $scope.vtkScene.renderer);
-            });
-
-            $scope.$on('vtkScene.interactionMode', (e, d) => {
-                if (d === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_MOVE) {
-                    if (selectedObj) {
-                        $scope.$broadcast('vtk.selected', null);
-                        setEdgeColor(
-                            getActorInfo(selectedObj.id),
-                            [0, 0, 0]
-                        );
-                        selectedObj = null;
-                        savedObj = null;
-                    }
-                }
             });
 
             $scope.$on('radiaObject.changed', function(e) {

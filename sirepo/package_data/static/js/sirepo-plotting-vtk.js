@@ -316,17 +316,6 @@ class RacetrackViews extends ExtrudedPolyViews {
 class VTKUtils {
 
     /**
-     * Modes when interacting with the vtk canvas
-     * @returns {Object} - interactionModes
-     */
-    static interactionMode() {
-        return {
-            INTERACTION_MODE_MOVE: 'move',
-            INTERACTION_MODE_SELECT: 'select',
-        };
-    }
-
-    /**
      * Builds a wireframe box with the specified bounds and optional padding
      * @param {[number]} bounds - the bounds in the format [xMin, xMax, yMin, yMax, zMin, zMax]
      * @param {number} padPct - additional padding as a percentage of the size
@@ -517,8 +506,6 @@ class VTKScene {
         this.cam = this.renderer.get().activeCamera;
         this.camProperties = VTKScene.CAM_DEFAULTS();
         this.resetSide = resetSide;
-
-        this.interactionMode = VTKUtils.interactionMode().INTERACTION_MODE_MOVE;
 
         this.marker = null;
         this.isMarkerEnabled = false;
@@ -3103,8 +3090,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 enabled: true,
             };
             $scope.modeText = {};
-            $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
-            $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_SELECT] = 'Control-click an object to select';
             $scope.isOrtho = false;
             $scope.selection = null;
 
@@ -3219,12 +3204,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $scope.vtkScene.rotate(angle);
                 refresh(true);
             };
-
-            $scope.setInteractionMode = mode => {
-                $scope.vtkScene.interactionMode = mode;
-                $scope.$emit('vtkScene.interactionMode', mode);
-            };
-
+            
             $scope.showSide = side => {
                 $scope.vtkScene.showSide(side);
                 refresh(true);

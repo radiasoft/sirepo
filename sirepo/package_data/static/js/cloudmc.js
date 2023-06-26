@@ -653,9 +653,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 }
 
                 // regular clicks are generated when spinning the scene - we'll select/deselect with ctrl-click
-                if (vtkScene.interactionMode === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_MOVE ||
-                    (vtkScene.interactionMode === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_SELECT && ! callData.controlKey)
-                ) {
+                if (! callData.controlKey) {
                     return;
                 }
 
