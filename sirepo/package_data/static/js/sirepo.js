@@ -1309,6 +1309,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         };
 
         const requestFunction = function() {
+            const i = appState.models.simulation.simulationId;
             setTimeout(() => {
                 if (! waitTimeHasElapsed) {
                     panelState.setLoading(modelName, true);
@@ -1320,6 +1321,12 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                     '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
+                    const c = appState.models.simulation.simulationId;
+                    if (! appState.isLoaded()) {
+                        if (! c || c !== i) {
+                            return;
+                        }
+                    }
                     waitTimeHasElapsed = true;
                     panelState.setLoading(modelName, false);
                     if ('state' in data && data.state === 'missing') {
@@ -1848,6 +1855,12 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         else {
             $(opt).attr('disabled', 'disabled');
         }
+    };
+
+    self.showArrayField = function(model, field, index, isShown) {
+        const f = $(fieldClass(model, field)).find('input.form-control').eq(index);
+        showValue(f, isShown);
+        showValue(f.prev('label'), isShown);
     };
 
     self.showField = function(model, field, isShown) {
@@ -3309,6 +3322,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 lastModified: item.lastModified,
                 isExample: item.isExample,
                 notes: item.notes,
+                canExport: SIREPO.APP_SCHEMA.constants.canExportArchive,
             };
             currentFolder.children.push(newItem);
         }

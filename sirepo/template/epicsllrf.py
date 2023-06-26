@@ -20,10 +20,15 @@ _STATUS_FILE = "status.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
+class EpicsDisconnectError(Exception):
+    pass
+
+
 def background_percent_complete(report, run_dir, is_running):
     return PKDict(
         percentComplete=100,
         frameCount=0,
+        alert=_parse_epics_log(run_dir),
         hasEpicsData=run_dir.join(_STATUS_FILE).exists(),
     )
 
@@ -76,11 +81,17 @@ def stateless_compute_read_epics_values(data, **kwargs):
 
 def stateless_compute_update_epics_value(data, **kwargs):
     for f in data.fields:
-        # TODO (gurhar1133): pvput should cause error when epics server not running
-        run_epics_cmd(
-            f"pvput {epics_field_name(data.model, f.field)} {f.value}",
-            data.serverAddress,
-        )
+        if (
+            run_epics_cmd(
+                f"pvput {epics_field_name(data.model, f.field)} {f.value}",
+                data.serverAddress,
+            )
+            != 0
+        ):
+            return PKDict(
+                success=False,
+                error=f"Unable to connect to EPICS server: {data.serverAddress}",
+            )
     return PKDict(success=True)
 
 
@@ -117,3 +128,15 @@ def _read_epics_data(run_dir):
             d[f] = v
         return d
     return PKDict()
+
+
+def _parse_epics_log(run_dir):
+    res = ""
+    with pkio.open_text(run_dir.join(template_common.RUN_LOG)) as f:
+        for line in f:
+            m = re.match(
+                r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)", line
+            )
+            if m:
+                return m.group(1)
+    return res
