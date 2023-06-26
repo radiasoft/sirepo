@@ -69,6 +69,11 @@
             ["x", "Radius (x)"],
             ["y", "Radius (y)"]
         ],
+        "ParticleSpecies": [
+            ["electrons", "Electron"],
+            ["protons", "Proton"],
+            ["ions", "Ion"]
+        ],
         "PlotRangeType": [
             ["none", "None"],
             ["fit", "Fit Data"],
@@ -167,16 +172,19 @@
             "transversalDistribution": ["Transversal Distribution", "TransversalDistribution"],
             "longitudinalDistribution": ["Longitudinal Distribution", "LongitudinalDistribution"],
             "current": ["Current [A]", "Float"],
+            "particleKeyword": ["Particle Species", "ParticleSpecies", "electrons"],
+            "particleParamA": ["A [a.m.u]", "Float", 1],
+            "particleParamQ": ["Q [ee]", "Integer", 1],
             "numberOfParticles": ["Particle Limit", "Integer", 1000, "", 1000],
             "spaceCharge": ["Space Charge Algorithm", "SpaceChargeAlgorithm"],
             "spaceChargeCore": ["Space Charge Ellipsoid Core (rms)", "Float", 3.0],
             "beamDefinition": ["Beam Particle Definition", "BeamDefinition", "transverse_longitude"],
-            "cstCompress": ["Compress Particles into One Bunch", "Boolean"],
-            "transversalFile2d": ["Transversal File (r, r')", "InputFile"],
-            "transversalFile4d": ["Transversal File (x, x', y, y')", "InputFile"],
-            "longitudinalFile1d": ["Longitudinal File (W)", "InputFile"],
-            "longitudinalFile2d": ["Longitudinal File (φ, W)", "InputFile"],
-            "cstFile": ["CST File", "InputFile"]
+            "cstCompress": ["Compress Particles into One Bunch", "Boolean", "0"],
+            "transversalFile2d": ["Transversal File (r, r')", "InputFile", ""],
+            "transversalFile4d": ["Transversal File (x, x', y, y')", "InputFile", ""],
+            "longitudinalFile1d": ["Longitudinal File (W)", "InputFile", ""],
+            "longitudinalFile2d": ["Longitudinal File (φ, W)", "InputFile", ""],
+            "cstFile": ["CST File", "InputFile", ""]
         },
         "beamAnimation": {
             "reportType": ["Report", "BeamReportType"],
@@ -301,6 +309,9 @@
             "title": "Beam",
             "basic": [
                 ["Main", [
+                    "particleKeyword",
+                    "particleParamA",
+                    "particleParamQ",
                     "current",
                     "numberOfParticles",
                     "spaceCharge",
