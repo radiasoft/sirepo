@@ -14,7 +14,7 @@
             <div class="row">
                 <div class="col-sm-12">
                     <div style="padding-top: 5px; padding-bottom: 8px"><span>Click and drag to rotate. Control-click an object to select. Double-click to reset camera</span><span data-text-with-math="selection.info || ''" data-is-dynamic="true" data-ng-show="enableSelection" class="pull-right"></span></div>
-                    <div data-ng-repeat="dim in GeometryUtils.BASIS()" data-toggle="tooltip" title="View along {{ dim }} axis" class="btn btn-default" data-ng-class="{'btn-primary': vtkScene.viewSide == '{{dim}}'}" style="margin: 2px;" data-ng-click="showSide(dim)">{{ dim }}{{ vtkScene.directionIcon() }}</div>
+                    <div data-ng-repeat="dim in GeometryUtils.BASIS()" data-toggle="tooltip" title="View along {{ dim }} axis" class="btn btn-default" data-ng-class="{'btn-primary': vtkScene.viewSide == '{{dim}}'}" style="margin: 2px; width: 3em;" data-ng-click="showSide(dim)">{{ dim }}{{ vtkScene.directionIcon() }}</div>
                     <div data-ng-repeat="r in [-90, -45]" data-toggle="tooltip" title="Rotate {{ r }}º" class="btn btn-default" data-ng-click="rotate(r)" ><span>{{ r }}º</span></div>
                     <div data-toggle="tooltip" title="Reset" class="btn btn-default"  data-ng-click="showSide(vtkScene.viewSide)">Reset</div>
                     <div data-ng-repeat="r in [45, 90]" data-toggle="tooltip" title="Rotate {{ r }}º" class="btn btn-default" data-ng-click="rotate(r)" ><span>{{ r }}º</span></div>
