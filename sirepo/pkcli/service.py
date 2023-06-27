@@ -163,24 +163,6 @@ def http():
 def jupyterhub():
     assert pkconfig.in_dev_mode()
     sirepo.template.assert_sim_type("jupyterhublogin")
-    # POSIT: versions same in container-beamsim-jupyter/build.sh
-    # Order is important: jupyterlab-server should be last so it isn't
-    # overwritten with a newer version.
-    for m, v in (
-        ("jupyterhub", "1.4.2"),
-        ("jupyterlab", "3.1.14 "),
-        ("jupyterlab_server", "2.8.2"),
-        ("notebook", "6.5.4"),
-    ):
-        try:
-            importlib.import_module(m)
-        except ModuleNotFoundError:
-            pkcli.command_error(
-                "{}: not installed run `pip install {}=={}`",
-                m,
-                m,
-                v,
-            )
     with pkio.save_chdir(_run_dir().join("jupyterhub").ensure(dir=True)) as d:
         f = d.join("conf.py")
         pkjinja.render_resource(
