@@ -359,7 +359,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     new SIREPO.GEOMETRY.SquareMatrix([[scale, 0, 0], [0, scale, 0], [0, 0, scale]])
                 )
             );
-            const watchFields = [`${$scope.modelName}.bgColor`, `${$scope.modelName}.showEdges`];
+            const watchFields = [
+                `${$scope.modelName}.bgColor`,
+                `${$scope.modelName}.showEdges`,
+                `${$scope.modelName}.showMarker`
+            ];
             const clientOnlyFields = ['voxels.colorMap'].concat(watchFields);
             const voxelPoly = [
                 [0, 1, 2, 3],
@@ -766,6 +770,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     return;
                 }
                 vtkScene.setBgColor(model().bgColor);
+                updateMarker();
                 for (const volId in bundleByVolume) {
                     const b = bundleByVolume[volId];
                     const v = getVolumeById(volId);
@@ -876,6 +881,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     }
                     appState.saveQuietly('tallyReport');
                 }
+            }
+
+            function updateMarker() {
+                vtkScene.isMarkerEnabled = model().showMarker === '1';
+                vtkScene.refreshMarker();
             }
 
             function updateSlice() {
@@ -1006,6 +1016,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                         vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
                     )
                 );
+                updateMarker();
 
                 picker = vtk.Rendering.Core.vtkCellPicker.newInstance();
                 picker.setPickFromList(true);

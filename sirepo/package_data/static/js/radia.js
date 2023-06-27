@@ -2711,6 +2711,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 });
             }
 
+            function updateMarker() {
+                $scope.vtkScene.isMarkerEnabled = appState.models.magnetDisplay.showMarker === '1';
+                $scope.vtkScene.refreshMarker();
+            }
+
             function updateViewer(doShowLoader=false) {
                 const c = didDisplayValsChange();
                 sceneData = {};
@@ -2733,6 +2738,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 $scope.model = appState.models[$scope.modelName];
                 appState.watchModelFields($scope, watchFields, updateLayout);
                 appState.watchModelFields($scope, ['magnetDisplay.bgColor'], setBgColor);
+                appState.watchModelFields($scope, ['magnetDisplay.showMarker'], updateMarker);
                 panelState.enableField('geometryReport', 'name', ! appState.models.simulation.isExample);
             });
 

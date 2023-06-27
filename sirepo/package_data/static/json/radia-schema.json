@@ -862,6 +862,7 @@
         "magnetDisplay": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
             "bgColor": ["Background Color", "Color", "#ffffff"],
+            "showMarker": ["Show axis marker", "Boolean", "1"],
             "fieldType": ["Field", "FieldType", "M"],
             "notes": ["Notes", "Text", ""],
             "viewType": ["View", "ViewType", "objects"]
@@ -1397,6 +1398,7 @@
                 "viewType",
                 "bgColor",
                 "alpha",
+                "showMarker",
                 "fieldType",
                 "fieldDisplay.colorMap",
                 "fieldDisplay.scaling"
