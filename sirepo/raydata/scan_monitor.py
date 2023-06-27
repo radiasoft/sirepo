@@ -239,7 +239,6 @@ class _Req(_JsonPostRequestHandler):
         )
 
     def _authenticate(self):
-        # POSIT: sirepo.template.raydata._request_scan_monitor
         if (
             self.request.headers.get("Authorization").split()[-1]
             != sirepo.feature_config.for_sim_type("raydata").scan_monitor_api_secret
