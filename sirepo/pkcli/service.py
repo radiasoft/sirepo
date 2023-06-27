@@ -3,10 +3,9 @@
 
 Also supports starting nginx proxy.
 
-:copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2015-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcli
 from pykern import pkcollections
 from pykern import pkconfig
@@ -46,8 +45,8 @@ def flask():
     with pkio.save_chdir(_run_dir()) as r:
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
-        assert pkconfig.channel_in("dev")
-        app = sirepo.modules.import_and_init("sirepo.server").init_app(
+        assert pkconfig.in_dev_mode()
+        app = sirepo.modules.import_and_init("sirepo.server", want_flask=True).init_app(
             use_reloader=_cfg().use_reloader,
             is_server=True,
         )
@@ -57,7 +56,9 @@ def flask():
         serving.click = None
         app.run(
             exclude_patterns=[str(r.join("*"))],
-            extra_files=sirepo.util.files_to_watch_for_reload("json"),
+            extra_files=sirepo.util.files_to_watch_for_reload("json")
+            if _cfg().use_reloader
+            else [],
             host=_cfg().ip,
             port=_cfg().port,
             reloader_type="stat",
@@ -114,7 +115,14 @@ def http():
         except (psutil.TimeoutExpired, subprocess.TimeoutExpired):
             proc.kill()
 
-    def _start(service, extra_environ, cwd=".", prefix=("pyenv", "exec", "sirepo")):
+    def _start(service, extra_environ, cwd=".", want_prefix=True):
+        if not want_prefix:
+            prefix = ()
+        else:
+            if sirepo.feature_config.cfg().trust_sh_env:
+                prefix = ("sirepo",)
+            else:
+                prefix = ("pyenv", "exec", "sirepo")
         processes.append(
             subprocess.Popen(
                 prefix + service,
@@ -123,29 +131,28 @@ def http():
             )
         )
 
+    assert pkconfig.in_dev_mode()
     try:
         with pkio.save_chdir(_run_dir()), _handle_signals(
             (signal.SIGINT, signal.SIGTERM)
         ):
-            if pkconfig.channel_in("dev") and _cfg().react_port:
+            e = PKDict()
+            if _cfg().react_port:
                 _install_react()
+                _start(
+                    ("npm", "start"),
+                    cwd="../react",
+                    want_prefix=False,
+                    extra_environ=PKDict(PORT=str(_cfg().react_port)),
+                )
+                e.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"
+            _start(("service", "server"), extra_environ=e)
+            # Avoid race condition on creating auth db
+            time.sleep(0.3)
             _start(
                 ("job_supervisor",),
                 extra_environ=PKDict(SIREPO_JOB_DRIVER_MODULES="local"),
             )
-            e = PKDict()
-            if _cfg().react_port:
-                # Avoid race condition on creating auth db
-                time.sleep(0.3)
-                _start(
-                    ("npm", "start"),
-                    cwd="../react",
-                    prefix=(),
-                    extra_environ=PKDict(PORT=str(_cfg().react_port)),
-                )
-                e.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"
-            time.sleep(0.3)
-            _start(("service", "server"), extra_environ=e)
             p, _ = os.wait()
     except ChildProcessError:
         pass
@@ -154,7 +161,7 @@ def http():
 
 
 def jupyterhub():
-    assert pkconfig.channel_in("dev")
+    assert pkconfig.in_dev_mode()
     sirepo.template.assert_sim_type("jupyterhublogin")
     # POSIT: versions same in container-beamsim-jupyter/build.sh
     # Order is important: jupyterlab-server should be last so it isn't
@@ -203,7 +210,7 @@ def nginx_proxy():
     """
     import sirepo.template
 
-    assert pkconfig.channel_in("dev")
+    assert pkconfig.in_dev_mode()
     run_dir = _run_dir().join("nginx_proxy").ensure(dir=True)
     with pkio.save_chdir(run_dir) as d:
         f = run_dir.join("default.conf")
@@ -230,19 +237,19 @@ def server():
 
 def tornado():
     with pkio.save_chdir(_run_dir()) as r:
-        sirepo.pkcli.setup_dev.default_command()
-        # above will throw better assertion, but just in case
-        assert pkconfig.channel_in("dev")
-        if _cfg().use_reloader:
-            import tornado.autoreload
+        d = pkconfig.in_dev_mode()
+        if d:
+            sirepo.pkcli.setup_dev.default_command()
+            if _cfg().use_reloader:
+                import tornado.autoreload
 
-            for f in sirepo.util.files_to_watch_for_reload("json", "py"):
-                tornado.autoreload.watch(f)
+                for f in sirepo.util.files_to_watch_for_reload("json", "py"):
+                    tornado.autoreload.watch(f)
         pkdlog("ip={} port={}", _cfg().ip, _cfg().port)
         sirepo.modules.import_and_init("sirepo.uri_router").start_tornado(
+            debug=sirepo.feature_config.cfg().debug_mode,
             ip=_cfg().ip,
             port=_cfg().port,
-            debug=True,
         )
 
 
@@ -252,7 +259,7 @@ def uwsgi():
     with pkio.save_chdir(run_dir):
         values = _cfg().copy()
         values["logto"] = (
-            None if pkconfig.channel_in("dev") else str(run_dir.join("uwsgi.log"))
+            None if pkconfig.in_dev_mode() else str(run_dir.join("uwsgi.log"))
         )
         # uwsgi.py must be first, because values['uwsgi_py'] referenced by uwsgi.yml
         for f in ("uwsgi.py", "uwsgi.yml"):
@@ -273,11 +280,6 @@ def _cfg():
                 _cfg_port,
                 "port on which jupyterhub listens",
             ),
-            jupyterhub_debug=(
-                True,
-                bool,
-                "turn on debugging for jupyterhub (hub, spawner, ConfigurableHTTPProxy)",
-            ),
             nginx_proxy_port=(
                 sirepo.const.PORT_DEFAULTS.nginx_proxy,
                 _cfg_port,
@@ -289,7 +291,7 @@ def _cfg():
                 "port on which uwsgi or http listens",
             ),
             react_port=(
-                sirepo.const.PORT_DEFAULTS.react,
+                sirepo.const.PORT_DEFAULTS.react if pkconfig.in_dev_mode() else None,
                 _cfg_port,
                 "port on which react listens",
             ),
@@ -300,7 +302,7 @@ def _cfg():
             # this application.
             threads=(10, _cfg_int(1, 128), "how many uwsgi threads in each process"),
             tornado=(False, bool, "use tornado for server"),
-            use_reloader=(pkconfig.channel_in("dev"), bool, "use the server reloader"),
+            use_reloader=(pkconfig.in_dev_mode(), bool, "use the server reloader"),
         )
     return __cfg
 

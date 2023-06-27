@@ -11,6 +11,14 @@ import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
+    ANALYSIS_ONLY_FIELDS = frozenset(("colorMap",))
+    SOURCE_REPORTS = frozenset(
+        (
+            "laserPulseAnimation",
+            "laserPulse2Animation",
+        )
+    )
+
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
@@ -21,15 +29,25 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "crystal3dAnimation",
                 "crystalCylinder",
                 "crystalSettings",
-                "gaussianBeam",
+                "laserPulse",
+                "laserPulseAnimation",
+                "laserPulse2Animation",
+                "initialIntensityReport",
                 "plotAnimation",
                 "plot2Animation",
                 "simulation",
-                "simulationSettings",
-                "wavefrontSummaryAnimation",
             ),
         )
+        for n in dm:
+            if "beamlineAnimation" in n:
+                if "dataType" in dm[n]:
+                    del dm[n]["dataType"]
+                cls.update_model_defaults(dm[n], cls.WATCHPOINT_REPORT)
         for m in dm.beamline:
+            if m.type == "crystal" and "n0" in m and not isinstance(m.n0, list):
+                del m["n0"]
+                if "n2" in m:
+                    del m["n2"]
             cls.update_model_defaults(m, m.type)
 
     @classmethod
@@ -41,13 +59,24 @@ class SimData(sirepo.sim_data.SimDataBase):
             "plot2Animation",
         ):
             return "crystalAnimation"
+        if "beamlineAnimation" in analysis_model:
+            return "beamlineAnimation"
+        if analysis_model in cls.SOURCE_REPORTS:
+            return "laserPulseAnimation"
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        res = []
-        return res
+        return []
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        return []
+        res = []
+        if data.models.laserPulse.distribution == "file":
+            for f in ("ccd", "meta", "wfs"):
+                res.append(
+                    cls.lib_file_name_with_model_field(
+                        "laserPulse", f, data.models.laserPulse[f]
+                    )
+                )
+        return res

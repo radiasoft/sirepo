@@ -23,6 +23,45 @@
             "config": {
                 "isRequired": false
             }
+        },
+        "BeamParameter": {
+            "base": "Enum",
+            "config": {
+                "allowedValues": [
+                    [
+                        "none",
+                        "None"
+                    ],
+                    [
+                        "rmsx",
+                        "X RMS"
+                    ],
+                    [
+                        "rmsy",
+                        "Y RMS"
+                    ],
+                    [
+                        "rmss",
+                        "S RMS"
+                    ],
+                    [
+                        "rmspx",
+                        "X' RMS"
+                    ],
+                    [
+                        "rmspy",
+                        "Y' RMS"
+                    ],
+                    [
+                        "meanx",
+                        "X Mean"
+                    ],
+                    [
+                        "meany",
+                        "Y Mean"
+                    ]
+                ]
+            }
         }
     },
     "model": {
@@ -44,7 +83,8 @@
             },
             "simType_1": {
                 "displayName": "1: Simulation Type",
-                "type": "CoupledSimType"
+                "type": "CoupledSimType",
+                "defaultValue": ""
             },
             "simId_1": {
                 "displayName": "Simulation",
@@ -53,6 +93,7 @@
             "simType_2": {
                 "displayName": "2: Simulation Type",
                 "type": "CoupledSimType",
+                "defaultValue": "",
                 "shown": "$(simWorkflow.simType_1) && $(simWorkflow.simId_1) ? true : false"
             },
             "simId_2": {
@@ -63,6 +104,7 @@
             "simType_3": {
                 "displayName": "3: Simulation Type",
                 "type": "CoupledSimType",
+                "defaultValue": "",
                 "shown": "$(simWorkflow.simType_2) && $(simWorkflow.simId_2) ? true : false"
             },
             "simId_3": {
@@ -73,6 +115,7 @@
             "simType_4": {
                 "displayName": "4: Simulation Type",
                 "type": "CoupledSimType",
+                "defaultValue": "",
                 "shown": "$(simWorkflow.simType_3) && $(simWorkflow.simId_3) ? true : false"
             },
             "simId_4": {
@@ -87,7 +130,89 @@
                 "type": "Integer"
             }
         },
+        "sim1BeamAnimation": {
+            "y1": {
+                "displayName": "Y1 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betax"
+            },
+            "y2": {
+                "displayName": "Y2 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betay"
+            },
+            "y3": {
+                "displayName": "Y3 Value",
+                "type": "BeamParameter",
+                "defaultValue": "etax"
+            }
+        },
+        "sim1Phase1Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim1Phase2Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim1Phase3Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim1Phase4Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
         "sim2Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim2BeamAnimation": {
+            "y1": {
+                "displayName": "Y1 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betax"
+            },
+            "y2": {
+                "displayName": "Y2 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betay"
+            },
+            "y3": {
+                "displayName": "Y3 Value",
+                "type": "BeamParameter",
+                "defaultValue": "etax"
+            }
+        },
+        "sim2Phase1Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim2Phase2Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim2Phase3Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim2Phase4Animation": {
             "histogramBins": {
                 "displayName": "Histogram Bins",
                 "type": "Integer"
@@ -99,7 +224,89 @@
                 "type": "Integer"
             }
         },
+        "sim3BeamAnimation": {
+            "y1": {
+                "displayName": "Y1 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betax"
+            },
+            "y2": {
+                "displayName": "Y2 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betay"
+            },
+            "y3": {
+                "displayName": "Y3 Value",
+                "type": "BeamParameter",
+                "defaultValue": "etax"
+            }
+        },
+        "sim3Phase1Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim3Phase2Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim3Phase3Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim3Phase4Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
         "sim4Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim4BeamAnimation": {
+            "y1": {
+                "displayName": "Y1 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betax"
+            },
+            "y2": {
+                "displayName": "Y2 Value",
+                "type": "BeamParameter",
+                "defaultValue": "betay"
+            },
+            "y3": {
+                "displayName": "Y3 Value",
+                "type": "BeamParameter",
+                "defaultValue": "etax"
+            }
+        },
+        "sim4Phase1Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim4Phase2Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim4Phase3Animation": {
+            "histogramBins": {
+                "displayName": "Histogram Bins",
+                "type": "Integer"
+            }
+        },
+        "sim4Phase4Animation": {
             "histogramBins": {
                 "displayName": "Histogram Bins",
                 "type": "Integer"
@@ -128,12 +335,10 @@
         {
             "layout": "navTabs",
             "config": {
-                "name": "navtabs",
                 "tabs": [
                     {
                         "name": "source",
                         "title": "Source",
-                        "icon": "",
                         "items": [
                             {
                                 "layout": "waterfall",
@@ -147,11 +352,11 @@
                                         "horizontal": ".5em",
                                         "vertical": ".5em"
                                     },
+                                    "padding": ".5em",
                                     "items": [
                                         {
                                             "layout": "panel",
                                             "config": {
-                                                "name": "simWorkflow",
                                                 "title": "Simulation Workflow",
                                                 "basic": [
                                                     {
@@ -193,32 +398,175 @@
                                 "config": {
                                     "breakpoints": {
                                         "sm": 1,
-                                        "md": 2,
-                                        "xl": 3
+                                        "md": 2
                                     },
                                     "gutters": {
                                         "horizontal": ".5em",
                                         "vertical": ".5em"
                                     },
+                                    "padding": ".5em",
                                     "items": [
                                         {
                                             "layout": "panel",
                                             "config": {
-                                                "name": "sim1Animation",
+                                                "title": "Simulation 1 Beam Parameters",
+                                                "basic": [
+                                                    {
+                                                        "layout": "manualRunReport",
+                                                        "config": {
+                                                            "reportGroupName": "animation",
+                                                            "reportName": "sim1BeamAnimation",
+                                                            "frameIdFields": [
+                                                                "sim1BeamAnimation.y1",
+                                                                "sim1BeamAnimation.y2",
+                                                                "sim1BeamAnimation.y3"
+                                                            ],
+                                                            "reportLayout": {
+                                                                "layout": "graph2d",
+                                                                "config": {}
+                                                            }
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "sim1BeamAnimation.y1",
+                                                                "sim1BeamAnimation.y2",
+                                                                "sim1BeamAnimation.y3"
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "name": "sim1Phase1Animation",
                                                 "title": "Simulation 1 Phase Space",
                                                 "basic": [
                                                     {
+                                                        "layout": "multiPanel",
+                                                        "config": {
+                                                            "columns": 2,
+                                                            "reportName": "sim1Phase1Animation",
+                                                            "reportGroupName": "animation",
+                                                            "frameIdFields": [
+                                                                "sim1Phase1Animation.histogramBins"
+                                                            ],
+                                                            "items": [
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim1Phase1Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim1Phase1Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim1Phase2Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim1Phase2Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim1Phase3Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim1Phase3Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim1Phase4Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim1Phase4Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "layout": "waterfall",
+                                "config": {
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "padding": ".5em",
+                                    "items": [
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "title": "Simulation 2 Beam Parameters",
+                                                "basic": [
+                                                    {
                                                         "layout": "manualRunReport",
                                                         "config": {
                                                             "reportGroupName": "animation",
-                                                            "reportName": "sim1Animation",
+                                                            "reportName": "sim2BeamAnimation",
                                                             "frameIdFields": [
-                                                                "sim1Animation.histogramBins"
+                                                                "sim2BeamAnimation.y1",
+                                                                "sim2BeamAnimation.y2",
+                                                                "sim2BeamAnimation.y3"
                                                             ],
-                                                            "frameIdFields": [
-                                                                "sim1Animation.histogramBins"
-                                                            ],
-                                                            "reportLayout": { "layout": "heatplot", "config": {} }
+                                                            "reportLayout": {
+                                                                "layout": "graph2d",
+                                                                "config": {}
+                                                            }
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "sim2BeamAnimation.y1",
+                                                                "sim2BeamAnimation.y2",
+                                                                "sim2BeamAnimation.y3"
+                                                            ]
                                                         }
                                                     }
                                                 ]
@@ -227,21 +575,128 @@
                                         {
                                             "layout": "panel",
                                             "config": {
-                                                "name": "sim2Animation",
+                                                "name": "sim2Phase1Animation",
                                                 "title": "Simulation 2 Phase Space",
                                                 "basic": [
                                                     {
+                                                        "layout": "multiPanel",
+                                                        "config": {
+                                                            "columns": 2,
+                                                            "reportName": "sim2Phase1Animation",
+                                                            "reportGroupName": "animation",
+                                                            "frameIdFields": [
+                                                                "sim2Phase1Animation.histogramBins"
+                                                            ],
+                                                            "items": [
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim2Phase1Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim2Phase1Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim2Phase2Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim2Phase2Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim2Phase3Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim2Phase3Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim2Phase4Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim2Phase4Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "layout": "waterfall",
+                                "config": {
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "padding": ".5em",
+                                    "items": [
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "title": "Simulation 3 Beam Parameters",
+                                                "basic": [
+                                                    {
                                                         "layout": "manualRunReport",
                                                         "config": {
                                                             "reportGroupName": "animation",
-                                                            "reportName": "sim2Animation",
+                                                            "reportName": "sim3BeamAnimation",
                                                             "frameIdFields": [
-                                                                "sim2Animation.histogramBins"
+                                                                "sim3BeamAnimation.y1",
+                                                                "sim3BeamAnimation.y2",
+                                                                "sim3BeamAnimation.y3"
                                                             ],
-                                                            "frameIdFields": [
-                                                                "sim2Animation.histogramBins"
-                                                            ],
-                                                            "reportLayout": { "layout": "heatplot", "config": {} }
+                                                            "reportLayout": {
+                                                                "layout": "graph2d",
+                                                                "config": {}
+                                                            }
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "sim3BeamAnimation.y1",
+                                                                "sim3BeamAnimation.y2",
+                                                                "sim3BeamAnimation.y3"
+                                                            ]
                                                         }
                                                     }
                                                 ]
@@ -250,21 +705,128 @@
                                         {
                                             "layout": "panel",
                                             "config": {
-                                                "name": "sim3Animation",
+                                                "name": "sim3Phase1Animation",
                                                 "title": "Simulation 3 Phase Space",
                                                 "basic": [
                                                     {
+                                                        "layout": "multiPanel",
+                                                        "config": {
+                                                            "columns": 2,
+                                                            "reportName": "sim3Phase1Animation",
+                                                            "reportGroupName": "animation",
+                                                            "frameIdFields": [
+                                                                "sim3Phase1Animation.histogramBins"
+                                                            ],
+                                                            "items": [
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim3Phase1Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim3Phase1Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim3Phase2Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim3Phase2Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim3Phase3Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim3Phase3Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim3Phase4Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim3Phase4Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "layout": "waterfall",
+                                "config": {
+                                    "breakpoints": {
+                                        "sm": 1,
+                                        "md": 2
+                                    },
+                                    "gutters": {
+                                        "horizontal": ".5em",
+                                        "vertical": ".5em"
+                                    },
+                                    "padding": ".5em",
+                                    "items": [
+                                        {
+                                            "layout": "panel",
+                                            "config": {
+                                                "title": "Simulation 4 Beam Parameters",
+                                                "basic": [
+                                                    {
                                                         "layout": "manualRunReport",
                                                         "config": {
                                                             "reportGroupName": "animation",
-                                                            "reportName": "sim3Animation",
+                                                            "reportName": "sim4BeamAnimation",
                                                             "frameIdFields": [
-                                                                "sim3Animation.histogramBins"
+                                                                "sim4BeamAnimation.y1",
+                                                                "sim4BeamAnimation.y2",
+                                                                "sim4BeamAnimation.y3"
                                                             ],
-                                                            "frameIdFields": [
-                                                                "sim3Animation.histogramBins"
-                                                            ],
-                                                            "reportLayout": { "layout": "heatplot", "config": {} }
+                                                            "reportLayout": {
+                                                                "layout": "graph2d",
+                                                                "config": {}
+                                                            }
+                                                        }
+                                                    }
+                                                ],
+                                                "advanced": [
+                                                    {
+                                                        "layout": "fieldList",
+                                                        "config": {
+                                                            "fields": [
+                                                                "sim4BeamAnimation.y1",
+                                                                "sim4BeamAnimation.y2",
+                                                                "sim4BeamAnimation.y3"
+                                                            ]
                                                         }
                                                     }
                                                 ]
@@ -273,21 +835,76 @@
                                         {
                                             "layout": "panel",
                                             "config": {
-                                                "name": "sim4Animation",
+                                                "name": "sim4Phase1Animation",
                                                 "title": "Simulation 4 Phase Space",
                                                 "basic": [
                                                     {
-                                                        "layout": "manualRunReport",
+                                                        "layout": "multiPanel",
                                                         "config": {
+                                                            "columns": 2,
+                                                            "reportName": "sim4Phase1Animation",
                                                             "reportGroupName": "animation",
-                                                            "reportName": "sim4Animation",
                                                             "frameIdFields": [
-                                                                "sim4Animation.histogramBins"
+                                                                "sim4Phase1Animation.histogramBins"
                                                             ],
-                                                            "frameIdFields": [
-                                                                "sim4Animation.histogramBins"
-                                                            ],
-                                                            "reportLayout": { "layout": "heatplot", "config": {} }
+                                                            "items": [
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim4Phase1Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim4Phase1Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim4Phase2Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim4Phase2Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim4Phase3Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim4Phase3Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "layout": "manualRunReport",
+                                                                    "config": {
+                                                                        "reportGroupName": "animation",
+                                                                        "reportName": "sim4Phase4Animation",
+                                                                        "frameIdFields": [
+                                                                            "sim4Phase4Animation.histogramBins"
+                                                                        ],
+                                                                        "reportLayout": {
+                                                                            "layout": "heatplotPlain",
+                                                                            "config": {}
+                                                                        }
+                                                                    }
+                                                                }
+                                                            ]
                                                         }
                                                     }
                                                 ]

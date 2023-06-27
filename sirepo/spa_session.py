@@ -8,12 +8,9 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from pykern.pkcollections import PKDict
 import contextlib
 import datetime
-import pykern.pkconfig
-import sirepo.events
 import sirepo.quest
 import sirepo.srtime
-import sirepo.util
-import sqlalchemy
+import threading
 
 _REFRESH_SESSION = datetime.timedelta(seconds=5 * 60)
 
@@ -21,18 +18,22 @@ _DB = PKDict()
 
 _initialized = None
 
+#: Lock for operations across Sirepo (server)
+_THREAD_LOCK = None
 
-def init_module():
-    global _initialized, _cfg
+
+def init_module(want_flask):
+    global _initialized, _cfg, _THREAD_LOCK
     if _initialized:
         return
+    _THREAD_LOCK = threading.RLock() if want_flask else contextlib.nullcontext()
     _initialized = True
 
 
-def init_quest(qcall):
-    def _begin():
+async def init_quest(qcall):
+    async def _begin():
         try:
-            qcall.call_api("beginSession").destroy()
+            (await qcall.call_api("beginSession")).destroy()
         except Exception as e:
             pkdlog("error={} trying api_beginSession stack={}", e, pkdexc())
 
@@ -43,13 +44,13 @@ def init_quest(qcall):
         if s:
             if t - s.request_time < _REFRESH_SESSION:
                 return False
-            with sirepo.util.THREAD_LOCK:
+            with _THREAD_LOCK:
                 s.request_time = t
         else:
             s = PKDict(request_time=t)
-            with sirepo.util.THREAD_LOCK:
+            with _THREAD_LOCK:
                 _DB[u] = s
         return True
 
     if qcall.sreq.method_is_post() and qcall.auth.is_logged_in() and _check():
-        _begin()
+        await _begin()

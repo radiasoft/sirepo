@@ -246,7 +246,7 @@ class PlotPolygon extends AbstractPlotShape2D {
     getSizeCoords() {
         return this.getCoords(this.size);
     }
-    
+
     setPoints(arr) {
         this.points = arr;
     }
@@ -282,16 +282,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;
-    var COLOR_MAP = {
-        grayscale: ['#333', '#fff'],
-        afmhot: colorsFromString('0000000200000400000600000800000a00000c00000e00001000001200001400001600001800001a00001c00001e00002000002200002400002600002800002a00002c00002e00003000003200003400003600003800003a00003c00003e00004000004200004400004600004800004a00004c00004e00005000005200005400005600005800005a00005c00005e00006000006200006400006600006800006a00006c00006e00007000007200007400007600007800007a00007c00007e00008000008202008404008607008808008a0a008c0d008e0f009010009212009414009617009818009a1a009c1d009e1f00a02000a22200a42400a62700a82800aa2a00ac2d00ae2f00b03000b23200b43400b63700b83800ba3a00bc3d00be3f00c04000c24200c44400c64600c84800ca4a00cc4d00ce4e00d05000d25200d45400d65600d85800da5a00dc5d00de5e00e06000e26200e46400e66600e86800ea6a00ec6d00ee6e00f07000f27200f47400f67600f87800fa7a00fc7d00fe7e00ff8001ff8203ff8405ff8607ff8809ff8b0bff8c0dff8e0fff9011ff9213ff9415ff9617ff9919ff9b1bff9c1dff9e1fffa021ffa223ffa425ffa627ffa829ffab2bffac2dffae2fffb031ffb233ffb435ffb637ffb939ffbb3bffbc3dffbe3fffc041ffc243ffc445ffc647ffc849ffcb4bffcc4dffce4fffd051ffd253ffd455ffd657ffd959ffdb5bffdc5dffde5fffe061ffe263ffe465ffe667ffe869ffeb6bffec6dffee6ffff071fff273fff475fff677fff979fffb7bfffc7dfffe7fffff81ffff83ffff85ffff87ffff89ffff8bffff8dffff8fffff91ffff93ffff95ffff97ffff99ffff9bffff9dffff9fffffa1ffffa3ffffa5ffffa7ffffa9ffffabffffadffffafffffb1ffffb3ffffb5ffffb7ffffb9ffffbbffffbdffffbfffffc1ffffc3ffffc5ffffc7ffffc9ffffcbffffcdffffcfffffd1ffffd3ffffd5ffffd7ffffd9ffffdbffffddffffdfffffe1ffffe3ffffe5ffffe7ffffe9ffffebffffedffffeffffff1fffff3fffff5fffff7fffff9fffffbfffffdffffff'),
-        blues: colorsFromString('f7fbffdeebf7c6dbef9ecae16baed64292c62171b508519c08306b'),
-        coolwarm: colorsFromString('3b4cc03c4ec23d50c33e51c53f53c64055c84257c94358cb445acc455cce465ecf485fd14961d24a63d34b64d54c66d64e68d84f69d9506bda516ddb536edd5470de5572df5673e05875e15977e35a78e45b7ae55d7ce65e7de75f7fe86180e96282ea6384eb6485ec6687ed6788ee688aef6a8bef6b8df06c8ff16e90f26f92f37093f37295f47396f57597f67699f6779af7799cf87a9df87b9ff97da0f97ea1fa80a3fa81a4fb82a6fb84a7fc85a8fc86a9fc88abfd89acfd8badfd8caffe8db0fe8fb1fe90b2fe92b4fe93b5fe94b6ff96b7ff97b8ff98b9ff9abbff9bbcff9dbdff9ebeff9fbfffa1c0ffa2c1ffa3c2fea5c3fea6c4fea7c5fea9c6fdaac7fdabc8fdadc9fdaec9fcafcafcb1cbfcb2ccfbb3cdfbb5cdfab6cefab7cff9b9d0f9bad0f8bbd1f8bcd2f7bed2f6bfd3f6c0d4f5c1d4f4c3d5f4c4d5f3c5d6f2c6d6f1c7d7f0c9d7f0cad8efcbd8eeccd9edcdd9eccedaebcfdaead1dae9d2dbe8d3dbe7d4dbe6d5dbe5d6dce4d7dce3d8dce2d9dce1dadce0dbdcdedcdddddddcdcdedcdbdfdbd9e0dbd8e1dad6e2dad5e3d9d3e4d9d2e5d8d1e6d7cfe7d7cee8d6cce9d5cbead5c9ead4c8ebd3c6ecd3c5edd2c3edd1c2eed0c0efcfbfefcebdf0cdbbf1cdbaf1ccb8f2cbb7f2cab5f2c9b4f3c8b2f3c7b1f4c6aff4c5adf5c4acf5c2aaf5c1a9f5c0a7f6bfa6f6bea4f6bda2f7bca1f7ba9ff7b99ef7b89cf7b79bf7b599f7b497f7b396f7b194f7b093f7af91f7ad90f7ac8ef7aa8cf7a98bf7a889f7a688f6a586f6a385f6a283f5a081f59f80f59d7ef59c7df49a7bf4987af39778f39577f39475f29274f29072f18f71f18d6ff08b6ef08a6cef886bee8669ee8468ed8366ec8165ec7f63eb7d62ea7b60e97a5fe9785de8765ce7745be67259e57058e46e56e36c55e36b54e26952e16751e0654fdf634ede614ddd5f4bdc5d4ada5a49d95847d85646d75445d65244d55042d44e41d24b40d1493fd0473dcf453ccd423bcc403acb3e38ca3b37c83836c73635c53334c43032c32e31c12b30c0282fbe242ebd1f2dbb1b2cba162bb8122ab70d28b50927b40426'),
-        jet: colorsFromString('00008000008400008900008d00009200009600009b00009f0000a40000a80000ad0000b20000b60000bb0000bf0000c40000c80000cd0000d10000d60000da0000df0000e30000e80000ed0000f10000f60000fa0000ff0000ff0000ff0000ff0000ff0004ff0008ff000cff0010ff0014ff0018ff001cff0020ff0024ff0028ff002cff0030ff0034ff0038ff003cff0040ff0044ff0048ff004cff0050ff0054ff0058ff005cff0060ff0064ff0068ff006cff0070ff0074ff0078ff007cff0080ff0084ff0088ff008cff0090ff0094ff0098ff009cff00a0ff00a4ff00a8ff00acff00b0ff00b4ff00b8ff00bcff00c0ff00c4ff00c8ff00ccff00d0ff00d4ff00d8ff00dcfe00e0fb00e4f802e8f406ecf109f0ee0cf4eb0ff8e713fce416ffe119ffde1cffdb1fffd723ffd426ffd129ffce2cffca30ffc733ffc436ffc139ffbe3cffba40ffb743ffb446ffb149ffad4dffaa50ffa753ffa456ffa05aff9d5dff9a60ff9763ff9466ff906aff8d6dff8a70ff8773ff8377ff807aff7d7dff7a80ff7783ff7387ff708aff6d8dff6a90ff6694ff6397ff609aff5d9dff5aa0ff56a4ff53a7ff50aaff4dadff49b1ff46b4ff43b7ff40baff3cbeff39c1ff36c4ff33c7ff30caff2cceff29d1ff26d4ff23d7ff1fdbff1cdeff19e1ff16e4ff13e7ff0febff0ceeff09f1fc06f4f802f8f500fbf100feed00ffea00ffe600ffe200ffde00ffdb00ffd700ffd300ffd000ffcc00ffc800ffc400ffc100ffbd00ffb900ffb600ffb200ffae00ffab00ffa700ffa300ff9f00ff9c00ff9800ff9400ff9100ff8d00ff8900ff8600ff8200ff7e00ff7a00ff7700ff7300ff6f00ff6c00ff6800ff6400ff6000ff5d00ff5900ff5500ff5200ff4e00ff4a00ff4700ff4300ff3f00ff3b00ff3800ff3400ff3000ff2d00ff2900ff2500ff2200ff1e00ff1a00ff1600ff1300fa0f00f60b00f10800ed0400e80000e40000df0000da0000d60000d10000cd0000c80000c40000bf0000bb0000b60000b20000ad0000a80000a400009f00009b00009600009200008d0000890000840000800000'),
-        viridis: colorsFromString('44015444025645045745055946075a46085c460a5d460b5e470d60470e6147106347116447136548146748166848176948186a481a6c481b6d481c6e481d6f481f70482071482173482374482475482576482677482878482979472a7a472c7a472d7b472e7c472f7d46307e46327e46337f463480453581453781453882443983443a83443b84433d84433e85423f854240864241864142874144874045884046883f47883f48893e49893e4a893e4c8a3d4d8a3d4e8a3c4f8a3c508b3b518b3b528b3a538b3a548c39558c39568c38588c38598c375a8c375b8d365c8d365d8d355e8d355f8d34608d34618d33628d33638d32648e32658e31668e31678e31688e30698e306a8e2f6b8e2f6c8e2e6d8e2e6e8e2e6f8e2d708e2d718e2c718e2c728e2c738e2b748e2b758e2a768e2a778e2a788e29798e297a8e297b8e287c8e287d8e277e8e277f8e27808e26818e26828e26828e25838e25848e25858e24868e24878e23888e23898e238a8d228b8d228c8d228d8d218e8d218f8d21908d21918c20928c20928c20938c1f948c1f958b1f968b1f978b1f988b1f998a1f9a8a1e9b8a1e9c891e9d891f9e891f9f881fa0881fa1881fa1871fa28720a38620a48621a58521a68522a78522a88423a98324aa8325ab8225ac8226ad8127ad8128ae8029af7f2ab07f2cb17e2db27d2eb37c2fb47c31b57b32b67a34b67935b77937b87838b9773aba763bbb753dbc743fbc7340bd7242be7144bf7046c06f48c16e4ac16d4cc26c4ec36b50c46a52c56954c56856c66758c7655ac8645cc8635ec96260ca6063cb5f65cb5e67cc5c69cd5b6ccd5a6ece5870cf5773d05675d05477d1537ad1517cd2507fd34e81d34d84d44b86d54989d5488bd6468ed64590d74393d74195d84098d83e9bd93c9dd93ba0da39a2da37a5db36a8db34aadc32addc30b0dd2fb2dd2db5de2bb8de29bade28bddf26c0df25c2df23c5e021c8e020cae11fcde11dd0e11cd2e21bd5e21ad8e219dae319dde318dfe318e2e418e5e419e7e419eae51aece51befe51cf1e51df4e61ef6e620f8e621fbe723fde725'),
-        // String.repeat() not available in all browsers
-        contrast: colorsFromString('000000' + Array(255).join('ffffff')),
-    };
+    const COLOR_MAP = PlottingUtils.COLOR_MAP();
 
     // polyfill for MSIE without Math.log2 and Math.log10
     Math.log2 = Math.log2 || function(x) {
@@ -311,12 +302,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         // send info in two formats, similar to modelChanged
         $rootScope.$broadcast(name + '.summaryData', summaryData);
         $rootScope.$broadcast('summaryData', name, summaryData);
-    }
-
-    function colorsFromString(s) {
-        return s.match(/.{6}/g).map(function(x) {
-            return "#" + x;
-        });
     }
 
     function initAnimation(scope) {
@@ -630,6 +615,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             var m = appState.models[modelName];
             var zMin = plotRange.min;
             var zMax = plotRange.max;
+            if (zMin == zMax) {
+                // draw single value plot as lowest colormap value
+                zMax += 1;
+            }
             if (m.colorRangeType == 'fixed') {
                 zMin = m.colorMin;
                 zMax = m.colorMax;
@@ -641,12 +630,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 .clamp(true);
         },
 
-        colorScale: function(min, max, colorMap) {
-            return d3.scale.linear()
-                .domain(linearlySpacedArray(min, max, colorMap.length))
-                .range(colorMap)
-                .clamp(true);
-        },
+        colorScale: PlottingUtils.colorScale,
 
         colorsFromHexString: function(color, range) {
             if (! (/^#([0-9a-f]{2}){3}$/i).test(color)) {
@@ -794,7 +778,13 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 for (var xi = 0; xi < xSize; ++xi) {
                     var v = heatmap[yi][xi];
                     if (scaleFunction) {
+                        const old = v;
                         v = scaleFunction(v);
+                        if (! v && plotRange.min === 0 && old) {
+                            // special case for 0..n range with log scale
+                            // scale log(1) to a nonzero value
+                            v = 0.5;
+                        }
                     }
                     var c = d3.rgb(colorScale(v));
                     img.data[++p] = c.r;
@@ -847,7 +837,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                         scope.modelChanged();
                     }
                     panelState.clear(scope.modelName);
-                    requestData();
+                    if (! scope.isClientOnly) {
+                        requestData();
+                    }
                 });
 
             scope.isLoading = () => panelState.isLoading(scope.modelName);
@@ -1748,75 +1740,103 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
 
     svc.parseLabelAndUnits = function(label, isFixedUnits) {
         const re = isFixedUnits ? /\((.*?)\)/ : /\[(.*?)\]/;
-        let units = '';
-        let match = label.match(re);
+        const match = label.match(re);
         if (match) {
-            units = match[1];
-            label = label.replace(re, '').trim();
+            return {
+                label: label.replace(re, '').trim(),
+                units: match[1],
+            };
         }
         return {
             label: label,
-            units: units
+            units: '',
         };
     };
 
     svc.plotAxis = function(margin, dimension, orientation, refresh) {
-        var MAX_TICKS = 10;
-        var ZERO_REGEX = /^\-?0(\.0+)?(e\+0)?$/;
+        const MAX_TICKS = 10;
+        const ZERO_REGEX = /^\-?0(\.0+)?(e\+0)?$/;
 
         // Using https://bl.ocks.org/mbostock/7621155 as a reference for log scales
-        var superscript = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+        const superscript = "⁰¹²³⁴⁵⁶⁷⁸⁹";
 
         // global value, don't allow margin updates during zoom/pad handling
         svc.plotAxis.allowUpdates = true;
 
-        var self = {};
-        var debouncedRefresh = utilities.debounce(function() {
-            var sum = margin.left + margin.right;
+        const self = {};
+        const debouncedRefresh = utilities.debounce(function() {
+            const sum = margin.left + margin.right;
             refresh();
             if (sum != margin.left + margin.right) {
                 refresh();
             }
         }, 500);
 
-        function applyUnit(v, unit) {
+
+        ///////
+        // these 3 methods are from a future version of d3, backported to this version of sirepo
+        function d3_exponent(x) {
+            x = d3_formatDecimalParts(Math.abs(x));
+            return x ? x[1] : NaN;
+        }
+
+        function d3_formatDecimalParts(x, p) {
+            if ((i = (x = p ? x.toExponential(p - 1) : x.toExponential()).indexOf("e")) < 0) {
+                return null;
+            }
+            var i, coefficient = x.slice(0, i);
+            return [
+                coefficient.length > 1 ? coefficient[0] + coefficient.slice(2) : coefficient,
+                +x.slice(i + 1)
+            ];
+        }
+
+        function d3_precisionRound(step, max) {
+            step = Math.abs(step);
+            max = Math.abs(max) - step;
+            return Math.max(0, d3_exponent(max) - d3_exponent(step)) + 1;
+        }
+        ///////
+
+        function applyUnit(v, base, unit) {
+            if (base) {
+                v -= base;
+            }
             return unit ? unit.scale(v) : v;
         }
 
-        function calcFormat(count, unit, base, isBaseFormat) {
+        function baseLabel() {
+            // remove any parenthesis first, ex. "p (mec)" --> "p"
+            const label = (self.label || '').replace(/\s\(.*/, '');
+            const res = label.length > 4 ? dimension : label;
+            // padding is unicode thin-space
+            return res ? ('< ' + res + ' >') : '';
+        }
+
+        function calcFormat(count, unit, base) {
             let code = 'e';
-            const tickValues = self.scale.ticks(count);
-            const v0 = applyUnit(tickValues[0] - (base || 0), unit);
-            const v1 = applyUnit(tickValues[tickValues.length - 1] - (base || 0), unit);
-            const p0 = valuePrecision(v0);
-            const p1 = valuePrecision(v1);
-            let decimals = valuePrecision(applyUnit(tickValues[1] - tickValues[0], unit));
-            if (isBaseFormat || useFloatFormat(decimals)) {
-                if ((v0 == 0 && useFloatFormat(p1)) || (v1 == 0 && useFloatFormat(p0)) || (useFloatFormat(p0) && useFloatFormat(p1))) {
-                    code = 'f';
+            let tickValues = self.scale.ticks(count);
+            if (tickValues.length < 2) {
+                tickValues = self.scale.ticks(count + 1);
+            }
+            const v0 = applyUnit(tickValues[0], base, unit);
+            const v1 = applyUnit(tickValues[1], base, unit);
+            const vn = applyUnit(tickValues[tickValues.length - 1], base, unit);
+            const max = Math.abs(v0) > Math.abs(vn) ? Math.abs(v0) : vn;
+            let decimals = d3_precisionRound(v1 - v0, max);
+            if (useFloatFormat(v0) && useFloatFormat(vn)) {
+                code = 'f';
+                decimals -= valuePrecision(max);
+                if (decimals < 0) {
+                    decimals = 0;
                 }
             }
-            else {
-                if (p0 == 0) {
-                    decimals -= p1;
-                }
-                else if (p1 == 0) {
-                    decimals -= p0;
-                }
-                else {
-                    decimals -= Math.max(p0, p1);
-                }
-            }
-            if (code == 'e' && decimals >= 0) {
-                decimals = -(p0 - decimals);
-            }
-            if (v0 == v1) {
-                decimals = 1;
-            }
-            else {
-                decimals = decimals < 0 ? Math.abs(decimals) : 0;
+            while (decimals > 0 && hasTrailingZeros(unit, base, code, decimals, tickValues)) {
+                decimals -= 1;
             }
             return {
+                base: base,
+                tickCount: tickValues.length,
                 decimals: decimals,
                 code: code,
                 unit: unit,
@@ -1825,14 +1845,10 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             };
         }
 
-        function calcTickCount(format, canvasSize, unit, base, fontSize) {
-            var d = self.scale.domain();
-            var width = Math.max(
-                4,
-                Math.max(format(applyUnit(d[0] - (base || 0), unit)).length, format(applyUnit(d[1] - (base || 0), unit)).length)
-            );
-            var tickCount;
+        function calcTickCount(formatInfo, canvasSize, fontSize) {
+            let tickCount;
             if (dimension == 'x') {
+                const width = Math.max(4, maxDomainWidth(formatInfo));
                 tickCount = Math.min(MAX_TICKS, Math.round(canvasSize.width / (width * fontSize)));
             }
             else {
@@ -1841,42 +1857,38 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             return Math.max(2, tickCount);
         }
 
-        //TODO(pjm): this could be refactored, moving the base recalc out
-        function calcTicks(formatInfo, canvasSize, unit, fontSize) {
-            var d = self.scale.domain();
-            var tickCount = calcTickCount(formatInfo.format, canvasSize, unit, null, fontSize);
-            formatInfo = calcFormat(tickCount, unit);
-            if (formatInfo.decimals > 3 && ! canvasSize.scaleFunction) {
-                var baseFormat = calcFormat(tickCount, unit, null, true).format;
-                var base = midPoint(formatInfo, d);
-                if (unit) {
-                    unit = formatPrefix(d, base);
-                }
-                formatInfo = calcFormat(tickCount, unit, base);
-                tickCount = calcTickCount(formatInfo.format, canvasSize, unit, base, fontSize);
-                var f2 = calcFormat(tickCount, unit);
-                base = midPoint(f2, d);
-                if (unit) {
-                    unit = formatPrefix(d, base);
-                }
-                formatInfo = calcFormat(tickCount, unit, base);
-                formatInfo.base = base;
+        function calcTicks(formatInfo, canvasSize, fontSize) {
+            formatInfo = calcFormat(
+                calcTickCount(formatInfo, canvasSize, fontSize),
+                formatInfo.unit,
+            );
+
+            if (formatInfo.decimals > 3 && ! canvasSize.scaleFunction && ! self.noBaseFormat) {
+                const baseFormat = formatInfo.format;
+                formatInfo = midPoint(formatInfo.tickValues, formatInfo.unit);
+                formatInfo = midPoint(
+                    calcFormat(
+                        calcTickCount(formatInfo, canvasSize, fontSize),
+                        formatInfo.unit,
+                    ).tickValues,
+                    formatInfo.unit,
+                );
                 formatInfo.baseFormat = baseFormat;
             }
             if ((orientation === 'left' || orientation === 'right') && ! canvasSize.isPlaying) {
-                var w = Math.max(formatInfo.format(applyUnit(d[0] - (formatInfo.base || 0), unit)).length, formatInfo.format(applyUnit(d[1] - (formatInfo.base || 0), unit)).length);
+                let w = maxDomainWidth(formatInfo) + 6;
                 if (canvasSize.scaleFunction) {
                     w += 2;
                 }
-                margin[orientation] = (w + 6) * (fontSize / 2);
+                margin[orientation] = w * (fontSize / 2);
             }
-            self.svgAxis.ticks(tickCount);
-            self.tickCount = tickCount;
-            self.svgAxis.tickFormat(function(v) {
+            self.svgAxis.ticks(formatInfo.tickCount);
+            self.tickCount = formatInfo.tickCount;
+            self.svgAxis.tickFormat(v => {
                 if (canvasSize.scaleFunction) {
                     return formatScale(v, canvasSize.scaleFunction);
                 }
-                var res = formatInfo.format(applyUnit(v - (formatInfo.base || 0), unit));
+                const res = formatInfo.format(applyUnit(v, formatInfo.base, formatInfo.unit));
                 // format zero values as '0'
                 if (ZERO_REGEX.test(res)) {
                     return '0';
@@ -1887,13 +1899,36 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             return formatInfo;
         }
 
+        function formatBase(formatInfo, unit) {
+            let v = '';
+            if (formatInfo.base) {
+                let label = baseLabel();
+                if (label) {
+                    label += ' = ';
+                }
+                else {
+                    if (formatInfo.base > 0) {
+                        label = '+';
+                    }
+                }
+                v = label + formatInfo.baseFormat(applyUnit(formatInfo.base, 0, unit))
+                                      .replace(/(\.\d+?)0+($|e)/, '$1$2')
+                                      .replace(/\.0+($|e)/, '$1');
+                if (unit) {
+                    v += unit.symbol + self.units;
+                }
+            }
+            return v;
+        }
+
         // If the axis is set to preserve units, use whatever prefix the plot started
         // with regardless of zoom.  Useful for non-linear units (1/sec, m^2, etc)
-        function formatPrefix(dom, base) {
+        function formatPrefix(base) {
+            const d = self.scale.domain();
             if (! base) {
                 base = 0;
             }
-            return d3.formatPrefix(Math.max(Math.abs(dom[0] - base), Math.abs(dom[1] - base)), 0);
+            return d3.formatPrefix(Math.max(Math.abs(d[0] - base), Math.abs(d[1] - base)), 0);
         }
 
         function formatScale(v, scaleFunction) {
@@ -1907,21 +1942,45 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             return '';
         }
 
-        function midPoint(formatInfo, domain) {
-            // find the tickValue which is closest to the domain midpoint
-            var mid = domain[0] + (domain[1] - domain[0]) / 2;
-            var values = formatInfo.tickValues;
-            var v = (values.length - 1) / 2;
-            var i1 = Math.floor(v);
-            var i2 = Math.ceil(v);
-            if (Math.abs(values[i1] - mid) > Math.abs(values[i2] - mid)) {
-                return values[i2];
-            }
-            return values[i1];
+        function hasTrailingZeros(unit, base, code, decimals, tickValues) {
+            const f = d3.format('.' + decimals + code);
+            return tickValues.every(v => {
+                const vf = f(applyUnit(v, base, unit));
+                return vf.search(/\.\d*0e/) >= 0 || vf.search(/\.\d*0$/) >= 0;
+            });
         }
 
-        function useFloatFormat(logV) {
-            return logV >= -2 && logV <= 3;
+        function maxDomainWidth(formatInfo) {
+            const d = self.scale.domain();
+            return Math.max(
+                formatInfo.format(applyUnit(d[0], formatInfo.base, formatInfo.unit)).length,
+                formatInfo.format(applyUnit(d[1], formatInfo.base, formatInfo.unit)).length,
+            );
+        }
+
+        function midPoint(tickValues, unit) {
+            // find the tickValue which is closest to the domain midpoint
+            const d = self.scale.domain();
+            const mid = d[0] + (d[1] - d[0]) / 2;
+            const v = (tickValues.length - 1) / 2;
+            const i1 = Math.floor(v);
+            const i2 = Math.ceil(v);
+            let base;
+            if (Math.abs(tickValues[i1] - mid) > Math.abs(tickValues[i2] - mid)) {
+                base = tickValues[i2];
+            }
+            else {
+                base = tickValues[i1];
+            }
+            if (unit) {
+                unit = formatPrefix(base);
+            }
+            return calcFormat(tickValues.length, unit, base);
+        }
+
+        function useFloatFormat(v) {
+            v = valuePrecision(v);
+            return v >= -2 && v <= 3;
         }
 
         function valuePrecision(v) {
@@ -1953,7 +2012,7 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
         };
 
         self.parseLabelAndUnits = function(label) {
-            var lu = svc.parseLabelAndUnits(label);
+            const lu = svc.parseLabelAndUnits(label);
             self.units = lu.units;
             self.unitSymbol = '';
             self.label = lu.label;
@@ -1964,55 +2023,28 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             select(`.${dimension}-axis-label`).text(label);
         };
 
-        function baseLabel() {
-            // remove any parenthesis first, ex. "p (mec)" --> "p"
-            var label = (self.label || '').replace(/\s\(.*/, '');
-            var res = label.length > 4 ? dimension : label;
-            // padding is unicode thin-space
-            return res ? ('< ' + res + ' >') : '';
-        }
-
         self.updateLabelAndTicks = function(canvasSize, select, cssPrefix) {
             if (svc.plotAxis.allowUpdates) {
                 // update the axis to get the tick font size from the css
                 select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
-                var fontSize = plotting.tickFontSize(select('.sr-plot .axis text'));
-                var formatInfo, unit;
+                const fontSize = plotting.tickFontSize(select('.sr-plot .axis text'));
+                let formatInfo, unit;
                 if (self.units) {
-                    var d = self.scale.domain();
-                    unit = formatPrefix(d, 0);
-                    formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, unit, fontSize);
+                    unit = formatPrefix(0);
+                    formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, fontSize);
                     select('.' + dimension + '-axis-label').text(
                         self.label + (formatInfo.base ? (' - ' + baseLabel()) : '')
                         + ' ' + svc.formatUnits(formatInfo.unit.symbol + self.units));
                 }
                 else {
-                    formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize, null, fontSize);
+                    formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize, fontSize);
                     if (self.label) {
                         select('.' + dimension + '-axis-label').text(
                             self.label + (formatInfo.base ? (' - ' + baseLabel()) : ''));
                     }
                 }
-                var formattedBase = '';
-                if (formatInfo.base) {
-                    var label = baseLabel();
-                    if (label) {
-                        label += ' = ';
-                    }
-                    else {
-                        if (formatInfo.base > 0) {
-                            label = '+';
-                        }
-                    }
-                    formattedBase = label + formatInfo.baseFormat(applyUnit(formatInfo.base, unit));
-                    formattedBase = formattedBase.replace(/0+$/, '');
-                    formattedBase = formattedBase.replace(/0+e/, 'e');
-                    if (unit) {
-                        formattedBase += unit.symbol + self.units;
-                    }
-                }
                 if (! self.noBaseFormat) {
-                    select('.' + dimension + '-base').text(formattedBase);
+                    select('.' + dimension + '-base').text(formatBase(formatInfo, unit));
                 }
             }
             select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
@@ -3047,7 +3079,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 axes.y.grid = axes.y.createAxis('left');
                 resetZoom();
                 canvas = select('canvas').node();
-                ctx = canvas.getContext('2d');
+                ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
                 axes.x.cutLine = d3.svg.line()
                     .x(function(d) {return axes.x.scale(d[0]);})
@@ -3355,7 +3387,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     mouseMovePoint = d3.mouse(this);
                     mouseMove();
                 });
-                ctx = canvas.getContext('2d');
+                ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
                 colorbar = Colorbar()
                     .margin({top: 10, right: 100, bottom: 20, left: 10})
@@ -3441,6 +3473,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             var includeForDomain = [];
             var childPlots = {};
             var scaleFunction;
+            var plotVisibilty = {};
             let dynamicYLabel = false;
 
             // for built-in d3 symbols - the units are *pixels squared*
@@ -3513,6 +3546,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return true;
             }
 
+            function cachedPlotVisibilty(pIndex, modelName) {
+                plotVisibilty[modelName] = plotVisibilty[modelName] || {};
+                if (! plotVisibilty[modelName].hasOwnProperty(pIndex)) {
+                    plotVisibilty[modelName][pIndex] = false;
+                  }
+                return plotVisibilty[modelName][pIndex];
+            }
+
             function createLegend() {
                 const plots = $scope.axes.y.plots;
                 var legend = $scope.select('.sr-plot-legend');
@@ -3536,7 +3577,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         .attr('y', 17 + count * 20)
                         .text(vIconText(true))
                         .on('click', function() {
-                            togglePlot(i);
+                            togglePlot(i, $scope.modelName);
                             $scope.$applyAsync();
                         });
                     itemWidth = item.node().getBBox().width;
@@ -3662,9 +3703,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 });
             }
 
-            function togglePlot(pIndex) {
+            function togglePlot(pIndex, modelName) {
                 setPlotVisible(pIndex, ! isPlotVisible(pIndex));
                 updateYLabel();
+                if (plotVisibilty) {
+                    plotVisibilty[modelName][pIndex] = ! plotVisibilty[modelName][pIndex];
+                }
             }
 
             function updateYLabel() {
@@ -3986,6 +4030,20 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     setPlotVisible(ip, true);
                 });
                 updateYLabel();
+                plots.forEach(function(plot, i) {
+                    if (cachedPlotVisibilty(i, $scope.modelName)) {
+                        setPlotVisible(i, ! isPlotVisible(i));
+                    }
+                });
+
+                $scope.$on(
+                    $scope.modelName + '.changed',
+                    () => {
+                        plots.forEach((plot, i) => {
+                            plotVisibilty[$scope.modelName][i] = false;
+                        });
+                    }
+                );
             };
 
             $scope.recalculateYDomain = function() {

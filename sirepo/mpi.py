@@ -53,16 +53,17 @@ def restrict_op_to_first_rank(op):
         c = mpi4py.MPI.COMM_WORLD
         if c.Get_size() > 1:
             r = c.Get_rank()
+        else:
+            c = None
     except Exception:
         pass
     if r == FIRST_RANK:
         try:
             res = op()
         except Exception as e:
-            pkdlog("op={} exception={} stack={}", op, e, pkdexc())
             if c:
                 c.Abort(1)
-            raise e
+            raise
     if c:
         res = c.bcast(res, root=FIRST_RANK)
     return res

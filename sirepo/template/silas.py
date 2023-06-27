@@ -4,27 +4,24 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
-from scipy import constants
 from sirepo import simulation_db
 from sirepo.template import template_common
 import csv
 import h5py
-import math
-import numpy as np
+import numpy
 import re
 import sirepo.sim_data
+import time
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _CRYSTAL_CSV_FILE = "crystal.csv"
-_SUMMARY_CSV_FILE = "wavefront.csv"
-_INITIAL_LASER_FILE = "initial-laser.npy"
-_FINAL_LASER_FILE = "final-laser.npy"
+_RESULTS_FILE = "results{}.h5"
+_CRYSTAL_FILE = "crystal{}.h5"
+_MAX_H5_READ_TRIES = 3
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -33,18 +30,158 @@ def background_percent_complete(report, run_dir, is_running):
         percentComplete=0,
         frameCount=0,
     )
-    if report == "animation":
-        line = template_common.read_last_csv_line(run_dir.join(_SUMMARY_CSV_FILE))
-        m = re.search(r"^(\d+)", line)
-        if m and int(m.group(1)) > 0:
-            res.frameCount = int((int(m.group(1)) + 1) / 2)
-            res.wavefrontsFrameCount = _counts_for_beamline(
-                res.frameCount, data.models.beamline
-            )[0]
-            total_count = _total_frame_count(data)
-            res.percentComplete = res.frameCount * 100 / total_count
-        return res
-    assert report == "crystalAnimation"
+    if report == "beamlineAnimation":
+        return _beamline_animation_percent_complete(run_dir, res, data)
+    if report in _SIM_DATA.SOURCE_REPORTS:
+        return _initial_intensity_percent_complete(
+            run_dir, res, data, _SIM_DATA.SOURCE_REPORTS
+        )
+    return _crystal_animation_percent_complete(run_dir, res, data)
+
+
+def get_data_file(run_dir, model, frame, options):
+    if model in ("plotAnimation", "plot2Animation"):
+        return _CRYSTAL_CSV_FILE
+    if model == "crystal3dAnimation":
+        return "intensity.npy"
+    if model == "beamlineAnimation0" or model in _SIM_DATA.SOURCE_REPORTS:
+        return _RESULTS_FILE.format(0)
+    if "beamlineAnimation" in model:
+        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        for r in _beamline_animation_percent_complete(
+            run_dir, PKDict(frameCount=0), data
+        ).outputInfo:
+            if r.modelKey == model:
+                return r.filename
+    raise AssertionError("unknown model={}".format(model))
+
+
+def post_execution_processing(success_exit, run_dir, **kwargs):
+    if success_exit:
+        return None
+    return _parse_silas_log(run_dir)
+
+
+def python_source_for_model(data, model, qcall, **kwargs):
+    if model in ("crystal3dAnimation", "plotAnimation", "plot2Animation"):
+        data.report = "crystalAnimation"
+    else:
+        if model:
+            model = re.sub("beamlineAnimation", "watchpointReport", model)
+        data.report = model or ""
+    return _generate_parameters_file(data)
+
+
+def sim_frame(frame_args):
+    def _crystal_or_watch(frame_args, element):
+        if element and element.type == "crystal":
+            return frame_args.crystalPlot
+        return frame_args.watchpointPlot
+
+    r = frame_args.frameReport
+    frame_args.sim_in.report = r
+    count, element = _report_to_file_index(frame_args.sim_in, r)
+    if "beamlineAnimation" in r or r in _SIM_DATA.SOURCE_REPORTS:
+        return _laser_pulse_plot(
+            frame_args.run_dir,
+            _crystal_or_watch(frame_args, element),
+            frame_args.sim_in,
+            count,
+            element,
+            frame_args.frameIndex,
+        )
+    raise AssertionError("unknown sim_frame report: {}".format(r))
+
+
+def sim_frame_crystal3dAnimation(frame_args):
+    intensity = numpy.load("intensity.npy")
+    return PKDict(
+        title=" ",
+        indices=numpy.load("indices.npy").flatten().tolist(),
+        vertices=numpy.load("vertices.npy").flatten().tolist(),
+        intensity=intensity.tolist(),
+        intensity_range=[numpy.min(intensity), numpy.max(intensity)],
+    )
+
+
+def sim_frame_plotAnimation(frame_args):
+    return _crystal_plot(frame_args, "xv", "ux", "[m]", 1e-2)
+
+
+def sim_frame_plot2Animation(frame_args):
+    return _crystal_plot(frame_args, "zv", "uz", "[m]", 1e-2)
+
+
+def stateful_compute_mesh_dimensions(data, **kwargs):
+    from rslaser.pulse import pulse
+
+    f = {
+        k: _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_model_field("laserPulse", k, data.args[k])
+        )
+        for k in data.args
+    }
+    m = pulse.LaserPulse(params=PKDict(nslice=1), files=PKDict(f)).slice_wfr(0).mesh
+    return PKDict(numSliceMeshPoints=[m.nx, m.ny])
+
+
+def write_parameters(data, run_dir, is_parallel):
+    pkio.write_text(
+        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+        _generate_parameters_file(data),
+    )
+
+
+def _beamline_animation_percent_complete(run_dir, res, data):
+    def _output_append(frame_count, filename, count, element, res):
+        if run_dir.join(filename).exists():
+            res.outputInfo.append(
+                PKDict(
+                    modelKey="beamlineAnimation{}".format(e.id),
+                    filename=filename,
+                    id=element.id,
+                    frameCount=frame_count,
+                )
+            )
+            if element.type == "watch":
+                count.watch += 1
+            else:
+                count.crystal += 1
+            res.frameCount += 1
+
+    def _file(element, count):
+        return PKDict(
+            watch=_RESULTS_FILE.format(count.watch),
+            crystal=_CRYSTAL_FILE.format(count.crystal),
+        )[element.type]
+
+    def _frames(element, data):
+        if element.type == "watch":
+            return data.models.laserPulse.nslice
+        return element.nslice
+
+    _initial_intensity_percent_complete(run_dir, res, data, ("beamlineAnimation0",))
+    count = PKDict(
+        watch=1,
+        crystal=1,
+    )
+    total_count = 1
+    for e in data.models.beamline:
+        if e.type in ("watch", "crystal"):
+            total_count += 1
+            _output_append(
+                _frames(e, data),
+                _file(e, count),
+                count,
+                e,
+                res,
+            )
+    res.percentComplete = res.frameCount * 100 / total_count
+    return res
+
+
+def _crystal_animation_percent_complete(run_dir, res, data):
+    assert data.report == "crystalAnimation"
     count = 0
     path = run_dir.join(_CRYSTAL_CSV_FILE)
     if path.exists():
@@ -65,194 +202,6 @@ def background_percent_complete(report, run_dir, is_running):
                 )
             )
     return res
-
-
-def post_execution_processing(success_exit, run_dir, **kwargs):
-    if success_exit:
-        return None
-    return _parse_silas_log(run_dir)
-
-
-def get_data_file(run_dir, model, frame, options):
-    if model in ("laserPulseAnimation", "laserPulse2Animation"):
-        return _INITIAL_LASER_FILE
-    if model in ("laserPulse3Animation", "laserPulse4Animation"):
-        return _FINAL_LASER_FILE
-    if model == "wavefrontSummaryAnimation":
-        return _SUMMARY_CSV_FILE
-    if "wavefrontAnimation" in model:
-        sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        return _wavefront_filename_for_index(
-            sim_in,
-            sim_in.models[model].id,
-            frame,
-        )
-    if "plotAnimation" in model:
-        return _CRYSTAL_CSV_FILE
-    if model == "crystal3dAnimation":
-        return "intensity.npy"
-    raise AssertionError("unknown model={}".format(model))
-
-
-def python_source_for_model(data, model, qcall, **kwargs):
-    if model in ("crystal3dAnimation", "plotAnimation", "plot2Animation"):
-        data.report = "crystalAnimation"
-    else:
-        data.report = "animation"
-    return _generate_parameters_file(data)
-
-
-def sim_frame(frame_args):
-    filename = _wavefront_filename_for_index(
-        frame_args.sim_in,
-        frame_args.id,
-        frame_args.frameIndex,
-    )
-    with h5py.File(filename, "r") as f:
-        wfr = f["wfr"]
-        points = np.array(wfr)
-        return PKDict(
-            title="S={}m (E={} eV)".format(
-                _format_float(wfr.attrs["pos"]),
-                frame_args.sim_in.models.gaussianBeam.photonEnergy,
-            ),
-            subtitle="",
-            x_range=[wfr.attrs["xStart"], wfr.attrs["xFin"], len(points[0])],
-            x_label="Horizontal Position [m]",
-            y_range=[wfr.attrs["yStart"], wfr.attrs["yFin"], len(points)],
-            y_label="Vertical Position [m]",
-            z_matrix=points.tolist(),
-            summaryData=_summary_data(frame_args),
-        )
-
-
-def sim_frame_crystal3dAnimation(frame_args):
-    intensity = np.load("intensity.npy")
-    return PKDict(
-        title=" ",
-        indices=np.load("indices.npy").flatten().tolist(),
-        vertices=np.load("vertices.npy").flatten().tolist(),
-        intensity=intensity.tolist(),
-        intensity_range=[np.min(intensity), np.max(intensity)],
-    )
-
-
-def sim_frame_laserPulse1Animation(frame_args):
-    return _laser_pulse_report(
-        1, _INITIAL_LASER_FILE, "Before Propagation", "RMS x [m]"
-    )
-
-
-def sim_frame_laserPulse2Animation(frame_args):
-    return _laser_pulse_report(
-        3, _INITIAL_LASER_FILE, "Before Propagation", "Pulse Intensity"
-    )
-
-
-def sim_frame_laserPulse3Animation(frame_args):
-    return _laser_pulse_report(1, _FINAL_LASER_FILE, "After Propagation", "RMS x [m]")
-
-
-def sim_frame_laserPulse4Animation(frame_args):
-    return _laser_pulse_report(
-        3, _FINAL_LASER_FILE, "After Propagation", "Pulse Intensity"
-    )
-
-
-def sim_frame_plotAnimation(frame_args):
-    return _crystal_plot(frame_args, "xv", "ux", "[m]", 1e-2)
-
-
-def sim_frame_plot2Animation(frame_args):
-    return _crystal_plot(frame_args, "zv", "uz", "[m]", 1e-2)
-
-
-def sim_frame_wavefrontSummaryAnimation(frame_args):
-    beamline = frame_args.sim_in.models.beamline
-    if "element" not in frame_args:
-        frame_args.element = "all"
-    idx = 0
-    title = ""
-    if frame_args.element != "all":
-        # find the element index from the element id
-        for item in beamline:
-            if item.id == int(frame_args.element):
-                title = item.title
-                break
-            idx += 1
-    # TODO(pjm): use column headings from csv
-    cols = ["count", "pos", "sx", "sy", "xavg", "yavg"]
-    v = np.genfromtxt(
-        str(frame_args.run_dir.join(_SUMMARY_CSV_FILE)), delimiter=",", skip_header=1
-    )
-    if frame_args.element != "all":
-        # the wavefront csv include intermediate values, so take every other row
-        counts = _counts_for_beamline(int((v[-1][0] + 1) / 2), beamline)[1]
-        v2 = []
-        for row in counts[idx]:
-            v2.append(v[(row - 1) * 2])
-        v = np.array(v2)
-    # TODO(pjm): generalize, use template_common parameter_plot()?
-    plots = []
-    for col in ("sx", "sy"):
-        plots.append(
-            PKDict(
-                points=v[:, cols.index(col)].tolist(),
-                label=f"{col} [m]",
-            )
-        )
-    x = v[:, cols.index("pos")].tolist()
-    return PKDict(
-        aspectRatio=1 / 5.0,
-        title="{} Wavefront Dimensions".format(title),
-        x_range=[float(min(x)), float(max(x))],
-        y_label="",
-        x_label="s [m]",
-        x_points=x,
-        plots=plots,
-        y_range=template_common.compute_plot_color_and_range(plots),
-        summaryData=_summary_data(frame_args),
-    )
-
-
-def stateless_compute_rms_size(data):
-    return _compute_rms_size(data.args)
-
-
-def write_parameters(data, run_dir, is_parallel):
-    pkio.write_text(
-        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data),
-    )
-
-
-def _compute_rms_size(data):
-    wavefrontEnergy = data.gaussianBeam.photonEnergy
-    n0 = data.crystal.refractionIndex
-    L_cryst = data.crystal.width * 1e-2
-    dfL = data.mirror.focusingError
-    L_cav = data.simulationSettings.cavity_length
-    L_eff = L_cav + (1 / n0 - 1) * L_cryst
-    beta0 = math.sqrt(L_eff * (L_cav / 4 + dfL) - L_eff**2 / 4)
-    lam = constants.c * constants.value("Planck constant in eV/Hz") / wavefrontEnergy
-    return PKDict(rmsSize=math.sqrt(lam * beta0 / 4 / math.pi))
-
-
-def _counts_for_beamline(total_frames, beamline):
-    # start at 2nd element, loop forward and backward across beamline
-    counts = [0 for _ in beamline]
-    idx = 1
-    direction = 1
-    frames = [[] for _ in beamline]
-
-    for i in range(total_frames):
-        counts[idx] += 1
-        frames[idx].append(i + 1)
-        idx += direction
-        if idx < 0 or idx > len(counts) - 1:
-            direction *= -1
-            idx += 2 * direction
-    return counts, frames
 
 
 def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
@@ -281,38 +230,259 @@ def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
         x_points=x,
         plots=plots,
         y_range=template_common.compute_plot_color_and_range(plots),
-        summaryData=_summary_data(frame_args),
+        summaryData=PKDict(
+            crystalLength=_get_crystal(frame_args.sim_in).length,
+        ),
     )
 
 
-def _format_float(v):
-    return float("{:.4f}".format(v))
+def _generate_beamline_elements(data):
+    def _callback(state, element, dz):
+        if dz:
+            state.res += f'(Drift_srw({round(dz, 9)}), ["default"]),\n'
+        if element.type == "watch" or element.get("isDisabled"):
+            return
+        if element.type == "lens":
+            state.res += f'(Lens_srw({element.focalLength}), ["default"]),\n'
+        elif element.type == "mirror":
+            state.res += "(Mirror(), []),\n"
+        elif element.type == "crystal":
+            if element.origin == "reuse":
+                return
+            state.res += _generate_crystal(element)
+        else:
+            raise AssertionError("unknown element type={}".format(element.type))
+
+    state = PKDict(res="(Watchpoint(), []),\n")
+    if data.report not in _SIM_DATA.SOURCE_REPORTS:
+        _iterate_beamline(state, data, _callback)
+    return state.res
+
+
+def _generate_beamline_indices(data):
+    def _callback(state, element, dz):
+        if dz:
+            state.res.append(str(state.idx))
+            state.idx += 1
+        if element.get("isDisabled"):
+            return
+        if element.type == "watch":
+            state.res.append("0")
+            return
+        if element.type == "crystal":
+            if element.origin == "new":
+                state.id_to_index[element.id] = state.idx
+            else:
+                state.res.append(str(state.id_to_index[element.reuseCrystal]))
+                return
+        state.res.append(str(state.idx))
+        state.idx += 1
+
+    state = PKDict(res=["0"], idx=1, id_to_index=PKDict())
+    if data.report not in _SIM_DATA.SOURCE_REPORTS:
+        _iterate_beamline(state, data, _callback)
+    return ", ".join(state.res)
+
+
+def _generate_crystal(crystal):
+    return f"""(
+        Crystal(
+            params=PKDict(
+                l_scale={crystal.l_scale},
+                length={crystal.length * 1e-2},
+                n0={_slice_n_field(crystal, 'n0')},
+                n2={_slice_n_field(crystal, 'n2')},
+                nslice={crystal.nslice},
+                A={crystal.A},
+                B={crystal.B},
+                C={crystal.C},
+                D={crystal.D},
+                pop_inversion_n_cells={crystal.inversion_n_cells},
+                pop_inversion_mesh_extent={crystal.inversion_mesh_extent},
+                pop_inversion_crystal_alpha={crystal.crystal_alpha},
+                pop_inversion_pump_waist={crystal.pump_waist},
+                pop_inversion_pump_wavelength={crystal.pump_wavelength},
+                pop_inversion_pump_gaussian_order={crystal.pump_gaussian_order},
+                pop_inversion_pump_energy={crystal.pump_energy},
+                pop_inversion_pump_type="{crystal.pump_type}",
+                pop_inversion_pump_rep_rate={crystal.pump_rep_rate},
+                pop_inversion_pump_offset_x={crystal.pump_offset_x},
+                pop_inversion_pump_offset_y={crystal.pump_offset_y},
+            ),
+        ),
+        ["{crystal.propagationType}", {crystal.calc_gain == "1"}, {crystal.radial_n2 == "1"}],
+    ),\n"""
 
 
 def _generate_parameters_file(data):
-    if data.report == "animation":
-        beamline = data.models.beamline
-        data.models.crystal = _get_crystal(data)
-        res, v = template_common.generate_parameters_file(data)
-        v.leftMirrorFocusingError = beamline[0].focusingError
-        v.rightMirrorFocusingError = beamline[-1].focusingError
-        v.summaryCSV = _SUMMARY_CSV_FILE
-        v.initialLaserFile = _INITIAL_LASER_FILE
-        v.finalLaserFile = _FINAL_LASER_FILE
-        return res + template_common.render_jinja(SIM_TYPE, v)
+    res, v = template_common.generate_parameters_file(data)
     if data.report == "crystalAnimation":
-        res, v = template_common.generate_parameters_file(data)
+        v.crystalLength = _get_crystal(data).length
         v.crystalCSV = _CRYSTAL_CSV_FILE
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
-    assert False, "invalid param report: {}".format(data.report)
+    if data.report in _SIM_DATA.SOURCE_REPORTS:
+        data.models.beamline = []
+    v.laserPulse = data.models.laserPulse
+    if data.models.laserPulse.distribution == "file":
+        for f in ("ccd", "meta", "wfs"):
+            v[f"{f}File"] = _SIM_DATA.lib_file_name_with_model_field(
+                "laserPulse", f, data.models.laserPulse[f]
+            )
+    v.beamlineElements = _generate_beamline_elements(data)
+    v.beamlineIndices = _generate_beamline_indices(data)
+    return res + template_common.render_jinja(SIM_TYPE, v)
 
 
 def _get_crystal(data):
-    return data.models.beamline[1]
+    crystals = [
+        x for x in data.models.beamline if x.type == "crystal" and x.origin == "new"
+    ]
+    for e in crystals:
+        if e.id == data.models.crystalCylinder.crystal:
+            return e
+    return crystals[0]
+
+
+def _initial_intensity_percent_complete(run_dir, res, data, model_names):
+    res.outputInfo = []
+    if run_dir.join(_RESULTS_FILE.format(0)).exists():
+        for n in model_names:
+            res.outputInfo.append(
+                PKDict(
+                    modelKey=n,
+                    filename=_RESULTS_FILE.format(0),
+                    id=0,
+                    frameCount=data.models.laserPulse.nslice,
+                )
+            )
+        res.frameCount += 1
+    return res
+
+
+def _iterate_beamline(state, data, callback):
+    prev = 0
+    for e in data.models.beamline:
+        dz = e.position - prev
+        prev = e.position
+        callback(state, e, dz)
+
+
+def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_index):
+    def _cell_volume(element):
+        if _is_crystal(element):
+            return (
+                ((2 * element.inversion_mesh_extent) / element.inversion_n_cells) ** 2
+                * element.length
+                / element.nslice
+            )
+        return None
+
+    def _fname(element):
+        if _is_crystal(element):
+            return _CRYSTAL_FILE
+        return _RESULTS_FILE
+
+    def _index(index, plot_type):
+        if plot_type == "longitudinal_photons":
+            return index
+        return index + 1
+
+    def _is_crystal(element):
+        return element and element.type == "crystal"
+
+    def _is_longitudinal_plot(plot_type):
+        return "longitudinal" in plot_type
+
+    def _label(plot_type, slice_index):
+        if plot_type == "longitudinal_intensity":
+            return "Intensity"
+        if plot_type == "longitudinal_photons":
+            return "Total Number of Photons"
+        if plot_type == "excited_states_longitudinal":
+            return "Excited States"
+        return _title(plot_type, slice_index)
+
+    def _nslice(element, file):
+        if _is_crystal(element):
+            return element.nslice
+        return len(file)
+
+    def _title(plot_type, slice_index):
+        if plot_type in ("total_intensity", "total_phase"):
+            return plot_type.replace("_", " ").title()
+        return plot_type.replace("_", " ").title() + " Slice #" + str(slice_index + 1)
+
+    def _x_label(plot_type):
+        return PKDict(
+            excited_states_longitudinal="Crystal Slice",
+            longitudinal_photons="Crystal width [cm]",
+            longitudinal_intensity="Pulse Slice",
+        )[plot_type]
+
+    def _y_value(element, index, file, cell_volume):
+        if _is_crystal(element):
+            return numpy.sum(numpy.array(file[f"{index}/excited_states"]) * cell_volume)
+        y = numpy.array(file[f"{index}/{plot_type}"])
+        if plot_type == "longitudinal_intensity":
+            return y
+        return numpy.sum(y)
+
+    def _z_label(plot_type):
+        return PKDict(
+            total_phase="Phase [rad]",
+            total_intensity="",
+            intensity="",
+            phase="Phase [rad]",
+            photons="Photons [1/m³]",
+            excited_states="Number [1/m³]",
+        )[plot_type]
+
+    for _ in range(_MAX_H5_READ_TRIES):
+        try:
+            with h5py.File(
+                run_dir.join(_fname(element).format(element_index)), "r"
+            ) as f:
+                if _is_longitudinal_plot(plot_type):
+                    x = []
+                    y = []
+                    nslice = _nslice(element, f)
+                    if element:
+                        element.nslice = nslice
+                    for idx in range(nslice):
+                        x.append(_index(idx, plot_type))
+                        y.append(_y_value(element, idx, f, _cell_volume(element)))
+                    return template_common.parameter_plot(
+                        x,
+                        [
+                            PKDict(
+                                points=y,
+                                label=_label(plot_type, 0),
+                            ),
+                        ],
+                        PKDict(),
+                        PKDict(
+                            x_label=_x_label(plot_type),
+                        ),
+                    )
+                d = template_common.h5_to_dict(f, str(slice_index))
+                r = d.ranges
+                z = d[plot_type]
+                return PKDict(
+                    title=_title(plot_type, slice_index),
+                    x_range=[r.x[0], r.x[1], len(z)],
+                    y_range=[r.y[0], r.y[1], len(z[0])],
+                    x_label="Horizontal Position [m]",
+                    y_label="Vertical Position [m]",
+                    z_label=_z_label(plot_type),
+                    z_matrix=z,
+                )
+        except BlockingIOError as e:
+            time.sleep(3)
+    raise AssertionError("Report is unavailable")
 
 
 def _laser_pulse_report(value_index, filename, title, label):
-    values = np.load(filename)
+    values = numpy.load(filename)
     return template_common.parameter_plot(
         values[0].tolist(),
         [
@@ -348,30 +518,28 @@ def _parse_silas_log(run_dir):
     return "An unknown error occurred"
 
 
-def _summary_data(frame_args):
-    return PKDict(
-        crystalWidth=frame_args.sim_in.models.beamline[1].width,
-    )
+def _report_to_file_index(sim_in, report):
+    if report in _SIM_DATA.SOURCE_REPORTS:
+        return 0, None
+    m = re.search(r"beamlineAnimation(\d+)", report)
+    if not m:
+        raise AssertionError("invalid watch report: {}".format(report))
+    i = int(m.group(1))
+    if i == 0:
+        return 0, None
+    count_by_type = PKDict()
+    for e in sim_in.models.beamline:
+        if not e.type in count_by_type:
+            count_by_type[e.type] = 1
+        if e.id == i:
+            return count_by_type[e.type], e
+        count_by_type[e.type] += 1
+    raise AssertionError("{} report not found: {}".format(element_type, report))
 
 
-def _total_frame_count(data):
+def _slice_n_field(crystal, field):
     return (
-        data.models.simulationSettings.n_reflections
-        * 2
-        * (len(data.models.beamline) - 1)
-        + 1
+        crystal[field][0 : crystal.nslice]
+        if crystal.nslice <= 6
+        else f"interpolate_across_slice({crystal.length * 1e-2}, {crystal.nslice}, {crystal[field]})"
     )
-
-
-def _wavefront_filename_for_index(sim_in, item_id, frame):
-    idx = 0
-    beamline = sim_in.models.beamline
-    for item in beamline:
-        if str(item_id) == str(item.id):
-            break
-        idx += 1
-    total_count = _total_frame_count(sim_in)
-    counts = _counts_for_beamline(total_count, beamline)[1]
-    counts = counts[idx]
-    file_index = counts[frame]
-    return f"wfr{file_index:05d}.h5"

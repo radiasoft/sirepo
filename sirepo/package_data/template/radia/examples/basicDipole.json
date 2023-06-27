@@ -1,0 +1,381 @@
+{
+    "models": {
+        "electronTrajectoryReport": {
+            "energy": 1,
+            "finalBeamPosition": 10,
+            "hidePanel": true,
+            "inProgressText": "Calculating",
+            "initialAngles": [
+                0,
+                0
+            ],
+            "initialPosition": [
+                0,
+                0,
+                -1
+            ],
+            "lastModified": 1681235701249,
+            "numPoints": 101
+        },
+        "fieldDisplay": {
+            "colorMap": "viridis",
+            "scaling": "uniform"
+        },
+        "fieldIntegralReport": {},
+        "fieldLineoutAnimation": {
+            "fieldPath": {
+                "_super": "linePath",
+                "axis": "x",
+                "begin": [
+                    -100,
+                    0,
+                    0
+                ],
+                "end": [
+                    100,
+                    0,
+                    0
+                ],
+                "id": "tRlCGj7BJ3OEOFmZ17tG5ZiatwhxlVpy",
+                "name": "X-Axis",
+                "numPoints": 51,
+                "start": -100,
+                "stop": 100,
+                "type": "axisPath"
+            },
+            "fieldPaths": [],
+            "fieldType": "B",
+            "inProgressText": "Calculating",
+            "jobRunMode": "parallel",
+            "lastModified": 1681231141207,
+            "plotAxis": "x",
+            "sbatchCores": 1,
+            "sbatchHours": 0.4,
+            "sbatchProject": "",
+            "sbatchQueue": "debug",
+            "tasksPerNode": 32
+        },
+        "fieldPaths": {
+            "paths": [
+                {
+                    "_super": "linePath",
+                    "axis": "x",
+                    "begin": [
+                        -100,
+                        0,
+                        0
+                    ],
+                    "end": [
+                        100,
+                        0,
+                        0
+                    ],
+                    "id": "tRlCGj7BJ3OEOFmZ17tG5ZiatwhxlVpy",
+                    "name": "X-Axis",
+                    "numPoints": 51,
+                    "start": -100,
+                    "stop": 100,
+                    "type": "axisPath"
+                }
+            ]
+        },
+        "freehand": {},
+        "geometryReport": {
+            "id": "jPo9xnU03SbodgWf",
+            "isSolvable": "1",
+            "lastModified": 1681235701249,
+            "name": "Basic Dipole",
+            "objects": [
+                {
+                    "_super": "geomObject",
+                    "bevels": [],
+                    "center": [
+                        50,
+                        112.5,
+                        0
+                    ],
+                    "color": "#ab00fa",
+                    "fillets": [],
+                    "groupId": "4FqaUF2QhoSt3fUtfxZd9dqEvYy5k0XO",
+                    "id": "mElJzxOUtYjvWIXdjkYBxWy1HXih8umr",
+                    "layoutShape": "rect",
+                    "magnetization": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "material": "Xc06",
+                    "materialFile": "",
+                    "modifications": [],
+                    "name": "pole",
+                    "remanentMag": 0,
+                    "segments": [
+                        5,
+                        5,
+                        10
+                    ],
+                    "shapeButton": {},
+                    "size": [
+                        100,
+                        150,
+                        1000
+                    ],
+                    "transforms": [],
+                    "type": "cuboid"
+                },
+                {
+                    "_super": "geomObject",
+                    "bevels": [],
+                    "center": [
+                        200,
+                        262.5,
+                        0
+                    ],
+                    "color": "#ff0000",
+                    "fillets": [],
+                    "groupId": "4FqaUF2QhoSt3fUtfxZd9dqEvYy5k0XO",
+                    "id": "nIyj3PgMLT1jlUBTtDJy9BMtXQdEbZwQ",
+                    "layoutShape": "rect",
+                    "magnetization": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "material": "Xc06",
+                    "materialFile": "",
+                    "modifications": [],
+                    "name": "top",
+                    "remanentMag": 0,
+                    "segments": [
+                        10,
+                        5,
+                        10
+                    ],
+                    "shapeButton": {},
+                    "size": [
+                        400,
+                        150,
+                        1000
+                    ],
+                    "transforms": [],
+                    "type": "cuboid"
+                },
+                {
+                    "_super": "geomObject",
+                    "bevels": [],
+                    "center": [
+                        325,
+                        93.75,
+                        0
+                    ],
+                    "color": "#ff0000",
+                    "fillets": [],
+                    "groupId": "4FqaUF2QhoSt3fUtfxZd9dqEvYy5k0XO",
+                    "id": "Bgqv41JeGMVBdKYWEZe5ar4kbiIY1RxE",
+                    "layoutShape": "rect",
+                    "magnetization": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "material": "Xc06",
+                    "materialFile": "",
+                    "modifications": [],
+                    "name": "leg",
+                    "remanentMag": 0,
+                    "segments": [
+                        5,
+                        5,
+                        10
+                    ],
+                    "shapeButton": {},
+                    "size": [
+                        150,
+                        187.5,
+                        1000
+                    ],
+                    "transforms": [],
+                    "type": "cuboid"
+                },
+                {
+                    "_super": "radiaObject",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "color": "#cccccc",
+                    "fillets": [],
+                    "groupId": "",
+                    "id": "4FqaUF2QhoSt3fUtfxZd9dqEvYy5k0XO",
+                    "layoutShape": "rect",
+                    "members": [
+                        "mElJzxOUtYjvWIXdjkYBxWy1HXih8umr",
+                        "nIyj3PgMLT1jlUBTtDJy9BMtXQdEbZwQ",
+                        "Bgqv41JeGMVBdKYWEZe5ar4kbiIY1RxE"
+                    ],
+                    "model": "geomGroup",
+                    "modifications": [],
+                    "name": "dipole",
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "size": [
+                        8,
+                        6.75,
+                        10
+                    ],
+                    "transforms": [
+                        {
+                            "_super": "transform",
+                            "id": "N2mi1iJcQDalqVdjQA3YDBUj9CUrW3RZ",
+                            "name": "Symmetry",
+                            "symmetryPlane": [
+                                1,
+                                0,
+                                0
+                            ],
+                            "symmetryPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "symmetryType": "perpendicular",
+                            "type": "symmetryTransform"
+                        },
+                        {
+                            "_super": "transform",
+                            "id": "B1Y6Ov6ZJMDdEMFifOFpCxutbHGyeUYF",
+                            "name": "Symmetry",
+                            "symmetryPlane": [
+                                0,
+                                1,
+                                0
+                            ],
+                            "symmetryPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "symmetryType": "parallel",
+                            "type": "symmetryTransform"
+                        }
+                    ],
+                    "type": "geomGroup"
+                },
+                {
+                    "_super": "radiaObject",
+                    "axis": "y",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        112.5,
+                        0
+                    ],
+                    "color": "#0000ff",
+                    "currentDensity": -1,
+                    "fieldCalc": "auto",
+                    "fillets": [],
+                    "groupId": "",
+                    "height": 140,
+                    "id": "AypW40MzJ7OhVTUoHXyvSiCQEkxbrlqY",
+                    "layoutShape": "rect",
+                    "modifications": [],
+                    "name": "coil",
+                    "numSegments": 3,
+                    "planeAxis1": "z",
+                    "planeAxis2": "x",
+                    "radii": [
+                        10,
+                        140
+                    ],
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "sides": [
+                        1000,
+                        200
+                    ],
+                    "size": [
+                        480,
+                        140,
+                        1280
+                    ],
+                    "transforms": [
+                        {
+                            "_super": "transform",
+                            "id": "chG4WWkaJf6i0vXeZxyBbPWSXekIoWMG",
+                            "name": "Symmetry",
+                            "symmetryPlane": [
+                                0,
+                                1,
+                                0
+                            ],
+                            "symmetryPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "symmetryType": "parallel",
+                            "type": "symmetryTransform"
+                        }
+                    ],
+                    "type": "racetrack"
+                }
+            ]
+        },
+        "magnetDisplay": {
+            "alpha": 1,
+            "bgColor": "#ffffff",
+            "fieldType": "M",
+            "notes": "",
+            "viewType": "objects"
+        },
+        "reset": {},
+        "simFolder": {},
+        "simulation": {
+            "appMode": "default",
+            "beamAxis": "z",
+            "coordinateSystem": "standard",
+            "dipoleType": "dipoleBasic",
+            "documentationUrl": "",
+            "enableKickMaps": "0",
+            "folder": "/Examples/Accelerator Magnets",
+            "freehandType": "freehand",
+            "heightAxis": "y",
+            "isExample": true,
+            "magnetType": "freehand",
+            "name": "Basic Dipole",
+            "notes": "",
+            "undulatorType": "undulatorBasic",
+            "widthAxis": "x"
+        },
+        "solverAnimation": {
+            "jobRunMode": "parallel",
+            "lastSolved": "-1",
+            "maxIterations": 1500,
+            "method": "4",
+            "mode": "solve",
+            "precision": 0.0001,
+            "result": "",
+            "sbatchCores": 1,
+            "sbatchHours": 0.4,
+            "sbatchProject": "",
+            "sbatchQueue": "debug",
+            "tasksPerNode": 32
+        },
+        "threeDBuilder": {
+            "autoFit": true,
+            "elevation": "front",
+            "snapGridSize": "1",
+            "snapToGrid": false
+        }
+    },
+    "simulationType": "radia",
+    "version": "1681258427.067488"
+}

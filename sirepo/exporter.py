@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjson
@@ -65,7 +64,14 @@ def _create_zip(sim, out_dir, qcall):
         files.append(f)
     with sirepo.util.write_zip(str(path)) as z:
         for f in files:
-            z.write(str(f), f.basename)
+            if hasattr(sim.template, "export_filename"):
+                n = sim.template.export_filename(
+                    sim.filename,
+                    f.basename,
+                )
+            else:
+                n = f.basename
+            z.write(str(f), n)
         z.writestr(
             simulation_db.SIMULATION_DATA_FILE,
             pkjson.dump_pretty(data, pretty=True),

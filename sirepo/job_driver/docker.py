@@ -89,7 +89,7 @@ class DockerDriver(job_driver.DriverBase):
             ),
             constrain_resources=(True, bool, "apply --cpus and --memory constraints"),
             dev_volumes=(
-                pkconfig.channel_in("dev"),
+                pkconfig.in_dev_mode(),
                 bool,
                 "mount ~/.pyenv, ~/.local and ~/src for development",
             ),
@@ -231,7 +231,7 @@ class DockerDriver(job_driver.DriverBase):
 
     @classmethod
     def _init_dev_hosts(cls):
-        assert pkconfig.channel_in("dev")
+        assert pkconfig.in_dev_mode()
 
         from sirepo import srdb
 

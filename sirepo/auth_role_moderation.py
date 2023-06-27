@@ -33,7 +33,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec(
         "require_adm", token="AuthModerationToken", status="AuthModerationStatus"
     )
-    def api_admModerate(self):
+    async def api_admModerate(self):
         def _send_moderation_status_email(info):
             sirepo.smtp.send(
                 recipient=info.user_name,
@@ -90,7 +90,7 @@ class API(sirepo.quest.API):
         return self.reply_ok()
 
     @sirepo.quest.Spec("require_adm")
-    def api_admModerateRedirect(self):
+    async def api_admModerateRedirect(self):
         def _type():
             x = sirepo.feature_config.auth_controlled_sim_types()
             res = sorted(sirepo.feature_config.cfg().sim_types - x)
@@ -103,7 +103,7 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("require_adm")
-    def api_getModerationRequestRows(self):
+    async def api_getModerationRequestRows(self):
         return self.reply_json(
             PKDict(
                 rows=self.auth_db.model("UserRoleInvite").get_moderation_request_rows(),
@@ -113,7 +113,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec(
         "allow_sim_typeless_require_email_user", reason="AuthModerationReason"
     )
-    def api_saveModerationReason(self):
+    async def api_saveModerationReason(self):
         def _send_request_email(info):
             sirepo.smtp.send(
                 recipient=_cfg.moderator_email,
@@ -126,29 +126,27 @@ class API(sirepo.quest.API):
         req = self.parse_post()
         u = self.auth.logged_in_user()
         r = sirepo.auth_role.for_sim_type(req.type)
-        with sirepo.util.THREAD_LOCK:
-            if self.auth_db.model("UserRole").has_role(role=r):
-                raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
-            try:
-                self.auth_db.model(
-                    "UserRoleInvite",
-                    uid=u,
-                    role=r,
-                    status=sirepo.auth_role.ModerationStatus.PENDING,
-                    token=sirepo.util.random_base62(32),
-                ).save()
-            except sqlalchemy.exc.IntegrityError as e:
-                pkdlog(
-                    "Error={} saving UserRoleInvite for uid={} role={} stack={}",
-                    e,
-                    u,
-                    r,
-                    pkdexc(),
-                )
-                raise sirepo.util.UserAlert(
-                    f"You've already submitted a moderation request.",
-                )
-
+        if self.auth_db.model("UserRole").has_role(role=r):
+            raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
+        try:
+            self.auth_db.model(
+                "UserRoleInvite",
+                uid=u,
+                role=r,
+                status=sirepo.auth_role.ModerationStatus.PENDING,
+                token=sirepo.util.random_base62(32),
+            ).save()
+        except sqlalchemy.exc.IntegrityError as e:
+            pkdlog(
+                "Error={} saving UserRoleInvite for uid={} role={} stack={}",
+                e,
+                u,
+                r,
+                pkdexc(),
+            )
+            raise sirepo.util.UserAlert(
+                "You've already submitted a moderation request.",
+            )
         l = self.absolute_uri(self.uri_for_api("admModerateRedirect"))
         if len(req.req_data.get("reason", "").strip()) == 0:
             raise sirepo.util.UserAlert("Reason for requesting access not provided")

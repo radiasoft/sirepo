@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
@@ -58,6 +57,7 @@ _PARALLEL_STATUS_FIELDS = frozenset(
         "frameCount",
         "lastUpdateTime",
         "percentComplete",
+        "queueState",
     )
 )
 
@@ -188,9 +188,7 @@ def init_module(**imports):
             job.SEQUENTIAL: 1,
         }
     )
-    tornado.ioloop.IOLoop.current().add_callback(
-        _ComputeJob.purge_free_simulations,
-    )
+    tornado.ioloop.IOLoop.current().add_callback(_ComputeJob.purge_non_premium)
 
 
 async def terminate():
@@ -483,16 +481,14 @@ class _ComputeJob(_Supervisor):
         )
 
     @classmethod
-    async def purge_free_simulations(cls):
+    async def purge_non_premium(cls):
         def _get_uids_and_files(qcall):
             r = []
             u = None
             p = qcall.auth_db.model("UserRole").uids_of_paid_users()
             for f in pkio.sorted_glob(
                 _DB_DIR.join(
-                    "*{}".format(
-                        sirepo.const.JSON_SUFFIX,
-                    )
+                    f"*{sirepo.const.JSON_SUFFIX}",
                 )
             ):
                 n = sirepo.job.split_jid(jid=f.purebasename).uid
@@ -513,18 +509,21 @@ class _ComputeJob(_Supervisor):
             if r:
                 yield u, r
 
-        def _purge_sim(jid, qcall):
+        def _purge_job(jid, qcall):
             d = cls.__db_load(jid)
             if d.lastUpdateTime > _too_old:
                 return
             cls._purged_jids_cache.add(jid)
-            if d.status == job.JOB_RUN_PURGED:
+            if d.status == job.JOB_RUN_PURGED or not sirepo.util.is_sim_type(
+                d.simulationType
+            ):
                 return
             p = sirepo.simulation_db.simulation_run_dir(d, qcall=qcall)
             pkio.unchecked_remove(p)
             n = cls.__db_init_new(d, d)
             n.status = job.JOB_RUN_PURGED
             cls.__db_write_file(n)
+            pkdlog("jid={}", jid)
 
         if not _cfg.purge_non_premium_task_secs:
             return
@@ -539,14 +538,14 @@ class _ComputeJob(_Supervisor):
                 for u, v in _get_uids_and_files(qcall):
                     with qcall.auth.logged_in_user_set(u):
                         for f in v:
-                            _purge_sim(jid=f.purebasename, qcall=qcall)
+                            _purge_job(jid=f.purebasename, qcall=qcall)
                     await tornado.gen.sleep(0)
         except Exception as e:
             pkdlog("u={} f={} error={} stack={}", u, f, e, pkdexc())
         finally:
             tornado.ioloop.IOLoop.current().call_later(
                 _cfg.purge_non_premium_task_secs,
-                cls.purge_free_simulations,
+                cls.purge_non_premium,
             )
 
     def set_situation(self, op, situation, exception=None):
@@ -579,6 +578,7 @@ class _ComputeJob(_Supervisor):
     def __db_init_new(cls, data, prev_db=None):
         db = PKDict(
             alert=None,
+            queueState="queued",
             canceledAfterSecs=None,
             computeJid=data.computeJid,
             computeJobHash=data.computeJobHash,
@@ -789,7 +789,7 @@ class _ComputeJob(_Supervisor):
             # Read this first https://github.com/radiasoft/sirepo/issues/2007
             r = await self._receive_api_runStatus(req)
             if r.state == job.MISSING:
-                # happens when the run dir is deleted (ex _purge_free_simulations)
+                # happens when the run dir is deleted (ex purge_non_premium)
                 assert (
                     recursion_depth == 0
                 ), "Infinite recursion detected. Already called from self. req={}".format(
@@ -941,6 +941,7 @@ class _ComputeJob(_Supervisor):
                 while True:
                     try:
                         r = await op.reply_get()
+                        self.db.queueState = None
                         # TODO(robnagler) is this ever true?
                         if op != self.run_op:
                             return
@@ -963,6 +964,7 @@ class _ComputeJob(_Supervisor):
                         if r.state in job.EXIT_STATUSES:
                             break
                     except sirepo.const.ASYNC_CANCELED_ERROR:
+                        self.db.queueState = None
                         return
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
@@ -1020,6 +1022,7 @@ class _ComputeJob(_Supervisor):
                 r.computeJobSerial = self.db.computeJobSerial
                 r.computeModel = self.db.computeModel
                 r.elapsedTime = self.elapsed_time()
+                r.queueState = self.db.get("queueState")
             if self._is_running_pending():
                 c = req.content
                 r.update(

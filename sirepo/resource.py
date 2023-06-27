@@ -4,11 +4,12 @@
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkresource
 from pykern.pkdebug import pkdp
 import importlib
 import os
+import pykern.pkio
+import sirepo.const
 import sirepo.feature_config
 import sirepo.util
 
@@ -66,6 +67,21 @@ def static(*paths):
     return file_path(static_url(*paths))
 
 
+def static_files():
+    """Generate all, non-overlapping, non-dot static files
+
+    Yields:
+        (str, py.path): relative path (including static) and absolute paths
+    """
+    s = set()
+    for d in glob_paths(static_url()):
+        for f in pykern.pkio.walk_tree(d):
+            r = d.bestrelpath(f)
+            if "/." not in f"/{r}" and r not in s:
+                s.add(r)
+                yield (static_url(r), f)
+
+
 def static_paths_for_type(file_type):
     """Get paths of static file of type
 
@@ -87,7 +103,7 @@ def static_url(*paths):
     Returns:
         str: url for file
     """
-    return _join_paths(["static", *paths])
+    return _join_paths([sirepo.const.STATIC_D, *paths])
 
 
 def _join_paths(paths):

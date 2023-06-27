@@ -19,7 +19,7 @@ def test_login():
         from sirepo import util
         from sirepo.auth import guest
 
-        r = qcall.call_api("authState")
+        r = qcall.call_api_sync("authState")
         pkre('LoggedIn": false.*Registration": false', r.content_as_str())
         r.destroy()
         r = None

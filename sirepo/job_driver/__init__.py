@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc, pkdformat
 from sirepo import job
 import importlib
 import pykern.pkio
+import os
 import re
 import sirepo.auth
 import sirepo.const
@@ -213,14 +214,19 @@ class DriverBase(PKDict):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
                 PYKERN_PKDEBUG_WANT_PID_TIME="1",
+                SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
+                # POSIT: same as pkcli.job_agent.start
+                SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS=os.environ.get(
+                    "SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS",
+                    str(pkconfig.in_dev_mode()),
+                ),
+                SIREPO_PKCLI_JOB_AGENT_START_DELAY=self.get("_agent_start_delay", "0"),
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_URI=job.supervisor_file_uri(
                     self.cfg.supervisor_uri,
                     job.SIM_DB_FILE_URI,
                     self.uid,
                 ),
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,
-                SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
-                SIREPO_PKCLI_JOB_AGENT_START_DELAY=self.get("_agent_start_delay", 0),
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.cfg.supervisor_uri.replace(
                     # TODO(robnagler) figure out why we need ws (wss, implicit)
                     "http",

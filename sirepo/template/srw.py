@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -23,7 +22,6 @@ import re
 import sirepo.job
 import sirepo.mpi
 import sirepo.sim_data
-import sirepo.uri_router
 import sirepo.util
 import srwl_bl
 import srwlib
@@ -335,6 +333,12 @@ def clean_run_dir(run_dir):
         zip_dir.remove()
 
 
+def export_filename(sim_filename, filename):
+    if filename not in ("run.py", "sirepo-data.json"):
+        return f"{sim_filename.replace('.zip', '')}/{filename}"
+    return filename
+
+
 def _extract_coherent_modes(model, out_info):
     out_file = "combined-modes.dat"
     wfr = srwlib.srwl_uti_read_wfr_cm_hdf5(_file_path=out_info.filename)
@@ -532,17 +536,18 @@ def sim_frame(frame_args):
     return extract_report_data(frame_args.sim_in)
 
 
-def import_file(req, tmp_dir, qcall, **kwargs):
+async def import_file(req, tmp_dir, qcall, **kwargs):
     import sirepo.server
 
     i = None
     r = None
     try:
-        r = kwargs["reply_op"](simulation_db.default_data(SIM_TYPE))
+        r = kwargs["srw_save_sim"](simulation_db.default_data(SIM_TYPE))
         d = pykern.pkjson.load_any(r.content_as_str())
         r.destroy()
         r = None
         i = d.models.simulation.simulationId
+        serial = d.models.simulation.simulationSerial
         b = d.models.backgroundImport = PKDict(
             arguments=req.import_file_arguments,
             python=req.form_file.as_str(),
@@ -558,7 +563,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             forceRun=True,
             simulationId=i,
         )
-        r = qcall.call_api("runSimulation", data=d)
+        r = await qcall.call_api("runSimulation", data=d)
         for _ in range(_IMPORT_PYTHON_POLLS):
             if r.status_as_int() != 200:
                 raise sirepo.util.UserAlert(
@@ -593,7 +598,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
                     x,
                 )
             time.sleep(x.nextRequestSeconds)
-            r = qcall.call_api("runStatus", data=x.nextRequest)
+            r = await qcall.call_api("runStatus", data=x.nextRequest)
         else:
             raise sirepo.util.UserAlert(
                 "error parsing python",
@@ -602,6 +607,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             )
         x = x.get(PARSED_DATA_ATTR)
         x.models.simulation.simulationId = i
+        x.models.simulation.simulationSerial = serial
         x = simulation_db.save_simulation_json(
             x, do_validate=True, fixup=True, qcall=qcall
         )
@@ -619,7 +625,7 @@ def import_file(req, tmp_dir, qcall, **kwargs):
             r.destroy()
             r = None
     raise sirepo.util.SReplyExc(
-        qcall.call_api(
+        await qcall.call_api(
             "simulationData",
             kwargs=PKDict(simulation_type=x.simulationType, simulation_id=i),
         ),
@@ -627,11 +633,24 @@ def import_file(req, tmp_dir, qcall, **kwargs):
 
 
 def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
+    def _sim_from_radia(models, d):
+        for m in ("simulation", "tabulatedUndulator", "electronBeamPosition"):
+            models[m].pkupdate(d[m])
+        f = d.tabulatedUndulator.magneticFile
+        t_basename = f"{d.sourceSimType}-{d.sourceSimId}-{f}"
+        models.tabulatedUndulator.magneticFile = t_basename
+        t = simulation_db.simulation_lib_dir(_SIM_DATA.sim_type(), qcall=qcall).join(
+            t_basename
+        )
+        simulation_db.simulation_dir(
+            d.sourceSimType, sid=d.sourceSimId, qcall=qcall
+        ).join(f).copy(t)
+
     sim = data.models.simulation
     sim.sourceType = new_simulation_data.sourceType
-    if _SIM_DATA.srw_is_gaussian_source(sim):
-        data.models.initialIntensityReport.sampleFactor = 0
-    elif _SIM_DATA.srw_is_dipole_source(sim):
+    if new_simulation_data.get("sourceSimType") == "radia":
+        _sim_from_radia(data.models, new_simulation_data)
+    if _SIM_DATA.srw_is_dipole_source(sim):
         data.models.intensityReport.method = "2"
     elif _SIM_DATA.srw_is_arbitrary_source(sim):
         data.models.sourceIntensityReport.method = "2"
@@ -772,6 +791,8 @@ def python_source_for_model(data, model, qcall, plot_reports=True, **kwargs):
     data.report = model or _SIM_DATA.SRW_RUN_ALL_MODEL
     data.report = re.sub("beamlineAnimation0", "initialIntensityReport", data.report)
     data.report = re.sub("beamlineAnimation", "watchpointReport", data.report)
+    if not _SIM_DATA.is_for_ml(data.report):
+        data.fdir = sirepo.util.secure_filename(data.models.simulation.name) + "/"
     return _generate_parameters_file(data, plot_reports=plot_reports, qcall=qcall)
 
 
@@ -787,7 +808,7 @@ def run_epilogue():
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
 
-def stateful_compute_sample_preview(data):
+def stateful_compute_sample_preview(data, **kwargs):
     """Process image and return
 
     Args:
@@ -867,17 +888,17 @@ def stateful_compute_sample_preview(data):
     return template_common.JobCmdFile(path=p)
 
 
-def stateful_compute_undulator_length(data):
+def stateful_compute_undulator_length(data, **kwargs):
     return compute_undulator_length(data.args["tabulated_undulator"])
 
 
-def stateful_compute_create_shadow_simulation(data):
+def stateful_compute_create_shadow_simulation(data, **kwargs):
     from sirepo.template.srw_shadow import Convert
 
     return Convert().to_shadow(data)
 
 
-def stateful_compute_delete_user_models(data):
+def stateful_compute_delete_user_models(data, **kwargs):
     """Remove the beam and undulator user model list files"""
     electron_beam = data.args.electron_beam
     tabulated_undulator = data.args.tabulated_undulator
@@ -894,7 +915,7 @@ def stateful_compute_delete_user_models(data):
     return PKDict()
 
 
-def stateful_compute_model_list(data):
+def stateful_compute_model_list(data, **kwargs):
     res = []
     model_name = data.args["model_name"]
     if model_name == "electronBeam":
@@ -906,11 +927,11 @@ def stateful_compute_model_list(data):
     return PKDict(modelList=res)
 
 
-def stateless_compute_PGM_value(data):
+def stateless_compute_PGM_value(data, **kwargs):
     return _compute_PGM_value(data.optical_element)
 
 
-def stateless_compute_crl_characteristics(data):
+def stateless_compute_crl_characteristics(data, **kwargs):
     return compute_crl_focus(
         _compute_material_characteristics(
             data.optical_element,
@@ -919,22 +940,22 @@ def stateless_compute_crl_characteristics(data):
     )
 
 
-def stateless_compute_crystal_init(data):
+def stateless_compute_crystal_init(data, **kwargs):
     return _compute_crystal_init(data.optical_element)
 
 
-def stateless_compute_crystal_orientation(data):
+def stateless_compute_crystal_orientation(data, **kwargs):
     return _compute_crystal_orientation(data.optical_element)
 
 
-def stateless_compute_delta_atten_characteristics(data):
+def stateless_compute_delta_atten_characteristics(data, **kwargs):
     return _compute_material_characteristics(
         data.optical_element,
         data.photon_energy,
     )
 
 
-def stateless_compute_dual_characteristics(data):
+def stateless_compute_dual_characteristics(data, **kwargs):
     return _compute_material_characteristics(
         _compute_material_characteristics(
             data.optical_element,
@@ -946,11 +967,11 @@ def stateless_compute_dual_characteristics(data):
     )
 
 
-def stateless_compute_compute_grazing_orientation(data):
+def stateless_compute_compute_grazing_orientation(data, **kwargs):
     return _compute_grazing_orientation(data.optical_element)
 
 
-def stateless_compute_process_beam_parameters(data):
+def stateless_compute_process_beam_parameters(data, **kwargs):
     data.ebeam = srw_common.process_beam_parameters(data.ebeam)
     data.ebeam.drift = calculate_beam_drift(
         data.ebeam_position,
@@ -962,7 +983,7 @@ def stateless_compute_process_beam_parameters(data):
     return data.ebeam
 
 
-def stateless_compute_process_undulator_definition(data):
+def stateless_compute_process_undulator_definition(data, **kwargs):
     return process_undulator_definition(data)
 
 
@@ -1277,8 +1298,9 @@ def _compute_PGM_value(model):
         else:
             model.orientation = "x"
         _compute_grating_orientation(model)
-    except Exception:
-        pkdlog("\n{}", traceback.format_exc())
+    except Exception as e:
+        if type(e) not in (ZeroDivisionError, ValueError, TypeError):
+            pkdlog("\n{}", traceback.format_exc())
         if model.computeParametersFrom == "1":
             model.grazingAngle = None
         elif model.computeParametersFrom == "2":
@@ -1801,6 +1823,7 @@ def _generate_beamline_optics(report, data, qcall=None):
         names=[n for n in res.names if n not in res.exclude],
         postPropagation=models.postPropagation,
         maxNameSize=max_name_size,
+        fdir=data.get("fdir", ""),
         nameMap=PKDict(
             apertureShape="ap_shape",
             asymmetryAngle="ang_as",
@@ -1900,6 +1923,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
         data,
         is_run_mpi=_SIM_DATA.is_run_mpi(data),
     )
+    v.fdir = data.get("fdir", "")
     v.rs_type = dm.simulation.sourceType
     if v.rs_type == "t" and dm.tabulatedUndulator.undulatorType == "u_i":
         v.rs_type = "u"
@@ -1935,7 +1959,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     ]
     if (plot_reports or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append(
-            'setup_magnetic_measurement_files("{}", v)'.format(
+            'setup_magnetic_measurement_files(v.fdir + "{}", v)'.format(
                 data.models.tabulatedUndulator.magneticFile
             )
         )
@@ -2000,11 +2024,21 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             ]
         )
     else:
+        if report in (
+            "multiElectronAnimation",
+            "coherenceXAnimation",
+            "coherenceYAnimation",
+            "coherentModesAnimation",
+        ):
+            if not run_all:
+                content.append("v.wm = True")
+        else:
+            content.append("v.wm = False")
         if (run_all and source_type != "g") or report == "intensityReport":
             content.append("v.ss = True")
             if plot_reports:
                 content.append("v.ss_pl = 'e'")
-        if (run_all and source_type not in ("g", "m")) or report in "fluxReport":
+        if (run_all and source_type not in ("g", "m", "a")) or report in "fluxReport":
             content.append("v.sm = True")
             if plot_reports:
                 content.append("v.sm_pl = 'e'")
@@ -2262,6 +2296,7 @@ def _rsopt_jinja_context(data):
         fileBase=_SIM_DATA.EXPORT_RSOPT,
         forRSOpt=True,
         libFiles=_SIM_DATA.lib_file_basenames(data),
+        maxOuputDimension=model.maxOuputDimension,
         numCores=int(model.numCores),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         numSamples=int(model.numSamples),
@@ -2380,7 +2415,6 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
                 _core_error(sirepo.mpi.cfg().cores)
             if sirepo.mpi.cfg().in_slurm and c.sbatchCores < _MIN_CORES:
                 _core_error(c.sbatchCores)
-            v.multiElectronAnimation = 1
             v.multiElectronCharacteristic = 61
             v.mpiGroupCount = dm.coherentModesAnimation.mpiGroupCount
             v.multiElectronFileFormat = "h5"

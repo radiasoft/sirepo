@@ -8,18 +8,18 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 
-def test_synergia(fc):
+def test_srw(fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdc, pkdp, pkdlog
     import time
 
-    d = fc.sr_sim_data(sim_name="IOTA 6-6 with NLINSERT", sim_type=fc.sr_sim_type)
+    d = fc.sr_sim_data(sim_name="NSLS-II ESM beamline", sim_type=fc.sr_sim_type)
     r = fc.sr_post(
         "runSimulation",
         dict(
             forceRun=False,
             models=d.models,
-            report="bunchReport1",
+            report="intensityReport",
             simulationId=d.models.simulation.simulationId,
             simulationType=d.simulationType,
         ),
@@ -42,7 +42,7 @@ def test_synergia(fc):
         dict(
             forceRun=False,
             models=d.models,
-            report="bunchReport1",
+            report="intensityReport",
             simulationId=d.models.simulation.simulationId,
             simulationType=d.simulationType,
         ),

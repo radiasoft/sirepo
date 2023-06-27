@@ -27,7 +27,7 @@ UserModel = "AuthGithubUser"
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("allow_cookieless_set_user")
-    def api_authGithubAuthorized(self):
+    async def api_authGithubAuthorized(self):
         """Handle a callback from a successful OAUTH request.
 
         Tracks oauth users in a database.
@@ -35,20 +35,24 @@ class API(sirepo.quest.API):
         oc, t = sirepo.oauth.check_authorized_callback(self, github_auth=True)
         d = oc.get("https://api.github.com/user").json()
         sirepo.events.emit(self, "github_authorized", PKDict(user_name=d["login"]))
-        with sirepo.util.THREAD_LOCK:
-            m = self.auth_db.model(UserModel)
-            u = m.unchecked_search_by(oauth_id=d["id"])
-            if u:
-                # always update user_name
-                u.user_name = d["login"]
-            else:
-                u = m.new(oauth_id=d["id"], user_name=d["login"])
-            u.save()
-            self.auth.login(this_module, model=u, sim_type=t, want_redirect=True)
-            raise AssertionError("auth.login returned unexpectedly")
+        m = self.auth_db.model(UserModel)
+        u = m.unchecked_search_by(oauth_id=d["id"])
+        if u:
+            # always update user_name
+            u.user_name = d["login"]
+        else:
+            u = m.new(oauth_id=d["id"], user_name=d["login"])
+        u.save()
+        self.auth.login(
+            this_module,
+            model=m.unchecked_search_by(oauth_id=d["id"]),
+            sim_type=t,
+            want_redirect=True,
+        )
+        raise AssertionError("auth.login returned unexpectedly")
 
     @sirepo.quest.Spec("require_cookie_sentinel")
-    def api_authGithubLogin(self, simulation_type):
+    async def api_authGithubLogin(self, simulation_type):
         """Redirects to Github"""
         sirepo.oauth.raise_authorize_redirect(
             self,
@@ -57,7 +61,7 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec("allow_cookieless_set_user")
-    def api_oauthAuthorized(self, oauth_type):
+    async def api_oauthAuthorized(self, oauth_type):
         """Deprecated use `api_authGithubAuthorized`"""
         return self.api_authGithubAuthorized()
 

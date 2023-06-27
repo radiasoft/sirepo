@@ -25,7 +25,7 @@ test_main() {
 }
 
 test_no_h5py() {
-    local f=( $(find sirepo -name \*.py | egrep -v '/(package_data|activait|flash|opal|radia|silas|synergia|warp|server.py)') )
+    local f=( $(find sirepo -name \*.py | egrep -v '/(package_data|activait|flash|opal|radia|silas|warp|server.py|hdf5_util)') )
     local r=$(grep -l '^import.*h5py' "${f[@]}")
     if [[ $r ]]; then
         test_err "import h5py found in: $r"

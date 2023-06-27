@@ -341,7 +341,7 @@ def sort_problem_files(files):
     return sorted(files, key=lambda x: (_sort_suffix(x), x["name"]))
 
 
-def stateless_compute_delete_archive_file(data):
+def stateless_compute_delete_archive_file(data, **kwargs):
     # TODO(pjm): python may have ZipFile.remove() method eventually
     pksubprocess.check_call_with_signals(
         [
@@ -358,7 +358,7 @@ def stateless_compute_delete_archive_file(data):
     return PKDict()
 
 
-def stateless_compute_format_text_file(data):
+def stateless_compute_format_text_file(data, **kwargs):
     if data.args.filename == _SIM_DATA.FLASH_PAR_FILE and data.args.models.get(
         "flashSchema"
     ):
@@ -390,7 +390,7 @@ def stateless_compute_format_text_file(data):
     )
 
 
-def stateless_compute_get_archive_file(data):
+def stateless_compute_get_archive_file(data, **kwargs):
     if data.args.filename == _SIM_DATA.FLASH_PAR_FILE and data.args.models.get(
         "flashSchema"
     ):
@@ -407,7 +407,7 @@ def stateless_compute_get_archive_file(data):
     )
 
 
-def stateless_compute_update_lib_file(data):
+def stateless_compute_update_lib_file(data, **kwargs):
     p = _SIM_DATA.lib_file_write_path(
         _SIM_DATA.flash_app_lib_basename(data.args.simulationId),
     )
@@ -424,7 +424,7 @@ def stateless_compute_update_lib_file(data):
     )
 
 
-def stateless_compute_replace_file_in_zip(data):
+def stateless_compute_replace_file_in_zip(data, **kwargs):
     found = False
     for f in data.args.archiveFiles:
         if f.name == data.args.filename:
@@ -467,7 +467,7 @@ def stateless_compute_replace_file_in_zip(data):
     return res
 
 
-def stateless_compute_setup_command(data):
+def stateless_compute_setup_command(data, **kwargs):
     return PKDict(
         setupCommand=" ".join(
             _SIM_DATA.flash_setup_command(data.args.setupArguments),

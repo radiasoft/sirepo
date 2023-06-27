@@ -33,41 +33,40 @@ class UserRole(sirepo.auth_db.UserDbBase):
     def add_roles(self, roles, expiration=None):
         from sirepo import sim_data
 
-        cls = self.__class__
-        with sirepo.util.THREAD_LOCK:
-            u = self.logged_in_user()
-            for r in roles:
-                try:
+        u = self.logged_in_user()
+        for r in roles:
+            try:
+                # Check here, because sqlite doesn't through IntegrityErrors
+                # at the point of the new() operation.
+                if not self.has_role(r):
                     self.new(uid=u, role=r, expiration=expiration).save()
-                except sqlalchemy.exc.IntegrityError:
-                    # role already exists
-                    pass
-            sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall)
+            except sqlalchemy.exc.IntegrityError:
+                # role already exists
+                pass
+        sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall)
 
     def add_role_or_update_expiration(self, role, expiration):
-        with sirepo.util.THREAD_LOCK:
-            if not self.has_role(role):
-                self.add_roles(roles=[role], expiration=expiration)
-                return
-            r = self.search_by(uid=self.logged_in_user(), role=role)
-            r.expiration = expiration
-            r.save()
+        if not self.has_role(role):
+            self.add_roles(roles=[role], expiration=expiration)
+            return
+        r = self.search_by(uid=self.logged_in_user(), role=role)
+        r.expiration = expiration
+        r.save()
 
     def delete_roles(self, roles):
         from sirepo import sim_data
 
         cls = self.__class__
-        with sirepo.util.THREAD_LOCK:
-            self.auth_db.execute(
-                sqlalchemy.delete(cls)
-                .where(
-                    cls.uid == self.logged_in_user(),
-                )
-                .where(
-                    cls.role.in_(roles),
-                )
+        self.auth_db.execute(
+            sqlalchemy.delete(cls)
+            .where(
+                cls.uid == self.logged_in_user(),
             )
-            sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall)
+            .where(
+                cls.role.in_(roles),
+            )
+        )
+        sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall)
 
     def get_roles(self):
         return self.search_all_for_column("role", uid=self.logged_in_user())
@@ -138,9 +137,8 @@ class UserRoleInvite(sirepo.auth_db.UserDbBase):
         return sirepo.auth_role.ModerationStatus.check(s.status)
 
     def set_status(self, role, status, moderator_uid):
-        with sirepo.util.THREAD_LOCK:
-            s = self.search_by(uid=self.logged_in_user(), role=role)
-            s.status = sirepo.auth_role.ModerationStatus.check(status)
-            if moderator_uid:
-                s.moderator_uid = moderator_uid
-            s.save()
+        s = self.search_by(uid=self.logged_in_user(), role=role)
+        s.status = sirepo.auth_role.ModerationStatus.check(status)
+        if moderator_uid:
+            s.moderator_uid = moderator_uid
+        s.save()

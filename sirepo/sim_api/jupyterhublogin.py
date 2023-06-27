@@ -28,7 +28,7 @@ _SIM_TYPE = "jupyterhublogin"
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
-    def api_checkAuthJupyterhub(self):
+    async def api_checkAuthJupyterhub(self):
         self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(
             self,
@@ -41,7 +41,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec(
         "require_user", do_migration="Bool", sim_type=f"SimType const={_SIM_TYPE}"
     )
-    def api_migrateJupyterhub(self):
+    async def api_migrateJupyterhub(self):
         self.parse_params(type=_SIM_TYPE)
         if not _cfg.rs_jupyter_migrate:
             raise sirepo.util.Forbidden("migrate not enabled")
@@ -52,7 +52,7 @@ class API(sirepo.quest.API):
         sirepo.oauth.raise_authorize_redirect(self, _SIM_TYPE, github_auth=True)
 
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
-    def api_redirectJupyterHub(self):
+    async def api_redirectJupyterHub(self):
         self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(self)
         if u:
@@ -132,20 +132,24 @@ def create_user(qcall, github_handle=None, check_dir=False):
             n += _HUB_USER_SEP + sirepo.util.random_base62(3).lower()
         return n
 
-    with sirepo.util.THREAD_LOCK:
-        n = _unchecked_jupyterhub_user_name(qcall)
-        if n:
-            return n
-        u = __user_name()
-        if check_dir and _user_dir(qcall, u).exists():
-            raise AssertionError(f"existing user dir with same name={u}")
-        qcall.auth_db.model(
-            "JupyterhubUser",
-            uid=qcall.auth.logged_in_user(),
-            user_name=u,
-        ).save()
-        pkio.mkdir_parent(_user_dir(qcall))
-        return u
+    n = _unchecked_jupyterhub_user_name(qcall)
+    if n:
+        return n
+    u = __user_name()
+    # POSIT: if two creates happen simultaneously, there may be an existence
+    # collision, but the db will be consistent, because this call happens
+    # first, before db insert.
+    if check_dir and _user_dir(qcall, u).exists():
+        raise AssertionError(f"existing user dir with same name={u}")
+    qcall.auth_db.model(
+        "JupyterhubUser",
+        uid=qcall.auth.logged_in_user(),
+        user_name=u,
+    ).save()
+    # POSIT: one transaction will rollback if two creates happen at the same time,
+    # but that won't change the need for the directory.
+    pkio.mkdir_parent(_user_dir(qcall))
+    return u
 
 
 def delete_user_dir(qcall):

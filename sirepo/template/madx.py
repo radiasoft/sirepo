@@ -168,6 +168,8 @@ class MadxOutputFileIterator(lattice.ModelIterator):
         self.model_index = PKDict()
 
     def field(self, model, field_schema, field):
+        if field == lattice.ElementIterator.IS_DISABLED_FIELD or field == "_super":
+            return
         self.field_index += 1
         if field_schema[1] == "OutputFile":
             b = "{}{}.{}".format(
@@ -334,6 +336,8 @@ def generate_parameters_file(data):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if _is_report("bunchReport", model):
+        return PTC_PARTICLES_FILE
     if frame == SCHEMA.constants.logFileFrameId:
         return template_common.text_data_file(MADX_LOG_FILE, run_dir)
     if frame >= 0:
@@ -348,12 +352,10 @@ def get_data_file(run_dir, model, frame, options):
             re.sub(r"elementAnimation", "", model),
             data,
         ).filename
-    if _is_report("bunchReport", model):
-        return PTC_PARTICLES_FILE
     assert False, f"no data file for model: {model}"
 
 
-def import_file(req, **kwargs):
+async def import_file(req, **kwargs):
     text = req.form_file.as_str()
     if not bool(re.search(r"\.madx$|\.seq$", req.filename, re.IGNORECASE)):
         raise AssertionError("invalid file extension, expecting .madx or .seq")
@@ -412,7 +414,7 @@ def save_sequential_report_data(data, run_dir):
     )
 
 
-def stateless_compute_calculate_bunch_parameters(data):
+def stateless_compute_calculate_bunch_parameters(data, **kwargs):
     return _calc_bunch_parameters(
         data.args.bunch, data.args.command_beam, data.args.variables
     )
@@ -955,7 +957,7 @@ def _output_info(run_dir):
                     PKDict(
                         modelKey="twissFromParticlesAnimation",
                         filename=f.filename,
-                        isHistogram=True,
+                        isHistogram=False,
                         plottableColumns=PTC_OBSERVE_TWISS_COLS,
                         pageCount=0,
                     ),

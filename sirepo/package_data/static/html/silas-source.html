@@ -1,0 +1,23 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-6">
+      <div data-basic-editor-panel="" data-view-name="laserPulse"></div>
+    </div>
+    <div class="col-md-6 col-xl-6">
+      <div data-simple-panel="simulationStatus">
+        <div data-sim-status-panel="source.simState"></div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6" data-ng-if="source.simState.hasFrames()">
+      <div data-report-panel="{{ source.laserPulsePlotType('laserPulseAnimation') }}" data-model-name="laserPulseAnimation"></div>
+    </div>
+    <div class="col-md-6" data-ng-if="source.simState.hasFrames()">
+      <div data-report-panel="{{ source.laserPulsePlotType('laserPulse2Animation') }}" data-model-name="laserPulse2Animation"></div>
+    </div>
+  </div>
+</div>
+<!-- required to have the intensityViewHandler update the SINGLE_FRAME_ANIMATION list -->
+<div data-modal-editor="" data-view-name="laserPulseAnimation" data-sr-laserpulseanimation-editor=""></div>
+<div data-modal-editor="" data-view-name="laserPulse2Animation" data-sr-laserpulse2animation-editor=""></div>

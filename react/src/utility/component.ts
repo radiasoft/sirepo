@@ -37,10 +37,32 @@ export type Dimension = {
     width: number
 }
 
+export function getElementSize(e: HTMLElement): Dimension {
+    if(!e || !e.offsetWidth) {
+        return undefined;
+    }
+
+    const w = e.offsetWidth;
+    const h = e.offsetHeight;
+
+    return {
+        width: w,
+        height: h
+    }
+}
+
+export function getRefSize(ref: RefObject<HTMLElement>): Dimension {
+    if (! ref || ! ref.current || ! ref.current.offsetWidth) {
+        return undefined;
+    }
+    
+    return getElementSize(ref.current);
+}
+
 export function useRefSize(ref: RefObject<HTMLElement>): [Dimension, React.Dispatch<React.SetStateAction<Dimension>>] {
     const [dim, setDim] = useState({
-        width: 1000,
-        height: 1000,
+        width: 400,
+        height: 400,
     });
     useLayoutEffect(() => {
         if (! ref || ! ref.current || ! ref.current.offsetWidth) {
@@ -48,14 +70,10 @@ export function useRefSize(ref: RefObject<HTMLElement>): [Dimension, React.Dispa
         }
         // cannot read from ref inside debounce, debounce is called with a delay...
         // need to cache future answers and check for staleness in callback
-        const w = ref.current.offsetWidth;
-        const h = ref.current.offsetHeight;
+        let newDim = getRefSize(ref);
         const handleResize = debounce(() => {
-            if (dim.width !== w) {
-                setDim({
-                    width: w,
-                    height: h,
-                });
+            if (dim.width !== newDim.width) {
+                setDim(newDim);
             }
         }, 250);
         window.addEventListener('resize', handleResize);

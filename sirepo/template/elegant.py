@@ -201,6 +201,8 @@ class OutputFileIterator(lattice.ModelIterator):
         self._update_filenames = update_filenames
 
     def field(self, model, field_schema, field):
+        if field == lattice.ElementIterator.IS_DISABLED_FIELD or field == "_super":
+            return
         self.field_index += 1
         if field_schema[1] == "OutputFile" and model[field]:
             if self._update_filenames:
@@ -658,6 +660,61 @@ def copy_related_files(data, source_path, target_path):
             f.copy(t)
 
 
+def extract_report_data(filename, frame_args, page_count=0):
+    def _label(plot, sdds_units):
+        if plot.label in _FIELD_LABEL:
+            plot.label = _FIELD_LABEL[plot.label]
+            return
+        if sdds_units in _SIMPLE_UNITS:
+            plot.label = "{} [{}]".format(plot.label, sdds_units)
+            return
+        plot.label = plot.label
+        return
+
+    def _title(xfield, yfield, page_index, page_count):
+        title_key = xfield + "-" + yfield
+        if title_key in _PLOT_TITLE:
+            title = _PLOT_TITLE[title_key]
+        else:
+            title = "{} / {}".format(xfield, yfield)
+        if page_count > 1:
+            title += ", Plot {} of {}".format(page_index + 1, page_count)
+        return title
+
+    x_field = "x" if "x" in frame_args else _X_FIELD
+    plot_attrs = PKDict(
+        format_plot=_label,
+        page_index=frame_args.frameIndex,
+        model=template_common.model_from_frame_args(frame_args),
+        x_field=x_field,
+    )
+    _sdds_init()
+
+    if not _is_histogram_file(
+        filename,
+        sdds_util.extract_sdds_column(filename, frame_args[x_field], 0)["column_names"],
+    ):
+        if page_count > 1:
+            plot_attrs.pkupdate(
+                title="Plot {} of {}".format(plot_attrs.page_index + 1, page_count)
+            )
+
+        return sdds_util.SDDSUtil(filename).lineplot(plot_attrs=plot_attrs)
+
+    y_field = "y1" if "y1" in frame_args else "y"
+    return sdds_util.SDDSUtil(filename).heatmap(
+        plot_attrs=plot_attrs.pkupdate(
+            title=_title(
+                frame_args[x_field],
+                frame_args[y_field],
+                plot_attrs.page_index,
+                page_count,
+            ),
+            y_field=y_field,
+        )
+    )
+
+
 def generate_parameters_file(data, is_parallel=False, qcall=None):
     return _Generate(data, qcall=qcall).sim(full=is_parallel)
 
@@ -685,7 +742,14 @@ def get_data_file(run_dir, model, frame, options):
                 f"invalid suffix={options.suffix} for download path={path}"
             )
         out = elegant_common.subprocess_output(
-            ["sddsprintout", "-columns", "-spreadsheet=csv", str(path)],
+            [
+                "sddsprintout",
+                "-noTitle",
+                "-columns",
+                "-spreadsheet=delimiter=\\,",
+                "-formatDefaults=float=%1.8e,double=%1.16e,long=%1ld,short=%1hd",
+                str(path),
+            ],
         )
         assert out, f"{path}: invalid or empty output from sddsprintout"
         return PKDict(
@@ -703,7 +767,7 @@ def get_data_file(run_dir, model, frame, options):
     return _sdds(_report_output_filename("bunchReport"))
 
 
-def import_file(req, test_data=None, **kwargs):
+async def import_file(req, test_data=None, **kwargs):
     # input_data is passed by test cases only
     d = test_data
     if "id" in req:
@@ -751,6 +815,11 @@ def parse_input_text(
     raise IOError(
         f"{path.basename}: invalid file format; expecting .madx, .ele, or .lte"
     )
+
+
+def parse_elegant_log(run_dir):
+    # used by omega
+    return _parse_elegant_log(run_dir)[0]
 
 
 def prepare_for_client(data, qcall, **kwargs):
@@ -803,7 +872,7 @@ def save_sequential_report_data(data, run_dir):
         a.x = "s"
         a.y = a.y1
     a.frameIndex = 0
-    # _extract_report_data() is expecting something that looks like frameArgs
+    # extract_report_data() is expecting something that looks like frameArgs
     a.sim_in = PKDict(
         models=PKDict(
             {
@@ -812,7 +881,7 @@ def save_sequential_report_data(data, run_dir):
         )
     )
     template_common.write_sequential_result(
-        _extract_report_data(
+        extract_report_data(
             str(run_dir.join(_report_output_filename(a.frameReport))), a
         ),
         run_dir=run_dir,
@@ -830,7 +899,7 @@ def sim_frame(frame_args):
             page_count = info.pageCount
             frame_args.fieldRange = info.fieldRange
     frame_args.y = frame_args.y1
-    return _extract_report_data(
+    return extract_report_data(
         _id(
             frame_args.xFileId,
             frame_args.sim_in,
@@ -841,7 +910,7 @@ def sim_frame(frame_args):
     )
 
 
-def stateful_compute_get_beam_input_type(data):
+def stateful_compute_get_beam_input_type(data, **kwargs):
     if data.args.input_file:
         data.input_type = _sdds_beam_type_from_file(
             _SIM_DATA.lib_file_abspath(data.args.input_file),
@@ -886,8 +955,14 @@ def write_parameters(data, run_dir, is_parallel):
         ),
     )
     for b in _SIM_DATA.lib_file_basenames(data):
-        if re.search(r"SCRIPT-commandFile", b):
-            os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
+        if not b.startswith("SCRIPT-commandFile"):
+            continue
+        f = run_dir.join(b)
+        if f.check(link=True):
+            x = f.read_binary()
+            f.remove()
+            f.write_binary(x)
+        f.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
 
 class _Generate(sirepo.lib.GenerateBase):
@@ -995,10 +1070,16 @@ class _Generate(sirepo.lib.GenerateBase):
         ).result
         res = ""
         for c in commands:
-            res += "\n" + "&{}".format(c[0]._type) + "\n"
+            prefix = (
+                "! "
+                if CommandIterator.IS_DISABLED_FIELD in c[0]
+                and c[0][CommandIterator.IS_DISABLED_FIELD] == "1"
+                else ""
+            )
+            res += "\n" + prefix + "&{}".format(c[0]._type) + "\n"
             for f in c[1]:
-                res += "  {} = {},".format(f[0], f[1]) + "\n"
-            res += "&end" + "\n"
+                res += prefix + "  {} = {},".format(f[0], f[1]) + "\n"
+            res += prefix + "&end" + "\n"
         return res
 
     def _format_field_value(self, state, model, field, el_type):
@@ -1142,62 +1223,6 @@ def _build_filename_map(data):
 
 def _build_filename_map_from_util(util, update_filenames=True):
     return util.iterate_models(OutputFileIterator(update_filenames)).result
-
-
-def _extract_report_data(filename, frame_args, page_count=0):
-    def _label(plot, sdds_units):
-        if plot.label in _FIELD_LABEL:
-            plot.label = _FIELD_LABEL[plot.label]
-            return
-        if sdds_units in _SIMPLE_UNITS:
-            plot.label = "{} [{}]".format(plot.label, sdds_units)
-            return
-        plot.label = plot.label
-        return
-
-    def _title(xfield, yfield, page_index, page_count):
-        title_key = xfield + "-" + yfield
-        if title_key in _PLOT_TITLE:
-            title = _PLOT_TITLE[title_key]
-        else:
-            title = "{} / {}".format(xfield, yfield)
-        if page_count > 1:
-            title += ", Plot {} of {}".format(page_index + 1, page_count)
-        return title
-
-    x_field = "x" if "x" in frame_args else _X_FIELD
-    plot_attrs = PKDict(
-        format_plot=_label,
-        page_index=frame_args.frameIndex,
-        model=template_common.model_from_frame_args(frame_args),
-        x_field=x_field,
-    )
-    _sdds_init()
-
-    if not _is_histogram_file(
-        filename,
-        sdds_util.extract_sdds_column(filename, frame_args[x_field], 0)["column_names"],
-    ):
-        if page_count > 1:
-            plot_attrs.pkupdate(
-                title="Plot {} of {}".format(plot_attrs.page_index + 1, page_count)
-            )
-
-        return sdds_util.SDDSUtil(filename).lineplot(plot_attrs=plot_attrs)
-
-    y_field = "y1" if "y1" in frame_args else "y"
-    return sdds_util.SDDSUtil(filename).heatmap(
-        plot_attrs=plot_attrs.pkupdate(
-            model=frame_args,
-            title=_title(
-                frame_args[x_field],
-                frame_args[y_field],
-                plot_attrs.page_index,
-                page_count,
-            ),
-            y_field=y_field,
-        )
-    )
 
 
 def _format_rpn_value(value, is_command=False):

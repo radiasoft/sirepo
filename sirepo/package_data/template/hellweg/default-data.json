@@ -1,0 +1,85 @@
+{
+    "models": {
+        "beamline": [],
+        "beamAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "reportType": "x-y",
+            "startTime": 1490386853
+        },
+        "simulation": {
+            "folder": "/",
+            "isExample": false,
+            "name": "hellweg example",
+            "outOfSessionSimulationId": "",
+            "simulationId": "gLicZdXs",
+            "simulationSerial": 1487981155340231
+        },
+        "simulationSettings": {
+            "allowBackwardWaves": "0",
+            "meshPoints": 20,
+            "smoothing": 0.95,
+            "splineInterpolation": "0"
+        },
+        "beam": {
+            "transversalDistribution": "twiss4d",
+            "longitudinalDistribution": "norm2d",
+            "current": 0.01,
+            "numberOfParticles": 1000,
+            "spaceCharge": "none",
+            "spaceChargeCore": 3.0
+        },
+        "beamReport": {
+            "reportType": "x-y",
+            "histogramBins": 100
+        },
+        "beamHistogramReport": {
+            "histogramBins": 100,
+            "reportType": "r"
+        },
+        "beamHistogramAnimation": {
+            "histogramBins": 100,
+            "reportType": "r",
+            "framesPerSecond": "5",
+            "startTime": 1490386853
+        },
+        "ellipticalDistribution": {
+            "aX": 2.0,
+            "bY": 0.5,
+            "rotationAngle": 0,
+            "rmsDeviationFactor": 1.0
+        },
+        "energyPhaseDistribution": {
+            "distributionType": "uniform",
+            "meanEnergy": 1.0,
+            "energySpread": 0.5,
+            "energyDeviation": 0.25,
+            "meanPhase": 90,
+            "phaseLength": 180,
+            "phaseDeviation": 20
+        },
+        "solenoid": {
+            "sourceDefinition": "values",
+            "fieldStrength": 1000,
+            "length": 20,
+            "z0": 0,
+            "fringeRegion": 1
+        },
+        "sphericalDistribution": {
+            "radialLimit": 0.564,
+            "curvature": "flat",
+            "curvatureFactor": 1.0,
+            "thermalEmittance": 0.0
+        },
+        "twissDistribution": {
+            "horizontalEmittance": 0.0005,
+            "horizontalBeta": 2.0,
+            "horizontalAlpha": 0.14,
+            "verticalEmittance": 0.0015,
+            "verticalBeta": 4.0,
+            "verticalAlpha": 0.28
+        }
+    },
+    "simulationType": "hellweg",
+    "version": "20170214.000000"
+}
