@@ -15,7 +15,7 @@
                 <div class="col-sm-12">
                     <div style="padding-top: 5px; padding-bottom: 8px"><span>Click and drag to rotate. Control-click an object to select. Double-click to reset camera</span><span data-text-with-math="selection.info || ''" data-is-dynamic="true" data-ng-show="enableSelection" class="pull-right"></span></div>
                     <div data-ng-repeat="dim in GeometryUtils.BASIS()" data-toggle="tooltip" title="View along {{ dim }} axis" class="btn btn-default" data-ng-class="{'btn-primary': vtkScene.viewSide == '{{ dim }}'}" style="margin: 2px; width: 3em;" data-ng-click="showSide(dim)">{{ dim }}{{ vtkScene.directionIcon() }}</div>
-                    <div style="display: inline-block; margin-left: 8px; margin-right: 8px;">
+                    <div style="display: inline-block; margin-left: 4px; margin-right: 4px;">
                         <div data-toggle="tooltip" title="Rotate -45º" class="btn btn-default" data-ng-click="rotate(-45)"><span class="glyphicon glyphicon-repeat"></span></div>
                         <div data-toggle="tooltip" title="Reset" class="btn btn-default" data-ng-click="showSide(vtkScene.viewSide)"><span class="glyphicon glyphicon-record"></span></div>
                         <div data-toggle="tooltip" title="Rotate 45º" class="btn btn-default" data-ng-click="rotate(45)"><span class="glyphicon glyphicon-repeat" style="margin: 2px; transform: scaleX(-1);"></span></div>
