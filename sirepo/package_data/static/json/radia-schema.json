@@ -1558,18 +1558,24 @@
         "optimizer": {
             "title": "Optimization",
             "basic": [
-                "optimizer.software.type",
-                "optimizer.software.method",
-                "optimizationSoftwareDFOLS.components",
-                "maxIterations",
-                "objective",
-                "objectiveFunctionQuality.component",
-                "objectiveFunctionQuality.useFieldPath",
-                "objectiveFunctionQuality.fieldPaths",
-                "objectiveFunctionQuality.begin",
-                "objectiveFunctionQuality.end",
-                "objectiveFunctionQuality.deviation",
-                "parameters"
+                ["Main", [
+                    "optimizer.software.type",
+                    "optimizer.software.method",
+                    "optimizationSoftwareDFOLS.components",
+                    "maxIterations"
+                ]],
+                ["Objective Function", [
+                    "objective",
+                    "objectiveFunctionQuality.component",
+                    "objectiveFunctionQuality.useFieldPath",
+                    "objectiveFunctionQuality.fieldPaths",
+                    "objectiveFunctionQuality.begin",
+                    "objectiveFunctionQuality.end",
+                    "objectiveFunctionQuality.deviation"
+                ]],
+                ["Parameters", [
+                    "parameters"
+                ]]
             ],
             "advanced": [
                 "tolerance",

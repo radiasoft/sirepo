@@ -3766,7 +3766,7 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
         if (! fn) {
             return;
         }
-        for (const f of $scope.$parent.advancedFields) {
+        for (const f of $scope.$parent.activePage.items) {
             const md = appState.parseModelField(f);
             if (! md || ! fns.includes(md[0])) {
                 continue;
