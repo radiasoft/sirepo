@@ -38,6 +38,17 @@ END
     rm ~/mail/1
 fi
 
+# POSIT: versions same in container-beamsim-jupyter/build.sh
+# Order is important: jupyterlab-server should be last so it isn't
+# overwritten with a newer version.
+pip install \
+    jupyterhub==1.4.2
+    jupyterhub==1.4.2 \
+    jupyterlab==3.1.14  \
+    notebook==6.5.4 \
+    jupyterlab_server==2.8.2
+ npm install --global configurable-http-proxy
+
 export SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES=jupyterhublogin
 export SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL='vagrant@localhost.localdomain'
 export SIREPO_FROM_EMAIL='$USER+support@localhost.localdomain'
