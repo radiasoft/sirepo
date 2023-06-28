@@ -1194,26 +1194,32 @@ def _normalize_bool(x):
     return bool_map[x] if x in bool_map else x
 
 
-def _objective_function_code(models):
+def _calculate_objective_def(models):
     o = models.optimizer
     t = o.objective
     if t == "custom":
         return o.code
+    c = """def _calculate_objective(g_id):
+"""
     if t == "objectiveFunctionQuality":
         q = models.objectiveFunctionQuality
-        return f"""
-import numpy
-
-f  = numpy.array([])
-p1 = {q.begin}
-p2 = {q.end}
-c = 'B{q.component}'
-f0 = radia_util.field_integral(g_id, c, p1, p2)
-for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {q.deviationSteps}):
-    f = numpy.append(f, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
-res = numpy.sum((f - f0)**2), (f - f0).tolist()
+        c = c + f"""
+    import numpy
+    
+    f = numpy.array([])
+    p1 = {q.begin}
+    p2 = {q.end}
+    c = 'B{q.component}'
+    f0 = radia_util.field_integral(g_id, c, p1, p2)
+    for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {q.deviationSteps}):
+        f = numpy.append(f, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
+    return numpy.sum((f - f0)**2), (f - f0).tolist()
 """
-    return "res = 0, []"
+    else:
+        c = c + """
+        return 0
+"""
+    return c
 
 
 def _orient_stemmed_points(o, points, plane_ctr):
@@ -1389,7 +1395,7 @@ def _rsopt_jinja_context(data):
     res = PKDict(
         libFiles=_SIM_DATA.lib_file_basenames(data),
         optimizer=data.models.optimizer,
-        objectiveFunctionCode=_objective_function_code(data.models),
+        objectiveFunctionDef=_calculate_objective_def(data.models),
         outFileName="optimize.out",
         rsOptOutFileName="optimize_results",
     )

@@ -87,12 +87,12 @@ def load_objective_function_result(*args):
 
 
 def objective_function(g_id):
-    {% filter indent(width=4) %}
-    {{ objectiveFunctionCode }}
-    {% endfilter %}
+    res = _calculate_objective(g_id)
     template_common.write_dict_to_h5(PKDict(arr=res[1], val=res[0]), _RSOPT_OBJECTIVE_FUNCTION_OUT)
     return res
 
+
+{{ objectiveFunctionDef }}
 
 def _update_objects(**kwargs):
     def _get_obj(name):
