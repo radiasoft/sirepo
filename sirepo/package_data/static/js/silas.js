@@ -89,8 +89,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, persis
     self.simScope = $scope;
     self.simAnalysisModel = 'laserPulseAnimation';
 
-    self.hasOldData = () => appState.models.hasOldData;
-
     self.simHandleStatus = (data) => {
         if (! appState.isLoaded()) {
             return;
@@ -108,19 +106,16 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, persis
              ? 'parameter' : '3d';
     };
 
-    const updateHasOldData = (dataIsOld) => {
-        appState.models.hasOldData = dataIsOld;
-        appState.saveChanges('hasOldData');
-        if (dataIsOld) {
-            srdbg("appState.models", appState.models);
-            // self.simState.runSimulation();
-        }
-        srdbg(self.simState);
-    };
 
     self.simState = persistentSimulation.initSimulationState(self);
-    $scope.$on('laserPulse.changed', () => updateHasOldData(true));
-    $scope.$on('framesCleared', () => updateHasOldData(false));
+
+    $scope.$on('laserPulse.changed', () => {
+        if (frameCache.getFrameCount() > 0) {
+            frameCache.setFrameCount(0);
+            appState.models.simulation.framesCleared = true;
+            appState.saveQuietly('simulation');
+        }
+    });
 });
 
 SIREPO.app.controller('BeamlineController', function (appState, beamlineService, $scope) {
