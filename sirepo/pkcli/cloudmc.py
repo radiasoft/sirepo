@@ -62,17 +62,14 @@ _VTI_TEMPLATE = PKDict(
 def extract_dagmc(dagmc_filename):
     mb = pymoab.core.Core()
     mb.load_file(dagmc_filename)
-    groups = _groups_and_volumes(mb)
     visited = set()
     res = PKDict()
-    for name, volumes in groups.items():
+    for name, volumes in _groups_and_volumes(mb).items():
         if _visited_volume(volumes, visited):
             continue
-        geom = _get_points_and_polys(mb, volumes)
-        _write_vti(geom)
         res[name] = PKDict(
             name=name,
-            volId=geom.vol_id,
+            volId=_write_vti(_get_points_and_polys(mb, volumes)),
         )
     return res
 
@@ -197,3 +194,4 @@ def _write_vti(geometry):
         for fn in fns:
             f.write(fn)
     pkio.unchecked_remove(_DATA_DIR)
+    return geometry.vol_id
