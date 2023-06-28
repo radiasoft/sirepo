@@ -89,9 +89,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, persis
     self.simScope = $scope;
     self.simAnalysisModel = 'laserPulseAnimation';
 
-    self.hasOldData = () => {
-        return appState.models.hasOldData;
-    };
+    self.hasOldData = () => appState.models.hasOldData;
 
     self.simHandleStatus = (data) => {
         if (! appState.isLoaded()) {
@@ -113,6 +111,11 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, persis
     const updateHasOldData = (dataIsOld) => {
         appState.models.hasOldData = dataIsOld;
         appState.saveChanges('hasOldData');
+        if (dataIsOld) {
+            srdbg("appState.models", appState.models);
+            // self.simState.runSimulation();
+        }
+        srdbg(self.simState);
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
