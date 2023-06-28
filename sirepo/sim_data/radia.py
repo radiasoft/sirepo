@@ -53,7 +53,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         sim = models.simulation
         if not sim.get("exampleName"):
             sim.exampleName = sim.name
-        if sim.name == "Dipole":
+        if sim.name in ("Parameterized C-Bend Dipole",):
             sim.beamAxis = "x"
             sim.heightAxis = "z"
             sim.widthAxis = "y"
@@ -262,6 +262,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             del dm.fieldPaths["path"]
         if dm.simulation.get("isExample"):
             cls._fixup_examples(dm)
+        dm.simulation.areObjectsUnlockable = dm.simulation.magnetType == "freehand"
         if dm.simulation.magnetType == "undulator":
             cls._fixup_undulator(dm)
         cls._fixup_obj_types(dm)
