@@ -47,7 +47,9 @@ def prep_run_dir(run_dir, data):
 def read_sim(sim_type, sim_id):
     if not sirepo.simulation_db.sim_data_file(sim_type, sim_id).exists():
         raise AssertionError(f'The referenced {sim_type.upper()} simulation no longer exists')
-    return sirepo.simulation_db.read_simulation_json(sim_type, sim_id, None)
+    return sirepo.simulation_db.json_load(
+        sirepo.simulation_db.sim_data_file(sim_type, sim_id, None),
+    )
 
 
 def run_elegant(run_dir, elegant_id, prev_sim=None):
