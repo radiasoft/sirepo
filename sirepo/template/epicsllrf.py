@@ -20,10 +20,15 @@ _STATUS_FILE = "status.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
+class EpicsDisconnectError(Exception):
+    pass
+
+
 def background_percent_complete(report, run_dir, is_running):
     return PKDict(
         percentComplete=100,
         frameCount=0,
+        alert=_parse_epics_log(run_dir),
         hasEpicsData=run_dir.join(_STATUS_FILE).exists(),
     )
 
@@ -123,3 +128,15 @@ def _read_epics_data(run_dir):
             d[f] = v
         return d
     return PKDict()
+
+
+def _parse_epics_log(run_dir):
+    res = ""
+    with pkio.open_text(run_dir.join(template_common.RUN_LOG)) as f:
+        for line in f:
+            m = re.match(
+                r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)", line
+            )
+            if m:
+                return m.group(1)
+    return res

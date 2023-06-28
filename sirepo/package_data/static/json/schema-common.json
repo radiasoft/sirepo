@@ -195,6 +195,8 @@
         },
         "constants": {
             "canDownloadInputFile": true,
+            "canExportArchive": true,
+            "canShowDocumentationUrl": true,
             "clientCookie": "sirepo_cookie_js",
             "hasJupyterExport": false,
             "hasMadxExport": false,
@@ -313,20 +315,6 @@
                 ["fit", "Fit Data"],
                 ["fixed", "Fixed"]
             ]
-        },
-        "reactRoutes": {
-            "completeRegistration": {
-                "route": "/complete-registration"
-            },
-            "login": {
-                "route": "/login"
-            },
-            "loginWithEmailConfirm": {
-                "route": "/login-confirm/email/:token/:needCompleteRegistration"
-            },
-            "source": {
-                "route": "/:simulationId"
-            }
         },
         "localRoutes": {
             "admJobs": {

@@ -111,7 +111,24 @@ describe('plotting: plotAxis', function() {
             tickValues('', [-0.0002, -0.0018], {width: 315, height: 200}, 'y', 'left'),
             ['-1.5e-3', '-1.0e-3', '-5.0e-4'],
         );
-
+        assertTicks(
+            tickValues('', [-0.02, 0], {width: 350, height: 180}, 'y', 'left'),
+            ['-0.02', '-0.01', '0'],
+        );
+        assertTicks(
+            tickValues('', [0, 0.02], {width: 350, height: 180}, 'y', 'left'),
+            ['0', '0.01', '0.02'],
+        );
+        assertTicks(
+            tickValues('', [0.9989999999999999, 1.001], {width: 661, height: 315}, 'y', 'left'),
+            ['-1e-3', '-5e-4', '0', '5e-4'],
+            '+1',
+        );
+        assertTicks(
+            tickValues('W [eV]', [0.9989999999999999, 1.001], {width: 661, height: 315}, 'y', 'left'),
+            ['-1.0', '-0.5', '0', '0.5'],
+            '< W > = 1eV',
+        );
     }));
     it('should format units', inject(function(layoutService) {
         expect(layoutService.formatUnits('m')).toEqual('[m]');

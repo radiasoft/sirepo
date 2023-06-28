@@ -46,7 +46,7 @@ def flask():
         sirepo.pkcli.setup_dev.default_command()
         # above will throw better assertion, but just in case
         assert pkconfig.in_dev_mode()
-        app = sirepo.modules.import_and_init("sirepo.server").init_app(
+        app = sirepo.modules.import_and_init("sirepo.server", want_flask=True).init_app(
             use_reloader=_cfg().use_reloader,
             is_server=True,
         )
@@ -163,39 +163,14 @@ def http():
 def jupyterhub():
     assert pkconfig.in_dev_mode()
     sirepo.template.assert_sim_type("jupyterhublogin")
-    # POSIT: versions same in container-beamsim-jupyter/build.sh
-    # Order is important: jupyterlab-server should be last so it isn't
-    # overwritten with a newer version.
-    for m, v in ("jupyterhub", "1.4.2"), (
-        "jupyterlab",
-        "3.1.14 jupyterlab-server==2.8.2",
-    ):
-        try:
-            importlib.import_module(m)
-        except ModuleNotFoundError:
-            pkcli.command_error(
-                "{}: not installed run `pip install {}=={}`",
-                m,
-                m,
-                v,
-            )
     with pkio.save_chdir(_run_dir().join("jupyterhub").ensure(dir=True)) as d:
-        pksubprocess.check_call_with_signals(
-            (
-                "jupyter",
-                "serverextension",
-                "enable",
-                "--py",
-                "jupyterlab",
-                "--sys-prefix",
-            )
-        )
         f = d.join("conf.py")
         pkjinja.render_resource(
             "jupyterhub_conf.py",
             PKDict(_cfg()).pkupdate(
                 # POSIT: Running with nginx and uwsgi
                 sirepo_uri=f"http://{socket.getfqdn()}:{_cfg().nginx_proxy_port}",
+                jupyterhub_debug=sirepo.feature_config.cfg().debug_mode,
                 **sirepo.sim_api.jupyterhublogin.cfg(),
             ),
             output=f,

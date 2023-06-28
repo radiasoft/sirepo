@@ -892,6 +892,7 @@
         "objectCut": {
             "cutPlane": ["Cut Plane", "FloatArray", [0, 0, 1], "Normal of the cut plane", ["x", "y", "z"]],
             "cutPoint": ["Cut Point", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
+            "useObjectCenter": ["Relative to Object Center", "Boolean", "0"],
             "type": ["_", "ObjectCutType", "objectCut"]
         },
         "objectFillet": {
@@ -1439,13 +1440,11 @@
         },
         "objectCut": {
             "title": "Plane",
-            "basic": [
-                "cutPlane",
-                "cutPoint"
-            ],
+            "basic": [],
             "advanced": [
                 "cutPlane",
-                "cutPoint"
+                "cutPoint",
+                "useObjectCenter"
             ]
         },
         "objectFillet": {

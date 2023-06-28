@@ -1,18 +1,28 @@
 # {{simulation_name}}
 
-ini_file = """
+import pykern.pkio
+import rshellweg.solver
+
+pykern.pkio.write_text(
+    "{{ iniFile }}",
+    """
 [NUMERIC]
 Number of Mesh Points = {{simulationSettings_meshPoints}}
 Spline Interpolation = {{simulationSettings_splineInterpolation}}
 Smoothing = {{simulationSettings_smoothing}}
-"""
+""",
+)
 
-input_file = """
+pykern.pkio.write_text(
+    "{{ inputFile }}",
+    """
 {{ optionsCommand }}
 {{ solenoidCommand }}
 {{ chargeCommand }}
 {{ beamCommand }}
+{{ particleSpeciesCommand }}
 {{ currentCommand }}
 {{ latticeCommands }}
 END
-"""
+""",
+)
