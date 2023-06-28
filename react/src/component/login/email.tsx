@@ -22,20 +22,21 @@ export const LoginEmailConfirm = (props) => {
             headers: {
                 "Content-Type": "application/json"
             }
-        }).then(() => 
+        }).then(() =>
         updateLoginStatusRef(loginStatusRef, appWrapper)
-        .then(() => navigate(`/react/${appName}`))
+        .then(() => navigate(`/${appName}`))
         )
     }
+
     return (
         <Container>
             {
-                needCompleteRegistration ? (
+                needCompleteRegistration === '1' ? (
                     <LoginExtraInfoForm onComplete={(data) => completeLogin(data)}/>
                 ) : (
                     <>
-                        <p>Click the button complete the login process.</p>
-                        <Button onClick={() => completeLogin()}>Continue</Button>
+                        <p>Please click the button below complete the login process.</p>
+                        <Button onClick={() => completeLogin()}>Confirm</Button>
                     </>
                 )
             }
@@ -70,7 +71,7 @@ export const LoginWithEmail = (props) => {
                         <Form.Control placeholder="email@example.com" value={email} onChange={(e) => updateEmail(e.target.value)}/>
                     </Col>
                     <Col sm="2">
-                        <Button variant="primary" onClick={() => doLogin(email)}>Continue</Button>
+                        <Button variant="primary" onClick={() => doLogin(email)} disabled={! (email && email.match(/^.+@.+\..+$/))}>Continue</Button>
                     </Col>
                 </Form.Group>
                 <Row>

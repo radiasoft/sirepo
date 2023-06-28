@@ -290,8 +290,6 @@ def _generate_crystal(crystal):
             params=PKDict(
                 l_scale={crystal.l_scale},
                 length={crystal.length * 1e-2},
-                n0={_slice_n_field(crystal, 'n0')},
-                n2={_slice_n_field(crystal, 'n2')},
                 nslice={crystal.nslice},
                 A={crystal.A},
                 B={crystal.B},
@@ -311,6 +309,8 @@ def _generate_crystal(crystal):
             ),
         ),
         ["{crystal.propagationType}", {crystal.calc_gain == "1"}, {crystal.radial_n2 == "1"}],
+        {crystal.initial_temp},
+        {crystal.mesh_density},
     ),\n"""
 
 
@@ -322,7 +322,7 @@ def _generate_parameters_file(data):
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
     if data.report in _SIM_DATA.SOURCE_REPORTS:
         data.models.beamline = []
-    v.laserPulse = data.models.laserPulse
+    v.laserPulse = _convert_laser_pulse_units(data.models.laserPulse)
     if data.models.laserPulse.distribution == "file":
         for f in ("ccd", "meta", "wfs"):
             v[f"{f}File"] = _SIM_DATA.lib_file_name_with_model_field(
@@ -516,6 +516,14 @@ def _parse_silas_log(run_dir):
     if res:
         return res
     return "An unknown error occurred"
+
+
+def _convert_laser_pulse_units(laserPulse):
+    laserPulse.tau_0 = laserPulse.tau_0 / 1e12
+    laserPulse.tau_fwhm = laserPulse.tau_fwhm / 1e12
+    laserPulse.num_sig_long = laserPulse.num_sig_long / 2
+    laserPulse.num_sig_trans = laserPulse.num_sig_trans / 2
+    return laserPulse
 
 
 def _report_to_file_index(sim_in, report):
