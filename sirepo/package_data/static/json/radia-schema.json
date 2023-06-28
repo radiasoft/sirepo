@@ -819,7 +819,7 @@
             "segmentationCylPoint": ["Segment Origin", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
             "segmentationCylRadius": ["Segment Radial Width [mm]", "Float", 5.0],
             "segmentationCylUseObjectCenter": ["Use object center as origin", "Boolean", "1"],
-            "segments": ["Segments", "IntArray", [1, 1, 1], "", ["N$_{{ appState.models.geomObject.segmentation == 'cyl' ? '{rad}' : 'x' }}$", "N$_{{ appState.models.geomObject.segmentation == 'cyl' ? '{az}' : 'y' }}$", "N$_{{ appState.models.geomObject.segmentation == 'cyl' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
+            "segments": ["Segments", "IntArray", [1, 1, 1], "", ["N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{rad}' : '{x}' }}$", "N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{az}' : '{y}' }}$", "N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{ax}' : '{z}' }}$"], [1, 1, 1]],
             "shapeButton": ["Shape", "ShapeButton", {}],
             "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]],
             "type": ["Shape Type", "ObjectType", "cuboid"]
@@ -1328,7 +1328,6 @@
                     "segmentationCylAxis",
                     "segmentationCylUseObjectCenter",
                     "segmentationCylPoint",
-                    "segmentationCylRadius",
                     "segments",
                     "cylinder.radius",
                     "extrudedObject.extrusionAxis",
