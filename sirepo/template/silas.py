@@ -290,8 +290,6 @@ def _generate_crystal(crystal):
             params=PKDict(
                 l_scale={crystal.l_scale},
                 length={crystal.length * 1e-2},
-                n0={_slice_n_field(crystal, 'n0')},
-                n2={_slice_n_field(crystal, 'n2')},
                 nslice={crystal.nslice},
                 A={crystal.A},
                 B={crystal.B},
@@ -311,6 +309,8 @@ def _generate_crystal(crystal):
             ),
         ),
         ["{crystal.propagationType}", {crystal.calc_gain == "1"}, {crystal.radial_n2 == "1"}],
+        {crystal.initial_temp},
+        {crystal.mesh_density},
     ),\n"""
 
 
