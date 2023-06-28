@@ -2710,8 +2710,8 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                   <a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span> <span class="caret"></span></a>
                   <ul class="dropdown-menu">
                     <li class="sr-settings-submenu" data-ng-transclude="appSettingsSlot"></li>
-                    <li><a href data-ng-if="nav.modeIsDefault()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>
-                    <li><a href data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>
+                    <li><a href data-ng-if="nav.modeIsDefault() && canShowDocumentationUrl()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>
+                    <li><a href data-ng-if="::canExportArchive()" data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>
                     <li data-ng-if="::canDownloadInputFile()"><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> {{ ::stringsService.formatKey(\'simulationSource\') }}</a></li>
                     <li data-ng-if="::canExportJupyter()"><a href data-ng-click="exportJupyterNotebook()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as Jupyter Notebook</a></li>
                     <li data-ng-if="::canExportMadx()" ><a href data-ng-click="pythonSource(\'madx\')"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>
@@ -2746,6 +2746,14 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
 
             $scope.canDownloadInputFile = function() {
                 return SIREPO.APP_SCHEMA.constants.canDownloadInputFile;
+            };
+
+            $scope.canExportArchive = () => {
+                return SIREPO.APP_SCHEMA.constants.canExportArchive;
+            };
+
+            $scope.canShowDocumentationUrl = () => {
+                return SIREPO.APP_SCHEMA.constants.canShowDocumentationUrl;
             };
 
             $scope.canExportMadx = function() {
