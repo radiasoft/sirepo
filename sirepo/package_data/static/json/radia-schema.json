@@ -965,7 +965,13 @@
         },
         "optimizerAnimation": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "notes": ["Notes", "Text", ""],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["Cores", "Integer", 1],
+            "sbatchProject": ["Project", "OptionalString", ""],
             "x": ["Horizontal Value to Plot", "OptimizationField", 0],
             "y": ["Vertical Value to Plot", "OptimizationField", 1]
         },

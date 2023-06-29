@@ -1203,6 +1203,7 @@ def _calculate_objective_def(models):
 """
     if t == "objectiveFunctionQuality":
         q = models.objectiveFunctionQuality
+        s = models.optimizationSoftwareDFOLS
         c = c + f"""
     import numpy
     
@@ -1211,14 +1212,12 @@ def _calculate_objective_def(models):
     p2 = {q.end}
     c = 'B{q.component}'
     f0 = radia_util.field_integral(g_id, c, p1, p2)
-    for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {q.deviationSteps}):
+    for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {s.components}):
         f = numpy.append(f, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
     return numpy.sum((f - f0)**2), (f - f0).tolist()
 """
     else:
-        c = c + """
-        return 0
-"""
+        raise ValueError("objective_functon={}: unknown function".format(t))
     return c
 
 
@@ -1392,8 +1391,10 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 
 
 def _rsopt_jinja_context(data):
+    import multiprocessing
     res = PKDict(
         libFiles=_SIM_DATA.lib_file_basenames(data),
+        numWorkers=max(1, multiprocessing.cpu_count() - 1),
         optimizer=data.models.optimizer,
         objectiveFunctionDef=_calculate_objective_def(data.models),
         outFileName="optimize.out",

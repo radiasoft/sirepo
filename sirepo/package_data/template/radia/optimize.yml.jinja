@@ -23,6 +23,7 @@ options:
     # Options for setting up and terminating
     software: {{ optimizer.software.rsoptName }}
     method: {{ optimizer.software.method }}
+    nworkers: {{ numWorkers }}
     exit_criteria:
         sim_max: {{ optimizer.maxIterations }}
     {% if optimizer.software.rsoptName == "dfols" %}
