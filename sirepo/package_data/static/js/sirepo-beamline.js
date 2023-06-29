@@ -249,9 +249,9 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
         template: `
             <div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="dropComplete($data, $event)">
               <div data-ng-transclude=""></div>
-              <p class="lead text-center">beamline definition area
+              <p class="lead text-center">{{ beamlineName }} definition area
                 <button title="Download beamline as PNG" class="btn btn-default btn-sm" data-ng-if="showPNGDownloadLink()" data-ng-click="createBeamlinePNG()"><span class="glyphicon glyphicon-cloud-download"></span></button><br>
-                <small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>
+                <small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the {{ beamlineName }}</em></small></p>
               <div class="srw-beamline-container">
                 <div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">
                   <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data, $event)"> </div><div data-ng-drag="::beamlineService.isEditable()" data-ng-drag-data="item" data-item="item" data-beamline-item=""
@@ -273,6 +273,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
             </div>
         `,
         controller: function($scope, $rootScope) {
+            $scope.beamlineName = beamlineName();
             $scope.setWatchpointActive = function(item) {
                 if(! $scope.parentController.setWatchpointActive) {
                     return;
@@ -308,6 +309,13 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 }
                 appState.models.beamline.push(newItem);
                 beamlineService.dismissPopup();
+            }
+
+            function beamlineName() {
+                if ($scope.parentController.beamlineAltName) {
+                    return $scope.parentController.beamlineAltName.toLowerCase();
+                }
+                return 'beamline';
             }
 
             $scope.cancelBeamlineChanges = function() {
