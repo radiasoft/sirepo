@@ -12,7 +12,8 @@ codes:
             input_file: optimize.py
             # Name of function to run for every evaluation
             function: main
-            execution_type: parallel
+            execution_type: serial
+            serial_python_mode: process
 options:
     # For serial execution the `main` function can directly return the objective value
     # For parallel execution a new subprocess must be used so the return value of `main` is lost

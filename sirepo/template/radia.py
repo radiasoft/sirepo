@@ -114,6 +114,7 @@ _REPORT_RES_MAP = PKDict(
     reset="geometryReport",
     solverAnimation="geometryReport",
 )
+_RSOPT_OBJECTIVE_FUNCTION_OUT = "objective_function_results.h5"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 _SIM_FILES = [b.basename for b in _SIM_DATA.sim_file_basenames(None)]
@@ -133,6 +134,8 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=0,
     )
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    if report == "optimizerAnimation":
+        return _rsopt_percent_complete(run_dir, res)
     if is_running:
         res.percentComplete = 0
         return res
@@ -384,7 +387,7 @@ def write_parameters(data, run_dir, is_parallel):
         _generate_parameters_file(data, is_parallel, run_dir=run_dir, qcall=None),
     )
     if is_parallel:
-        return template_common.get_exec_parameters_cmd(is_mpi=True)
+        return template_common.get_exec_parameters_cmd(is_mpi=data.report not in ("optimizerAnimation",))
     return None
 
 
@@ -1390,6 +1393,14 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
     return scipy_rotation.apply(numpy.reshape(vectors, (-1, 3)))
 
 
+def _rsopt_percent_complete(run_dir, res):
+    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
+    count = len(pkio.walk_tree(run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT))
+    res.frameCount = count
+    res.percentComplete = 100 * count / dm.optimizer.maxIterations
+    return res
+
+
 def _rsopt_jinja_context(data):
     import multiprocessing
     res = PKDict(
@@ -1398,7 +1409,7 @@ def _rsopt_jinja_context(data):
         optimizer=data.models.optimizer,
         objectiveFunctionDef=_calculate_objective_def(data.models),
         outFileName="optimize.out",
-        rsOptOutFileName="optimize_results",
+        objectiveFunctionResultsFileName=_RSOPT_OBJECTIVE_FUNCTION_OUT,
     )
     m = data.models.get(res.optimizer.software.type, {})
     for k in m:

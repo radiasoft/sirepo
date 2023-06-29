@@ -27,8 +27,6 @@ _GROUP_MODELS = (_MODEL_GROUP,)
 _OBJ_MODELS = (_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT, _MODEL_STL) + _EXTRUDED_MODELS
 _MODELS = _OBJ_MODELS + _GROUP_MODELS
 
-_RSOPT_OBJECTIVE_FUNCTION_OUT = "ojective_function_results.h5"
-
 sirepo_objs = {{ objects }}
 
 def _add_object(o, radia_objs, id_map):
@@ -82,13 +80,13 @@ def _build_radia_geom():
 
 
 def load_objective_function_result(*args):
-    r = template_common.read_dict_from_h5(_RSOPT_OBJECTIVE_FUNCTION_OUT)
+    r = template_common.read_dict_from_h5("{{ objectiveFunctionResultsFileName }}")
     return r.val, r.arr
 
 
 def objective_function(g_id):
     res = _calculate_objective(g_id)
-    template_common.write_dict_to_h5(PKDict(arr=res[1], val=res[0]), _RSOPT_OBJECTIVE_FUNCTION_OUT)
+    template_common.write_dict_to_h5(PKDict(arr=res[1], val=res[0]), "{{ objectiveFunctionResultsFileName }}")
     return res
 
 

@@ -953,7 +953,7 @@
             "type": ["", "OptimizationSoftwareType", "optimizationSoftwareDFOLS"]
         },
         "optimizer": {
-            "maxIterations": ["Max iterations", "Integer", 50, "", 1],
+            "maxIterations": ["Max iterations", "Integer", 50, "", 2],
             "objective": ["Objective Function", "ObjectiveFunction", "objectiveFunctionQuality"],
             "parameters": ["Parameters", "ObjectOptimizerField", []],
             "software": ["Optimization Package", "model.optimizationSoftware", {
@@ -1398,6 +1398,7 @@
                     "segmentationCylAxis",
                     "segmentationCylUseObjectCenter",
                     "segmentationCylPoint",
+                    "segmentationCylRadius",
                     "segments",
                     "cylinder.radius",
                     "extrudedObject.extrusionAxis",
