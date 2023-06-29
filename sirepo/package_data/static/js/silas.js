@@ -106,7 +106,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, persis
              ? 'parameter' : '3d';
     };
 
-
     self.simState = persistentSimulation.initSimulationState(self);
 
     $scope.$on('laserPulse.changed', () => {
