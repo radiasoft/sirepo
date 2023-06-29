@@ -110,11 +110,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, persis
     self.simState = persistentSimulation.initSimulationState(self);
 
     $scope.$on('laserPulse.changed', () => {
-        if (frameCache.getFrameCount() > 0) {
-            frameCache.setFrameCount(0);
-            appState.models.simulation.framesCleared = true;
-            appState.saveQuietly('simulation');
-        }
+        self.simState.runSimulation();
     });
 });
 
