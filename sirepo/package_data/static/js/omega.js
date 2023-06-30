@@ -35,8 +35,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, persis
                 frameCache.setFrameCount(r.modelName, r.frameCount);
             }
         }
-    }
-    
+    };
+
     self.simState = persistentSimulation.initSimulationState(self);
     //TODO(pjm): this should be default behavior in simStatusPanel
     self.simState.errorMessage = () => errorMessage;
@@ -122,10 +122,10 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState) {
                 }
                 return false;
             };
-            
+
             $scope.$on('modelChanged', (e, name) => {
                 for (const i of $scope.count) {
-                    const updated = []
+                    const updated = [];
                     const n = $scope.phaseSpaceReport(i, 1);
                     if (name === n) {
                         for (const j of $scope.count) {
@@ -179,7 +179,7 @@ SIREPO.viewLogic('simWorkflowView', function(appState, panelState, $scope) {
             ['simId_4', 'simType_4'], wf.simType_3 && wf.simId_3,
         ]);
     }
-    
+
     $scope.whenSelected = updateVisibility;
     $scope.watchFields = [
         [
