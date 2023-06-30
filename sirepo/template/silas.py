@@ -373,6 +373,7 @@ def _iterate_beamline(state, data, callback):
 
 
 def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_index):
+    # TODO (gurhar1133): class inherit from PKDict with pkdict passed into instance
     def _cell_volume(element):
         if _is_crystal(element):
             return (
