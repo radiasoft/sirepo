@@ -22,6 +22,11 @@ _CRYSTAL_CSV_FILE = "crystal.csv"
 _RESULTS_FILE = "results{}.h5"
 _CRYSTAL_FILE = "crystal{}.h5"
 _MAX_H5_READ_TRIES = 3
+_SCALAR_PLOTS = [
+    "longitudinal_intensity",
+    "longitudinal_frequency",
+    "longitudinal_wavelength"
+]
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -394,12 +399,17 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
         return "longitudinal" in plot_type
 
     def _label(plot_type, slice_index):
-        if plot_type == "longitudinal_intensity":
-            return "Intensity"
-        if plot_type == "longitudinal_photons":
-            return "Total Number of Photons"
-        if plot_type == "excited_states_longitudinal":
-            return "Excited States"
+        l = PKDict(
+            longitudinal_intensity="Intensity",
+            total_intensity="Total Intensity",
+            total_phase="Total Phase",
+            longitudinal_frequency="Longitudinal Frequency",
+            longitudinal_wavelength="Longitudinal Wavelength",
+            longitudinal_photons="Total Number of Photons",
+            excited_states_longitudinal="Excited States",
+        )
+        if plot_type in l.keys():
+            return l[plot_type]
         return _title(plot_type, slice_index)
 
     def _nslice(element, file):
@@ -408,8 +418,6 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
         return len(file)
 
     def _title(plot_type, slice_index):
-        if plot_type in ("total_intensity", "total_phase"):
-            return plot_type.replace("_", " ").title()
         return plot_type.replace("_", " ").title() + " Slice #" + str(slice_index + 1)
 
     def _x_label(plot_type):
@@ -425,7 +433,7 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
         if _is_crystal(element):
             return numpy.sum(numpy.array(file[f"{index}/excited_states"]) * cell_volume)
         y = numpy.array(file[f"{index}/{plot_type}"])
-        if plot_type in ("longitudinal_intensity", "longitudinal_frequency", "longitudinal_wavelength"):
+        if plot_type in _SCALAR_PLOTS:
             return y
         return numpy.sum(y)
 
