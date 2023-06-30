@@ -205,6 +205,9 @@
             "crystalPlot": ["Value to Plot", "CrystalPlot", "excited_states"]
         }
     },
+    "strings": {
+        "completionState": ": {frameCount} completed reports"
+    },
     "view": {
         "crystal": {
             "title": "Crystal",
