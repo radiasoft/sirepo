@@ -1328,6 +1328,7 @@
                     "segmentationCylAxis",
                     "segmentationCylUseObjectCenter",
                     "segmentationCylPoint",
+                    "segmentationCylRadius",
                     "segments",
                     "cylinder.radius",
                     "extrudedObject.extrusionAxis",
