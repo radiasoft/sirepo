@@ -417,13 +417,15 @@ def _laser_pulse_plot(run_dir, plot_type, sim_in, element_index, element, slice_
             excited_states_longitudinal="Crystal Slice",
             longitudinal_photons="Crystal width [cm]",
             longitudinal_intensity="Pulse Slice",
+            longitudinal_frequency="Frequency [Hz]",
+            longitudinal_wavelength="Wavelength [m]",
         )[plot_type]
 
     def _y_value(element, index, file, cell_volume):
         if _is_crystal(element):
             return numpy.sum(numpy.array(file[f"{index}/excited_states"]) * cell_volume)
         y = numpy.array(file[f"{index}/{plot_type}"])
-        if plot_type == "longitudinal_intensity":
+        if plot_type in ("longitudinal_intensity", "longitudinal_frequency", "longitudinal_wavelength"):
             return y
         return numpy.sum(y)
 
