@@ -193,7 +193,7 @@ def register_api_module(module):
 
 def start_tornado(ip, port, debug):
     """Start tornado server, does not return"""
-    from tornado import httpserver, ioloop, web, log
+    from tornado import httpserver, ioloop, web, log, websocket
 
     class _Handler(web.RequestHandler):
         async def _route(self):
@@ -217,6 +217,41 @@ def start_tornado(ip, port, debug):
 
         async def post(self):
             await self._route()
+
+    class _Socket(websocket.WebSocketHandler):
+        def on_close(self):
+            pass
+
+        async def on_message(self, msg):
+            try:
+                c = pkjson.load_any(msg)
+                e, r, k = _path_to_route(p[1:])
+                particular request being handle will have uri, data, etc.
+                need a new object that is used for internal_req
+                if e:
+                    pkdlog("uri={} {}; route={} kwargs={} ", p, e, r, k)
+                    r = _not_found_route
+
+                c.uri
+                return await self._dispatch(msg)
+            except Exception as e:
+                pkdlog("exception={} self={} content={}", e, self, msg)
+                pkdlog(pkdexc())
+
+        # def on_ping(self, *args, **kwargs):
+        #     # do we care?
+        #     return None
+
+        # def select_subprotocol(self, subprotocols):
+        #     # return one of the subprotocols and setup the dispatcher
+        #     return None
+
+        def open(self):
+            # self.set_nodelay(True)
+            # self.uri = self.request.uri
+            # self.remote_ip = self.request
+            # self.cookie = need to handle
+            pass
 
     sirepo.modules.import_and_init("sirepo.server").init_tornado()
     s = httpserver.HTTPServer(
