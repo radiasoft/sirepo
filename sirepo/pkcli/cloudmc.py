@@ -8,15 +8,16 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from pymoab.rng import Range
+from sirepo import mpi
 from sirepo.template import template_common
 import array
 import copy
 import json
+import multiprocessing
 import py.path
 import pymoab.core
 import pymoab.types
 import re
-import sirepo.sim_data.cloudmc
 import sirepo.simulation_db
 import sirepo.template.cloudmc
 import sirepo.util
@@ -64,13 +65,23 @@ def extract_dagmc(dagmc_filename):
     mb.load_file(dagmc_filename)
     visited = set()
     res = PKDict()
+    work_items = []
     for name, volumes in _groups_and_volumes(mb).items():
         if _visited_volume(volumes, visited):
             continue
+        vol_id = _get_tag_value(
+            mb,
+            mb.tag_get_handle(pymoab.types.GLOBAL_ID_TAG_NAME),
+            volumes[0],
+        )
         res[name] = PKDict(
             name=name,
-            volId=_write_vti(_get_points_and_polys(mb, volumes)),
+            volId=vol_id,
         )
+        work_items.append((dagmc_filename, vol_id, volumes))
+    work_items.sort(key=lambda v: -len(v[2]))
+    with multiprocessing.Pool(mpi.cfg().cores) as pool:
+        pool.starmap(_extract_group, work_items, 1)
     return res
 
 
@@ -80,23 +91,16 @@ def run(cfg_dir):
     sirepo.template.cloudmc.extract_report_data(pkio.py_path(cfg_dir), data)
 
 
-def run_background(cfg_dir):
-    data = sirepo.simulation_db.read_json(
-        template_common.INPUT_BASE_NAME,
-    )
-    if "report" in data and data.report == "dagmcAnimation":
-        sirepo.simulation_db.write_json(
-            sirepo.template.cloudmc.VOLUME_INFO_FILE,
-            extract_dagmc(sirepo.sim_data.cloudmc.SimData.dagmc_filename(data)),
-        )
-        return
-    template_common.exec_parameters()
-
-
 def _array_from_list(arr, arr_type):
     res = array.array(arr_type)
     res.fromlist(arr)
     return res
+
+
+def _extract_group(dagmc_filename, vol_id, volumes):
+    mb = pymoab.core.Core()
+    mb.load_file(dagmc_filename)
+    _write_vti(vol_id, _get_points_and_polys(mb, volumes))
 
 
 def _get_tag_value(mb, tag, handle):
@@ -116,11 +120,6 @@ def _get_points_and_polys(mb, volumes):
         polys.append(3)
         polys += [m[vert] for vert in mb.get_connectivity(t)]
     return PKDict(
-        vol_id=_get_tag_value(
-            mb,
-            mb.tag_get_handle(pymoab.types.GLOBAL_ID_TAG_NAME),
-            volumes[0],
-        ),
         points=_array_from_list(list(mb.get_coords(verticies)), "f"),
         polys=_array_from_list(polys, "I"),
     )
@@ -174,24 +173,23 @@ def _visited_volume(volumes, visited):
     return False
 
 
-def _write_vti(geometry):
-    pkio.unchecked_remove(_DATA_DIR)
-    pkio.mkdir_parent(_DATA_DIR)
+def _write_vti(vol_id, geometry):
+    pkio.unchecked_remove(vol_id)
+    pkio.mkdir_parent(f"{vol_id}/{_DATA_DIR}")
     vti = copy.deepcopy(_VTI_TEMPLATE)
-    vti.metadata.name = f"{geometry.vol_id}.vtp"
+    vti.metadata.name = f"{vol_id}.vtp"
     fns = []
     for n in ("polys", "points"):
         if n not in vti:
             continue
         fn = str(uuid.uuid1()).replace("-", "")
-        with open(f"{_DATA_DIR}/{fn}", "wb") as f:
+        with open(f"{vol_id}/{_DATA_DIR}/{fn}", "wb") as f:
             geometry[n].tofile(f)
         vti[n].ref.id = fn
         vti[n].size = int(len(geometry[n]))
         fns.append(f"{_DATA_DIR}/{fn}")
-    with sirepo.util.write_zip(f"{geometry.vol_id}.zip") as f:
+    with sirepo.util.write_zip(f"{vol_id}.zip") as f:
         f.writestr("index.json", json.dumps(vti))
         for fn in fns:
-            f.write(fn)
-    pkio.unchecked_remove(_DATA_DIR)
-    return geometry.vol_id
+            f.write(f"{vol_id}/{fn}", arcname=fn)
+    pkio.unchecked_remove(vol_id)
