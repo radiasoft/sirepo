@@ -108,7 +108,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, persis
 
     self.simCompletionState = (completionState) => {
         return completionState.replace("animation frames", "completed reports");
-    }
+    };
 
     self.simState = persistentSimulation.initSimulationState(self);
 });

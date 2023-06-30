@@ -905,7 +905,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
 
             $scope.simCompletionState = (completionState) => {
                 return completionState.replace("animation frames", "completed reports");
-            }
+            };
 
             $scope.simState = persistentSimulation.initSimulationState($scope);
 
