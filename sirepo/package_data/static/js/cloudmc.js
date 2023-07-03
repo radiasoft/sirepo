@@ -303,11 +303,21 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             </ul>
             <div>
                 <div data-ng-show="! isClientOnly && displayType === '3D'" class="col-sm-12">
-                    <table class="table-condensed">
-                        <caption>Volumes</caption>
-                        <thead></thead>
+                    <table class="table table-condensed">
+                        <caption>Volumes <span class="glyphicon glyphicon-chevron-down" data-ng-show="isExpanded(item)" data-ng-click=""></span><span class="glyphicon glyphicon-chevron-up" data-ng-show="! isExpanded(item)" data-ng-click=""></span></caption>
+                        <thead>
+                        <th>
+                            <div
+                                style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
+                                data-ng-click="toggleAllVolumes(v)">
+                                    <span class="glyphicon"
+                                        data-ng-class="allVolumesVisible ? 'glyphicon-check' : 'glyphicon-unchecked'">
+                                    </span>
+                            </div>
+                        </th>
+                        </thead>
                         <tbody>
-                            <tr data-ng-repeat="v in getVolumes() track by $index">
+                            <tr data-ng-repeat="v in getVolumes()">
                                 <td>
                                     <div
                                         style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
@@ -346,6 +356,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
         `,
         controller: function($scope, $element) {
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
+            $scope.allVolumesVisible = true;
             $scope.displayType = '3D';
             $scope.displayRangeVars = [
                 'xDisplayMin', 'xDisplayMax',
@@ -353,6 +364,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 'zDisplayMin', 'zDisplayMax',
             ];
             $scope.isClientOnly = isGeometryOnly;
+            $scope.numVolumeCols = 3;
             $scope.tallyReport = appState.models.tallyReport;
             $scope.volumeIds = [];
 
@@ -967,6 +979,18 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
             $scope.getVolumes = () => $scope.volumeIds.map(x => getVolumeById(x));
 
+            /*
+                        $scope.getVolumes = () => {
+                const rows = [];
+                let i = 0;
+                for (; i < $scope.volumeIds.length; i += $scope.numVolumeCols) {
+                    rows.push($scope.volumeIds.slice(i, i + $scope.numVolumeCols).map(x => getVolumeById(x)));
+                }
+                srdbg(rows);
+                return rows;
+            }
+
+             */
             $scope.init = () => {
                 buildOpacityDelegate();
                 planePosDelegate = buildPlanePosDelegate();
@@ -1006,6 +1030,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             };
 
             $scope.supportsColorbar = () => $scope.displayType === '3D' && ! isGeometryOnly;
+
+            $scope.toggleAllVolumes = () => {
+                $scope.allVolumesVisible = ! $scope.allVolumesVisible;
+                for (const v of $scope.getVolumes()) {
+                    if (v.isVisibleWithTallies !== $scope.allVolumesVisible) {
+                        $scope.toggleVolume(v);
+                    }
+                }
+            };
 
             $scope.toggleVolume = (v) => {
                 v.isVisibleWithTallies = ! v.isVisibleWithTallies;
