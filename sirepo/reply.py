@@ -511,6 +511,13 @@ class _SReply(sirepo.quest.Attr):
         _cookie(r)
         return r
 
+    async def websocket_response(self):
+        a = self.__attrs
+        c = a.get("content")
+        if c is None:
+            c = ""
+        await self.internal_req.handler.write_message(pkcompat.from_bytes(c))
+
     def _copy(self, source):
         """Destructive copy unless `self` is `res`"""
         if source == self:

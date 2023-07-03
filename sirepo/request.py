@@ -30,7 +30,7 @@ def init_quest(qcall, internal_req=None):
             http_authorization=None,
             http_headers=PKDict(),
             http_method="GET",
-            http_request_uri="/",
+            #            http_request_uri="/",
             http_server_uri="http://localhost/",
             internal_req=internal_req,
             remote_addr="0.0.0.0",
@@ -49,6 +49,22 @@ def init_quest(qcall, internal_req=None):
             remote_addr=internal_req.remote_addr,
             _form_file_class=_FormFileFlask,
             _form_get=internal_req.form.get,
+        )
+    elif "websocket" in str(type(internal_req)).lower():
+        u = f"http://localhost"
+        sreq = _SRequest(
+            body_as_bytes=internal_req.msg.get("content"),
+            http_authorization=None,
+            http_headers=PKDict(),
+            http_method=internal_req.msg.method,
+            # TODO: this will not
+            #            http_request_uri=u + internal_req.msg.uri,
+            http_server_uri=u + "/",
+            internal_req=internal_req,
+            remote_addr="0.0.0.0",
+            #            remote_addr=r.remote_ip,
+            #            _form_file_class=_FormFileTornado,
+            #            _form_get=internal_req.get_argument,
         )
     elif "tornado" in str(type(internal_req)):
         r = internal_req.request

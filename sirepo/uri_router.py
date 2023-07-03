@@ -6,6 +6,7 @@
 """
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import contextlib
@@ -195,7 +196,10 @@ def start_tornado(ip, port, debug):
     """Start tornado server, does not return"""
     from tornado import httpserver, ioloop, web, log, websocket
 
-    class _Handler(web.RequestHandler):
+    async def _websocket_response(sreply):
+        await sreply.websocket_response()
+
+    class _HTTPRequest(web.RequestHandler):
         async def _route(self):
             p = pykern.pkcompat.from_bytes(
                 urllib.parse.unquote_to_bytes(self.request.path),
@@ -218,25 +222,25 @@ def start_tornado(ip, port, debug):
         async def post(self):
             await self._route()
 
-    class _Socket(websocket.WebSocketHandler):
-        def on_close(self):
-            pass
+    class _WebSocket(websocket.WebSocketHandler):
+        #        def on_close(self):
+        #            #TODO(robnagler): need to free resources
+        #            pass
 
         async def on_message(self, msg):
-            try:
-                c = pkjson.load_any(msg)
-                e, r, k = _path_to_route(p[1:])
-                particular request being handle will have uri, data, etc.
-                need a new object that is used for internal_req
-                if e:
-                    pkdlog("uri={} {}; route={} kwargs={} ", p, e, r, k)
-                    r = _not_found_route
-
-                c.uri
-                return await self._dispatch(msg)
-            except Exception as e:
-                pkdlog("exception={} self={} content={}", e, self, msg)
-                pkdlog(pkdexc())
+            # need a msg id to pair with reply
+            c = pkjson.load_any(msg)
+            e, r, k = _path_to_route(c.uri[:1])
+            if e:
+                pkdlog("uri={} {}; route={} kwargs={} ", c.uri, e, r, k)
+                r = _not_found_route
+            await _call_api(
+                None,
+                r,
+                kwargs=k,
+                internal_req=_WebSocketMsg(handler=self, msg=c),
+                reply_op=_websocket_response,
+            )
 
         # def on_ping(self, *args, **kwargs):
         #     # do we care?
@@ -245,6 +249,8 @@ def start_tornado(ip, port, debug):
         # def select_subprotocol(self, subprotocols):
         #     # return one of the subprotocols and setup the dispatcher
         #     return None
+        # WebSocketHandler.get_compression_options
+        # WebSocketHandler.set_nodelay
 
         def open(self):
             # self.set_nodelay(True)
@@ -253,11 +259,20 @@ def start_tornado(ip, port, debug):
             # self.cookie = need to handle
             pass
 
+    class _WebSocketMsg(PKDict):
+        pass
+
     sirepo.modules.import_and_init("sirepo.server").init_tornado()
     s = httpserver.HTTPServer(
         web.Application(
-            [("/.*", _Handler)],
+            [
+                ("/ws", _WebSocket),
+                ("/.*", _HTTPRequest),
+            ],
             debug=debug,
+            websocket_max_message_size=sirepo.job.cfg().max_message_bytes,
+            websocket_ping_interval=sirepo.job.cfg().ping_interval_secs,
+            websocket_ping_timeout=sirepo.job.cfg().ping_timeout_secs,
         ),
         xheaders=True,
         max_buffer_size=sirepo.job.cfg().max_message_bytes,
@@ -368,7 +383,10 @@ async def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_o
         sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
         if pkconfig.in_dev_mode():
             r.header_set("Access-Control-Allow-Origin", "*")
-        return reply_op(r)
+        if inspect.iscoroutinefunction(reply_op):
+            return await reply_op(r)
+        else:
+            return reply_op(r)
     except:
         c = False
         raise
