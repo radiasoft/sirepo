@@ -388,11 +388,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     loadData: true,
                 });
                 const v = getVolumeById(volId);
-                const b = coordMapper.buildActorBundle(reader, {
-                    color: v.color,
-                    opacity: v.opacity,
-                    edgeVisibility: model().showEdges === '1',
-                });
+                const b = coordMapper.buildActorBundle(reader, volumeAppearance(v));
                 bundleByVolume[volId] = b;
                 vtkScene.addActor(b.actor);
                 picker.addPickList(b.actor);
@@ -773,7 +769,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     const v = getVolumeById(volId);
                     b.setActorProperty(
                         'opacity',
-                        v.isVisible ? v.opacity * model().opacity : 0
+                        v.isVisible ? volumeAppearance(v).opacity * model().opacity : 0
                     );
                     b.setActorProperty(
                         'edgeVisibility',
@@ -915,6 +911,21 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 $scope.$apply(vtkScene.fsRenderer.resize());
             }
 
+            function volumeAppearance(v) {
+                if (isGeometryOnly) {
+                    return {
+                        color: v.color,
+                        opacity: v.opacity,
+                        edgeVisibility: model().showEdges === '1',
+                    };
+                }
+                return {
+                    color: [0.75, 0.75, 0.75],
+                    opacity: 0.1,
+                    edgeVisibility: false,
+                };
+            }
+
             function volumeURL(volId) {
                 return requestSender.formatUrl(
                     'downloadDataFile',
@@ -1023,8 +1034,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     }
                 }
                 vtkScene.render();
+                loadVolumes(Object.values(vols)).then(volumesLoaded, volumesError);
                 if (isGeometryOnly) {
-                    loadVolumes(Object.values(vols)).then(volumesLoaded, volumesError);
+
                 }
                 if (tally) {
                     addTally(tally, model().aspect);
