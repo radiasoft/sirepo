@@ -1,23 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Test simulationSerial
+"""Test uri_router websocket requests
 
-:copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import pytest
 
 
-def test_home_page_file(fc):
-    from pykern import pkunit
-    from pykern.pkdebug import pkdp
-    import asyncio
-
-    r = fc.sr_get("/")
-    pkunit.pkeq(200, r.status_code)
-    asyncio.run(_run(fc))
-
-
-async def _run(fc):
+async def test_robots_txt(fc):
     from pykern import pkjson, pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
@@ -33,6 +23,8 @@ async def _run(fc):
         pkunit.pkre("/srw", m.content)
         reply_event.set()
 
+    r = fc.sr_get("/")
+    pkunit.pkeq(200, r.status_code)
     r = requests.Request(
         method="GET",
         url=fc.http_prefix + "/ws",
