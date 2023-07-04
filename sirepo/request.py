@@ -9,6 +9,7 @@ from pykern.pkdebug import pkdp
 import base64
 import email.utils
 import pykern.pkcompat
+import pykern.pkjson
 import sirepo.const
 import sirepo.quest
 import sirepo.util
@@ -53,11 +54,15 @@ def init_quest(qcall, internal_req=None):
     elif "websocket" in str(type(internal_req)).lower():
         u = f"http://localhost"
         sreq = _SRequest(
-            body_as_bytes=internal_req.msg.get("content"),
+            # This is not use except in error logging, which shouldn't happen
+            body_as_bytes=lambda: pykern.pkjson.dump_bytes(
+                internal_req.msg.get("content"),
+            ),
+            _body_as_content=internal_req.msg.get("content"),
             http_authorization=None,
             http_headers=internal_req.headers,
             http_method=internal_req.msg.method,
-            _content_type=PKDict(_key="application/json"),
+            # _content_type=PKDict(_key="application/json"),
             # TODO: this will not
             #            http_request_uri=u + internal_req.msg.uri,
             http_server_uri=u + "/",
@@ -146,11 +151,15 @@ class _FormFileTornado(_FormFileBase):
 class _SRequest(sirepo.quest.Attr):
     """Holds context for incoming requests"""
 
-    def content_type_eq(self, value):
-        c = self.__content_type()._key
-        if c is None:
-            return False
-        return self.__content_type()._key.lower() == value.lower()
+    def body_as_content(self):
+        if "_body_as_content" in self:
+            return self.get("_body_as_content")
+        if not self._content_type_eq("application/json"):
+            raise sirepo.util.BadRequest(
+                "Content-Type={} must be application/json",
+                self.header_uget("Content-Type"),
+            )
+        return pykern.pkjson.load_any(self.body_as_bytes())
 
     def form_get(self, name, default):
         return self._form_get(name, default)
@@ -185,6 +194,12 @@ class _SRequest(sirepo.quest.Attr):
         if data is not None:
             self[_POST_ATTR] = data
         return res
+
+    def _content_type_eq(self, value):
+        c = self.__content_type()._key
+        if c is None:
+            return False
+        return self.__content_type()._key.lower() == value.lower()
 
     def __content_type(self):
         if "_content_type" not in self:

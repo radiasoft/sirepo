@@ -22,17 +22,7 @@ def parse_json(qcall):
     d = qcall.http_data_uget()
     if d:
         return d
-    if not qcall.sreq.content_type_eq("application/json"):
-        raise sirepo.util.BadRequest(
-            "Content-Type={} must be application/json",
-            qcall.sreq.header_uget("Content-Type"),
-        )
-    # Adapted from flask.wrappers.Request.get_json
-    # We accept a request charset against the specification as
-    # certain clients have been using this in the past.  This
-    # fits our general approach of being nice in what we accept
-    # and strict in what we send out.
-    return simulation_db.json_load(qcall.sreq.body_as_bytes())
+    return qcall.sreq.body_as_content()
 
 
 def parse_post(qcall, kwargs):

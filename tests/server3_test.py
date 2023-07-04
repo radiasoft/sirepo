@@ -57,6 +57,7 @@ async def test_existing_auth(fc):
     from tornado import websocket, httpclient
     import asyncio
     import requests
+    from sirepo import srunit
 
     reply_event = asyncio.Event()
 
@@ -67,7 +68,8 @@ async def test_existing_auth(fc):
         pkdp(msg)
         m = pkjson.load_any(msg)
         pkunit.pkeq(1, m.req_seq)
-        pkunit.pkre("/xyz", m.content)
+        c = pkjson.load_any(m.content)
+        pkunit.pkeq(srunit.SR_SIM_NAME_DEFAULT, c[0].name)
         reply_event.set()
 
     fc.sr_sim_data()

@@ -24,6 +24,8 @@ CONFTEST_DEFAULT_CODES = None
 
 SR_SIM_TYPE_DEFAULT = MYAPP
 
+SR_SIM_NAME_DEFAULT = "Scooby Doo"
+
 #: Sirepo db dir
 _DB_DIR = "db"
 
@@ -472,7 +474,7 @@ class _TestClient:
         self.sr_sim_type_set(sim_type)
 
         if not sim_name:
-            sim_name = "Scooby Doo"
+            sim_name = SR_SIM_NAME_DEFAULT
         d = self.sr_post(
             "listSimulations",
             PKDict(
