@@ -231,7 +231,6 @@ def start_tornado(ip, port, debug):
             # need a msg id to pair with reply
             c = pkjson.load_any(msg)
             e, r, k = _path_to_route(c.uri[1:])
-            pkdp("{}", c)
             if e:
                 pkdlog("uri={} {}; route={} kwargs={} ", c.uri, e, r, k)
                 r = _not_found_route

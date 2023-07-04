@@ -58,7 +58,6 @@ async def test_existing_auth(fc):
         if msg is None:
             # msg is None on close
             return
-        pkdp(msg)
         m = pkjson.load_any(msg)
         pkunit.pkeq(1, m.req_seq)
         c = pkjson.load_any(m.content)

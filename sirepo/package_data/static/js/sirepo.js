@@ -279,10 +279,6 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         controller.warningText = 'Server reported an error, please contact support@radiasoft.net.';
     };
 
-    self.isAuthenticated = function () {
-        return self.isLoggedIn && ! self.needCompleteRegistration;
-    };
-
     self.paymentPlanName = function() {
         return SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
     };
@@ -1977,26 +1973,32 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('msgRouter', function(authState, $http, $q)) {
+SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window) => {
     const self = {};
     const toSend = [];
     let needReply = {};
     let reqSeq = 1;
     let socket = null;
 
+    // should be in authState, but there's a circular dependency with requestSender
+    const _isAuthenticated = () =>  {
+        return SIREPO.authState.isLoggedIn && ! SIREPO.authState.needCompleteRegistration;
+    };
+
     const _error = (event) => {
         // close: event.code : short, event.reason : str, wasClean : bool
         // error: app specific
         socket = null;
-        srlog("Websocket failed: event=", event);
+        srlog("WebSocket failed: event=", event);
         if (! event.wasClean) {
             toSend.unshift(...Object.values(needReply));
             needReply = {};
         }
-        _socket();
+        //TODO(robnagler) backoff timer and set status
+        $interval(_socket, 1000, 1);
     };
 
-    const _remove = (msg) = {
+    const _remove = (msg) => {
         const i = toSend.indexOf(msg);
         if (i >= 0) {
             toSend.splice(i, 1);
@@ -2004,6 +2006,7 @@ SIREPO.app.factory('msgRouter', function(authState, $http, $q)) {
         }
         delete needReply[msg.reqSeq];
     };
+
     const _reply = (event) => {
         const d = JSON.parse(event.data);
         const m = needReply[d.reqSeq];
@@ -2012,13 +2015,11 @@ SIREPO.app.factory('msgRouter', function(authState, $http, $q)) {
             return;
         }
         delete needReply[d.reqSeq];
-        //TODO(robnagler) errors and redirects not handled
-        m.deferred.resolve(
-            m.deferred({
-                data: JSON.parse(d.content)
-                status: 200
-            })
-        );
+        //TODO(robnagler) errors, redirects, responseType not handled
+        m.deferred.resolve({
+            data: JSON.parse(d.content),
+            status: 200
+        });
     };
 
     const _send = () => {
@@ -2035,14 +2036,17 @@ SIREPO.app.factory('msgRouter', function(authState, $http, $q)) {
         }
         while (toSend.length > 0) {
             const m = toSend.shift();
-            needReply[m.msg.reqSeq] = m;
-            socket.send(m);
+            needReply[m.frame.reqSeq] = m;
+            socket.send(JSON.stringify(m.frame));
         }
     };
 
     const _socket = () => {
-        const s = new Websocket(
-            new URL($window.location.href).origin.replace(/^http/i, "ws")
+        if (socket !== null) {
+            return;
+        }
+        const s = new WebSocket(
+            new URL($window.location.href).origin.replace(/^http/i, "ws") + "/ws",
         );
         s.onclose = (event) => {_error(event)};
         s.onerror = (event) => {_error(event)};
@@ -2052,7 +2056,7 @@ SIREPO.app.factory('msgRouter', function(authState, $http, $q)) {
     };
 
     self.send = (url, data, http_config) => {
-        if (! authState.isAuthenticated()) {
+        if (! _isAuthenticated()) {
             return data == null ? $http.get(url, http_config)
                 : $http.post(url, data, http_config)
         }
@@ -2061,7 +2065,9 @@ SIREPO.app.factory('msgRouter', function(authState, $http, $q)) {
             deferred: $q.defer(),
             ...http_config,
         };
-        m.timeout.then(() => {_remove(m)});
+        if (m.timeout) {
+            m.timeout.then(() => {_remove(m)});
+        }
         if (data) {
             m.frame.content = data;
         }
@@ -2073,7 +2079,7 @@ SIREPO.app.factory('msgRouter', function(authState, $http, $q)) {
     return self;
 
 });
-SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, msgRouter, $location, $injector, $interval, $q, $rootScope, $window) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -2377,7 +2383,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             return;
         }
         auxillaryData[name + ".loading"] = true;
-        $http.get(path + '' + SIREPO.SOURCE_CACHE_KEY).then(
+        msgRouter.send(
+            path + '' + SIREPO.SOURCE_CACHE_KEY,
+            null,
+            {},
+        ).then(
             function(response) {
                 var data = response.data;
                 auxillaryData[name] = data;
@@ -2453,9 +2463,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                 1
             );
         }
-        var req = data
-            ? $http.post(url, data, http_config)
-            : $http.get(url, http_config);
+        var req = msgRouter.send(url, data, http_config);
         var thisErrorCallback = function(response) {
             var data = response.data;
             var status = response.status;
