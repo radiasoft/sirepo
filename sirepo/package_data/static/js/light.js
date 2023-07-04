@@ -146,7 +146,7 @@ app.config(function(appRoutesProvider, $locationProvider, $routeProvider) {
     });
 });
 
-app.controller('LightController', function (appRoutes, $http, $location) {
+app.controller('LightController', function (appRoutes, $location) {
     var self = this;
     self.srwExamples = SRW_EXAMPLES;
     self.location = $location;
@@ -259,7 +259,7 @@ app.directive('pageHeading', function() {
                 <div class="navbar-brand">
                   <a data-ng-if="lc.pageName()" href="#home">Synchrotron Radiation Workshop</a>
                   <span data-ng-if="! lc.pageName()">Synchrotron Radiation Workshop</span>
-                   <span class="hidden-xs" data-ng-if="lc.pageName()">-</span> 
+                   <span class="hidden-xs" data-ng-if="lc.pageName()">-</span>
                   <span class="hidden-xs" data-ng-if="lc.pageName()" data-ng-bind="lc.pageName()"></span>
                 </div>
               </div>

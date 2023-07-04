@@ -937,7 +937,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
     };
 });
 
-SIREPO.app.directive('fileField', function(errorService, panelState, requestSender, $http) {
+SIREPO.app.directive('fileField', function(errorService, panelState, requestSender) {
     return {
         restrict: 'A',
         transclude: true,
@@ -4475,7 +4475,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
     };
 });
 
-SIREPO.app.service('plotToPNG', function($http) {
+SIREPO.app.service('plotToPNG', function() {
 
     function screenshotElement(element, isVisible) {
         return $(element).find(`.sr-screenshot${isVisible ? ':visible' : ''}`)[0];
@@ -4522,6 +4522,7 @@ SIREPO.app.service('fileUpload', function($http) {
                 fd.append(k, args[k]);
             }
         }
+        //TODO(robnagler) formData needs to be handled properly
         $http.post(uploadUrl, fd, {
             transformRequest: angular.identity,
             headers: {'Content-Type': undefined}

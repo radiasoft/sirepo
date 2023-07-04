@@ -2380,7 +2380,7 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
     };
 });
 
-SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
+SIREPO.app.directive('samplePreview', function(appState, requestSender) {
     return {
         restrict: 'A',
         template: `

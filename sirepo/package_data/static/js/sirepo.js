@@ -2384,7 +2384,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         }
         auxillaryData[name + ".loading"] = true;
         msgRouter.send(
-            path + '' + SIREPO.SOURCE_CACHE_KEY,
+            path, // + '' + SIREPO.SOURCE_CACHE_KEY,
             null,
             {},
         ).then(
@@ -3129,8 +3129,7 @@ SIREPO.app.factory('errorService', function($log, $window) {
         $log.error.apply($log, arguments);
         // now try to log the error to the server side.
         try {
-            // use AJAX (in this example jQuery) and NOT
-            // an angular service such as $http
+            // use AJAX (in this example jQuery) and msgRouter
             var message = exception ? String(exception) : '';
             cause = cause ? String(cause) : '';
             self.logToServer(
