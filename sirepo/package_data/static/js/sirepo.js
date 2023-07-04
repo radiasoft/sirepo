@@ -2007,7 +2007,18 @@ SIREPO.app.factory('msgRouter', function(authState, $http, $q)) {
     const _reply = (event) => {
         const d = JSON.parse(event.data);
         const m = needReply[d.reqSeq];
-
+        if (! m) {
+            srlog("not found reqSeq=", d.reqSeq, " content=", d.content);
+            return;
+        }
+        delete needReply[d.reqSeq];
+        //TODO(robnagler) errors and redirects not handled
+        m.deferred.resolve(
+            m.deferred({
+                data: JSON.parse(d.content)
+                status: 200
+            })
+        );
     };
 
     const _send = () => {
@@ -2022,9 +2033,11 @@ SIREPO.app.factory('msgRouter', function(authState, $http, $q)) {
         if (socket.readyState != 1) {
             return;
         }
-        const m = toSend.shift();
-        needReply[m.msg.reqSeq] = m;
-        socket.send(m);
+        while (toSend.length > 0) {
+            const m = toSend.shift();
+            needReply[m.msg.reqSeq] = m;
+            socket.send(m);
+        }
     };
 
     const _socket = () => {
@@ -2035,7 +2048,7 @@ SIREPO.app.factory('msgRouter', function(authState, $http, $q)) {
         s.onerror = (event) => {_error(event)};
         s.onmessage = (event) => {_reply(event)};
         s.onopen = (event) => {_send()};
-        return s;
+        socket = s;
     };
 
     self.send = (url, data, http_config) => {
