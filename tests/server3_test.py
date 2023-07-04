@@ -27,7 +27,6 @@ async def test_robots_txt(fc):
     r = fc.sr_get("/")
     pkunit.pkeq(200, r.status_code)
     r = requests.Request(
-        method="GET",
         url=fc.http_prefix + "/ws",
     ).prepare()
     s = await websocket.websocket_connect(
@@ -38,13 +37,7 @@ async def test_robots_txt(fc):
         on_message_callback=_msg,
     )
     await s.write_message(
-        pkjson.dump_pretty(
-            PKDict(
-                method="GET",
-                req_seq=1,
-                uri="/robots.txt",
-            )
-        ),
+        pkjson.dump_pretty(PKDict(req_seq=1, uri="/robots.txt")),
     )
     await asyncio.wait_for(reply_event.wait(), 2)
 
@@ -74,7 +67,6 @@ async def test_existing_auth(fc):
 
     fc.sr_sim_data()
     r = requests.Request(
-        method="GET",
         url=fc.http_prefix + "/ws",
         cookies=fc.cookie_jar,
     ).prepare()
@@ -88,7 +80,6 @@ async def test_existing_auth(fc):
     await s.write_message(
         pkjson.dump_pretty(
             PKDict(
-                method="POST",
                 req_seq=1,
                 uri="/simulation-list",
                 content=PKDict(simulationType=fc.sr_sim_type),

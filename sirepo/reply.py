@@ -521,7 +521,7 @@ class _SReply(sirepo.quest.Attr):
         await self.internal_req.handler.write_message(
             PKDict(
                 content=pkcompat.from_bytes(c),
-                req_seq=self.internal_req.msg.req_seq,
+                reqSeq=self.internal_req.msg.reqSeq,
             ),
         )
 

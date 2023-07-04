@@ -279,6 +279,10 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         controller.warningText = 'Server reported an error, please contact support@radiasoft.net.';
     };
 
+    self.isAuthenticated = function () {
+        return self.isLoggedIn && ! self.needCompleteRegistration;
+    };
+
     self.paymentPlanName = function() {
         return SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
     };
@@ -1973,6 +1977,89 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
+SIREPO.app.factory('msgRouter', function(authState, $http, $q)) {
+    const self = {};
+    const toSend = [];
+    let needReply = {};
+    let reqSeq = 1;
+    let socket = null;
+
+    const _error = (event) => {
+        // close: event.code : short, event.reason : str, wasClean : bool
+        // error: app specific
+        socket = null;
+        srlog("Websocket failed: event=", event);
+        if (! event.wasClean) {
+            toSend.unshift(...Object.values(needReply));
+            needReply = {};
+        }
+        _socket();
+    };
+
+    const _remove = (msg) = {
+        const i = toSend.indexOf(msg);
+        if (i >= 0) {
+            toSend.splice(i, 1);
+            return;
+        }
+        delete needReply[msg.reqSeq];
+    };
+    const _reply = (event) => {
+        const d = JSON.parse(event.data);
+        const m = needReply[d.reqSeq];
+
+    };
+
+    const _send = () => {
+        //if already req_seq use that so server can know if it is a resend
+        if (toSend.length <= 0) {
+            return;
+        }
+        if (socket == null) {
+            _socket();
+            return;
+        }
+        if (socket.readyState != 1) {
+            return;
+        }
+        const m = toSend.shift();
+        needReply[m.msg.reqSeq] = m;
+        socket.send(m);
+    };
+
+    const _socket = () => {
+        const s = new Websocket(
+            new URL($window.location.href).origin.replace(/^http/i, "ws")
+        );
+        s.onclose = (event) => {_error(event)};
+        s.onerror = (event) => {_error(event)};
+        s.onmessage = (event) => {_reply(event)};
+        s.onopen = (event) => {_send()};
+        return s;
+    };
+
+    self.send = (url, data, http_config) => {
+        if (! authState.isAuthenticated()) {
+            return data == null ? $http.get(url, http_config)
+                : $http.post(url, data, http_config)
+        }
+        let m = {
+            frame: {uri: url, reqSeq: reqSeq++},
+            deferred: $q.defer(),
+            ...http_config,
+        };
+        m.timeout.then(() => {_remove(m)});
+        if (data) {
+            m.frame.content = data;
+        }
+        toSend.push(m);
+        _send();
+        return m.deferred.promise;
+    };
+
+    return self;
+
+});
 SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
@@ -2180,13 +2267,13 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     };
 
     self.openSimulation = (app, localRoute, simId) => {
-        $window.open(
-            self.formatUrl('simulationRedirect', {
+        self.newWindow(
+            'simulationRedirect',
+            {
                 simulation_type: app,
                 local_route: localRoute,
                 simulation_id: simId,
-            }),
-            '_blank'
+            },
         );
     };
 

@@ -53,6 +53,7 @@ def init_quest(qcall, internal_req=None):
         )
     elif "websocket" in str(type(internal_req)).lower():
         u = f"http://localhost"
+        # TODO(robnagler) logging
         sreq = _SRequest(
             # This is not use except in error logging, which shouldn't happen
             body_as_bytes=lambda: pykern.pkjson.dump_bytes(
@@ -61,7 +62,7 @@ def init_quest(qcall, internal_req=None):
             _body_as_content=internal_req.msg.get("content"),
             http_authorization=None,
             http_headers=internal_req.headers,
-            http_method=internal_req.msg.method,
+            http_method="POST" if "content" in internal_req.msg else "GET",
             # _content_type=PKDict(_key="application/json"),
             # TODO: this will not
             #            http_request_uri=u + internal_req.msg.uri,
