@@ -7,6 +7,7 @@
 import pytest
 
 
+@pytest.mark.asyncio
 async def test_robots_txt(fc):
     from pykern import pkjson, pkunit
     from pykern.pkcollections import PKDict

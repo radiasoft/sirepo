@@ -18,6 +18,7 @@ install_requires = [
     "numpy",
     "pyIsEmail",
     "pykern",
+    "pytest-asyncio",
     "pytz",
     "requests",
     "tornado",
