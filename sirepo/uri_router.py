@@ -239,7 +239,11 @@ def start_tornado(ip, port, debug):
                 None,
                 r,
                 kwargs=k,
-                internal_req=_WebSocketMsg(handler=self, msg=c),
+                internal_req=_WebSocketRequest(
+                    handler=self,
+                    msg=c,
+                    headers=self.__headers,
+                ),
                 reply_op=_websocket_response,
             )
 
@@ -254,13 +258,14 @@ def start_tornado(ip, port, debug):
         # WebSocketHandler.set_nodelay
 
         def open(self):
+            self.__headers = PKDict(self.request.headers)
             # self.set_nodelay(True)
             # self.uri = self.request.uri
             # self.remote_ip = self.request
             # self.cookie = need to handle
             pass
 
-    class _WebSocketMsg(PKDict):
+    class _WebSocketRequest(PKDict):
         pass
 
     sirepo.modules.import_and_init("sirepo.server").init_tornado()

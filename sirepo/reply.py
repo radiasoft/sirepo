@@ -513,13 +513,15 @@ class _SReply(sirepo.quest.Attr):
 
     async def websocket_response(self):
         a = self.__attrs
+        pkdp(a)
         c = a.get("content")
+        pkdp(c)
         if c is None:
             c = ""
         await self.internal_req.handler.write_message(
             PKDict(
                 content=pkcompat.from_bytes(c),
-                req_seq=pkdp(self.internal_req.msg).req_seq,
+                req_seq=self.internal_req.msg.req_seq,
             ),
         )
 

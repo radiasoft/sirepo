@@ -29,7 +29,6 @@ async def test_robots_txt(fc):
     r = requests.Request(
         method="GET",
         url=fc.http_prefix + "/ws",
-        cookies=fc.cookie_jar,
     ).prepare()
     s = await websocket.websocket_connect(
         httpclient.HTTPRequest(
@@ -48,3 +47,53 @@ async def test_robots_txt(fc):
         ),
     )
     await asyncio.wait_for(reply_event.wait(), 2)
+
+
+@pytest.mark.asyncio
+async def test_existing_auth(fc):
+    from pykern import pkjson, pkunit
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
+    from tornado import websocket, httpclient
+    import asyncio
+    import requests
+
+    reply_event = asyncio.Event()
+
+    def _msg(msg):
+        if msg is None:
+            # msg is None on close
+            return
+        pkdp(msg)
+        m = pkjson.load_any(msg)
+        pkunit.pkeq(1, m.req_seq)
+        pkunit.pkre("/xyz", m.content)
+        reply_event.set()
+
+    fc.sr_sim_data()
+    r = requests.Request(
+        method="GET",
+        url=fc.http_prefix + "/ws",
+        cookies=fc.cookie_jar,
+    ).prepare()
+    s = await websocket.websocket_connect(
+        httpclient.HTTPRequest(
+            url=r.url.replace("http", "ws"),
+            headers=r.headers,
+        ),
+        on_message_callback=_msg,
+    )
+    await s.write_message(
+        pkjson.dump_pretty(
+            PKDict(
+                method="POST",
+                req_seq=1,
+                uri="/simulation-list",
+                content=PKDict(simulationType=fc.sr_sim_type),
+            ),
+        ),
+    )
+    try:
+        await asyncio.wait_for(reply_event.wait(), 2)
+    finally:
+        s.close()

@@ -55,8 +55,9 @@ def init_quest(qcall, internal_req=None):
         sreq = _SRequest(
             body_as_bytes=internal_req.msg.get("content"),
             http_authorization=None,
-            http_headers=PKDict(),
+            http_headers=internal_req.headers,
             http_method=internal_req.msg.method,
+            _content_type=PKDict(_key="application/json"),
             # TODO: this will not
             #            http_request_uri=u + internal_req.msg.uri,
             http_server_uri=u + "/",
