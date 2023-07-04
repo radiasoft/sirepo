@@ -50,7 +50,6 @@
             }
         },
         "runSettings": {
-            
         }
     },
     "middleware": [
@@ -404,8 +403,7 @@
         "completeRegistration": "/complete-registration",
         "login": "/login",
         "logout": "/logout",
-        "loginConfirm": "/login-confirm/:method/:token/:needCompleteRegistration",
-        "loginWithEmailConfirm": "/login-confirm/email/:token/:needCompleteRegistration",
+        "loginWithEmailConfirm": "/login-with-email-confirm/:token/:needCompleteRegistration",
         "source": "/:simulationId",
         "simulations": "/simulations",
         "root": "/"
