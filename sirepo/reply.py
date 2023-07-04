@@ -516,7 +516,12 @@ class _SReply(sirepo.quest.Attr):
         c = a.get("content")
         if c is None:
             c = ""
-        await self.internal_req.handler.write_message(pkcompat.from_bytes(c))
+        await self.internal_req.handler.write_message(
+            PKDict(
+                content=pkcompat.from_bytes(c),
+                req_seq=pkdp(self.internal_req.msg).req_seq,
+            ),
+        )
 
     def _copy(self, source):
         """Destructive copy unless `self` is `res`"""

@@ -8,24 +8,30 @@ import pytest
 
 
 def test_home_page_file(fc):
-    from pykern.pkunit import pkeq, pkre
+    from pykern import pkunit
     from pykern.pkdebug import pkdp
     import asyncio
 
     r = fc.sr_get("/")
-    pkeq(200, r.status_code)
+    pkunit.pkeq(200, r.status_code)
     asyncio.run(_run(fc))
 
 
 async def _run(fc):
+    from pykern import pkjson, pkunit
+    from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from tornado import websocket, httpclient
-    from pykern import pkjson
     import asyncio
     import requests
 
+    reply_event = asyncio.Event()
+
     def _msg(msg):
-        pkdp(msg)
+        m = pkjson.load_any(msg)
+        pkunit.pkeq(1, m.req_seq)
+        pkunit.pkre("/srw", m.content)
+        reply_event.set()
 
     r = requests.Request(
         method="GET",
@@ -41,11 +47,11 @@ async def _run(fc):
     )
     await s.write_message(
         pkjson.dump_pretty(
-            dict(
-                uri="/robots.txt",
+            PKDict(
                 method="GET",
+                req_seq=1,
+                uri="/robots.txt",
             )
         ),
-    ),
-    await asyncio.sleep(3)
-    assert 0
+    )
+    await asyncio.wait_for(reply_event.wait(), 2)
