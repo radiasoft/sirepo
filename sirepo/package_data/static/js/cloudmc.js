@@ -302,7 +302,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 </li>
             </ul>
             <div>
-                <div data-ng-show="! isClientOnly && displayType === '3D'" class="col-sm-12">
+                <div data-ng-if="! isClientOnly && displayType === '3D'" class="col-sm-12">
                     <table class="table table-condensed">
                         <caption>Volumes <span class="glyphicon glyphicon-chevron-down" data-ng-show="isExpanded(item)" data-ng-click=""></span><span class="glyphicon glyphicon-chevron-up" data-ng-show="! isExpanded(item)" data-ng-click=""></span></caption>
                         <thead>
@@ -317,15 +317,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                         </th>
                         </thead>
                         <tbody>
-                            <tr data-ng-repeat="v in getVolumes()">
-                                <td>
-                                    <div
+                            <tr data-ng-repeat="r in volumeTable(5) track by $index">
+                                <td data-ng-repeat="v in r track by v.volId">{{ v.name }}
+                                    <!--<div
                                         style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
                                         data-ng-click="toggleVolume(v)">
                                             <span class="glyphicon"
                                                 data-ng-class="v.isVisibleWithTallies ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
                                         <b>{{ v.name }}</b>
-                                    </div>
+                                    </div>-->
                                 </td>
                             </tr>
                         </tbody>
@@ -364,9 +364,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 'zDisplayMin', 'zDisplayMax',
             ];
             $scope.isClientOnly = isGeometryOnly;
-            $scope.numVolumeCols = 3;
+            $scope.numVolumeCols = 5;
             $scope.tallyReport = appState.models.tallyReport;
-            $scope.volumeIds = [];
+            let volumeIds = [];
 
             let axesBoxes = {};
             let basePolyData = null;
@@ -706,6 +706,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     selectedVolume = v;
                     buildAxes(actor);
                 }
+                srdbg('hdl p apply');
                 $scope.$apply(vtkScene.fsRenderer.resize());
             }
 
@@ -869,6 +870,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 }
                 const pos = callData.position;
                 picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
+                //srdbg(picker.getActors());
                 const cid = picker.getCellId();
                 if (cid < 0) {
                     $scope.$broadcast('vtk.selected', null);
@@ -970,6 +972,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     });
             }
 
+            function getVolumes() {
+                return volumeIds.map(x => getVolumeById(x));
+            }
+
             $scope.onlyClientFieldsChanged = false;
 
             // the vtk teardown is handled in vtkPlotting
@@ -977,20 +983,19 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 vtkScene = null;
             };
 
-            $scope.getVolumes = () => $scope.volumeIds.map(x => getVolumeById(x));
-
-            /*
-                        $scope.getVolumes = () => {
-                const rows = [];
-                let i = 0;
-                for (; i < $scope.volumeIds.length; i += $scope.numVolumeCols) {
-                    rows.push($scope.volumeIds.slice(i, i + $scope.numVolumeCols).map(x => getVolumeById(x)));
+            $scope.volumeTable = (nCols) => {
+                const vols = getVolumes();
+                if (! nCols) {
+                    return vols;
                 }
-                srdbg(rows);
-                return rows;
-            }
+                const v = [];
+                for (let i = 0; i < vols.length; i += nCols) {
+                    v.push(vols.slice(i, i + nCols));
+                }
+                //srdbg(v);
+                return v;
+            };
 
-             */
             $scope.init = () => {
                 buildOpacityDelegate();
                 planePosDelegate = buildPlanePosDelegate();
@@ -1033,7 +1038,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
             $scope.toggleAllVolumes = () => {
                 $scope.allVolumesVisible = ! $scope.allVolumesVisible;
-                for (const v of $scope.getVolumes()) {
+                for (const v of getVolumes()) {
                     if (v.isVisibleWithTallies !== $scope.allVolumesVisible) {
                         $scope.toggleVolume(v);
                     }
@@ -1096,12 +1101,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                         vols.push(appState.models.volumes[n].volId);
                     }
                 }
-                $scope.volumeIds = vols.slice();
+                volumeIds = vols.slice();
                 vtkScene.render();
                 loadVolumes(Object.values(vols)).then(volumesLoaded, volumesError);
                 if (! isGeometryOnly) {
                     const m = getMeshFilter();
-                    srdbg(m);
+                    //srdbg(m);
                 }
                 if (tally) {
                     addTally(tally, model().aspect);
