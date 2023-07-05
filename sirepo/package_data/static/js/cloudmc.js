@@ -303,7 +303,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             </ul>
             <div>
                 <div data-ng-if="! isClientOnly && displayType === '3D'" class="col-sm-12">
-                    <table class="table table-condensed">
+                    <table class="table-condensed">
                         <caption>Volumes <span class="glyphicon glyphicon-chevron-down" data-ng-show="isExpanded(item)" data-ng-click=""></span><span class="glyphicon glyphicon-chevron-up" data-ng-show="! isExpanded(item)" data-ng-click=""></span></caption>
                         <thead>
                         <th>
@@ -317,15 +317,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                         </th>
                         </thead>
                         <tbody>
-                            <tr data-ng-repeat="r in volumeTable(5) track by $index">
-                                <td data-ng-repeat="v in r track by v.volId">{{ v.name }}
-                                    <!--<div
+                            <tr data-ng-repeat="r in volumeTable track by $index">
+                                <td data-ng-repeat="v in r track by v.volId">
+                                    <div
                                         style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
                                         data-ng-click="toggleVolume(v)">
                                             <span class="glyphicon"
                                                 data-ng-class="v.isVisibleWithTallies ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
                                         <b>{{ v.name }}</b>
-                                    </div>-->
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -939,6 +939,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     // volumesLoaded may be called after the component was destroyed
                     return;
                 }
+                $scope.volumeTable = volumeTable(5);
                 setGlobalProperties();
                 $rootScope.$broadcast('vtk.hideLoader');
                 initAxes();
@@ -976,14 +977,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 return volumeIds.map(x => getVolumeById(x));
             }
 
-            $scope.onlyClientFieldsChanged = false;
-
-            // the vtk teardown is handled in vtkPlotting
-            $scope.destroy = () => {
-                vtkScene = null;
-            };
-
-            $scope.volumeTable = (nCols) => {
+            function volumeTable(nCols) {
                 const vols = getVolumes();
                 if (! nCols) {
                     return vols;
@@ -994,6 +988,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 }
                 //srdbg(v);
                 return v;
+            }
+
+            $scope.onlyClientFieldsChanged = false;
+
+            // the vtk teardown is handled in vtkPlotting
+            $scope.destroy = () => {
+                vtkScene = null;
             };
 
             $scope.init = () => {
