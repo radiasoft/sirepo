@@ -74,17 +74,20 @@ def restrict_op_to_first_rank(op):
 
 
 def restrict_ops_to_first_node(ops):
-    """Run `ops` in parallel on available cores on one current node
+    """Run `ops` in parallel on available cores on the first node
 
-    Uses `multiprocessing`. If run under MPI, will run on the first
-    rank only, and the other MPI processes will remain idle until this
-    operation is complete.
+    This functions uses `multiprocessing` to run `ops`. If run under
+    MPI, will run instantiate the multiprocessing.Pool in the first
+    rank only, and the other MPI ranks (processes) will remain idle
+    until all `ops` have been run.
 
     Note that processes originate from the first rank MPI process so
-    they share memory up until multiprocessing spawns each op.
+    they share the first rank's memory up until multiprocessing spawns
+    each op.
 
     Args:
         ops (iterable): produces callables that will be run in parallel
+
     """
 
     def _run():
