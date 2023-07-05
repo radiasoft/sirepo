@@ -303,28 +303,29 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             </ul>
             <div>
                 <div data-ng-if="! isClientOnly && displayType === '3D'" class="col-sm-12">
-                    <table class="table-condensed">
-                        <caption>Volumes <span class="glyphicon glyphicon-chevron-down" data-ng-show="isExpanded(item)" data-ng-click=""></span><span class="glyphicon glyphicon-chevron-up" data-ng-show="! isExpanded(item)" data-ng-click=""></span></caption>
+                    <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><span class="glyphicon glyphicon-chevron-down" data-ng-show="isVolumeListExpanded" data-ng-click="toggleVolumeList()"></span><span class="glyphicon glyphicon-chevron-up" data-ng-show="! isVolumeListExpanded" data-ng-click="toggleVolumeList()"></span> Volume Display</div>
+                    <table data-ng-show="isVolumeListExpanded" class="table-condensed">
                         <thead>
-                        <th>
+                        <th style="border-bottom: solid lightgray;" colspan="{{ numVolumeCols }}">
                             <div
                                 style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
                                 data-ng-click="toggleAllVolumes(v)">
                                     <span class="glyphicon"
                                         data-ng-class="allVolumesVisible ? 'glyphicon-check' : 'glyphicon-unchecked'">
                                     </span>
+                                    Toggle all
                             </div>
                         </th>
                         </thead>
                         <tbody>
-                            <tr data-ng-repeat="r in volumeTable track by $index">
+                            <tr data-ng-repeat="r in volumeList track by $index">
                                 <td data-ng-repeat="v in r track by v.volId">
                                     <div
                                         style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
                                         data-ng-click="toggleVolume(v)">
                                             <span class="glyphicon"
                                                 data-ng-class="v.isVisibleWithTallies ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
-                                        <b>{{ v.name }}</b>
+                                        <span style="font-weight: 500;">{{ v.name }}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -364,8 +365,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 'zDisplayMin', 'zDisplayMax',
             ];
             $scope.isClientOnly = isGeometryOnly;
+            $scope.isVolumeListExpanded = false;
             $scope.numVolumeCols = 5;
             $scope.tallyReport = appState.models.tallyReport;
+            $scope.volumeList = null;
+
             let volumeIds = [];
 
             let axesBoxes = {};
@@ -939,7 +943,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     // volumesLoaded may be called after the component was destroyed
                     return;
                 }
-                $scope.volumeTable = volumeTable(5);
+                $scope.volumeList = buildVolumeTable();
                 setGlobalProperties();
                 $rootScope.$broadcast('vtk.hideLoader');
                 initAxes();
@@ -977,16 +981,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 return volumeIds.map(x => getVolumeById(x));
             }
 
-            function volumeTable(nCols) {
+            function buildVolumeTable() {
                 const vols = getVolumes();
-                if (! nCols) {
+                if (! $scope.numVolumeCols) {
                     return vols;
                 }
                 const v = [];
-                for (let i = 0; i < vols.length; i += nCols) {
-                    v.push(vols.slice(i, i + nCols));
+                for (let i = 0; i < vols.length; i += $scope.numVolumeCols) {
+                    v.push(vols.slice(i, i + $scope.numVolumeCols));
                 }
-                //srdbg(v);
                 return v;
             }
 
@@ -1051,6 +1054,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 setVolumeProperty(
                     bundleByVolume[v.volId], 'opacity', v.isVisibleWithTallies ? volumeAppearance(v).opacity : 0
                 );
+            };
+
+
+            $scope.toggleVolumeList = () => {
+                $scope.isVolumeListExpanded = ! $scope.isVolumeListExpanded;
             };
 
             $scope.$on('fieldsChanged', function(e, modelFields) {
