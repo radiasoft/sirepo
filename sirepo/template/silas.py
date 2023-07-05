@@ -368,16 +368,51 @@ def _iterate_beamline(state, data, callback):
 
 
 class _LaserPulsePlot(PKDict):
-    _SCALAR_PLOTS = [
+    _SCALAR_PLOTS = (
         "longitudinal_intensity",
         "longitudinal_frequency",
-        "longitudinal_wavelength"
-    ]
+        "longitudinal_wavelength",
+    )
+
+    _PLOT_LABELS = PKDict(
+        longitudinal_intensity="Intensity",
+        total_intensity="Total Intensity",
+        total_phase="Total Phase",
+        longitudinal_frequency="Longitudinal Frequency",
+        longitudinal_wavelength="Longitudinal Wavelength",
+        longitudinal_photons="Total Number of Photons",
+        excited_states_longitudinal="Excited States",
+        excited_states="Excited States Slice #{slice_index}",
+        phase="Phase Slice #{slice_index}",
+        intensity="Intensity Slice #{slice_index}",
+        photons="Photons Slice #{slice_index}",
+    )
+
+    _X_LABELS = PKDict(
+        excited_states_longitudinal="Crystal Slice",
+        longitudinal_photons="Crystal width [cm]",
+        longitudinal_intensity="Pulse Slice",
+        longitudinal_frequency="Frequency [Hz]",
+        longitudinal_wavelength="Wavelength [m]",
+    )
+
+    _Z_LABELS = PKDict(
+        total_phase="Phase [rad]",
+        total_intensity="",
+        intensity="",
+        phase="Phase [rad]",
+        photons="Photons [1/m³]",
+        excited_states="Number [1/m³]",
+    )
 
     def _cell_volume(self):
         if self._is_crystal(self.element):
             return (
-                ((2 * self.element.inversion_mesh_extent) / self.element.inversion_n_cells) ** 2
+                (
+                    (2 * self.element.inversion_mesh_extent)
+                    / self.element.inversion_n_cells
+                )
+                ** 2
                 * self.element.length
                 / self.element.nslice
             )
@@ -399,20 +434,10 @@ class _LaserPulsePlot(PKDict):
     def _is_longitudinal_plot(self):
         return "longitudinal" in self.plot_type
 
-    def _label(self):
-        # TODO (gurhar1133): make dict a private constant
-        l = PKDict(
-            longitudinal_intensity="Intensity",
-            total_intensity="Total Intensity",
-            total_phase="Total Phase",
-            longitudinal_frequency="Longitudinal Frequency",
-            longitudinal_wavelength="Longitudinal Wavelength",
-            longitudinal_photons="Total Number of Photons",
-            excited_states_longitudinal="Excited States",
+    def _plot_label(self):
+        return self._PLOT_LABELS[self.plot_type].format(
+            slice_index=self.slice_index + 1
         )
-        if self.plot_type in l.keys():
-            return l[self.plot_type]
-        return self.plot_type.replace("_", " ").title() + " Slice #" + str(self.slice_index + 1)
 
     def _nslice(self, file):
         if self._is_crystal():
@@ -420,31 +445,43 @@ class _LaserPulsePlot(PKDict):
         return len(file)
 
     def _x_label(self):
-        return PKDict(
-            excited_states_longitudinal="Crystal Slice",
-            longitudinal_photons="Crystal width [cm]",
-            longitudinal_intensity="Pulse Slice",
-            longitudinal_frequency="Frequency [Hz]",
-            longitudinal_wavelength="Wavelength [m]",
-        )[self.plot_type]
+        return self._X_LABELS[self.plot_type]
 
     def _y_value(self, index, file):
         if self._is_crystal():
-            return numpy.sum(numpy.array(file[f"{index}/excited_states"]) * self._cell_volume())
+            return numpy.sum(
+                numpy.array(file[f"{index}/excited_states"]) * self._cell_volume()
+            )
         y = numpy.array(file[f"{index}/{self.plot_type}"])
         if self.plot_type in self._SCALAR_PLOTS:
             return y
         return numpy.sum(y)
 
     def _z_label(self):
-        return PKDict(
-            total_phase="Phase [rad]",
-            total_intensity="",
-            intensity="",
-            phase="Phase [rad]",
-            photons="Photons [1/m³]",
-            excited_states="Number [1/m³]",
-        )[self.plot_type]
+        return self._Z_LABELS[self.plot_type]
+
+    def _gen_longitudinal(self, element_file):
+        x = []
+        y = []
+        nslice = self._nslice(element_file)
+        if self.element:
+            self.element.nslice = nslice
+        for idx in range(nslice):
+            x.append(self._index(idx))
+            y.append(self._y_value(idx, element_file))
+        return template_common.parameter_plot(
+            x,
+            [
+                PKDict(
+                    points=y,
+                    label=self._plot_label(),
+                ),
+            ],
+            PKDict(),
+            PKDict(
+                x_label=self._x_label(),
+            ),
+        )
 
     def gen(self):
         for _ in range(_MAX_H5_READ_TRIES):
@@ -453,32 +490,12 @@ class _LaserPulsePlot(PKDict):
                     self.run_dir.join(self._fname().format(self.element_index)), "r"
                 ) as f:
                     if self._is_longitudinal_plot():
-                        x = []
-                        y = []
-                        nslice = self._nslice(f)
-                        if self.element:
-                            self.element.nslice = nslice
-                        for idx in range(nslice):
-                            x.append(self._index(idx))
-                            y.append(self._y_value(idx, f))
-                        return template_common.parameter_plot(
-                            x,
-                            [
-                                PKDict(
-                                    points=y,
-                                    label=self._label(),
-                                ),
-                            ],
-                            PKDict(),
-                            PKDict(
-                                x_label=self._x_label(),
-                            ),
-                        )
+                        return self._gen_longitudinal(f)
                     d = template_common.h5_to_dict(f, str(self.slice_index))
                     r = d.ranges
                     z = d[self.plot_type]
                     return PKDict(
-                        title=self._label(),
+                        title=self._plot_label(),
                         x_range=[r.x[0], r.x[1], len(z)],
                         y_range=[r.y[0], r.y[1], len(z[0])],
                         x_label="Horizontal Position [m]",
