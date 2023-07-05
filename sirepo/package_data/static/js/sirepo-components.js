@@ -1766,10 +1766,11 @@ SIREPO.app.directive('simplePanel', function(appState, panelState) {
         transclude: true,
         scope: {
             modelName: '@simplePanel',
+            isReport: '@',
         },
         template: `
             <div class="panel panel-info">
-              <div class="panel-heading clearfix" data-panel-heading="{{ heading }}" data-model-key="modelName"></div>
+              <div class="panel-heading clearfix" data-panel-heading="{{ heading }}" data-model-key="modelName" data-is-report="{{ isReport }}"></div>
                 <div class="panel-body" data-ng-hide="isHidden()">
                   <div data-ng-transclude=""></div>
                 </div>
