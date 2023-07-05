@@ -204,12 +204,12 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _dagmc_animation_python(filename):
     return f"""
-from sirepo.pkcli.cloudmc import extract_dagmc
+import sirepo.pkcli.cloudmc
 import sirepo.simulation_db
 
 sirepo.simulation_db.write_json(
-    '{_VOLUME_INFO_FILE}',
-    extract_dagmc('{filename}'),
+    "{_VOLUME_INFO_FILE}",
+    sirepo.pkcli.cloudmc.extract_dagmc("{filename}"),
 )
 """
 

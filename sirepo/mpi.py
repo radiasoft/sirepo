@@ -8,8 +8,9 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
-import sirepo.const
+import multiprocessing
 import re
+import sirepo.const
 import sys
 
 FIRST_RANK = 0
@@ -33,6 +34,19 @@ def cfg():
 def get_cmd():
     c = ["python", "parameters.py"]
     return c if _cfg.in_slurm else _mpiexec_cmd() + c
+
+
+def multiprocessing_pool_map(processor):
+    """
+    Args:
+      processor: The processor argument should have one method:
+        get_items() -- return an array of all the items to process
+
+        Each item will be invoked:
+        item.processor.process_item(item) -- run the computation for one item
+    """
+    with multiprocessing.Pool(_cfg.cores) as pool:
+        pool.map(_process_item, processor.get_items())
 
 
 def restrict_op_to_first_rank(op):
@@ -107,6 +121,10 @@ def _mpiexec_cmd():
         "-n",
         str(_cfg.cores),
     ]
+
+
+def _process_item(item):
+    item.processor.process_item(item)
 
 
 _cfg = pkconfig.init(
