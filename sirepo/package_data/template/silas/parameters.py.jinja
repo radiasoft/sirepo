@@ -45,6 +45,13 @@ class Watchpoint:
         def ranges(pulse, idx):
             return laser_pulse_ranges(pulse.slice_wfr(idx))
 
+        def longitudinal_wavelength_and_frequency(laser_pulse, slice_index):
+            o = (2.0 * numpy.pi * const.c) / laser_pulse.slice[slice_index]._lambda0
+            c = o + (
+                (laser_pulse.initial_chirp * (laser_pulse.slice[slice_index]._pulse_pos / const.c)) / {{ laserPulse['tau_fwhm'] }}**2.0
+            )
+            return (2.0 * numpy.pi * const.c) / c, c/(2*numpy.pi)
+
         h5_data = PKDict()
         lp = locals()["pulse"]
         t = lp.extract_total_2d_elec_fields()
@@ -53,13 +60,7 @@ class Watchpoint:
             nx = lp.slice[s].nx_slice
             ny = nx
             i = locals()["intensity"](pulse, s)
-            # TODO (gurhar1133): refactor into function
-            omega_0 = (2.0 * numpy.pi * const.c) / lp.slice[s]._lambda0
-            omega_chirp = omega_0 + (
-                (lp.initial_chirp * (lp.slice[s]._pulse_pos / const.c)) / {{ laserPulse['tau_fwhm'] }}**2.0
-            )
-            frequency = omega_chirp/(2*numpy.pi)
-            wavelength = (2.0 * numpy.pi * const.c) / omega_chirp
+            w, f = longitudinal_wavelength_and_frequency(lp, s)
             h5_data[s] = PKDict(
                 ranges=locals()["ranges"](pulse, s),
                 intensity=i,
@@ -69,8 +70,8 @@ class Watchpoint:
                 longitudinal_intensity=i[int(nx/2)][int(ny/2)],
                 total_intensity=0.5 *const.c *const.epsilon_0 *(t.re**2.0 + t.im**2.0),
                 total_phase=p,
-                longitudinal_frequency=frequency,
-                longitudinal_wavelength=wavelength,
+                longitudinal_wavelength=w,
+                longitudinal_frequency=f,
             )
         template_common.write_dict_to_h5(h5_data, f"results{self.count}.h5")
         self.count += 1
