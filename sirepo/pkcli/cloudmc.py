@@ -138,7 +138,7 @@ class _MoabGroupExtractor:
         ),
     )
 
-    def _init_(self, collector):
+    def __init__(self, collector):
         self._items = []
         for g in collector.groups:
             self._items.append(
