@@ -221,6 +221,12 @@ SIREPO.app.directive('dateTimePicker', function() {
                     $scope.model[$scope.field] = timeService.unixTime(newTime);
                 }
             });
+
+            $scope.$watch('model.' + $scope.field, function(newTime, oldTime) {
+                if (newTime !== oldTime) {
+                    $scope.dateTime = timeService.unixTimeToDate(newTime);
+                };
+            });
         }
     };
 });
@@ -402,7 +408,7 @@ SIREPO.app.directive('scansTable', function() {
             </div>
             <div data-view-log-iframe-wrapper data-scan-id="runLogScanId" data-modal-id="runLogModalId" data-show-log="showLog"></div>
         `,
-        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval) {
+        controller: function(appState, errorService, panelState, raydataService, requestSender, timeService, $scope, $interval) {
             $scope.analysisModalId = 'sr-analysis-output-' + $scope.analysisStatus;
             $scope.availableColumns = [];
             $scope.awaitingScans = false;
@@ -624,6 +630,20 @@ SIREPO.app.directive('scansTable', function() {
                 ];
             };
 
+            $scope.setDefaultStartStopTime = () => {
+                const m = appState.models[$scope.modelName];
+                if (!m.searchStartTime && !m.searchStopTime) {
+                    $scope.setSearchTimeLastHour();
+                };
+            };
+
+            $scope.setSearchTimeLastHour = () => {
+                const m = appState.models[$scope.modelName];
+                m.searchStartTime = timeService.unixTimeOneHourAgo();
+                m.searchStopTime = timeService.unixTimeNow();
+                };
+            };
+
             $scope.setSelectedScan = (scan) => {
                 $scope.selectedScan = scan;
                 if ($scope.selectedScan !== null && ! [raydataService.ANALYSIS_STATUS_NONE, raydataService.ANALYSIS_STATUS_PENDING].includes($scope.selectedScan.status)) {
@@ -682,6 +702,7 @@ SIREPO.app.directive('scansTable', function() {
                 }
             };
 
+            $scope.setDefaultStartStopTime();
             $scope.$on(`${$scope.modelName}.changed`, sendScanRequest);
             $scope.$on('catalog.changed', sendScanRequest);
             $scope.$watchCollection('appState.models.metadataColumns.selected', (newValue, previousValue) => {
