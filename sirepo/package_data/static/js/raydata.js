@@ -225,7 +225,7 @@ SIREPO.app.directive('dateTimePicker', function() {
             $scope.$watch('model.' + $scope.field, function(newTime, oldTime) {
                 if (newTime !== oldTime) {
                     $scope.dateTime = timeService.unixTimeToDate(newTime);
-                };
+                }
             });
         }
     };
@@ -634,14 +634,13 @@ SIREPO.app.directive('scansTable', function() {
                 const m = appState.models[$scope.modelName];
                 if (!m.searchStartTime && !m.searchStopTime) {
                     $scope.setSearchTimeLastHour();
-                };
+                }
             };
 
             $scope.setSearchTimeLastHour = () => {
                 const m = appState.models[$scope.modelName];
                 m.searchStartTime = timeService.unixTimeOneHourAgo();
                 m.searchStopTime = timeService.unixTimeNow();
-                };
             };
 
             $scope.setSelectedScan = (scan) => {
