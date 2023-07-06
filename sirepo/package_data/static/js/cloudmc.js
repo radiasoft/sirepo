@@ -303,7 +303,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             </ul>
             <div>
                 <div data-ng-if="! isClientOnly && displayType === '3D'" class="col-sm-12">
-                    <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><span class="glyphicon glyphicon-chevron-down" style="cursor: pointer;" data-ng-show="isVolumeListExpanded" data-ng-click="toggleVolumeList()"></span><span class="glyphicon glyphicon-chevron-up" style="cursor: pointer;" data-ng-show="! isVolumeListExpanded" data-ng-click="toggleVolumeList()"></span> Volume Selection</div>
+                    <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><span class="glyphicon" data-ng-class="isVolumeListExpanded ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up'" style="cursor: pointer;" data-ng-click="toggleVolumeList()"></span> Volume Selection</div>
                     <div data-ng-if="! volumeList" style="padding-top: 8px; padding-bottom: 8px;">Loading Volumes...</div>
                     <table data-ng-show="isVolumeListExpanded" class="table-condensed">
                         <thead>
@@ -424,7 +424,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     loadData: true,
                 });
                 const v = getVolumeById(volId);
-                v.isVisibleWithTallies = $scope.allVolumesVisible;
+                if (! 'isVisibleWithTallies' in v) {
+                    v.isVisibleWithTallies = false;
+                }
                 const a = volumeAppearance(v);
                 const b = coordMapper.buildActorBundle(reader, a.actorProperties);
                 bundleByVolume[volId] = b;
@@ -1055,6 +1057,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                         $scope.toggleVolume(v, false);
                     }
                 }
+                appState.saveChanges('volumes');
                 buildAxes();
                 vtkScene.render();
             };
@@ -1063,6 +1066,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 v.isVisibleWithTallies = ! v.isVisibleWithTallies;
                 bundleByVolume[v.volId].actor.setVisibility(v.isVisibleWithTallies);
                 if (doRender) {
+                    appState.saveChanges('volumes');
                     buildAxes();
                     vtkScene.render();
                 }
@@ -1326,7 +1330,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                     if (cloudmcService.isGraveyard(v)) {
                         return;
                     }
-                    if (v.isVisible != $scope.allVisible) {
+                    if (v.isVisible !== $scope.allVisible) {
                         $scope.toggleSelected(v, true);
                     }
                 });
