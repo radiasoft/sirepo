@@ -303,7 +303,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             </ul>
             <div>
                 <div data-ng-if="! isClientOnly && displayType === '3D'" class="col-sm-12">
-                    <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><span class="glyphicon glyphicon-chevron-down" data-ng-show="isVolumeListExpanded" data-ng-click="toggleVolumeList()"></span><span class="glyphicon glyphicon-chevron-up" data-ng-show="! isVolumeListExpanded" data-ng-click="toggleVolumeList()"></span> Volume Display</div>
+                    <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><span class="glyphicon glyphicon-chevron-down" style="cursor: pointer;" data-ng-show="isVolumeListExpanded" data-ng-click="toggleVolumeList()"></span><span class="glyphicon glyphicon-chevron-up" style="cursor: pointer;" data-ng-show="! isVolumeListExpanded" data-ng-click="toggleVolumeList()"></span> Volume Selection</div>
+                    <div data-ng-if="! volumeList" style="padding-top: 8px; padding-bottom: 8px;">Loading Volumes...</div>
                     <table data-ng-show="isVolumeListExpanded" class="table-condensed">
                         <thead>
                         <th style="border-bottom: solid lightgray;" colspan="{{ numVolumeCols }}">
@@ -313,7 +314,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                                     <span class="glyphicon"
                                         data-ng-class="allVolumesVisible ? 'glyphicon-check' : 'glyphicon-unchecked'">
                                     </span>
-                                    Toggle all
                             </div>
                         </th>
                         </thead>
