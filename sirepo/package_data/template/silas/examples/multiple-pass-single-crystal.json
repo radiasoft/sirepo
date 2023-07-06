@@ -374,6 +374,5 @@
             "name": "Multiple Passes Through Single Crystal"
         }
     },
-    "simulationType": "silas",
-    "version": "20230705.152229"
+    "simulationType": "silas"
 }
