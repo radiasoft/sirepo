@@ -432,7 +432,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 bundleByVolume[volId] = b;
                 vtkScene.addActor(b.actor);
                 b.actor.setVisibility(v[a.visibilityKey]);
-                picker.addPickList(b.actor);
+                if (isGeometryOnly) {
+                    picker.addPickList(b.actor);
+                }
                 return res;
             }
 
@@ -890,7 +892,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 }
                 const pos = callData.position;
                 picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
-                //srdbg(picker.getActors());
                 const cid = picker.getCellId();
                 if (cid < 0) {
                     $scope.$broadcast('vtk.selected', null);
