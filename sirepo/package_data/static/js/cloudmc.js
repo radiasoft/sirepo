@@ -429,7 +429,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 const b = coordMapper.buildActorBundle(reader, a.actorProperties);
                 bundleByVolume[volId] = b;
                 vtkScene.addActor(b.actor);
-                //b.actor.setVisibility(v[a.visibilityKey]);
+                b.actor.setVisibility(v[a.visibilityKey]);
                 picker.addPickList(b.actor);
                 return res;
             }
@@ -724,7 +724,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     selectedVolume = v;
                     buildAxes(actor);
                 }
-                srdbg('hdl p apply');
                 $scope.$apply(vtkScene.fsRenderer.resize());
             }
 
@@ -828,7 +827,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                         'edgeVisibility',
                         a.actorProperties.edgeVisibility
                     );
-                    b.actor.setVisibility(v[a.visibilityKey]);
                 }
                 vtkScene.render();
             }
@@ -1057,6 +1055,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                         $scope.toggleVolume(v, false);
                     }
                 }
+                buildAxes();
                 vtkScene.render();
             };
 
@@ -1064,6 +1063,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 v.isVisibleWithTallies = ! v.isVisibleWithTallies;
                 bundleByVolume[v.volId].actor.setVisibility(v.isVisibleWithTallies);
                 if (doRender) {
+                    buildAxes();
                     vtkScene.render();
                 }
             };
