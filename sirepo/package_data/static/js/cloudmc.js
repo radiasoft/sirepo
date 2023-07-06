@@ -1130,10 +1130,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 volumeIds = vols.slice();
                 vtkScene.render();
                 loadVolumes(Object.values(vols)).then(volumesLoaded, volumesError);
-                if (! isGeometryOnly) {
-                    const m = getMeshFilter();
-                    //srdbg(m);
-                }
                 if (tally) {
                     addTally(tally, model().aspect);
                     tally = null;
