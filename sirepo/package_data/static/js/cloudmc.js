@@ -357,7 +357,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
         `,
         controller: function($scope, $element) {
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
-            $scope.allVolumesVisible = true;
+            $scope.allVolumesVisible = false;
             $scope.displayType = '3D';
             $scope.displayRangeVars = [
                 'xDisplayMin', 'xDisplayMax',
@@ -424,10 +424,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     loadData: true,
                 });
                 const v = getVolumeById(volId);
-                v.isVisibleWithTallies = true;
-                const b = coordMapper.buildActorBundle(reader, volumeAppearance(v).actorProperties);
+                v.isVisibleWithTallies = $scope.allVolumesVisible;
+                const a = volumeAppearance(v);
+                const b = coordMapper.buildActorBundle(reader, a.actorProperties);
                 bundleByVolume[volId] = b;
                 vtkScene.addActor(b.actor);
+                //b.actor.setVisibility(v[a.visibilityKey]);
                 picker.addPickList(b.actor);
                 return res;
             }
@@ -820,12 +822,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     const a = volumeAppearance(v);
                     b.setActorProperty(
                         'opacity',
-                        v[a.visibilityKey] ? a.actorProperties.opacity * model().opacity : 0
+                        a.actorProperties.opacity * model().opacity
                     );
                     b.setActorProperty(
                         'edgeVisibility',
                         a.actorProperties.edgeVisibility
                     );
+                    b.actor.setVisibility(v[a.visibilityKey]);
                 }
                 vtkScene.render();
             }
@@ -1136,9 +1139,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             });
 
             $scope.$on('sr-volume-visibility-toggled', (event, volId, isVisible) => {
-                setVolumeProperty(
-                    bundleByVolume[volId], 'opacity', isVisible ? getVolumeById(volId).opacity : 0
-                );
+                bundleByVolume[volId].actor.setVisibility(isVisible);
+                vtkScene.render();
             });
 
             $scope.$on('sr-volume-property.changed', (event, volId, prop, val) => {
