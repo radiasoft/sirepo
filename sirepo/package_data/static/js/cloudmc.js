@@ -309,6 +309,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                         <thead>
                         <th style="border-bottom: solid lightgray;" colspan="{{ numVolumeCols }}">
                             <div
+                                title="{{ allVolumesVisible ? 'Deselect' : 'Select' }} all volumes"
                                 style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
                                 data-ng-click="toggleAllVolumes(v)">
                                     <span class="glyphicon"
@@ -321,6 +322,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                             <tr data-ng-repeat="r in volumeList track by $index">
                                 <td data-ng-repeat="v in r track by v.volId">
                                     <div
+                                        title="{{ v.isVisibleWithTallies ? 'Deselect' : 'Select' }} volume"
                                         style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
                                         data-ng-click="toggleVolume(v)">
                                             <span class="glyphicon"
