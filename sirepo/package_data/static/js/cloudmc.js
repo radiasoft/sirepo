@@ -424,7 +424,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     loadData: true,
                 });
                 const v = getVolumeById(volId);
-                if (! 'isVisibleWithTallies' in v) {
+                if (! ('isVisibleWithTallies' in v)) {
                     v.isVisibleWithTallies = false;
                 }
                 const a = volumeAppearance(v);
