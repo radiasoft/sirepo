@@ -1,6 +1,10 @@
 {
     "dynamicFiles": {
-        "sirepoLibs": {}
+        "sirepoLibs": {
+            "js": [
+                "omega.js"
+            ]
+        }
     },
     "enum": {
         "CoupledSimType": [
@@ -90,36 +94,40 @@
             "histogramBins"
         ]
     },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/omega-source.html"
+            }
+        }
+    },
     "model": {
-        "coupledSim": {
-            "simulationType": ["Simulation Type", "CoupledSimType"],
-            "simulationId": ["Simulation ID", "String"]
-        },
         "simWorkflow": {
-            "coupledSims": ["Simulations", "SimArray", []],
-            "simType_1": ["SimulationType", "CoupledSimType", ""],
-            "simId_1": ["Simulation ID", "String", ""],
-            "simType_2": ["SimulationType", "CoupledSimType", ""],
-            "simId_2": ["Simulation ID", "String", ""],
-            "simType_3": ["SimulationType", "CoupledSimType", ""],
-            "simId_3": ["Simulation ID", "String", ""],
-            "simType_4": ["SimulationType", "CoupledSimType", ""],
-            "simId_4": ["Simulation ID", "String", ""]
+            "simType_1": ["1: SimulationType", "CoupledSimType", ""],
+            "simId_1": ["Simulation ID", "SimList", ""],
+            "simType_2": ["2: SimulationType", "CoupledSimType", ""],
+            "simId_2": ["Simulation ID", "SimList", ""],
+            "simType_3": ["3: SimulationType", "CoupledSimType", ""],
+            "simId_3": ["Simulation ID", "SimList", ""],
+            "simType_4": ["4: SimulationType", "CoupledSimType", ""],
+            "simId_4": ["Simulation ID", "SimList", ""]
         },
         "simulationStatus": {},
-        "sim1Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
         "sim1Phase1Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim1Phase2Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim1Phase3Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim1Phase4Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim1BeamAnimation": {
@@ -142,52 +150,150 @@
             "y2": ["Y2 Value", "BeamParameter", "rmsy"],
             "y3": ["Y3 Value", "BeamParameter", "rmss"]
         },
-        "sim2Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
         "sim2Phase1Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim2Phase2Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim2Phase3Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim2Phase4Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim3Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim3Phase1Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim3Phase2Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim3Phase3Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim3Phase4Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim4Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim4Phase1Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim4Phase2Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim4Phase3Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "sim4Phase4Animation": {
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
-        }
+        },
+        "simulationStatus": {}
     },
     "view": {
+        "sim1BeamAnimation": {
+            "title": "Simulation 1 Beam Parameters",
+            "canFullScreen": false,
+            "hasDataFile": false,
+            "advanced": [
+                "y1",
+                "y2",
+                "y3"
+            ]
+        },
+        "sim2BeamAnimation": {
+            "title": "Simulation 2 Beam Parameters",
+            "canFullScreen": false,
+            "hasDataFile": false,
+            "advanced": [
+                "y1",
+                "y2",
+                "y3"
+            ]
+        },
+        "sim3BeamAnimation": {
+            "title": "Simulation 3 Beam Parameters",
+            "canFullScreen": false,
+            "hasDataFile": false,
+            "advanced": [
+                "y1",
+                "y2",
+                "y3"
+            ]
+        },
+        "sim4BeamAnimation": {
+            "title": "Simulation 2 Beam Parameters",
+            "canFullScreen": false,
+            "hasDataFile": false,
+            "advanced": [
+                "y1",
+                "y2",
+                "y3"
+            ]
+        },
+        "sim1Phase1Animation": {
+            "title": "Simulation 1 Phase Space",
+            "canFullScreen": false,
+            "hasDataFile": false,
+            "advanced": [
+                "colorMap",
+                "histogramBins"
+            ]
+        },
+        "sim2Phase1Animation": {
+            "title": "Simulation 2 Phase Space",
+            "canFullScreen": false,
+            "hasDataFile": false,
+            "advanced": [
+                "colorMap",
+                "histogramBins"
+            ]
+        },
+        "sim3Phase1Animation": {
+            "title": "Simulation 3 Phase Space",
+            "canFullScreen": false,
+            "hasDataFile": false,
+            "advanced": [
+                "colorMap",
+                "histogramBins"
+            ]
+        },
+        "sim4Phase1Animation": {
+            "title": "Simulation 4 Phase Space",
+            "canFullScreen": false,
+            "hasDataFile": false,
+            "advanced": [
+                "colorMap",
+                "histogramBins"
+            ]
+        },
+        "simWorkflow": {
+            "title": "Simulation Workflow",
+            "basic": [
+                "simType_1",
+                "simId_1",
+                "simType_2",
+                "simId_2",
+                "simType_3",
+                "simId_3",
+                "simType_4",
+                "simId_4"
+            ],
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        }
     }
 }
