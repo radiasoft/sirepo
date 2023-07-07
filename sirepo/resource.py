@@ -44,6 +44,26 @@ def glob_paths(*paths):
     )
 
 
+def render_resource(filename, resource_dir, run_dir, jinja_params):
+    """Render .jinja filename from resource_dir into run_dir
+    Args:
+        filename (str): .jinja filename
+        resource_dir (str): dir that .jinja template lives in
+        run_dir (py.path): target directory for rendered file
+        jinja_params (PKDict): parameters to jinja file
+    Returns:
+        py.path: path to rendered file
+    """
+    from pykern import pkjinja
+    res = run_dir.join(filename)
+    pykern.pkjinja.render_file(
+        file_path(resource_dir + filename + pkjinja.RESOURCE_SUFFIX),
+        jinja_params,
+        output=res,
+    )
+    return res
+
+
 def root_modules():
     """Get all root modules in package_path
 
