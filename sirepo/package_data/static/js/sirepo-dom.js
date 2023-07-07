@@ -366,7 +366,7 @@ class SVGGroup extends UIElement {
 }
 
 class SVGPath extends UIElement {
-    constructor(id, points, offsets, doClose, strokeColor, fillColor) {
+    constructor(id, points, offsets=[0, 0], doClose=false, strokeColor='black', fillColor='none') {
         super('path', id);
         this.doClose = doClose;
         this.fillColor = fillColor;
@@ -408,10 +408,50 @@ class SVGPath extends UIElement {
         return lines;
     }
 
-    pathPoint(i) {
-        let p = [];
-        for(let j of [0, 1]) {
-            p.push(this.offsets[j] + this.scales[j] * this.points[i][j]);
+    /**
+     * Scale and offset the point at the given index
+     * @param {number} i - point index
+     * @returns {[number, number]} - scaled and offset point
+     */
+    pathPointAt(i) {
+        return this.pathPoint(this.points[i]);
+    }
+
+    /**
+     * Scale and offset the given point
+     * @param {[number, number]} p - point
+     * @returns {[number, number]} - scaled and offset point
+     */
+    pathPoint(p) {
+        return [0, 1].map(j => this.offsets[j] + this.scales[j] * p[j]);
+    }
+
+    /**
+     * Scaled and offset points
+     * @returns {[[number, number]]} - scaled and offset points
+     */
+    pathPoints() {
+        return this.points.map(p => this.pathPoint(p));
+    }
+
+    /**
+     * The string assigned to the 'd' attrribute
+     * @returns {string} - the string
+     */
+    pathString() {
+        let c = this.pathPointAt(0);
+        this.corners = [c];
+        this.lines = [];
+        let p = `M${c[0]},${c[1]} `;
+        for (let i = 1; i < this.points.length; ++i) {
+            c = this.pathPointAt(i);
+            this.lines.push([c, this.corners[this.corners.length - 1]]);
+            this.corners.push(c);
+            p += `L${c[0]},${c[1]} `;
+        }
+        if (this.doClose) {
+            this.lines.push([this.corners[this.corners.length - 1], this.corners[0]]);
+            p += 'z';
         }
         return p;
     }

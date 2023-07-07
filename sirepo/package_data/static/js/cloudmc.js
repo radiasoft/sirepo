@@ -493,6 +493,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     y_range: ranges[m],
                     z_matrix: reorderFieldData(z, mesh.dimension)[fieldIndex($scope.tallyReport.planePos, ranges[n], n)],
                     z_range: ranges[n],
+                    overlayData: [
+                        {
+                            name: 'dummy',
+                            data: [
+                                [-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5], [-0.5, -0.5]
+                            ],
+                            color: 'red',
+                        },
+                    ],
                 };
                 panelState.setData('tallyReport', r);
                 $scope.$broadcast('tallyReport.reload', r);
