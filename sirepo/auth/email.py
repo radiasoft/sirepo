@@ -86,7 +86,7 @@ class API(sirepo.quest.API):
             self.auth.login(
                 this_module,
                 sim_type=req.type,
-                model=m.unchecked_search_by(uid=i),
+                model=u,
                 display_name=n,
             )
             raise AssertionError("auth.login returned unexpectedly")
