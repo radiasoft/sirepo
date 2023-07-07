@@ -6,7 +6,6 @@
 """
 import pytest
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp
 
 
 def test_static_files():
