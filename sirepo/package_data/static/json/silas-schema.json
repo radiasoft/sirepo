@@ -130,7 +130,7 @@
             "origin": ["Crystal", "CrystalOrigin", "new"],
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
             "pump_offset_x": ["Pump Offset X [m]", "Float", 0],
-            "pump_offset_y": ["Pump Offset X [m]", "Float", 0],
+            "pump_offset_y": ["Pump Offset Y [m]", "Float", 0],
             "pump_rep_rate": ["Pump Rep Rate", "Float", 1.0]
         },
         "crystalAnimation": {},
