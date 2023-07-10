@@ -203,7 +203,7 @@ SIREPO.app.directive('appHeader', function(appState, silasService) {
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Laser Pulse</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('beamline')}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('beamline')}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> {{ beamlineName }} </a></li>
                   <li data-ng-show="hasCrystal()" class="sim-section" data-ng-class="{active: nav.isActive('thermal-transport')}"><a href data-ng-click="nav.openSection('thermal-transport')"><span class="glyphicon glyphicon-th"></span> Thermal Transport</a></li>
                 </div>
               </app-header-right-sim-loaded>
@@ -217,6 +217,7 @@ SIREPO.app.directive('appHeader', function(appState, silasService) {
             </div>
         `,
         controller:  function($scope) {
+            $scope.beamlineName = SIREPO.APP_SCHEMA.strings.beamlineTabName;
             $scope.hasCrystal = () => silasService.hasCrystal();
         },
     };
