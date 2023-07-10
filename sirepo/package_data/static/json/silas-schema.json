@@ -40,6 +40,11 @@
             ["n0n2_srw", "N0N2 SRW"],
             ["n0n2_lct", "N0N2 LCT"]
         ],
+        "PumpPulseProfile": [
+            ["gaussian", "Gaussian"],
+            ["hog", "Higher Order Gaussian"],
+            ["tophat", "Top Hat"]
+        ],
         "PumpType": [
             ["dual", "Dual"],
             ["left", "Left"],
@@ -126,6 +131,7 @@
             "pump_wavelength": ["Pump Wavelength [m]", "Float", 532.0e-9],
             "pump_energy": ["Pump Energy [J]", "Float", 0.0211, "Pump laser energy onto the crystal"],
             "pump_gaussian_order": ["Pump Gaussian Order", "Float", 2.0],
+            "pump_pulse_profile": ["Pump Pulse Profile", "PumpPulseProfile", "gaussian"],
             "pump_type": ["Pump Type", "PumpType", "dual"],
             "origin": ["Crystal", "CrystalOrigin", "new"],
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
@@ -239,6 +245,7 @@
                     "pump_wavelength",
                     "pump_energy",
                     "pump_gaussian_order",
+                    "pump_pulse_profile",
                     "pump_rep_rate",
                     "pump_offset_x",
                     "pump_offset_y"

@@ -104,7 +104,9 @@ def propagate(pulse, elements, beamline):
 def get_element(elements, index):
     e = elements[index]
     if isinstance(e[0], Crystal):
-        e[0].calc_n0n2(method="fenics", set_n=True, initial_temp=e[2], mesh_density=e[3])
+        # TODO (gurhar1133): what do we do about initial_temp?
+        # Also heat_load seems to make things quite slow
+        e[0].calc_n0n2(method="fenics", set_n=True, heat_load=e[2], mesh_density=e[3])
     return e
 
 

@@ -309,7 +309,7 @@ def _generate_crystal(crystal):
             ),
         ),
         ["{crystal.propagationType}", {crystal.calc_gain == "1"}, {crystal.radial_n2 == "1"}],
-        {crystal.initial_temp},
+        "{crystal.pump_pulse_profile}",
         {crystal.mesh_density},
     ),\n"""
 
