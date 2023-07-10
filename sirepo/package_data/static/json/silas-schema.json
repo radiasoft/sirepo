@@ -205,6 +205,9 @@
             "crystalPlot": ["Value to Plot", "CrystalPlot", "excited_states"]
         }
     },
+    "strings": {
+        "beamlineTabName": "Amplifier"
+    },
     "view": {
         "crystal": {
             "title": "Crystal",
