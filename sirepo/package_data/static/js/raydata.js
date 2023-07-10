@@ -640,8 +640,8 @@ SIREPO.app.directive('scansTable', function() {
 
             $scope.setSearchTimeLastHour = () => {
                 const m = appState.models[$scope.modelName];
-                m.searchStartTime = timeService.unixTimeOneHourAgo();
-                m.searchStopTime = timeService.unixTimeNow();
+                m.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneHourAgo());
+                m.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
             };
 
             $scope.setSelectedScan = (scan) => {
