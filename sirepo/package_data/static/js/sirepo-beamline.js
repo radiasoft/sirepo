@@ -273,7 +273,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
             </div>
         `,
         controller: function($scope, $rootScope) {
-            $scope.beamlineName = (SIREPO.APP_SCHEMA.constants.beamlineTabName || 'beamline').toLowerCase();
+            $scope.beamlineName = (SIREPO.APP_SCHEMA.strings.beamlineTabName || 'beamline').toLowerCase();
             $scope.setWatchpointActive = function(item) {
                 if(! $scope.parentController.setWatchpointActive) {
                     return;

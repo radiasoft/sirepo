@@ -217,8 +217,7 @@ SIREPO.app.directive('appHeader', function(appState, silasService) {
             </div>
         `,
         controller:  function($scope) {
-            $scope.beamlineName = SIREPO.APP_SCHEMA.constants.beamlineTabName;
-            console.log('beamlineName:', $scope.beamlineName);
+            $scope.beamlineName = SIREPO.APP_SCHEMA.strings.beamlineTabName;
             $scope.hasCrystal = () => silasService.hasCrystal();
         },
     };

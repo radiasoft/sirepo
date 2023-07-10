@@ -4,9 +4,6 @@
             "localRoute": "source"
         }
     },
-    "constants": {
-        "beamlineTabName": "Amplifier"
-    },
     "enum": {
         "CrystalOrigin": [
             ["new", "New"],
@@ -207,6 +204,9 @@
             "_super": ["_", "model", "initialIntensityReport"],
             "crystalPlot": ["Value to Plot", "CrystalPlot", "excited_states"]
         }
+    },
+    "strings": {
+        "beamlineTabName": "Amplifier"
     },
     "view": {
         "crystal": {
