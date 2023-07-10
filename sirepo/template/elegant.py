@@ -34,8 +34,6 @@ import stat
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
-CODE_VAR_IGNORE_ARRAY_VALUES = False
-
 ELEGANT_LOG_FILE = "elegant.log"
 
 WANT_BROWSER_FRAME_CACHE = True
@@ -645,19 +643,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 def code_var(variables):
     return elegant_lattice_importer.elegant_code_var(variables)
-
-
-def copy_related_files(data, source_path, target_path):
-    # copy results and log for the long-running simulations
-    for m in ("animation",):
-        # copy any simulation output
-        s = pkio.py_path(source_path).join(m)
-        if not s.exists():
-            continue
-        t = pkio.py_path(target_path).join(m)
-        pkio.mkdir_parent(str(t))
-        for f in pkio.sorted_glob("*"):
-            f.copy(t)
 
 
 def extract_report_data(filename, frame_args, page_count=0):
