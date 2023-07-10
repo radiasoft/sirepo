@@ -36,7 +36,6 @@
         "PropagationType": [
             ["default", "Default"],
             ["abcd_lct", "ABCD LCT"],
-            ["gain_calc", "Laser Gain Calculation Only"],
             ["n0n2_srw", "N0N2 SRW"],
             ["n0n2_lct", "N0N2 LCT"]
         ],
@@ -116,11 +115,9 @@
             "D": ["D", "Float", 0.99892682],
             "length": ["Length [cm]", "Float", 2],
             "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
-            "radial_n2": ["Transverse Variation of Thermal Lensing", "Boolean", "0", "If selected, varies exponentially with radius. If not selected, varies independently of radius."],
-            "calc_gain": ["Include Gain Calculations", "Boolean", "0"],
             "calc_type": ["Propagation Calculation Type", "PropCalcType", "fenics"],
-            "inversion_n_cells": ["Inversion Mesh Cell Count", "Integer", 64],
-            "inversion_mesh_extent": ["Inversion Mesh Extent [m]", "Float", 0.01],
+            "inversion_n_cells": ["Mesh Cell Count", "Integer", 64],
+            "inversion_mesh_extent": ["Crystal Radius [m]", "Float", 0.01],
             "crystal_alpha": ["Crystal Alpha [1/m]", "Float", 120.0],
             "pump_waist": ["Pump Waist [m]", "Float", 0.00164],
             "pump_wavelength": ["Pump Wavelength [m]", "Float", 532.0e-9],
@@ -131,7 +128,7 @@
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
             "pump_offset_x": ["Pump Offset X [m]", "Float", 0],
             "pump_offset_y": ["Pump Offset X [m]", "Float", 0],
-            "pump_rep_rate": ["Pump Rep Rate", "Float", 1.0]
+            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float", 1.0]
         },
         "crystalAnimation": {},
         "crystalSettings": {
@@ -176,7 +173,7 @@
         },
         "laserPulse2Animation": {
             "_super": ["_", "model", "initialIntensityReport"],
-            "watchpointPlot": ["Value to Plot", "WatchpointPlot", "phase"]
+            "watchpointPlot": ["Value to Plot", "WatchpointPlot", "total_phase"]
         },
         "initialIntensityReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -219,6 +216,8 @@
                     "title",
                     "position",
                     "length",
+                    "inversion_mesh_extent",
+                    "crystal_alpha",
                     "nslice"
                 ]],
                 ["Propagation", [
@@ -229,22 +228,18 @@
                     "B",
                     "C",
                     "D",
-                    "l_scale",
-                    "radial_n2",
-                    "calc_gain"
+                    "l_scale"
                 ]],
                 ["Pump Pulse", [
                     "pump_type",
-                    "inversion_n_cells",
-                    "inversion_mesh_extent",
-                    "crystal_alpha",
-                    "pump_waist",
-                    "pump_wavelength",
                     "pump_energy",
-                    "pump_gaussian_order",
+                    "pump_waist",
                     "pump_rep_rate",
+                    "pump_gaussian_order",
+                    "pump_wavelength",
                     "pump_offset_x",
-                    "pump_offset_y"
+                    "pump_offset_y",
+                    "inversion_n_cells"
                 ]]
             ]
         },
