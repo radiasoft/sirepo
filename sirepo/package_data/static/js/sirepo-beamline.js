@@ -273,7 +273,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
             </div>
         `,
         controller: function($scope, $rootScope) {
-            $scope.beamlineName = beamlineName();
+            $scope.beamlineName = (SIREPO.APP_SCHEMA.constants.beamlineTabName || 'beamline').toLowerCase();
             $scope.setWatchpointActive = function(item) {
                 if(! $scope.parentController.setWatchpointActive) {
                     return;
@@ -309,13 +309,6 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 }
                 appState.models.beamline.push(newItem);
                 beamlineService.dismissPopup();
-            }
-
-            function beamlineName() {
-                if ($scope.parentController.beamlineAltName) {
-                    return $scope.parentController.beamlineAltName.toLowerCase();
-                }
-                return 'beamline';
             }
 
             $scope.cancelBeamlineChanges = function() {

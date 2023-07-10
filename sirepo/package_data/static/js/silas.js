@@ -114,7 +114,6 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
     self.appState = appState;
     self.beamlineModels = ['beamline'];
     self.beamlineService = beamlineService;
-    self.beamlineAltName = SIREPO.APP_SCHEMA.model.amplifier.name;
     self.prepareToSave = () => {};
     self.toolbarItemNames = [
         ['Optics', ['crystal', 'lens', 'mirror']],
@@ -204,7 +203,7 @@ SIREPO.app.directive('appHeader', function(appState, silasService) {
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Laser Pulse</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('beamline')}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> {{ beamlineAltName }} </a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('beamline')}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> {{ beamlineName }} </a></li>
                   <li data-ng-show="hasCrystal()" class="sim-section" data-ng-class="{active: nav.isActive('thermal-transport')}"><a href data-ng-click="nav.openSection('thermal-transport')"><span class="glyphicon glyphicon-th"></span> Thermal Transport</a></li>
                 </div>
               </app-header-right-sim-loaded>
@@ -218,7 +217,8 @@ SIREPO.app.directive('appHeader', function(appState, silasService) {
             </div>
         `,
         controller:  function($scope) {
-            $scope.beamlineAltName = SIREPO.APP_SCHEMA.model.amplifier.name;
+            $scope.beamlineName = SIREPO.APP_SCHEMA.constants.beamlineTabName;
+            console.log('beamlineName:', $scope.beamlineName);
             $scope.hasCrystal = () => silasService.hasCrystal();
         },
     };

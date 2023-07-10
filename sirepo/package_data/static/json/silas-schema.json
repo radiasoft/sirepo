@@ -4,6 +4,9 @@
             "localRoute": "source"
         }
     },
+    "constants": {
+        "beamlineTabName": "Amplifier"
+    },
     "enum": {
         "CrystalOrigin": [
             ["new", "New"],
@@ -98,9 +101,6 @@
         "plot2Animation": []
     },
     "model": {
-        "amplifier": {
-            "name": "Amplifier"
-        },
         "beamElement": {
             "position": ["Central Position [m]", "Float", 0.0],
             "propagationType": ["Propagation Type", "PropagationType", "default"]
