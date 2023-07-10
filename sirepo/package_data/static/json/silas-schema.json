@@ -203,7 +203,8 @@
         }
     },
     "strings": {
-        "beamlineTabName": "Amplifier"
+        "beamlineTabName": "Amplifier",
+        "completionState": ": {frameCount} completed reports"
     },
     "view": {
         "crystal": {
