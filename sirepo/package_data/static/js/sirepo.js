@@ -1072,7 +1072,7 @@ SIREPO.app.factory('timeService', function() {
 
     self.roundUnixTimeToMinutes = (date) => {
         return Number.parseInt(date / 60) * 60;
-    }
+    };
 
     self.unixTime = (date) => {
         return Math.round(date.getTime() / UNIX_TIMESTAMP_SCALE);
