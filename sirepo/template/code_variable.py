@@ -109,11 +109,7 @@ class CodeVar:
             if not err:
                 cache[k] = v
 
-    def stateful_compute_rpn_value(self, data, schema, ignore_array_values, **kwargs):
-        if ignore_array_values and re.search(r"^\{.*\}$", data.value):
-            # accept array of values enclosed in curly braces
-            data.result = ""
-            return True
+    def stateful_compute_rpn_value(self, data, schema, **kwargs):
         v, err = self.eval_var(data.value)
         if err:
             data.error = err
@@ -121,15 +117,11 @@ class CodeVar:
             data.result = v
         return data
 
-    def stateful_compute_recompute_rpn_cache_values(
-        self, data, schema, ignore_array_values, **kwargs
-    ):
+    def stateful_compute_recompute_rpn_cache_values(self, data, schema, **kwargs):
         self.recompute_cache(data.cache)
         return data
 
-    def stateful_compute_validate_rpn_delete(
-        self, data, schema, ignore_array_values, **kwargs
-    ):
+    def stateful_compute_validate_rpn_delete(self, data, schema, **kwargs):
         from sirepo import simulation_db
 
         model_data = simulation_db.read_json(
