@@ -819,7 +819,7 @@
             "segmentationCylPoint": ["Segment Origin", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
             "segmentationCylRadius": ["Segment Radial Width [mm]", "Float", 5.0],
             "segmentationCylUseObjectCenter": ["Use object center as origin", "Boolean", "1"],
-            "segments": ["Segments", "IntArray", [1, 1, 1], "", ["N$_{{ appState.models.geomObject.segmentation == 'cyl' ? '{rad}' : 'x' }}$", "N$_{{ appState.models.geomObject.segmentation == 'cyl' ? '{az}' : 'y' }}$", "N$_{{ appState.models.geomObject.segmentation == 'cyl' ? '{ax}' : 'z' }}$"], [1, 1, 1]],
+            "segments": ["Segments", "IntArray", [1, 1, 1], "", ["N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{rad}' : '{x}' }}$", "N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{az}' : '{y}' }}$", "N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{ax}' : '{z}' }}$"], [1, 1, 1]],
             "shapeButton": ["Shape", "ShapeButton", {}],
             "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]],
             "type": ["Shape Type", "ObjectType", "cuboid"]
@@ -862,6 +862,7 @@
         "magnetDisplay": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
             "bgColor": ["Background Color", "Color", "#ffffff"],
+            "showMarker": ["Show axis marker", "Boolean", "1"],
             "fieldType": ["Field", "FieldType", "M"],
             "notes": ["Notes", "Text", ""],
             "viewType": ["View", "ViewType", "objects"]
@@ -949,6 +950,7 @@
         },
         "simulation": {
             "appMode": ["", "ApplicationMode", "default"],
+            "areObjectsUnlockable": ["_", "Boool", true],
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
             "coordinateSystem": ["Coordinate System", "CoordinateSystem" , "standard", "Ordering of spatial variables. Use Standard for [x, y, z] or Beam for [width, height, length]"],
             "dipoleType": ["Dipole Type", "DipoleType", "dipoleBasic"],
@@ -1397,6 +1399,7 @@
                 "viewType",
                 "bgColor",
                 "alpha",
+                "showMarker",
                 "fieldType",
                 "fieldDisplay.colorMap",
                 "fieldDisplay.scaling"

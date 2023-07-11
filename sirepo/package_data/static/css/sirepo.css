@@ -1152,3 +1152,7 @@ label .katex {
 .sr-disabled-item {
   background-color: lightgray !important;
 }
+
+img.sr-disabled-image {
+  filter: opacity(0.5);
+}
