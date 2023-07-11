@@ -243,6 +243,7 @@
                     "pump_waist",
                     "pump_rep_rate",
                     "pump_gaussian_order",
+                    "pump_pulse_profile",
                     "pump_wavelength",
                     "pump_offset_x",
                     "pump_offset_y",
