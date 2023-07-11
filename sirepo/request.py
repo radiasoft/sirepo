@@ -70,8 +70,8 @@ def init_quest(qcall, internal_req=None):
             internal_req=internal_req,
             remote_addr="0.0.0.0",
             #            remote_addr=r.remote_ip,
-            #            _form_file_class=_FormFileTornado,
-            #            _form_get=internal_req.get_argument,
+            _form_file_class=_FormFileWebSocket,
+            _form_get=internal_req.msg.get("content").get,
         )
     elif "tornado" in str(type(internal_req)):
         r = internal_req.request
@@ -121,6 +121,7 @@ class _FormFileBase(PKDict):
         if not f:
             raise sirepo.util.Error("must supply a file", "no file in request={}", sreq)
         self.filename = f.filename
+        # TODO(robnagler) need to garbage collect
         self._internal = f
 
     def as_str(self):
@@ -137,7 +138,6 @@ class _FormFileFlask(_FormFileBase):
 
 class _FormFileTornado(_FormFileBase):
     def as_bytes(self):
-        # TODO(robnagler) need to garbage collect
         return self._internal.body
 
     def _get(self, internal_req):
@@ -147,6 +147,20 @@ class _FormFileTornado(_FormFileBase):
         if len(res) > 1:
             raise sirepo.util.BadRequest("too many files={} in form", len(res))
         return res[0]
+
+
+class _FormFileWebSocket(_FormFileBase):
+    def as_bytes(self):
+        from pykern import pkio, pkcompat
+
+        pkdp(type(self._internal.base64))
+        pkio.py_path(
+            "/home/vagrant/src/radiasoft/sirepo/tests/websocket_work/xyz"
+        ).write(self._internal.base64)
+        return base64.b64decode(self._internal.base64)
+
+    def _get(self, internal_req):
+        return internal_req.msg.get("content").get(_FORM_FILE_NAME)
 
 
 class _SRequest(sirepo.quest.Attr):

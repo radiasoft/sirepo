@@ -674,6 +674,7 @@ class API(sirepo.quest.API):
         in_use = None
         with simulation_db.tmp_dir(qcall=self) as d:
             t = d.join(req.filename)
+            pkdp(req.filename)
             t.write_binary(f.as_bytes())
             if hasattr(req.template, "validate_file"):
                 # Note: validate_file may modify the file

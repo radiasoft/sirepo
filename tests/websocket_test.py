@@ -174,3 +174,72 @@ async def test_robots_txt(fc):
         pkjson.dump_pretty(PKDict(reqSeq=1, uri="/robots.txt")),
     )
     await asyncio.wait_for(reply_event.wait(), 2)
+
+
+@pytest.mark.asyncio
+async def test_srw_upload(fc):
+    from pykern import pkjson, pkunit, pkcompat
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
+    from sirepo import srunit, sim_data, uri
+    from tornado import websocket, httpclient
+    import asyncio
+    import base64
+    import requests
+
+    reply_event = asyncio.Event()
+
+    def _msg(msg):
+        if msg is None:
+            # msg is None on close
+            return
+        m = pkjson.load_any(msg)
+        pkunit.pkeq(1, m.reqSeq)
+        c = pkjson.load_any(m.content)
+        pkunit.pkeq("sample.tif", c.filename)
+        pkunit.pkeq("sample", c.fileType)
+        pkunit.pkeq(d.models.simulation.simulationId, c.simulationId)
+        reply_event.set()
+
+    d = fc.sr_sim_data("Sample from Image")
+    r = requests.Request(
+        url=fc.http_prefix + "/ws",
+        cookies=fc.cookie_jar,
+    ).prepare()
+    s = await websocket.websocket_connect(
+        httpclient.HTTPRequest(
+            url=r.url.replace("http", "ws"),
+            headers=r.headers,
+        ),
+        on_message_callback=_msg,
+    )
+    f = sim_data.get_class(fc.sr_sim_type).lib_file_resource_path("sample.tif")
+    u = uri.server_route(
+        "uploadFile",
+        params=PKDict(
+            simulation_type=fc.sr_sim_type,
+            simulation_id=d.models.simulation.simulationId,
+            file_type="sample",
+        ),
+        query=None,
+    )
+    pkunit.work_dir().join("any").write_binary(base64.b64encode(f.read_binary()))
+    await s.write_message(
+        pkjson.dump_pretty(
+            PKDict(
+                reqSeq=1,
+                uri=u,
+                content=PKDict(
+                    confirm="1",
+                    file=PKDict(
+                        filename=f.basename,
+                        base64=pkcompat.from_bytes(base64.b64encode(f.read_binary())),
+                    ),
+                ),
+            ),
+        ),
+    )
+    try:
+        await asyncio.wait_for(reply_event.wait(), 2)
+    finally:
+        s.close()

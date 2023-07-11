@@ -4516,7 +4516,7 @@ SIREPO.app.service('plotToPNG', function() {
 
 });
 
-SIREPO.app.service('fileUpload', function($http) {
+SIREPO.app.service('fileUpload', function(msgRouter) {
     this.uploadFileToUrl = function(file, args, uploadUrl, callback) {
         var fd = new FormData();
         fd.append('file', file);
@@ -4526,7 +4526,7 @@ SIREPO.app.service('fileUpload', function($http) {
             }
         }
         //TODO(robnagler) formData needs to be handled properly
-        $http.post(uploadUrl, fd, {
+        msgRouter.send(uploadUrl, fd, {
             transformRequest: angular.identity,
             headers: {'Content-Type': undefined}
         }).then(

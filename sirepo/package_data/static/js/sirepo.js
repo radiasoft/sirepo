@@ -2022,6 +2022,52 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window) => {
         });
     };
 
+    const _reqData = (data, done) => {
+        if (! data instanceof FormData) {
+            done(data);
+            return;
+        }
+        var d = {};
+        var f = null;
+        for (const [k, v] of data.entries()) {
+            if (v instanceof File) {
+                if (f) {
+                    throw new Error(`too many form fields ${f.file.name} and ${v.name}`);
+                }
+                f = {key: k, file: v};
+            }
+            else {
+                d[k] = v;
+            }
+        }
+        if (! f) {
+            done(d);
+            return;
+        }
+        // a bit of sanity since we assume this on the server side
+        if (f.key !== "file") {
+            throw new Error("file form fields must be named 'file' name=" + f.key);
+        }
+        _reqDataFile(d, f.key, f.file, done);
+    };
+
+    const _reqDataFile = (data, key, file, done) => {
+        var r = new FileReader();
+        r.readAsDataURL(file);
+        r.onerror = (event) => {
+            srlog("failed to read file=" + file.name, event)
+            errorService.alertText('Failed to read file=' + file.name);
+            return;
+        };
+        r.onloadend = () => {
+            data[key] = {
+                filename: file.name,
+                base64: r.result.split(",").pop(),
+            };
+            done(data);
+        };
+    };
+
     const _send = () => {
         //if already req_seq use that so server can know if it is a resend
         if (toSend.length <= 0) {
@@ -2068,11 +2114,22 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window) => {
         if (m.timeout) {
             m.timeout.then(() => {_remove(m)});
         }
-        if (data) {
-            m.frame.content = data;
+        const c = () => {
+            toSend.push(m);
+            _send();
         }
-        toSend.push(m);
-        _send();
+        if (data) {
+            _reqData(
+                data,
+                (content) => {
+                    m.frame.content = content;
+                    c();
+                },
+            );
+        }
+        else {
+            c();
+        }
         return m.deferred.promise;
     };
 
