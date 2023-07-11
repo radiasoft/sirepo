@@ -370,7 +370,7 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
             appState.saveChanges('crystalCylinder');
         }
     }
-
+    srdbg(appState.models.crystalCylinder);
     $scope.whenSelected = () => updateCylinder(true);
     $scope.watchFields = [
         [

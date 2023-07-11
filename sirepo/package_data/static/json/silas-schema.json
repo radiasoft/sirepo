@@ -39,6 +39,10 @@
             ["n0n2_srw", "N0N2 SRW"],
             ["n0n2_lct", "N0N2 LCT"]
         ],
+        "PulseProfileEquation": [
+            ["gaussian", "a + b = c"],
+            ["tophat", "1 + 2 = 3"]
+        ],
         "PumpPulseProfile": [
             ["gaussian", "Gaussian"],
             ["hog", "Higher Order Gaussian"],
@@ -149,7 +153,7 @@
             "crystal": ["Crystal in Beamline", "SelectCrystal", 0],
             "crystalLength": ["Length [cm]", "Float", 2],
             "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
-            "timeEquation": ["Initial Temperature Due to Pump Laser:", "String", "a + b = c"],
+            "timeEquation": ["Initial Temperature Due to Pump Laser:", "PulseProfileEquation", "gaussian"],
             "T0": ["$\\Large T_0$ [$\\bf \\degree C$]", "Float", 20],
             "dT": ["$\\Large \\delta_T$ [$\\bf\\degree C$]", "Float", 3.8],
             "wdT": ["$\\Large \\xi$ [cm]", "Float", 1],
