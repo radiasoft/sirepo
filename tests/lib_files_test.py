@@ -58,10 +58,10 @@ def test_srw_delete(fc):
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
-    import sirepo.sim_data
+    from sirepo import sim_data
 
     d = fc.sr_sim_data("Tabulated Undulator Example")
-    s = sirepo.sim_data.get_class(fc.sr_sim_type)
+    s = sim_data.get_class(fc.sr_sim_type)
     u = pkunit.work_dir().join("not_used_name.zip")
     s.lib_file_resource_path("magnetic_measurements.zip").copy(u)
     t = "undulatorTable"
@@ -69,7 +69,6 @@ def test_srw_delete(fc):
     r = fc.sr_post(
         "saveSimulationData",
         data=d,
-        file=u,
     )
     pkunit.pkeq(u.basename, r.models.tabulatedUndulator.magneticFile)
     r = fc.sr_post_form(
@@ -125,10 +124,10 @@ def test_srw_upload(fc):
     from pykern import pkunit, pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
-    import sirepo.sim_data
+    from sirepo import sim_data
 
     d = fc.sr_sim_data("NSLS-II CHX beamline")
-    s = sirepo.sim_data.get_class(fc.sr_sim_type)
+    s = sim_data.get_class(fc.sr_sim_type)
     f = s.lib_file_resource_path("mirror_1d.dat")
     t = "mirror"
     r = fc.sr_post_form(
@@ -183,10 +182,10 @@ def test_srw_validate_file(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkre, pkeq
-    import sirepo.sim_data
+    from sirepo import sim_data
 
     d = fc.sr_sim_data("Sample from Image")
-    s = sirepo.sim_data.get_class(fc.sr_sim_type)
+    s = sim_data.get_class(fc.sr_sim_type)
     r = fc.sr_get(
         "downloadFile",
         params=PKDict(
@@ -219,10 +218,10 @@ def test_warpvnd_import(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkre, pkeq
-    import sirepo.sim_data
+    from sirepo import sim_data
 
     d = PKDict(name="new1", folder="/", simulationType=fc.sr_sim_type)
-    s = sirepo.sim_data.get_class(fc.sr_sim_type)
+    s = sim_data.get_class(fc.sr_sim_type)
     d = fc.sr_post("newSimulation", d)
     r = fc.sr_post_form(
         "uploadFile",
