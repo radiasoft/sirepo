@@ -2142,8 +2142,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             continue;
                         }
                         const isPoly = t === SIREPO.APP_SCHEMA.constants.geomTypePolys;
+                        const isLine = t === SIREPO.APP_SCHEMA.constants.geomTypeLines;
                         let gObj = radiaService.getObject(objId) || {};
                         let gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
+                        // use black for edges
+                        //TODO(mvk): possibly use high contrast so dark objects have white edges
+                        if (gColor && isLine) {
+                            gColor = [0, 0, 0];
+                        }
                         // use colors from Radia for groups
                         if (gObj.members) {
                             gColor = null;
