@@ -36,7 +36,8 @@ def test_elegant_data_file(fc):
         run = fc.sr_post("runStatus", run.nextRequest)
         time.sleep(1)
     else:
-        pkunit.pkfail("runStatus: failed to complete: {}", run)
+        if run.state != "completed":
+            pkunit.pkfail("runStatus: failed to complete: {}", run)
     r = fc.sr_get(
         "downloadDataFile",
         PKDict(
