@@ -2142,8 +2142,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             continue;
                         }
                         const isPoly = t === SIREPO.APP_SCHEMA.constants.geomTypePolys;
+                        const isLine = t === SIREPO.APP_SCHEMA.constants.geomTypeLines;
                         let gObj = radiaService.getObject(objId) || {};
                         let gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
+                        // use black for edges
+                        //TODO(mvk): possibly use high contrast so dark objects have white edges
+                        if (gColor && isLine) {
+                            gColor = [0, 0, 0];
+                        }
                         // use colors from Radia for groups
                         if (gObj.members) {
                             gColor = null;
@@ -3169,7 +3175,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     $scope.watchFields = [
         [
-            'geomObject.type', 'geomObject.segmentation', 'geomObject.segmentationCylUseObjectCenter',
+            'geomObject.type', 'geomObject.segmentation', 'geomObject.segmentationCylUseObjectCenter', 'geomObject.segmentationCylAxis',
             'cylinder.radius',
             'extrudedPoly.extrusionAxisSegments', 'extrudedPoly.triangulationLevel',
             'extrudedObject.extrusionAxis',
@@ -3310,12 +3316,18 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             'segmentationCylAxis',
             'segmentationCylPoint',
             'segmentationCylRadius',
+            'segmentationCylRatio',
             'segmentationCylUseObjectCenter',
         ];
         segCylFields.forEach(f => {
             panelState.showField('geomObject', f, isSegCyl);
         });
         panelState.showArrayField('geomObject', 'segments', 0, ! isSegCyl);
+        [
+            appState.models.geomObject.segmentationCylAxisMinor,
+            appState.models.geomObject.segmentationCylAxisMajor,
+        ] = SIREPO.GEOMETRY.GeometryUtils.nextAxes(appState.models.geomObject.segmentationCylAxis);
+
 
         if (o.segmentationCylUseObjectCenter === '1') {
             o.segmentationCylPoint = o.center.slice();
