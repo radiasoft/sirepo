@@ -151,12 +151,6 @@ class _FormFileTornado(_FormFileBase):
 
 class _FormFileWebSocket(_FormFileBase):
     def as_bytes(self):
-        from pykern import pkio, pkcompat
-
-        pkdp(type(self._internal.base64))
-        pkio.py_path(
-            "/home/vagrant/src/radiasoft/sirepo/tests/websocket_work/xyz"
-        ).write(self._internal.base64)
         return base64.b64decode(self._internal.base64)
 
     def _get(self, internal_req):
