@@ -2017,7 +2017,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window) => {
         delete needReply[d.reqSeq];
         //TODO(robnagler) errors, redirects, responseType not handled
         m.deferred.resolve({
-            data: JSON.parse(d.content),
+            data: d.contentType == "application/json" ? JSON.parse(d.content) : d.content,
             status: 200
         });
     };
