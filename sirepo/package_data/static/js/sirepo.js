@@ -2023,7 +2023,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window) => {
     };
 
     const _reqData = (data, done) => {
-        if (! data instanceof FormData) {
+        if (! (data instanceof FormData)) {
             done(data);
             return;
         }

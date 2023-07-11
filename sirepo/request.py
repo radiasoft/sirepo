@@ -71,7 +71,7 @@ def init_quest(qcall, internal_req=None):
             remote_addr="0.0.0.0",
             #            remote_addr=r.remote_ip,
             _form_file_class=_FormFileWebSocket,
-            _form_get=internal_req.msg.get("content").get,
+            _form_get=lambda x, y: internal_req.msg.get("content").get(x, y),
         )
     elif "tornado" in str(type(internal_req)):
         r = internal_req.request
