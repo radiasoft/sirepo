@@ -20,7 +20,7 @@ async def test_robots_txt(fc):
 
     def _msg(msg):
         m = pkjson.load_any(msg)
-        pkunit.pkeq(1, m.req_seq)
+        pkunit.pkeq(1, m.reqSeq)
         pkunit.pkre("/srw", m.content)
         reply_event.set()
 
@@ -37,7 +37,7 @@ async def test_robots_txt(fc):
         on_message_callback=_msg,
     )
     await s.write_message(
-        pkjson.dump_pretty(PKDict(req_seq=1, uri="/robots.txt")),
+        pkjson.dump_pretty(PKDict(reqSeq=1, uri="/robots.txt")),
     )
     await asyncio.wait_for(reply_event.wait(), 2)
 
@@ -59,7 +59,7 @@ async def test_existing_auth(fc):
             # msg is None on close
             return
         m = pkjson.load_any(msg)
-        pkunit.pkeq(1, m.req_seq)
+        pkunit.pkeq(1, m.reqSeq)
         c = pkjson.load_any(m.content)
         pkunit.pkeq(srunit.SR_SIM_NAME_DEFAULT, c[0].name)
         reply_event.set()
@@ -79,7 +79,7 @@ async def test_existing_auth(fc):
     await s.write_message(
         pkjson.dump_pretty(
             PKDict(
-                req_seq=1,
+                reqSeq=1,
                 uri="/simulation-list",
                 content=PKDict(simulationType=fc.sr_sim_type),
             ),
