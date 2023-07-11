@@ -44,12 +44,11 @@ def test_jspec_list_files(fc):
     from pykern.pkunit import pkeq, pkre
     import json
 
-    a = fc.sr_get_json(
+    a = fc.sr_post(
         "listFiles",
         PKDict(
-            simulation_type=fc.sr_sim_type,
-            simulation_id="xxxxxxxxxx",
-            file_type="ring-lattice",
+            simulationType=fc.sr_sim_type,
+            fileType="ring-lattice",
         ),
     )
     pkeq(["Booster.tfs"], a)
