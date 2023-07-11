@@ -44,6 +44,10 @@
             "longName": "MAD-X",
             "shortName": "MAD-X"
         },
+        "omega": {
+            "longName": "OMEGA",
+            "shortName": "OMEGA"
+        },
         "opal": {
             "longName": "OPAL",
             "shortName": "OPAL"

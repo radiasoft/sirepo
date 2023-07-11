@@ -296,7 +296,8 @@
         "geometry3DReport": {
             "bgColor": ["Background color", "Color", "#fff9ed"],
             "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
-            "showEdges": ["Show edges", "Boolean", "0"]
+            "showEdges": ["Show edges", "Boolean", "0"],
+            "showMarker": ["Show axis marker", "Boolean", "1"]
         },
         "isotropic": {
             "_super": ["_", "model", "unitSphere"]
@@ -908,6 +909,7 @@
             "colorMap": ["Color Map", "ColorMap", "jet"],
             "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
+            "showMarker": ["Show axis marker", "Boolean", "1"],
             "tally": ["Tally", "TallyList"],
             "score": ["Score", "ScoreList"],
             "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.0, "", 0.0, 1.0]
@@ -1106,7 +1108,8 @@
             "advanced": [
                 "opacity",
                 "bgColor",
-                "showEdges"
+                "showEdges",
+                "showMarker"
             ]
         },
         "isotropic": {
@@ -1184,7 +1187,8 @@
                 "voxels.colorMap",
                 "opacity",
                 "bgColor",
-                "showEdges"
+                "showEdges",
+                "showMarker"
             ]
         },
         "particle": {
