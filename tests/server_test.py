@@ -78,12 +78,6 @@ def test_myapp_basic(fc):
 
     r = fc.sr_get("/robots.txt")
     pkunit.pkre("elegant.*myapp.*srw", pkcompat.from_bytes(r.data))
-    r = fc.sr_get("/")
-    pkok(
-        not re.search(r"googletag", pkcompat.from_bytes(r.data)),
-        "Unexpected injection of googletag data={}",
-        r.data,
-    )
 
 
 def test_srw(fc):

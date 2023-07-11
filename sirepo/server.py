@@ -31,12 +31,6 @@ if any(
 ):
     import h5py
 
-#: If google_tag_manager_id set, string to insert in landing pages for google analytics
-_google_tag_manager = None
-
-#: what to match in landing pages to insert `_google_tag_manager`
-_google_tag_manager_re = re.compile("(?=</head>)", flags=re.IGNORECASE)
-
 _ROBOTS_TXT = None
 
 #: Global app value (only here so instance not lost)
@@ -624,16 +618,6 @@ class API(sirepo.quest.API):
             raise sirepo.util.NotFound("empty path info")
         self._proxy_react(f"{sirepo.const.STATIC_D}/" + path_info)
         p = sirepo.resource.static(sirepo.util.validate_path(path_info))
-        if _google_tag_manager and re.match(r"^en/[^/]+html$", path_info):
-            return self.headers_for_cache(
-                self.reply(
-                    content=_google_tag_manager_re.sub(
-                        _google_tag_manager,
-                        pkio.read_text(p),
-                    ),
-                ),
-                path=p,
-            )
         if re.match(r"^(html|en)/[^/]+html$", path_info):
             return self.reply_html(p)
         return self.reply_file(p)
@@ -816,16 +800,10 @@ def init_app(uwsgi=None, use_reloader=False, is_server=False):
     sirepo.modules.import_and_init("sirepo.uri_router").init_for_flask(_app)
     sirepo.flask.app_set(_app)
     if is_server:
-        global _google_tag_manager
         from sirepo import auth_db
 
         with sirepo.quest.start() as qcall:
             qcall.auth_db.create_or_upgrade()
-
-        if _cfg.google_tag_manager_id:
-            _google_tag_manager = f"""<script>
-        (function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}})(window,document,'script','dataLayer','{_cfg.google_tag_manager_id}');
-        </script>"""
 
         # Avoid unnecessary logging
         sirepo.flask.is_server = True
@@ -920,7 +898,6 @@ _cfg = pkconfig.init(
         bool,
         "enable source cache key, disable to allow local file edits in Chrome",
     ),
-    google_tag_manager_id=(None, str, "enable google analytics with this id"),
     home_page_uri=("/en/landing.html", str, "home page to redirect to"),
     react_server=(
         None if pkconfig.in_dev_mode() else _REACT_SERVER_BUILD,
