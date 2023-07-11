@@ -307,8 +307,8 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
         if ($route.current.params.simulationId) {
             appState.loadModels(
                 $route.current.params.simulationId,
-                // clear aux data (ex. list items) each time a simulation is loaded
-                requestSender.clearAuxillaryData,
+                // clear list items each time a simulation is loaded
+                requestSender.clearListFilesData,
                 self.getActiveSection());
         }
     });
@@ -2087,7 +2087,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     var LOGIN_URI = null;
     var REDIRECT_RE = new RegExp('window.location = "([^"]+)";', 'i');
     var SR_EXCEPTION_RE = new RegExp('/\\*sr_exception=(.+)\\*/');
-    var auxillaryData = {};
+    var listFilesData = {};
     var globalMap = {_name: 'global'};
     var localMap = {_name: 'local'};
 
@@ -2256,8 +2256,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         throw new Error(param + ': ' + (typeof v) + ' type cannot be serialized');
     }
 
-    self.clearAuxillaryData = function() {
-        auxillaryData = {};
+    self.clearListFilesData = function() {
+        listFilesData = {};
     };
 
     self.defaultRouteName = function(appMode=null) {
@@ -2273,8 +2273,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         return formatUrl(globalMap, routeName, params);
     };
 
-    self.getAuxiliaryData = function(name) {
-        return auxillaryData[name];
+    self.getListFilesData = function(name) {
+        return listFilesData[name];
     };
 
     self.newLocalWindow = function(routeName, params, app) {
@@ -2375,35 +2375,36 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         );
     };
 
-    self.loadAuxiliaryData = function(name, path, callback) {
-        if (auxillaryData[name] || auxillaryData[name + ".loading"]) {
+    self.loadListFiles = function(name, params, callback) {
+        if (listFilesData[name] || listFilesData[name + ".loading"]) {
             if (callback) {
-                callback(auxillaryData[name]);
+                callback(listFilesData[name]);
             }
             return;
         }
-        auxillaryData[name + ".loading"] = true;
+        listFilesData[name + ".loading"] = true;
         msgRouter.send(
-            path, // + '' + SIREPO.SOURCE_CACHE_KEY,
-            null,
+            self.formatUrl('listFiles'),
+            params,
             {},
         ).then(
             function(response) {
                 var data = response.data;
-                auxillaryData[name] = data;
-                delete auxillaryData[name + ".loading"];
+                listFilesData[name] = data;
+                delete listFilesData[name + ".loading"];
                 if (callback) {
                     callback(data);
                 }
             },
             function() {
-                srlog(path, ' load failed!');
-                delete auxillaryData[name + ".loading"];
-                if (! auxillaryData[name]) {
+                srlog(params, ' loadListFiles failed!');
+                delete listFilesData[name + ".loading"];
+                if (! listFilesData[name]) {
                     // if loading fails, use an empty list to prevent load requests on each digest cycle, see #1339
-                    auxillaryData[name] = [];
+                    listFilesData[name] = [];
                 }
-            });
+            },
+        );
     };
 
     self.isRouteParameter = function(routeName, paramName) {

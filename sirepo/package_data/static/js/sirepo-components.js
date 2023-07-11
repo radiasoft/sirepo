@@ -1012,7 +1012,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                                     + data.fileList.join("\n");
                             }
                             else {
-                                var list = requestSender.getAuxiliaryData($scope.fileType);
+                                var list = requestSender.getListFilesData($scope.fileType);
                                 list.splice(list.indexOf($scope.deleteItem), 1);
                                 $('#' + modalId).modal('hide');
                             }
@@ -1062,16 +1062,18 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                 if (! $scope.fileType) {
                     $scope.fileType = $scope.modelName + '-' + $scope.fileField;
                 }
-                if (requestSender.getAuxiliaryData($scope.fileType)) {
-                    return requestSender.getAuxiliaryData($scope.fileType);
+                if (requestSender.getListFilesData($scope.fileType)) {
+                    return requestSender.getListFilesData($scope.fileType);
                 }
-                requestSender.loadAuxiliaryData(
+                requestSender.loadListFiles(
                     $scope.fileType,
-                    requestSender.formatUrl('listFiles', {
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<file_type>': $scope.fileType,
-                        '<simulation_id>': 'unused',
-                    }), sortList);
+                    {
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
+                        fileType: $scope.fileType,
+                        simulationId: 'unused',
+                    },
+                    sortList,
+                );
                 return null;
             };
             $scope.selectItem = function(item) {
@@ -1288,7 +1290,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         }
                         if ($scope.model[$scope.field] != data.filename) {
                             $scope.model[$scope.field] = data.filename;
-                            var list = requestSender.getAuxiliaryData($scope.fileType);
+                            var list = requestSender.getListFilesData($scope.fileType);
                             if (list.indexOf(data.filename) < 0) {
                                 list.push(data.filename);
                             }

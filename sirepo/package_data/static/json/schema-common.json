@@ -145,7 +145,7 @@
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
         "jupyterHub": "/jupyter",
-        "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
+        "listFiles": "/file-list",
         "listSimulations": "/simulation-list",
         "migrateJupyterhub": "/migrate-jupyterhub",
         "newSimulation": "/new-simulation",
