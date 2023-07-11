@@ -132,9 +132,6 @@ def run_sims(sim_list):
 
 def sim_lib_file(sim_type, model, field, filename):
     s = sirepo.sim_data.get_class(sim_type)
-    #TODO(pjm): need an API to add/update lib files
-    if 'lib_file_uri' in sirepo.sim_data._cfg:
-        sirepo.sim_data._cfg.lib_file_uri = ''
     return s.lib_file_write_path(
         s.lib_file_name_with_model_field(model, field, filename),
     )
@@ -178,18 +175,35 @@ def update_opal_sim(data, filename, lib_file):
     d = LatticeUtil.find_first_command(data, "distribution")
     d.type = "FROMFILE"
     d.fname = filename
-    c = 0
-    sum = 0
+    n = 0
+    zsum = 0
+    psum = 0
     # calculate z offset
     with pkio.open_text(lib_file) as f:
         for line in f:
-            if not c:
-                c = int(line)
+            if not n:
+                n = int(line)
                 continue
             r = [v for v in line.split(" ")]
-            sum += float(r[4])
-    d.offsetz = -sum / c
-    LatticeUtil.find_first_command(data, "beam").npart = c
+            zsum += float(r[4])
+            psum += float(r[5])
+    d.offsetz = -zsum / n
+
+    b = LatticeUtil.find_first_command(data, "beam")
+    b.npart = n
+    b.gamma = 0
+    b.energy = 0
+    #TODO(pjm): handle other particle types
+    mass_and_charge = PKDict(
+        ELECTRON=0.51099895000e-03,
+        PROTON=0.93827208816,
+    )
+    b.pc = psum / n * mass_and_charge[b.particle]
+
+
+#TODO(pjm): need an API to add/update lib files
+if 'lib_file_uri' in sirepo.sim_data._cfg:
+    sirepo.sim_data._cfg.lib_file_uri = ''
 
 
 run_sims([
