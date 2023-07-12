@@ -366,10 +366,15 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
     parent.silasService = silasService;
 
     function updateCylinder(saveChanges)  {
-        srdbg("crystal changed");
         const cc = appState.models.crystalCylinder;
         const c = silasService.getThermalCrystal();
         cc.crystalLength = c.length;
+        // TODO (gurhar1133): alpha needs explanation?
+        panelState.showFields('crystalCylinder', [
+            'gaussianTimeEquation', c.pump_pulse_profile.includes('gaussian'),
+            'tophatTimeEquation', c.pump_pulse_profile.includes('tophat'),
+            'hogTimeEquation', c.pump_pulse_profile.includes('hog'),
+        ]);
         panelState.enableFields('crystalCylinder', [
             ['crystalLength'], false,
         ]);
@@ -377,15 +382,6 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
             appState.saveChanges('crystalCylinder');
         }
     }
-
-    // function updateEquation() {
-    //     const c = silasService.getThermalCrystal();
-    //     panelState.showFields('crystalCylinder', [
-    //         ['gaussianTimeEquation', c.pump_pulse_profile.includes('gaussian')],
-    //         ['tophatTimeEquation', c.pump_pulse_profile.includes('tophat')],
-    //         ['hogTimeEquation', c.pump_pulse_profile.includes('hog')],
-    //     ])
-    // }
 
     $scope.whenSelected = () => updateCylinder(true);
     $scope.watchFields = [
