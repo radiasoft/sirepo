@@ -43,7 +43,7 @@ def test_four_processes():
         _start("t1", "", "a"),
         _start("t2", "a", "b", before=1, after=4),
         # More than the _LOOP_SLEEP
-        _start("t3", "abd", "c", before=10),
+        _start("t3", "abd", "c", before=5),
         _start("t4", "ab", "d", before=2),
     ]:
         p.join()
