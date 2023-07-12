@@ -147,9 +147,11 @@
         "crystalCylinder": {
             "alpha": ["$\\Large \\alpha$ 1/[cm]", "Float", 0, "Inverse Absorption Length"],
             "diameter": ["Diameter [cm]", "Float", 7, "", 1e-24],
+            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float"],
             "crystal": ["Crystal in Beamline", "SelectCrystal", 0],
             "crystalLength": ["Length [cm]", "Float", 2],
             "half_length": ["$\\Large z0$ [cm]", "Float"],
+            "pump_type": ["Pump Type", "PumpType"],
             "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
             "hogTimeEquation": ["", "EquationText", "$f = T_0 + \\delta_T  \\exp(-((x^2+y^2)/(2*wp^2))^P) * \\exp(-\\alpha * (z - z0))$"],
             "gaussianTimeEquation": ["", "EquationText", "$f = T_0 + \\delta_T \\exp\\bigl[ -\\tfrac{1}{2}\\bigl(\\tfrac{x^2 + y^2}{wp^2}\\bigr)^P \\bigr] [\\exp(-z/\\lambda) + \\exp((z-l)/\\lambda)]$"],
@@ -275,6 +277,8 @@
             "title": "Ti:Sapphire Crystal Cylinder",
             "basic": [
                 "crystal",
+                "pump_type",
+                "pump_rep_rate",
                 "crystalLength",
                 "diameter",
                 "diffusionConstant",

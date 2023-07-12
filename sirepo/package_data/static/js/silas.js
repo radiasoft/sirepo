@@ -367,11 +367,11 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
     function updateCylinder(saveChanges)  {
         const cc = appState.models.crystalCylinder;
         const c = silasService.getThermalCrystal();
-        srdbg(cc);
-        appState.models.crystalCylinder.alpha = c.crystal_alpha;
-        appState.models.crystalCylinder.half_length = cc.crystalLength/2;
+        cc.alpha = c.crystal_alpha;
+        cc.pump_rep_rate = c.pump_rep_rate;
+        cc.pump_type = c.pump_type;
+        cc.half_length = c.length/2;
         cc.crystalLength = c.length;
-        // TODO (gurhar1133): alpha needs explanation?
         panelState.showFields('crystalCylinder', [
             'gaussianTimeEquation', c.pump_pulse_profile.includes('gaussian'),
             'tophatTimeEquation', c.pump_pulse_profile.includes('tophat'),
@@ -381,6 +381,8 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
             ['crystalLength'], false,
             ['alpha'], false,
             ['half_length'], false,
+            ["pump_type"], false,
+            ['pump_rep_rate'], false,
         ]);
         if (saveChanges) {
             appState.saveChanges('crystalCylinder');
