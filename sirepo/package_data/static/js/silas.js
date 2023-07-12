@@ -14,6 +14,9 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
         </div>
+        <div data-ng-switch-when="ReadOnlyText" data-ng-class="">
+            <div data-equation-selector="" data-model="model" data-field="field"></div>
+        </div>
         <div data-ng-switch-when="IntArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Int"></div>
         </div>
@@ -252,6 +255,29 @@ SIREPO.app.directive('selectCrystal', function(appState, silasService) {
     };
 });
 
+SIREPO.app.directive('equationSelector', function(appState, silasService) {
+    return {
+        scope: {
+            field: '=fieldEditor',
+            model: '=',
+        },
+        template: `
+        equation selector:
+        <div class="lead text-center" style="white-space: pre-wrap;"><span data-text-with-math="::equationText()"</span> </div>
+        `,
+        controller: function($scope) {
+            srdbg(appState.models);
+            srdbg("model: ", $scope.model);
+            $scope.equationText = () => {
+                // TODO (gurhar1133): get crystal element by ID in $scope.model.
+                // based on that crystal's pump_pulse_profile, chooose one of the equation's from
+                // $scope.model
+                return $scope.model.timeEquation;
+            }
+        }
+    }
+});
+
 SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scope) {
     function updateCrystalFields(item) {
         const crystals = silasService.getPriorCrystals(item.id);
@@ -370,7 +396,6 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
             appState.saveChanges('crystalCylinder');
         }
     }
-    srdbg(appState.models.crystalCylinder);
     $scope.whenSelected = () => updateCylinder(true);
     $scope.watchFields = [
         [
