@@ -38,11 +38,13 @@ def test_four_processes():
 
     pkunit.empty_work_dir()
     for p in [
+        # Test order: t1, t2, t4, and t3 so the before values have to align that way
+        # and after=1 causes t3 and t4 to queue
         _start("t1", "", "a"),
-        _start("t2", "a", "b", after=1),
+        _start("t2", "a", "b", before=1, after=2),
         # More than the _LOOP_SLEEP
-        _start("t3", "abd", "c", before=2),
-        _start("t4", "ab", "d", before=0.5),
+        _start("t3", "abd", "c", before=3),
+        _start("t4", "ab", "d", before=2),
     ]:
         p.join()
     pkunit.pkeq("abdc", _path().read())
