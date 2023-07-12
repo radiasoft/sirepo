@@ -229,7 +229,7 @@ def _apply_segments(g_id, **kwargs):
                         * AXIS_VECTORS[next_axis(d.segmentationCylAxis)]
                         + p
                     ).tolist(),
-                    1.0,
+                    d.segmentationCylRatio,
                 ],
                 "Frame->Lab",
             )

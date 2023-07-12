@@ -818,6 +818,7 @@
             "segmentationCylAxis": ["Segment Axis", "BeamAxis", "z"],
             "segmentationCylPoint": ["Segment Origin", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
             "segmentationCylRadius": ["Segment Radial Width [mm]", "Float", 5.0],
+            "segmentationCylRatio": ["Segment Axis Ratio", "Float", 1.0, "Ratio of {{ appState.models.geomObject.segmentationCylAxisMajor }} to {{ appState.models.geomObject.segmentationCylAxisMinor }} axes of base (1.0 = circular)", 0.0],
             "segmentationCylUseObjectCenter": ["Use object center as origin", "Boolean", "1"],
             "segments": ["Segments", "IntArray", [1, 1, 1], "", ["N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{rad}' : '{x}' }}$", "N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{az}' : '{y}' }}$", "N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{ax}' : '{z}' }}$"], [1, 1, 1]],
             "shapeButton": ["Shape", "ShapeButton", {}],
@@ -862,6 +863,7 @@
         "magnetDisplay": {
             "alpha": ["Alpha", "Range", 1.0, "", 0.0, 1.0],
             "bgColor": ["Background Color", "Color", "#ffffff"],
+            "showMarker": ["Show axis marker", "Boolean", "1"],
             "fieldType": ["Field", "FieldType", "M"],
             "notes": ["Notes", "Text", ""],
             "viewType": ["View", "ViewType", "objects"]
@@ -1326,6 +1328,7 @@
                     "size",
                     "segmentation",
                     "segmentationCylAxis",
+                    "segmentationCylRatio",
                     "segmentationCylUseObjectCenter",
                     "segmentationCylPoint",
                     "segmentationCylRadius",
@@ -1398,6 +1401,7 @@
                 "viewType",
                 "bgColor",
                 "alpha",
+                "showMarker",
                 "fieldType",
                 "fieldDisplay.colorMap",
                 "fieldDisplay.scaling"

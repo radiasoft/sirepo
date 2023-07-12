@@ -94,6 +94,8 @@ def setup_srdb_root(cfg=None):
 
 
 class _TestClient:
+    DEFAULT_TIMEOUT_SECS = 15
+
     def __init__(self, env, job_run_mode, port):
         super().__init__()
         self.sr_job_run_mode = job_run_mode

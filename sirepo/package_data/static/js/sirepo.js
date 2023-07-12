@@ -1070,12 +1070,20 @@ SIREPO.app.factory('timeService', function() {
     const UNIX_TIMESTAMP_SCALE = 1000;
     const self = {};
 
+    self.roundUnixTimeToMinutes = (date) => {
+        return Number.parseInt(date / 60) * 60;
+    };
+
     self.unixTime = (date) => {
         return Math.round(date.getTime() / UNIX_TIMESTAMP_SCALE);
     };
 
     self.unixTimeNow = () => {
         return self.unixTime(new Date());
+    };
+
+    self.unixTimeOneHourAgo = () => {
+        return self.unixTimeNow() - (60 * 60);
     };
 
     self.unixTimeToDate = (unixTime) => {

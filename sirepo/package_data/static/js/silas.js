@@ -203,7 +203,7 @@ SIREPO.app.directive('appHeader', function(appState, silasService) {
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Laser Pulse</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('beamline')}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> Beamline</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('beamline')}"><a href data-ng-click="nav.openSection('beamline')"><span class="glyphicon glyphicon-option-horizontal"></span> {{ beamlineName }} </a></li>
                   <li data-ng-show="hasCrystal()" class="sim-section" data-ng-class="{active: nav.isActive('thermal-transport')}"><a href data-ng-click="nav.openSection('thermal-transport')"><span class="glyphicon glyphicon-th"></span> Thermal Transport</a></li>
                 </div>
               </app-header-right-sim-loaded>
@@ -217,6 +217,7 @@ SIREPO.app.directive('appHeader', function(appState, silasService) {
             </div>
         `,
         controller:  function($scope) {
+            $scope.beamlineName = SIREPO.APP_SCHEMA.strings.beamlineTabName;
             $scope.hasCrystal = () => silasService.hasCrystal();
         },
     };
@@ -266,37 +267,21 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
         if (item.origin === 'reuse') {
             item.title = silasService.getCrystal(item.reuseCrystal)?.title || '';
         }
-        if (item.radial_n2 === '1' && item.propagationType !== 'n0n2_srw') {
-            item.radial_n2 = '0';
-        }
         panelState.showFields(item.type, [
             ['l_scale'], item.propagationType === 'n0n2_lct' || item.propagationType === 'abcd_lct',
-            ['pump_waist'], item.propagationType === 'gain_calc'
-                || item.radial_n2 === '1' || item.calc_gain == '1',
-            [
-                'inversion_n_cells', 'inversion_mesh_extent', 'crystal_alpha',
-                'pump_wavelength', 'pump_energy', 'pump_type', 'pump_gaussian_order',
-            ], item.calc_gain === '1' || item.propagationType === 'gain_calc',
-            ['calc_gain'], item.propagationType !== 'gain_calc',
-            ['radial_n2'], item.propagationType == 'n0n2_srw',
             ['origin'], hasCrystals,
             ['reuseCrystal'], item.origin === 'reuse',
             ['title', 'length', 'nslice'], item.origin === 'new',
             ['A', 'B', 'C', 'D'], item.propagationType == 'abcd_lct',
         ]);
+        panelState.enableField(item.type, 'pump_wavelength', false);
         panelState.showTab(item.type, 2, item.origin === 'new');
-        panelState.showTab(item.type, 3, propOrGain(item));
+        panelState.showTab(item.type, 3, item.origin === 'new');
     }
-
-    const propOrGain = (item) => {
-        return item.origin === 'new'
-        && ((item.propagationType == 'n0n2_srw' && item.radial_n2 == '1')
-        || item.calc_gain === '1' || item.propagationType === 'gain_calc');
-    };
 
     $scope.whenSelected = updateCrystalFields;
     $scope.watchFields = [
-        ['propagationType', 'radial_n2', 'calc_gain', 'origin', 'reuseCrystal'], updateCrystalFields,
+        ['propagationType', 'origin', 'reuseCrystal'], updateCrystalFields,
     ];
 });
 
