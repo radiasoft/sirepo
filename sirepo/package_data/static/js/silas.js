@@ -364,10 +364,12 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
 
     const parent = $scope.$parent;
     parent.silasService = silasService;
-
     function updateCylinder(saveChanges)  {
         const cc = appState.models.crystalCylinder;
         const c = silasService.getThermalCrystal();
+        srdbg(cc);
+        appState.models.crystalCylinder.alpha = c.crystal_alpha;
+        appState.models.crystalCylinder.half_length = cc.crystalLength/2;
         cc.crystalLength = c.length;
         // TODO (gurhar1133): alpha needs explanation?
         panelState.showFields('crystalCylinder', [
@@ -377,6 +379,8 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
         ]);
         panelState.enableFields('crystalCylinder', [
             ['crystalLength'], false,
+            ['alpha'], false,
+            ['half_length'], false,
         ]);
         if (saveChanges) {
             appState.saveChanges('crystalCylinder');
