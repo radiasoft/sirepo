@@ -94,7 +94,7 @@ def background_percent_complete(report, run_dir, is_running):
 def extract_report_data(run_dir, sim_in):
     # dummy result
     if sim_in.report == "tallyReport":
-        template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
+        template_common.write_sequential_result(PKDict(x_range=[], summaryData={}, overlayData=[]))
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -490,22 +490,6 @@ t{tally._index + 1}.nuclides = [{','.join(["'" + s.nuclide + "'" for s in tally.
 
 
 def _grid_to_poly(path):
-    def _poly_lines(nx, ny, nz):
-        l = []
-        for k in range(nz):
-            # only rects
-            z = k * (nx + 1) * (ny + 1)
-            for j in range(ny):
-                y = j * (nx + 1)
-                d = y + z
-                c = [0, 1, nx + 2, nx + 1]
-                for i in range(nx):
-                    l.append("4 ")
-                    for n in range(len(c)):
-                        l.append(f"{c[n] + d + i} ")
-                    l.append("\n")
-        return l
-
     with pkio.open_text(path) as f:
         state = "header"
         lines = []
