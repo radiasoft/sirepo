@@ -364,6 +364,7 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
 
     const parent = $scope.$parent;
     parent.silasService = silasService;
+
     function updateCylinder(saveChanges)  {
         const cc = appState.models.crystalCylinder;
         const c = silasService.getThermalCrystal();
