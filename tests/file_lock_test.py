@@ -20,6 +20,7 @@ def test_four_processes():
         p = _path()
         if before:
             time.sleep(before)
+        pkdebug.pkdlog("after sleep={} expect={}", before, expect)
         with file_lock.FileLock(p):
             v = p.read() if p.exists() else ""
             pkunit.pkeq(expect, v)
