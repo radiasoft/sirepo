@@ -8,14 +8,19 @@ import pytest
 
 
 def test_four_processes():
+    from pykern import pkconfig
+
+    pkconfig.reset_state_for_testing(dict(PYKERN_PKDEBUG_WANT_PID_TIME="1"))
+
     import multiprocessing
     import time
-    from pykern import pkunit
+    from pykern import pkunit, pkdebug
     from sirepo import file_lock
     from pykern.pkdebug import pkdp
     import os
 
     def _io(expect, append, before=0, after=0):
+        pkdebug.pkdlog("started expect={}", expect)
         p = _path()
         if before:
             time.sleep(before)
@@ -43,7 +48,7 @@ def test_four_processes():
         _start("t1", "", "a"),
         _start("t2", "a", "b", before=1, after=4),
         # More than the _LOOP_SLEEP
-        _start("t3", "abd", "c", before=5),
+        _start("t3", "abd", "c", before=6),
         _start("t4", "ab", "d", before=2),
     ]:
         p.join()
