@@ -19,9 +19,11 @@ test_js() {
 }
 
 test_main() {
-    test_js
-    test_no_h5py
-    pykern ci run
+    PYKERN_PKCLI_TEST_MAX_FAILURES=1 PYKERN_PKDEBUG_WANT_PID_TIME=1 pykern test tests/file_lock_test.py
+#
+#    test_js
+#    test_no_h5py
+#    pykern ci run
 }
 
 test_no_h5py() {

@@ -8,10 +8,6 @@ import pytest
 
 
 def test_four_processes():
-    from pykern import pkconfig
-
-    pkconfig.reset_state_for_testing(dict(PYKERN_PKDEBUG_WANT_PID_TIME="1"))
-
     import multiprocessing
     import time
     from pykern import pkunit, pkdebug
@@ -48,7 +44,7 @@ def test_four_processes():
         _start("t1", "", "a"),
         _start("t2", "a", "b", before=1, after=4),
         # More than the _LOOP_SLEEP
-        _start("t3", "abd", "c", before=6),
+        _start("t3", "abd", "c", before=4),
         _start("t4", "ab", "d", before=2),
     ]:
         p.join()
