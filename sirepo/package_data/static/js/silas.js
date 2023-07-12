@@ -10,6 +10,7 @@ SIREPO.app.config(function() {
         'plot2Animation',
         'crystal3dAnimation',
     ];
+    // TODO (gurhar1133): change the readonlytext to equationText or something
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
