@@ -39,10 +39,6 @@
             ["n0n2_srw", "N0N2 SRW"],
             ["n0n2_lct", "N0N2 LCT"]
         ],
-        "PulseProfileEquation": [
-            ["gaussian", "a + b = c"],
-            ["tophat", "1 + 2 = 3"]
-        ],
         "PumpPulseProfile": [
             ["gaussian", "Gaussian"],
             ["hog", "Higher Order Gaussian"],
@@ -153,9 +149,9 @@
             "crystal": ["Crystal in Beamline", "SelectCrystal", 0],
             "crystalLength": ["Length [cm]", "Float", 2],
             "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
-            "gaussianTimeEquation": ["", "ReadOnlyText", "$f = T_0 + \\delta_T \\exp\\bigl[ -\\tfrac{1}{2}\\bigl(\\tfrac{x^2 + y^2}{\\xi^2}\\bigr)^P \\bigr] [\\exp(-z/\\lambda) + \\exp((z-l)/\\lambda)]$"],
-            "hogTimeEquation": ["", "ReadOnlyText", "a + b = c"],
-            "tophatTimeEquation": ["", "ReadOnlyText", "b = b"],
+            "hogTimeEquation": ["", "EquationText", "$f = T_0 + \\delta_T  \\exp(-((x^2+y^2)/(2*wp^2))^P) * \\exp(-\\alpha * (z - z0))$"],
+            "gaussianTimeEquation": ["", "EquationText", "$f = T_0 + \\delta_T \\exp\\bigl[ -\\tfrac{1}{2}\\bigl(\\tfrac{x^2 + y^2}{\\xi^2}\\bigr)^P \\bigr] [\\exp(-z/\\lambda) + \\exp((z-l)/\\lambda)]$"],
+            "tophatTimeEquation": ["", "EquationText", "$if \\> \\> x^2+y^2 <= wp:$ \n $f = T_0 + \\delta_T * \\alpha * \\exp(-\\alpha * (z - z0))/(1 - \\exp(2 * \\alpha * z0))$ \n $otherwise:$ \n $f = T_0$"],
             "T0": ["$\\Large T_0$ [$\\bf \\degree C$]", "Float", 20],
             "dT": ["$\\Large \\delta_T$ [$\\bf\\degree C$]", "Float", 3.8],
             "wdT": ["$\\Large \\xi$ [cm]", "Float", 1],
@@ -281,9 +277,8 @@
                 "diameter",
                 "diffusionConstant",
                 "gaussianTimeEquation",
-                "hogTimeEquation",
                 "tophatTimeEquation",
-                "*Initial Temperature Due to Pump Laser:\n$f = T_0 + \\delta_T \\exp\\bigl[ -\\tfrac{1}{2}\\bigl(\\tfrac{x^2 + y^2}{\\xi^2}\\bigr)^P \\bigr] [\\exp(-z/\\lambda) + \\exp((z-l)/\\lambda)]$",
+                "hogTimeEquation",
                 "T0",
                 "dT",
                 "wdT",

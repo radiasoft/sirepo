@@ -10,13 +10,15 @@ SIREPO.app.config(function() {
         'plot2Animation',
         'crystal3dAnimation',
     ];
-    // TODO (gurhar1133): change the readonlytext to equationText or something
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
         </div>
-        <div data-ng-switch-when="ReadOnlyText" data-ng-class="">
-            <div data-equation-selector="" data-model="model"></div>
+        <div data-ng-switch-when="EquationText" data-ng-class="">
+          <div class="lead text-center" style="white-space: pre-wrap;">
+            Initial Temperature Due to Pump Laser:
+            <span data-text-with-math="model[field]"></span>
+          </div>
         </div>
         <div data-ng-switch-when="IntArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Int"></div>
@@ -256,36 +258,6 @@ SIREPO.app.directive('selectCrystal', function(appState, silasService) {
     };
 });
 
-SIREPO.app.directive('equationSelector', function(appState, silasService) {
-    return {
-        scope: {
-            model: '=',
-        },
-        template: `
-        equation selector:
-        <div class="lead text-center" style="white-space: pre-wrap;"><span data-text-with-math="::equationText()"</span> </div>
-        `,
-        controller: function($scope) {
-            srdbg(appState);
-            $scope.equationText = () => {
-                // TODO (gurhar1133): get crystal element by ID in $scope.model.
-                // based on that crystal's pump_pulse_profile, chooose one of the equation's from
-                // $scope.model
-                return 'Initial Temperature Due to Pump Laser:\n' + $scope.model[crystalProfileByID($scope.model.crystal) + 'TimeEquation'];
-            }
-
-            const crystalProfileByID = (crystalID) => {
-                for (let element of appState.models.beamline) {
-                    if (element.id == crystalID) {
-                        srdbg(element.pump_pulse_profile);
-                        return element.pump_pulse_profile;
-                    }
-                }
-            }
-        }
-    }
-});
-
 SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scope) {
     function updateCrystalFields(item) {
         const crystals = silasService.getPriorCrystals(item.id);
@@ -394,6 +366,7 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
     parent.silasService = silasService;
 
     function updateCylinder(saveChanges)  {
+        srdbg("crystal changed");
         const cc = appState.models.crystalCylinder;
         const c = silasService.getThermalCrystal();
         cc.crystalLength = c.length;
@@ -404,6 +377,16 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
             appState.saveChanges('crystalCylinder');
         }
     }
+
+    // function updateEquation() {
+    //     const c = silasService.getThermalCrystal();
+    //     panelState.showFields('crystalCylinder', [
+    //         ['gaussianTimeEquation', c.pump_pulse_profile.includes('gaussian')],
+    //         ['tophatTimeEquation', c.pump_pulse_profile.includes('tophat')],
+    //         ['hogTimeEquation', c.pump_pulse_profile.includes('hog')],
+    //     ])
+    // }
+
     $scope.whenSelected = () => updateCylinder(true);
     $scope.watchFields = [
         [
