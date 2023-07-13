@@ -29,7 +29,7 @@ def test_render_resource():
         d.join("expect.py"),
         actual_path=resource.render_resource(
             "actual.py",
-            d,
+            "resource_test_data",
             pkunit.work_dir(),
             PKDict(
                 x="x",
