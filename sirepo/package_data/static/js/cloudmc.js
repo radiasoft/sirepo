@@ -293,7 +293,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             reportId: '<',
         },
         template: `
-            <ul data-ng-if="! isClientOnly" class="nav nav-tabs">
+            <ul data-ng-if="! isClientOnly" class="nav nav-tabs" xmlns="http://www.w3.org/1999/html">
                 <li role="presentation" data-ng-class="{active: displayType === '2D'}">
                     <a href data-ng-click="setDisplay('2D')">2D</a>
                 </li>
@@ -320,7 +320,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                    <div class="col-md-6" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'"></div>
                </div>
                <div class="row">
-                   <div data-ng-repeat="dim in axes" class="axis-display-slider axis-display-{{ dim }}"></div>
+                   <div data-ng-repeat="dim in axes track by $index" class="col-md-6">
+                       <div data-label-with-tooltip="" class="control-label" data-label="{{ dim }} range"></div>    
+                       <div class="axis-display-slider axis-display-{{ dim }}"></div>
+                       <div style="display:flex; justify-content:space-between;">
+                       <span>{{ getMeshRanges()[$index][0] }}</span>
+                       <span>{{ getDisplayRange(dim) }}</span>
+                       <span>{{ getMeshRanges()[$index][1] }}</span>
+                       </div>
+                   </div>
                </div>
                <div data-report-content="heatmap" data-model-key="tallyReport"></div>
             </div>
@@ -868,8 +876,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 }
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
                     const r = getMeshRanges()[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
-                    const t = $scope.tallyReport
-                    const dr = t[`${dim}DisplayRange`];
+                    const dr = $scope.tallyReport[`${dim}DisplayRange`];
                     if (dr[0] < r[0]) {
                         dr[0] = r[0];
                     }
@@ -884,7 +891,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                             range: true,
                             slide: (e, ui) => {
                                 $scope.$apply(() => {
-                                    t[`${dim}DisplayRange`][ui.handleIndex] = ui.value;
+                                    dr[ui.handleIndex] = ui.value;
                                 });
                             },
                             step: Math.abs((r[1] - r[0])) / mesh.dimension[i],
@@ -952,6 +959,17 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             // the vtk teardown is handled in vtkPlotting
             $scope.destroy = () => {
                 vtkScene = null;
+            };
+
+            $scope.getDisplayRange = dim => {
+                return $scope.tallyReport[`${dim}DisplayRange`];
+            };
+
+            $scope.getMeshRanges = () => {
+                if (! mesh) {
+                    return [];
+                }
+                return getMeshRanges();
             };
 
             $scope.init = () => {
