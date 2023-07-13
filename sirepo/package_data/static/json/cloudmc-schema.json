@@ -1007,6 +1007,7 @@
             "horizontalAxis": ["_", "Axis", "z"],
             "horizontalTrim": ["Trim", "FloatArray", []],
             "planePos": ["_", "Range", 0.0, ""],
+            "units": ["_", "String", "m"],
             "verticalAxis": ["_", "Axis", "x"],
             "xDisplayMin": ["Min X", "Float", -1e100],
             "xDisplayMax": ["Max X", "Float", 1e100],

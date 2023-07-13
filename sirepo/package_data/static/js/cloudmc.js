@@ -322,6 +322,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                <div class="row">
                    <div data-ng-repeat="f in displayRangeVars" class="col-md-6" data-field-editor="f" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2" data-field-size="4"></div>
                </div>
+               <div class="row">
+                   <div data-ng-repeat="axis in axes" class="axis-display-slider axis-display-{{ axis }}"></div>
+               </div>
                <div data-report-content="heatmap" data-model-key="tallyReport"></div>
             </div>
         `,
@@ -333,6 +336,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 'yDisplayMin', 'yDisplayMax',
                 'zDisplayMin', 'zDisplayMax',
             ];
+            $scope.axes = SIREPO.GEOMETRY.GeometryUtils.BASIS();
             $scope.isClientOnly = isGeometryOnly;
             $scope.tallyReport = appState.models.tallyReport;
 
@@ -350,6 +354,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
             const bundleByVolume = {};
             const colorbarThickness = 30;
+            const displaySliders = {};
+
             let tallyBundle = null;
             let vtkScene = null;
             // volumes are measured in centimeters
@@ -871,16 +877,31 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 if (! mesh) {
                     return  null;
                 }
-                for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
                     const r = getMeshRanges()[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
-                    if (appState.models.tallyReport[`${dim}DisplayMin`] < r[0]) {
-                        appState.models.tallyReport[`${dim}DisplayMin`] = r[0];
+                    const t = appState.models.tallyReport
+                    const min = `${dim}DisplayMin`;
+                    const max = `${dim}DisplayMax`;
+                    if (t[min] < r[0]) {
+                        t[min] = r[0];
                     }
-                    if (appState.models.tallyReport[`${dim}DisplayMax`] > r[1]) {
-                        appState.models.tallyReport[`${dim}DisplayMax`] = r[1];
+                    if (t[max] > r[1]) {
+                        t[max] = r[1];
                     }
-                    appState.saveQuietly('tallyReport');
-                }
+                    planePosRange();
+                    //srdbg(dim, Math.abs((r[1] - r[0])) / mesh.dimension[i]);
+                    if (! displaySliders[dim]) {
+                        displaySliders[dim] = $(`.axis-display-${dim}`).slider({
+                            min: r[0],
+                            max: r[1],
+                            range: true,
+                            step: Math.abs((r[1] - r[0])) / mesh.dimension[i],
+                            values: [t[min], t[max]],
+                        });
+                    }
+                });
+
+                appState.saveQuietly('tallyReport');
             }
 
             function updateMarker() {
