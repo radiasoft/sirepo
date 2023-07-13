@@ -3,7 +3,6 @@
         "beamline": [
             {
                 "_super": "beamElement",
-                "calc_gain": "1",
                 "crystal_alpha": 120,
                 "icon": "ti-sapphire-crystal.png",
                 "id": 2,
@@ -34,7 +33,6 @@
                 "pump_energy": 0.0211,
                 "pump_waist": 0.00164,
                 "pump_wavelength": 5.32e-07,
-                "radial_n2": "1",
                 "reuseCrystal": 0,
                 "title": "Crystal #1",
                 "type": "crystal"

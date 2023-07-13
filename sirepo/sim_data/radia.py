@@ -223,6 +223,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 model.segmentationCylPoint = [0, 0, 0]
             if not model.get("segmentationCylRadius"):
                 model.segmentationCylRadius = 5.0
+            if not model.get("segmentationCylRatio"):
+                model.segmentationCylRatio = 1.0
             if not model.get("segmentationCylUseObjectCenter"):
                 model.segmentationCylUseObjectCenter = "0"
 
