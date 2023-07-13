@@ -16,7 +16,7 @@ import sirepo.feature_config
 import sirepo.sim_data
 
 
-VOLUME_INFO_FILE = "volumes.json"
+_VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
@@ -81,12 +81,12 @@ def background_percent_complete(report, run_dir, is_running):
                 percentComplete=0,
                 frameCount=0,
             )
-        if not run_dir.join(VOLUME_INFO_FILE).exists():
+        if not run_dir.join(_VOLUME_INFO_FILE).exists():
             raise AssertionError("Volume extraction failed")
         return PKDict(
             percentComplete=100,
             frameCount=1,
-            volumes=simulation_db.read_json(VOLUME_INFO_FILE),
+            volumes=simulation_db.read_json(_VOLUME_INFO_FILE),
         )
     return _percent_complete(run_dir, is_running)
 
@@ -198,6 +198,20 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, run_dir=run_dir),
     )
+    if is_parallel:
+        return template_common.get_exec_parameters_cmd()
+
+
+def _dagmc_animation_python(filename):
+    return f"""
+import sirepo.pkcli.cloudmc
+import sirepo.simulation_db
+
+sirepo.simulation_db.write_json(
+    "{_VOLUME_INFO_FILE}",
+    sirepo.pkcli.cloudmc.extract_dagmc("{filename}"),
+)
+"""
 
 
 def _generate_angle(angle):
@@ -331,7 +345,9 @@ def _generate_parameters_file(data, run_dir=None):
     report = data.get("report", "")
     for f in [b.basename for b in _SIM_DATA.sim_file_basenames(data)]:
         pkio.unchecked_remove(f)
-    if report in ("dagmcAnimation", "tallyReport"):
+    if report == "dagmcAnimation":
+        return _dagmc_animation_python(_SIM_DATA.dagmc_filename(data))
+    if report == "tallyReport":
         return ""
     res, v = template_common.generate_parameters_file(data)
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
