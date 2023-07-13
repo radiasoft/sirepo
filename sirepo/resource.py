@@ -45,21 +45,22 @@ def glob_paths(*paths):
     )
 
 
-def render_resource(filename, resource_dir, run_dir, j2_ctx):
-    """Render .jinja filename from resource_dir into run_dir
+def render_resource(template_name, resource_dir, run_dir, j2_ctx):
+    """Render a jinja resource from a package_data/resource_dir
+    into run_dir
 
     Args:
-        filename (str): .jinja filename
-        resource_dir (str): dir that .jinja template lives in
+        resource_template (str): .jinja template basename
+        resource_dir (str): package_data dir that .jinja template lives in
         run_dir (py.path): target directory for rendered file
         jinja_params (PKDict): parameters to jinja file
 
     Returns:
         py.path: path to rendered file
     """
-    res = run_dir.join(filename)
+    res = run_dir.join(template_name)
     pykern.pkjinja.render_file(
-        _resource_path(filename, resource_dir),
+        _resource_path(template_name, resource_dir),
         j2_ctx,
         output=res,
     )

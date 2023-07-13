@@ -23,17 +23,18 @@ def test_static_files():
 def test_render_resource():
     from sirepo import resource
     from pykern import pkunit
+    from pykern import pkio
 
-    d = pkunit.data_dir()
-    pkunit.file_eq(
-        d.join("expect.py"),
-        actual_path=resource.render_resource(
-            "actual.py",
-            "resource_test_data",
-            pkunit.work_dir(),
-            PKDict(
-                x="x",
-                y="y",
-            ),
+    pkunit.pkre(
+        'var = "x"',
+        pkio.read_text(
+            resource.render_resource(
+                "README.txt",
+                "resource_test_data",
+                pkunit.work_dir(),
+                PKDict(
+                    var="x",
+                ),
+            )
         ),
     )
