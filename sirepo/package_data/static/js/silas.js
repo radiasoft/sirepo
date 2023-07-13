@@ -20,6 +20,9 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="SelectCrystal" data-ng-class="fieldClass">
           <div data-select-crystal="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="N0n2Plot">
+          <div data-n0n2-plot="" data-model="model"></div>
+        </div>
         <div data-ng-switch-when="Float6">
           <div data-float-6="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
@@ -249,6 +252,23 @@ SIREPO.app.directive('selectCrystal', function(appState, silasService) {
 
             $scope.name = item => `${item.title} (${item.position}m)`;
         },
+    };
+});
+
+SIREPO.app.directive('n0n2Plot', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+        },
+        template: `
+            <div>PLOT GOES HERE</div>
+        `,
+        controller: function($scope) {
+            // TODO (gurhar1133): find out why the crystal in UI
+            // is red outline
+            srdbg($scope.model);
+        }
     };
 });
 
