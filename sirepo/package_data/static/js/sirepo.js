@@ -1082,6 +1082,10 @@ SIREPO.app.factory('timeService', function() {
         return self.unixTime(new Date());
     };
 
+    self.unixTimeOneDayAgo = () => {
+        return self.unixTimeNow() - (60 * 60 * 24);
+    };
+
     self.unixTimeOneHourAgo = () => {
         return self.unixTimeNow() - (60 * 60);
     };
