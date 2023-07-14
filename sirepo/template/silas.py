@@ -150,9 +150,9 @@ def stateful_compute_n0n2_plot(data, **kwargs):
             pop_inversion_pump_offset_y=data.crystal.pump_offset_y,
         )
     )
+
     n = c.calc_n0n2(set_n=True, mesh_density=data.crystal.mesh_density)
-    pkdp("\n\n\nn={}\n\n\n", n)
-    return PKDict(n0n2Vals=n)
+    return PKDict(n0=n[0], n2=n[1], full_ABCD=n[2])
 
 
 def write_parameters(data, run_dir, is_parallel):
