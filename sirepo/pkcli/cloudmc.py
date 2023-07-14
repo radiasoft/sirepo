@@ -190,10 +190,10 @@ class _MoabGroupExtractor:
         for h in item.volumes:
             self._get_verticies_and_triangles(mb, h, vr, tr)
         m = {}
-        for i, v in enumerate(vr):
-            m[v] = i
-        v = numpy.array(list(mb.get_coords(vr)), dtype=numpy.float32)
-        p = numpy.array([m[v] for v in mb.get_connectivity(tr)], dtype=numpy.uint32)
+        for i, h in enumerate(vr):
+            m[h] = i
+        v = mb.get_coords(vr)
+        p = numpy.vectorize(lambda h: m[h])(mb.get_connectivity(tr))
         return (
             v.reshape(int(len(v) / 3), 3),
             p.reshape(int(len(p) / 3), 3),
