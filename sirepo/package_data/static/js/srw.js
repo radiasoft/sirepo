@@ -2401,7 +2401,7 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
             let imageData;
             $scope.isLoading = false;
             $scope.errorMessage = '';
-
+            // TODO (gurhar1133): use this as template for n0n2 plot gen
             const downloadImage = (format, callback) => {
                 let m = appState.clone($scope.model);
                 const f = $scope.model.imageFile;
