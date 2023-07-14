@@ -8,10 +8,11 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
-import array
 import copy
 import json
+import numpy
 import py.path
+import pymeshlab
 import pymoab.core
 import pymoab.rng
 import pymoab.types
@@ -158,28 +159,54 @@ class _MoabGroupExtractor:
     def process_item(self, item):
         self._write_vti(item.vol_id, self._get_points_and_polys(item))
 
-    def _array_from_list(self, arr, arr_type):
-        res = array.array(arr_type)
-        res.fromlist(arr)
-        return res
+    def _decimate(self, vertices, polygons):
+        ms = pymeshlab.MeshSet()
+        ms.add_mesh(pymeshlab.Mesh(vertices, polygons))
+        # TODO(pjm): use different decimation values based on mesh size
+        # ms.apply_filter(
+        #     "meshing_decimation_quadric_edge_collapse",
+        #     preservenormal=True,
+        #     targetperc=0.3,
+        #     preserveboundary=True,
+        #     qualitythr=1,
+        #     preservetopology=True,
+        #     planarquadric=True,
+        # )
+        ms.apply_filter(
+            "meshing_decimation_quadric_edge_collapse",
+            preservenormal=True,
+        )
+        m = ms.current_mesh()
+        return (
+            m.vertex_matrix().astype(numpy.float32),
+            m.face_matrix().astype(numpy.uint32),
+        )
 
-    def _get_points_and_polys(self, item):
+    def _extract_moab_vertices_and_triangles(self, item):
         mb = pymoab.core.Core()
         mb.load_file(item.dagmc_filename)
-        verticies = pymoab.rng.Range()
-        triangles = pymoab.rng.Range()
+        vr = pymoab.rng.Range()
+        tr = pymoab.rng.Range()
         for h in item.volumes:
-            self._get_verticies_and_triangles(mb, h, verticies, triangles)
+            self._get_verticies_and_triangles(mb, h, vr, tr)
         m = {}
-        for i, v in enumerate(verticies):
+        for i, v in enumerate(vr):
             m[v] = i
-        polys = []
-        for t in triangles:
-            polys.append(3)
-            polys += [m[vert] for vert in mb.get_connectivity(t)]
+        v = numpy.array(list(mb.get_coords(vr)), dtype=numpy.float32)
+        p = numpy.array([m[v] for v in mb.get_connectivity(tr)], dtype=numpy.uint32)
+        return (
+            v.reshape(int(len(v) / 3), 3),
+            p.reshape(int(len(p) / 3), 3),
+        )
+
+    def _get_points_and_polys(self, item):
+        v, p = self._extract_moab_vertices_and_triangles(item)
+        v, p = self._decimate(v, p)
+        # inserts polygon point count (always 3 for triangles)
+        p = numpy.insert(p, 0, 3, axis=1)
         return PKDict(
-            points=self._array_from_list(list(mb.get_coords(verticies)), "f"),
-            polys=self._array_from_list(polys, "I"),
+            points=v.flatten(),
+            polys=p.flatten(),
         )
 
     def _get_verticies_and_triangles(
