@@ -308,6 +308,7 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     for i in range(len(plots)):
         plot = plots[i]
         plot["color"] = colors[i % len(colors)]
+        pkdp("\n\n\n plot={}", plot)
         if not plot["points"]:
             y_range = [0, 0]
         elif fixed_y_range is None:

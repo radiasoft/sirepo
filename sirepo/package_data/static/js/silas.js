@@ -262,22 +262,27 @@ SIREPO.app.directive('n0n2Plot', function(appState, requestSender) {
             model: '=',
         },
         template: `
-            <div>PLOT GOES HERE</div>
+            <div data-report-panel="parameter" data-model-name="n0n2Plot">PLOT GOES HERE</div>
             <div>optionally ABCD goes here when prop is abcd</div>
         `,
         controller: function($scope) {
-            // TODO (gurhar1133): find out why the crystal in UI
-            // is red outline
-            requestSender.sendStatefulCompute(
+            srdbg($scope.model);
+            requestSender.sendStatelessCompute(
                 appState,
                 data => {
-                    srdbg(data);
+                    // appState.models['n0n2PlotData'] = {
+                    //     n0: Array(data.n0),
+                    //     n2: Array(data.n2),
+                    // }
+                    // $scope.plotModelName = 'n0n2PlotData';
+                    srdbg(appState.models);
                 },
                 {
                     method: 'n0n2_plot',
                     crystal: $scope.model,
                 }
             )
+            srdbg(appState.models);
         }
     };
 });

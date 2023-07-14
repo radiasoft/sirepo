@@ -125,10 +125,10 @@ def stateful_compute_mesh_dimensions(data, **kwargs):
     return PKDict(numSliceMeshPoints=[m.nx, m.ny])
 
 
-def stateful_compute_n0n2_plot(data, **kwargs):
+def stateless_compute_n0n2_plot(data, **kwargs):
     from rslaser.optics import Crystal
 
-    c = Crystal(
+    n = Crystal(
         params=PKDict(
             l_scale=data.crystal.l_scale,
             length=data.crystal.length * 1e-2,
@@ -149,10 +149,20 @@ def stateful_compute_n0n2_plot(data, **kwargs):
             pop_inversion_pump_offset_x=data.crystal.pump_offset_x,
             pop_inversion_pump_offset_y=data.crystal.pump_offset_y,
         )
+    ).calc_n0n2(set_n=True, mesh_density=data.crystal.mesh_density)
+    return template_common.parameter_plot(
+        range(len(n[0])),
+        [
+            PKDict(
+                points=n[0].tolist(),
+                label="label",
+            ),
+        ],
+        PKDict(),
+        PKDict(
+            x_label="n0 plot",
+        ),
     )
-
-    n = c.calc_n0n2(set_n=True, mesh_density=data.crystal.mesh_density)
-    return PKDict(n0=n[0], n2=n[1], full_ABCD=n[2])
 
 
 def write_parameters(data, run_dir, is_parallel):
