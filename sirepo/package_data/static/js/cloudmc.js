@@ -303,7 +303,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             </ul>
             <div>
                 <div data-ng-if="! isClientOnly && displayType === '3D'" class="col-sm-12">
-                    <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><span class="glyphicon" data-ng-class="isVolumeListExpanded ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up'" style="cursor: pointer;" data-ng-click="toggleVolumeList()"></span> Volume Selection</div>
+                    <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><div data-ng-click="toggleVolumeList()" style="cursor: pointer; display: inline-block"><span class="glyphicon" data-ng-class="isVolumeListExpanded ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up'"></span> Volume Selection</div></div>
                     <div data-ng-if="! volumeList" style="padding-top: 8px; padding-bottom: 8px;">Loading Volumes...</div>
                     <table data-ng-show="isVolumeListExpanded" class="table-condensed">
                         <thead>
@@ -1129,7 +1129,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 picker.setPickFromList(true);
                 vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 if (! isGeometryOnly) {
-                    vtkScene.renderWindow.getInteractor().onMouseMove(showFieldInfo);
+                    //TODO(pjm): this should only be enabled for hover, see #6039
+                    //vtkScene.renderWindow.getInteractor().onMouseMove(showFieldInfo);
                 }
 
                 const vols = [];
