@@ -255,7 +255,7 @@ SIREPO.app.directive('selectCrystal', function(appState, silasService) {
     };
 });
 
-SIREPO.app.directive('n0n2Plot', function(appState) {
+SIREPO.app.directive('n0n2Plot', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -263,11 +263,21 @@ SIREPO.app.directive('n0n2Plot', function(appState) {
         },
         template: `
             <div>PLOT GOES HERE</div>
+            <div>optionally ABCD goes here when prop is abcd</div>
         `,
         controller: function($scope) {
             // TODO (gurhar1133): find out why the crystal in UI
             // is red outline
-            srdbg($scope.model);
+            requestSender.sendStatefulCompute(
+                appState,
+                data => {
+                    srdbg(data);
+                },
+                {
+                    method: 'n0n2_plot',
+                    crystal: $scope.model,
+                }
+            )
         }
     };
 });

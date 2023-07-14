@@ -125,6 +125,36 @@ def stateful_compute_mesh_dimensions(data, **kwargs):
     return PKDict(numSliceMeshPoints=[m.nx, m.ny])
 
 
+def stateful_compute_n0n2_plot(data, **kwargs):
+    from rslaser.optics import Crystal
+
+    c = Crystal(
+        params=PKDict(
+            l_scale=data.crystal.l_scale,
+            length=data.crystal.length * 1e-2,
+            nslice=data.crystal.nslice,
+            A=data.crystal.A,
+            B=data.crystal.B,
+            C=data.crystal.C,
+            D=data.crystal.D,
+            pop_inversion_n_cells=data.crystal.inversion_n_cells,
+            pop_inversion_mesh_extent=data.crystal.inversion_mesh_extent,
+            pop_inversion_crystal_alpha=data.crystal.crystal_alpha,
+            pop_inversion_pump_waist=data.crystal.pump_waist,
+            pop_inversion_pump_wavelength=data.crystal.pump_wavelength,
+            pop_inversion_pump_gaussian_order=data.crystal.pump_gaussian_order,
+            pop_inversion_pump_energy=data.crystal.pump_energy,
+            pop_inversion_pump_type=data.crystal.pump_type,
+            pop_inversion_pump_rep_rate=data.crystal.pump_rep_rate,
+            pop_inversion_pump_offset_x=data.crystal.pump_offset_x,
+            pop_inversion_pump_offset_y=data.crystal.pump_offset_y,
+        )
+    )
+    n = c.calc_n0n2(set_n=True, mesh_density=data.crystal.mesh_density)
+    pkdp("\n\n\nn={}\n\n\n", n)
+    return PKDict(n0n2Vals=n)
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
