@@ -13,7 +13,7 @@ _DEPENDENT_CODES = [
     ["jspec", "elegant"],
     ["controls", "madx"],
     ["omega", "elegant"],
-    ["omega", "madx"],
+    ["omega", "genesis"],
     ["omega", "opal"],
 ]
 
@@ -184,7 +184,7 @@ def _init():
             ),
         ),
         react_sim_types=(
-            ("jspec", "genesis", "warppba", "omega", "myapp", "shadow", "madx")
+            ("jspec", "genesis", "warppba", "myapp", "shadow", "madx")
             if pkconfig.channel_in("dev")
             else (),
             set,

@@ -308,8 +308,7 @@ def _generate_crystal(crystal):
                 pop_inversion_pump_offset_y={crystal.pump_offset_y},
             ),
         ),
-        ["{crystal.propagationType}", {crystal.calc_gain == "1"}, {crystal.radial_n2 == "1"}],
-        {crystal.initial_temp},
+        ["{crystal.propagationType}", True, False],
         {crystal.mesh_density},
     ),\n"""
 
