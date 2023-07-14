@@ -1356,7 +1356,7 @@ SIREPO.app.directive('headerTooltip', function() {
     };
 });
 
-SIREPO.app.directive('helpButton', function($window) {
+SIREPO.app.directive('helpButton', function(requestSender) {
     var HELP_WIKI_ROOT = 'https://github.com/radiasoft/sirepo/wiki/' + SIREPO.APP_NAME.toUpperCase() + '-';
     return {
         restrict: 'A',
@@ -1368,9 +1368,9 @@ SIREPO.app.directive('helpButton', function($window) {
         `,
         controller: function($scope) {
             $scope.openHelp = function() {
-                $window.open(
+                requestSender.newWindow(
                     HELP_WIKI_ROOT + $scope.helpTopic.replace(/\s+/, '-'),
-                    '_blank');
+                );
             };
             $scope.showHelp = function() {
                 if ('SHOW_HELP_BUTTONS' in SIREPO) {
@@ -1404,7 +1404,7 @@ SIREPO.app.directive('helpLink', function(appState) {
     };
 });
 
-SIREPO.app.directive('videoButton', function(appState, $window) {
+SIREPO.app.directive('videoButton', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -1418,9 +1418,7 @@ SIREPO.app.directive('videoButton', function(appState, $window) {
             $scope.showLink = SIREPO.APP_SCHEMA.feature_config.show_video_links;
             $scope.tooltip = viewInfo.title + ' Help Video';
             $scope.openVideo = function() {
-                $window.open(
-                    viewInfo.helpVideoURL,
-                    '_blank');
+                requestSender.newWindow(viewInfo.helpVideoURL);
             };
         },
     };
@@ -2436,7 +2434,7 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
     };
 });
 
-SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appState, fileManager, requestSender, panelState, $window) {
+SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appState, fileManager, requestSender, panelState) {
     return {
         restrict: 'A',
         transclude: {
@@ -2536,7 +2534,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                 return false;
             };
             $scope.openDocumentation = function() {
-                $window.open(appState.models.simulation.documentationUrl, '_blank');
+                requestSender.newWindow(appState.models.simulation.documentationUrl);
             };
 
             $scope.showImportModal = function() {
@@ -2951,7 +2949,7 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
     };
 });
 
-SIREPO.app.directive('completeRegistration', function($window, requestSender, errorService) {
+SIREPO.app.directive('completeRegistration', function(requestSender, errorService) {
     return {
         restrict: 'A',
         template: `

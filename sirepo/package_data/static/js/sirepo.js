@@ -1490,6 +1490,20 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         self.ngViewScope = event.targetScope;
     });
 
+    const _downloadFile = (routeName, simulationId, modelName, reportTitle) => {
+        const args = {
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        };
+        if (modelName) {
+            args['<model>'] = modelName;
+        }
+        if (reportTitle) {
+            args['<title>'] = reportTitle;
+        }
+        return requestSender.newWindow(routeName, args);
+    };
+
     function applyToFields(method, modelName, fieldInfo) {
         var enableFun = function(f) {
             self[method](modelName, f, true);
@@ -1738,17 +1752,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
-        var args = {
-            '<simulation_id>': simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-        };
-        if (modelName) {
-            args['<model>'] = modelName;
-        }
-        if (reportTitle) {
-            args['<title>'] = reportTitle;
-        }
-        requestSender.newWindow('exportJupyterNotebook', args);
+        _downloadFile('exportJupyterNotebook', simulationId, modelName, reportTitle);
     };
 
     self.maybeSetState = function(model, state) {
@@ -1768,17 +1772,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.pythonSource = function(simulationId, modelName, reportTitle) {
-        var args = {
-            '<simulation_id>': simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-        };
-        if (modelName) {
-            args['<model>'] = modelName;
-        }
-        if (reportTitle) {
-            args['<title>'] = reportTitle;
-        }
-        requestSender.newWindow('pythonSource', args);
+        _downloadFile('pythonSource', simulationId, modelName, reportTitle);
     };
 
     self.reportNotGenerated = function(modelName) {
@@ -2186,6 +2180,13 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         localMap[n] = routeMapLocal(n, SIREPO.APP_SCHEMA.localRoutes[n].route);
     }
 
+    const _routeNameOrUrl = (routeNameOrUrl, params) => {
+        if (routeNameOrUrl.indexOf('/') >= 0) {
+            return routeNameOrUrl;
+        }
+        return self.formatUrl(routeNameOrUrl, params);
+    };
+
     function routeMapLocal(name, route) {
         const u = route.split('/');
         u.shift();
@@ -2338,8 +2339,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         $window.open(self.formatUrlLocal(routeName, params, app), '_blank');
     };
 
-    self.newWindow = function(routeName, params) {
-        $window.open(self.formatUrl(routeName, params), '_blank');
+    self.newWindow = function(routeNameOrUrl, params) {
+        $window.open(_routeNameOrUrl(routeNameOrUrl, params), '_blank');
     };
 
     self.openSimulation = (app, localRoute, simId) => {
@@ -2354,10 +2355,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     };
 
     self.globalRedirect = function(routeNameOrUrl, params) {
-        var u = routeNameOrUrl;
-        if (u.indexOf('/') < 0) {
-            u = self.formatUrl(u, params);
-        }
+        var u = _routeNameOrUrl(routeNameOrUrl, params);
         var i = u.indexOf('#');
         // https://github.com/radiasoft/sirepo/issues/2160
         // hash is persistent even if setting href so explicitly
