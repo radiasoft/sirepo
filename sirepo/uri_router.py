@@ -196,6 +196,8 @@ def start_tornado(ip, port, debug):
     """Start tornado server, does not return"""
     from tornado import httpserver, ioloop, web, log, websocket
 
+    ws_count = 0
+
     async def _websocket_response(sreply):
         await sreply.websocket_response()
 
@@ -228,7 +230,14 @@ def start_tornado(ip, port, debug):
         #            pass
 
         async def on_message(self, msg):
-            # need a msg id to pair with reply
+            self.msg_count += 1
+            pkdlog(
+                "start ws={} msg={} remote_ip={}",
+                self.ws_id,
+                self.msg_count,
+                self.remote_ip,
+            )
+            # TODO(robnagler) what if msg poorly constructed? Close socket?
             c = pkjson.load_any(msg)
             e, r, k = _path_to_route(c.uri[1:])
             if e:
@@ -245,6 +254,8 @@ def start_tornado(ip, port, debug):
                 ),
                 reply_op=_websocket_response,
             )
+            # TODO(robnagler) log uid need to get in SRequest somehow
+            pkdlog("end ws={} msg={} uri={}", self.ws_id, self.msg_count, c.uri)
 
         # def on_ping(self, *args, **kwargs):
         #     # do we care?
@@ -257,12 +268,15 @@ def start_tornado(ip, port, debug):
         # WebSocketHandler.set_nodelay
 
         def open(self):
+            nonlocal ws_count
+
             self.__headers = PKDict(self.request.headers)
             # self.set_nodelay(True)
             # self.uri = self.request.uri
-            # self.remote_ip = self.request
-            # self.cookie = need to handle
-            pass
+            self.remote_ip = self.request.remote_ip
+            self.msg_count = 0
+            ws_count += 1
+            self.ws_id = ws_count
 
     class _WebSocketRequest(PKDict):
         pass

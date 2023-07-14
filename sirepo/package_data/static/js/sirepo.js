@@ -1967,6 +1967,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
+// cannot import authState factory, because of circular import with requestSender
 SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window) => {
     const self = {};
     const toSend = [];
@@ -1974,7 +1975,6 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window) => {
     let reqSeq = 1;
     let socket = null;
 
-    // should be in authState, but there's a circular dependency with requestSender
     const _isAuthenticated = () =>  {
         return SIREPO.authState.isLoggedIn && ! SIREPO.authState.needCompleteRegistration;
     };
@@ -2096,7 +2096,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window) => {
     };
 
     self.send = (url, data, http_config) => {
-        if (! _isAuthenticated()) {
+        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated()) {
             return data == null ? $http.get(url, http_config)
                 : $http.post(url, data, http_config)
         }
