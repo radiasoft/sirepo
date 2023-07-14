@@ -15,7 +15,6 @@
                 "C": -0.260693,
                 "D": 0.99892682,
                 "_super": "beamElement",
-                "calc_gain": "1",
                 "calc_type": "fenics",
                 "crystal_alpha": 106.4,
                 "icon": "ti-sapphire-crystal.png",
@@ -54,7 +53,6 @@
                 "pump_type": "dual",
                 "pump_waist": 0.00382,
                 "pump_wavelength": 5.32e-07,
-                "radial_n2": "0",
                 "reuseCrystal": 0,
                 "title": "Crystal #1",
                 "type": "crystal"
@@ -97,7 +95,6 @@
                 "C": -0.260693,
                 "D": 0.99892682,
                 "_super": "beamElement",
-                "calc_gain": "0",
                 "calc_type": "fenics",
                 "crystal_alpha": 120,
                 "icon": "ti-sapphire-crystal.png",
@@ -136,7 +133,6 @@
                 "pump_type": "dual",
                 "pump_waist": 0.00164,
                 "pump_wavelength": 5.32e-07,
-                "radial_n2": "0",
                 "reuseCrystal": 2,
                 "title": "Crystal #1",
                 "type": "crystal"
@@ -179,7 +175,6 @@
                 "C": -0.260693,
                 "D": 0.99892682,
                 "_super": "beamElement",
-                "calc_gain": "0",
                 "calc_type": "fenics",
                 "crystal_alpha": 120,
                 "icon": "ti-sapphire-crystal.png",
@@ -218,7 +213,6 @@
                 "pump_type": "dual",
                 "pump_waist": 0.00164,
                 "pump_wavelength": 5.32e-07,
-                "radial_n2": "0",
                 "reuseCrystal": 2,
                 "title": "Crystal #1",
                 "type": "crystal"
@@ -261,7 +255,6 @@
                 "C": -0.260693,
                 "D": 0.99892682,
                 "_super": "beamElement",
-                "calc_gain": "0",
                 "calc_type": "fenics",
                 "crystal_alpha": 120,
                 "icon": "ti-sapphire-crystal.png",
@@ -300,7 +293,6 @@
                 "pump_type": "dual",
                 "pump_waist": 0.00164,
                 "pump_wavelength": 5.32e-07,
-                "radial_n2": "0",
                 "reuseCrystal": 2,
                 "title": "Crystal #1",
                 "type": "crystal"
@@ -343,7 +335,7 @@
         },
         "initialIntensityReport": {
             "colorMap": "viridis",
-            "watchpointPlot": "intensity"
+            "watchpointPlot": "total_intensity"
         },
         "laserPulse": {
             "ccd": "",
