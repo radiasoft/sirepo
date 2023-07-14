@@ -1980,7 +1980,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 });
 
 // cannot import authState factory, because of circular import with requestSender
-SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window) => {
+SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) => {
     const self = {};
     const toSend = [];
     let needReply = {};
@@ -2061,7 +2061,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window) => {
         var r = new FileReader();
         r.readAsDataURL(file);
         r.onerror = (event) => {
-            srlog("failed to read file=" + file.name, event)
+            srlog("failed to read file=" + file.name, event);
             errorService.alertText('Failed to read file=' + file.name);
             return;
         };
@@ -2100,17 +2100,17 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window) => {
         const s = new WebSocket(
             new URL($window.location.href).origin.replace(/^http/i, "ws") + "/ws",
         );
-        s.onclose = (event) => {_error(event)};
-        s.onerror = (event) => {_error(event)};
-        s.onmessage = (event) => {_reply(event)};
-        s.onopen = (event) => {_send()};
+        s.onclose = (event) => {_error(event);};
+        s.onerror = (event) => {_error(event);};
+        s.onmessage = (event) => {_reply(event);};
+        s.onopen = (event) => {_send();};
         socket = s;
     };
 
     self.send = (url, data, http_config) => {
         if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated()) {
             return data == null ? $http.get(url, http_config)
-                : $http.post(url, data, http_config)
+                : $http.post(url, data, http_config);
         }
         let m = {
             frame: {uri: url, reqSeq: reqSeq++},
@@ -2118,12 +2118,12 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window) => {
             ...http_config,
         };
         if (m.timeout) {
-            m.timeout.then(() => {_remove(m)});
+            m.timeout.then(() => {_remove(m);});
         }
         const c = () => {
             toSend.push(m);
             _send();
-        }
+        };
         if (data) {
             _reqData(
                 data,
