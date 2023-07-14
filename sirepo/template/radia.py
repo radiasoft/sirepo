@@ -230,6 +230,22 @@ def extract_report_data(run_dir, sim_in):
         )
 
 
+def generate_field_data(sim_id, g_id, name, field_type, field_paths):
+    assert (
+        field_type in radia_util.FIELD_TYPES
+    ), "field_type={}: invalid field type".format(field_type)
+    try:
+        if field_type == radia_util.FIELD_TYPE_MAG_M:
+            f = radia_util.get_magnetization(g_id)
+        else:
+            f = radia_util.get_field(g_id, field_type, _build_field_points(field_paths))
+        return radia_util.vector_field_to_data(
+            g_id, name, f, radia_util.FIELD_UNITS[field_type]
+        )
+    except RuntimeError as e:
+        _backend_alert(sim_id, g_id, e)
+
+
 def get_data_file(run_dir, model, frame, options):
     assert model in _REPORTS, "model={}: unknown report".format(model)
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -312,7 +328,21 @@ def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     return template_common.parse_mpi_log(run_dir)
 
 
+def python_source_for_model(data, model, qcall, **kwargs):
+    return _generate_parameters_file(data, False, for_export=True, qcall=qcall)
+
+
+def save_field_srw(gap, vectors, beam_axis, filename):
+    return _save_field_srw(
+        gap,
+        vectors,
+        _rotate_axis(to_axis="z", from_axis=beam_axis),
+        pkio.py_path(filename),
+    )
+
+
 def sim_frame_fieldLineoutAnimation(frame_args):
+    pkdp("FLA {}", frame_args)
     return _field_lineout_plot(
         frame_args.sim_in.models.simulation.simulationId,
         frame_args.sim_in.models.simulation.name,
@@ -321,6 +351,10 @@ def sim_frame_fieldLineoutAnimation(frame_args):
         frame_args.sim_in.models.fieldLineoutAnimation.plotAxis,
         field_data=pkjson.load_any(pkio.py_path("field_data.json")),
     )
+
+
+def sim_frame_optimizerAnimation(frame_args):
+    return _extract_optimization_results(frame_args)
 
 
 def stateless_compute_build_shape_points(data, **kwargs):
@@ -349,19 +383,6 @@ def stateless_compute_stl_size(data, **kwargs):
         _SIM_DATA.lib_file_name_with_type(data.args.file, SCHEMA.constants.fileTypeSTL)
     )
     return PKDict(size=_create_stl_trimesh(f).bounding_box.primitive.extents.tolist())
-
-
-def python_source_for_model(data, model, qcall, **kwargs):
-    return _generate_parameters_file(data, False, for_export=True, qcall=qcall)
-
-
-def save_field_srw(gap, vectors, beam_axis, filename):
-    return _save_field_srw(
-        gap,
-        vectors,
-        _rotate_axis(to_axis="z", from_axis=beam_axis),
-        pkio.py_path(filename),
-    )
 
 
 def validate_file(file_type, path):
@@ -616,17 +637,6 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
     return _update_geom_from_undulator(geom_objs, model, **kwargs)
 
 
-def _is_binary(file_path):
-    return bool(
-        open(file_path, "rb")
-        .read(1024)
-        .translate(
-            None,
-            bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7F}),
-        )
-    )
-
-
 def _create_stl_trimesh(file_path):
     readParam = "r"
     keyType = "ascii"
@@ -727,6 +737,11 @@ def _export_rsopt_files():
     return files
 
 
+def _extract_optimization_results(args):
+    pkdp("EXTRT R {}", args)
+    return PKDict()
+
+
 def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None):
     v = (
         field_data
@@ -805,22 +820,6 @@ def _fit_poles_in_h_bend(**kwargs):
 def _generate_electron_trajectory(sim_id, g_id, **kwargs):
     try:
         return radia_util.get_electron_trajectory(g_id, **kwargs)
-    except RuntimeError as e:
-        _backend_alert(sim_id, g_id, e)
-
-
-def generate_field_data(sim_id, g_id, name, field_type, field_paths):
-    assert (
-        field_type in radia_util.FIELD_TYPES
-    ), "field_type={}: invalid field type".format(field_type)
-    try:
-        if field_type == radia_util.FIELD_TYPE_MAG_M:
-            f = radia_util.get_magnetization(g_id)
-        else:
-            f = radia_util.get_field(g_id, field_type, _build_field_points(field_paths))
-        return radia_util.vector_field_to_data(
-            g_id, name, f, radia_util.FIELD_UNITS[field_type]
-        )
     except RuntimeError as e:
         _backend_alert(sim_id, g_id, e)
 
@@ -1173,6 +1172,17 @@ def _get_sdds(cols, units):
     return _cfg.sdds
 
 
+def _is_binary(file_path):
+    return bool(
+        open(file_path, "rb")
+        .read(1024)
+        .translate(
+            None,
+            bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7F}),
+        )
+    )
+
+
 def _kick_map_plot(model):
     from sirepo import srschema
 
@@ -1394,10 +1404,19 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 
 
 def _rsopt_percent_complete(run_dir, res):
+    res.frameCount = 0
+    res.percentComplete = 0
+    out_files = pkio.walk_tree(run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT)
+    if not out_files:
+        return res
+    res.summary = []
+    for f in out_files:
+        with h5py.File(f, "r") as h:
+            res.summary.append(template_common.h5_to_dict(h))
+    count = len(res.summary)
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
-    count = len(pkio.walk_tree(run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT))
     res.frameCount = count
-    res.percentComplete = 100 * count / dm.optimizer.maxIterations
+    res.percentComplete = 100 * (1 if pkio.sorted_glob("H_*.npy") else count / dm.optimizer.maxIterations)
     return res
 
 

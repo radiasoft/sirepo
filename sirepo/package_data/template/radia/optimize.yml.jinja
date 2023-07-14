@@ -2,7 +2,7 @@ codes:
     - python:
         parameters:
         {% for p in optimizer.parameters %}
-            {{ p.object }}_{{ p.field }}:
+            {{ p.object }}.{{ p.field }}:
               min: {{ p.min }}
               max: {{ p.max }}
               start: {{ p.start }}

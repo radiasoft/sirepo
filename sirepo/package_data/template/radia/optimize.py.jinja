@@ -1,6 +1,6 @@
 {%- macro objectFields() -%}
 {%- for p in optimizer.parameters -%}
-    "{{ p.object }}_{{ p.field }}",
+    "{{ p.object }}.{{ p.field }}",
 {%- endfor -%}
 {%- endmacro -%}
 
@@ -28,6 +28,8 @@ _OBJ_MODELS = (_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT, 
 _MODELS = _OBJ_MODELS + _GROUP_MODELS
 
 sirepo_objs = {{ objects }}
+
+parameters = PKDict()
 
 def _add_object(o, radia_objs, id_map):
     model = o.get("model")
@@ -86,7 +88,14 @@ def load_objective_function_result(*args):
 
 def objective_function(g_id):
     res = _calculate_objective(g_id)
-    template_common.write_dict_to_h5(PKDict(arr=res[1], val=res[0]), "{{ objectiveFunctionResultsFileName }}")
+    template_common.write_dict_to_h5(
+        PKDict(
+            parameters=parameters,
+            arr=res[1],
+            val=res[0],
+        ),
+        "{{ objectiveFunctionResultsFileName }}"
+    )
     return res
 
 
@@ -100,7 +109,8 @@ def _update_objects(**kwargs):
     for k, v in kwargs.items():
         if k not in fields:
             continue
-        mf = k.split("_")
+        parameters[k] = v
+        mf = k.split(".")
         _get_obj(mf[0])[mf[1]] = v
 
 

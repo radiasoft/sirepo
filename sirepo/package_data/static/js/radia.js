@@ -1234,24 +1234,6 @@ SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) 
     };
 });
 
-SIREPO.app.directive('fieldArray', function(appState) {
-    return {
-        scope: {
-            model: '=',
-            modelName: '=',
-            field: '=',
-            form: '=',
-        },
-        template: `
-            <div data-ng-repeat="f in model[field] track by $index" data-field-editor="f.name" data-form="form" data-model-name="modelName" data-model="model" data-custom-info="f.info"></div>
-        `,
-        controller: function ($scope) {
-
-            srdbg('FA', $scope.modelName, $scope.model, $scope.field, $scope.model[$scope.field]);
-        },
-    };
-});
-
 SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, persistentSimulation, radiaService, requestSender) {
     return {
         restrict: 'A',
