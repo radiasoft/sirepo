@@ -57,9 +57,9 @@ _PLOT_Y_LABEL = PKDict(
     opal=PKDict(
         {
             # TODO(pjm): should format px and βx with subscripts
-            "x-px": "px [βx γ]",
-            "y-py": "py [βy γ]",
-            "z-pz": "pz [β γ]",
+            "x-px": "px (βx γ)",
+            "y-py": "py (βy γ)",
+            "z-pz": "pz (β γ)",
         }
     )
 )
@@ -116,6 +116,7 @@ def background_percent_complete(report, run_dir, is_running):
     return PKDict(
         percentComplete=100,
         reports=_completed_reports(run_dir),
+        frameCount=1,
     )
 
 
@@ -169,6 +170,18 @@ def sim_frame(frame_args):
     raise AssertionError(
         "unhandled sim frame report: {}".format(frame_args.frameReport)
     )
+
+
+def stateful_compute_get_elegant_sim_list(**kwargs):
+    return _sim_list("elegant")
+
+
+def stateful_compute_get_genesis_sim_list(**kwargs):
+    return _sim_list("genesis")
+
+
+def stateful_compute_get_opal_sim_list(**kwargs):
+    return _sim_list("opal")
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -335,6 +348,18 @@ def _plot_phase(sim_type, sub_dir, frame_args):
 def _sim_info(dm, idx):
     w = dm.simWorkflow
     return w.get(f"simType_{idx + 1}"), w.get(f"simId_{idx + 1}")
+
+
+def _sim_list(sim_type):
+    return PKDict(
+        simList=sorted(
+            simulation_db.iterate_simulation_datafiles(
+                sim_type,
+                simulation_db.process_simulation_list,
+            ),
+            key=lambda row: row["name"],
+        )
+    )
 
 
 def _sim_type_and_sub_dir_from_report_name(models, report):

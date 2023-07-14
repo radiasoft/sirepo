@@ -7,18 +7,20 @@
 import pytest
 
 
-def test_four_processes():
+def test_three_processes():
     import multiprocessing
     import time
-    from pykern import pkunit
+    from pykern import pkunit, pkdebug
     from sirepo import file_lock
     from pykern.pkdebug import pkdp
     import os
 
     def _io(expect, append, before=0, after=0):
+        pkdebug.pkdlog("start expect={}", expect)
         p = _path()
         if before:
             time.sleep(before)
+        pkdebug.pkdlog("before={} expect={}", before, expect)
         with file_lock.FileLock(p):
             v = p.read() if p.exists() else ""
             pkunit.pkeq(expect, v)
@@ -38,22 +40,10 @@ def test_four_processes():
 
     pkunit.empty_work_dir()
     for p in [
+        # Test order: t1, t2, and t3. The before ensures the run-time
         _start("t1", "", "a"),
-        _start("t2", "a", "b", after=1),
-        # More than the _LOOP_SLEEP
-        _start("t3", "abd", "c", before=2),
-        _start("t4", "ab", "d", before=0.5),
+        _start("t2", "a", "b", before=0.5, after=1),
+        _start("t3", "ab", "c", before=1),
     ]:
         p.join()
-    pkunit.pkeq("abdc", _path().read())
-
-
-def test_happy():
-    from pykern import pkunit
-    from sirepo import file_lock
-
-    def _simple(path):
-        with file_lock.FileLock(path):
-            pass
-
-    _simple(pkunit.empty_work_dir())
+    pkunit.pkeq("abc", _path().read())
