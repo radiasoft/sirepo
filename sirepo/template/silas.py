@@ -125,44 +125,37 @@ def stateful_compute_mesh_dimensions(data, **kwargs):
     return PKDict(numSliceMeshPoints=[m.nx, m.ny])
 
 
-def stateless_compute_n0n2_plot(data, **kwargs):
+def stateful_compute_n0n2_plot(data, **kwargs):
+    import matplotlib.pyplot as plt
     from rslaser.optics import Crystal
-
+    pkdp("\n\n\n data={}", data)
     n = Crystal(
         params=PKDict(
-            l_scale=data.crystal.l_scale,
-            length=data.crystal.length * 1e-2,
-            nslice=data.crystal.nslice,
-            A=data.crystal.A,
-            B=data.crystal.B,
-            C=data.crystal.C,
-            D=data.crystal.D,
-            pop_inversion_n_cells=data.crystal.inversion_n_cells,
-            pop_inversion_mesh_extent=data.crystal.inversion_mesh_extent,
-            pop_inversion_crystal_alpha=data.crystal.crystal_alpha,
-            pop_inversion_pump_waist=data.crystal.pump_waist,
-            pop_inversion_pump_wavelength=data.crystal.pump_wavelength,
-            pop_inversion_pump_gaussian_order=data.crystal.pump_gaussian_order,
-            pop_inversion_pump_energy=data.crystal.pump_energy,
-            pop_inversion_pump_type=data.crystal.pump_type,
-            pop_inversion_pump_rep_rate=data.crystal.pump_rep_rate,
-            pop_inversion_pump_offset_x=data.crystal.pump_offset_x,
-            pop_inversion_pump_offset_y=data.crystal.pump_offset_y,
+            l_scale=data.model.l_scale,
+            length=data.model.length * 1e-2,
+            nslice=data.model.nslice,
+            A=data.model.A,
+            B=data.model.B,
+            C=data.model.C,
+            D=data.model.D,
+            pop_inversion_n_cells=data.model.inversion_n_cells,
+            pop_inversion_mesh_extent=data.model.inversion_mesh_extent,
+            pop_inversion_crystal_alpha=data.model.crystal_alpha,
+            pop_inversion_pump_waist=data.model.pump_waist,
+            pop_inversion_pump_wavelength=data.model.pump_wavelength,
+            pop_inversion_pump_gaussian_order=data.model.pump_gaussian_order,
+            pop_inversion_pump_energy=data.model.pump_energy,
+            pop_inversion_pump_type=data.model.pump_type,
+            pop_inversion_pump_rep_rate=data.model.pump_rep_rate,
+            pop_inversion_pump_offset_x=data.model.pump_offset_x,
+            pop_inversion_pump_offset_y=data.model.pump_offset_y,
         )
-    ).calc_n0n2(set_n=True, mesh_density=data.crystal.mesh_density)
-    return template_common.parameter_plot(
-        range(len(n[0])),
-        [
-            PKDict(
-                points=n[0].tolist(),
-                label="label",
-            ),
-        ],
-        PKDict(),
-        PKDict(
-            x_label="n0 plot",
-        ),
-    )
+    ).calc_n0n2(set_n=True, mesh_density=data.model.mesh_density)
+    p = pkio.py_path('n0n2_plot.png')
+    plt.plot(range(len(n[0])), n[0])
+    plt.plot(range(len(n[0])), n[1])
+    plt.savefig(p)
+    return PKDict(uri=p)
 
 
 def write_parameters(data, run_dir, is_parallel):

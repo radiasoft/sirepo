@@ -43,9 +43,6 @@
             ["dual", "Dual"],
             ["left", "Left"],
             ["right", "Right"]
-        ],
-        "N0n2Plot": [
-            ["n0n2Plot", "Plot of N0 N2"]
         ]
     },
     "dynamicFiles": {

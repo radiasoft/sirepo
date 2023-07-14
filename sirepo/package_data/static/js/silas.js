@@ -21,7 +21,7 @@ SIREPO.app.config(function() {
           <div data-select-crystal="" data-model="model" data-field="field"></div>
         </div>
         <div data-ng-switch-when="N0n2Plot">
-          <div data-n0n2-plot="" data-model="model"></div>
+          <div data-n0n2-plot="" data-model="model" data-image-class="images-sample"></div>
         </div>
         <div data-ng-switch-when="Float6">
           <div data-float-6="" data-model-name="modelName" data-model="model" data-field="field"></div>
@@ -255,37 +255,80 @@ SIREPO.app.directive('selectCrystal', function(appState, silasService) {
     };
 });
 
-SIREPO.app.directive('n0n2Plot', function(appState, requestSender) {
+SIREPO.app.directive('n0n2Plot', function(appState, requestSender, $http) {
     return {
         restrict: 'A',
         scope: {
-            model: '=',
+            imageClass: '@',
+            model: "=",
         },
         template: `
-            <div data-report-panel="parameter" data-model-name="n0n2Plot">PLOT GOES HERE</div>
-            <div>optionally ABCD goes here when prop is abcd</div>
-        `,
+            <div class="col-sm-12">
+              <div class="lead text-center">
+                <span data-ng-if="errorMessage">{{ errorMessage }}</span>
+                <span data ng-if="isLoading && ! errorMessage">Loading image ...</span>
+                </div>
+              {{ loadImageFile() }}
+              <img class="img-responsive {{ imageClass }}" />
+            </div>
+          `,
         controller: function($scope) {
-            srdbg($scope.model);
-            requestSender.sendStatelessCompute(
-                appState,
-                data => {
-                    // appState.models['n0n2PlotData'] = {
-                    //     n0: Array(data.n0),
-                    //     n2: Array(data.n2),
-                    // }
-                    // $scope.plotModelName = 'n0n2PlotData';
-                    srdbg(appState.models);
-                },
-                {
-                    method: 'n0n2_plot',
-                    crystal: $scope.model,
-                }
-            )
-            srdbg(appState.models);
-        }
+            $scope.isLoading = true;
+            $scope.imageClass = null;
+
+            const loadImageFile = () => {
+                requestSender.sendStatefulCompute(
+                    appState,
+                    response => {
+                        srdbg(response);
+                        $('.' + $scope.imageClass)[0].src = response.uri
+                        $scope.isLoading = false;
+                    },
+                    {
+                        method: 'n0n2_plot',
+                        model: $scope.model,
+                    }
+                );
+            };
+
+            loadImageFile();
+
+        },
     };
 });
+
+
+// SIREPO.app.directive('n0n2Plot', function(appState, requestSender) {
+//     return {
+//         restrict: 'A',
+//         scope: {
+//             model: '=',
+//         },
+//         template: `
+//             <div data-report-panel="parameter" data-model-name="n0n2Plot">PLOT GOES HERE</div>
+//             <div>optionally ABCD goes here when prop is abcd</div>
+//         `,
+//         controller: function($scope) {
+//             srdbg($scope.model);
+//             requestSender.sendStatelessCompute(
+//                 appState,
+//                 data => {
+//                     // appState.models['n0n2PlotData'] = {
+//                     //     n0: Array(data.n0),
+//                     //     n2: Array(data.n2),
+//                     // }
+//                     // $scope.plotModelName = 'n0n2PlotData';
+//                     srdbg(appState.models);
+//                 },
+//                 {
+//                     method: 'n0n2_plot',
+//                     crystal: $scope.model,
+//                 }
+//             )
+//             srdbg(appState.models);
+//         }
+//     };
+// });
 
 SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scope) {
     function updateCrystalFields(item) {
