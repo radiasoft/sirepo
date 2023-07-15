@@ -342,7 +342,6 @@ def save_field_srw(gap, vectors, beam_axis, filename):
 
 
 def sim_frame_fieldLineoutAnimation(frame_args):
-    pkdp("FLA {}", frame_args)
     return _field_lineout_plot(
         frame_args.sim_in.models.simulation.simulationId,
         frame_args.sim_in.models.simulation.name,
@@ -738,8 +737,45 @@ def _export_rsopt_files():
 
 
 def _extract_optimization_results(args):
-    pkdp("EXTRT R {}", args)
-    return PKDict()
+    plots = []
+    objective_vals = []
+    params = PKDict()
+    out_files = pkio.walk_tree(args.run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT)
+    for f in out_files:
+        with h5py.File(f, "r") as h:
+            d = template_common.h5_to_dict(h)
+            objective_vals.append(d.val)
+            for k, v in d.parameters.items():
+                if k not in params:
+                    params[k] = []
+                params[k].append(v)
+    plots.append(
+        PKDict(
+            points=objective_vals,
+            label="Objective function results",
+            style="line",
+        )
+    )
+    for k, v in params.items():
+        plots.append(
+            PKDict(
+                points=v,
+                label=k,
+                style="line",
+            )
+        )
+    return template_common.parameter_plot(
+        numpy.arange(len(out_files)).tolist(),
+        plots,
+        PKDict(),
+        PKDict(
+            title="Optimization Output",
+            y_label="Result",
+            x_label=f"Run",
+            summaryData=PKDict(),
+        ),
+    )
+
 
 
 def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None):
@@ -1409,10 +1445,6 @@ def _rsopt_percent_complete(run_dir, res):
     out_files = pkio.walk_tree(run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT)
     if not out_files:
         return res
-    res.summary = []
-    for f in out_files:
-        with h5py.File(f, "r") as h:
-            res.summary.append(template_common.h5_to_dict(h))
     count = len(res.summary)
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
     res.frameCount = count

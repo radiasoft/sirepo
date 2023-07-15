@@ -403,9 +403,10 @@
         ]
     },
     "frameIdFields": {
-        "solverAnimation": [],
         "fieldLineoutAnimation": [],
-        "magnetViewer": []
+        "magnetViewer": [],
+        "optimizerAnimation": [],
+        "solverAnimation": []
     },
     "localRoutes": {
         "source": {
