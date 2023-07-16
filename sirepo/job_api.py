@@ -100,6 +100,12 @@ class API(sirepo.quest.API):
                     req_data=req.req_data,
                     suffix=s,
                 )
+                if r.state == "canceled":
+                    # POSIT: Users can't cancel donwloadDataFile. So canceled means there was a
+                    # timeout (max_run_secs exceeded).
+                    raise sirepo.util.DownloadDataFileTimeout(
+                        f"sim_type={req.type} sid={req.id} report={req.req_data.report}"
+                    )
                 assert not r.state == "error", f"error state in request=={r}"
                 f = d.listdir()
                 if len(f) > 0:

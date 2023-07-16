@@ -589,6 +589,10 @@ class _SReply(sirepo.quest.Attr):
             q[k] = v
         return self.gen_redirect_for_local_route(t, route="error", query=q)
 
+    def _gen_exception_reply_DownloadDataFileTimeout(self, args):
+        # Best guess is the timeout was due to the size of the file requested
+        return self._gen_http_exception(413)
+
     def _gen_exception_reply_Forbidden(self, args):
         return self._gen_http_exception(403)
 

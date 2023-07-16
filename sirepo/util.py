@@ -126,6 +126,16 @@ class Redirect(OKReplyExc):
         super().__init__(*args, sr_args=PKDict(uri=uri), **kwargs)
 
 
+class DownloadDataFileTimeout(ReplyExc):
+    """Timeout when requesting a datafile
+
+    This is due to the OP_IO to request the data file being cancled due to the max_run_secs being
+    exceeded. Probably because the data file was too large.
+    """
+
+    pass
+
+
 class ServerError(ReplyExc):
     """Raised for server error"""
 
