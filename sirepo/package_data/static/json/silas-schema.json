@@ -226,10 +226,6 @@
                     "propagationType",
                     "initial_temp",
                     "mesh_density",
-                    "A",
-                    "B",
-                    "C",
-                    "D",
                     "l_scale"
                 ]],
                 ["Pump Pulse", [
@@ -244,7 +240,11 @@
                     "inversion_n_cells"
                 ]],
                 ["Summary", [
-                    "n0n2Plot"
+                    "n0n2Plot",
+                    "A",
+                    "B",
+                    "C",
+                    "D"
                 ]]
             ]
         },

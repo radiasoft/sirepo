@@ -255,7 +255,7 @@ SIREPO.app.directive('selectCrystal', function(appState, silasService) {
     };
 });
 
-SIREPO.app.directive('n0n2Plot', function(appState, requestSender, $http) {
+SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $http) {
     return {
         restrict: 'A',
         scope: {
@@ -270,20 +270,17 @@ SIREPO.app.directive('n0n2Plot', function(appState, requestSender, $http) {
                 </div>
               <img class="img-responsive {{ imageClass }}" />
             </div>
-            <div class="col-sm-12" data-ng-show="isAbcdPropagation()">
-                <span data-float="" data-model-data="abcd[0][0]"/>
-                {{ abcd }}
-            </div>
           `,
         controller: function($scope) {
             $scope.isLoading = true;
             $scope.imageClass = null;
-            $scope.abcd = null;
-            $scope.isAbcdPropagation = () => {
-                if ($scope.model.propagationType) {
-                    return ! $scope.isLoading && $scope.model.propagationType === 'abcd_lct';
-                }
-                return false;
+            const abcd = ['A', 'B', 'C', 'D'];
+
+            const showABCD = () => {
+                abcd.forEach(e => {
+                    panelState.showField('crystal', e, $scope.model.propagationType === 'abcd_lct');
+                    panelState.enableField('crystal', e, false);
+                })
             }
 
             const loadImageFile = () => {
@@ -293,8 +290,15 @@ SIREPO.app.directive('n0n2Plot', function(appState, requestSender, $http) {
                         if ($('.' + $scope.imageClass).length) {
                             $('.' + $scope.imageClass)[0].src = response.uri;
                         }
-                        $scope.abcd = response.abcd;
                         $scope.isLoading = false;
+                        for (let e of appState.models.beamline) {
+                            if (e.id == $scope.model.id) {
+                                abcd.forEach(p => {
+                                    e[p] = response[p];
+                                });
+                                showABCD();
+                            }
+                        }
                     },
                     {
                         method: 'n0n2_plot',
@@ -302,7 +306,6 @@ SIREPO.app.directive('n0n2Plot', function(appState, requestSender, $http) {
                     }
                 );
             };
-
             loadImageFile();
         },
     };
@@ -330,6 +333,9 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
             ['title', 'length', 'nslice'], item.origin === 'new',
             ['A', 'B', 'C', 'D'], item.propagationType == 'abcd_lct',
         ]);
+        ['A', 'B', 'C', 'D'].forEach(e => {
+            panelState.showField(item.type, e, false);
+        })
         panelState.enableField(item.type, 'pump_wavelength', false);
         panelState.showTab(item.type, 2, item.origin === 'new');
         panelState.showTab(item.type, 3, item.origin === 'new');

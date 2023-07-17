@@ -131,6 +131,10 @@ def stateful_compute_n0n2_plot(data, **kwargs):
     from pykern import pkcompat
     from base64 import b64encode
 
+    def _data_url(path):
+        with open(path, "rb") as f:
+            return "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
+
     n = Crystal(
         params=PKDict(
             l_scale=data.model.l_scale,
@@ -153,22 +157,23 @@ def stateful_compute_n0n2_plot(data, **kwargs):
             pop_inversion_pump_offset_y=data.model.pump_offset_y,
         )
     ).calc_n0n2(set_n=True, mesh_density=data.model.mesh_density)
-    # TODO (gurhar1133): use computed abcd from this in the simulation
-    # as well
-
     p = pkio.py_path('n0n2_plot.png')
     plt.clf()
     fig, axes = plt.subplots(2)
-    fig.suptitle(f"N0 N2 Plot (prop={data.model.propagationType})")
+    fig.suptitle(f"N0 N2 Plot")
     axes[0].plot(range(len(n[0])), n[0])
     axes[1].plot(range(len(n[0])), n[1])
     axes[0].set_ylabel("N0")
     axes[1].set_ylabel("N2")
     plt.xlabel("Slice")
     plt.savefig(p)
-    with open(p, "rb") as f:
-        r = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
-    return PKDict(uri=r, abcd=n[2])
+    return PKDict(
+        uri=_data_url(p),
+        A=n[2][0][0],
+        B=n[2][0][1],
+        C=n[2][1][0],
+        D=n[2][1][1],
+    )
 
 
 def write_parameters(data, run_dir, is_parallel):
