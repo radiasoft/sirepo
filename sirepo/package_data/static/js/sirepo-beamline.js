@@ -838,7 +838,7 @@ SIREPO.app.directive('watchPointList', function(appState, beamlineService) {
     };
 });
 
-SIREPO.app.directive('beamlineAnimation', function(appState, beamlineService, frameCache, persistentSimulation) {
+SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
     return {
         restrict: 'A',
         scope: {},
@@ -866,8 +866,6 @@ SIREPO.app.directive('beamlineAnimation', function(appState, beamlineService, fr
           </div>
         `,
         controller: function($scope, $rootScope) {
-            const numWatch = 1 + appState.models.beamline.filter(beamlineService.isWatchpointReportElement).length;
-
             $scope.reports = [];
             $scope.simScope = $scope;
             $scope.simComputeModel = 'beamlineAnimation';
