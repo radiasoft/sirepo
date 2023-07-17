@@ -183,20 +183,18 @@ class _MoabGroupExtractor:
         )
 
     def _extract_moab_vertices_and_triangles(self, item):
+        def _reshape3(v):
+            return v.reshape(int(len(v) / 3), 3)
+
         mb = pymoab.core.Core()
         mb.load_file(item.dagmc_filename)
         vr = pymoab.rng.Range()
         tr = pymoab.rng.Range()
         for h in item.volumes:
             self._get_verticies_and_triangles(mb, h, vr, tr)
-        m = {}
-        for i, h in enumerate(vr):
-            m[h] = i
-        v = mb.get_coords(vr)
-        p = numpy.vectorize(lambda h: m[h])(mb.get_connectivity(tr))
         return (
-            v.reshape(int(len(v) / 3), 3),
-            p.reshape(int(len(p) / 3), 3),
+            _reshape3(mb.get_coords(vr)),
+            _reshape3(numpy.searchsorted(vr, mb.get_connectivity(tr))),
         )
 
     def _get_points_and_polys(self, item):
@@ -205,8 +203,8 @@ class _MoabGroupExtractor:
         # inserts polygon point count (always 3 for triangles)
         p = numpy.insert(p, 0, 3, axis=1)
         return PKDict(
-            points=v.flatten(),
-            polys=p.flatten(),
+            points=v.ravel(),
+            polys=p.ravel(),
         )
 
     def _get_verticies_and_triangles(
