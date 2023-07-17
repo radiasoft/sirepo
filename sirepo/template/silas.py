@@ -157,7 +157,7 @@ def stateful_compute_n0n2_plot(data, **kwargs):
             pop_inversion_pump_offset_y=data.model.pump_offset_y,
         )
     ).calc_n0n2(set_n=True, mesh_density=data.model.mesh_density)
-    p = pkio.py_path('n0n2_plot.png')
+    p = pkio.py_path("n0n2_plot.png")
     plt.clf()
     fig, axes = plt.subplots(2)
     fig.suptitle(f"N0 N2 Plot")

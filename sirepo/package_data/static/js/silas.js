@@ -280,25 +280,34 @@ SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $
                 abcd.forEach(e => {
                     panelState.showField('crystal', e, $scope.model.propagationType === 'abcd_lct');
                     panelState.enableField('crystal', e, false);
-                })
-            }
+                });
+            };
+
+            const crystalById = (id) => {
+                for (let e of appState.models.beamline){
+                    if (e.id == id) {
+                        return e;
+                    }
+                }
+                throw new Error(`Could Not Find Crystal with id=${id}`);
+            };
 
             const loadImageFile = () => {
                 requestSender.sendStatefulCompute(
                     appState,
                     response => {
+                        if (! $scope.model) {
+                            return;
+                        }
                         if ($('.' + $scope.imageClass).length) {
                             $('.' + $scope.imageClass)[0].src = response.uri;
                         }
                         $scope.isLoading = false;
-                        for (let e of appState.models.beamline) {
-                            if (e.id == $scope.model.id) {
-                                abcd.forEach(p => {
-                                    e[p] = response[p];
-                                });
-                                showABCD();
-                            }
-                        }
+                        const c = crystalById($scope.model.id);
+                        abcd.forEach(e => {
+                            c[e] = response[e];
+                        });
+                        showABCD();
                     },
                     {
                         method: 'n0n2_plot',
@@ -306,6 +315,7 @@ SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $
                     }
                 );
             };
+
             loadImageFile();
         },
     };
@@ -335,7 +345,7 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
         ]);
         ['A', 'B', 'C', 'D'].forEach(e => {
             panelState.showField(item.type, e, false);
-        })
+        });
         panelState.enableField(item.type, 'pump_wavelength', false);
         panelState.showTab(item.type, 2, item.origin === 'new');
         panelState.showTab(item.type, 3, item.origin === 'new');
