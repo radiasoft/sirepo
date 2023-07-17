@@ -125,7 +125,7 @@
             "pump_gaussian_order": ["Pump Gaussian Order", "Float", 2.0],
             "pump_type": ["Pump Type", "PumpType", "dual"],
             "origin": ["Crystal", "CrystalOrigin", "new"],
-            "n0n2Plot": ["N0N2 Plot", "N0n2Plot", "n0n2Plot"],
+            "n0n2Plot": ["", "N0n2Plot", "n0n2Plot"],
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
             "pump_offset_x": ["Pump Offset X [m]", "Float", 0],
             "pump_offset_y": ["Pump Offset X [m]", "Float", 0],

@@ -128,7 +128,9 @@ def stateful_compute_mesh_dimensions(data, **kwargs):
 def stateful_compute_n0n2_plot(data, **kwargs):
     import matplotlib.pyplot as plt
     from rslaser.optics import Crystal
-    pkdp("\n\n\n data={}", data)
+    from pykern import pkcompat
+    from base64 import b64encode
+
     n = Crystal(
         params=PKDict(
             l_scale=data.model.l_scale,
@@ -152,10 +154,17 @@ def stateful_compute_n0n2_plot(data, **kwargs):
         )
     ).calc_n0n2(set_n=True, mesh_density=data.model.mesh_density)
     p = pkio.py_path('n0n2_plot.png')
-    plt.plot(range(len(n[0])), n[0])
-    plt.plot(range(len(n[0])), n[1])
+    plt.clf()
+    plt.plot(range(len(n[0])), n[0], label='n0')
+    plt.plot(range(len(n[0])), n[1], label='n2')
+    plt.xlabel("Slice")
+    plt.ylabel("Value")
+    plt.title("N0 N2 Plot")
+    plt.legend()
     plt.savefig(p)
-    return PKDict(uri=p)
+    with open(p, "rb") as f:
+        r = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
+    return PKDict(uri=r)
 
 
 def write_parameters(data, run_dir, is_parallel):

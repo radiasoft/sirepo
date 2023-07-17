@@ -266,9 +266,8 @@ SIREPO.app.directive('n0n2Plot', function(appState, requestSender, $http) {
             <div class="col-sm-12">
               <div class="lead text-center">
                 <span data-ng-if="errorMessage">{{ errorMessage }}</span>
-                <span data ng-if="isLoading && ! errorMessage">Loading image ...</span>
+                <span data ng-if="isLoading && ! errorMessage">Loading N0 N2 Plot ...</span>
                 </div>
-              {{ loadImageFile() }}
               <img class="img-responsive {{ imageClass }}" />
             </div>
           `,
@@ -280,8 +279,9 @@ SIREPO.app.directive('n0n2Plot', function(appState, requestSender, $http) {
                 requestSender.sendStatefulCompute(
                     appState,
                     response => {
-                        srdbg(response);
-                        $('.' + $scope.imageClass)[0].src = response.uri
+                        if ($('.' + $scope.imageClass).length) {
+                            $('.' + $scope.imageClass)[0].src = response.uri
+                        }
                         $scope.isLoading = false;
                     },
                     {
@@ -296,39 +296,6 @@ SIREPO.app.directive('n0n2Plot', function(appState, requestSender, $http) {
         },
     };
 });
-
-
-// SIREPO.app.directive('n0n2Plot', function(appState, requestSender) {
-//     return {
-//         restrict: 'A',
-//         scope: {
-//             model: '=',
-//         },
-//         template: `
-//             <div data-report-panel="parameter" data-model-name="n0n2Plot">PLOT GOES HERE</div>
-//             <div>optionally ABCD goes here when prop is abcd</div>
-//         `,
-//         controller: function($scope) {
-//             srdbg($scope.model);
-//             requestSender.sendStatelessCompute(
-//                 appState,
-//                 data => {
-//                     // appState.models['n0n2PlotData'] = {
-//                     //     n0: Array(data.n0),
-//                     //     n2: Array(data.n2),
-//                     // }
-//                     // $scope.plotModelName = 'n0n2PlotData';
-//                     srdbg(appState.models);
-//                 },
-//                 {
-//                     method: 'n0n2_plot',
-//                     crystal: $scope.model,
-//                 }
-//             )
-//             srdbg(appState.models);
-//         }
-//     };
-// });
 
 SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scope) {
     function updateCrystalFields(item) {
