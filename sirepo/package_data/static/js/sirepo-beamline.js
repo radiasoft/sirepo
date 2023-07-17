@@ -897,7 +897,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, beamlineService, fr
                             modelAccess: {
                                 modelKey: x.modelKey,
                             },
-                        }
+                        };
                     });
                 }
 
