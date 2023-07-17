@@ -99,6 +99,8 @@ class _TestClient:
     DEFAULT_TIMEOUT_SECS = 15
 
     def __init__(self, env, job_run_mode, port):
+        from sirepo import feature_config
+
         super().__init__()
         self.sr_job_run_mode = job_run_mode
         self.sr_sbatch_logged_in = False
@@ -108,6 +110,8 @@ class _TestClient:
         self.http_prefix = f"http://{env.SIREPO_PKCLI_SERVICE_IP}:{port}"
         self._session = requests.Session()
         self.cookie_jar = self._session.cookies
+        if feature_config.cfg().ui_web_socket:
+            self._websocket = _Websocket(self)
 
     def get(self, uri, headers=None):
         return self._requests_op("get", uri, headers, kwargs=PKDict())
@@ -218,6 +222,7 @@ class _TestClient:
         self.sr_post(resp.uri, r, raw_response=True)
 
     def sr_email_login(self, email, sim_type=None):
+        self._uid_clear()
         self.sr_sim_type_set(sim_type)
         self.sr_logout()
         r = self.sr_post(
@@ -225,7 +230,7 @@ class _TestClient:
             PKDict(email=email, simulationType=self.sr_sim_type),
         )
         self.sr_email_confirm(r, display_name=email)
-        return self._verify_and_save_uid()
+        return self._uid_verify_and_save()
 
     def sr_get(self, route_or_uri, params=None, query=None, **kwargs):
         """Gets a request to route_or_uri to server
@@ -295,12 +300,13 @@ class _TestClient:
         Returns:
             str: new user id
         """
+        self._uid_clear()
         self.sr_sim_type_set(sim_type)
         self.cookie_jar.clear()
         # Get a cookie
         self.sr_get("authState")
         self.sr_get("authGuestLogin", {"simulation_type": self.sr_sim_type})
-        return self._verify_and_save_uid()
+        return self._uid_verify_and_save()
 
     def sr_logout(self):
         """Logout but leave cookie in place
@@ -308,7 +314,7 @@ class _TestClient:
         Returns:
             object: self
         """
-        self.sr_uid = None
+        self._uid_clear()
         self.sr_get("authLogout", PKDict(simulation_type=self.sr_sim_type))
         return self
 
@@ -518,12 +524,6 @@ class _TestClient:
             uid = self.sr_auth_state().uid
         return pkunit.work_dir().join(_DB_DIR, "user", uid)
 
-    def _verify_and_save_uid(self):
-        self.sr_uid = self.sr_auth_state(
-            needCompleteRegistration=False, isLoggedIn=True
-        ).uid
-        return self.sr_uid
-
     def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):
         """Make request and parse result
 
@@ -611,6 +611,8 @@ class _TestClient:
         from sirepo import const
 
         u = self._uri(uri)
+        if "_websocket" in self and self._websocket.send(op, u, headers, **kwargs):
+            return
         if headers is None:
             headers = PKDict()
         headers.setdefault(
@@ -626,6 +628,19 @@ class _TestClient:
 
             pkdlog("op={} uri={} headers={}", op, u, headers)
             raise
+
+    def _uid_clear(self):
+        if "_websocket" in self:
+            self._websocket.stop()
+        self.sr_uid = None
+
+    def _uid_verify_and_save(self):
+        self.sr_uid = self.sr_auth_state(
+            needCompleteRegistration=False, isLoggedIn=True
+        ).uid
+        if "_websocket" in self:
+            self._websocket.start()
+        return self.sr_uid
 
     def _uri(self, uri):
         from pykern.pkdebug import pkdp
@@ -664,3 +679,48 @@ class _Response:
             headers=PKDict(Location=uri),
         )
         return self
+
+
+class _WebSocket:
+    def __init__(self, test_client):
+        self._connection = None
+        self._test_client = test_client
+
+    def send(self, op, uri, headers, data=None, files=None, json=None):
+        if not self._connection or headers:
+            # Only know how to operate on a session
+            return False
+        one message at a time
+        self.reply_event = asyncio.Event()
+
+    def start(self):
+        from tornado import websocket, httpclient
+
+        assert not self._connection
+        r = requests.Request(
+            url=self._test_client.http_prefix + "/ws",
+            cookies=self._test_client.cookie_jar,
+        ).prepare()
+        self._connection = await websocket.websocket_connect(
+            httpclient.HTTPRequest(
+                url=r.url.replace("http", "ws"),
+                headers=r.headers,
+            ),
+            on_message_callback=self._message,
+        )
+
+    def stop(self):
+        if self._connection:
+            self._connection.close()
+            self._connection = None
+
+    def _message(self):
+        from pykern import pkjson
+
+        m = pkjson.load_any(msg)
+
+        pkunit.pkeq(1, m.reqSeq)
+        pkunit.pkeq("text/html", m.contentType)
+        pkunit.pkre("h1>not found", m.content)
+
+        reply_event.set()
