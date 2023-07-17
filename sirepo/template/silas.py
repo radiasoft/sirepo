@@ -153,18 +153,22 @@ def stateful_compute_n0n2_plot(data, **kwargs):
             pop_inversion_pump_offset_y=data.model.pump_offset_y,
         )
     ).calc_n0n2(set_n=True, mesh_density=data.model.mesh_density)
+    # TODO (gurhar1133): use computed abcd from this in the simulation
+    # as well
+
     p = pkio.py_path('n0n2_plot.png')
     plt.clf()
-    plt.plot(range(len(n[0])), n[0], label='n0')
-    plt.plot(range(len(n[0])), n[1], label='n2')
+    fig, axes = plt.subplots(2)
+    fig.suptitle(f"N0 N2 Plot (prop={data.model.propagationType})")
+    axes[0].plot(range(len(n[0])), n[0])
+    axes[1].plot(range(len(n[0])), n[1])
+    axes[0].set_ylabel("N0")
+    axes[1].set_ylabel("N2")
     plt.xlabel("Slice")
-    plt.ylabel("Value")
-    plt.title("N0 N2 Plot")
-    plt.legend()
     plt.savefig(p)
     with open(p, "rb") as f:
         r = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
-    return PKDict(uri=r)
+    return PKDict(uri=r, abcd=n[2])
 
 
 def write_parameters(data, run_dir, is_parallel):

@@ -270,18 +270,30 @@ SIREPO.app.directive('n0n2Plot', function(appState, requestSender, $http) {
                 </div>
               <img class="img-responsive {{ imageClass }}" />
             </div>
+            <div class="col-sm-12" data-ng-show="isAbcdPropagation()">
+                <span data-float="" data-model-data="abcd[0][0]"/>
+                {{ abcd }}
+            </div>
           `,
         controller: function($scope) {
             $scope.isLoading = true;
             $scope.imageClass = null;
+            $scope.abcd = null;
+            $scope.isAbcdPropagation = () => {
+                if ($scope.model.propagationType) {
+                    return ! $scope.isLoading && $scope.model.propagationType === 'abcd_lct';
+                }
+                return false;
+            }
 
             const loadImageFile = () => {
                 requestSender.sendStatefulCompute(
                     appState,
                     response => {
                         if ($('.' + $scope.imageClass).length) {
-                            $('.' + $scope.imageClass)[0].src = response.uri
+                            $('.' + $scope.imageClass)[0].src = response.uri;
                         }
+                        $scope.abcd = response.abcd;
                         $scope.isLoading = false;
                     },
                     {
@@ -292,7 +304,6 @@ SIREPO.app.directive('n0n2Plot', function(appState, requestSender, $http) {
             };
 
             loadImageFile();
-
         },
     };
 });
