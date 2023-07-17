@@ -838,7 +838,7 @@ SIREPO.app.directive('watchPointList', function(appState, beamlineService) {
     };
 });
 
-SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
+SIREPO.app.directive('beamlineAnimation', function(appState, beamlineService, frameCache, persistentSimulation) {
     return {
         restrict: 'A',
         scope: {},
@@ -866,6 +866,8 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
           </div>
         `,
         controller: function($scope, $rootScope) {
+            const numWatch = 1 + appState.models.beamline.filter(beamlineService.isWatchpointReportElement).length;
+
             $scope.reports = [];
             $scope.simScope = $scope;
             $scope.simComputeModel = 'beamlineAnimation';
@@ -888,18 +890,23 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
                 if (! data.outputInfo) {
                     return;
                 }
-                for (let i = 0; i < data.frameCount; i++) {
-                    if ($scope.reports.length != i) {
-                        continue;
-                    }
-                    let info = data.outputInfo[i];
-                    $scope.reports.push({
-                        id: info.id,
-                        modelAccess: {
-                            modelKey: info.modelKey,
-                        },
+                if (! $scope.reports.length) {
+                    $scope.reports = data.outputInfo.map(x => {
+                        return {
+                            id: x.id,
+                            modelAccess: {
+                                modelKey: x.modelKey,
+                            },
+                        }
                     });
-                    frameCache.setFrameCount(info.frameCount || 1, info.modelKey);
+                }
+
+                for (let i = 0; i < $scope.reports.length; i++) {
+                    let info = data.outputInfo[i];
+                    frameCache.setFrameCount(
+                        info.waitForData ? SIREPO.nonDataFileFrame : (info.frameCount || 1),
+                        info.modelKey
+                    );
                 }
                 frameCache.setFrameCount(data.frameCount || 0);
             };

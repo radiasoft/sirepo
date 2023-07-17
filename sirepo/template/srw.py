@@ -1154,6 +1154,7 @@ def _beamline_animation_percent_complete(run_dir, res):
         if item.type == "watch":
             res.outputInfo.append(
                 PKDict(
+                    waitForData=True,
                     modelKey=f"beamlineAnimation{item.id}",
                     filename=_wavefront_pickle_filename(item.id),
                     id=item.id,
@@ -1166,6 +1167,7 @@ def _beamline_animation_percent_complete(run_dir, res):
                 # TODO(pjm): instead look at last byte == pickle.STOP, see template_common.read_last_csv_line()
                 wfr = pickle.load(f)
                 count += 1
+                info.waitForData = False
         except Exception as e:
             break
     res.frameCount = count
