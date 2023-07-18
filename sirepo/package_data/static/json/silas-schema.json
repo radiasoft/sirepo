@@ -131,6 +131,7 @@
             "pump_pulse_profile": ["Pump Pulse Profile", "PumpPulseProfile", "gaussian"],
             "pump_type": ["Pump Type", "PumpType", "dual"],
             "origin": ["Crystal", "CrystalOrigin", "new"],
+            "n0n2Plot": ["", "N0n2Plot", "n0n2Plot"],
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
             "pump_offset_x": ["Pump Offset X [m]", "Float", 0],
             "pump_offset_y": ["Pump Offset X [m]", "Float", 0],
@@ -241,10 +242,6 @@
                     "propagationType",
                     "initial_temp",
                     "mesh_density",
-                    "A",
-                    "B",
-                    "C",
-                    "D",
                     "l_scale"
                 ]],
                 ["Pump Pulse", [
@@ -258,6 +255,13 @@
                     "pump_offset_x",
                     "pump_offset_y",
                     "inversion_n_cells"
+                ]],
+                ["Summary", [
+                    "n0n2Plot",
+                    "A",
+                    "B",
+                    "C",
+                    "D"
                 ]]
             ]
         },
@@ -368,6 +372,10 @@
         },
         "plot2Animation": {
             "title": "Longitudinal Temperature Profile",
+            "advanced": []
+        },
+        "n0n2Plot": {
+            "title": "",
             "advanced": []
         },
         "simulationStatus": {
