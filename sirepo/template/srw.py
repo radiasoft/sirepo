@@ -1987,6 +1987,11 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 content.append("op = set_optics(v, names, {})".format(is_last_watch))
                 if not is_last_watch:
                     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
+                    content.append(
+                        f"""with open('{prev_wavefront}', 'r') as f:
+                            wfr = pickle.load(f)
+                        """
+                    )
     elif run_all or (
         _SIM_DATA.srw_is_beamline_report(report) and len(data.models.beamline)
     ):
