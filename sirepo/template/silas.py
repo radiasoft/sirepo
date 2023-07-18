@@ -377,8 +377,8 @@ class _LaserPulsePlot(PKDict):
         longitudinal_intensity="Intensity",
         total_intensity="Total Intensity",
         total_phase="Total Phase",
-        longitudinal_frequency="Longitudinal Frequency",
-        longitudinal_wavelength="Longitudinal Wavelength",
+        longitudinal_frequency="Frequency [Rad/s]",
+        longitudinal_wavelength="Wavelength [nm]",
         longitudinal_photons="Total Number of Photons",
         excited_states_longitudinal="Excited States",
         excited_states="Excited States Slice #{slice_index}",
@@ -391,8 +391,8 @@ class _LaserPulsePlot(PKDict):
         excited_states_longitudinal="Crystal Slice",
         longitudinal_photons="Crystal width [cm]",
         longitudinal_intensity="Pulse Slice",
-        longitudinal_frequency="Frequency [Hz]",
-        longitudinal_wavelength="Wavelength [m]",
+        longitudinal_frequency="Pulse Slice",
+        longitudinal_wavelength="Pulse Slice",
     )
 
     _Z_LABELS = PKDict(
