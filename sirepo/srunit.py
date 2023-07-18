@@ -6,8 +6,11 @@
 """
 from pykern import pkcompat
 from pykern.pkcollections import PKDict
+import base64
 import contextlib
+import copy
 import json
+import os.path
 import pykern.pkinspect
 import re
 import requests
@@ -348,7 +351,7 @@ class _TestClient:
 
         Args:
             route_or_uri (str): identifies route in schema-common.json
-            data (dict): will be formatted as form-data
+            data (dict): content to post
             params (dict): optional params to route_or_uri
             file (object): if str, will look in data_dir, else assumed py.path
 
@@ -687,11 +690,37 @@ class _WebSocket:
         self._test_client = test_client
 
     def send(self, op, uri, headers, data=None, files=None, json=None):
-        if not self._connection or headers:
-            # Only know how to operate on a session
+
+        def _marshall():
+            self._req_seq += 1
+            m = PKDict(self._req_seq, uri=uri)
+            if op == "get":
+                assert data is None and json is None and files is None, \
+                    f"GET does not support content uri={uri}"
+            else:
+                assert data is None or json is None, \
+                    f"only json or data may be supplied uri={uri}"
+                m.content = json if data is None else data)
+                if files:
+                    m.content = copy.deepcopy(m.content)
+                    m.content.file = PKDict(
+                        filename=os.path.basename(files.file.name),
+                        base64=pkcompat.from_bytes(base64.b64encode(files.file.read())),
+                    )
+            return pkjson.dump_pretty(m, pretty=False)
+
+        if headers or not self._connection:
+            # Headers means something special (usually auth testing)
             return False
-        one message at a time
+        asyncio.run(self._send(self._marshall_msg()))
+
+    async def _send(self, msg):
         self.reply_event = asyncio.Event()
+        await self._connection.write_message(msg)
+        try:
+            await asyncio.wait_for(reply_event.wait(), self._test_client.DEFAULT_TIMEOUT_SECS)
+        finally:
+            self.stop()
 
     def start(self):
         from tornado import websocket, httpclient
@@ -708,11 +737,15 @@ class _WebSocket:
             ),
             on_message_callback=self._message,
         )
+        self._reply_event = asyncio.Event()
+        self._req_seq = 1
 
     def stop(self):
         if self._connection:
             self._connection.close()
             self._connection = None
+            self._req_seq = None
+            self._reply_event = None
 
     def _message(self):
         from pykern import pkjson
