@@ -348,11 +348,8 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
             ['origin'], hasCrystals,
             ['reuseCrystal'], item.origin === 'reuse',
             ['title', 'length', 'nslice'], item.origin === 'new',
-            ['A', 'B', 'C', 'D'], item.propagationType == 'abcd_lct',
+            ['A', 'B', 'C', 'D'], false,
         ]);
-        ['A', 'B', 'C', 'D'].forEach(e => {
-            panelState.showField(item.type, e, false);
-        });
         panelState.enableField(item.type, 'pump_wavelength', false);
         panelState.showTab(item.type, 2, item.origin === 'new');
         panelState.showTab(item.type, 3, item.origin === 'new');
@@ -767,18 +764,22 @@ const intensityViewHandler = function(appState, beamlineService, panelState, $sc
              : null;
     }
 
+    function isCrystal(element) {
+        return element && element.type == 'crystal';
+    }
+
     function updateIntensityReport() {
         //TODO(pjm): maybe keep the id on the model
         //const e = beamlineService.getItemById($scope.modelData.modelKey.match(/(\d+)/)[1]);
         const e = element();
         const m = model();
         panelState.showFields('watchpointReport', [
-            ['watchpointPlot'], ! e || e.type == 'watch',
-            ['crystalPlot'], e && e.type == 'crystal',
+            ['watchpointPlot'], ! isCrystal(e),
+            ['crystalPlot'], isCrystal(e),
         ]);
 
         const getAndSavePlot = (model, element) => {
-            let p = element && element.type == 'crystal' ? model.crystalPlot : model.watchpointPlot;
+            let p = isCrystal(element) ? model.crystalPlot : model.watchpointPlot;
             model.reportType = p.includes('longitudinal')
                         ? 'parameter'
                         : '3d';
@@ -787,7 +788,10 @@ const intensityViewHandler = function(appState, beamlineService, panelState, $sc
 
         getAndSavePlot(m, e);
         const idx = SIREPO.SINGLE_FRAME_ANIMATION.indexOf(modelKey());
-        if (m.reportType == 'parameter' || ['total_intensity', 'total_phase'].includes(m.watchpointPlot)) {
+        if (m.reportType == 'parameter'
+            || (! isCrystal(e) && ['total_intensity', 'total_phase'].includes(m.watchpointPlot))
+            || (isCrystal(e) && m.crystalPlot === 'excited_states_longitudinal')
+        ) {
             if (idx < 0) {
                 SIREPO.SINGLE_FRAME_ANIMATION.push(modelKey());
             }

@@ -169,10 +169,10 @@ def stateful_compute_n0n2_plot(data, **kwargs):
     plt.savefig(p)
     return PKDict(
         uri=_data_url(p),
-        A=n[2][0][0],
-        B=n[2][0][1],
-        C=n[2][1][0],
-        D=n[2][1][1],
+        A=round(n[2][0][0], 9),
+        B=round(n[2][0][1], 9),
+        C=round(n[2][1][0], 9),
+        D=round(n[2][1][1], 9),
     )
 
 
