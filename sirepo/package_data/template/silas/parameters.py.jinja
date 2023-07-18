@@ -46,11 +46,8 @@ class Watchpoint:
             return laser_pulse_ranges(pulse.slice_wfr(idx))
 
         def longitudinal_wavelength_and_frequency(laser_pulse, slice_index):
-            o = (2.0 * numpy.pi * const.c) / laser_pulse.slice[slice_index]._lambda0
-            c = o + (
-                (laser_pulse.initial_chirp * (laser_pulse.slice[slice_index]._pulse_pos / const.c)) / {{ laserPulse['tau_fwhm'] }}**2.0
-            )
-            return (2.0 * numpy.pi * const.c) / c, c/(2*numpy.pi)
+            e = laser_pulse.slice[slice_index].photon_e_ev
+            return (const.h * const.c)/(const.e * e) * 1e9, (2.0 * numpy.pi * e * const.e)/const.h
 
         h5_data = PKDict()
         lp = locals()["pulse"]
