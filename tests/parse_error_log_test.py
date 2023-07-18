@@ -26,11 +26,11 @@ def test_runError(fc):
             simulationType=d.simulationType,
         ),
     )
-    for _ in range(10):
+    for _ in range(fc.DEFAULT_TIMEOUT_SECS):
         if d.state == "error":
             pkunit.pkeq("a big ugly error", d.error)
             return
-        time.sleep(d.nextRequestSeconds)
+        time.sleep(1)
         d = fc.sr_post("runStatus", d.nextRequest)
     else:
         pkunit.pkfail("Error never returned d={}", d)

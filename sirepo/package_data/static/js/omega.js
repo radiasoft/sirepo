@@ -29,8 +29,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, persis
     self.simHandleStatus = data => {
         errorMessage = data.error;
         frameCache.setFrameCount(data.frameCount || 0);
+        self.reports = data.reports;
         if (data.reports) {
-            self.reports = data.reports;
             for (const r of data.reports) {
                 frameCache.setFrameCount(r.modelName, r.frameCount);
             }
