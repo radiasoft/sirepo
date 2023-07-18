@@ -882,25 +882,34 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
             };
 
             $scope.simHandleStatus = (data) => {
+                function getReport(id) {
+                    for(const r of $scope.reports) {
+                        if (id === r.id) {
+                            return r;
+                        }
+                    }
+                    return null;
+                }
+
                 if (appState.models.simulation.framesCleared) {
                     return;
                 }
                 if (! data.outputInfo) {
                     return;
                 }
-                if (! $scope.reports.length) {
-                    $scope.reports = data.outputInfo.map(x => {
-                        return {
-                            id: x.id,
-                            modelAccess: {
-                                modelKey: x.modelKey,
-                            },
-                        };
-                    });
-                }
 
-                for (let i = 0; i < $scope.reports.length; i++) {
+                for (let i = 0; i < data.outputInfo.length; i++) {
                     let info = data.outputInfo[i];
+                    if (! getReport(info.id)) {
+                        $scope.reports.push(
+                            {
+                                id: info.id,
+                                modelAccess: {
+                                    modelKey: info.modelKey,
+                                },
+                            }
+                        )
+                    }
                     frameCache.setFrameCount(
                         info.waitForData ? SIREPO.nonDataFileFrame : (info.frameCount || 1),
                         info.modelKey
