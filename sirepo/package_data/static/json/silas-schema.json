@@ -153,9 +153,7 @@
             "half_length": ["$\\Large z0$ [cm]", "Float"],
             "pump_type": ["Pump Type", "PumpType"],
             "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
-            "hogTimeEquation": ["", "EquationText", "$f = T_0 + \\delta_T  \\exp(-((x^2+y^2)/(2*wp^2))^P) * \\exp(-\\alpha * (z - z0))$"],
-            "gaussianTimeEquation": ["", "EquationText", "$f = T_0 + \\delta_T \\exp\\bigl[ -\\tfrac{1}{2}\\bigl(\\tfrac{x^2 + y^2}{wp^2}\\bigr)^P \\bigr] [\\exp(-z/\\lambda) + \\exp((z-l)/\\lambda)]$"],
-            "tophatTimeEquation": ["", "EquationText", "$if \\> \\> x^2+y^2 <= wp:$ \n $f = T_0 + \\delta_T * \\alpha * \\exp(-\\alpha * (z - z0))/(1 - \\exp(2 * \\alpha * z0))$ \n $otherwise:$ \n $f = T_0$"],
+            "pump_pulse_profile": ["", "EquationText", ""],
             "T0": ["$\\Large T_0$ [$\\bf \\degree C$]", "Float", 20],
             "dT": ["$\\Large \\delta_T$ [$\\bf\\degree C$]", "Float", 3.8],
             "wdT": ["$\\Large wp$ [cm]", "Float", 1],
@@ -217,7 +215,12 @@
     },
     "strings": {
         "beamlineTabName": "Amplifier",
-        "completionState": ": {frameCount} completed reports"
+        "completionState": ": {frameCount} completed reports",
+        "pumpPulseProfileEquation": {
+            "gaussian": "$f = T_0 + \\delta_T \\exp\\bigl[ -\\tfrac{1}{2}\\bigl(\\tfrac{x^2 + y^2}{wp^2}\\bigr)^P \\bigr] [\\exp(-z/\\lambda) + \\exp((z-l)/\\lambda)]$",
+            "hog": "$f = T_0 + \\delta_T  \\exp(-((x^2+y^2)/(2*wp^2))^P) * \\exp(-\\alpha * (z - z0))$",
+            "tophat":"$if \\> \\> x^2+y^2 <= wp:$ $\\newline$ $f = T_0 + \\delta_T * \\alpha * \\exp(-\\alpha * (z - z0))/(1 - \\exp(2 * \\alpha * z0))$ $\\newline$ $otherwise:$ $\\newline$ $f = T_0$"
+        }
     },
     "view": {
         "crystal": {
@@ -282,9 +285,7 @@
                 "crystalLength",
                 "diameter",
                 "diffusionConstant",
-                "gaussianTimeEquation",
-                "tophatTimeEquation",
-                "hogTimeEquation",
+                "pump_pulse_profile",
                 "T0",
                 "half_length",
                 "alpha",

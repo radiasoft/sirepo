@@ -14,11 +14,8 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
         </div>
-        <div data-ng-switch-when="EquationText" data-ng-class="">
-          <div class="lead text-center" style="white-space: pre-wrap;">
-            Initial Temperature Due to Pump Laser:
-            <span data-text-with-math="model[field]"></span>
-          </div>
+        <div data-ng-switch-when="EquationText">
+            <div data-equation-text="model[field]"></div>
         </div>
         <div data-ng-switch-when="IntArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Int"></div>
@@ -370,13 +367,16 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
         const c = silasService.getThermalCrystal();
         cc.alpha = c.crystal_alpha;
         cc.pump_rep_rate = c.pump_rep_rate;
+        cc.pump_pulse_profile = c.pump_pulse_profile;
         cc.pump_type = c.pump_type;
         cc.half_length = c.length/2;
         cc.crystalLength = c.length;
         panelState.showFields('crystalCylinder', [
-            'gaussianTimeEquation', c.pump_pulse_profile.includes('gaussian'),
-            'tophatTimeEquation', c.pump_pulse_profile.includes('tophat'),
-            'hogTimeEquation', c.pump_pulse_profile.includes('hog'),
+            'gaussianTimeEquation', c.pump_pulse_profile ==='gaussian',
+            'tophatTimeEquation', c.pump_pulse_profile === 'tophat',
+            'hogTimeEquation', c.pump_pulse_profile === 'hog',
+            ['half_length', 'alpha'], c.pump_pulse_profile !=='gaussian',
+            ['wdT', 'supergaussian'], c.pump_pulse_profile !== 'tophat',
         ]);
         panelState.enableFields('crystalCylinder', [
             ['crystalLength'], false,
@@ -646,6 +646,26 @@ SIREPO.app.directive('float6', function(appState) {
                 }
                 indices.length = size;
                 return indices;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('equationText', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            selectedPumpProfile: '=equationText',
+        },
+        template: `
+          <div class="col-sm-12">
+            <div class="lead text-center">Initial Temperature Due to Pump Laser:</div>
+            <div class="lead text-center"><span data-text-with-math="equation()" data-is-dynamic="1"></span></div>
+          </div>
+        `,
+        controller: function($scope) {
+            $scope.equation = () => {
+                return SIREPO.APP_SCHEMA.strings.pumpPulseProfileEquation[$scope.selectedPumpProfile];
             };
         },
     };
