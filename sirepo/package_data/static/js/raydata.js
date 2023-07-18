@@ -8,6 +8,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="DateTimePicker" data-ng-class="fieldClass">
           <div data-date-time-picker="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="PresetTimePicker" data-ng-class="fieldClass">
+          <div data-preset-time-picker="" data-model="model" data-model-name="modelName"></div>
+        </div>
         <div data-ng-switch-when="ExecutedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="executed"></div>
         </div>
@@ -264,6 +267,40 @@ SIREPO.app.directive('pngImage', function(plotting) {
         controller: function(raydataService, $element, $scope) {
             $scope.id = raydataService.nextPngImageId();
             raydataService.setPngDataUrl($element.children()[0], $scope.image);
+        }
+    };
+});
+
+SIREPO.app.directive('presetTimePicker', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            modelName: '=',
+        },
+        template: `
+          <button class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastHour()">Last Hour</button>
+          <button class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastDay()">Last Day</button>
+        `,
+        controller: function(appState, timeService, $scope) {
+            $scope.setDefaultStartStopTime = () => {
+                if (!$scope.model.searchStartTime && !$scope.model.searchStopTime) {
+                    $scope.setSearchTimeLastHour();
+                    appState.saveChanges($scope.modelName);
+                }
+            };
+
+            $scope.setSearchTimeLastDay = () => {
+                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneDayAgo());
+                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
+            };
+
+            $scope.setSearchTimeLastHour = () => {
+                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneHourAgo());
+                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
+            };
+
+            $scope.setDefaultStartStopTime();
         }
     };
 });
@@ -630,20 +667,6 @@ SIREPO.app.directive('scansTable', function() {
                 ];
             };
 
-            $scope.setDefaultStartStopTime = () => {
-                const m = appState.models[$scope.modelName];
-                if (!m.searchStartTime && !m.searchStopTime) {
-                    $scope.setSearchTimeLastHour();
-                    appState.saveChanges($scope.modelName);
-                }
-            };
-
-            $scope.setSearchTimeLastHour = () => {
-                const m = appState.models[$scope.modelName];
-                m.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneHourAgo());
-                m.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
-            };
-
             $scope.setSelectedScan = (scan) => {
                 $scope.selectedScan = scan;
                 if ($scope.selectedScan !== null && ! [raydataService.ANALYSIS_STATUS_NONE, raydataService.ANALYSIS_STATUS_PENDING].includes($scope.selectedScan.status)) {
@@ -702,7 +725,6 @@ SIREPO.app.directive('scansTable', function() {
                 }
             };
 
-            $scope.setDefaultStartStopTime();
             $scope.$on(`${$scope.modelName}.changed`, sendScanRequest);
             $scope.$on('catalog.changed', sendScanRequest);
             $scope.$watchCollection('appState.models.metadataColumns.selected', (newValue, previousValue) => {
