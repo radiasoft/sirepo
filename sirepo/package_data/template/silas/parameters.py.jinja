@@ -111,7 +111,7 @@ def propagate(pulse, elements, beamline):
 def get_element(elements, index):
     e = elements[index]
     if isinstance(e[0], Crystal):
-        e[0].calc_n0n2(set_n=True, mesh_density=e[2])
+        e[0].calc_n0n2(set_n=True, mesh_density=e[2], heat_load=e[3])
     return e
 
 
