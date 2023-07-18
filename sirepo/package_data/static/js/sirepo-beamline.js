@@ -908,7 +908,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
                                     modelKey: info.modelKey,
                                 },
                             }
-                        )
+                        );
                     }
                     frameCache.setFrameCount(
                         info.waitForData ? SIREPO.nonDataFileFrame : (info.frameCount || 1),
