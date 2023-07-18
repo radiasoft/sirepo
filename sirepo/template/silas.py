@@ -457,7 +457,7 @@ class _LaserPulsePlot(PKDict):
     )
 
     def _cell_volume(self):
-        if self._is_crystal(self.element):
+        if self._is_crystal():
             return (
                 (
                     (2 * self.element.inversion_mesh_extent)
