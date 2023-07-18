@@ -361,6 +361,7 @@ def _generate_crystal(crystal):
         ),
         ["{crystal.propagationType}", True, False],
         {crystal.mesh_density},
+        "{crystal.pump_pulse_profile}",
     ),\n"""
 
 
