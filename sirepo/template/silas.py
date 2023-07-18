@@ -125,6 +125,57 @@ def stateful_compute_mesh_dimensions(data, **kwargs):
     return PKDict(numSliceMeshPoints=[m.nx, m.ny])
 
 
+def stateful_compute_n0n2_plot(data, **kwargs):
+    import matplotlib.pyplot as plt
+    from rslaser.optics import Crystal
+    from pykern import pkcompat
+    from base64 import b64encode
+
+    def _data_url(path):
+        with open(path, "rb") as f:
+            return "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
+
+    n = Crystal(
+        params=PKDict(
+            l_scale=data.model.l_scale,
+            length=data.model.length * 1e-2,
+            nslice=data.model.nslice,
+            A=data.model.A,
+            B=data.model.B,
+            C=data.model.C,
+            D=data.model.D,
+            pop_inversion_n_cells=data.model.inversion_n_cells,
+            pop_inversion_mesh_extent=data.model.inversion_mesh_extent,
+            pop_inversion_crystal_alpha=data.model.crystal_alpha,
+            pop_inversion_pump_waist=data.model.pump_waist,
+            pop_inversion_pump_wavelength=data.model.pump_wavelength,
+            pop_inversion_pump_gaussian_order=data.model.pump_gaussian_order,
+            pop_inversion_pump_energy=data.model.pump_energy,
+            pop_inversion_pump_type=data.model.pump_type,
+            pop_inversion_pump_rep_rate=data.model.pump_rep_rate,
+            pop_inversion_pump_offset_x=data.model.pump_offset_x,
+            pop_inversion_pump_offset_y=data.model.pump_offset_y,
+        )
+    ).calc_n0n2(set_n=True, mesh_density=data.model.mesh_density)
+    p = pkio.py_path("n0n2_plot.png")
+    plt.clf()
+    fig, axes = plt.subplots(2)
+    fig.suptitle(f"N0 N2 Plot")
+    axes[0].plot(range(len(n[0])), n[0])
+    axes[1].plot(range(len(n[0])), n[1])
+    axes[0].set_ylabel("N0")
+    axes[1].set_ylabel("N2")
+    plt.xlabel("Slice")
+    plt.savefig(p)
+    return PKDict(
+        uri=_data_url(p),
+        A=round(n[2][0][0], 9),
+        B=round(n[2][0][1], 9),
+        C=round(n[2][1][0], 9),
+        D=round(n[2][1][1], 9),
+    )
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
