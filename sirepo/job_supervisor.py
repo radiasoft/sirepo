@@ -176,7 +176,7 @@ def init_module(**imports):
         purge_non_premium_task_secs=(
             None,
             pkconfig.parse_seconds,
-            "when to clean up simulation runs of non-premium users (%H:%M:%S)",
+            "time interval to clean up simulation runs of non-premium users (%H:%M:%S)",
         ),
         sbatch_poll_secs=(15, int, "how often to poll squeue and parallel status"),
     )
@@ -518,8 +518,12 @@ class _ComputeJob(_Supervisor):
                 d.simulationType
             ):
                 return
-            p = sirepo.simulation_db.simulation_run_dir(d, qcall=qcall)
-            pkio.unchecked_remove(p)
+            try:
+                pkio.unchecked_remove(
+                    sirepo.simulation_db.simulation_run_dir(d, qcall=qcall)
+                )
+            except sirepo.util.UserDirNotFound:
+                pass
             n = cls.__db_init_new(d, d)
             n.status = job.JOB_RUN_PURGED
             cls.__db_write_file(n)
