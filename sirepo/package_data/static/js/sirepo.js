@@ -1750,7 +1750,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
-        var args = {
+        const args = {
             '<simulation_id>': simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
         };
@@ -1760,7 +1760,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (reportTitle) {
             args['<title>'] = reportTitle;
         }
-        requestSender.newWindow('exportJupyterNotebook', args);
+        return requestSender.formatUrl('exportJupyterNotebook', args);
     };
 
     self.maybeSetState = function(model, state) {
@@ -1792,21 +1792,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
         return requestSender.formatUrl('pythonSource', args);
     };
-/*
-    self.pythonSource = function(simulationId, modelName, reportTitle) {
-        var args = {
-            '<simulation_id>': simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-        };
-        if (modelName) {
-            args['<model>'] = modelName;
-        }
-        if (reportTitle) {
-            args['<title>'] = reportTitle;
-        }
-        requestSender.newWindow('pythonSource', args);
-    };
-*/
+
     self.reportNotGenerated = function(modelName) {
         self.setLoading(modelName, false);
         self.setError(modelName, 'Report not generated');
