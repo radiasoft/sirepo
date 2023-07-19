@@ -2713,7 +2713,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     <li class="sr-settings-submenu" data-ng-transclude="appSettingsSlot"></li>
                     <li><a href data-ng-if="nav.modeIsDefault() && canShowDocumentationUrl()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>
                     <li><a href data-ng-if="::canExportArchive()" data-ng-href="{{ exportArchive('zip') }}"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>
-                    <li data-ng-if="::canDownloadInputFile()"><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> {{ ::stringsService.formatKey(\'simulationSource\') }}</a></li>
+                    <li data-ng-if="::canDownloadInputFile()"><a data-ng-href="{{ pythonSource() }}"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> {{ ::stringsService.formatKey(\'simulationSource\') }}</a></li>
                     <li data-ng-if="::canExportJupyter()"><a href data-ng-click="exportJupyterNotebook()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as Jupyter Notebook</a></li>
                     <li data-ng-if="::canExportMadx()" ><a href data-ng-click="pythonSource(\'madx\')"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>
                     <li data-ng-if="canCopy()"><a href data-ng-click="copyItem()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>
@@ -2789,8 +2789,12 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
 
             $scope.simulationId = () => appState.isLoaded() ? appState.models.simulation.simulationId : null;
 
-            $scope.pythonSource = function(modelName) {
-                panelState.pythonSource($scope.simulationId(), modelName);
+            $scope.pythonSource = modelName => {
+                const sid = $scope.simulationId();
+                if (! sid) {
+                    return null;
+                }
+                return panelState.pythonSource(sid, modelName);
             };
 
             $scope.relatedSimulations = [];

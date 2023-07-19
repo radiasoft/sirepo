@@ -1779,6 +1779,20 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return 'sr-' + name + '-editor';
     };
 
+    self.pythonSource = (simulationId, modelName, reportTitle) => {
+        const args = {
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        };
+        if (modelName) {
+            args['<model>'] = modelName;
+        }
+        if (reportTitle) {
+            args['<title>'] = reportTitle;
+        }
+        return requestSender.formatUrl('pythonSource', args);
+    };
+/*
     self.pythonSource = function(simulationId, modelName, reportTitle) {
         var args = {
             '<simulation_id>': simulationId,
@@ -1792,7 +1806,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
         requestSender.newWindow('pythonSource', args);
     };
-
+*/
     self.reportNotGenerated = function(modelName) {
         self.setLoading(modelName, false);
         self.setError(modelName, 'Report not generated');
