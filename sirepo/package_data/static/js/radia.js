@@ -984,15 +984,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
         controller: function($scope) {
 
             $scope.exportDmp = () => {
-                const sid = $scope.simulationId();
-                if (! sid) {
-                    return null;
-                }
-                return requestSender.formatUrl('exportArchive', {
-                    '<simulation_id>': sid,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<filename>':  $scope.nav.simulationName() + '.dat',
-                });
+                return panelState.exportArchive($scope.simulationId(), `${$scope.nav.simulationName()}.dat`);
             };
 
             $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;

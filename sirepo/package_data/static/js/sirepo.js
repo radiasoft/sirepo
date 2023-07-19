@@ -1655,35 +1655,20 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.exportArchive = (simulationId, filename) => {
-        if (! simulationId) {
-            return null;
-        }
-        return requestSender.formatUrl('exportArchive', {
-            '<simulation_id>': simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        return self.urlForExport(simulationId, 'exportArchive', {
             '<filename>':  filename,
         });
     };
 
-    self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
-        if (! simulationId) {
-            return null;
-        }
-        const args = {
-            '<simulation_id>': simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-        };
+    self.exportJupyterNotebook = (simulationId, modelName, reportTitle) => {
+        const args = {};
         if (modelName) {
             args['<model>'] = modelName;
         }
         if (reportTitle) {
             args['<title>'] = reportTitle;
         }
-        return requestSender.formatUrl('exportJupyterNotebook', args);
-    };
-
-    self.urlForExport = (simulationId, args) => {
-
+        return self.urlForExport(simulationId, 'exportJupyterNotebook', args);
     };
 
     // lazy creation/storage of field delegates
@@ -1798,20 +1783,14 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.pythonSource = (simulationId, modelName, reportTitle) => {
-        if (! simulationId) {
-            return null;
-        }
-        const args = {
-            '<simulation_id>': simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-        };
+        const args = {};
         if (modelName) {
             args['<model>'] = modelName;
         }
         if (reportTitle) {
             args['<title>'] = reportTitle;
         }
-        return requestSender.formatUrl('pythonSource', args);
+        return self.urlForExport(simulationId, 'pythonSource', args);
     };
 
     self.reportNotGenerated = function(modelName) {
@@ -1981,6 +1960,17 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     self.toggleHiddenAndNotify = name => {
         self.toggleHidden(name);
         $rootScope.$broadcast(`panel.${name}.hidden`, self.isHidden(name));
+    };
+
+    self.urlForExport = (simulationId, route, args) => {
+        if (! simulationId) {
+            return null;
+        }
+        const a = {
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        };
+        return requestSender.formatUrl(route, {...a, ...args});
     };
 
     self.waitForUI = function(callback) {
