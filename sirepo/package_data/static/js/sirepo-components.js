@@ -2770,11 +2770,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 if (! sid) {
                     return null;
                 }
-                return requestSender.formatUrl('exportArchive', {
-                    '<simulation_id>': sid,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<filename>':  `${$scope.nav.simulationName()}.${extension}`,
-                });
+                return panelState.exportArchive(sid, `${$scope.nav.simulationName()}.${extension}`);
             };
 
             $scope.exportJupyterNotebook = function(modelName) {

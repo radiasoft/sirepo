@@ -1654,6 +1654,18 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         applyToFields('enableField', model, fieldInfo);
     };
 
+    self.exportArchive = (simulationId, filename) => {
+        return requestSender.formatUrl('exportArchive', {
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<filename>':  filename,
+        });
+    };
+
+    self.urlForExport = (simulationId, args) => {
+
+    };
+
     // lazy creation/storage of field delegates
     self.fieldDelegates = {};
 
@@ -3954,17 +3966,11 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     };
 
     self.pythonSource = function(item) {
-        panelState.pythonSource(item.simulationId);
+        return panelState.pythonSource(item.simulationId);
     };
 
     self.exportArchive = function(item, extension) {
-        requestSender.newWindow(
-            'exportArchive',
-            {
-                '<simulation_id>': item.simulationId,
-                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                '<filename>': item.name + '.' + extension,
-            });
+        return panelState.exportArchive(item.simulationId, `${item.name}.${extension}`);
     };
 
     self.renameItem = function(item) {
