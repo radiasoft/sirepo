@@ -114,7 +114,7 @@ class _TestClient:
         self._session = requests.Session()
         self.cookie_jar = self._session.cookies
         if feature_config.cfg().ui_web_socket:
-            self._websocket = _Websocket(self)
+            self._web_socket = _WebSocket(self)
 
     def get(self, uri, headers=None):
         return self._requests_op("get", uri, headers, kwargs=PKDict())
@@ -614,8 +614,10 @@ class _TestClient:
         from sirepo import const
 
         u = self._uri(uri)
-        if "_websocket" in self and self._websocket.send(op, u, headers, **kwargs):
-            return
+        if hasattr(self, "_web_socket"):
+            r = self._web_socket.send(op, u, headers, **kwargs)
+            if r is not None:
+                return r
         if headers is None:
             headers = PKDict()
         headers.setdefault(
@@ -623,7 +625,7 @@ class _TestClient:
             f"{const.SRUNIT_USER_AGENT} {pykern.pkinspect.caller()}",
         )
         try:
-            return _Response(
+            return _HTTPResponse(
                 getattr(self._session, op)(u, headers=headers, **kwargs),
             )
         except requests.exceptions.ConnectionError as e:
@@ -633,16 +635,16 @@ class _TestClient:
             raise
 
     def _uid_clear(self):
-        if "_websocket" in self:
-            self._websocket.stop()
+        if hasattr(self, "_web_socket"):
+            self._web_socket.stop()
         self.sr_uid = None
 
     def _uid_verify_and_save(self):
         self.sr_uid = self.sr_auth_state(
             needCompleteRegistration=False, isLoggedIn=True
         ).uid
-        if "_websocket" in self:
-            self._websocket.start()
+        if hasattr(self, "_web_socket"):
+            self._web_socket.start()
         return self.sr_uid
 
     def _uri(self, uri):
@@ -654,7 +656,7 @@ class _TestClient:
         return self.http_prefix + uri
 
 
-class _Response:
+class _HTTPResponse:
     def __init__(self, reply):
         self._reply = reply
 
@@ -686,74 +688,107 @@ class _Response:
 
 class _WebSocket:
     def __init__(self, test_client):
+        self._enabled = False
         self._connection = None
         self._test_client = test_client
 
     def send(self, op, uri, headers, data=None, files=None, json=None):
+        import asyncio
 
-        def _marshall():
-            self._req_seq += 1
-            m = PKDict(self._req_seq, uri=uri)
+        def _marshall_req():
+            m = PKDict(uri=uri)
             if op == "get":
-                assert data is None and json is None and files is None, \
-                    f"GET does not support content uri={uri}"
+                assert (
+                    data is None and json is None and files is None
+                ), f"GET does not support content uri={uri}"
             else:
-                assert data is None or json is None, \
-                    f"only json or data may be supplied uri={uri}"
-                m.content = json if data is None else data)
+                assert (
+                    data is None or json is None
+                ), f"only json or data may be supplied uri={uri}"
+                m.content = json if data is None else data
                 if files:
                     m.content = copy.deepcopy(m.content)
                     m.content.file = PKDict(
                         filename=os.path.basename(files.file.name),
                         base64=pkcompat.from_bytes(base64.b64encode(files.file.read())),
                     )
-            return pkjson.dump_pretty(m, pretty=False)
+            return m
 
-        if headers or not self._connection:
+        if headers or not self._enabled:
             # Headers means something special (usually auth testing)
-            return False
-        asyncio.run(self._send(self._marshall_msg()))
+            return None
+        return asyncio.run(self._send(_marshall_req()))
 
     async def _send(self, msg):
-        self.reply_event = asyncio.Event()
-        await self._connection.write_message(msg)
+        from pykern import pkjson
+        from tornado import websocket, httpclient
+        import asyncio
+
+        async def _connect():
+            r = requests.Request(
+                url=self._test_client.http_prefix + "/ws",
+                cookies=self._test_client.cookie_jar,
+            ).prepare()
+            self._connection = await websocket.websocket_connect(
+                httpclient.HTTPRequest(
+                    url=r.url.replace("http", "ws"),
+                    headers=r.headers,
+                ),
+                on_message_callback=self._message,
+            )
+            self._reply_q = asyncio.Queue(maxsize=1)
+            self._req_seq = 1
+
+        if not self._connection:
+            await _connect()
+        self._req_seq += 1
+        msg.reqSeq = self._req_seq
         try:
-            await asyncio.wait_for(reply_event.wait(), self._test_client.DEFAULT_TIMEOUT_SECS)
+            await self._connection.write_message(pkjson.dump_pretty(msg, pretty=False))
+            return await asyncio.wait_for(
+                self._reply_q.get(),
+                self._test_client.DEFAULT_TIMEOUT_SECS,
+            )
         finally:
             self.stop()
 
     def start(self):
-        from tornado import websocket, httpclient
-
-        assert not self._connection
-        r = requests.Request(
-            url=self._test_client.http_prefix + "/ws",
-            cookies=self._test_client.cookie_jar,
-        ).prepare()
-        self._connection = await websocket.websocket_connect(
-            httpclient.HTTPRequest(
-                url=r.url.replace("http", "ws"),
-                headers=r.headers,
-            ),
-            on_message_callback=self._message,
-        )
-        self._reply_event = asyncio.Event()
-        self._req_seq = 1
+        assert not self._enabled
+        self._enabled = True
 
     def stop(self):
-        if self._connection:
-            self._connection.close()
-            self._connection = None
-            self._req_seq = None
-            self._reply_event = None
+        if not self._enabled:
+            return
+        c = self._connection
+        self._connection = None
+        self._enabled = False
+        self._reply_q = None
+        self._req_seq = None
+        if c:
+            c.close()
 
-    def _message(self):
+    def _message(self, msg):
         from pykern import pkjson
 
-        m = pkjson.load_any(msg)
+        if msg is None:
+            # Close gets None
+            return
+        self._reply_q.put_nowait(_WebSocketResponse(pkjson.load_any(msg)))
 
-        pkunit.pkeq(1, m.reqSeq)
-        pkunit.pkeq("text/html", m.contentType)
-        pkunit.pkre("h1>not found", m.content)
 
-        reply_event.set()
+class _WebSocketResponse:
+    def __init__(self, reply):
+        self._headers = PKDict()
+        self.data = reply.content
+        self.mimetype = reply.contentType
+        self.status_code = 200
+
+    def header_get(self, name):
+        return self._headers[name]
+
+    def change_to_redirect(self, uri):
+        self._headers = PKDict(Location=uri)
+        self.content = ""
+        self.mimetype = "text/plain"
+        self.status_code = 302
+        return self
