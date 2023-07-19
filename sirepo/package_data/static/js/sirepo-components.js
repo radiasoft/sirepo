@@ -2715,7 +2715,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     <li><a href data-ng-if="::canExportArchive()" data-ng-href="{{ exportArchive('zip') }}"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>
                     <li data-ng-if="::canDownloadInputFile()"><a data-ng-href="{{ pythonSource() }}"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> {{ ::stringsService.formatKey(\'simulationSource\') }}</a></li>
                     <li data-ng-if="::canExportJupyter()"><a href data-ng-click="exportJupyterNotebook()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as Jupyter Notebook</a></li>
-                    <li data-ng-if="::canExportMadx()" ><a href data-ng-click="pythonSource(\'madx\')"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>
+                    <li data-ng-if="::canExportMadx()" ><a data-ng-href="{{ pythonSource('madx') }}"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>
                     <li data-ng-if="canCopy()"><a href data-ng-click="copyItem()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>
                     <li data-ng-if="isExample()"><a href data-target="#reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>
                     <li data-ng-if="! isExample()"><a href data-target="#delete-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>
