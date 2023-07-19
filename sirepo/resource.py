@@ -45,22 +45,22 @@ def glob_paths(*paths):
     )
 
 
-def render_resource(template_name, resource_dir, run_dir, j2_ctx):
-    """Render a jinja resource from a package_data/resource_dir
-    into run_dir
+def render(*paths, target_dir=None, j2_ctx=None):
+    """Render a jinja resource into target_dir
 
     Args:
-        resource_template (str): .jinja template basename
-        resource_dir (str): package_data dir that .jinja template lives in
-        run_dir (py.path): target directory for rendered file
-        jinja_params (PKDict): parameters to jinja file
+        paths (str): Path components of file
+        target_dir (py.path): target directory for rendered file
+        j2_ctx (PKDict): parameters to jinja file
 
     Returns:
         py.path: path to rendered file
     """
-    res = run_dir.join(template_name)
+    res = target_dir.join(paths[-1])
+    p = list(paths)
+    p[-1] += pykern.pkjinja.RESOURCE_SUFFIX
     pykern.pkjinja.render_file(
-        _resource_path(template_name, resource_dir),
+        file_path(*p),
         j2_ctx,
         output=res,
     )
@@ -133,10 +133,3 @@ def _join_paths(paths):
     a = [p for p in paths if os.path.isabs(p)]
     assert not a, f"absolute paths={a} in paths={paths}"
     return os.path.join(*paths)
-
-
-def _resource_path(filename, resource_dir):
-    f = filename + pykern.pkjinja.RESOURCE_SUFFIX
-    if type(resource_dir) == str:
-        return file_path(resource_dir).join(f)
-    return resource_dir.join(f)

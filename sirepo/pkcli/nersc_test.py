@@ -88,11 +88,11 @@ class _Sequential(PKDict):
         return res
 
     def _render_resource(self, filename):
-        return sirepo.resource.render_resource(
-            filename,
+        return sirepo.resource.render(
             self.RESOURCE_DIR,
-            self.run_dir,
-            PKDict(
+            filename,
+            target_dir=self.run_dir,
+            j2_ctx=PKDict(
                 job_cmd_file=self.get("job_cmd_file"),
                 run_dir=self.run_dir,
                 user=self.user,

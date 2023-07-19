@@ -28,11 +28,11 @@ def test_render_resource():
     pkunit.pkre(
         'var = "x"',
         pkio.read_text(
-            resource.render_resource(
-                "README.txt",
+            resource.render(
                 "resource_test_data",
-                pkunit.work_dir(),
-                PKDict(
+                "README.txt",
+                target_dir=pkunit.work_dir(),
+                j2_ctx=PKDict(
                     var="x",
                 ),
             )
