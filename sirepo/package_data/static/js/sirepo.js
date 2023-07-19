@@ -1621,6 +1621,17 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
     }
 
+    function urlForExport(simulationId, route, args) {
+        if (! simulationId) {
+            return null;
+        }
+        const a = {
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        };
+        return requestSender.formatUrl(route, {...a, ...args});
+    }
+
     self.addPendingRequest = function(name, requestFunction) {
         pendingRequests[name] = requestFunction;
     };
@@ -1655,7 +1666,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.exportArchive = (simulationId, filename) => {
-        return self.urlForExport(simulationId, 'exportArchive', {
+        return urlForExport(simulationId, 'exportArchive', {
             '<filename>':  filename,
         });
     };
@@ -1668,7 +1679,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (reportTitle) {
             args['<title>'] = reportTitle;
         }
-        return self.urlForExport(simulationId, 'exportJupyterNotebook', args);
+        return urlForExport(simulationId, 'exportJupyterNotebook', args);
     };
 
     // lazy creation/storage of field delegates
@@ -1790,7 +1801,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (reportTitle) {
             args['<title>'] = reportTitle;
         }
-        return self.urlForExport(simulationId, 'pythonSource', args);
+        return urlForExport(simulationId, 'pythonSource', args);
     };
 
     self.reportNotGenerated = function(modelName) {
@@ -1960,17 +1971,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     self.toggleHiddenAndNotify = name => {
         self.toggleHidden(name);
         $rootScope.$broadcast(`panel.${name}.hidden`, self.isHidden(name));
-    };
-
-    self.urlForExport = (simulationId, route, args) => {
-        if (! simulationId) {
-            return null;
-        }
-        const a = {
-            '<simulation_id>': simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-        };
-        return requestSender.formatUrl(route, {...a, ...args});
     };
 
     self.waitForUI = function(callback) {
