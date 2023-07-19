@@ -1655,11 +1655,31 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.exportArchive = (simulationId, filename) => {
+        if (! simulationId) {
+            return null;
+        }
         return requestSender.formatUrl('exportArchive', {
             '<simulation_id>': simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             '<filename>':  filename,
         });
+    };
+
+    self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
+        if (! simulationId) {
+            return null;
+        }
+        const args = {
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        };
+        if (modelName) {
+            args['<model>'] = modelName;
+        }
+        if (reportTitle) {
+            args['<title>'] = reportTitle;
+        }
+        return requestSender.formatUrl('exportJupyterNotebook', args);
     };
 
     self.urlForExport = (simulationId, args) => {
@@ -1761,20 +1781,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
     };
 
-    self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
-        const args = {
-            '<simulation_id>': simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-        };
-        if (modelName) {
-            args['<model>'] = modelName;
-        }
-        if (reportTitle) {
-            args['<title>'] = reportTitle;
-        }
-        return requestSender.formatUrl('exportJupyterNotebook', args);
-    };
-
     self.maybeSetState = function(model, state) {
         if (!model) {
             return;
@@ -1792,6 +1798,9 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.pythonSource = (simulationId, modelName, reportTitle) => {
+        if (! simulationId) {
+            return null;
+        }
         const args = {
             '<simulation_id>': simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,

@@ -2766,19 +2766,11 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
             };
 
             $scope.exportArchive = extension => {
-                const sid = $scope.simulationId();
-                if (! sid) {
-                    return null;
-                }
-                return panelState.exportArchive(sid, `${$scope.nav.simulationName()}.${extension}`);
+                return panelState.exportArchive($scope.simulationId(), `${$scope.nav.simulationName()}.${extension}`);
             };
 
             $scope.exportJupyterNotebook = function(modelName) {
-                const sid = $scope.simulationId();
-                if (! sid) {
-                    return null;
-                }
-                panelState.exportJupyterNotebook(sid, modelName);
+                return panelState.exportJupyterNotebook($scope.simulationId(), modelName);
             };
 
             $scope.copyFolder = fileManager.defaultCreationFolderPath();
@@ -2789,13 +2781,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
 
             $scope.simulationId = () => appState.isLoaded() ? appState.models.simulation.simulationId : null;
 
-            $scope.pythonSource = modelName => {
-                const sid = $scope.simulationId();
-                if (! sid) {
-                    return null;
-                }
-                return panelState.pythonSource(sid, modelName);
-            };
+            $scope.pythonSource = modelName => panelState.pythonSource($scope.simulationId(), modelName);
 
             $scope.relatedSimulations = [];
 
