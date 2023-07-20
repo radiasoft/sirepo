@@ -163,39 +163,14 @@ def http():
 def jupyterhub():
     assert pkconfig.in_dev_mode()
     sirepo.template.assert_sim_type("jupyterhublogin")
-    # POSIT: versions same in container-beamsim-jupyter/build.sh
-    # Order is important: jupyterlab-server should be last so it isn't
-    # overwritten with a newer version.
-    for m, v in ("jupyterhub", "1.4.2"), (
-        "jupyterlab",
-        "3.1.14 jupyterlab-server==2.8.2",
-    ):
-        try:
-            importlib.import_module(m)
-        except ModuleNotFoundError:
-            pkcli.command_error(
-                "{}: not installed run `pip install {}=={}`",
-                m,
-                m,
-                v,
-            )
     with pkio.save_chdir(_run_dir().join("jupyterhub").ensure(dir=True)) as d:
-        pksubprocess.check_call_with_signals(
-            (
-                "jupyter",
-                "serverextension",
-                "enable",
-                "--py",
-                "jupyterlab",
-                "--sys-prefix",
-            )
-        )
         f = d.join("conf.py")
         pkjinja.render_resource(
             "jupyterhub_conf.py",
             PKDict(_cfg()).pkupdate(
                 # POSIT: Running with nginx and uwsgi
                 sirepo_uri=f"http://{socket.getfqdn()}:{_cfg().nginx_proxy_port}",
+                jupyterhub_debug=sirepo.feature_config.cfg().debug_mode,
                 **sirepo.sim_api.jupyterhublogin.cfg(),
             ),
             output=f,
@@ -301,7 +276,7 @@ def _cfg():
             # so limit to 128, which is probably more than enough with
             # this application.
             threads=(10, _cfg_int(1, 128), "how many uwsgi threads in each process"),
-            tornado=(False, bool, "use tornado for server"),
+            tornado=(pkconfig.in_dev_mode(), bool, "use tornado for server"),
             use_reloader=(pkconfig.in_dev_mode(), bool, "use the server reloader"),
         )
     return __cfg

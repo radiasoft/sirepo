@@ -8,6 +8,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="DateTimePicker" data-ng-class="fieldClass">
           <div data-date-time-picker="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="PresetTimePicker" data-ng-class="fieldClass">
+          <div data-preset-time-picker="" data-model="model" data-model-name="modelName"></div>
+        </div>
         <div data-ng-switch-when="ExecutedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="executed"></div>
         </div>
@@ -221,6 +224,12 @@ SIREPO.app.directive('dateTimePicker', function() {
                     $scope.model[$scope.field] = timeService.unixTime(newTime);
                 }
             });
+
+            $scope.$watch('model.' + $scope.field, function(newTime, oldTime) {
+                if (newTime !== oldTime) {
+                    $scope.dateTime = timeService.unixTimeToDate(newTime);
+                }
+            });
         }
     };
 });
@@ -258,6 +267,40 @@ SIREPO.app.directive('pngImage', function(plotting) {
         controller: function(raydataService, $element, $scope) {
             $scope.id = raydataService.nextPngImageId();
             raydataService.setPngDataUrl($element.children()[0], $scope.image);
+        }
+    };
+});
+
+SIREPO.app.directive('presetTimePicker', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            modelName: '=',
+        },
+        template: `
+          <button class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastHour()">Last Hour</button>
+          <button class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastDay()">Last Day</button>
+        `,
+        controller: function(appState, timeService, $scope) {
+            $scope.setDefaultStartStopTime = () => {
+                if (!$scope.model.searchStartTime && !$scope.model.searchStopTime) {
+                    $scope.setSearchTimeLastHour();
+                    appState.saveChanges($scope.modelName);
+                }
+            };
+
+            $scope.setSearchTimeLastDay = () => {
+                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneDayAgo());
+                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
+            };
+
+            $scope.setSearchTimeLastHour = () => {
+                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneHourAgo());
+                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
+            };
+
+            $scope.setDefaultStartStopTime();
         }
     };
 });
@@ -402,7 +445,7 @@ SIREPO.app.directive('scansTable', function() {
             </div>
             <div data-view-log-iframe-wrapper data-scan-id="runLogScanId" data-modal-id="runLogModalId" data-show-log="showLog"></div>
         `,
-        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope, $interval) {
+        controller: function(appState, errorService, panelState, raydataService, requestSender, timeService, $scope, $interval) {
             $scope.analysisModalId = 'sr-analysis-output-' + $scope.analysisStatus;
             $scope.availableColumns = [];
             $scope.awaitingScans = false;

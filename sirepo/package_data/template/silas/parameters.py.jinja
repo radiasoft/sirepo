@@ -45,6 +45,10 @@ class Watchpoint:
         def ranges(pulse, idx):
             return laser_pulse_ranges(pulse.slice_wfr(idx))
 
+        def longitudinal_wavelength_and_frequency(laser_pulse, slice_index):
+            e = laser_pulse.slice[slice_index].photon_e_ev
+            return (const.h * const.c)/(const.e * e) * 1e9, (2.0 * numpy.pi * e * const.e)/const.h
+
         h5_data = PKDict()
         lp = locals()["pulse"]
         t = lp.extract_total_2d_elec_fields()
@@ -53,6 +57,7 @@ class Watchpoint:
             nx = lp.slice[s].nx_slice
             ny = nx
             i = locals()["intensity"](pulse, s)
+            w, f = longitudinal_wavelength_and_frequency(lp, s)
             h5_data[s] = PKDict(
                 ranges=locals()["ranges"](pulse, s),
                 intensity=i,
@@ -62,6 +67,8 @@ class Watchpoint:
                 longitudinal_intensity=i[int(nx/2)][int(ny/2)],
                 total_intensity=0.5 *const.c *const.epsilon_0 *(t.re**2.0 + t.im**2.0),
                 total_phase=p,
+                longitudinal_wavelength=w,
+                longitudinal_frequency=f,
             )
         template_common.write_dict_to_h5(h5_data, f"results{self.count}.h5")
         self.count += 1
@@ -87,7 +94,7 @@ def laser_pulse_ranges(wavefront):
 def propagate(pulse, elements, beamline):
     crystal_count = 0
     for idx in beamline:
-        e = elements[idx]
+        e = get_element(elements, idx)
         pulse = e[0].propagate(pulse, *e[1])
         if isinstance(e[0], Crystal):
             h5_data = PKDict()
@@ -99,6 +106,13 @@ def propagate(pulse, elements, beamline):
             crystal_count += 1
             template_common.write_dict_to_h5(h5_data, f"crystal{crystal_count}.h5")
     return pulse
+
+
+def get_element(elements, index):
+    e = elements[index]
+    if isinstance(e[0], Crystal):
+        e[0].calc_n0n2(set_n=True, mesh_density=e[2], heat_load=e[3])
+    return e
 
 
 pulse = LaserPulse(

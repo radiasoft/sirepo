@@ -53,7 +53,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         sim = models.simulation
         if not sim.get("exampleName"):
             sim.exampleName = sim.name
-        if sim.name == "Dipole":
+        if sim.name in ("Parameterized C-Bend Dipole",):
             sim.beamAxis = "x"
             sim.heightAxis = "z"
             sim.widthAxis = "y"
@@ -223,6 +223,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 model.segmentationCylPoint = [0, 0, 0]
             if not model.get("segmentationCylRadius"):
                 model.segmentationCylRadius = 5.0
+            if not model.get("segmentationCylRatio"):
+                model.segmentationCylRatio = 1.0
             if not model.get("segmentationCylUseObjectCenter"):
                 model.segmentationCylUseObjectCenter = "0"
 
@@ -262,6 +264,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             del dm.fieldPaths["path"]
         if dm.simulation.get("isExample"):
             cls._fixup_examples(dm)
+        dm.simulation.areObjectsUnlockable = dm.simulation.magnetType == "freehand"
         if dm.simulation.magnetType == "undulator":
             cls._fixup_undulator(dm)
         cls._fixup_obj_types(dm)
@@ -347,6 +350,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                     "extrudedPoints", "pointsFile", o.pointsFile
                 )
             )
+        for o in filter(
+            lambda x: x.get("type") == "stl" and "file" in x,
+            data.models.geometryReport.objects,
+        ):
+            res.append(cls.lib_file_name_with_model_field("stl", "file", o.file))
 
         return res
 

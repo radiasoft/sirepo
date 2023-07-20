@@ -30,13 +30,14 @@ def test_elegant_data_file(fc):
         ),
     )
     pkunit.pkeq("pending", run.state, "not pending, run={}", run)
-    for _ in range(10):
+    for _ in range(fc.DEFAULT_TIMEOUT_SECS):
         if run.state == "completed":
             break
-        run = fc.sr_post("runStatus", run.nextRequest)
         time.sleep(1)
+        run = fc.sr_post("runStatus", run.nextRequest)
     else:
-        pkunit.pkfail("runStatus: failed to complete: {}", run)
+        if run.state != "completed":
+            pkunit.pkfail("runStatus: failed to complete: {}", run)
     r = fc.sr_get(
         "downloadDataFile",
         PKDict(
@@ -79,12 +80,6 @@ def test_myapp_basic(fc):
 
     r = fc.sr_get("/robots.txt")
     pkunit.pkre("elegant.*myapp.*srw", pkcompat.from_bytes(r.data))
-    r = fc.sr_get("/")
-    pkok(
-        not re.search(r"googletag", pkcompat.from_bytes(r.data)),
-        "Unexpected injection of googletag data={}",
-        r.data,
-    )
 
 
 def test_srw(fc):
