@@ -405,7 +405,6 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
             updateMesh();
         }
         updateMeshPoints();
-        computeChirp();
     }
 
     function updateMeshPoints() {
@@ -422,15 +421,18 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
 
     function computeChirp() {
         // TODO (gurhar1133): after cancel button updates to
-        // chirp field in UI stop working
-        requestSender.sendStatefulCompute(
+        // chirp field in UI stop working. GENERAL PROBLEM?
+
+        // TODO (gurhar1133): also needs debounce if typing slow?
+        requestSender.sendStatelessCompute(
             appState,
             data => {
                 if (data.error) {
                     throw new Error(data.error);
                 }
                 $scope.model.chirp = data.chirp;
-                srdbg(data.chirp);
+                srdbg('chirp from server:', data.chirp);
+                srdbg('$scope.model.chirp:', $scope.model.chirp);
             },
             {
                 method: 'calc_chirp',
@@ -440,12 +442,12 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
                 },
             },
         );
-        srdbg('chirp computed');
     }
 
     $scope.whenSelected = () => {
         $scope.model = appState.models[$scope.modelName];
         panelState.enableField($scope.modelName, 'chirp', false);
+        computeChirp();
         updateEditor();
     };
 
@@ -457,8 +459,13 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
             'laserPulse.distribution',
         ], updateEditor,
         ['laserPulse.nx_slice'], updateMeshPoints,
-        ['laserPulse.tau_fwhm', 'laserPulse.tau_0'], computeChirp,
     ];
+
+    $scope.$on(['laserPulse.changed'], (e, name) => {
+        srdbg('name:', name);
+        srdbg('event:', e);
+        computeChirp();
+    });
 });
 
 SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasService, $scope) {

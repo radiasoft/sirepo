@@ -126,8 +126,8 @@ def stateful_compute_mesh_dimensions(data, **kwargs):
     return PKDict(numSliceMeshPoints=[m.nx, m.ny])
 
 
-def stateful_compute_calc_chirp(data, **kwargs):
-    from rslaser.pulse import Pulse
+def stateless_compute_calc_chirp(data, **kwargs):
+    from rslaser.pulse import pulse
 
     return PKDict(
         chirp=round(pulse.LaserPulse(params=data.model).initial_chirp, 7)
