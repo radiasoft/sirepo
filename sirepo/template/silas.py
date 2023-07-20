@@ -167,6 +167,10 @@ def stateful_compute_n0n2_plot(data, **kwargs):
     axes[1].set_ylabel("N2")
     plt.xlabel("Slice")
     plt.savefig(p)
+    determinant = n[2][0][0]*n[2][1][1]-n[2][0][1]*n[2][1][0]
+    # TODO (gurhar1133):: check abs(determinant - 1) < delta
+    # where delta = 1e-3
+    pkdp("\n\n\n det={}\n\n\n\n", determinant)
     return PKDict(
         uri=_data_url(p),
         A=round(n[2][0][0], 9),
