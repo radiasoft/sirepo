@@ -448,7 +448,7 @@ class _LaserPulsePlot(PKDict):
         longitudinal_intensity="Intensity",
         total_intensity="Total Intensity",
         total_phase="Total Phase",
-        longitudinal_frequency="Frequency [Rad/s]",
+        longitudinal_frequency="Frequency [rad/s]",
         longitudinal_wavelength="Wavelength [nm]",
         longitudinal_photons="Total Number of Photons",
         excited_states_longitudinal="Excited States",
