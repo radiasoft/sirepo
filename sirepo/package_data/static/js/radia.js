@@ -983,12 +983,9 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
         `,
         controller: function($scope) {
 
-            $scope.exportDmpUrl = () => {
-                if (! appState.isLoaded()) {
-                    return null;
-                }
-                return panelState.exportArchiveUrl($scope.simulationId(), `${$scope.nav.simulationName()}.dat`);
-            };
+            $scope.exportDmpUrl = () => appState.isLoaded() ?
+                panelState.exportArchiveUrl($scope.simulationId(), `${$scope.nav.simulationName()}.dat`) :
+                null;
 
             $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;
 
