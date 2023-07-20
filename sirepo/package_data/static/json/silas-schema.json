@@ -18,6 +18,8 @@
             ["phase", "Phase by Slice"],
             ["photons", "Number of Photons by Slice"],
             ["longitudinal_photons", "Longitudinal Photons"],
+            ["longitudinal_wavelength", "Longitudinal Wavelength"],
+            ["longitudinal_frequency", "Longitudinal Frequency"],
             ["longitudinal_intensity", "Longitudinal Central Intensity"],
             ["total_intensity", "Total Intensity"],
             ["total_phase", "Total Phase"]
@@ -38,6 +40,11 @@
             ["abcd_lct", "ABCD LCT"],
             ["n0n2_srw", "N0N2 SRW"],
             ["n0n2_lct", "N0N2 LCT"]
+        ],
+        "PumpPulseProfile": [
+            ["gaussian", "Gaussian"],
+            ["hog", "Higher Order Gaussian"],
+            ["tophat", "Top Hat"]
         ],
         "PumpType": [
             ["dual", "Dual"],
@@ -123,8 +130,10 @@
             "pump_wavelength": ["Pump Wavelength [m]", "Float", 532.0e-9],
             "pump_energy": ["Pump Energy [J]", "Float", 0.0211, "Pump laser energy onto the crystal"],
             "pump_gaussian_order": ["Pump Gaussian Order", "Float", 2.0],
+            "pump_pulse_profile": ["Pump Pulse Profile", "PumpPulseProfile", "gaussian"],
             "pump_type": ["Pump Type", "PumpType", "dual"],
             "origin": ["Crystal", "CrystalOrigin", "new"],
+            "n0n2Plot": ["", "N0n2Plot", "n0n2Plot"],
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
             "pump_offset_x": ["Pump Offset X [m]", "Float", 0],
             "pump_offset_y": ["Pump Offset X [m]", "Float", 0],
@@ -139,13 +148,18 @@
             "tolerance": ["Boundary Tolerance", "Float", 8e-3, "Adjust this value to avoid points outside domain (for a coarse mesh, increase this value)"]
         },
         "crystalCylinder": {
+            "alpha": ["$\\Large \\alpha$ 1/[cm]", "Float", 0, "Inverse Absorption Length"],
             "diameter": ["Diameter [cm]", "Float", 7, "", 1e-24],
+            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float"],
             "crystal": ["Crystal in Beamline", "SelectCrystal", 0],
             "crystalLength": ["Length [cm]", "Float", 2],
+            "half_length": ["$\\Large z0$ [cm]", "Float"],
+            "pump_type": ["Pump Type", "PumpType"],
             "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
+            "pump_pulse_profile": ["", "EquationText", ""],
             "T0": ["$\\Large T_0$ [$\\bf \\degree C$]", "Float", 20],
             "dT": ["$\\Large \\delta_T$ [$\\bf\\degree C$]", "Float", 3.8],
-            "wdT": ["$\\Large \\xi$ [cm]", "Float", 1],
+            "wdT": ["$\\Large wp$ [cm]", "Float", 1],
             "supergaussian": ["$\\Large P$", "Integer", 8, "Supergaussian degree", 1, 12]
         },
         "crystal3dAnimation": {},
@@ -204,7 +218,12 @@
     },
     "strings": {
         "beamlineTabName": "Amplifier",
-        "completionState": ": {frameCount} completed reports"
+        "completionState": ": {frameCount} completed reports",
+        "pumpPulseProfileEquation": {
+            "gaussian": "$f = T_0 + \\delta_T \\exp\\bigl[ -\\tfrac{1}{2}\\bigl(\\tfrac{x^2 + y^2}{wp^2}\\bigr)^P \\bigr] [\\exp(-z/\\lambda) + \\exp((z-l)/\\lambda)]$",
+            "hog": "$f = T_0 + \\delta_T  \\exp(-((x^2+y^2)/(2*wp^2))^P) * \\exp(-\\alpha * (z - z0))$",
+            "tophat":"$if \\> \\> x^2+y^2 <= wp:$ $\\newline$ $f = T_0 + \\delta_T * \\alpha * \\exp(-\\alpha * (z - z0))/(1 - \\exp(2 * \\alpha * z0))$ $\\newline$ $otherwise:$ $\\newline$ $f = T_0$"
+        }
     },
     "view": {
         "crystal": {
@@ -225,10 +244,6 @@
                     "propagationType",
                     "initial_temp",
                     "mesh_density",
-                    "A",
-                    "B",
-                    "C",
-                    "D",
                     "l_scale"
                 ]],
                 ["Pump Pulse", [
@@ -237,10 +252,18 @@
                     "pump_waist",
                     "pump_rep_rate",
                     "pump_gaussian_order",
+                    "pump_pulse_profile",
                     "pump_wavelength",
                     "pump_offset_x",
                     "pump_offset_y",
                     "inversion_n_cells"
+                ]],
+                ["Summary", [
+                    "n0n2Plot",
+                    "A",
+                    "B",
+                    "C",
+                    "D"
                 ]]
             ]
         },
@@ -263,11 +286,15 @@
             "title": "Ti:Sapphire Crystal Cylinder",
             "basic": [
                 "crystal",
+                "pump_type",
+                "pump_rep_rate",
                 "crystalLength",
                 "diameter",
                 "diffusionConstant",
-                "*Initial Temperature Due to Pump Laser:\n$f = T_0 + \\delta_T \\exp\\bigl[ -\\tfrac{1}{2}\\bigl(\\tfrac{x^2 + y^2}{\\xi^2}\\bigr)^P \\bigr] [\\exp(-z/\\lambda) + \\exp((z-l)/\\lambda)]$",
+                "pump_pulse_profile",
                 "T0",
+                "half_length",
+                "alpha",
                 "dT",
                 "wdT",
                 "supergaussian"
@@ -347,6 +374,10 @@
         },
         "plot2Animation": {
             "title": "Longitudinal Temperature Profile",
+            "advanced": []
+        },
+        "n0n2Plot": {
+            "title": "",
             "advanced": []
         },
         "simulationStatus": {
