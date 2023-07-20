@@ -613,9 +613,9 @@ class _TestClient:
     def _requests_op(self, op, uri, headers, kwargs):
         from sirepo import const
 
-        u = self._uri(uri)
         if hasattr(self, "_web_socket"):
-            r = self._web_socket.send(op, u, headers, **kwargs)
+            assert uri[0] == "/", f"uri={uri} must begin with '/'"
+            r = self._web_socket.send(op, uri, headers, **kwargs)
             if r is not None:
                 return r
         if headers is None:
@@ -624,6 +624,7 @@ class _TestClient:
             "User-Agent",
             f"{const.SRUNIT_USER_AGENT} {pykern.pkinspect.caller()}",
         )
+        u = self._uri(uri)
         try:
             return _HTTPResponse(
                 getattr(self._session, op)(u, headers=headers, **kwargs),
