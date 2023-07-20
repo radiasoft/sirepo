@@ -1665,7 +1665,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         applyToFields('enableField', model, fieldInfo);
     };
 
-    self.exportArchive = (simulationId, filename) => {
+    self.exportArchiveUrl = (simulationId, filename) => {
         return urlForExport(simulationId, 'exportArchive', {
             '<filename>':  filename,
         });
@@ -1793,7 +1793,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return 'sr-' + name + '-editor';
     };
 
-    self.pythonSource = (simulationId, modelName, reportTitle) => {
+    self.pythonSourceUrl = (simulationId, modelName, reportTitle) => {
         const args = {};
         if (modelName) {
             args['<model>'] = modelName;
@@ -3964,12 +3964,12 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         return fileManager.pathName(folder);
     };
 
-    self.pythonSource = function(item) {
-        return panelState.pythonSource(item.simulationId);
+    self.pythonSourceUrl = function(item) {
+        return panelState.pythonSourceUrl(item.simulationId);
     };
 
-    self.exportArchive = function(item, extension) {
-        return panelState.exportArchive(item.simulationId, `${item.name}.${extension}`);
+    self.exportArchiveUrl = function(item, extension) {
+        return panelState.exportArchiveUrl(item.simulationId, `${item.name}.${extension}`);
     };
 
     self.renameItem = function(item) {
