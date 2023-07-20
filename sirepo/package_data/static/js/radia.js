@@ -972,7 +972,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
-                    <li><a data-ng-href="{{ exportDmp() }}"><span class="glyphicon glyphicon-cloud-download"></span> Export Radia Dump</a></li>
+                    <li><a data-ng-href="{{ exportDmpUrl() }}"><span class="glyphicon glyphicon-cloud-download"></span> Export Radia Dump</a></li>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">
@@ -983,11 +983,11 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
         `,
         controller: function($scope) {
 
-            $scope.exportDmp = () => {
+            $scope.exportDmpUrl = () => {
                 if (! appState.isLoaded()) {
                     return null;
                 }
-                return panelState.exportArchive($scope.simulationId(), `${$scope.nav.simulationName()}.dat`);
+                return panelState.exportArchiveUrl($scope.simulationId(), `${$scope.nav.simulationName()}.dat`);
             };
 
             $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;
