@@ -984,7 +984,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
         controller: function($scope) {
 
             $scope.exportDmp = () => {
-                if (! $scope.nav.simulationName) {
+                if (! appState.isLoaded()) {
                     return null;
                 }
                 return panelState.exportArchive($scope.simulationId(), `${$scope.nav.simulationName()}.dat`);
