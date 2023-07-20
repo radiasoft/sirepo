@@ -351,9 +351,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                <div class="row">
                    <div class="col-md-6" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'"></div>
                </div>
+               <div class="row"><label>Clipping</label></div>
                <div class="row">
                    <div data-ng-repeat="dim in axes track by $index" class="col-md-6">
-                       <div data-label-with-tooltip="" class="control-label" data-label="{{ dim }} range"></div>    
+                       <div data-label-with-tooltip="" class="control-label" data-label="{{ dim }}"></div>    
                        <div class="axis-display-slider axis-display-{{ dim }}"></div>
                        <div style="display:flex; justify-content:space-between;">
                        <span>{{ getMeshRanges()[$index][0] }}</span>
@@ -929,6 +930,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     return;
                 }
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
+                    const s = $(`.axis-display-${dim}`);
                     const r = getMeshRanges()[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
                     const dr = $scope.tallyReport[`${dim}DisplayRange`];
                     if (dr[0] < r[0]) {
@@ -939,7 +941,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     }
                     if (! displaySliders[dim]) {
                         // jquery-ui slider
-                        displaySliders[dim] = $(`.axis-display-${dim}`).slider({
+                        displaySliders[dim] = s.slider({
                             min: r[0],
                             max: r[1],
                             range: true,
@@ -952,6 +954,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                             values: dr,
                         });
                     }
+                    s.slider('option', 'disabled', r[2] === 1);
                 });
 
                 appState.saveQuietly('tallyReport');
@@ -1051,6 +1054,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 }
                 return getMeshRanges();
             };
+
+            $scope.isSliceEnabled = () => {
+                srdbg('?', mesh ?  getMeshRanges()[tallyReportAxisIndices()[0]][2] > 1 : false);
+                return mesh ? getMeshRanges()[tallyReportAxisIndices()[0]][2] > 1 : false;
+            }
 
             $scope.init = () => {
                 buildOpacityDelegate();
