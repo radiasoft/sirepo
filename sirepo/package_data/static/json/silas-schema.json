@@ -176,6 +176,7 @@
             "poltype": ["Polarization", "GaussianBeamPolarization", "1"],
             "tau_fwhm": ["FWHM Length [ps]", "Float", 23.5865],
             "tau_0": ["Fourier-limited pulse length of a given spectral bandwidth [ps]", "Float",  23.5865],
+            "chirp": ["Chirp", "Float", 1.0],
             "pulseE": ["Total Laser Pulse Energy [J]", "Float", 0.001],
             "distribution": ["Distribution Type", "DistributionType", "gaussian"],
             "sigx_waist": ["Horizontal Beam Size [m]", "Float", 0.001, "Size is in terms of RMS"],
@@ -342,7 +343,8 @@
                     "num_sig_long",
                     "nslice",
                     "tau_fwhm",
-                    "tau_0"
+                    "tau_0",
+                    "chirp"
                 ]]
             ]
         },

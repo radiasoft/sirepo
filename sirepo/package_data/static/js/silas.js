@@ -405,6 +405,7 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
             updateMesh();
         }
         updateMeshPoints();
+        computeChirp();
     }
 
     function updateMeshPoints() {
@@ -419,8 +420,32 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
         ]);
     }
 
+    function computeChirp() {
+        // TODO (gurhar1133): after cancel button updates to
+        // chirp field in UI stop working
+        requestSender.sendStatefulCompute(
+            appState,
+            data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                $scope.model.chirp = data.chirp;
+                srdbg(data.chirp);
+            },
+            {
+                method: 'calc_chirp',
+                model: {
+                    tau_0: $scope.model.tau_0,
+                    tau_fwhm: $scope.model.tau_fwhm,
+                },
+            },
+        );
+        srdbg('chirp computed');
+    }
+
     $scope.whenSelected = () => {
         $scope.model = appState.models[$scope.modelName];
+        panelState.enableField($scope.modelName, 'chirp', false);
         updateEditor();
     };
 
@@ -432,6 +457,7 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
             'laserPulse.distribution',
         ], updateEditor,
         ['laserPulse.nx_slice'], updateMeshPoints,
+        ['laserPulse.tau_fwhm', 'laserPulse.tau_0'], computeChirp,
     ];
 });
 

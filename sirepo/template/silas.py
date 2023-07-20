@@ -126,6 +126,16 @@ def stateful_compute_mesh_dimensions(data, **kwargs):
     return PKDict(numSliceMeshPoints=[m.nx, m.ny])
 
 
+def stateful_compute_calc_chirp(data, **kwargs):
+    from rslaser.pulse import pulse
+
+    c = round(pulse.LaserPulse(params=data.model).initial_chirp, 7)
+    pkdp('\n\n\nchirp={}', c)
+    return PKDict(
+        chirp=c
+    )
+
+
 def stateful_compute_n0n2_plot(data, **kwargs):
     import matplotlib.pyplot as plt
     from rslaser.optics import Crystal
