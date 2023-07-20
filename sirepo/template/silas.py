@@ -22,6 +22,7 @@ _CRYSTAL_CSV_FILE = "crystal.csv"
 _RESULTS_FILE = "results{}.h5"
 _CRYSTAL_FILE = "crystal{}.h5"
 _MAX_H5_READ_TRIES = 3
+_ABCD_DELTA = 1e-3
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -135,6 +136,9 @@ def stateful_compute_n0n2_plot(data, **kwargs):
         with open(path, "rb") as f:
             return "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
 
+    def _determinant(matrix):
+        return matrix[2][0][0] * matrix[2][1][1] - matrix[2][0][1] * matrix[2][1][0]
+
     n = Crystal(
         params=PKDict(
             l_scale=data.model.l_scale,
@@ -167,10 +171,9 @@ def stateful_compute_n0n2_plot(data, **kwargs):
     axes[1].set_ylabel("N2")
     plt.xlabel("Slice")
     plt.savefig(p)
-    determinant = n[2][0][0]*n[2][1][1]-n[2][0][1]*n[2][1][0]
-    # TODO (gurhar1133):: check abs(determinant - 1) < delta
-    # where delta = 1e-3
-    pkdp("\n\n\n det={}\n\n\n\n", determinant)
+    d = _determinant(n)
+    if abs(d - 1) > _ABCD_DELTA:
+        raise AssertionError(f"The determinant of ABCD matrix should be 1, got determinant={d}")
     return PKDict(
         uri=_data_url(p),
         A=round(n[2][0][0], 9),
