@@ -926,7 +926,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
             function updateDisplayRange() {
                 if (! mesh) {
-                    return  null;
+                    return;
                 }
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
                     const r = getMeshRanges()[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
