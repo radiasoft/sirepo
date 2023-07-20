@@ -281,6 +281,7 @@ SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $
         controller: function($scope) {
             $scope.isLoading = true;
             $scope.imageClass = null;
+            $scope.errorMessage = null;
             const abcd = ['A', 'B', 'C', 'D'];
 
             const showABCD = () => {
@@ -304,6 +305,10 @@ SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $
                     appState,
                     response => {
                         if (! $scope.model) {
+                            return;
+                        }
+                        if (response.error) {
+                            $scope.errorMessage = response.error;
                             return;
                         }
                         if ($('.' + $scope.imageClass).length) {

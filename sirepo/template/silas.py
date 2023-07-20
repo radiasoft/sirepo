@@ -163,9 +163,8 @@ def stateful_compute_n0n2_plot(data, **kwargs):
     ).calc_n0n2(set_n=True, mesh_density=data.model.mesh_density)
     d = _determinant(n)
     if abs(d - 1) > _ABCD_DELTA:
-        # TODO (gurhar1133): test this
-        raise AssertionError(
-            f"The determinant of ABCD matrix should be 1, got determinant={d}"
+        return PKDict(
+            error=f"ERROR: The determinant of ABCD matrix should be 1, got determinant={d}"
         )
     p = pkio.py_path("n0n2_plot.png")
     plt.clf()
