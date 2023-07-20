@@ -1671,7 +1671,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         });
     };
 
-    self.exportJupyterNotebook = (simulationId, modelName, reportTitle) => {
+    self.exportJupyterNotebookUrl = (simulationId, modelName, reportTitle) => {
         const args = {};
         if (modelName) {
             args['<model>'] = modelName;
