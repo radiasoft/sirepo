@@ -127,12 +127,10 @@ def stateful_compute_mesh_dimensions(data, **kwargs):
 
 
 def stateful_compute_calc_chirp(data, **kwargs):
-    from rslaser.pulse import pulse
+    from rslaser.pulse import Pulse
 
-    c = round(pulse.LaserPulse(params=data.model).initial_chirp, 7)
-    pkdp('\n\n\nchirp={}', c)
     return PKDict(
-        chirp=c
+        chirp=round(pulse.LaserPulse(params=data.model).initial_chirp, 7)
     )
 
 

@@ -556,7 +556,6 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
                     res["y_range"][1] = r[1]
     if plot_fields:
         res.update(plot_fields)
-    pkdp("\n\n\n res={}", res)
     return res
 
 
