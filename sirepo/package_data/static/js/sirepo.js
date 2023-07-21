@@ -1981,15 +1981,11 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
 // cannot import authState factory, because of circular import with requestSender
 SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) => {
-    const self = {};
-    const toSend = [];
     let needReply = {};
     let reqSeq = 1;
+    const self = {};
     let socket = null;
-
-    const _isAuthenticated = () =>  {
-        return SIREPO.authState.isLoggedIn && ! SIREPO.authState.needCompleteRegistration;
-    };
+    const toSend = [];
 
     const _error = (event) => {
         // close: event.code : short, event.reason : str, wasClean : bool
@@ -2002,6 +1998,14 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         }
         //TODO(robnagler) backoff timer and set status
         $interval(_socket, 1000, 1);
+    };
+
+    const _isAuthenticated = () =>  {
+        return SIREPO.authState.isLoggedIn && ! SIREPO.authState.needCompleteRegistration;
+    };
+
+    const _isAuthUrl = (url) =>  {
+        return url.startsWith("/auth-");
     };
 
     const _remove = (msg) => {
@@ -2108,7 +2112,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     self.send = (url, data, http_config) => {
-        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated()) {
+        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url)) {
             return data == null ? $http.get(url, http_config)
                 : $http.post(url, data, http_config);
         }
