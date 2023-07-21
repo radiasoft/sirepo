@@ -2024,7 +2024,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         //TODO(robnagler) errors, redirects, responseType not handled
         m.deferred.resolve({
             data: d.contentType == "application/json" ? JSON.parse(d.content) : d.content,
-            status: 200
+            status: d.httpStatus
         });
     };
 

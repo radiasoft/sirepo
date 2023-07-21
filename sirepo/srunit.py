@@ -614,7 +614,6 @@ class _TestClient:
         from sirepo import const
 
         if hasattr(self, "_web_socket"):
-            assert uri[0] == "/", f"uri={uri} must begin with '/'"
             r = self._web_socket.send(op, uri, headers, **kwargs)
             if r is not None:
                 return r
@@ -718,6 +717,7 @@ class _WebSocket:
         if headers or not self._enabled:
             # Headers means something special (usually auth testing)
             return None
+        assert uri[0] == "/", f"uri={uri} must begin with '/'"
         return asyncio.run(self._send(_marshall_req()))
 
     async def _send(self, msg):
@@ -782,7 +782,7 @@ class _WebSocketResponse:
         self._headers = PKDict()
         self.data = reply.content
         self.mimetype = reply.contentType
-        self.status_code = 200
+        self.status_code = reply.httpStatus
 
     def header_get(self, name):
         return self._headers[name]

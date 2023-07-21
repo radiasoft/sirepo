@@ -63,7 +63,11 @@ def parse_post(qcall, kwargs):
     def _type(v):
         from sirepo import auth
 
-        assert not isinstance(v, bool), "missing type in params/post={}".format(kwargs)
+        if isinstance(v, bool):
+            raise sirepo.util.BadRequest(
+                "missing simulationType in params/post={}",
+                kwargs,
+            )
         qcall.auth.check_sim_type_role(v)
         res.sim_data = sirepo.sim_data.get_class(v)
         return v
@@ -104,11 +108,14 @@ def parse_post(qcall, kwargs):
             s = kwargs.pkdel(k)
             n = s["name"] if "name" in s else k
             v = r[n] if n in r else None
-            assert (
-                v is not None or "optional" in s and s["optional"] == True
-            ), "required param={} missing in post={}".format(k, r)
+            if not (v is not None or "optional" in s and s["optional"] == True):
+                raise sirepo.util.BadRequest(
+                    "required param={} missing in post={}",
+                    k,
+                    r,
+                )
             if v is not None:
                 res[n] = v
-
-    assert not kwargs, "unexpected kwargs={}".format(kwargs)
+    if kwargs:
+        raise sirepo.util.BadRequest("unexpected post parameters={}", kwargs)
     return res
