@@ -86,9 +86,6 @@ def default_command():
 class _AgentMsg(tornado.websocket.WebSocketHandler):
     sr_class = sirepo.job_driver.AgentMsg
 
-    def check_origin(self, origin):
-        return True
-
     def on_close(self):
         try:
             d = getattr(self, "sr_driver", None)

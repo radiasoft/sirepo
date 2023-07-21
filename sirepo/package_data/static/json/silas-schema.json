@@ -18,6 +18,8 @@
             ["phase", "Phase by Slice"],
             ["photons", "Number of Photons by Slice"],
             ["longitudinal_photons", "Longitudinal Photons"],
+            ["longitudinal_wavelength", "Longitudinal Wavelength"],
+            ["longitudinal_frequency", "Longitudinal Frequency"],
             ["longitudinal_intensity", "Longitudinal Central Intensity"],
             ["total_intensity", "Total Intensity"],
             ["total_phase", "Total Phase"]

@@ -1156,3 +1156,24 @@ label .katex {
 img.sr-disabled-image {
   filter: opacity(0.5);
 }
+
+@keyframes icon-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.completed-icon {
+  color: green;
+}
+
+.error-icon {
+  color: red;
+}
+
+.running-icon {
+  animation: icon-rotate 2s linear 0s infinite;
+}
