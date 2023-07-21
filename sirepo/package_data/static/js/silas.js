@@ -420,28 +420,24 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
     }
 
     function computeChirp() {
-        // TODO (gurhar1133): after cancel button updates to
-        // chirp field in UI stop working. GENERAL PROBLEM?
-
-        // TODO (gurhar1133): also needs debounce if typing slow?
+        const m = appState.models[$scope.modelName];
         requestSender.sendStatelessCompute(
             appState,
             data => {
-                srdbg(data);
                 if (data.error) {
-                    $scope.model.chirp = "n/a";
+                    if (data.error.match('Invalid pulse length parameters provided')){
+                        m.chirp = 0;
+                        return;
+                    }
                     throw new Error(data.error);
                 }
-                // $scope.model.chirp = data.chirp;
-                appState.models.laserPulse.chirp = data.chirp;
-                srdbg('chirp from server:', data.chirp);
-                srdbg('$scope.model.chirp:', $scope.model.chirp);
+                m.chirp = data.chirp;
             },
             {
                 method: 'calc_chirp',
                 model: {
-                    tau_0: $scope.model.tau_0,
-                    tau_fwhm: $scope.model.tau_fwhm,
+                    tau_0: m.tau_0,
+                    tau_fwhm: m.tau_fwhm,
                 },
             },
         );
@@ -464,12 +460,6 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
         ['laserPulse.nx_slice'], updateMeshPoints,
         ['laserPulse.tau_0', 'laserPulse.tau_fwhm'], computeChirp
     ];
-
-    // $scope.$on(['laserPulse.changed'], (e, name) => {
-    //     srdbg('name:', name);
-    //     srdbg('event:', e);
-    //     computeChirp();
-    // });
 });
 
 SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasService, $scope) {

@@ -130,12 +130,10 @@ def stateless_compute_calc_chirp(data, **kwargs):
     from rslaser.pulse import pulse
 
     try:
-        res = round(pulse.LaserPulse(params=data.model).initial_chirp, 7)
+        c = round(pulse.LaserPulse(params=data.model).initial_chirp, 7)
     except Exception as e:
         return PKDict(error=str(e))
-    return PKDict(
-        chirp=res
-    )
+    return PKDict(chirp=c)
 
 
 def stateful_compute_n0n2_plot(data, **kwargs):
