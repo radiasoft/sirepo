@@ -34,6 +34,7 @@ def test_srw_sample_preview(fc):
                 "outputImageFormat": "tif",
                 "rotateAngle": 0,
                 "rotateReshape": "0",
+                "sampleSource": "file",
                 "shiftX": 0,
                 "shiftY": 0,
                 "tileColumns": 1,
