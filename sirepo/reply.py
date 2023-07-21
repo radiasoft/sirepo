@@ -428,7 +428,7 @@ class _SReply(sirepo.quest.Attr):
             if c.cache:
                 resp.set_header(
                     "Cache-Control",
-                    "private, max-age={resp.cache_control.max_age}",
+                    f"private, max-age={CACHE_MAX_AGE}",
                 )
                 if c.mtime is not None:
                     resp.set_header(
