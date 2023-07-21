@@ -56,11 +56,13 @@ def render(*paths, target_dir=None, j2_ctx=None):
     Returns:
         py.path: path to rendered file
     """
+
+    def _with_jinja_suffix(paths):
+        return paths[:-1] + tuple([paths[-1] + pykern.pkjinja.RESOURCE_SUFFIX])
+
     res = target_dir.join(paths[-1])
-    p = list(paths)
-    p[-1] += pykern.pkjinja.RESOURCE_SUFFIX
     pykern.pkjinja.render_file(
-        file_path(*p),
+        file_path(*_with_jinja_suffix(paths)),
         j2_ctx,
         output=res,
     )
