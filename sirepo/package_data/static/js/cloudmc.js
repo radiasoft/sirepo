@@ -349,17 +349,25 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                    <div class="col-md-6" style="padding: 8px;" data-field-editor="'axis'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
                </div>
                <div class="row">
-                   <div class="col-md-6" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'"></div>
+                   <!--<div class="col-md-6" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'"></div>-->
+                   <div class="col-md-6">
+                       <label>Slice</label>
+                       <div class="plane-pos-slider"></div>
+                       <div style="display:flex; justify-content:space-between;">
+                            <span>{{ getMeshRanges()[$index][0] }}</span>
+                            <span>{{ getMeshRanges()[$index][1] }}</span>
+                       </div>
+                   </div>
                </div>
                <div class="row"><label>Clipping</label></div>
                <div class="row">
-                   <div data-ng-repeat="dim in axes track by $index" class="col-md-6">
+                   <div data-ng-repeat="dim in axes track by $index" class="col-md-4">
                        <div data-label-with-tooltip="" class="control-label" data-label="{{ dim }}"></div>    
                        <div class="axis-display-slider axis-display-{{ dim }}"></div>
                        <div style="display:flex; justify-content:space-between;">
-                       <span>{{ getMeshRanges()[$index][0] }}</span>
-                       <span>{{ getDisplayRange(dim) }}</span>
-                       <span>{{ getMeshRanges()[$index][1] }}</span>
+                            <span>{{ getMeshRanges()[$index][0] }}</span>
+                            <span>{{ getDisplayRange(dim) }}</span>
+                            <span>{{ getMeshRanges()[$index][1] }}</span>
                        </div>
                    </div>
                </div>
@@ -954,6 +962,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                             values: dr,
                         });
                     }
+                    srdbg(dim, 'sttep', Math.abs((r[1] - r[0])) / mesh.dimension[i]);
                     s.slider('option', 'disabled', r[2] === 1);
                 });
 
@@ -975,12 +984,25 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     return;
                 }
                 const pos = scale * appState.models.tallyReport.planePos;
-                const r = getMeshRanges()[tallyReportAxisIndices()[0]];
+                const i = tallyReportAxisIndices()[0];
+                const r = getMeshRanges()[i];
                 if (pos < r[0] || pos > r[1]) {
                     appState.models.tallyReport.planePos = Math.floor(r[2] / 2) * (r[1] - r[0]) / r[2];
                 }
                 appState.saveChanges('tallyReport');
                 updateSlice();
+                $('.plane-pos-slider').slider({
+                    min: r[0],
+                    max: r[1],
+                    range: false,
+                    slide: (e, ui) => {
+                        $scope.$apply(() => {
+                            $scope.tallyReport.planePos = ui.value;
+                        });
+                    },
+                    step: Math.abs((r[1] - r[0])) / mesh.dimension[i],
+                    value: $scope.tallyReport.planePos,
+                });
             }
 
             function volumesError(reason) {
