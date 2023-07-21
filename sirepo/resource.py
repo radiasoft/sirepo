@@ -49,24 +49,21 @@ def render(*paths, target_dir=None, j2_ctx=None):
     """Render a jinja resource into target_dir
 
     Args:
-        paths (str): Path components of file
+        paths (str): Path components of resource file without pykern.pkjinja.RESOURCE_SUFFIX
         target_dir (py.path): target directory for rendered file
         j2_ctx (PKDict): parameters to jinja file
 
     Returns:
         py.path: path to rendered file
     """
-
-    def _with_jinja_suffix(paths):
-        return paths[:-1] + tuple([paths[-1] + pykern.pkjinja.RESOURCE_SUFFIX])
-
-    res = target_dir.join(paths[-1])
+    f = paths[-1]
+    t = target_dir.join(f)
     pykern.pkjinja.render_file(
-        file_path(*_with_jinja_suffix(paths)),
+        file_path(*paths[:-1], f + pykern.pkjinja.RESOURCE_SUFFIX),
         j2_ctx,
-        output=res,
+        output=t,
     )
-    return res
+    return t
 
 
 def root_modules():
