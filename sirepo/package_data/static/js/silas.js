@@ -427,10 +427,13 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
         requestSender.sendStatelessCompute(
             appState,
             data => {
+                srdbg(data);
                 if (data.error) {
+                    $scope.model.chirp = "n/a";
                     throw new Error(data.error);
                 }
-                $scope.model.chirp = data.chirp;
+                // $scope.model.chirp = data.chirp;
+                appState.models.laserPulse.chirp = data.chirp;
                 srdbg('chirp from server:', data.chirp);
                 srdbg('$scope.model.chirp:', $scope.model.chirp);
             },
@@ -459,13 +462,14 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
             'laserPulse.distribution',
         ], updateEditor,
         ['laserPulse.nx_slice'], updateMeshPoints,
+        ['laserPulse.tau_0', 'laserPulse.tau_fwhm'], computeChirp
     ];
 
-    $scope.$on(['laserPulse.changed'], (e, name) => {
-        srdbg('name:', name);
-        srdbg('event:', e);
-        computeChirp();
-    });
+    // $scope.$on(['laserPulse.changed'], (e, name) => {
+    //     srdbg('name:', name);
+    //     srdbg('event:', e);
+    //     computeChirp();
+    // });
 });
 
 SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasService, $scope) {
