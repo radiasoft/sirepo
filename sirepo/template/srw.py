@@ -1971,27 +1971,40 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         else:
             content.append("v.si = True")
             content.append("op = None")
-        content.append("v.ws_fne = '{}'".format(_wavefront_pickle_filename(0)))
         prev_wavefront = None
+        prev_watch = 0
+        init_wavefront = _wavefront_pickle_filename(prev_watch, pre_process=True)
+        content.append(f"v.ws_fne = '{init_wavefront}'")
         names = []
         for n in beamline_info.names:
             names.append(n)
             if n in beamline_info.watches:
+                watch = beamline_info.watches[n]
                 is_last_watch = n == beamline_info.names[-1]
                 content.append("names = ['" + "','".join(names) + "']")
                 names = []
                 if prev_wavefront:
-                    content.append("v.ws_fnei = '{}'".format(prev_wavefront))
-                prev_wavefront = _wavefront_pickle_filename(beamline_info.watches[n])
-                content.append("v.ws_fnep = '{}'".format(prev_wavefront))
-                content.append("op = set_optics(v, names, {})".format(is_last_watch))
+                    content.append(f"v.ws_fnei = '{prev_wavefront}'")
+                next_wavefront = _wavefront_pickle_filename(watch, pre_process=True)
+                p = prev_wavefront if prev_wavefront else init_wavefront
+                content.append(f"v.ws_fnep = '{next_wavefront}'")
+                content.append(f"op = set_optics(v, names, {is_last_watch})")
                 if not is_last_watch:
+                    content.append(f"print('BL {p} -> {next_wavefront}...')")
                     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
-                    content.append(
-                        f"""with open('{prev_wavefront}', 'r') as f:
-                            wfr = pickle.load(f)
-                        """
+                content.append(f"print('...DONE {p} -> {next_wavefront}')")
+                content.append(f"print('SCALIING {p}')")
+                content.append(
+                        f"""with open('{p}', 'rb') as fp:
+                            wfr = pickle.load(fp)
+                        # RESIZE
+                        with open('{_wavefront_pickle_filename(prev_watch)}', 'wb') as f:
+                            pickle.dump(wfr, f)
+                        os.remove('{p}')
+"""
                     )
+                prev_watch = watch
+                prev_wavefront = next_wavefront
     elif run_all or (
         _SIM_DATA.srw_is_beamline_report(report) and len(data.models.beamline)
     ):
@@ -2645,10 +2658,11 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
         )
 
 
-def _wavefront_pickle_filename(el_id):
+def _wavefront_pickle_filename(el_id, pre_process=False):
+    p = '-preprocessed' if pre_process else ''
     if el_id:
-        return f"wid-{el_id}.pkl"
-    return "initial.pkl"
+        return f"wid-{el_id}{p}.pkl"
+    return f"initial{p}.pkl"
 
 
 def _write_rsopt_files(data, run_dir, ctx):
