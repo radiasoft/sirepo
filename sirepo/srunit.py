@@ -566,6 +566,7 @@ class _TestClient:
                             PKDict(error="server error uri={}".format(m.group(1))),
                         )
                     if kwargs.get("redirect", True):
+                        pkdlog("redirecting uri={}", m.group(1))
                         # Execute the redirect
                         return self.__req(
                             m.group(1),
@@ -579,6 +580,11 @@ class _TestClient:
             if r.status_code in (301, 302, 303, 305, 307, 308):
                 if kwargs.get("redirect", True):
                     # Execute the redirect
+                    pkdlog(
+                        "redirect status={} location={}",
+                        r.status_code,
+                        r.headers["Location"],
+                    )
                     return self.__req(
                         r.headers["Location"],
                         params=None,
