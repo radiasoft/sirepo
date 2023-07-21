@@ -1329,11 +1329,12 @@ SIREPO.app.directive('headerTooltip', function() {
             $scope.className = function() {
                 return 'glyphicon sr-info-pointer glyphicon-' + ({
                     canceled: 'ban-circle',
-                    completed: 'ok',
-                    error: 'exclamation-sign',
+                    completed: 'ok completed-icon',
+                    error: 'remove error-icon',
                     missing: 'question-sign',
+                    none: 'minus',
                     pending: 'hourglass',
-                    running: 'transfer'
+                    running: 'refresh running-icon'
                 }[$scope.tipText] || 'info-sign');
             };
 
