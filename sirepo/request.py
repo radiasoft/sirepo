@@ -24,6 +24,8 @@ _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 #: We always use the same name for a file upload
 _FORM_FILE_NAME = "file"
 
+_TORNADO_WEBSOCKET = "tornado_websocket"
+
 
 def init_quest(qcall, internal_req=None):
     if qcall.bucket_unchecked_get("in_pkcli"):
@@ -34,6 +36,7 @@ def init_quest(qcall, internal_req=None):
             #            http_request_uri="/",
             http_server_uri="http://localhost/",
             internal_req=internal_req,
+            _kind="pkcli",
             remote_addr="0.0.0.0",
         )
     elif "werkzeug" in str(type(internal_req)):
@@ -47,6 +50,7 @@ def init_quest(qcall, internal_req=None):
             http_request_uri=internal_req.url,
             http_server_uri=flask.url_for("_flask_dispatch_empty", _external=True),
             internal_req=internal_req,
+            _kind="flask",
             remote_addr=internal_req.remote_addr,
             _form_file_class=_FormFileFlask,
             _form_get=internal_req.form.get,
@@ -68,6 +72,7 @@ def init_quest(qcall, internal_req=None):
             #            http_request_uri=u + internal_req.msg.uri,
             http_server_uri=u + "/",
             internal_req=internal_req,
+            _kind=_TORNADO_WEBSOCKET,
             remote_addr="0.0.0.0",
             #            remote_addr=r.remote_ip,
             _form_file_class=_FormFileWebSocket,
@@ -84,6 +89,7 @@ def init_quest(qcall, internal_req=None):
             http_request_uri=u + r.path,
             http_server_uri=u + "/",
             internal_req=internal_req,
+            _kind="tornado_http",
             remote_addr=r.remote_ip,
             _form_file_class=_FormFileTornado,
             _form_get=internal_req.get_argument,
@@ -192,6 +198,9 @@ class _SRequest(sirepo.quest.Attr):
             # The package robot_detection does see it, but we don't want to introduce another dependency.
             return True
         return user_agents.parse(a).is_bot
+
+    def is_websocket(self):
+        return self._kind == _TORNADO_WEBSOCKET
 
     def method_is_post(self):
         return self.http_method == "POST"

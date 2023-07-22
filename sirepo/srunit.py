@@ -4,6 +4,7 @@
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern import pkcollections
 from pykern import pkcompat
 from pykern.pkcollections import PKDict
 import base64
@@ -701,9 +702,10 @@ class _WebSocket:
 
     def send(self, op, uri, headers, data=None, files=None, json=None):
         from pykern.pkdebug import pkdp, pkdlog
+        import msgpack
 
         def _marshall_req():
-            m = PKDict(uri=uri)
+            m = PKDict(msgType="request", uri=uri)
             if op == "get":
                 assert (
                     data is None and json is None and files is None
@@ -753,9 +755,7 @@ class _WebSocket:
         msg.reqSeq = self._req_seq
         self._connection.send(pkjson.dump_pretty(msg, pretty=False))
         return _WebSocketResponse(
-            pkjson.load_any(
-                self._connection.recv(self._test_client.DEFAULT_TIMEOUT_SECS),
-            ),
+            self._connection.recv(timeout=self._test_client.DEFAULT_TIMEOUT_SECS),
         )
 
     def start(self):
@@ -774,18 +774,27 @@ class _WebSocket:
 
 
 class _WebSocketResponse:
-    def __init__(self, reply):
+    def __init__(self, frame):
+        import msgpack
+        from pykern.pkdebug import pkdp
+
+        p = msgpack.Unpacker(object_pairs_hook=pkcollections.object_pairs_hook)
+        p.feed(frame)
+        v = p.unpack()
+        assert "v1" == v, f"invalid version={v}"
+        r = p.unpack()
+        assert "reply" == r.msgType, f"invalid msgType={r.msgType}"
         self._headers = PKDict()
-        self.data = reply.content
-        self.mimetype = reply.contentType
-        self.status_code = reply.httpStatus
+        self.data = p.unpack()
+        self.mimetype = r.contentType
+        self.status_code = r.httpStatus
 
     def header_get(self, name):
         return self._headers[name]
 
     def change_to_redirect(self, uri):
         self._headers = PKDict(Location=uri)
-        self.content = ""
+        self.data = ""
         self.mimetype = "text/plain"
         self.status_code = 302
         return self
