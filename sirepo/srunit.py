@@ -737,6 +737,7 @@ class _WebSocket:
     def _send(self, msg):
         from pykern import pkjson
         from websockets.sync import client
+        from sirepo import job
 
         def _connect():
             r = requests.Request(
@@ -746,6 +747,7 @@ class _WebSocket:
             self._connection = client.connect(
                 r.url.replace("http", "ws"),
                 additional_headers=r.headers,
+                max_size=job.cfg().max_message_bytes,
             )
             self._req_seq = 1
 
