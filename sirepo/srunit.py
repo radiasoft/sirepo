@@ -113,8 +113,8 @@ class _TestClient:
         self.http_prefix = f"http://{env.SIREPO_PKCLI_SERVICE_IP}:{port}"
         self._session = requests.Session()
         self.cookie_jar = self._session.cookies
-        if feature_config.cfg().ui_web_socket:
-            self._web_socket = _WebSocket(self)
+        if feature_config.cfg().ui_websocket:
+            self._websocket = _WebSocket(self)
 
     def get(self, uri, headers=None):
         return self._requests_op("get", uri, headers, kwargs=PKDict())
@@ -619,8 +619,8 @@ class _TestClient:
     def _requests_op(self, op, uri, headers, kwargs):
         from sirepo import const
 
-        if hasattr(self, "_web_socket"):
-            r = self._web_socket.send(op, uri, headers, **kwargs)
+        if hasattr(self, "_websocket"):
+            r = self._websocket.send(op, uri, headers, **kwargs)
             if r is not None:
                 return r
         if headers is None:
@@ -641,16 +641,16 @@ class _TestClient:
             raise
 
     def _uid_clear(self):
-        if hasattr(self, "_web_socket"):
-            self._web_socket.stop()
+        if hasattr(self, "_websocket"):
+            self._websocket.stop()
         self.sr_uid = None
 
     def _uid_verify_and_save(self):
         self.sr_uid = self.sr_auth_state(
             needCompleteRegistration=False, isLoggedIn=True
         ).uid
-        if hasattr(self, "_web_socket"):
-            self._web_socket.start()
+        if hasattr(self, "_websocket"):
+            self._websocket.start()
         return self.sr_uid
 
     def _uri(self, uri):
@@ -697,9 +697,10 @@ class _WebSocket:
         self._enabled = False
         self._connection = None
         self._test_client = test_client
+        self._is_async = None
 
     def send(self, op, uri, headers, data=None, files=None, json=None):
-        import asyncio
+        from pykern.pkdebug import pkdp, pkdlog
 
         def _marshall_req():
             m = PKDict(uri=uri)
@@ -720,44 +721,42 @@ class _WebSocket:
                     )
             return m
 
-        if headers or not self._enabled:
+        def _must_be_http():
+            # POSIT: /auth- match like sirepo.js msgRouter
+            return headers or uri.startswith("/auth-") or not self._enabled
+
+        if _must_be_http():
             # Headers means something special (usually auth testing)
+            pkdlog("uri={} enabled={}", uri, self._enabled)
             return None
         assert uri[0] == "/", f"uri={uri} must begin with '/'"
-        return asyncio.run(self._send(_marshall_req()))
+        return self._send(_marshall_req())
 
-    async def _send(self, msg):
+    def _send(self, msg):
         from pykern import pkjson
-        from tornado import websocket, httpclient
-        import asyncio
+        from websockets.sync import client
 
-        async def _connect():
+        def _connect():
             r = requests.Request(
                 url=self._test_client.http_prefix + "/ws",
                 cookies=self._test_client.cookie_jar,
             ).prepare()
-            self._connection = await websocket.websocket_connect(
-                httpclient.HTTPRequest(
-                    url=r.url.replace("http", "ws"),
-                    headers=r.headers,
-                ),
-                on_message_callback=self._message,
+            self._connection = client.connect(
+                r.url.replace("http", "ws"),
+                additional_headers=r.headers,
             )
-            self._reply_q = asyncio.Queue(maxsize=1)
             self._req_seq = 1
 
         if not self._connection:
-            await _connect()
+            _connect()
         self._req_seq += 1
         msg.reqSeq = self._req_seq
-        try:
-            await self._connection.write_message(pkjson.dump_pretty(msg, pretty=False))
-            return await asyncio.wait_for(
-                self._reply_q.get(),
-                self._test_client.DEFAULT_TIMEOUT_SECS,
-            )
-        finally:
-            self.stop()
+        self._connection.send(pkjson.dump_pretty(msg, pretty=False))
+        return _WebSocketResponse(
+            pkjson.load_any(
+                self._connection.recv(self._test_client.DEFAULT_TIMEOUT_SECS),
+            ),
+        )
 
     def start(self):
         assert not self._enabled
@@ -769,18 +768,9 @@ class _WebSocket:
         c = self._connection
         self._connection = None
         self._enabled = False
-        self._reply_q = None
         self._req_seq = None
         if c:
             c.close()
-
-    def _message(self, msg):
-        from pykern import pkjson
-
-        if msg is None:
-            # Close gets None
-            return
-        self._reply_q.put_nowait(_WebSocketResponse(pkjson.load_any(msg)))
 
 
 class _WebSocketResponse:

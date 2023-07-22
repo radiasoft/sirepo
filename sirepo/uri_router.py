@@ -237,25 +237,32 @@ def start_tornado(ip, port, debug):
                 self.msg_count,
                 self.remote_ip,
             )
-            # TODO(robnagler) what if msg poorly constructed? Close socket?
-            c = pkjson.load_any(msg)
-            e, r, k = _path_to_route(c.uri[1:])
-            if e:
-                pkdlog("uri={} {}; route={} kwargs={} ", c.uri, e, r, k)
-                r = _not_found_route
-            await _call_api(
-                None,
-                r,
-                kwargs=k,
-                internal_req=_WebSocketRequest(
-                    handler=self,
-                    msg=c,
-                    headers=self.__headers,
-                ),
-                reply_op=_websocket_response,
-            )
-            # TODO(robnagler) log uid need to get in SRequest somehow
-            pkdlog("end ws={} msg={} uri={}", self.ws_id, self.msg_count, c.uri)
+            try:
+                # TODO(robnagler) what if msg poorly constructed? Close socket?
+                c = pkjson.load_any(msg)
+                e, r, k = _path_to_route(c.uri[1:])
+                if e:
+                    pkdlog("uri={} {}; route={} kwargs={} ", c.uri, e, r, k)
+                    r = _not_found_route
+                await _call_api(
+                    None,
+                    r,
+                    kwargs=k,
+                    internal_req=_WebSocketRequest(
+                        handler=self,
+                        msg=c,
+                        headers=self.__headers,
+                    ),
+                    reply_op=_websocket_response,
+                )
+            finally:
+                # TODO(robnagler) log uid need to get in SRequest somehow
+                pkdlog(
+                    "end ws={} msg={} uri={}",
+                    self.ws_id,
+                    self.msg_count,
+                    c and c.get("uri"),
+                )
 
         # def on_ping(self, *args, **kwargs):
         #     # do we care?

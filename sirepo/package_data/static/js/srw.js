@@ -2435,12 +2435,11 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender) {
                 $scope.isLoading = true;
                 downloadImage(
                     'png',
-                    (data) => {
+                    (dataUrl) => {
                         imageData = data;
                         $scope.isLoading = false;
-                        const u = window.URL || window.webkitURL;
                         if ($('.srw-processed-image').length) {
-                            $('.srw-processed-image')[0].src = u.createObjectURL(data);
+                            $('.srw-processed-image')[0].src = dataUrl;
                         }
                     },
                 );

@@ -634,7 +634,7 @@ class _Auth(sirepo.quest.Attr):
             roles=[],
             slackUri=_get_slack_uri(),
             userName=None,
-            uiWebSocket=sirepo.feature_config.cfg().ui_web_socket,
+            uiWebSocket=sirepo.feature_config.cfg().ui_websocket,
             visibleMethods=visible_methods,
         )
         if "sbatch" in v.jobRunModeMap:

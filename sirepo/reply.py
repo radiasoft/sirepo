@@ -512,17 +512,37 @@ class _SReply(sirepo.quest.Attr):
         return r
 
     async def websocket_response(self):
+        def _file(resp, content):
+            res = content.handle.read()
+            resp.content = content.handle.close()
+            content.pkdel("handle")
+            if resp.contentType in _MIME_TYPE_UTF8:
+                return
+            resp.contentIsBase64 = True
+            resp.content = base64.b64encode(resp.content)
+
         a = self.__attrs
+        r = PKDict(
+            contentType=a.get("content_type", _MIME_TYPE.txt),
+            contentIsBase64=False,
+        )
         c = a.get("content")
         if c is None:
-            c = ""
+            r.content = ""
+        elif isinstance(c, PKDict):
+            _file(r, c)
+        else:
+            r.content = c
         await self.internal_req.handler.write_message(
-            PKDict(
-                content=pkcompat.from_bytes(c),
-                contentType=a.get("content_type", "text/plain"),
+            r.pkupdate(
                 httpStatus=a.get("status", 200),
                 reqSeq=self.internal_req.msg.reqSeq,
             ),
+        )
+        await self.internal_req.handler.write_message(
+            # this might be utf-8, too
+            bytes(),
+            msgs are ordered always paired?
         )
 
     def _copy(self, source):

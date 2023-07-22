@@ -2018,18 +2018,23 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     const _reply = (event) => {
+        // if the next message is binary
         const d = JSON.parse(event.data);
         const m = needReply[d.reqSeq];
+        const _data = (msg) => {
+            if (msg.contentType == "application/json") {
+                return JSON.parse(d.content);
+            }
+            if (msg.contentIsBase64) {
+                return `data:${msg.contentType};base64,` + msg.content;
+            }
+            return msg.content;
+        };
         if (! m) {
             srlog("not found reqSeq=", d.reqSeq, " content=", d.content);
             return;
         }
         delete needReply[d.reqSeq];
-        //TODO(robnagler) errors, redirects, responseType not handled
-        m.deferred.resolve({
-            data: d.contentType == "application/json" ? JSON.parse(d.content) : d.content,
-            status: d.httpStatus
-        });
     };
 
     const _reqData = (data, done) => {

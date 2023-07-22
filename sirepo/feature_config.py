@@ -211,7 +211,7 @@ def _init():
             bool,
             "Trust Bash env to run Python and agents",
         ),
-        ui_web_socket=(
+        ui_websocket=(
             pkconfig.in_dev_mode(),
             bool,
             "whether the UI should use a websocket",
