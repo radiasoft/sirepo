@@ -15,6 +15,7 @@ install_requires = [
     "cryptography>=2.8",
     "futures",
     "matplotlib",
+    "msgpack",
     "numconv",
     "numpy",
     "Pillow",
