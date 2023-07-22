@@ -255,7 +255,8 @@
                     "canvas-toBlob.js",
                     "d3-3.5.9.min.js",
                     "ie10-viewport-bug-workaround.js",
-                    "katex.min.js"
+                    "katex.min.js",
+                    "msgpack.js"
                 ]
             },
             "sirepoLibs": {

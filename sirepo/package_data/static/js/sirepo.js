@@ -2017,24 +2017,37 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         delete needReply[msg.reqSeq];
     };
 
-    const _reply = (event) => {
-        // if the next message is binary
-        const d = JSON.parse(event.data);
-        const m = needReply[d.reqSeq];
-        const _data = (msg) => {
-            if (msg.contentType == "application/json") {
-                return JSON.parse(d.content);
-            }
-            if (msg.contentIsBase64) {
-                return `data:${msg.contentType};base64,` + msg.content;
-            }
-            return msg.content;
-        };
+    const _reply = (blob) => {
+        let [version, header, content] = msgpack.decodeMulti(blob);
+        const m = needReply[header.reqSeq];
         if (! m) {
-            srlog("not found reqSeq=", d.reqSeq, " content=", d.content);
+            srlog("WebSocket msg not found reqSeq=", header.reqSeq, " header=", header);
             return;
         }
-        delete needReply[d.reqSeq];
+        delete needReply[header.reqSeq];
+        if (version !== "v1" || header.msgType !== "reply") {
+            srlog("WebSocket frame invalid version=", version, " header=", header, " msg=", m);
+            m.deferred.reject("invalid reply from server");
+            return;
+        }
+        const b = m.responseType === "blob";
+        if (content instanceof Uint8Array) {
+            if (! b) {
+                srlog("WebSocket not expecting blob header=", header, " msg=", m);
+                m.deferred.reject("invalid reply from server");
+                return;
+            }
+            content = new Blob([content]);
+        }
+        else if (b) {
+            srlog("WebSocket expecting blob header=", header, " msg=", m);
+            m.deferred.reject("invalid reply from server");
+            return;
+        }
+        m.deferred.resolve({
+            data: header.contentType == "application/json" ? JSON.parse(content) : content,
+            status: header.httpStatus
+        });
     };
 
     const _reqData = (data, done) => {
@@ -2111,20 +2124,25 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         );
         s.onclose = (event) => {_error(event);};
         s.onerror = (event) => {_error(event);};
-        s.onmessage = (event) => {_reply(event);};
+        s.onmessage = (event) => {
+            event.data.arrayBuffer().then(
+                (blob) => {_reply(blob);},
+                (error) => {srlog("WebSocket.onmessage error=", error, " event=", event);}
+            )
+        };
         s.onopen = (event) => {_send();};
         socket = s;
     };
 
-    self.send = (url, data, http_config) => {
+    self.send = (url, data, httpConfig) => {
         if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url)) {
-            return data == null ? $http.get(url, http_config)
-                : $http.post(url, data, http_config);
+            return data == null ? $http.get(url, httpConfig)
+                : $http.post(url, data, httpConfig);
         }
         let m = {
             frame: {uri: url, reqSeq: reqSeq++},
             deferred: $q.defer(),
-            ...http_config,
+            ...httpConfig,
         };
         if (m.timeout) {
             m.timeout.then(() => {_remove(m);});
@@ -2526,7 +2544,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         var timeout = $q.defer();
         var interval, t;
         var timed_out = false;
-        const http_config = {
+        const httpConfig = {
             timeout: timeout.promise,
             responseType: (data || {}).responseType || '',
         };
@@ -2540,7 +2558,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                 1
             );
         }
-        var req = msgRouter.send(url, data, http_config);
+        var req = msgRouter.send(url, data, httpConfig);
         var thisErrorCallback = function(response) {
             var data = response.data;
             var status = response.status;
@@ -2620,7 +2638,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         };
         req.then(
             function(response) {
-                if (http_config.responseType === 'blob') {
+                if (httpConfig.responseType === 'blob') {
                     $interval.cancel(interval);
                     blobResponse(response, successCallback, thisErrorCallback);
                     return;
