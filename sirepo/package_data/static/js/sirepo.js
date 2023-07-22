@@ -2128,7 +2128,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             event.data.arrayBuffer().then(
                 (blob) => {_reply(blob);},
                 (error) => {srlog("WebSocket.onmessage error=", error, " event=", event);}
-            )
+            );
         };
         s.onopen = (event) => {_send();};
         socket = s;
