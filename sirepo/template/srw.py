@@ -2223,8 +2223,8 @@ def _remap_3d(info, allrange, out, report):
     )
 
 
-def _resize_report(width_pixels, ar2d, x_range, y_range):
-    #width_pixels = int(report.intensityPlotsWidth)
+def _resize_report(report, ar2d, x_range, y_range):
+    width_pixels = int(report.get("intensityPlotsWidth", 0))
     if not width_pixels:
         # upper limit is browser's max html canvas size
         width_pixels = _CANVAS_MAX_SIZE
