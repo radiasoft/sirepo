@@ -434,7 +434,9 @@ SIREPO.viewLogic('crystalCylinderView', function(appState, panelState, silasServ
 
     const parent = $scope.$parent;
     parent.silasService = silasService;
-
+    // TODO (gurhar1133): on new sim after rm run/ fix
+    // error when go straight to thermal tab before running
+    // laserPulse sim
     function updateCylinder(saveChanges)  {
         const cc = appState.models.crystalCylinder;
         const c = silasService.getThermalCrystal();
