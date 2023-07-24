@@ -314,7 +314,7 @@ def _get_field_distribution(run_dir, data):
 def _get_lattice_and_slice_data(run_dir, lattice_index):
     def _reshape_and_persist(data, cols, filename):
         d = data.reshape(int(data.size / len(cols)), len(cols))
-        numpy.save(filename, d)
+        numpy.save(str(filename), d)
         return d
 
     f = run_dir.join(_LATTICE_DATA_FILENAME.format(lattice_index))
@@ -326,7 +326,7 @@ def _get_lattice_and_slice_data(run_dir, lattice_index):
         _reshape_and_persist(
             numpy.fromstring(v[1], sep="\t"),
             _LATTICE_COLS,
-            _LATTICE_DATA_FILENAME.format(c),
+            run_dir.join(_LATTICE_DATA_FILENAME.format(c)),
         )
         c += 1
     return (
@@ -334,7 +334,7 @@ def _get_lattice_and_slice_data(run_dir, lattice_index):
         _reshape_and_persist(
             numpy.fromstring(_SLICE_RE.search(o)[1], sep="\t"),
             _SLICE_COLS,
-            _SLICE_DATA_FILENAME,
+            run_dir.join(_SLICE_DATA_FILENAME),
         ),
     )
 
@@ -363,8 +363,7 @@ def _is_text_file(path):
         pkio.read_text(path)
         return True
     except UnicodeDecodeError:
-        pass
-    return False
+        return False
 
 
 def _parse_namelist(data, text):
@@ -413,7 +412,7 @@ def _parse_namelist(data, text):
 
 
 def _z_title_at_frame(frame_args, nth):
-    _, s = _get_lattice_and_slice_data(frame_args.run_dir, 0)
+    s = _get_lattice_and_slice_data(frame_args.run_dir, 0)[1]
     step = frame_args.frameIndex * nth
     z = s[:, 0][step]
     return f"z: {z:.6f} [m] step: {step + 1}"
