@@ -155,7 +155,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
-    return _generate_parameters_file(data, None)
+    return _generate_parameters_file(data)
 
 
 def sim_frame(frame_args):
@@ -163,10 +163,14 @@ def sim_frame(frame_args):
         frame_args.sim_in.models,
         frame_args.frameReport,
     )
+    frame_args.run_dir = frame_args.run_dir.join(sub_dir)
+    frame_args.sim_in = simulation_db.read_json(
+        frame_args.run_dir.join(template_common.INPUT_BASE_NAME)
+    )
     if "Phase" in frame_args.frameReport:
-        return _plot_phase(sim_type, sub_dir, frame_args)
+        return _plot_phase(sim_type, frame_args)
     if "Beam" in frame_args.frameReport:
-        return _plot_beam(sim_type, sub_dir, frame_args)
+        return _plot_beam(sim_type, frame_args)
     raise AssertionError(
         "unhandled sim frame report: {}".format(frame_args.frameReport)
     )
@@ -187,7 +191,7 @@ def stateful_compute_get_opal_sim_list(**kwargs):
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, run_dir),
+        _generate_parameters_file(data),
     )
 
 
@@ -258,7 +262,7 @@ def _extract_elegant_beam_plot(frame_args):
     return res
 
 
-def _generate_parameters_file(data, run_dir=None):
+def _generate_parameters_file(data):
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
     sim_list = []
@@ -288,10 +292,9 @@ def _phase_plot_args(sim_type, frame_args):
     frame_args.y = xy[1]
 
 
-def _plot_beam(sim_type, sub_dir, frame_args):
+def _plot_beam(sim_type, frame_args):
     for f in ("y1", "y2", "y3"):
         frame_args[f] = _BEAM_PARAMETERS[sim_type][frame_args[f]]
-    frame_args.run_dir = frame_args.run_dir.join(sub_dir)
     if sim_type == "opal":
         import sirepo.template.opal
 
@@ -302,12 +305,15 @@ def _plot_beam(sim_type, sub_dir, frame_args):
     if sim_type == "genesis":
         import sirepo.template.genesis
 
+        frame_args.sim_in = simulation_db.read_json(
+            frame_args.run_dir.join(template_common.INPUT_BASE_NAME)
+        )
         return sirepo.template.genesis.sim_frame_parameterAnimation(frame_args)
 
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
 
 
-def _plot_phase(sim_type, sub_dir, frame_args):
+def _plot_phase(sim_type, frame_args):
     _phase_plot_args(sim_type, frame_args)
 
     if sim_type == "opal":
@@ -315,7 +321,7 @@ def _plot_phase(sim_type, sub_dir, frame_args):
 
         r = sirepo.template.opal.bunch_plot(
             frame_args,
-            frame_args.run_dir.join(sub_dir),
+            frame_args.run_dir,
             frame_args.frameIndex,
         )
         return r.pkupdate(
@@ -328,16 +334,12 @@ def _plot_phase(sim_type, sub_dir, frame_args):
         import sirepo.template.elegant
 
         return sirepo.template.elegant.extract_report_data(
-            str(frame_args.run_dir.join(sub_dir, "run_setup.output.sdds")),
+            str(frame_args.run_dir.join(_SUCCESS_OUTPUT_FILE[sim_type])),
             frame_args,
         )
     if sim_type == "genesis":
         import sirepo.template.genesis
 
-        frame_args.sim_in = simulation_db.read_json(
-            frame_args.run_dir.join(sub_dir, template_common.INPUT_BASE_NAME)
-        )
-        frame_args.run_dir = frame_args.run_dir.join(sub_dir)
         frame_args.frameIndex = 1
         return sirepo.template.genesis.sim_frame_particleAnimation(frame_args).pkupdate(
             title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
