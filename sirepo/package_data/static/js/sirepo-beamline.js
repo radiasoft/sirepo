@@ -860,7 +860,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
           </div>
           <div style="margin-bottom: 1em" class="clearfix"></div>
           <div data-ng-repeat="report in reports" data-ng-if="simState.hasFrames()">
-            <div data-watchpoint-report="" data-item-id="report.id"></div>
+            <div data-watchpoint-report="" data-item-id="report.id" data-ng-if="showReport(report)"></div>
             <div class="clearfix hidden-xl" data-ng-hide="($index + 1) % 2"></div>
             <div class="clearfix visible-xl" data-ng-hide="($index + 1) % 3"></div>
           </div>
@@ -872,6 +872,13 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
             $scope.$on('framesCleared', () => {
                 $scope.reports = [];
             });
+
+            $scope.showReport = report => {
+                if ($scope.simState.isStateRunning()) {
+                    return true;
+                }
+                return frameCache.getFrameCount(report.modelAccess.modelKey) !== SIREPO.nonDataFileFrame;
+            }
 
             $scope.start = function() {
                 $rootScope.$broadcast('saveLattice', appState.models);
