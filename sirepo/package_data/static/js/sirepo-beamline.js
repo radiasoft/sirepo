@@ -838,7 +838,7 @@ SIREPO.app.directive('watchPointList', function(appState, beamlineService) {
     };
 });
 
-SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
+SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelState, persistentSimulation) {
     return {
         restrict: 'A',
         scope: {},
@@ -921,6 +921,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
                         info.waitForData ? SIREPO.nonDataFileFrame : (info.frameCount || 1),
                         info.modelKey
                     );
+                    panelState.setWaiting(info.modelKey, ! ! info.waitForData);
                 }
                 frameCache.setFrameCount(data.frameCount || 0);
             };

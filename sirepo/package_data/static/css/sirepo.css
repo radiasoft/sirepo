@@ -352,6 +352,11 @@
     .sr-panel-running .sr-panel-wait {
       font-weight: bold;
     }
+    .sr-panel-waiting .sr-panel-wait {
+      color: white;
+      display: block;
+      z-index: 1000;
+    }
     .sr-hide-report {
       opacity: 0;
       height: 0;

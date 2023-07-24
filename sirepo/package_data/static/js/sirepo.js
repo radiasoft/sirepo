@@ -1749,6 +1749,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
     };
 
+    self.isWaiting = name => {
+        return getPanelValue(name, 'waiting') ? true : false;
+    };
+
     self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
         var args = {
             '<simulation_id>': simulationId,
@@ -1842,6 +1846,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     self.setLoading = (name, isLoading) => setPanelValue(name, 'loading', isLoading);
 
     self.setData = (name, data) => setPanelValue(name, 'data', data);
+
+    self.setWaiting = (name, isWaiting) => {
+        setPanelValue(name, 'waiting', isWaiting);
+    };
 
     self.showEnum = function(model, field, value, isShown) {
         var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo(model)[field][SIREPO.INFO_INDEX_TYPE]];
