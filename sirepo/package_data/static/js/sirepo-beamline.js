@@ -878,7 +878,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
                     return true;
                 }
                 return frameCache.getFrameCount(report.modelAccess.modelKey) !== SIREPO.nonDataFileFrame;
-            }
+            };
 
             $scope.start = function() {
                 $rootScope.$broadcast('saveLattice', appState.models);
