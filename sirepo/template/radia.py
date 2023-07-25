@@ -971,12 +971,16 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.h5SolutionPath = _H5_PATH_SOLUTION
     v.h5IdMapPath = _H5_PATH_ID_MAP
 
-    h = template_common.render_jinja(
-        SIM_TYPE,
-        v,
-        _HEADER_FILE,
-        jinja_env=PKDict(loader=jinja2.PackageLoader("sirepo", "template")),
-    ) if for_export or rpt_out in _SIM_REPORTS else ""
+    h = (
+        template_common.render_jinja(
+            SIM_TYPE,
+            v,
+            _HEADER_FILE,
+            jinja_env=PKDict(loader=jinja2.PackageLoader("sirepo", "template")),
+        )
+        if for_export or rpt_out in _SIM_REPORTS
+        else ""
+    )
 
     j_file = RADIA_EXPORT_FILE if for_export else f"{rpt_out}.py"
     return h + template_common.render_jinja(
