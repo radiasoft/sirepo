@@ -1954,10 +1954,9 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     source_type = data.models.simulation.sourceType
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or is_for_rsopt
     vp_var = "vp" if is_for_rsopt else "varParam"
-    #width_pixels = int(report.intensityPlotsWidth) or _CANVAS_MAX_SIZE
-    #max_width = int(
-    #    math.sqrt(sirepo.job.cfg().max_message_bytes / _JSON_MESSAGE_EXPANSION)
-    #)
+    max_width = int(
+        math.sqrt(sirepo.job.cfg().max_message_bytes / _JSON_MESSAGE_EXPANSION)
+    )
     content = [
         f"v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options({vp_var}), use_sys_argv={plot_reports})",
     ]
@@ -1997,11 +1996,11 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
                 content.append(
                         f"""
-    data, _, allrange, _, _ = uti_plot_com.file_load('{p}')
+    #data, _, allrange, _, _ = uti_plot_com.file_load('{p}')
     with open('{p}', 'rb') as f:
         wfr = pickle.load(f)
     # RESIZE
-    print(f'WFR SZ {{numpy.array(wfr).shape}}')
+    #print(f'WFR SZ {{numpy.array(data).size}}')
     with open('{_wavefront_pickle_filename(prev_watch)}', 'wb') as f:
         pickle.dump(wfr, f)
     os.remove('{p}')
