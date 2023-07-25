@@ -1994,7 +1994,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 content.append(f"op = set_optics(v, names, {is_last_watch})")
                 if not is_last_watch:
                     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
-                content.append(
+                    content.append(
                         f"""
     #data, _, allrange, _, _ = uti_plot_com.file_load('{p}')
     with open('{p}', 'rb') as f:
@@ -2180,12 +2180,6 @@ def _process_rsopt_elements(els):
     return x
 
 
-def _rrr(w, points, allrange):
-    points, x_range, y_range = _resize_report(
-        w, points, [allrange[3], allrange[4], allrange[5]], [allrange[6], allrange[7], allrange[8]]
-    )
-    pass
-
 def _remap_3d(info, allrange, out, report):
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
@@ -2199,7 +2193,7 @@ def _remap_3d(info, allrange, out, report):
     if report.get("useIntensityLimits", "0") == "1":
         ar2d[ar2d < report.minIntensityLimit] = report.minIntensityLimit
         ar2d[ar2d > report.maxIntensityLimit] = report.maxIntensityLimit
-    ar2d, x_range, y_range = _resize_report(report.intensityPlotsWidth, ar2d, x_range, y_range)
+    ar2d, x_range, y_range = _resize_report(report, ar2d, x_range, y_range)
     if report.get("rotateAngle", 0):
         ar2d, x_range, y_range = _rotate_report(report, ar2d, x_range, y_range, info)
     if out.units[2]:
