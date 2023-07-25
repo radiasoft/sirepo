@@ -180,7 +180,7 @@ def init_module(**imports):
             "sirepo.job_supervisor.purge_check_interval"
         ),
         run_dir_lifetime=(
-            "24:0:0",
+            "1d",
             pkconfig.parse_seconds,
             "expiration period for purging non-premium users simulation run output",
         ),
