@@ -171,12 +171,18 @@ def init_module(**imports):
         purge_check_interval=(
             None,
             pkconfig.parse_seconds,
-            "time interval to clean up simulation runs of non-premium users (%H:%M:%S)",
+            "time interval to clean up simulation runs of non-premium users, value of 0 means no checks are performed",
+        ),
+        purge_non_premium_after_secs=pkconfig.ReplacedBy(
+            "sirepo.job_supervisor.run_dir_lifetime"
+        ),
+        purge_non_premium_task_secs=pkconfig.ReplacedBy(
+            "sirepo.job_supervisor.purge_check_interval"
         ),
         run_dir_lifetime=(
-            0,
+            "24:0:0",
             pkconfig.parse_seconds,
-            "expiration period for purging non-premium users simulations",
+            "expiration period for purging non-premium users simulation run output",
         ),
         sbatch_poll_secs=(15, int, "how often to poll squeue and parallel status"),
     )
