@@ -2,6 +2,7 @@ import dolfin
 import fenics
 import mshr
 import numpy
+import pandas
 from numpy import array, meshgrid, unique
 from rslaser.optics import Crystal
 from rslaser.thermal import ThermoOptic
@@ -24,7 +25,7 @@ diam = {{ crystalCylinder_diameter }}
 leng = {{ crystalLength }}
 # --  mesh density within cylinder
 md = {{ crystalSettings_meshDensity }}
-crystal = Crystal(params={{crystalParams}})
+crystal = Crystal(params=PKDict({{crystalParams}}))
 
 # derived parameters
 radius = diam / 2  # radius
@@ -83,8 +84,8 @@ def thermo_optic_sim():
 
     # Set evaluation points & boundary conditions
     # TODO (gurhar1133): should double check this
-    # thermo.set_points((200, 0, 201))
-    # thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
+    thermo.set_points((200, 0, 201))
+    thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
 
     # TODO (gurhar1133): "hog" should be parameter from
     # crystal.pump_pulse_profile
@@ -94,10 +95,6 @@ def thermo_optic_sim():
     # we've already set load?
     Ts = thermo.hog_solution() #solve_steady()#gaussian_solution()
     nT, n0Fit, n2Fit = thermo.compute_indices(Ts)
-
-    # Crystal radius & length
-    r0 = crystal.radius*100.
-    L = crystal.length*100.
 
     # Positions of each evaluation point & sets of the unique values
     ptzs = thermo.eval_pts[:,2]
@@ -112,7 +109,7 @@ def thermo_optic_sim():
     RZ, ZR = meshgrid(rrs, zs)
     print("RZ", RZ)
     print("ZR", ZR)
-
+    return RZ, ZR
 
 # define time-evolution function
 def evolve():
@@ -181,8 +178,11 @@ for t, u in evolve():
     write_row('uz', t, uz)
 
 
-thermo_optic_sim()
-
+RZ, ZR = thermo_optic_sim()
+df = pandas.read_csv('{{ crystalCSV }}')
+print(set(RZ[0]))
+print(RZ.shape, ZR.shape)
+print(df.info())
 uvals = u.compute_vertex_values()
 
 numpy.save('indices.npy', inds)
