@@ -11,6 +11,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import csv
 import h5py
+import math
 import numpy
 import re
 import sirepo.sim_data
@@ -22,6 +23,7 @@ _CRYSTAL_CSV_FILE = "crystal.csv"
 _RESULTS_FILE = "results{}.h5"
 _CRYSTAL_FILE = "crystal{}.h5"
 _MAX_H5_READ_TRIES = 3
+_ABCD_DELTA = 1e-3
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -125,6 +127,18 @@ def stateful_compute_mesh_dimensions(data, **kwargs):
     return PKDict(numSliceMeshPoints=[m.nx, m.ny])
 
 
+def stateless_compute_calc_chirp(data, **kwargs):
+    from rslaser.pulse import pulse
+
+    try:
+        v = pulse.LaserPulse(params=data.model).initial_chirp
+        if math.isnan(v) or math.isinf(v):
+            v = 0
+    except AssertionError as e:
+        v = 0
+    return PKDict(chirp=round(v, 7))
+
+
 def stateful_compute_n0n2_plot(data, **kwargs):
     import matplotlib.pyplot as plt
     from rslaser.optics import Crystal
@@ -134,6 +148,9 @@ def stateful_compute_n0n2_plot(data, **kwargs):
     def _data_url(path):
         with open(path, "rb") as f:
             return "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
+
+    def _determinant(matrix):
+        return matrix[2][0][0] * matrix[2][1][1] - matrix[2][0][1] * matrix[2][1][0]
 
     n = Crystal(
         params=PKDict(
@@ -157,6 +174,11 @@ def stateful_compute_n0n2_plot(data, **kwargs):
             pop_inversion_pump_offset_y=data.model.pump_offset_y,
         )
     ).calc_n0n2(set_n=True, mesh_density=data.model.mesh_density)
+    d = _determinant(n)
+    if abs(d - 1) > _ABCD_DELTA:
+        return PKDict(
+            error=f"ERROR: The determinant of ABCD matrix should be 1, got determinant={d}"
+        )
     p = pkio.py_path("n0n2_plot.png")
     plt.clf()
     fig, axes = plt.subplots(2)
@@ -433,7 +455,7 @@ class _LaserPulsePlot(PKDict):
         longitudinal_intensity="Intensity",
         total_intensity="Total Intensity",
         total_phase="Total Phase",
-        longitudinal_frequency="Frequency [Rad/s]",
+        longitudinal_frequency="Frequency [rad/s]",
         longitudinal_wavelength="Wavelength [nm]",
         longitudinal_photons="Total Number of Photons",
         excited_states_longitudinal="Excited States",

@@ -137,7 +137,7 @@
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
             "pump_offset_x": ["Pump Offset X [m]", "Float", 0],
             "pump_offset_y": ["Pump Offset X [m]", "Float", 0],
-            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float", 1.0]
+            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float", 1000.0]
         },
         "crystalAnimation": {},
         "crystalSettings": {
@@ -176,10 +176,11 @@
             "poltype": ["Polarization", "GaussianBeamPolarization", "1"],
             "tau_fwhm": ["FWHM Length [ps]", "Float", 23.5865],
             "tau_0": ["Fourier-limited pulse length of a given spectral bandwidth [ps]", "Float",  23.5865],
+            "chirp": ["Chirp", "Float", 1.0],
             "pulseE": ["Total Laser Pulse Energy [J]", "Float", 0.001],
             "distribution": ["Distribution Type", "DistributionType", "gaussian"],
-            "sigx_waist": ["Horizontal Beam Size [m]", "Float", 0.001],
-            "sigy_waist": ["Vertical Beam Size [m]", "Float", 0.001],
+            "sigx_waist": ["Horizontal Beam Size [m]", "Float", 0.001, "Size is in terms of RMS"],
+            "sigy_waist": ["Vertical Beam Size [m]", "Float", 0.001, "Size is in terms of RMS"],
             "phase_flatten_cutoff": ["Phase Flatten Cutoff", "Float", 0.85]
         },
         "laserPulseAnimation": {
@@ -357,7 +358,8 @@
                     "num_sig_long",
                     "nslice",
                     "tau_fwhm",
-                    "tau_0"
+                    "tau_0",
+                    "chirp"
                 ]]
             ]
         },
