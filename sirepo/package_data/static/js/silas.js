@@ -126,7 +126,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
     self.beamlineService = beamlineService;
     self.prepareToSave = () => {};
     self.toolbarItemNames = [
-        ['Optics', ['crystal', 'lens', 'mirror']],
+        ['Optics', ['crystal', 'lens', 'mirror2', 'splitter', 'telescope']],
         'watch',
     ];
 
@@ -358,6 +358,7 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
         panelState.enableField(item.type, 'pump_wavelength', false);
         panelState.showTab(item.type, 2, item.origin === 'new');
         panelState.showTab(item.type, 3, item.origin === 'new');
+        panelState.showTab(item.type, 4, item.origin === 'new');
     }
 
     $scope.whenSelected = updateCrystalFields;
@@ -766,7 +767,7 @@ SIREPO.app.directive('equationText', function() {
         `,
         controller: function($scope) {
             $scope.equation = () => {
-                return SIREPO.APP_SCHEMA.strings.pumpPulseProfileEquation[$scope.selectedPumpProfile];
+                return SIREPO.APP_SCHEMA.strings.pumpPulseProfileEquation[$scope.selectedPumpProfile] || '';
             };
         },
     };
