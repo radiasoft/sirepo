@@ -242,6 +242,7 @@ def _crystal_animation_percent_complete(run_dir, res, data):
         # first two lines are axis points
         if count > 2:
             plot_count = int((count - 2) / 2)
+            pkdp("\n\n\n\nplot_count={}", plot_count)
             res.frameCount = plot_count
             res.percentComplete = (
                 plot_count
@@ -252,6 +253,7 @@ def _crystal_animation_percent_complete(run_dir, res, data):
                     / data.models.crystalSettings.plotInterval
                 )
             )
+    pkdp("\n\n\n res={}", res)
     return res
 
 
@@ -366,8 +368,30 @@ def _generate_crystal(crystal):
 
 
 def _generate_parameters_file(data):
+    from rslaser.optics import Crystal
+
     res, v = template_common.generate_parameters_file(data)
     if data.report == "crystalAnimation":
+        v.crystalParams = PKDict(
+            l_scale=_get_crystal(data).l_scale,
+            length=_get_crystal(data).length * 1e-2,
+            nslice=_get_crystal(data).nslice,
+            A=_get_crystal(data).A,
+            B=_get_crystal(data).B,
+            C=_get_crystal(data).C,
+            D=_get_crystal(data).D,
+            pop_inversion_n_cells=_get_crystal(data).inversion_n_cells,
+            pop_inversion_mesh_extent=_get_crystal(data).inversion_mesh_extent,
+            pop_inversion_crystal_alpha=_get_crystal(data).crystal_alpha,
+            pop_inversion_pump_waist=_get_crystal(data).pump_waist,
+            pop_inversion_pump_wavelength=_get_crystal(data).pump_wavelength,
+            pop_inversion_pump_gaussian_order=_get_crystal(data).pump_gaussian_order,
+            pop_inversion_pump_energy=_get_crystal(data).pump_energy,
+            pop_inversion_pump_type=_get_crystal(data).pump_type,
+            pop_inversion_pump_rep_rate=_get_crystal(data).pump_rep_rate,
+            pop_inversion_pump_offset_x=_get_crystal(data).pump_offset_x,
+            pop_inversion_pump_offset_y=_get_crystal(data).pump_offset_y,
+        )
         v.crystalLength = _get_crystal(data).length
         v.crystalCSV = _CRYSTAL_CSV_FILE
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
