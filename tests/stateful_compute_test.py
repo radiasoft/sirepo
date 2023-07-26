@@ -12,6 +12,7 @@ def test_srw_sample_preview(fc):
     from pykern.pkunit import pkeq, pkfail
     from pykern import pkunit
     from sirepo import srunit
+    from PIL import Image
 
     r = fc.sr_sim_data("Sample from Image")
     r = fc.sr_post(
@@ -22,25 +23,29 @@ def test_srw_sample_preview(fc):
             "method": "sample_preview",
             "baseImage": "sample.tif",
             "model": {
-                "cutoffBackgroundNoise": 0.5,
+                "areaXEnd": 1280,
+                "areaXStart": 0,
+                "areaYEnd": 834,
+                "areaYStart": 0,
                 "backgroundColor": 0,
+                "cropArea": "1",
+                "cutoffBackgroundNoise": 0.5,
+                "invert": "0",
+                "outputImageFormat": "tif",
                 "rotateAngle": 0,
                 "rotateReshape": "0",
-                "cropArea": "1",
-                "areaXStart": 0,
-                "areaXEnd": 1280,
-                "areaYStart": 0,
-                "areaYEnd": 834,
+                "sampleSource": "file",
                 "shiftX": 0,
                 "shiftY": 0,
-                "invert": "0",
+                "tileColumns": 1,
                 "tileImage": "0",
                 "tileRows": 1,
-                "tileColumns": 1,
-                "outputImageFormat": "tif",
             },
         },
         raw_response=True,
     )
-    with open(str(pkunit.work_dir().join("x.tif")), "wb") as f:
+    p = str(pkunit.work_dir().join("x.tif"))
+    with open(p, "wb") as f:
         f.write(r.data)
+    # Validate image
+    Image.open(p)

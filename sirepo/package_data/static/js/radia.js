@@ -972,7 +972,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
-                    <li><a href data-ng-click="exportDmp()"><span class="glyphicon glyphicon-cloud-download"></span> Export Radia Dump</a></li>
+                    <li><a data-ng-href="{{ exportDmpUrl() }}"><span class="glyphicon glyphicon-cloud-download"></span> Export Radia Dump</a></li>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">
@@ -982,17 +982,18 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
             </div>
         `,
         controller: function($scope) {
-            $scope.exportDmp = function() {
-                requestSender.newWindow('exportArchive', {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<filename>':  $scope.nav.simulationName() + '.dat',
-                });
-            };
-            $scope.showImportModal = function() {
+
+            $scope.exportDmpUrl = () => appState.isLoaded() ?
+                panelState.exportArchiveUrl($scope.simulationId(), `${$scope.nav.simulationName()}.dat`) :
+                null;
+
+            $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;
+
+            $scope.showImportModal = () => {
                 $('#simulation-import').modal('show');
             };
-            $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;
+
+            $scope.simulationId = () => appState.isLoaded() ? appState.models.simulation.simulationId : null;
         }
     };
 });
