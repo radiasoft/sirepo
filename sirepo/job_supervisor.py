@@ -720,8 +720,11 @@ class _ComputeJob(_Supervisor):
             r = set(
                 o
                 for o in self.ops
-                # Do not cancel sim frames. Allow them to come back for a canceled run
-                if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
+                # Do not cancel sim frames and file requests. Allow them to come back for a canceled
+                # compute job. Both can have relevant data in the event of a canceled compute job.
+                # In the case of OP_IO we excpect that the only reason for cancelation is due to
+                # a timeout (max_run_secs reached) in which case we send back "content-too-large".
+                if not (self.db.isParallel and o.opName in (job.OP_ANALYSIS, job.OP_IO))
             )
             if timed_out_op in self.ops:
                 r.add(timed_out_op)
