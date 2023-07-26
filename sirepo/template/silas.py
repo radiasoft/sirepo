@@ -11,6 +11,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import csv
 import h5py
+import math
 import numpy
 import re
 import sirepo.sim_data
@@ -130,10 +131,12 @@ def stateless_compute_calc_chirp(data, **kwargs):
     from rslaser.pulse import pulse
 
     try:
-        c = round(pulse.LaserPulse(params=data.model).initial_chirp, 7)
-    except Exception as e:
-        return PKDict(error=str(e))
-    return PKDict(chirp=c)
+        v = pulse.LaserPulse(params=data.model).initial_chirp
+        if math.isnan(v) or math.isinf(v):
+            v = 0
+    except AssertionError as e:
+        v = 0
+    return PKDict(chirp=round(v, 7))
 
 
 def stateful_compute_n0n2_plot(data, **kwargs):

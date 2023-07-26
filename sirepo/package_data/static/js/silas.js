@@ -425,10 +425,6 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
             appState,
             data => {
                 if (data.error) {
-                    if (data.error.match('Invalid pulse length parameters provided')){
-                        m.chirp = 0;
-                        return;
-                    }
                     throw new Error(data.error);
                 }
                 m.chirp = data.chirp;
