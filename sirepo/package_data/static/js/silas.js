@@ -353,6 +353,7 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
         panelState.enableField(item.type, 'pump_wavelength', false);
         panelState.showTab(item.type, 2, item.origin === 'new');
         panelState.showTab(item.type, 3, item.origin === 'new');
+        panelState.showTab(item.type, 4, item.origin === 'new');
     }
 
     $scope.whenSelected = updateCrystalFields;
