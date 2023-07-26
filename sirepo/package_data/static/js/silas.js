@@ -767,7 +767,7 @@ SIREPO.app.directive('equationText', function() {
         `,
         controller: function($scope) {
             $scope.equation = () => {
-                return SIREPO.APP_SCHEMA.strings.pumpPulseProfileEquation[$scope.selectedPumpProfile];
+                return SIREPO.APP_SCHEMA.strings.pumpPulseProfileEquation[$scope.selectedPumpProfile] || '';
             };
         },
     };
