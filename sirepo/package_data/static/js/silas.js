@@ -126,7 +126,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
     self.beamlineService = beamlineService;
     self.prepareToSave = () => {};
     self.toolbarItemNames = [
-        ['Optics', ['crystal', 'lens', 'mirror']],
+        ['Optics', ['crystal', 'lens', 'mirror2', 'splitter', 'telescope']],
         'watch',
     ];
 

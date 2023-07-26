@@ -295,12 +295,16 @@ def _generate_beamline_elements(data):
             return
         if element.type == "lens":
             state.res += f'(Lens_srw({element.focalLength}), ["default"]),\n'
-        elif element.type == "mirror":
+        elif element.type == "mirror2":
             state.res += "(Mirror(), []),\n"
         elif element.type == "crystal":
             if element.origin == "reuse":
                 return
             state.res += _generate_crystal(element)
+        elif element.type == "telescope":
+            state.res += f"(Telescope_lct({element.focal_length_1}, {element.focal_length_2}, {element.drift_length_1}, {element.drift_length_2}, {element.drift_length_3}, l_scale=numpy.sqrt(2) * pulse.sigx_waist), []),\n"
+        elif element.type == "splitter":
+            state.res += f"(Beamsplitter({element.transmitted_fraction}), []),\n"
         else:
             raise AssertionError("unknown element type={}".format(element.type))
 
