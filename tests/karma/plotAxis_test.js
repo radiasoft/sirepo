@@ -62,7 +62,7 @@ describe('plotting: plotAxis', function() {
         assertTicks(
             tickValues('t [s]', [1.2281523024139837e-7, 1.2281730720114474e-7], {width: 468, height: 468}, 'x', 'bottom'),
             ['-0.8', '-0.6', '-0.4', '-0.2', '0', '0.2', '0.4', '0.6', '0.8', '1.0'],
-            '< t > = 122.8162ns',
+            '< t > = 122.8162 ns',
         );
         assertTicks(
             tickValues('', [-0.0005, -0], {width: 497, height: 284}, 'y', 'left'),
@@ -127,7 +127,7 @@ describe('plotting: plotAxis', function() {
         assertTicks(
             tickValues('W [eV]', [0.9989999999999999, 1.001], {width: 661, height: 315}, 'y', 'left'),
             ['-1.0', '-0.5', '0', '0.5'],
-            '< W > = 1eV',
+            '< W > = 1 eV',
         );
     }));
     it('should format units', inject(function(layoutService) {

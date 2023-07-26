@@ -158,8 +158,14 @@ def update_genesis_sim(data, filename, lib_file):
     # fix CHARGE value, may be "CHARGE = [-1.e-09]" for opal
     text = ""
     charge = None
+    n = 0
+    in_header = True
     with pkio.open_text(lib_file) as f:
         for line in f:
+            if in_header and not re.search(r'^\s*\?', line):
+                in_header = False
+            if not in_header:
+                n += 1
             if charge is None:
                 g = re.match(r"^\? CHARGE = \[\-?(.*)\]", line)
                 if g:
@@ -169,6 +175,8 @@ def update_genesis_sim(data, filename, lib_file):
             text += line
     if charge:
         pkio.write_text(lib_file, text)
+    factor = 4 * data.models.particleLoading.nbins
+    data.models.electronBeam.npart = int(n / factor) * factor
 
 
 def update_opal_sim(data, filename, lib_file):

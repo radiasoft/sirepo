@@ -140,8 +140,7 @@
                 "catalog.catalogName",
                 "searchStartTime",
                 "searchStopTime",
-                "presetTimePicker",
-                "scans"
+                "presetTimePicker"
             ],
             "advanced": []
         },
