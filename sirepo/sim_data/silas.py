@@ -48,6 +48,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 del m["n0"]
                 if "n2" in m:
                     del m["n2"]
+            if m.type == "mirror":
+                m.type = "mirror2"
             cls.update_model_defaults(m, m.type)
         cls.__fixup_laser_pulse(dm.laserPulse)
 

@@ -137,7 +137,7 @@
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
             "pump_offset_x": ["Pump Offset X [m]", "Float", 0],
             "pump_offset_y": ["Pump Offset X [m]", "Float", 0],
-            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float", 1.0]
+            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float", 1000.0]
         },
         "crystalAnimation": {},
         "crystalSettings": {
@@ -176,10 +176,11 @@
             "poltype": ["Polarization", "GaussianBeamPolarization", "1"],
             "tau_fwhm": ["FWHM Length [ps]", "Float", 23.5865],
             "tau_0": ["Fourier-limited pulse length of a given spectral bandwidth [ps]", "Float",  23.5865],
+            "chirp": ["Chirp", "Float", 1.0],
             "pulseE": ["Total Laser Pulse Energy [J]", "Float", 0.001],
             "distribution": ["Distribution Type", "DistributionType", "gaussian"],
-            "sigx_waist": ["Horizontal Beam Size [m]", "Float", 0.001],
-            "sigy_waist": ["Vertical Beam Size [m]", "Float", 0.001],
+            "sigx_waist": ["Horizontal Beam Size [m]", "Float", 0.001, "Size is in terms of RMS"],
+            "sigy_waist": ["Vertical Beam Size [m]", "Float", 0.001, "Size is in terms of RMS"],
             "phase_flatten_cutoff": ["Phase Flatten Cutoff", "Float", 0.85]
         },
         "laserPulseAnimation": {
@@ -198,7 +199,7 @@
             "focalLength": ["Focal Length [m]", "Float", 2.0],
             "title": ["Element Name", "String", "Lens"]
         },
-        "mirror": {
+        "mirror2": {
             "_super": ["_", "model", "beamElement"],
             "title": ["Element Name", "String", "Mirror"]
         },
@@ -206,6 +207,20 @@
         "plot2Animation": {},
         "simulation": {
             "distanceFromSource": ["", "Float", 0.0 , "", 0.0]
+        },
+        "splitter": {
+            "_super": ["_", "model", "beamElement"],
+            "title": ["Element Name", "String", "Splitter"],
+            "transmitted_fraction": ["Transmitted Fraction", "Float", 0.4]
+        },
+        "telescope": {
+            "_super": ["_", "model", "beamElement"],
+            "focal_length_1": ["Focal Length 1 [m]", "Float", -0.1],
+            "focal_length_2": ["Focal Length 2 [m]", "Float", 0.2],
+            "drift_length_1": ["Drift Length 1 [m]", "Float", 1.9],
+            "drift_length_2": ["Drift Length 2 [m]", "Float", 0.1],
+            "drift_length_3": ["Drift Length 3 [m]", "Float", 0.54],
+            "title": ["Element Name", "String", "Telescope"]
         },
         "watch": {
             "_super": ["_", "model", "beamElement"],
@@ -305,8 +320,9 @@
             "title": "Crystal 3D Mesh",
             "advanced": []
         },
-        "mirror": {
-            "title": "Ideal Mirror",
+        "mirror2": {
+            "title": "Two Mirrors",
+            "description": "The pulse is reflected off of two mirrors, resulting in a flip of the electric fields. Since 1D amplifier geometry is assumed, the mirrors' small, off-axis angles are ignored.",
             "basic": [],
             "advanced": [
                 "title",
@@ -342,7 +358,8 @@
                     "num_sig_long",
                     "nslice",
                     "tau_fwhm",
-                    "tau_0"
+                    "tau_0",
+                    "chirp"
                 ]]
             ]
         },
@@ -383,6 +400,27 @@
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": []
+        },
+        "splitter": {
+            "title": "Beam Splitter",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "transmitted_fraction"
+            ]
+        },
+        "telescope": {
+            "title": "Telescope LCT",
+            "advanced": [
+                "title",
+                "position",
+                "focal_length_1",
+                "focal_length_2",
+                "drift_length_1",
+                "drift_length_2",
+                "drift_length_3"
+            ]
         },
         "watch": {
             "title": "Watchpoint",
