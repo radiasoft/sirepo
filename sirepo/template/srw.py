@@ -500,30 +500,29 @@ def sim_frame(frame_args):
     elif r == "coherentModesAnimation":
         _copy_frame_args_into_model(frame_args, r)
     elif "beamlineAnimation" in r:
-        pass
         wid = int(re.search(r".*?(\d+)$", r)[1])
-        fn = _wavefront_pickle_filename(wid)
-        with open(fn, "rb") as f:
-            wfr = pickle.load(f)
+        #fn = _wavefront_pickle_filename(wid)
+        #with open(fn, "rb") as f:
+        #    wfr = pickle.load(f)
         m = _copy_frame_args_into_model(frame_args, "watchpointReport")
         if wid:
             m.id = wid
             frame_args.sim_in.report = "beamlineAnimation"
             frame_args.sim_in.models.beamlineAnimation = m
-            data_file = _OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(
-                watchpoint_id=wid
-            )
+            #data_file = _OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(
+            #    watchpoint_id=wid
+            #)
         else:
             frame_args.sim_in.report = "initialIntensityReport"
             frame_args.sim_in.models.initialIntensityReport = m
-            data_file = _OUTPUT_FOR_MODEL.initialIntensityReport.filename
-        srwl_bl.SRWLBeamline().calc_int_from_wfr(
-            wfr,
-            _pol=int(frame_args.polarization),
-            _int_type=int(frame_args.characteristic),
-            _fname=data_file,
-            _pr=False,
-        )
+            #data_file = _OUTPUT_FOR_MODEL.initialIntensityReport.filename
+        #srwl_bl.SRWLBeamline().calc_int_from_wfr(
+        #    wfr,
+        #    _pol=int(frame_args.polarization),
+        ##    _int_type=int(frame_args.characteristic),
+        #    _fname=data_file,
+        #    _pr=False,
+        #)
     if "beamlineAnimation" not in r:
         # some reports may be written at the same time as the reader
         # if the file is invalid, wait a bit and try again
@@ -1972,7 +1971,9 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         else:
             content.append("v.si = True")
             content.append("op = None")
-        content.append("v.ws_fne = '{}'".format(_wavefront_pickle_filename(0)))
+        prev_wid = 0
+        init_wavefront = _wavefront_pickle_filename(prev_wid, pre_process=True)
+        content.append(f"v.ws_fne = '{init_wavefront}'")
         prev_wavefront = None
         names = []
         for n in beamline_info.names:
@@ -1983,17 +1984,18 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 content.append("names = ['" + "','".join(names) + "']")
                 names = []
                 if prev_wavefront:
-                    content.append("v.ws_fnei = '{}'".format(prev_wavefront))
-                prev_wavefront = _wavefront_pickle_filename(wid)
-                content.append("v.ws_fnep = '{}'".format(prev_wavefront))
-                content.append("op = set_optics(v, names, {})".format(is_last_watch))
+                    content.append(f"v.ws_fnei = '{prev_wavefront}'")
+                p = prev_wavefront if prev_wavefront else init_wavefront
+                next_wavefront = _wavefront_pickle_filename(wid, pre_process=True)
+                content.append(f"v.ws_fnep = '{next_wavefront}'")
+                content.append(f"op = set_optics(v, names, {is_last_watch})")
                 if not is_last_watch:
-                    m = data.models[f"{report}{wid or 0}"]
+                    m = data.models[f"{report}{prev_wid or 0}"]
                     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
                     content.append(f"""
     report = {m}
-    data_file = '{_OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=wid)}'
-    with open('{prev_wavefront}', 'rb') as f:
+    data_file = '{_OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=prev_wid) if prev_wid else _OUTPUT_FOR_MODEL.initialIntensityReport.filename}'
+    with open('{p}', 'rb') as f:
         wfr = pickle.load(f)
     data, mesh = srwl_bl.SRWLBeamline().calc_int_from_wfr(
         wfr,
@@ -2002,30 +2004,44 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         _fname=data_file,
         _pr=False,
     )
+    d = numpy.array(data)
     xr = [mesh.xStart, mesh.xFin, mesh.nx]
     yr = [mesh.yStart, mesh.yFin, mesh.ny]
-    l = xr[2] * xr[2]
-    n = len(data) if l > len(data) else l
-    d = numpy.reshape(numpy.array(data)[0:n], yr[2], xr[2])
+    l = xr[2] * yr[2]
+    n = d.size if l > d.size else l
+    d = numpy.reshape(d[0:n], (yr[2], xr[2]))
     if report.get("usePlotRange", "0") == '1':
         d, xr, yr = _update_report_range(report, d, xr, yr)
-    if report.get("useIntensityLimits", "0" == '1':
+    if report.get("useIntensityLimits", "0") == '1':
         d[d < {m.minIntensityLimit}] = {m.minIntensityLimit}
         d[d > {m.maxIntensityLimit}] = {m.maxIntensityLimit}
-    d, xr, yr = _resize_report(int({m.get("intensityPlotsWidth", 0)}), d, xr, yr)
-#rewrite data with these headers
-# [ph/s/.1%bw/mm^2] (C-aligned, inner loop is vs Photon Energy, outer loop vs Vertical Position)
-#2500.0 #Initial Photon Energy [eV]
-#2500.0 #Final Photon Energy [eV]
-#1 #Number of points vs Photon Energy
-#-0.01 #Initial Horizontal Position [m]
-#0.01 #Final Horizontal Position [m]
-#2916 #Number of points vs Horizontal Position
-#-0.001 #Initial Vertical Position [m]
-#0.001 #Final Vertical Position [m]
-#30 #Number of points vs Vertical Position
+    d, xr, yr = _resize_report(d, xr, yr, width_pixels=int({m.get("intensityPlotsWidth", 0)}))
+    print(f"Size before: {{d.size}}  Dimensions: {{d.shape}}, Resize: [{{yr}}, {{xr}}]")
+    new_mesh = srwlib.SRWLRadMesh(
+        _eStart=mesh.eStart,
+        _eFin=mesh.eFin,
+        _ne=mesh.ne,
+        _xStart=xr[0],
+        _xFin=xr[1],
+        _nx=xr[2],
+        _yStart=yr[0],
+        _yFin=yr[1],
+        _ny=yr[2],
+        _zStart=mesh.zStart,
+        _nvx=mesh.nvx,
+        _nvy=mesh.nvy,
+        _nvz=mesh.nvz,
+        _hvx=mesh.hvx,
+        _hvy=mesh.hvy,
+        _hvz=mesh.hvz,
+        _arSurf=mesh.arSurf,
+    )
+    srwlib.srwl_uti_save_intens_ascii(d.flatten().tolist(), new_mesh, data_file)
+    os.rename('{p}', '{_wavefront_pickle_filename(prev_wid)}')
 """
                     )
+                prev_wid = wid
+                prev_wavefront = next_wavefront
     elif run_all or (
         _SIM_DATA.srw_is_beamline_report(report) and len(data.models.beamline)
     ):
@@ -2206,12 +2222,12 @@ def _remap_3d(info, allrange, out, report):
     n = len(ar2d) if totLen > len(ar2d) else totLen
     ar2d = np.reshape(ar2d[0:n], (int(y_range[2]), int(x_range[2])))
 
-    if report.get("usePlotRange", "0") == "1":
-        ar2d, x_range, y_range = _update_report_range(report, ar2d, x_range, y_range)
-    if report.get("useIntensityLimits", "0") == "1":
-        ar2d[ar2d < report.minIntensityLimit] = report.minIntensityLimit
-        ar2d[ar2d > report.maxIntensityLimit] = report.maxIntensityLimit
-    ar2d, x_range, y_range = _resize_report(report.get("intensityPlotsWidth", 0), ar2d, x_range, y_range)
+    #if report.get("usePlotRange", "0") == "1":
+    #    ar2d, x_range, y_range = _update_report_range(report, ar2d, x_range, y_range)
+    #if report.get("useIntensityLimits", "0") == "1":
+    #    ar2d[ar2d < report.minIntensityLimit] = report.minIntensityLimit
+    #    ar2d[ar2d > report.maxIntensityLimit] = report.maxIntensityLimit
+    #ar2d, x_range, y_range = _resize_report(report, ar2d, x_range, y_range)
     if report.get("rotateAngle", 0):
         ar2d, x_range, y_range = _rotate_report(report, ar2d, x_range, y_range, info)
     if out.units[2]:
@@ -2234,8 +2250,8 @@ def _remap_3d(info, allrange, out, report):
     )
 
 
-def _resize_report(width_pixels, ar2d, x_range, y_range):
-    #width_pixels = int(report.get("intensityPlotsWidth", 0))
+def _resize_report(report, ar2d, x_range, y_range):
+    width_pixels = int(report.get("intensityPlotsWidth", 0))
     if not width_pixels:
         # upper limit is browser's max html canvas size
         width_pixels = _CANVAS_MAX_SIZE
@@ -2437,8 +2453,6 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
         plot_reports or is_for_rsopt
     ) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
     v.srwMain = _generate_srw_main(data, plot_reports, beamline_info)
-    v.updateReportRange = inspect.getsource(_update_report_range)
-    v.resizeReport = inspect.getsource(_resize_report)
     if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         _set_magnetic_measurement_parameters(run_dir or "", v, qcall=qcall)
     if _SIM_DATA.srw_is_background_report(report) and "beamlineAnimation" not in report:
@@ -2682,10 +2696,11 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
         )
 
 
-def _wavefront_pickle_filename(el_id):
+def _wavefront_pickle_filename(el_id, pre_process=False):
+    p = '-preprocessed' if pre_process else ''
     if el_id:
-        return f"wid-{el_id}.pkl"
-    return "initial.pkl"
+        return f"wid-{el_id}{p}.pkl"
+    return f"initial{p}.pkl"
 
 
 def _write_rsopt_files(data, run_dir, ctx):

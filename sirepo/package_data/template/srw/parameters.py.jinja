@@ -29,7 +29,7 @@ import srwlib
 import srwlpy
 {% if beamlineOpticsParameters %}
 import math
-import numpy as np
+import numpy
 import pickle
 import srwl_uti_smp
 {% endif %}
@@ -438,6 +438,89 @@ def epilogue():
     {% else %}
     pass
     {% endif %}
+
+
+def _extend_plot(
+    ar2d, x_range, y_range, horizontalStart, horizontalEnd, verticalStart, verticalEnd
+):
+    x_step = (x_range[1] - x_range[0]) / x_range[2]
+    y_step = (y_range[1] - y_range[0]) / y_range[2]
+
+    if horizontalStart < x_range[0]:
+        b = numpy.zeros((numpy.shape(ar2d)[0], int((x_range[0] - horizontalStart) / x_step)))
+        ar2d = numpy.hstack((b, ar2d))
+        x_range[0] = horizontalStart
+    if horizontalEnd > x_range[1]:
+        b = numpy.zeros((numpy.shape(ar2d)[0], int((horizontalEnd - x_range[1]) / x_step)))
+        ar2d = numpy.hstack((ar2d, b))
+        x_range[1] = horizontalEnd
+    if verticalStart < y_range[0]:
+        b = numpy.zeros((int((y_range[0] - verticalStart) / y_step), numpy.shape(ar2d)[1]))
+        ar2d = numpy.vstack((ar2d, b))
+        y_range[0] = verticalStart
+    if verticalEnd > y_range[1]:
+        b = numpy.zeros((int((verticalEnd - y_range[1]) / y_step), numpy.shape(ar2d)[1]))
+        ar2d = numpy.vstack((b, ar2d))
+        y_range[1] = verticalEnd
+    y_range[2], x_range[2] = numpy.shape(ar2d)
+    return (ar2d, x_range, y_range)
+
+
+_CANVAS_MAX_SIZE = 65535
+def _resize_report(ar2d, x_range, y_range, width_pixels=_CANVAS_MAX_SIZE):
+    import sirepo.job
+
+    # roughly 20x size increase for json
+    _JSON_MESSAGE_EXPANSION = 20
+
+    if ar2d.size * _JSON_MESSAGE_EXPANSION > sirepo.job.cfg().max_message_bytes:
+        max_width = int(
+            math.sqrt(sirepo.job.cfg().max_message_bytes / _JSON_MESSAGE_EXPANSION)
+        )
+        if max_width < width_pixels:
+            width_pixels = max_width
+    # rescale width and height to maximum of width_pixels
+    if width_pixels and (width_pixels < x_range[2] or width_pixels < y_range[2]):
+        from scipy import ndimage
+
+        x_resize = 1.0
+        y_resize = 1.0
+        if width_pixels < x_range[2]:
+            x_resize = float(width_pixels) / float(x_range[2])
+        if width_pixels < y_range[2]:
+            y_resize = float(width_pixels) / float(y_range[2])
+        ar2d = ndimage.zoom(ar2d, [y_resize, x_resize], order=1)
+        x_range[2] = ar2d.shape[1]
+        y_range[2] = ar2d.shape[0]
+    return ar2d, x_range, y_range
+
+
+def _update_report_range(report, ar2d, x_range, y_range):
+    horizontalStart = (report.horizontalOffset - report.horizontalSize / 2) * 1e-3
+    horizontalEnd = (report.horizontalOffset + report.horizontalSize / 2) * 1e-3
+    verticalStart = (report.verticalOffset - report.verticalSize / 2) * 1e-3
+    verticalEnd = (report.verticalOffset + report.verticalSize / 2) * 1e-3
+    ar2d, x_range, y_range = _extend_plot(
+        ar2d,
+        x_range,
+        y_range,
+        horizontalStart,
+        horizontalEnd,
+        verticalStart,
+        verticalEnd,
+    )
+    x_left, x_right = numpy.clip(x_range[:2], horizontalStart, horizontalEnd)
+    y_left, y_right = numpy.clip(y_range[:2], verticalStart, verticalEnd)
+    x = numpy.linspace(x_range[0], x_range[1], int(x_range[2]))
+    y = numpy.linspace(y_range[0], y_range[1], int(y_range[2]))
+    xsel = (x >= x_left) & (x <= x_right)
+    ysel = (y >= y_left) & (y <= y_right)
+    ar2d = numpy.compress(xsel, numpy.compress(ysel, ar2d, axis=0), axis=1)
+    return (
+        ar2d,
+        [x_left, x_right, numpy.shape(ar2d)[1]],
+        [y_left, y_right, numpy.shape(ar2d)[0]],
+    )
 
 
 def main():
