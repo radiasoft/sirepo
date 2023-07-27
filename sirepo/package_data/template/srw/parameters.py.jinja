@@ -466,33 +466,72 @@ def _extend_plot(
     return (ar2d, x_range, y_range)
 
 
-_CANVAS_MAX_SIZE = 65535
-def _resize_report(ar2d, x_range, y_range, width_pixels=_CANVAS_MAX_SIZE):
-    import sirepo.job
-
-    # roughly 20x size increase for json
-    _JSON_MESSAGE_EXPANSION = 20
-
-    if ar2d.size * _JSON_MESSAGE_EXPANSION > sirepo.job.cfg().max_message_bytes:
+def _resize_report(ar2d, x_range, y_range, width_pixels={{ canvasMaxSize }}):
+    wp = width_pixels
+    if ar2d.size * {{ jsonExpandFactor }} > {{ maxMsgBytes }}:
         max_width = int(
-            math.sqrt(sirepo.job.cfg().max_message_bytes / _JSON_MESSAGE_EXPANSION)
+            math.sqrt({{ maxMsgBytes }} / {{ jsonExpandFactor }})
         )
-        if max_width < width_pixels:
-            width_pixels = max_width
+        if width_pixels > max_width:
+            wp = max_width
     # rescale width and height to maximum of width_pixels
-    if width_pixels and (width_pixels < x_range[2] or width_pixels < y_range[2]):
+    if wp and (wp < x_range[2] or wp < y_range[2]):
         from scipy import ndimage
 
         x_resize = 1.0
         y_resize = 1.0
-        if width_pixels < x_range[2]:
-            x_resize = float(width_pixels) / float(x_range[2])
-        if width_pixels < y_range[2]:
-            y_resize = float(width_pixels) / float(y_range[2])
+        if wp < x_range[2]:
+            x_resize = float(wp) / float(x_range[2])
+        if wp < y_range[2]:
+            y_resize = float(wp) / float(y_range[2])
         ar2d = ndimage.zoom(ar2d, [y_resize, x_resize], order=1)
         x_range[2] = ar2d.shape[1]
         y_range[2] = ar2d.shape[0]
     return ar2d, x_range, y_range
+
+
+def _process_wavefront(filename, report):
+    with open(filename, 'rb') as f:
+        wfr = pickle.load(f)
+    data, mesh = srwl_bl.SRWLBeamline().calc_int_from_wfr(
+        wfr,
+        _pol=int(report["polarization"]),
+        _int_type=int(report["characteristic"]),
+        _pr=False,
+    )
+    d = numpy.array(data)
+    xr = [mesh.xStart, mesh.xFin, mesh.nx]
+    yr = [mesh.yStart, mesh.yFin, mesh.ny]
+    l = xr[2] * yr[2]
+    n = d.size if l > d.size else l
+    d = numpy.reshape(d[0:n], (yr[2], xr[2]))
+    if report.get("usePlotRange", "0") == '1':
+        d, xr, yr = _update_report_range(report, d, xr, yr)
+    if report.get("useIntensityLimits", "0") == '1':
+        d[d < report["minIntensityLimit"]] = report["minIntensityLimit"]
+        d[d > report["maxIntensityLimit"]] = report["maxIntensityLimit"]
+    d, xr, yr = _resize_report(d, xr, yr, width_pixels=int(report.get("intensityPlotsWidth", 0)))
+    print(f"Size before: {len(data)}  after: {d.size} Dimensions: {d.shape}, Resize: [{yr}, {xr}]")
+    new_mesh = srwlib.SRWLRadMesh(
+        _eStart=mesh.eStart,
+        _eFin=mesh.eFin,
+        _ne=mesh.ne,
+        _xStart=xr[0],
+        _xFin=xr[1],
+        _nx=xr[2],
+        _yStart=yr[0],
+        _yFin=yr[1],
+        _ny=yr[2],
+        _zStart=mesh.zStart,
+        _nvx=mesh.nvx,
+        _nvy=mesh.nvy,
+        _nvz=mesh.nvz,
+        _hvx=mesh.hvx,
+        _hvy=mesh.hvy,
+        _hvz=mesh.hvz,
+        _arSurf=mesh.arSurf,
+    )
+    return d.flatten().tolist(), new_mesh
 
 
 def _update_report_range(report, ar2d, x_range, y_range):

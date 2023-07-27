@@ -1992,54 +1992,13 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 if not is_last_watch:
                     m = data.models[f"{report}{prev_wid or 0}"]
                     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
-                    content.append(f"""
-    report = {m}
+                content.append(f"""
     data_file = '{_OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=prev_wid) if prev_wid else _OUTPUT_FOR_MODEL.initialIntensityReport.filename}'
-    with open('{p}', 'rb') as f:
-        wfr = pickle.load(f)
-    data, mesh = srwl_bl.SRWLBeamline().calc_int_from_wfr(
-        wfr,
-        _pol=int({m.polarization}),
-        _int_type=int({m.characteristic}),
-        _fname=data_file,
-        _pr=False,
-    )
-    d = numpy.array(data)
-    xr = [mesh.xStart, mesh.xFin, mesh.nx]
-    yr = [mesh.yStart, mesh.yFin, mesh.ny]
-    l = xr[2] * yr[2]
-    n = d.size if l > d.size else l
-    d = numpy.reshape(d[0:n], (yr[2], xr[2]))
-    if report.get("usePlotRange", "0") == '1':
-        d, xr, yr = _update_report_range(report, d, xr, yr)
-    if report.get("useIntensityLimits", "0") == '1':
-        d[d < {m.minIntensityLimit}] = {m.minIntensityLimit}
-        d[d > {m.maxIntensityLimit}] = {m.maxIntensityLimit}
-    d, xr, yr = _resize_report(d, xr, yr, width_pixels=int({m.get("intensityPlotsWidth", 0)}))
-    print(f"Size before: {{d.size}}  Dimensions: {{d.shape}}, Resize: [{{yr}}, {{xr}}]")
-    new_mesh = srwlib.SRWLRadMesh(
-        _eStart=mesh.eStart,
-        _eFin=mesh.eFin,
-        _ne=mesh.ne,
-        _xStart=xr[0],
-        _xFin=xr[1],
-        _nx=xr[2],
-        _yStart=yr[0],
-        _yFin=yr[1],
-        _ny=yr[2],
-        _zStart=mesh.zStart,
-        _nvx=mesh.nvx,
-        _nvy=mesh.nvy,
-        _nvz=mesh.nvz,
-        _hvx=mesh.hvx,
-        _hvy=mesh.hvy,
-        _hvz=mesh.hvz,
-        _arSurf=mesh.arSurf,
-    )
-    srwlib.srwl_uti_save_intens_ascii(d.flatten().tolist(), new_mesh, data_file)
+    data, mesh = _process_wavefront('{p}', {m})
+    srwlib.srwl_uti_save_intens_ascii(data, mesh, data_file)
     os.rename('{p}', '{_wavefront_pickle_filename(prev_wid)}')
 """
-                    )
+                )
                 prev_wid = wid
                 prev_wavefront = next_wavefront
     elif run_all or (
@@ -2452,6 +2411,9 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     v.setupMagneticMeasurementFiles = (
         plot_reports or is_for_rsopt
     ) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
+    v.maxMsgBytes = sirepo.job.cfg().max_message_bytes
+    v.canvasMaxSize = _CANVAS_MAX_SIZE
+    v.jsonExpandFactor = _JSON_MESSAGE_EXPANSION
     v.srwMain = _generate_srw_main(data, plot_reports, beamline_info)
     if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         _set_magnetic_measurement_parameters(run_dir or "", v, qcall=qcall)
