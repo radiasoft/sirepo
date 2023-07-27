@@ -126,7 +126,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
     self.beamlineService = beamlineService;
     self.prepareToSave = () => {};
     self.toolbarItemNames = [
-        ['Optics', ['crystal', 'lens', 'mirror']],
+        ['Optics', ['crystal', 'lens', 'mirror2', 'splitter', 'telescope']],
         'watch',
     ];
 
@@ -281,6 +281,7 @@ SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $
         controller: function($scope) {
             $scope.isLoading = true;
             $scope.imageClass = null;
+            $scope.errorMessage = null;
             const abcd = ['A', 'B', 'C', 'D'];
 
             const showABCD = () => {
@@ -304,6 +305,10 @@ SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $
                     appState,
                     response => {
                         if (! $scope.model) {
+                            return;
+                        }
+                        if (response.error) {
+                            $scope.errorMessage = response.error;
                             return;
                         }
                         if ($('.' + $scope.imageClass).length) {
@@ -353,6 +358,7 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
         panelState.enableField(item.type, 'pump_wavelength', false);
         panelState.showTab(item.type, 2, item.origin === 'new');
         panelState.showTab(item.type, 3, item.origin === 'new');
+        panelState.showTab(item.type, 4, item.origin === 'new');
     }
 
     $scope.whenSelected = updateCrystalFields;
@@ -414,8 +420,30 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
         ]);
     }
 
+    function computeChirp() {
+        const m = appState.models[$scope.modelName];
+        requestSender.sendStatelessCompute(
+            appState,
+            data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                m.chirp = data.chirp;
+            },
+            {
+                method: 'calc_chirp',
+                model: {
+                    tau_0: m.tau_0,
+                    tau_fwhm: m.tau_fwhm,
+                },
+            },
+        );
+    }
+
     $scope.whenSelected = () => {
         $scope.model = appState.models[$scope.modelName];
+        panelState.enableField($scope.modelName, 'chirp', false);
+        computeChirp();
         updateEditor();
     };
 
@@ -427,6 +455,7 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
             'laserPulse.distribution',
         ], updateEditor,
         ['laserPulse.nx_slice'], updateMeshPoints,
+        ['laserPulse.tau_0', 'laserPulse.tau_fwhm'], computeChirp
     ];
 });
 
@@ -738,7 +767,7 @@ SIREPO.app.directive('equationText', function() {
         `,
         controller: function($scope) {
             $scope.equation = () => {
-                return SIREPO.APP_SCHEMA.strings.pumpPulseProfileEquation[$scope.selectedPumpProfile];
+                return SIREPO.APP_SCHEMA.strings.pumpPulseProfileEquation[$scope.selectedPumpProfile] || '';
             };
         },
     };
