@@ -500,6 +500,7 @@ def sim_frame(frame_args):
     elif r == "coherentModesAnimation":
         _copy_frame_args_into_model(frame_args, r)
     elif "beamlineAnimation" in r:
+        pass
         wid = int(re.search(r".*?(\d+)$", r)[1])
         fn = _wavefront_pickle_filename(wid)
         with open(fn, "rb") as f:
@@ -1977,16 +1978,54 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         for n in beamline_info.names:
             names.append(n)
             if n in beamline_info.watches:
+                wid = beamline_info.watches[n]
                 is_last_watch = n == beamline_info.names[-1]
                 content.append("names = ['" + "','".join(names) + "']")
                 names = []
                 if prev_wavefront:
                     content.append("v.ws_fnei = '{}'".format(prev_wavefront))
-                prev_wavefront = _wavefront_pickle_filename(beamline_info.watches[n])
+                prev_wavefront = _wavefront_pickle_filename(wid)
                 content.append("v.ws_fnep = '{}'".format(prev_wavefront))
                 content.append("op = set_optics(v, names, {})".format(is_last_watch))
                 if not is_last_watch:
+                    m = data.models[f"{report}{wid or 0}"]
                     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
+                    content.append(f"""
+    report = {m}
+    data_file = '{_OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=wid)}'
+    with open('{prev_wavefront}', 'rb') as f:
+        wfr = pickle.load(f)
+    data, mesh = srwl_bl.SRWLBeamline().calc_int_from_wfr(
+        wfr,
+        _pol=int({m.polarization}),
+        _int_type=int({m.characteristic}),
+        _fname=data_file,
+        _pr=False,
+    )
+    xr = [mesh.xStart, mesh.xFin, mesh.nx]
+    yr = [mesh.yStart, mesh.yFin, mesh.ny]
+    l = xr[2] * xr[2]
+    n = len(data) if l > len(data) else l
+    d = numpy.reshape(numpy.array(data)[0:n], yr[2], xr[2])
+    if report.get("usePlotRange", "0") == '1':
+        d, xr, yr = _update_report_range(report, d, xr, yr)
+    if report.get("useIntensityLimits", "0" == '1':
+        d[d < {m.minIntensityLimit}] = {m.minIntensityLimit}
+        d[d > {m.maxIntensityLimit}] = {m.maxIntensityLimit}
+    d, xr, yr = _resize_report(int({m.get("intensityPlotsWidth", 0)}), d, xr, yr)
+#rewrite data with these headers
+# [ph/s/.1%bw/mm^2] (C-aligned, inner loop is vs Photon Energy, outer loop vs Vertical Position)
+#2500.0 #Initial Photon Energy [eV]
+#2500.0 #Final Photon Energy [eV]
+#1 #Number of points vs Photon Energy
+#-0.01 #Initial Horizontal Position [m]
+#0.01 #Final Horizontal Position [m]
+#2916 #Number of points vs Horizontal Position
+#-0.001 #Initial Vertical Position [m]
+#0.001 #Final Vertical Position [m]
+#30 #Number of points vs Vertical Position
+"""
+                    )
     elif run_all or (
         _SIM_DATA.srw_is_beamline_report(report) and len(data.models.beamline)
     ):
@@ -2172,7 +2211,7 @@ def _remap_3d(info, allrange, out, report):
     if report.get("useIntensityLimits", "0") == "1":
         ar2d[ar2d < report.minIntensityLimit] = report.minIntensityLimit
         ar2d[ar2d > report.maxIntensityLimit] = report.maxIntensityLimit
-    ar2d, x_range, y_range = _resize_report(report, ar2d, x_range, y_range)
+    ar2d, x_range, y_range = _resize_report(report.get("intensityPlotsWidth", 0), ar2d, x_range, y_range)
     if report.get("rotateAngle", 0):
         ar2d, x_range, y_range = _rotate_report(report, ar2d, x_range, y_range, info)
     if out.units[2]:
@@ -2195,8 +2234,8 @@ def _remap_3d(info, allrange, out, report):
     )
 
 
-def _resize_report(report, ar2d, x_range, y_range):
-    width_pixels = int(report.get("intensityPlotsWidth", 0))
+def _resize_report(width_pixels, ar2d, x_range, y_range):
+    #width_pixels = int(report.get("intensityPlotsWidth", 0))
     if not width_pixels:
         # upper limit is browser's max html canvas size
         width_pixels = _CANVAS_MAX_SIZE
@@ -2377,6 +2416,7 @@ def _set_magnetic_measurement_parameters(run_dir, v, qcall=None):
 
 
 def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
+    import inspect
     report = data.report
     is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     dm = data.models
@@ -2397,6 +2437,8 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
         plot_reports or is_for_rsopt
     ) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
     v.srwMain = _generate_srw_main(data, plot_reports, beamline_info)
+    v.updateReportRange = inspect.getsource(_update_report_range)
+    v.resizeReport = inspect.getsource(_resize_report)
     if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         _set_magnetic_measurement_parameters(run_dir or "", v, qcall=qcall)
     if _SIM_DATA.srw_is_background_report(report) and "beamlineAnimation" not in report:
