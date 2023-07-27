@@ -1949,6 +1949,15 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
 
 
 def _generate_srw_main(data, plot_reports, beamline_info):
+
+    def _process_watch_str(wid, f, m):
+        return f"""
+    data_file = '{_OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=wid) if wid else _OUTPUT_FOR_MODEL.initialIntensityReport.filename}'
+    data, mesh = _process_wavefront('{f}', {m})
+    srwlib.srwl_uti_save_intens_ascii(data, mesh, data_file)
+    os.rename('{f}', '{_wavefront_pickle_filename(wid)}')
+"""
+
     report = data.report
     is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     source_type = data.models.simulation.sourceType
@@ -1972,35 +1981,35 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             content.append("v.si = True")
             content.append("op = None")
         prev_wid = 0
+        next_wid = 0
         init_wavefront = _wavefront_pickle_filename(prev_wid, pre_process=True)
         content.append(f"v.ws_fne = '{init_wavefront}'")
         prev_wavefront = None
+        next_wavefront = None
         names = []
         for n in beamline_info.names:
             names.append(n)
             if n in beamline_info.watches:
-                wid = beamline_info.watches[n]
+                next_wid = beamline_info.watches[n]
                 is_last_watch = n == beamline_info.names[-1]
                 content.append("names = ['" + "','".join(names) + "']")
                 names = []
                 if prev_wavefront:
                     content.append(f"v.ws_fnei = '{prev_wavefront}'")
-                p = prev_wavefront if prev_wavefront else init_wavefront
-                next_wavefront = _wavefront_pickle_filename(wid, pre_process=True)
+                next_wavefront = _wavefront_pickle_filename(next_wid, pre_process=True)
                 content.append(f"v.ws_fnep = '{next_wavefront}'")
                 content.append(f"op = set_optics(v, names, {is_last_watch})")
                 if not is_last_watch:
-                    m = data.models[f"{report}{prev_wid or 0}"]
                     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
-                content.append(f"""
-    data_file = '{_OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=prev_wid) if prev_wid else _OUTPUT_FOR_MODEL.initialIntensityReport.filename}'
-    data, mesh = _process_wavefront('{p}', {m})
-    srwlib.srwl_uti_save_intens_ascii(data, mesh, data_file)
-    os.rename('{p}', '{_wavefront_pickle_filename(prev_wid)}')
-"""
-                )
-                prev_wid = wid
-                prev_wavefront = next_wavefront
+                    content.append(
+                        _process_watch_str(
+                            prev_wid,
+                            prev_wavefront if prev_wavefront else init_wavefront,
+                            data.models[f"{report}{prev_wid or 0}"]
+                        )
+                    )
+                    prev_wid = next_wid
+                    prev_wavefront = next_wavefront
     elif run_all or (
         _SIM_DATA.srw_is_beamline_report(report) and len(data.models.beamline)
     ):
@@ -2069,6 +2078,13 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             if plot_reports:
                 content.append("v.tr_pl = 'xz'")
     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
+    if report == "beamlineAnimation":
+        content.append(
+            _process_watch_str(prev_wid, prev_wavefront, data.models[f"{report}{prev_wid}"])
+        )
+        content.append(
+            _process_watch_str(next_wid, next_wavefront, data.models[f"{report}{next_wid}"])
+        )
     return "\n".join(
         [f"    {x}" for x in content] + [""] + ([] if is_for_rsopt else ["main()", ""])
     )
