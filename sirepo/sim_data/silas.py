@@ -48,7 +48,10 @@ class SimData(sirepo.sim_data.SimDataBase):
                 del m["n0"]
                 if "n2" in m:
                     del m["n2"]
+            if m.type == "mirror":
+                m.type = "mirror2"
             cls.update_model_defaults(m, m.type)
+        cls.__fixup_laser_pulse(dm.laserPulse)
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
@@ -68,6 +71,16 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         return []
+
+    @classmethod
+    def __fixup_laser_pulse(cls, laser_pulse):
+        # adjust laser pulse to new units
+        if laser_pulse.tau_fwhm < 1e-6 or laser_pulse.tau_0 < 1e-6:
+            laser_pulse.num_sig_long *= 2
+            laser_pulse.num_sig_trans *= 2
+        for f in ("tau_fwhm", "tau_0"):
+            if laser_pulse[f] < 1e-6:
+                laser_pulse[f] = round(laser_pulse[f] * 1e12, 6)
 
     @classmethod
     def _lib_file_basenames(cls, data):

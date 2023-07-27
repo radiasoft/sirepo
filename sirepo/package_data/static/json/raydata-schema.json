@@ -77,6 +77,7 @@
             "numScans": ["Number of Scans", "Integer", null]
         },
         "runAnalysis": {
+            "presetTimePicker": ["", "PresetTimePicker", ""],
             "searchStartTime":["Start", "DateTimePicker", null],
             "searchStopTime":["Stop", "DateTimePicker", null],
             "scans": ["", "RunAnalysisTable", ""]
@@ -139,7 +140,7 @@
                 "catalog.catalogName",
                 "searchStartTime",
                 "searchStopTime",
-                "scans"
+                "presetTimePicker"
             ],
             "advanced": []
         },

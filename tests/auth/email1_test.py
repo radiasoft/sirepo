@@ -201,6 +201,18 @@ def test_happy_path(auth_fc):
     )
 
 
+def test_multiple_unverified_users(auth_fc):
+    fc = auth_fc
+
+    for e in ("1@x.x", "2@x.x"):
+        r = fc.sr_post(
+            "authEmailLogin",
+            {"email": e, "simulationType": fc.sr_sim_type},
+        )
+    fc.sr_email_confirm(r)
+    fc.sr_auth_state(isLoggedIn=True)
+
+
 def test_token_expired(auth_fc):
     fc = auth_fc
 

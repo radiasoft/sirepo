@@ -316,17 +316,6 @@ class RacetrackViews extends ExtrudedPolyViews {
 class VTKUtils {
 
     /**
-     * Modes when interacting with the vtk canvas
-     * @returns {Object} - interactionModes
-     */
-    static interactionMode() {
-        return {
-            INTERACTION_MODE_MOVE: 'move',
-            INTERACTION_MODE_SELECT: 'select',
-        };
-    }
-
-    /**
      * Builds a wireframe box with the specified bounds and optional padding
      * @param {[number]} bounds - the bounds in the format [xMin, xMax, yMin, yMax, zMin, zMax]
      * @param {number} padPct - additional padding as a percentage of the size
@@ -517,8 +506,6 @@ class VTKScene {
         this.cam = this.renderer.get().activeCamera;
         this.camProperties = VTKScene.CAM_DEFAULTS();
         this.resetSide = resetSide;
-
-        this.interactionMode = VTKUtils.interactionMode().INTERACTION_MODE_MOVE;
 
         this.marker = null;
         this.isMarkerEnabled = false;
@@ -2167,6 +2154,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function editObject(shape) {
                 d3.event.stopPropagation();
+                if (! shape.draggable) {
+                    return;
+                }
                 $scope.$applyAsync(function() {
                     $scope.source.editObjectWithId(shape.id);
                 });
@@ -2174,6 +2164,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function formatObjectLength(val) {
                 return utilities.roundToPlaces(invObjScale * val, 4);
+            }
+
+            function getShape(id) {
+                return $scope.shapes.filter(x => x.id === id)[0];
             }
 
             function hideShapeLocation() {
@@ -2575,6 +2569,20 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             $scope.$on('shapes.loaded', drawShapes);
 
+            $scope.$on('shape.locked', (e, locks) => {
+                let doRefresh = false;
+                for (const l of locks) {
+                    const s = getShape(l.id);
+                    if (s) {
+                        doRefresh = true;
+                        s.draggable = ! l.doLock;
+                    }
+                }
+                if (doRefresh) {
+                    refresh();
+                }
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -2582,7 +2590,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
     };
 });
 
-SIREPO.app.directive('objectTable', function(appState) {
+SIREPO.app.directive('objectTable', function(appState, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -2601,7 +2609,9 @@ SIREPO.app.directive('objectTable', function(appState) {
                   <tbody>
                     <tr data-ng-show="areAllGroupsExpanded(o)" data-ng-attr-id="{{ o.id }}" data-ng-repeat="o in getObjects() track by $index">
                       <td style="padding-left: {{ nestLevel(o) }}em; cursor: pointer; white-space: nowrap">
-                        <span style="font-size: large; color: {{o.color || '#cccccc'}};">■</span>
+                        <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/lock.svg" data-ng-show="locked[o.id]" data-ng-class="{'sr-disabled-image': ! unlockable[o.id]}" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
+                        <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/unlock.svg" data-ng-show="! locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
+                        <span style="font-size: large; color: {{o.color || '#cccccc'}}; padding-left: 1px;">■</span>
                           <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': expanded[o.id], 'glyphicon-chevron-up': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
                             <span>{{ o.name }}</span>
                       </td>
@@ -2622,9 +2632,9 @@ SIREPO.app.directive('objectTable', function(appState) {
                                </ul>
                                <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)" title="move up"><span class="glyphicon glyphicon-arrow-up"></span></button>
                                <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)" title="move down"><span class="glyphicon glyphicon-arrow-down"></span></button>
-                               <button data-ng-disabled="isGroup(o)" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-duplicate"></span></button>
-                               <button data-ng-click="editObject(o)" class="btn btn-info btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
-                               <button data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
+                               <button data-ng-disabled="isGroup(o) || locked[o.id]" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-duplicate"></span></button>
+                               <button data-ng-disabled="locked[o.id]" data-ng-click="editObject(o)" class="btn btn-info btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
+                               <button data-ng-disabled="locked[o.id]" data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
                             </div>
                           </div>
                         </td>                    
@@ -2639,16 +2649,13 @@ SIREPO.app.directive('objectTable', function(appState) {
         controller: function($scope) {
             $scope.expanded = {};
             $scope.fields = ['objects'];
+            $scope.locked = {};
+            $scope.unlockable = {};
 
             const isInGroup = $scope.source.isInGroup;
             const getGroup = $scope.source.getGroup;
             const getMemberObjects = $scope.source.getMemberObjects;
-
-            function init() {
-                for (const o of $scope.getObjects()) {
-                    $scope.expanded[o.id] = true;
-                }
-            }
+            let areObjectsUnlockable = appState.models.simulation.areObjectsUnlockable;
 
             function arrange(objects) {
 
@@ -2686,8 +2693,50 @@ SIREPO.app.directive('objectTable', function(appState) {
                 return arranged;
             }
 
+            function init() {
+                if (areObjectsUnlockable === undefined) {
+                    areObjectsUnlockable = true;
+                }
+                for (const o of $scope.getObjects()) {
+                    $scope.expanded[o.id] = true;
+                    $scope.unlockable[o.id] = areObjectsUnlockable;
+                    $scope.locked[o.id] = ! areObjectsUnlockable;
+
+                }
+            }
+
+            function setLocked(o, doLock) {
+                $scope.locked[o.id] =  doLock;
+                let ids = [
+                    {
+                        id: o.id,
+                        doLock: doLock
+                    },
+                ];
+                if ($scope.isGroup(o)) {
+                    getMemberObjects(o).forEach(x => {
+                        ids = ids.concat(setLocked(x, doLock));
+                        if (areObjectsUnlockable) {
+                            $scope.unlockable[x.id] = ! doLock;
+                        }
+                    });
+                }
+                return ids;
+            }
+
             $scope.align = (o, alignType) => {
                 $scope.source.align(o, alignType, $scope.elevation.labAxisIndices());
+            };
+
+            $scope.areAllGroupsExpanded = o => {
+                if (! isInGroup(o)) {
+                    return true;
+                }
+                const p = getGroup(o);
+                if (! $scope.expanded[p.id]) {
+                    return false;
+                }
+                return $scope.areAllGroupsExpanded(p);
             };
 
             $scope.copyObject = $scope.source.copyObject;
@@ -2700,16 +2749,29 @@ SIREPO.app.directive('objectTable', function(appState) {
                 return arrange((appState.models[$scope.modelName] || {}).objects);
             };
 
+            $scope.isAlignDisabled = o => $scope.locked[o.id] || ! $scope.isGroup(o) || getMemberObjects(o).length < 2;
+
             $scope.isGroup = $scope.source.isGroup;
 
-            $scope.isAlignDisabled = o => ! $scope.isGroup(o) || getMemberObjects(o).length < 2;
-
             $scope.isMoveDisabled = (direction, o) => {
+                if ($scope.locked[o.id]) {
+                    return true;
+                }
                 const objects = isInGroup(o) ?
                     getMemberObjects(getGroup(o)) :
                     $scope.getObjects().filter(x => ! isInGroup(x));
                 let i = objects.indexOf(o);
                 return direction === -1 ? i === 0 : i === objects.length - 1;
+            };
+
+            $scope.lockTitle = o => {
+                if (! areObjectsUnlockable) {
+                    return 'designer is read-only for this magnet';
+                }
+                if (! $scope.unlockable[o.id]) {
+                    return 'cannot unlock';
+                }
+                return `click to ${$scope.locked[o.id] ? 'unlock' : 'lock'}`;
             };
 
             $scope.moveObject = $scope.source.moveObject;
@@ -2726,15 +2788,11 @@ SIREPO.app.directive('objectTable', function(appState) {
                 $scope.expanded[o.id] = ! $scope.expanded[o.id];
             };
 
-            $scope.areAllGroupsExpanded = o => {
-                if (! isInGroup(o)) {
-                    return true;
+            $scope.toggleLock = o => {
+                if (! $scope.unlockable[o.id]) {
+                    return;
                 }
-                const p = getGroup(o);
-                if (! $scope.expanded[p.id]) {
-                    return false;
-                }
-                return $scope.areAllGroupsExpanded(p);
+                $rootScope.$broadcast('shape.locked', setLocked(o, ! $scope.locked[o.id]));
             };
 
             init();
@@ -3103,8 +3161,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 enabled: true,
             };
             $scope.modeText = {};
-            $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
-            $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_SELECT] = 'Control-click an object to select';
             $scope.isOrtho = false;
             $scope.selection = null;
 
@@ -3219,12 +3275,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $scope.vtkScene.rotate(angle);
                 refresh(true);
             };
-
-            $scope.setInteractionMode = mode => {
-                $scope.vtkScene.interactionMode = mode;
-                $scope.$emit('vtkScene.interactionMode', mode);
-            };
-
+            
             $scope.showSide = side => {
                 $scope.vtkScene.showSide(side);
                 refresh(true);

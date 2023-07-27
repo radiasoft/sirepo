@@ -972,7 +972,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
-                    <li><a href data-ng-click="exportDmp()"><span class="glyphicon glyphicon-cloud-download"></span> Export Radia Dump</a></li>
+                    <li><a data-ng-href="{{ exportDmpUrl() }}"><span class="glyphicon glyphicon-cloud-download"></span> Export Radia Dump</a></li>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">
@@ -982,17 +982,18 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
             </div>
         `,
         controller: function($scope) {
-            $scope.exportDmp = function() {
-                requestSender.newWindow('exportArchive', {
-                    '<simulation_id>': appState.models.simulation.simulationId,
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<filename>':  $scope.nav.simulationName() + '.dat',
-                });
-            };
-            $scope.showImportModal = function() {
+
+            $scope.exportDmpUrl = () => appState.isLoaded() ?
+                panelState.exportArchiveUrl($scope.simulationId(), `${$scope.nav.simulationName()}.dat`) :
+                null;
+
+            $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;
+
+            $scope.showImportModal = () => {
                 $('#simulation-import').modal('show');
             };
-            $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;
+
+            $scope.simulationId = () => appState.isLoaded() ? appState.models.simulation.simulationId : null;
         }
     };
 });
@@ -2142,8 +2143,14 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                             continue;
                         }
                         const isPoly = t === SIREPO.APP_SCHEMA.constants.geomTypePolys;
+                        const isLine = t === SIREPO.APP_SCHEMA.constants.geomTypeLines;
                         let gObj = radiaService.getObject(objId) || {};
                         let gColor = gObj.color ? vtk.Common.Core.vtkMath.hex2float(gObj.color) : null;
+                        // use black for edges
+                        //TODO(mvk): possibly use high contrast so dark objects have white edges
+                        if (gColor && isLine) {
+                            gColor = [0, 0, 0];
+                        }
                         // use colors from Radia for groups
                         if (gObj.members) {
                             gColor = null;
@@ -2383,10 +2390,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 }
 
                 // regular clicks are generated when spinning the scene - we'll select/deselect with ctrl-click
-                const iMode = $scope.vtkScene.interactionMode;
-                if (iMode === vtkUtils.INTERACTION_MODE_MOVE ||
-                    (iMode === vtkUtils.INTERACTION_MODE_SELECT && ! callData.controlKey)
-                ) {
+                if (! callData.controlKey) {
                     return;
                 }
 
@@ -2714,6 +2718,11 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 });
             }
 
+            function updateMarker() {
+                $scope.vtkScene.isMarkerEnabled = appState.models.magnetDisplay.showMarker === '1';
+                $scope.vtkScene.refreshMarker();
+            }
+
             function updateViewer(doShowLoader=false) {
                 const c = didDisplayValsChange();
                 sceneData = {};
@@ -2736,6 +2745,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 $scope.model = appState.models[$scope.modelName];
                 appState.watchModelFields($scope, watchFields, updateLayout);
                 appState.watchModelFields($scope, ['magnetDisplay.bgColor'], setBgColor);
+                appState.watchModelFields($scope, ['magnetDisplay.showMarker'], updateMarker);
                 panelState.enableField('geometryReport', 'name', ! appState.models.simulation.isExample);
             });
 
@@ -2750,20 +2760,6 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
                 $scope.vtkScene.renderWindow.getInteractor().onLeftButtonPress(handlePick);
                 init();
                 plotToPNG.initVTK($element, $scope.vtkScene.renderer);
-            });
-
-            $scope.$on('vtkScene.interactionMode', (e, d) => {
-                if (d === SIREPO.VTK.VTKUtils.interactionMode().INTERACTION_MODE_MOVE) {
-                    if (selectedObj) {
-                        $scope.$broadcast('vtk.selected', null);
-                        setEdgeColor(
-                            getActorInfo(selectedObj.id),
-                            [0, 0, 0]
-                        );
-                        selectedObj = null;
-                        savedObj = null;
-                    }
-                }
             });
 
             $scope.$on('radiaObject.changed', function(e) {
@@ -3180,7 +3176,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
     $scope.watchFields = [
         [
-            'geomObject.type', 'geomObject.segmentation', 'geomObject.segmentationCylUseObjectCenter',
+            'geomObject.type', 'geomObject.segmentation', 'geomObject.segmentationCylUseObjectCenter', 'geomObject.segmentationCylAxis',
             'cylinder.radius',
             'extrudedPoly.extrusionAxisSegments', 'extrudedPoly.triangulationLevel',
             'extrudedObject.extrusionAxis',
@@ -3321,12 +3317,18 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             'segmentationCylAxis',
             'segmentationCylPoint',
             'segmentationCylRadius',
+            'segmentationCylRatio',
             'segmentationCylUseObjectCenter',
         ];
         segCylFields.forEach(f => {
             panelState.showField('geomObject', f, isSegCyl);
         });
         panelState.showArrayField('geomObject', 'segments', 0, ! isSegCyl);
+        [
+            appState.models.geomObject.segmentationCylAxisMinor,
+            appState.models.geomObject.segmentationCylAxisMajor,
+        ] = SIREPO.GEOMETRY.GeometryUtils.nextAxes(appState.models.geomObject.segmentationCylAxis);
+
 
         if (o.segmentationCylUseObjectCenter === '1') {
             o.segmentationCylPoint = o.center.slice();

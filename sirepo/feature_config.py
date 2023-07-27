@@ -13,7 +13,7 @@ _DEPENDENT_CODES = [
     ["jspec", "elegant"],
     ["controls", "madx"],
     ["omega", "elegant"],
-    ["omega", "madx"],
+    ["omega", "genesis"],
     ["omega", "opal"],
 ]
 
@@ -31,6 +31,7 @@ PROD_FOSS_CODES = frozenset(
         "opal",
         "radia",
         "shadow",
+        "silas",
         "srw",
         "warppba",
         "warpvnd",
@@ -43,7 +44,6 @@ _NON_PROD_FOSS_CODES = frozenset(
     (
         "epicsllrf",
         "myapp",
-        "silas",
         "hellweg",
     )
 )
@@ -189,7 +189,7 @@ def _init():
             ),
         ),
         react_sim_types=(
-            ("jspec", "genesis", "warppba", "omega", "myapp", "shadow", "madx")
+            ("jspec", "genesis", "warppba", "myapp", "shadow", "madx")
             if pkconfig.channel_in("dev")
             else (),
             set,

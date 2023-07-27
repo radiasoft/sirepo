@@ -44,6 +44,10 @@
             "longName": "MAD-X",
             "shortName": "MAD-X"
         },
+        "omega": {
+            "longName": "OMEGA",
+            "shortName": "OMEGA"
+        },
         "opal": {
             "longName": "OPAL",
             "shortName": "OPAL"
@@ -315,20 +319,6 @@
                 ["fit", "Fit Data"],
                 ["fixed", "Fixed"]
             ]
-        },
-        "reactRoutes": {
-            "completeRegistration": {
-                "route": "/complete-registration"
-            },
-            "login": {
-                "route": "/login"
-            },
-            "loginWithEmailConfirm": {
-                "route": "/login-confirm/email/:token/:needCompleteRegistration"
-            },
-            "source": {
-                "route": "/:simulationId"
-            }
         },
         "localRoutes": {
             "admJobs": {

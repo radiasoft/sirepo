@@ -249,9 +249,9 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
         template: `
             <div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="dropComplete($data, $event)">
               <div data-ng-transclude=""></div>
-              <p class="lead text-center">beamline definition area
+              <p class="lead text-center">{{ beamlineName }} definition area
                 <button title="Download beamline as PNG" class="btn btn-default btn-sm" data-ng-if="showPNGDownloadLink()" data-ng-click="createBeamlinePNG()"><span class="glyphicon glyphicon-cloud-download"></span></button><br>
-                <small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>
+                <small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the {{ beamlineName }}</em></small></p>
               <div class="srw-beamline-container">
                 <div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">
                   <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data, $event)"> </div><div data-ng-drag="::beamlineService.isEditable()" data-ng-drag-data="item" data-item="item" data-beamline-item=""
@@ -273,6 +273,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
             </div>
         `,
         controller: function($scope, $rootScope) {
+            $scope.beamlineName = (SIREPO.APP_SCHEMA.strings.beamlineTabName || 'beamline').toLowerCase();
             $scope.setWatchpointActive = function(item) {
                 if(! $scope.parentController.setWatchpointActive) {
                     return;
@@ -451,7 +452,9 @@ SIREPO.app.directive('beamlineIcon', function() {
             <div data-ng-if="::isSVG">
               <data-ng-include src="::iconUrl" data-onload="iconLoaded()"/>
             </div>
-            <img class="srw-beamline-item-icon" data-ng-if="::! isSVG" data-ng-attr-src="{{ ::iconUrl }}"/>
+            <div data-ng-if="::! isSVG">
+              <img class="srw-beamline-item-icon" data-ng-attr-src="{{ ::iconUrl }}"/>
+            </div>
         `,
         controller: function($scope, $element) {
             var adjustmentsByType = {
@@ -465,9 +468,12 @@ SIREPO.app.directive('beamlineIcon', function() {
                 lens: [5],
                 mask: [5, 0, 5],
                 mirror: [15, 5, 12],
+                mirror2: [15],
                 obstacle: [-15, 10, -2],
                 sample: [20, -10, 10],
                 sphericalMirror: [10, 10, 7],
+                splitter: [-10, 5, 0],
+                telescope: [5],
                 toroidalMirror: [15, 0, 7],
                 watch: [0, 15, 10],
                 zonePlate: [20, -10, -5],
@@ -721,11 +727,11 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
                   <div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">
                     <div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section[0] }}</span></div>
                     <span data-ng-repeat="item in ::section[1]" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
-                      <span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}
+                      <span data-beamline-icon="" data-item="item"></span>{{ ::item.title }}
                     </span>
                   </div>
                   <span data-ng-repeat="item in ::standaloneItems" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
-                    <span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}
+                    <span data-beamline-icon="" data-item="item"></span>{{ ::item.title }}
                   </span>
                 </div>
               </div>
@@ -843,11 +849,11 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
         scope: {},
         template: `
           <div class="col-sm-3">
+            <div data-canceled-due-to-timeout-alert="simState"></div>
+            <div data-simulation-stopped-status="simState"></div>
+            <div class="col-sm-12" data-simulation-status-timer="simState"></div>
             <button class="btn btn-default pull-right" data-ng-click="start()" data-ng-show="simState.isStopped()">Start New Simulation</button>
             <button class="btn btn-default pull-right" data-ng-click="simState.cancelSimulation()" data-ng-show="simState.isProcessing()">End Simulation</button>
-          </div>
-          <div data-ng-show="simState.isStateError()" class="col-sm-9" style="margin-top: 1ex">
-            Error: {{ simState.getError() }}
           </div>
           <div class="col-sm-5 col-md-4 col-lg-3" style="margin-top: 1ex">
             <div data-pending-link-to-simulations="" data-sim-state="simState"></div>
