@@ -12,11 +12,11 @@
       </div>
     </div>
     <div class="clearfix"></div>
-    <div class="col-md-6 col-xl-4" data-ng-if="crystal.simState.hasFrames()">
-      <div data-report-panel="parameter" data-model-name="plotAnimation"></div>
+    <div class="col-md-6 col-xl-4" data-ng-if="crystal.simState.isStateCompleted()">
+      <div data-report-panel="heatmap" data-model-name="tempHeatMap"></div>
     </div>
-    <div class="col-md-6 col-xl-4" data-ng-if="crystal.simState.hasFrames()">
-      <div data-report-panel="parameter" data-model-name="plot2Animation"></div>
+    <div class="col-md-6 col-xl-4" data-ng-if="crystal.simState.isStateCompleted()">
+      <div data-report-panel="parameter" data-model-name="tempProfile"></div>
     </div>
     <div class="col-md-6 col-xl-4" data-ng-if="crystal.hasCrystal3d()">
       <div data-report-panel="crystal3d" data-model-name="crystal3dAnimation"></div>

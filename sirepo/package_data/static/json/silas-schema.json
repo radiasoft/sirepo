@@ -100,8 +100,8 @@
         "laserPulse2Animation": ["watchpointPlot"],
         "crystalAnimation": [],
         "crystal3dAnimation": [],
-        "plotAnimation": [],
-        "plot2Animation": []
+        "tempHeatMap": [],
+        "tempProfile": []
     },
     "model": {
         "beamElement": {
@@ -140,6 +140,8 @@
             "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float", 1000.0]
         },
         "crystalAnimation": {},
+        "tempProfile": {},
+        "tempHeatMap": {},
         "crystalSettings": {
             "meshDensity": ["Mesh Density", "Integer", 30, "", 10, 50],
             "time": ["Simulation Time [sec]", "Float", 1, "", 1e-24],
@@ -284,6 +286,14 @@
         },
         "crystalAnimation": {
             "title": "Crystal Animation",
+            "advanced": []
+        },
+        "tempProfile": {
+            "title": "Temperature Profile",
+            "advanced": []
+        },
+        "tempHeatMap": {
+            "title": "Temperature Heatmap",
             "advanced": []
         },
         "crystalSettings": {

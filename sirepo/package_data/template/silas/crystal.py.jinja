@@ -107,9 +107,10 @@ def thermo_optic_sim():
     # Radial values reflected across axis & meshgrid with longitudinal values
     rrs = array((-rs[::-1]).tolist()+rs[1:].tolist())
     RZ, ZR = meshgrid(rrs, zs)
-    print("RZ", RZ)
-    print("ZR", ZR)
-    return RZ, ZR
+    long_temp_profile = numpy.array([rs, Ts[ptzs==zface], zs, Ts[ptrs==rcenter]])
+    pTs = Ts.reshape((len(rs), len(zs)), order='F')
+    heat_map = array((pTs[::-1]).tolist()+pTs[1:].tolist())
+    return heat_map, long_temp_profile
 
 # define time-evolution function
 def evolve():
@@ -173,18 +174,12 @@ write_row('zv', 0, zv)
 
 for t, u in evolve():
     ux = numpy.array([u(pt) for pt in radpts])
-    uz = numpy.array([u(pt) for pt in axipts])
-    write_row('ux', t, ux)
-    write_row('uz', t, uz)
 
+heat_map, temp_profile = thermo_optic_sim()
 
-RZ, ZR = thermo_optic_sim()
-df = pandas.read_csv('{{ crystalCSV }}')
-print(set(RZ[0]))
-print(RZ.shape, ZR.shape)
-print(df.info())
 uvals = u.compute_vertex_values()
-
 numpy.save('indices.npy', inds)
 numpy.save('vertices.npy', mesh.coordinates())
 numpy.save('intensity.npy', uvals)
+numpy.save('tempProfile.npy', temp_profile)
+numpy.save('tempHeatMap.npy', heat_map)

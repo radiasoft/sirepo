@@ -42,8 +42,11 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if model in ("plotAnimation", "plot2Animation"):
-        return _CRYSTAL_CSV_FILE
+    if model in ("tempProfile", "tempHeatMap"):
+        return PKDict(
+            tempProfile="tempProfile.npy",
+            tempHeatMap="tempHeatMap.npy",
+        )[model]
     if model == "crystal3dAnimation":
         return "intensity.npy"
     if model == "beamlineAnimation0" or model in _SIM_DATA.SOURCE_REPORTS:
@@ -65,7 +68,8 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
-    if model in ("crystal3dAnimation", "plotAnimation", "plot2Animation"):
+    pkdp("\n\n\n\n model={}", model)
+    if model in ("crystal3dAnimation", "tempProfile", "tempheatMap"):
         data.report = "crystalAnimation"
     else:
         if model:
@@ -83,6 +87,7 @@ def sim_frame(frame_args):
     r = frame_args.frameReport
     frame_args.sim_in.report = r
     count, element = _report_to_file_index(frame_args.sim_in, r)
+    pkdp("\n\n\n\n\nreport: {}", r)
     if "beamlineAnimation" in r or r in _SIM_DATA.SOURCE_REPORTS:
         return _LaserPulsePlot(
             run_dir=frame_args.run_dir,
@@ -106,12 +111,14 @@ def sim_frame_crystal3dAnimation(frame_args):
     )
 
 
-def sim_frame_plotAnimation(frame_args):
-    return _crystal_plot(frame_args, "xv", "ux", "[m]", 1e-2)
+def sim_frame_tempProfile(frame_args):
+    assert 0, "temp profile HIT"
+    return _crystal_plot(frame_args)
 
 
-def sim_frame_plot2Animation(frame_args):
-    return _crystal_plot(frame_args, "zv", "uz", "[m]", 1e-2)
+def sim_fram_tempHeatMap(frame_args):
+    assert 0, "heatmap HIT"
+    return _crystal_plot(frame_args)
 
 
 def stateful_compute_mesh_dimensions(data, **kwargs):
@@ -256,30 +263,16 @@ def _beamline_animation_percent_complete(run_dir, res, data):
 def _crystal_animation_percent_complete(run_dir, res, data):
     assert data.report == "crystalAnimation"
     count = 0
-    path = run_dir.join(_CRYSTAL_CSV_FILE)
+    res = PKDict()
+    path = run_dir.join('rz.npy')
     if path.exists():
-        with pkio.open_text(str(path)) as f:
-            for line in f:
-                count += 1
-        # first two lines are axis points
-        if count > 2:
-            plot_count = int((count - 2) / 2)
-            pkdp("\n\n\n\nplot_count={}", plot_count)
-            res.frameCount = plot_count
-            res.percentComplete = (
-                plot_count
-                * 100
-                / (
-                    1
-                    + data.models.crystalSettings.steps
-                    / data.models.crystalSettings.plotInterval
-                )
-            )
-    pkdp("\n\n\n res={}", res)
+        res.frameCount = 1
+        res.percentComplete = 100
     return res
 
 
-def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
+def _crystal_plot(frame_args):
+    assert 0, f"crystal plot for sim frame called{frame_args}"
     x = None
     plots = []
     with open(str(frame_args.run_dir.join(_CRYSTAL_CSV_FILE))) as f:
@@ -359,6 +352,7 @@ def _generate_beamline_indices(data):
 
     state = PKDict(res=["0"], idx=1, id_to_index=PKDict())
     if data.report not in _SIM_DATA.SOURCE_REPORTS:
+        pkdp("data.report={} _SIM_DATA.SOURCE_REPORTS={}", data.report, _SIM_DATA.SOURCE_REPORTS)
         _iterate_beamline(state, data, _callback)
     return ", ".join(state.res)
 
@@ -396,6 +390,7 @@ def _generate_crystal(crystal):
 def _generate_parameters_file(data):
     from rslaser.optics import Crystal
 
+    pkdp("\n\n\n\n data.report={}", data.report)
     res, v = template_common.generate_parameters_file(data)
     if data.report == "crystalAnimation":
         v.crystalParams = PKDict(

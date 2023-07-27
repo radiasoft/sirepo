@@ -14,8 +14,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(("colorMap",))
     SOURCE_REPORTS = frozenset(
         (
-            "laserPulseAnimation",
-            "laserPulse2Animation",
+            "tempProfile",
+            "tempHeatMap",
         )
     )
 
@@ -33,8 +33,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "laserPulseAnimation",
                 "laserPulse2Animation",
                 "initialIntensityReport",
-                "plotAnimation",
-                "plot2Animation",
+                "tempHeatMap",
+                "tempProfile",
                 "simulation",
             ),
         )
