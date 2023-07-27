@@ -29,6 +29,9 @@ _cfg = None
 #: Http auth header name
 AUTH_HEADER = "Authorization"
 
+#: http auth header scheme bearer
+_AUTH_HEADER_SCHEME_BEARER = "Bearer"
+
 #: Match output of unique_key
 _UNIQUE_KEY_CHARS_RE = r"\w+"
 
