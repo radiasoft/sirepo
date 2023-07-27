@@ -1953,7 +1953,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     def _process_watch_str(wid, f, m):
         return f"""
     data_file = '{_OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=wid) if wid else _OUTPUT_FOR_MODEL.initialIntensityReport.filename}'
-    data, mesh = _process_wavefront('{f}', {m})
+    data, mesh = _process_watch('{f}', {m})
     srwlib.srwl_uti_save_intens_ascii(data, mesh, data_file)
     os.rename('{f}', '{_wavefront_pickle_filename(wid)}')
 """

@@ -490,7 +490,7 @@ def _resize_report(ar2d, x_range, y_range, width_pixels={{ canvasMaxSize }}):
     return ar2d, x_range, y_range
 
 
-def _process_wavefront(filename, report):
+def _process_watch(filename, report):
     with open(filename, 'rb') as f:
         wfr = pickle.load(f)
     data, mesh = srwl_bl.SRWLBeamline().calc_int_from_wfr(
@@ -505,9 +505,9 @@ def _process_wavefront(filename, report):
     l = xr[2] * yr[2]
     n = d.size if l > d.size else l
     d = numpy.reshape(d[0:n], (yr[2], xr[2]))
-    if report.get("usePlotRange", "0") == '1':
+    if report.get("usePlotRange", "0") == "1":
         d, xr, yr = _update_report_range(report, d, xr, yr)
-    if report.get("useIntensityLimits", "0") == '1':
+    if report.get("useIntensityLimits", "0") == "1":
         d[d < report["minIntensityLimit"]] = report["minIntensityLimit"]
         d[d > report["maxIntensityLimit"]] = report["maxIntensityLimit"]
     d, xr, yr = _resize_report(d, xr, yr, width_pixels=int(report.get("intensityPlotsWidth", 0)))
