@@ -72,7 +72,7 @@
         },
         "laserPulse": {
             "ccd": "",
-            "chirp": 0,
+            "chirp": 0.0012459,
             "distribution": "gaussian",
             "meta": "",
             "nslice": 3,
