@@ -29,9 +29,6 @@ _cfg = None
 #: Http auth header name
 AUTH_HEADER = "Authorization"
 
-#: http auth header scheme bearer
-_AUTH_HEADER_SCHEME_BEARER = "Bearer"
-
 #: Match output of unique_key
 _UNIQUE_KEY_CHARS_RE = r"\w+"
 
@@ -464,6 +461,11 @@ def to_comma_delimited_string(arr):
 
 
 def unique_key():
+    """Returns a unique key of 32 characters.
+
+    This is a "reasonably sized" key that can be assumed to be globally unique. So, it is
+    safe to be used across the web and filesystem.
+    """
     return random_base62(32)
 
 
