@@ -471,8 +471,8 @@ def _process_watch(filename, report):
         wfr = pickle.load(f)
     data, mesh = srwl_bl.SRWLBeamline().calc_int_from_wfr(
         wfr,
-        _pol=int(report["polarization"]),
-        _int_type=int(report["characteristic"]),
+        _pol=int(report.get("polarization", "6")),
+        _int_type=int(report.get("characteristic", "0")),
         _pr=False,
     )
     d = numpy.array(data)
