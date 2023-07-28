@@ -1129,7 +1129,7 @@ def _beamline_animation_percent_complete(run_dir, res):
     res.outputInfo = [
         PKDict(
             modelKey="beamlineAnimation0",
-            filename=_wavefront_pickle_filename(0),
+            filename=_wavefront_intensity_filename(0),
             id=0,
         ),
     ]
@@ -1141,17 +1141,19 @@ def _beamline_animation_percent_complete(run_dir, res):
             res.outputInfo.append(
                 PKDict(
                     modelKey=f"beamlineAnimation{item.id}",
-                    filename=_wavefront_pickle_filename(item.id),
+                    filename=_wavefront_intensity_filename(item.id),
                     id=item.id,
                 )
             )
     count = 0
     for info in res.outputInfo:
         try:
-            with open(info.filename, "rb") as f:
-                # TODO(pjm): instead look at last byte == pickle.STOP, see template_common.read_last_csv_line()
-                wfr = pickle.load(f)
+            if template_common.read_last_csv_line(pkio.py_path(info.filename)):
                 count += 1
+            #with open(info.filename, "r") as f:
+                # TODO(pjm): instead look at last byte == pickle.STOP, see template_common.read_last_csv_line()
+                #wfr = pickle.load(f)
+                #count += 1
         except Exception as e:
             break
     res.frameCount = count
@@ -1938,10 +1940,9 @@ def _generate_srw_main(data, plot_reports, beamline_info):
 
     def _process_watch_str(wid, f, m):
         return f"""
-    data_file = '{_OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=wid) if wid else _OUTPUT_FOR_MODEL.initialIntensityReport.filename}'
+    data_file = '{_wavefront_intensity_filename(wid)}'
     data, mesh = _process_watch('{f}', {m})
     srwlib.srwl_uti_save_intens_ascii(data, mesh, data_file)
-    os.rename('{f}', '{_wavefront_pickle_filename(wid)}')
 """
 
     report = data.report
@@ -1968,7 +1969,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             content.append("op = None")
         prev_wid = 0
         next_wid = 0
-        init_wavefront = _wavefront_pickle_filename(prev_wid, pre_process=True)
+        init_wavefront = _wavefront_pickle_filename(prev_wid)
         content.append(f"v.ws_fne = '{init_wavefront}'")
         prev_wavefront = None
         next_wavefront = None
@@ -1982,7 +1983,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 names = []
                 if prev_wavefront:
                     content.append(f"v.ws_fnei = '{prev_wavefront}'")
-                next_wavefront = _wavefront_pickle_filename(next_wid, pre_process=True)
+                next_wavefront = _wavefront_pickle_filename(next_wid)
                 content.append(f"v.ws_fnep = '{next_wavefront}'")
                 content.append(f"op = set_optics(v, names, {is_last_watch})")
                 if not is_last_watch:
@@ -2176,6 +2177,7 @@ def _process_rsopt_elements(els):
 
 
 def _remap_3d(info, allrange, out, report):
+    pkdp("REMAP {}", report)
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
     ar2d = info.points
@@ -2569,6 +2571,10 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
         assert res, "{} failed validator: {}".format(
             os.path.basename(zip_file_name), err_string
         )
+
+
+def _wavefront_intensity_filename(el_id):
+    return _OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=el_id) if el_id else _OUTPUT_FOR_MODEL.initialIntensityReport.filename
 
 
 def _wavefront_pickle_filename(el_id, pre_process=False):
