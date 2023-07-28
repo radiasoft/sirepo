@@ -42,10 +42,10 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if model in ("tempProfile", "tempHeatMap"):
+    if model in ("tempProfileAnimation", "tempHeatMapAnimation"):
         return PKDict(
-            tempProfile="tempProfile.npy",
-            tempHeatMap="tempHeatMap.npy",
+            tempProfileAnimation="tempProfile.npy",
+            tempHeatMapAnimation="tempHeatMap.h5",
         )[model]
     if model == "crystal3dAnimation":
         return "intensity.npy"
@@ -69,7 +69,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
 
 def python_source_for_model(data, model, qcall, **kwargs):
     pkdp("\n\n\n\n model={}", model)
-    if model in ("crystal3dAnimation", "tempProfile", "tempheatMap"):
+    if model in ("crystal3dAnimation", "tempProfileAnimation", "tempHeatMapAnimation"):
         data.report = "crystalAnimation"
     else:
         if model:
@@ -111,14 +111,52 @@ def sim_frame_crystal3dAnimation(frame_args):
     )
 
 
-def sim_frame_tempProfile(frame_args):
-    assert 0, "temp profile HIT"
-    return _crystal_plot(frame_args)
+def sim_frame_tempProfileAnimation(frame_args):
+    f = frame_args.run_dir.join('tempProfile.npy')
+    pkdp("\n\n\nframe args={}", frame_args)
+    pkdp("\n\n\n f={}", f)
+    if frame_args.tempProfilePlot == "radialPlot":
+        x = 1
+        y = 0
+    else:
+        x = 2
+        y = 3
+
+    d = numpy.load(str(f))
+    pkdp("\n\n\n d.shape={}", d.shape)
+    return template_common.parameter_plot(
+        [n for n in .98*d[x]],
+        [
+            PKDict(
+                points=[n for n in .98*d[y]],
+                label="Radial" if frame_args.tempProfilePlot == "radialPlot" else "Longitudinal",
+            ),
+        ],
+        PKDict(),
+        PKDict(
+            x_label="x label",
+        ),
+    )
 
 
-def sim_fram_tempHeatMap(frame_args):
-    assert 0, "heatmap HIT"
-    return _crystal_plot(frame_args)
+def sim_frame_tempHeatMapAnimation(frame_args):
+    # TODO (gurhar1133): use _LaserPulsePlot class for this
+
+    with h5py.File(
+        frame_args.run_dir.join("tempHeatMap.h5"), "r"
+    ) as f:
+        d = template_common.h5_to_dict(f)
+        r = d.ranges
+        z = d.intensity
+        return PKDict(
+            title="title",
+            x_range=[r.x[0], r.x[1], len(z)],
+            y_range=[r.y[0], r.y[1], len(z[0])],
+            x_label="Horizontal Position [m]",
+            y_label="Vertical Position [m]",
+            z_label="Temperature",
+            z_matrix=z,
+        )
 
 
 def stateful_compute_mesh_dimensions(data, **kwargs):
@@ -271,7 +309,7 @@ def _crystal_animation_percent_complete(run_dir, res, data):
     assert data.report == "crystalAnimation"
     count = 0
     res = PKDict()
-    path = run_dir.join('rz.npy')
+    path = run_dir.join('tempHeatMap.h5')
     if path.exists():
         res.frameCount = 1
         res.percentComplete = 100
@@ -580,8 +618,11 @@ class _LaserPulsePlot(PKDict):
                     if self.plot_type == "total_excited_states":
                         self.slice_index = 0
                     d = template_common.h5_to_dict(f, str(self.slice_index))
+                    pkdp("\n\n\nd from .gen()={}", d)
                     r = d.ranges
                     z = d[self.plot_type]
+                    pkdp("gen z_matrix={}, {}", type(z), type(z[0]))
+                    pkdp("ranges = {}", d.ranges)
                     return PKDict(
                         title=self._plot_label(),
                         x_range=[r.x[0], r.x[1], len(z)],

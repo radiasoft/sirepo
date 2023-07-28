@@ -14,8 +14,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(("colorMap",))
     SOURCE_REPORTS = frozenset(
         (
-            "tempProfile",
-            "tempHeatMap",
+            "laserPulseAnimation",
+            "laserPulse2Animation",
         )
     )
 
@@ -33,8 +33,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "laserPulseAnimation",
                 "laserPulse2Animation",
                 "initialIntensityReport",
-                "tempHeatMap",
-                "tempProfile",
+                "tempHeatMapAnimation",
+                "tempProfileAnimation",
                 "simulation",
             ),
         )
@@ -58,6 +58,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         if analysis_model in (
             "crystalAnimation",
             "crystal3dAnimation",
+            "tempProfileAnimation",
+            "tempHeatMapAnimation",
             "plotAnimation",
             "plot2Animation",
         ):
@@ -66,6 +68,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             return "beamlineAnimation"
         if analysis_model in cls.SOURCE_REPORTS:
             return "laserPulseAnimation"
+        assert 0, f"analysis_model='{analysis_model}'"
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod

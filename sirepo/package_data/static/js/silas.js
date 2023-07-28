@@ -44,7 +44,7 @@ SIREPO.app.factory('silasService', function(appState) {
     const self = {};
 
     self.computeModel = (analysisModel) => {
-        if (['crystalAnimation', 'crystal3dAnimation', 'plotAnimation', 'plot2Animation'].indexOf(analysisModel) >= 0) {
+        if (['crystalAnimation', 'crystal3dAnimation', 'plotAnimation', 'plot2Animation', 'tempHeatMapAnimation', 'tempProfileAnimation'].indexOf(analysisModel) >= 0) {
             return 'crystalAnimation';
         }
         if (['laserPulseAnimation', 'laserPulse2Animation'].includes(analysisModel)) {

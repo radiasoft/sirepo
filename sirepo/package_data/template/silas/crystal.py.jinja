@@ -7,6 +7,7 @@ from numpy import array, meshgrid, unique
 from rslaser.optics import Crystal
 from rslaser.thermal import ThermoOptic
 from pykern.pkcollections import PKDict
+from sirepo.template import template_common
 #---
 
 ## set up the problem and define (some of) the main parameters
@@ -109,8 +110,8 @@ def thermo_optic_sim():
     RZ, ZR = meshgrid(rrs, zs)
     long_temp_profile = numpy.array([rs, Ts[ptzs==zface], zs, Ts[ptrs==rcenter]])
     pTs = Ts.reshape((len(rs), len(zs)), order='F')
-    heat_map = array((pTs[::-1]).tolist()+pTs[1:].tolist())
-    return heat_map, long_temp_profile
+    heat_map = pTs.T
+    return thermo, heat_map, long_temp_profile
 
 # define time-evolution function
 def evolve():
@@ -135,12 +136,14 @@ def evolve():
         # update previous solution
         u_n.assign(u)
 
+thermo, heat_map, temp_profile = thermo_optic_sim()
+
 #---
 
 # for 3D plots, get the facets, and build an array
 # containing the indices of their coordinates
 inds = []
-for item in dolfin.cpp.mesh.facets(mesh):
+for item in dolfin.cpp.mesh.facets(thermo.mesh):
     inds.append(item.entities(0).tolist())
 
 # we will provide these indices to plotly so it can draw proper surfaces
@@ -175,11 +178,15 @@ write_row('zv', 0, zv)
 for t, u in evolve():
     ux = numpy.array([u(pt) for pt in radpts])
 
-heat_map, temp_profile = thermo_optic_sim()
-
 uvals = u.compute_vertex_values()
 numpy.save('indices.npy', inds)
-numpy.save('vertices.npy', mesh.coordinates())
+numpy.save('vertices.npy', thermo.mesh.coordinates())
 numpy.save('intensity.npy', uvals)
 numpy.save('tempProfile.npy', temp_profile)
-numpy.save('tempHeatMap.npy', heat_map)
+template_common.write_dict_to_h5(PKDict(
+    intensity=heat_map,
+    ranges=PKDict(
+        x=[-crystal.params.pop_inversion_mesh_extent, crystal.params.pop_inversion_mesh_extent],
+        y=[-crystal.params.pop_inversion_mesh_extent, crystal.params.pop_inversion_mesh_extent],
+    )
+    ), 'tempHeatMap.h5')

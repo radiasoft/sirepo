@@ -25,6 +25,10 @@
             ["total_intensity", "Total Intensity"],
             ["total_phase", "Total Phase"]
         ],
+        "TempProfilePlot": [
+            ["radialPlot", "Radial"],
+            ["longitudinalPlot", "Longitudinal"]
+        ],
         "DistributionType": [
             ["gaussian", "Gaussian"],
             ["file", "From Files"]
@@ -101,8 +105,8 @@
         "laserPulse2Animation": ["watchpointPlot"],
         "crystalAnimation": [],
         "crystal3dAnimation": [],
-        "tempHeatMap": [],
-        "tempProfile": []
+        "tempHeatMapAnimation": [],
+        "tempProfileAnimation": ["tempProfilePlot"]
     },
     "model": {
         "beamElement": {
@@ -141,8 +145,16 @@
             "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float", 1.0]
         },
         "crystalAnimation": {},
-        "tempProfile": {},
-        "tempHeatMap": {},
+        "tempProfileAnimation": {
+            "tempProfilePlot": ["Temperature Profile", "TempProfilePlot", "radialPlot"]
+        },
+        "tempHeatMapAnimation": {
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "x": ["Horizontal Value to Plot", "ValueList", "x"],
+            "y1": ["Vertical Value to Plot", "ValueList", "y"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "afmhot"]
+        },
         "crystalSettings": {
             "meshDensity": ["Mesh Density", "Integer", 30, "", 10, 50],
             "time": ["Simulation Time [sec]", "Float", 1, "", 1e-24],
@@ -290,11 +302,13 @@
             "title": "Crystal Animation",
             "advanced": []
         },
-        "tempProfile": {
+        "tempProfileAnimation": {
             "title": "Temperature Profile",
-            "advanced": []
+            "advanced": [
+                "tempProfilePlot"
+            ]
         },
-        "tempHeatMap": {
+        "tempHeatMapAnimation": {
             "title": "Temperature Heatmap",
             "advanced": []
         },
