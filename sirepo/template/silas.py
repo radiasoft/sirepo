@@ -46,8 +46,8 @@ def background_percent_complete(report, run_dir, is_running):
 def get_data_file(run_dir, model, frame, options):
     if model in ("tempProfileAnimation", "tempHeatMapAnimation"):
         return PKDict(
-            tempProfileAnimation="tempProfile.npy",
-            tempHeatMapAnimation="tempHeatMap.h5",
+            tempProfileAnimation=_TEMP_PROFILE_FILE,
+            tempHeatMapAnimation=_TEMP_HEATMAP_FILE,
         )[model]
     if model == "crystal3dAnimation":
         return "intensity.npy"
@@ -130,7 +130,6 @@ def sim_frame_tempProfileAnimation(frame_args):
 
 
 def sim_frame_tempHeatMapAnimation(frame_args):
-    # TODO (gurhar1133): use _LaserPulsePlot class for this
     with h5py.File(
         frame_args.run_dir.join(_TEMP_HEATMAP_FILE), "r"
     ) as f:
@@ -298,7 +297,7 @@ def _crystal_animation_percent_complete(run_dir, res, data):
     assert data.report == "crystalAnimation"
     count = 0
     res = PKDict()
-    path = run_dir.join("tempHeatMap.h5")
+    path = run_dir.join(_TEMP_HEATMAP_FILE)
     if path.exists():
         res.frameCount = 1
         res.percentComplete = 100
@@ -306,7 +305,6 @@ def _crystal_animation_percent_complete(run_dir, res, data):
 
 
 def _crystal_plot(frame_args):
-    assert 0, f"crystal plot for sim frame called{frame_args}"
     x = None
     plots = []
     with open(str(frame_args.run_dir.join(_CRYSTAL_CSV_FILE))) as f:
