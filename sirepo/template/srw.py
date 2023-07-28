@@ -501,28 +501,14 @@ def sim_frame(frame_args):
         _copy_frame_args_into_model(frame_args, r)
     elif "beamlineAnimation" in r:
         wid = int(re.search(r".*?(\d+)$", r)[1])
-        #fn = _wavefront_pickle_filename(wid)
-        #with open(fn, "rb") as f:
-        #    wfr = pickle.load(f)
         m = _copy_frame_args_into_model(frame_args, "watchpointReport")
         if wid:
             m.id = wid
             frame_args.sim_in.report = "beamlineAnimation"
             frame_args.sim_in.models.beamlineAnimation = m
-            #data_file = _OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(
-            #    watchpoint_id=wid
-            #)
         else:
             frame_args.sim_in.report = "initialIntensityReport"
             frame_args.sim_in.models.initialIntensityReport = m
-            #data_file = _OUTPUT_FOR_MODEL.initialIntensityReport.filename
-        #srwl_bl.SRWLBeamline().calc_int_from_wfr(
-        #    wfr,
-        #    _pol=int(frame_args.polarization),
-        ##    _int_type=int(frame_args.characteristic),
-        #    _fname=data_file,
-        #    _pr=False,
-        #)
     if "beamlineAnimation" not in r:
         # some reports may be written at the same time as the reader
         # if the file is invalid, wait a bit and try again
@@ -2196,15 +2182,6 @@ def _remap_3d(info, allrange, out, report):
     totLen = int(x_range[2] * y_range[2])
     n = len(ar2d) if totLen > len(ar2d) else totLen
     ar2d = np.reshape(ar2d[0:n], (int(y_range[2]), int(x_range[2])))
-
-    #if report.get("usePlotRange", "0") == "1":
-    #    ar2d, x_range, y_range = _update_report_range(report, ar2d, x_range, y_range)
-    #if report.get("useIntensityLimits", "0") == "1":
-    #    ar2d[ar2d < report.minIntensityLimit] = report.minIntensityLimit
-    #    ar2d[ar2d > report.maxIntensityLimit] = report.maxIntensityLimit
-    #ar2d, x_range, y_range = _resize_report(report, ar2d, x_range, y_range)
-    if report.get("rotateAngle", 0):
-        ar2d, x_range, y_range = _rotate_report(report, ar2d, x_range, y_range, info)
     if out.units[2]:
         out.labels[2] = "{} [{}]".format(out.labels[2], out.units[2])
     if report.get("useIntensityLimits", "0") == "1":
