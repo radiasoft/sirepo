@@ -86,17 +86,11 @@ def thermo_optic_sim():
     # thermo.mesh # Uncomment to view 3D crystal mesh
 
     # Set evaluation points & boundary conditions
-    # TODO (gurhar1133): should double check this
     thermo.set_points((200, 0, 201))
-    thermo.set_boundary(2 * (crystal.radius * 100.0) ** 2.0 / 40.0)
+    thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
+    thermo.set_load("{{ pump_pulse_profile }}")
 
-    # TODO (gurhar1133): "hog" should be parameter from
-    # crystal.pump_pulse_profile
-    thermo.set_load("hog")
-
-    # TODO (gurhar1133): why do you get hog solution watchpointReport
-    # we've already set load?
-    Ts = thermo.hog_solution()  # solve_steady()#gaussian_solution()
+    Ts = thermo.{{ pump_pulse_profile }}_solution() #solve_steady()#gaussian_solution()
     nT, n0Fit, n2Fit = thermo.compute_indices(Ts)
 
     # Positions of each evaluation point & sets of the unique values
@@ -110,44 +104,27 @@ def thermo_optic_sim():
     # Radial values reflected across axis & meshgrid with longitudinal values
     rrs = array((-rs[::-1]).tolist() + rs[1:].tolist())
     RZ, ZR = meshgrid(rrs, zs)
-    long_temp_profile = numpy.array([rs, Ts[ptzs == zface], zs, Ts[ptrs == rcenter]])
-    pTs = Ts.reshape((len(rs), len(zs)), order="F")
+    temp_profile = numpy.array([rs, Ts[ptzs==zface], zs, Ts[ptrs==rcenter]])
+    pTs = Ts.reshape((len(rs), len(zs)), order='F')
     heat_map = pTs.T
-    return thermo, heat_map, long_temp_profile
+    return PKDict(
+        thermo=thermo,
+        heat_map=heat_map,
+        temp_profile=temp_profile,
+        nT=nT,
+        n0Fit=n0Fit,
+        n2Fit=n2Fit,
+    )
 
 
-# # define time-evolution function
-# def evolve():
-
-#     # report initial state
-#     t = 0
-#     yield t, u_n
-
-#     # time-stepping
-#     u = fenics.Function(V)
-#     for n in range(1, n_steps + 1):
-#         # update current time
-#         t += dt
-
-#         # compute solution
-#         fenics.solve(a == L, u, bc)
-
-#         # report solution at nip-step intervals
-#         if n % nip == 0:
-#             yield t, u
-
-#         # update previous solution
-#         u_n.assign(u)
-
-
-thermo, heat_map, temp_profile = thermo_optic_sim()
+res = thermo_optic_sim()
 
 # ---
 
 # for 3D plots, get the facets, and build an array
 # containing the indices of their coordinates
 inds = []
-for item in dolfin.cpp.mesh.facets(thermo.mesh):
+for item in dolfin.cpp.mesh.facets(res.thermo.mesh):
     inds.append(item.entities(0).tolist())
 
 # we will provide these indices to plotly so it can draw proper surfaces

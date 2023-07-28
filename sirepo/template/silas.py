@@ -20,6 +20,8 @@ import time
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _CRYSTAL_CSV_FILE = "crystal.csv"
+_TEMP_PROFILE_FILE = "tempProfile.npy"
+_TEMP_HEATMAP_FILE = "tempHeatMap.h5"
 _RESULTS_FILE = "results{}.h5"
 _CRYSTAL_FILE = "crystal{}.h5"
 _MAX_H5_READ_TRIES = 10
@@ -68,7 +70,6 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
-    pkdp("\n\n\n\n model={}", model)
     if model in ("crystal3dAnimation", "tempProfileAnimation", "tempHeatMapAnimation"):
         data.report = "crystalAnimation"
     else:
@@ -87,7 +88,6 @@ def sim_frame(frame_args):
     r = frame_args.frameReport
     frame_args.sim_in.report = r
     count, element = _report_to_file_index(frame_args.sim_in, r)
-    pkdp("\n\n\n\n\nreport: {}", r)
     if "beamlineAnimation" in r or r in _SIM_DATA.SOURCE_REPORTS:
         return _LaserPulsePlot(
             run_dir=frame_args.run_dir,
@@ -112,44 +112,33 @@ def sim_frame_crystal3dAnimation(frame_args):
 
 
 def sim_frame_tempProfileAnimation(frame_args):
-    f = frame_args.run_dir.join("tempProfile.npy")
-    pkdp("\n\n\nframe args={}", frame_args)
-    pkdp("\n\n\n f={}", f)
-    if frame_args.tempProfilePlot == "radialPlot":
-        x = 1
-        y = 0
-    else:
-        x = 2
-        y = 3
-
+    f = frame_args.run_dir.join(_TEMP_PROFILE_FILE)
     d = numpy.load(str(f))
-    pkdp("\n\n\n d.shape={}", d.shape)
     return template_common.parameter_plot(
-        [n for n in 0.98 * d[x]],
+        [n for n in .98*d[1 if frame_args.tempProfilePlot == "radialPlot" else 2]],
         [
             PKDict(
-                points=[n for n in 0.98 * d[y]],
-                label="Radial"
-                if frame_args.tempProfilePlot == "radialPlot"
-                else "Longitudinal",
+                points=[n for n in .98*d[0 if frame_args.tempProfilePlot == "radialPlot" else 3]],
+                label="(T-T_0), K",
             ),
         ],
         PKDict(),
         PKDict(
-            x_label="x label",
+            x_label=("Radial" if frame_args.tempProfilePlot == "radialPlot" else "Longitudinal") + " Position [cm]",
         ),
     )
 
 
 def sim_frame_tempHeatMapAnimation(frame_args):
     # TODO (gurhar1133): use _LaserPulsePlot class for this
-
-    with h5py.File(frame_args.run_dir.join("tempHeatMap.h5"), "r") as f:
+    with h5py.File(
+        frame_args.run_dir.join(_TEMP_HEATMAP_FILE), "r"
+    ) as f:
         d = template_common.h5_to_dict(f)
         r = d.ranges
         z = d.intensity
         return PKDict(
-            title="title",
+            title="",
             x_range=[r.x[0], r.x[1], len(z)],
             y_range=[r.y[0], r.y[1], len(z[0])],
             x_label="Horizontal Position [m]",
@@ -397,11 +386,6 @@ def _generate_beamline_indices(data):
 
     state = PKDict(res=["0"], idx=1, id_to_index=PKDict())
     if data.report not in _SIM_DATA.SOURCE_REPORTS:
-        pkdp(
-            "data.report={} _SIM_DATA.SOURCE_REPORTS={}",
-            data.report,
-            _SIM_DATA.SOURCE_REPORTS,
-        )
         _iterate_beamline(state, data, _callback)
     return ", ".join(state.res)
 
@@ -440,7 +424,6 @@ def _generate_crystal(crystal):
 def _generate_parameters_file(data):
     from rslaser.optics import Crystal
 
-    pkdp("\n\n\n\n data.report={}", data.report)
     res, v = template_common.generate_parameters_file(data)
     if data.report == "crystalAnimation":
         v.crystalParams = PKDict(
@@ -463,6 +446,7 @@ def _generate_parameters_file(data):
             pop_inversion_pump_offset_x=_get_crystal(data).pump_offset_x,
             pop_inversion_pump_offset_y=_get_crystal(data).pump_offset_y,
         )
+        v.pump_pulse_profile = _get_crystal(data).pump_pulse_profile
         v.crystalLength = _get_crystal(data).length
         v.crystalCSV = _CRYSTAL_CSV_FILE
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
@@ -622,11 +606,8 @@ class _LaserPulsePlot(PKDict):
                     if self.plot_type == "total_excited_states":
                         self.slice_index = 0
                     d = template_common.h5_to_dict(f, str(self.slice_index))
-                    pkdp("\n\n\nd from .gen()={}", d)
                     r = d.ranges
                     z = d[self.plot_type]
-                    pkdp("gen z_matrix={}, {}", type(z), type(z[0]))
-                    pkdp("ranges = {}", d.ranges)
                     return PKDict(
                         title=self._plot_label(),
                         x_range=[r.x[0], r.x[1], len(z)],

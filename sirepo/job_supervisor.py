@@ -886,7 +886,6 @@ class _ComputeJob(_Supervisor):
         return o
 
     def _req_is_valid(self, req):
-        pkdp("\n\n\n\n self.db.computeJobHash ={}, req.content.computeJobHash={}, req.content.computeJobSerial={}, self.db.computeJobSerial={}, req.content.computeJobSerial={}", self.db.computeJobHash, req.content.computeJobHash, req.content.computeJobSerial, self.db.computeJobSerial, req.content.computeJobSerial)
         return self.db.computeJobHash == req.content.computeJobHash and (
             not req.content.computeJobSerial
             or self.db.computeJobSerial == req.content.computeJobSerial
