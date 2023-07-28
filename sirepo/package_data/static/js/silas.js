@@ -352,7 +352,7 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
             ['l_scale'], item.propagationType === 'n0n2_lct' || item.propagationType === 'abcd_lct',
             ['origin'], hasCrystals,
             ['reuseCrystal'], item.origin === 'reuse',
-            ['title', 'length', 'nslice'], item.origin === 'new',
+            ['title', 'length', 'nslice', 'inversion_mesh_extent', 'crystal_alpha'], item.origin === 'new',
             ['A', 'B', 'C', 'D'], false,
         ]);
         panelState.enableField(item.type, 'pump_wavelength', false);
@@ -819,7 +819,7 @@ const intensityViewHandler = function(appState, beamlineService, panelState, $sc
         const idx = SIREPO.SINGLE_FRAME_ANIMATION.indexOf(modelKey());
         if (m.reportType == 'parameter'
             || (! isCrystal(e) && ['total_intensity', 'total_phase'].includes(m.watchpointPlot))
-            || (isCrystal(e) && m.crystalPlot === 'excited_states_longitudinal')
+            || (isCrystal(e) && (m.crystalPlot === 'excited_states_longitudinal' || m.crystalPlot === 'total_excited_states'))
         ) {
             if (idx < 0) {
                 SIREPO.SINGLE_FRAME_ANIMATION.push(modelKey());
