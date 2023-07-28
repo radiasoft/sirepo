@@ -129,49 +129,49 @@ for item in dolfin.cpp.mesh.facets(res.thermo.mesh):
 
 # we will provide these indices to plotly so it can draw proper surfaces
 inds = numpy.array(inds)
-ii = inds[:, 0]
-jj = inds[:, 1]
-kk = inds[:, 2]
+#ii = inds[:, 0]
+#jj = inds[:, 1]
+#kk = inds[:, 2]
 
 # get node coördinate values and ranges
-xvals = thermo.mesh.coordinates()[:, 0]
-yvals = thermo.mesh.coordinates()[:, 1]
-zvals = thermo.mesh.coordinates()[:, 2]
-xmin, xmax = xvals.min(), xvals.max()
-ymin, ymax = yvals.min(), yvals.max()
-zmin, zmax = zvals.min(), zvals.max()
+# xvals = thermo.mesh.coordinates()[:, 0]
+# yvals = thermo.mesh.coordinates()[:, 1]
+# zvals = thermo.mesh.coordinates()[:, 2]
+# xmin, xmax = xvals.min(), xvals.max()
+# ymin, ymax = yvals.min(), yvals.max()
+# zmin, zmax = zvals.min(), zvals.max()
 
 # ---
 
 
-def write_row(name, time, values, mode="a"):
-    with open("{{ crystalCSV }}", mode) as f:
-        f.write("{},{},{}\n".format(name, time, ",".join([str(x) for x in values])))
+#def write_row(name, time, values, mode="a"):
+#    with open("{{ crystalCSV }}", mode) as f:
+#        f.write("{},{},{}\n".format(name, time, ",".join([str(x) for x in values])))
 
 
 # tol = {{crystalSettings_tolerance}}
 # TODO(pjm): add tolerance to thermalTransportSettings
 tol = 8e-3
 # avoid points outside domain (for a coarse mesh, increase this value)
-xv = numpy.linspace(xmin * (1 - tol), xmax * (1 - tol), 201)
-zv = numpy.linspace(zmin * (1 - tol), zmax * (1 - tol), 201)
-radpts = [(x_, 0, 0) for x_ in xv]
-axipts = [(0, 0, z_) for z_ in zv]
+#xv = numpy.linspace(xmin * (1 - tol), xmax * (1 - tol), 201)
+#zv = numpy.linspace(zmin * (1 - tol), zmax * (1 - tol), 201)
+#radpts = [(x_, 0, 0) for x_ in xv]
+#axipts = [(0, 0, z_) for z_ in zv]
 
-write_row("xv", 0, xv, "w")
-write_row("zv", 0, zv)
+#write_row("xv", 0, xv, "w")
+#write_row("zv", 0, zv)
 
 # for t, u in evolve():
 #     ux = numpy.array([u(pt) for pt in radpts])
 
 # uvals = u.compute_vertex_values()
 numpy.save("indices.npy", inds)
-numpy.save("vertices.npy", thermo.mesh.coordinates())
+numpy.save("vertices.npy", res.thermo.mesh.coordinates())
 # numpy.save("intensity.npy", uvals)
-numpy.save("tempProfile.npy", temp_profile)
+numpy.save("tempProfile.npy", res.temp_profile)
 template_common.write_dict_to_h5(
     PKDict(
-        intensity=heat_map,
+        intensity=res.heat_map,
         ranges=PKDict(
             x=[
                 -crystal.params.pop_inversion_mesh_extent,
