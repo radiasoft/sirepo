@@ -22,7 +22,7 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _CRYSTAL_CSV_FILE = "crystal.csv"
 _RESULTS_FILE = "results{}.h5"
 _CRYSTAL_FILE = "crystal{}.h5"
-_MAX_H5_READ_TRIES = 3
+_MAX_H5_READ_TRIES = 10
 _ABCD_DELTA = 1e-3
 
 
@@ -180,7 +180,9 @@ def stateful_compute_n0n2_plot(data, **kwargs):
             pop_inversion_pump_offset_x=data.model.pump_offset_x,
             pop_inversion_pump_offset_y=data.model.pump_offset_y,
         )
-    ).calc_n0n2(set_n=True, mesh_density=data.model.mesh_density)
+    ).calc_n0n2(
+        method=data.model.calc_type, set_n=True, mesh_density=data.model.mesh_density
+    )
     d = _determinant(n)
     if abs(d - 1) > _ABCD_DELTA:
         return PKDict(
@@ -235,9 +237,11 @@ def _beamline_animation_percent_complete(run_dir, res, data):
             crystal=_CRYSTAL_FILE.format(count.crystal),
         )[element.type]
 
-    def _frames(element, data):
+    def _frames(element, data, crystals):
         if element.type == "watch":
             return data.models.laserPulse.nslice
+        if element.reuseCrystal:
+            return crystals[element.reuseCrystal].nslice
         return element.nslice
 
     _initial_intensity_percent_complete(run_dir, res, data, ("beamlineAnimation0",))
@@ -246,16 +250,19 @@ def _beamline_animation_percent_complete(run_dir, res, data):
         crystal=1,
     )
     total_count = 1
+    crystals = PKDict()
     for e in data.models.beamline:
         if e.type in ("watch", "crystal"):
             total_count += 1
             _output_append(
-                _frames(e, data),
+                _frames(e, data, crystals),
                 _file(e, count),
                 count,
                 e,
                 res,
             )
+            if e.type == "crystal":
+                crystals[e.id] = e
     res.percentComplete = res.frameCount * 100 / total_count
     return res
 
@@ -384,6 +391,7 @@ def _generate_crystal(crystal):
         ["{crystal.propagationType}", True, False],
         {crystal.mesh_density},
         "{crystal.pump_pulse_profile}",
+        "{crystal.calc_type}",
     ),\n"""
 
 
@@ -482,11 +490,12 @@ class _LaserPulsePlot(PKDict):
         phase="Phase Slice #{slice_index}",
         intensity="Intensity Slice #{slice_index}",
         photons="Photons Slice #{slice_index}",
+        total_excited_states="Total Number of Excited States",
     )
 
     _X_LABELS = PKDict(
         excited_states_longitudinal="Crystal Slice",
-        longitudinal_photons="Crystal width [cm]",
+        longitudinal_photons="Pulse Slice",
         longitudinal_intensity="Pulse Slice",
         longitudinal_frequency="Pulse Slice",
         longitudinal_wavelength="Pulse Slice",
@@ -499,20 +508,8 @@ class _LaserPulsePlot(PKDict):
         phase="Phase [rad]",
         photons="Photons [1/m³]",
         excited_states="Number [1/m³]",
+        total_excited_states="",
     )
-
-    def _cell_volume(self):
-        if self._is_crystal():
-            return (
-                (
-                    (2 * self.element.inversion_mesh_extent)
-                    / self.element.inversion_n_cells
-                )
-                ** 2
-                * self.element.length
-                / self.element.nslice
-            )
-        return None
 
     def _fname(self):
         if self._is_crystal():
@@ -535,19 +532,10 @@ class _LaserPulsePlot(PKDict):
             slice_index=self.slice_index + 1
         )
 
-    def _nslice(self, file):
-        if self._is_crystal():
-            return self.element.nslice
-        return len(file)
-
     def _x_label(self):
         return self._X_LABELS[self.plot_type]
 
     def _y_value(self, index, file):
-        if self._is_crystal():
-            return numpy.sum(
-                numpy.array(file[f"{index}/excited_states"]) * self._cell_volume()
-            )
         y = numpy.array(file[f"{index}/{self.plot_type}"])
         if self.plot_type in self._SCALAR_PLOTS:
             return y
@@ -559,12 +547,14 @@ class _LaserPulsePlot(PKDict):
     def _gen_longitudinal(self, element_file):
         x = []
         y = []
-        nslice = self._nslice(element_file)
-        if self.element:
-            self.element.nslice = nslice
-        for idx in range(nslice):
-            x.append(self._index(idx))
-            y.append(self._y_value(idx, element_file))
+
+        if self._is_crystal():
+            x = (numpy.arange(len(element_file)) + 1).tolist()
+            y = (numpy.array(element_file["0/excited_states_longitudinal"])).tolist()
+        else:
+            for idx in range(len(element_file)):
+                x.append(self._index(idx))
+                y.append(self._y_value(idx, element_file))
         return template_common.parameter_plot(
             x,
             [
@@ -587,6 +577,8 @@ class _LaserPulsePlot(PKDict):
                 ) as f:
                     if self._is_longitudinal_plot():
                         return self._gen_longitudinal(f)
+                    if self.plot_type == "total_excited_states":
+                        self.slice_index = 0
                     d = template_common.h5_to_dict(f, str(self.slice_index))
                     r = d.ranges
                     z = d[self.plot_type]
@@ -666,11 +658,3 @@ def _report_to_file_index(sim_in, report):
             return count_by_type[e.type], e
         count_by_type[e.type] += 1
     raise AssertionError("{} report not found: {}".format(element_type, report))
-
-
-def _slice_n_field(crystal, field):
-    return (
-        crystal[field][0 : crystal.nslice]
-        if crystal.nslice <= 6
-        else f"interpolate_across_slice({crystal.length * 1e-2}, {crystal.nslice}, {crystal[field]})"
-    )

@@ -10,6 +10,7 @@
             ["reuse", "Use Existing"]
         ],
         "CrystalPlot": [
+            ["total_excited_states", "Total Excited States"],
             ["excited_states", "Excited States by Slice"],
             ["excited_states_longitudinal", "Excited States Longitudinal Distribution"]
         ],
@@ -116,13 +117,13 @@
             "initial_temp": ["Inital Temperature [°C]", "Float", 0.0],
             "mesh_density": ["Mesh Density", "Integer", 80],
             "title": ["Element Name", "String", "Crystal"],
-            "A": ["A", "Float", 0.99736924],
-            "B": ["B", "Float", 0.0141972275],
-            "C": ["C", "Float", -0.260693],
-            "D": ["D", "Float", 0.99892682],
+            "A": ["A", "Float", 0.99765495],
+            "B": ["B", "Float", 1.41975385],
+            "C": ["C", "Float", -0.0023775],
+            "D": ["D", "Float", 0.99896716],
             "length": ["Length [cm]", "Float", 2],
             "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
-            "calc_type": ["Propagation Calculation Type", "PropCalcType", "fenics"],
+            "calc_type": ["Propagation Calculation Type", "PropCalcType", "analytical"],
             "inversion_n_cells": ["Mesh Cell Count", "Integer", 64],
             "inversion_mesh_extent": ["Crystal Radius [m]", "Float", 0.01],
             "crystal_alpha": ["Crystal Alpha [1/m]", "Float", 120.0],
@@ -135,9 +136,9 @@
             "origin": ["Crystal", "CrystalOrigin", "new"],
             "n0n2Plot": ["", "N0n2Plot", "n0n2Plot"],
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
-            "pump_offset_x": ["Pump Offset X [m]", "Float", 0],
-            "pump_offset_y": ["Pump Offset X [m]", "Float", 0],
-            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float", 1000.0]
+            "pump_offset_x": ["Pump Offset X [m]", "Float", 0.0],
+            "pump_offset_y": ["Pump Offset X [m]", "Float", 0.0],
+            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float", 1.0]
         },
         "crystalAnimation": {},
         "tempProfile": {},
@@ -178,7 +179,7 @@
             "poltype": ["Polarization", "GaussianBeamPolarization", "1"],
             "tau_fwhm": ["FWHM Length [ps]", "Float", 23.5865],
             "tau_0": ["Fourier-limited pulse length of a given spectral bandwidth [ps]", "Float",  23.5865],
-            "chirp": ["Chirp", "Float", 1.0],
+            "chirp": ["Chirp", "Float", 0.0012459],
             "pulseE": ["Total Laser Pulse Energy [J]", "Float", 0.001],
             "distribution": ["Distribution Type", "DistributionType", "gaussian"],
             "sigx_waist": ["Horizontal Beam Size [m]", "Float", 0.001, "Size is in terms of RMS"],
@@ -230,7 +231,7 @@
         },
         "watchpointReport": {
             "_super": ["_", "model", "initialIntensityReport"],
-            "crystalPlot": ["Value to Plot", "CrystalPlot", "excited_states"]
+            "crystalPlot": ["Value to Plot", "CrystalPlot", "total_excited_states"]
         }
     },
     "strings": {
@@ -269,6 +270,7 @@
                     "pump_waist",
                     "pump_rep_rate",
                     "pump_gaussian_order",
+                    "calc_type",
                     "pump_pulse_profile",
                     "pump_wavelength",
                     "pump_offset_x",
