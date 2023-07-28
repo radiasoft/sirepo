@@ -112,7 +112,7 @@ def sim_frame_crystal3dAnimation(frame_args):
 
 
 def sim_frame_tempProfileAnimation(frame_args):
-    f = frame_args.run_dir.join('tempProfile.npy')
+    f = frame_args.run_dir.join("tempProfile.npy")
     pkdp("\n\n\nframe args={}", frame_args)
     pkdp("\n\n\n f={}", f)
     if frame_args.tempProfilePlot == "radialPlot":
@@ -125,11 +125,13 @@ def sim_frame_tempProfileAnimation(frame_args):
     d = numpy.load(str(f))
     pkdp("\n\n\n d.shape={}", d.shape)
     return template_common.parameter_plot(
-        [n for n in .98*d[x]],
+        [n for n in 0.98 * d[x]],
         [
             PKDict(
-                points=[n for n in .98*d[y]],
-                label="Radial" if frame_args.tempProfilePlot == "radialPlot" else "Longitudinal",
+                points=[n for n in 0.98 * d[y]],
+                label="Radial"
+                if frame_args.tempProfilePlot == "radialPlot"
+                else "Longitudinal",
             ),
         ],
         PKDict(),
@@ -142,9 +144,7 @@ def sim_frame_tempProfileAnimation(frame_args):
 def sim_frame_tempHeatMapAnimation(frame_args):
     # TODO (gurhar1133): use _LaserPulsePlot class for this
 
-    with h5py.File(
-        frame_args.run_dir.join("tempHeatMap.h5"), "r"
-    ) as f:
+    with h5py.File(frame_args.run_dir.join("tempHeatMap.h5"), "r") as f:
         d = template_common.h5_to_dict(f)
         r = d.ranges
         z = d.intensity
@@ -309,7 +309,7 @@ def _crystal_animation_percent_complete(run_dir, res, data):
     assert data.report == "crystalAnimation"
     count = 0
     res = PKDict()
-    path = run_dir.join('tempHeatMap.h5')
+    path = run_dir.join("tempHeatMap.h5")
     if path.exists():
         res.frameCount = 1
         res.percentComplete = 100
@@ -397,7 +397,11 @@ def _generate_beamline_indices(data):
 
     state = PKDict(res=["0"], idx=1, id_to_index=PKDict())
     if data.report not in _SIM_DATA.SOURCE_REPORTS:
-        pkdp("data.report={} _SIM_DATA.SOURCE_REPORTS={}", data.report, _SIM_DATA.SOURCE_REPORTS)
+        pkdp(
+            "data.report={} _SIM_DATA.SOURCE_REPORTS={}",
+            data.report,
+            _SIM_DATA.SOURCE_REPORTS,
+        )
         _iterate_beamline(state, data, _callback)
     return ", ".join(state.res)
 
@@ -480,7 +484,7 @@ def _get_crystal(data):
         x for x in data.models.beamline if x.type == "crystal" and x.origin == "new"
     ]
     for e in crystals:
-        if e.id == data.models.crystalCylinder.crystal:
+        if e.id == data.models.thermalTransportCrystal.crystal_id:
             return e
     return crystals[0]
 

@@ -39,7 +39,6 @@
                 "_super": "beamElement",
                 "id": 8,
                 "position": 2.75,
-                "propagationType": "default",
                 "title": "Mirror",
                 "type": "mirror2"
             },
@@ -81,7 +80,6 @@
                 "_super": "beamElement",
                 "id": 9,
                 "position": 5.5,
-                "propagationType": "default",
                 "title": "Mirror",
                 "type": "mirror2"
             },
@@ -123,7 +121,6 @@
                 "_super": "beamElement",
                 "id": 10,
                 "position": 8.25,
-                "propagationType": "default",
                 "title": "Mirror",
                 "type": "mirror2"
             },
@@ -165,7 +162,6 @@
                 "_super": "beamElement",
                 "id": 7,
                 "position": 11,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -173,7 +169,6 @@
                 "_super": "beamElement",
                 "id": 11,
                 "position": 11,
-                "propagationType": "default",
                 "title": "Splitter",
                 "transmitted_fraction": 0.4,
                 "type": "splitter"
@@ -182,7 +177,6 @@
                 "_super": "beamElement",
                 "id": 12,
                 "position": 11,
-                "propagationType": "default",
                 "title": "After Splitter",
                 "type": "watch"
             },
@@ -195,7 +189,6 @@
                 "focal_length_2": 0.2,
                 "id": 13,
                 "position": 11,
-                "propagationType": "default",
                 "title": "Telescope 1",
                 "type": "telescope"
             },
@@ -203,7 +196,6 @@
                 "_super": "beamElement",
                 "id": 14,
                 "position": 11,
-                "propagationType": "default",
                 "title": "After Telescope 1",
                 "type": "watch"
             },
@@ -245,7 +237,6 @@
                 "_super": "beamElement",
                 "id": 16,
                 "position": 13.75,
-                "propagationType": "default",
                 "title": "Mirror",
                 "type": "mirror2"
             },
@@ -287,7 +278,6 @@
                 "_super": "beamElement",
                 "id": 18,
                 "position": 16.5,
-                "propagationType": "default",
                 "title": "Mirror",
                 "type": "mirror2"
             },
@@ -329,7 +319,6 @@
                 "_super": "beamElement",
                 "id": 20,
                 "position": 19.25,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -342,7 +331,6 @@
                 "focal_length_2": 0.6,
                 "id": 21,
                 "position": 19.25,
-                "propagationType": "default",
                 "title": "Telescope 2",
                 "type": "telescope"
             },
@@ -350,7 +338,6 @@
                 "_super": "beamElement",
                 "id": 22,
                 "position": 19.25,
-                "propagationType": "default",
                 "title": "After Telescope 2",
                 "type": "watch"
             },
@@ -392,7 +379,6 @@
                 "_super": "beamElement",
                 "id": 24,
                 "position": 22,
-                "propagationType": "default",
                 "title": "Mirror",
                 "type": "mirror2"
             },
@@ -434,7 +420,6 @@
                 "_super": "beamElement",
                 "id": 26,
                 "position": 24.75,
-                "propagationType": "default",
                 "title": "Mirror",
                 "type": "mirror2"
             },
@@ -476,7 +461,6 @@
                 "_super": "beamElement",
                 "id": 28,
                 "position": 27.5,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             }
@@ -602,25 +586,6 @@
         },
         "crystal3dAnimation": {},
         "crystalAnimation": {},
-        "crystalCylinder": {
-            "T0": 20,
-            "alpha": 0,
-            "crystal": 0,
-            "crystalLength": 2,
-            "dT": 3.8,
-            "diameter": 7,
-            "diffusionConstant": 0.0565,
-            "pump_pulse_profile": "",
-            "supergaussian": 8,
-            "wdT": 1
-        },
-        "crystalSettings": {
-            "meshDensity": 30,
-            "plotInterval": 10,
-            "steps": 100,
-            "time": 1,
-            "tolerance": 0.008
-        },
         "initialIntensityReport": {
             "colorMap": "viridis",
             "watchpointPlot": "total_intensity"
