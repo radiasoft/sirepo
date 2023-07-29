@@ -1,92 +1,23 @@
-import dolfin
-import fenics
-import mshr
-import numpy
-import pandas
 from numpy import array, meshgrid, unique
+from pykern.pkcollections import PKDict
 from rslaser.optics import Crystal
 from rslaser.thermal import ThermoOptic
-from pykern.pkcollections import PKDict
 from sirepo.template import template_common
+import dolfin
+import numpy
 
-# ---
-
-## set up the problem and define (some of) the main parameters
-
-# # simulation parameters
-# # -- crystal properties
-# # cm^2/s diffusion constant of sapphire
-# a_saph = {{ crystalCylinder_diffusionConstant }}
-# # -- time step
-# T = {{ crystalSettings_time }}
-# n_steps = {{ crystalSettings_steps }}
-# dt = T / n_steps  # size of time step
-# nip = {{ crystalSettings_plotInterval }} # number of intervals between records
-# # -- crystal dimensions
-# diam = {{ crystalCylinder_diameter }}
-# leng = {{ crystalLength }}
-# # --  mesh density within cylinder
-# md = {{ crystalSettings_meshDensity }}
 crystal = Crystal(params=PKDict({{crystalParams}}))
-
-# # derived parameters
-# radius = diam / 2  # radius
-# lh  = leng / 2  # half-length
-# radius2 = radius * radius
-
-# print("duration:  ", T)
-# print("time-step: ", dt)
-# print("plot-step: ", dt * nip)
-
-
-# ---
-
-# domain = mshr.Cylinder(fenics.Point(0, 0, lh), fenics.Point(0., 0., -lh), radius, radius)
-# mesh = mshr.generate_mesh(domain, md)
-# # and define function space
-# V = fenics.FunctionSpace(mesh, 'P', 1)
-
-# ---
-
-# define boundary and initial conditions, and sources
-# T0 = {{ crystalCylinder_T0 }}
-# dT = {{ crystalCylinder_dT }}
-# wdT = {{ crystalCylinder_wdT }}
-# sg_px = {{ crystalCylinder_supergaussian }}
-
-# define Dirichlet boundary condition for sides
-# tol = 1e-13
-# def boundary(x, on_boundary):
-#     return on_boundary and fenics.near(x[0]*x[0] + x[1]*x[1], radius2, tol)
-
-# bc = fenics.DirichletBC(V, fenics.Constant(0.), boundary)
-
-# # exp(decay) x SG
-# hse = fenics.Expression(
-#     'T0 + dT * (exp(-(x[2]+l/2)/dl) + exp((x[2]-l/2)/dl)) * exp(-0.5 * pow((x[0]*x[0] + x[1]*x[1])/(w*w), px))',
-#     degree=1, T0=T0, dT=dT, w=wdT, l=leng, dl=0.8*leng, px=sg_px)
-
-# # define initial value
-# u_n = fenics.interpolate(hse, V)
-
-# #---
-
-# # define the variational problem: u' = D.∆u
-# u = fenics.TrialFunction(V)
-# v = fenics.TestFunction(V)
-# f = fenics.Constant(0)
-
-# F = u*v*fenics.dx + dt*a_saph*fenics.dot(fenics.grad(u), fenics.grad(v))*fenics.dx - (u_n + dt*f)*v*fenics.dx  # w/ Dirichlet + initial condition
-# a, L = fenics.lhs(F), fenics.rhs(F)
-
 
 def thermo_optic_sim():
     # Initialize a simulator with a crystal object set
-    thermo = ThermoOptic(crystal)
-    # thermo.mesh # Uncomment to view 3D crystal mesh
+    thermo = ThermoOptic(crystal, {{thermalCrystal.mesh_density}})
 
     # Set evaluation points & boundary conditions
-    thermo.set_points((200, 0, 201))
+    thermo.set_points((
+        {{thermalTransportSettings_grid_points_r}},
+        {{thermalTransportSettings_grid_points_w}},
+        {{thermalTransportSettings_grid_points_z}},
+    ), {{thermalTransportSettings_edge_fraction}})
     thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
     thermo.set_load("{{ pump_pulse_profile }}")
 
@@ -106,6 +37,7 @@ def thermo_optic_sim():
     RZ, ZR = meshgrid(rrs, zs)
     temp_profile = numpy.array([rs, Ts[ptzs==zface], zs, Ts[ptrs==rcenter]])
     pTs = Ts.reshape((len(rs), len(zs)), order='F')
+    pTs = array((pTs[::-1]).tolist()+pTs[1:].tolist())
     heat_map = pTs.T
     return PKDict(
         thermo=thermo,
@@ -119,8 +51,6 @@ def thermo_optic_sim():
 
 res = thermo_optic_sim()
 
-# ---
-
 # for 3D plots, get the facets, and build an array
 # containing the indices of their coordinates
 inds = []
@@ -129,45 +59,8 @@ for item in dolfin.cpp.mesh.facets(res.thermo.mesh):
 
 # we will provide these indices to plotly so it can draw proper surfaces
 inds = numpy.array(inds)
-#ii = inds[:, 0]
-#jj = inds[:, 1]
-#kk = inds[:, 2]
-
-# get node coördinate values and ranges
-# xvals = thermo.mesh.coordinates()[:, 0]
-# yvals = thermo.mesh.coordinates()[:, 1]
-# zvals = thermo.mesh.coordinates()[:, 2]
-# xmin, xmax = xvals.min(), xvals.max()
-# ymin, ymax = yvals.min(), yvals.max()
-# zmin, zmax = zvals.min(), zvals.max()
-
-# ---
-
-
-#def write_row(name, time, values, mode="a"):
-#    with open("{{ crystalCSV }}", mode) as f:
-#        f.write("{},{},{}\n".format(name, time, ",".join([str(x) for x in values])))
-
-
-# tol = {{crystalSettings_tolerance}}
-# TODO(pjm): add tolerance to thermalTransportSettings
-tol = 8e-3
-# avoid points outside domain (for a coarse mesh, increase this value)
-#xv = numpy.linspace(xmin * (1 - tol), xmax * (1 - tol), 201)
-#zv = numpy.linspace(zmin * (1 - tol), zmax * (1 - tol), 201)
-#radpts = [(x_, 0, 0) for x_ in xv]
-#axipts = [(0, 0, z_) for z_ in zv]
-
-#write_row("xv", 0, xv, "w")
-#write_row("zv", 0, zv)
-
-# for t, u in evolve():
-#     ux = numpy.array([u(pt) for pt in radpts])
-
-# uvals = u.compute_vertex_values()
 numpy.save("indices.npy", inds)
 numpy.save("vertices.npy", res.thermo.mesh.coordinates())
-# numpy.save("intensity.npy", uvals)
 numpy.save("tempProfile.npy", res.temp_profile)
 template_common.write_dict_to_h5(
     PKDict(
@@ -178,8 +71,8 @@ template_common.write_dict_to_h5(
                 crystal.params.pop_inversion_mesh_extent,
             ],
             y=[
-                -crystal.params.pop_inversion_mesh_extent,
-                crystal.params.pop_inversion_mesh_extent,
+                -crystal.params.length / 2,
+                crystal.params.length / 2,
             ],
         ),
     ),

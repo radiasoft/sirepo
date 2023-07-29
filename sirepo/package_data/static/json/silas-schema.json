@@ -220,8 +220,7 @@
             "grid_points_r": ["Grid Points R", "Integer", 200],
             "grid_points_w": ["Grid Points W", "Integer", 0],
             "grid_points_z": ["Grid Points Z", "Integer", 200],
-            "edge_fraction": ["Fraction of Radial Edge", "Float", 0.98],
-            "boundary_tolerance": ["Boundary Tolerance [cm]", "Float", 0.1]
+            "edge_fraction": ["Fraction of Radial Edge", "Float", 0.98]
         },
         "watch": {
             "_super": ["_", "model", "beamElement"],
@@ -295,7 +294,7 @@
             ]
         },
         "tempHeatMapAnimation": {
-            "title": "Temperature Heatmap",
+            "title": "Radial/Axial Temperature Profile",
             "advanced": []
         },
         "crystal3dAnimation": {
@@ -438,15 +437,10 @@
                     ["R", [
                         "grid_points_r"
                     ]],
-                    ["W", [
-                        "grid_points_w"
-                    ]],
                     ["Z", [
                         "grid_points_z"
                     ]]
-                ],
-                "edge_fraction",
-                "boundary_tolerance"
+                ]
             ],
             "advanced": []
         },

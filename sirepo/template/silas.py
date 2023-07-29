@@ -115,24 +115,34 @@ def sim_frame_tempProfileAnimation(frame_args):
     f = frame_args.run_dir.join(_TEMP_PROFILE_FILE)
     d = numpy.load(str(f))
     return template_common.parameter_plot(
-        [n for n in .98*d[1 if frame_args.tempProfilePlot == "radialPlot" else 2]],
+        [
+            n * 1e-2
+            for n in 0.98 * d[0 if frame_args.tempProfilePlot == "radialPlot" else 2]
+        ],
         [
             PKDict(
-                points=[n for n in .98*d[0 if frame_args.tempProfilePlot == "radialPlot" else 3]],
-                label="(T-T_0), K",
+                points=[
+                    n
+                    for n in 0.98
+                    * d[1 if frame_args.tempProfilePlot == "radialPlot" else 3]
+                ],
+                label="(T-T₀), K",
             ),
         ],
         PKDict(),
         PKDict(
-            x_label=("Radial" if frame_args.tempProfilePlot == "radialPlot" else "Longitudinal") + " Position [cm]",
+            x_label=(
+                "Radial"
+                if frame_args.tempProfilePlot == "radialPlot"
+                else "Longitudinal"
+            )
+            + " Position [m]",
         ),
     )
 
 
 def sim_frame_tempHeatMapAnimation(frame_args):
-    with h5py.File(
-        frame_args.run_dir.join(_TEMP_HEATMAP_FILE), "r"
-    ) as f:
+    with h5py.File(frame_args.run_dir.join(_TEMP_HEATMAP_FILE), "r") as f:
         d = template_common.h5_to_dict(f)
         r = d.ranges
         z = d.intensity
@@ -140,9 +150,9 @@ def sim_frame_tempHeatMapAnimation(frame_args):
             title="",
             x_range=[r.x[0], r.x[1], len(z)],
             y_range=[r.y[0], r.y[1], len(z[0])],
-            x_label="Horizontal Position [m]",
-            y_label="Vertical Position [m]",
-            z_label="Temperature",
+            x_label="Radial Position [m]",
+            y_label="Longitudinal Position [m]",
+            z_label="Temperature (T-T₀), K",
             z_matrix=z,
         )
 
@@ -447,6 +457,7 @@ def _generate_parameters_file(data):
         v.pump_pulse_profile = _get_crystal(data).pump_pulse_profile
         v.crystalLength = _get_crystal(data).length
         v.crystalCSV = _CRYSTAL_CSV_FILE
+        v.thermalCrystal = _get_crystal(data)
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
     if data.report in _SIM_DATA.SOURCE_REPORTS:
         data.models.beamline = []
@@ -462,13 +473,7 @@ def _generate_parameters_file(data):
 
 
 def _get_crystal(data):
-    crystals = [
-        x for x in data.models.beamline if x.type == "crystal" and x.origin == "new"
-    ]
-    for e in crystals:
-        if e.id == data.models.thermalTransportCrystal.crystal_id:
-            return e
-    return crystals[0]
+    return data.models.thermalTransportCrystal.crystal
 
 
 def _initial_intensity_percent_complete(run_dir, res, data, model_names):

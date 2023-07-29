@@ -506,6 +506,7 @@ SIREPO.viewLogic('thermalTransportCrystalView', function(appState, panelState, s
 
     $scope.$on('crystal.changed', () => {
         appState.models.thermalTransportCrystal.crystal = appState.models.crystal;
+        appState.saveQuietly('thermalTransportCrystal');
     });
 });
 
