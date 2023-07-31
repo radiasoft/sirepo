@@ -2188,6 +2188,16 @@ def _remap_3d(info, allrange, out, report):
     totLen = int(x_range[2] * y_range[2])
     n = len(ar2d) if totLen > len(ar2d) else totLen
     ar2d = np.reshape(ar2d[0:n], (int(y_range[2]), int(x_range[2])))
+    # beamlineAnimation reports have already been resized and rotated
+    if not info.report == "beamlineAnimation":
+        if report.get("usePlotRange", "0") == "1":
+            ar2d, x_range, y_range = _update_report_range(report, ar2d, x_range, y_range)
+        if report.get("useIntensityLimits", "0") == "1":
+            ar2d[ar2d < report.minIntensityLimit] = report.minIntensityLimit
+            ar2d[ar2d > report.maxIntensityLimit] = report.maxIntensityLimit
+        ar2d, x_range, y_range = _resize_report(report, ar2d, x_range, y_range)
+        if report.get("rotateAngle", 0):
+            ar2d, x_range, y_range = _rotate_report(report, ar2d, x_range, y_range, info)
     if out.units[2]:
         out.labels[2] = "{} [{}]".format(out.labels[2], out.units[2])
     if report.get("useIntensityLimits", "0") == "1":
