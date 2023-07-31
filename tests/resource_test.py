@@ -28,7 +28,7 @@ def test_render_resource():
     pkunit.pkre(
         'var = "x"',
         pkio.read_text(
-            resource.render(
+            resource.render_jinja(
                 "resource_test_data",
                 "README.txt",
                 target_dir=pkunit.work_dir(),

@@ -45,8 +45,8 @@ def glob_paths(*paths):
     )
 
 
-def render(*paths, target_dir=None, j2_ctx=None):
-    """Render a jinja resource into target_dir
+def render_jinja(*paths, target_dir=None, j2_ctx=None):
+    """Render a resource template file with Jinja into target_dir.
 
     Args:
         paths (str): Path components of resource file without pykern.pkjinja.RESOURCE_SUFFIX

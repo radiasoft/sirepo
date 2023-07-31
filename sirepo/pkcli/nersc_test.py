@@ -88,7 +88,7 @@ class _Sequential(PKDict):
         return res
 
     def _render_resource(self, filename):
-        return sirepo.resource.render(
+        return sirepo.resource.render_jinja(
             self.RESOURCE_DIR,
             filename,
             target_dir=self.run_dir,
