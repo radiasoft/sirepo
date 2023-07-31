@@ -440,6 +440,7 @@ def extract_report_data(sim_in):
         ),
     )
     if out.dimensions == 3:
+        res.report = r
         res = _remap_3d(res, allrange, out, dm[r])
     return res
 
