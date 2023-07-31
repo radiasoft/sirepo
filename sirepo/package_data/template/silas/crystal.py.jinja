@@ -35,7 +35,10 @@ def thermo_optic_sim():
     # Radial values reflected across axis & meshgrid with longitudinal values
     rrs = array((-rs[::-1]).tolist() + rs[1:].tolist())
     RZ, ZR = meshgrid(rrs, zs)
-    temp_profile = numpy.array([rs, Ts[ptzs==zface], zs, Ts[ptrs==rcenter]])
+    temp_profile = PKDict(
+        radial=[rs, Ts[ptzs==zface]],
+        longitudinal=[zs, Ts[ptrs==rcenter]]
+    )
     pTs = Ts.reshape((len(rs), len(zs)), order='F')
     pTs = array((pTs[::-1]).tolist()+pTs[1:].tolist())
     heat_map = pTs.T
@@ -61,7 +64,10 @@ for item in dolfin.cpp.mesh.facets(res.thermo.mesh):
 inds = numpy.array(inds)
 numpy.save("indices.npy", inds)
 numpy.save("vertices.npy", res.thermo.mesh.coordinates())
-numpy.save("tempProfile.npy", res.temp_profile)
+template_common.write_dict_to_h5(
+    res.temp_profile,
+    "tempProfile.h5"
+)
 template_common.write_dict_to_h5(
     PKDict(
         intensity=res.heat_map,

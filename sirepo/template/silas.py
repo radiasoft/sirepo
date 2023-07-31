@@ -20,7 +20,7 @@ import time
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _CRYSTAL_CSV_FILE = "crystal.csv"
-_TEMP_PROFILE_FILE = "tempProfile.npy"
+_TEMP_PROFILE_FILE = "tempProfile.h5"
 _TEMP_HEATMAP_FILE = "tempHeatMap.h5"
 _RESULTS_FILE = "results{}.h5"
 _CRYSTAL_FILE = "crystal{}.h5"
@@ -112,33 +112,29 @@ def sim_frame_crystal3dAnimation(frame_args):
 
 
 def sim_frame_tempProfileAnimation(frame_args):
-    f = frame_args.run_dir.join(_TEMP_PROFILE_FILE)
-    d = numpy.load(str(f))
-    return template_common.parameter_plot(
-        [
-            n * 1e-2
-            for n in 0.98 * d[0 if frame_args.tempProfilePlot == "radialPlot" else 2]
-        ],
-        [
+    with h5py.File(frame_args.run_dir.join(_TEMP_PROFILE_FILE), "r") as f:
+        d = PKDict(
+            radialPlot=template_common.h5_to_dict(f).radial,
+            longitudinalPlot=template_common.h5_to_dict(f).longitudinal,
+        )[frame_args.tempProfilePlot]
+        return template_common.parameter_plot(
+            [n * 1e-2 for n in 0.98 * numpy.array(d[0])],
+            [
+                PKDict(
+                    points=[n for n in 0.98 * numpy.array(d[1])],
+                    label="(T-T₀), K",
+                ),
+            ],
+            PKDict(),
             PKDict(
-                points=[
-                    n
-                    for n in 0.98
-                    * d[1 if frame_args.tempProfilePlot == "radialPlot" else 3]
-                ],
-                label="(T-T₀), K",
+                x_label=(
+                    "Radial"
+                    if frame_args.tempProfilePlot == "radialPlot"
+                    else "Longitudinal"
+                )
+                + " Position [m]",
             ),
-        ],
-        PKDict(),
-        PKDict(
-            x_label=(
-                "Radial"
-                if frame_args.tempProfilePlot == "radialPlot"
-                else "Longitudinal"
-            )
-            + " Position [m]",
-        ),
-    )
+        )
 
 
 def sim_frame_tempHeatMapAnimation(frame_args):
