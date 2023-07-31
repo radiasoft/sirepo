@@ -80,7 +80,10 @@ class API(sirepo.quest.API):
     ):
         def _raise_content_too_large(req):
             raise sirepo.util.ContentTooLarge(
-                f"sim_type={req.type} sid={req.id} report={req.req_data.report}"
+                "sim_type={} sid={} report={}",
+                req.type,
+                req.id,
+                req.req_data.report,
             )
 
         # TODO(robnagler) validate suffix and frame
@@ -105,7 +108,7 @@ class API(sirepo.quest.API):
                     req_data=req.req_data,
                     suffix=s,
                 )
-                if r.state == "canceled":
+                if r.state == sirepo.job.CANCELED:
                     # POSIT: Users can't cancel donwloadDataFile. So canceled means there was a
                     # timeout (max_run_secs exceeded).
                     _raise_content_too_large(req)
