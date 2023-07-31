@@ -91,7 +91,7 @@ def _dispatch_compute(msg, template):
                 state=job.ERROR,
                 error=f"method={template.SIM_TYPE}.{msg.jobCmd}_{msg.data.method} unexpected return=JobCmdFile uri={r.uri}",
             )
-        e = _validate_msg(r.content)
+        e = _payload_is_over_size_limit(r.content)
         if e:
             return e
         requests.put(
@@ -182,9 +182,11 @@ def _do_download_data_file(msg, template):
                 if u.endswith((".py", ".txt", ".csv"))
                 else r.filename.read_binary()
             )
-            e = _validate_msg(c)
-            if e:
-                return e
+            # if _payload_is_over_size_limit(c):
+            if True:
+                return PKDict(
+                    state=job.ERROR, errorCode=job.ErrorCode.RESPONSE_TOO_LARGE
+                )
         requests.put(
             msg.dataFileUri + u,
             data=c,
@@ -363,7 +365,7 @@ def _parse_python_errors(text):
     return ""
 
 
-def _validate_msg(msg):
+def _payload_is_over_size_limit(msg):
     if len(msg) >= job.cfg().max_message_bytes:
         return PKDict(state=job.COMPLETED, error="Response is too large to send")
     return None
@@ -371,8 +373,7 @@ def _validate_msg(msg):
 
 def _validate_msg_and_jsonl(msg):
     m = pkjson.dump_bytes(msg)
-    r = _validate_msg(m)
-    if r:
+    if r := _payload_is_over_size_limit(m):
         m = pkjson.dump_bytes(r)
     return m + b"\n"
 
