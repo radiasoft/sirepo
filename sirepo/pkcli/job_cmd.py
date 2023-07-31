@@ -13,6 +13,7 @@ from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
 import contextlib
+import os
 import re
 import requests
 import signal
@@ -78,6 +79,10 @@ def _background_percent_complete(msg, template, is_running):
     )
 
 
+def _is_over_response_size_limit(payload):
+    return payload >= job.cfg().max_message_bytes
+
+
 def _dispatch_compute(msg, template):
     def _op(expect_file):
         r = getattr(template_common, f"{msg.jobCmd}_dispatch")(
@@ -91,7 +96,7 @@ def _dispatch_compute(msg, template):
                 state=job.ERROR,
                 error=f"method={template.SIM_TYPE}.{msg.jobCmd}_{msg.data.method} unexpected return=JobCmdFile uri={r.uri}",
             )
-        e = _payload_is_over_size_limit(r.content)
+        e = _error_if_response_too_large(r.content)
         if e:
             return e
         requests.put(
@@ -161,6 +166,9 @@ def _do_analysis_job(msg, template):
 
 
 def _do_download_data_file(msg, template):
+    def _error_file_too_large():
+        return PKDict(state=job.ERROR, errorCode=job.ERROR_CODE_RESPONSE_TOO_LARGE)
+
     try:
         r = template.get_data_file(
             msg.runDir,
@@ -176,17 +184,16 @@ def _do_download_data_file(msg, template):
         if u is None:
             u = r.filename.basename
         c = r.get("content")
+        if _is_over_response_size_limit(
+            len(c) if c else os.path.getsize(str(r.filename))
+        ):
+            return _error_file_too_large()
         if c is None:
             c = (
                 pkcompat.to_bytes(pkio.read_text(r.filename))
                 if u.endswith((".py", ".txt", ".csv"))
                 else r.filename.read_binary()
             )
-            # if _payload_is_over_size_limit(c):
-            if True:
-                return PKDict(
-                    state=job.ERROR, errorCode=job.ErrorCode.RESPONSE_TOO_LARGE
-                )
         requests.put(
             msg.dataFileUri + u,
             data=c,
@@ -301,6 +308,12 @@ def _do_stateless_compute(msg, template):
     return _dispatch_compute(msg, template)
 
 
+def _error_if_response_too_large(payload):
+    if _is_over_response_size_limit(len(payload)):
+        return PKDict(state=job.COMPLETED, error="Response is too large to send")
+    return None
+
+
 def _maybe_parse_user_alert(exception, error=None):
     e = error or str(exception)
     if isinstance(exception, sirepo.util.UserAlert):
@@ -365,15 +378,9 @@ def _parse_python_errors(text):
     return ""
 
 
-def _payload_is_over_size_limit(msg):
-    if len(msg) >= job.cfg().max_message_bytes:
-        return PKDict(state=job.COMPLETED, error="Response is too large to send")
-    return None
-
-
 def _validate_msg_and_jsonl(msg):
     m = pkjson.dump_bytes(msg)
-    if r := _payload_is_over_size_limit(m):
+    if r := _error_if_response_too_large(m):
         m = pkjson.dump_bytes(r)
     return m + b"\n"
 

@@ -567,6 +567,9 @@ class _SReply(sirepo.quest.Attr):
     def _gen_exception_reply_BadRequest(self, args):
         return self._gen_http_exception(400)
 
+    def _gen_exception_reply_ContentTooLarge(self, args):
+        return self._gen_http_exception(413)
+
     def _gen_exception_reply_Error(self, args):
         try:
             t = qcall.sim_type_uget(args.pkdel("sim_type"))
@@ -588,10 +591,6 @@ class _SReply(sirepo.quest.Attr):
                 continue
             q[k] = v
         return self.gen_redirect_for_local_route(t, route="error", query=q)
-
-    def _gen_exception_reply_DownloadDataFileTimeout(self, args):
-        # Best guess is the timeout was due to the size of the file requested
-        return self._gen_http_exception(413)
 
     def _gen_exception_reply_Forbidden(self, args):
         return self._gen_http_exception(403)

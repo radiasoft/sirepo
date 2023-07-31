@@ -7,7 +7,6 @@
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
-import enum
 import pykern.pkdebug
 import sirepo.const
 import sirepo.feature_config
@@ -15,6 +14,7 @@ import sirepo.srdb
 import sirepo.util
 import re
 
+ERROR_CODE_RESPONSE_TOO_LARGE = "response_too_large"
 
 OP_ANALYSIS = "analysis"
 OP_CANCEL = "cancel"
@@ -143,10 +143,6 @@ _cfg = None
 
 #: use to separate components of job_id
 _JOB_ID_SEP = "-"
-
-
-class ErrorCode(enum.Enum):
-    RESPONSE_TOO_LARGE = "response_too_large"
 
 
 def agent_cmd_stdin_env(cmd, env, uid, cwd=".", source_bashrc=""):
