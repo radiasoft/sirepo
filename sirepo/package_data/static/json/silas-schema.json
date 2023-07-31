@@ -10,6 +10,7 @@
             ["reuse", "Use Existing"]
         ],
         "CrystalPlot": [
+            ["total_excited_states", "Total Excited States"],
             ["excited_states", "Excited States by Slice"],
             ["excited_states_longitudinal", "Excited States Longitudinal Distribution"]
         ],
@@ -24,6 +25,10 @@
             ["total_intensity", "Total Intensity"],
             ["total_phase", "Total Phase"]
         ],
+        "TempProfilePlot": [
+            ["radialPlot", "Radial"],
+            ["longitudinalPlot", "Longitudinal"]
+        ],
         "DistributionType": [
             ["gaussian", "Gaussian"],
             ["file", "From Files"]
@@ -36,10 +41,8 @@
             ["analytical", "Analytical"]
         ],
         "PropagationType": [
-            ["default", "Default"],
             ["abcd_lct", "ABCD LCT"],
-            ["n0n2_srw", "N0N2 SRW"],
-            ["n0n2_lct", "N0N2 LCT"]
+            ["n0n2_srw", "N0N2 SRW"]
         ],
         "PumpPulseProfile": [
             ["gaussian", "Gaussian"],
@@ -100,13 +103,12 @@
         "laserPulse2Animation": ["watchpointPlot"],
         "crystalAnimation": [],
         "crystal3dAnimation": [],
-        "plotAnimation": [],
-        "plot2Animation": []
+        "tempHeatMapAnimation": [],
+        "tempProfileAnimation": ["tempProfilePlot"]
     },
     "model": {
         "beamElement": {
-            "position": ["Central Position [m]", "Float", 0.0],
-            "propagationType": ["Propagation Type", "PropagationType", "default"]
+            "position": ["Central Position [m]", "Float", 0.0]
         },
         "crystal": {
             "_super": ["_", "model", "beamElement"],
@@ -116,16 +118,16 @@
             "initial_temp": ["Inital Temperature [°C]", "Float", 0.0],
             "mesh_density": ["Mesh Density", "Integer", 80],
             "title": ["Element Name", "String", "Crystal"],
-            "A": ["A", "Float", 0.99736924],
-            "B": ["B", "Float", 0.0141972275],
-            "C": ["C", "Float", -0.260693],
-            "D": ["D", "Float", 0.99892682],
+            "A": ["A", "Float", 0.99765495],
+            "B": ["B", "Float", 1.41975385],
+            "C": ["C", "Float", -0.0023775],
+            "D": ["D", "Float", 0.99896716],
             "length": ["Length [cm]", "Float", 2],
             "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
-            "calc_type": ["Propagation Calculation Type", "PropCalcType", "fenics"],
+            "calc_type": ["Propagation Calculation Type", "PropCalcType", "analytical"],
             "inversion_n_cells": ["Mesh Cell Count", "Integer", 64],
-            "inversion_mesh_extent": ["Crystal Radius [m]", "Float", 0.01],
-            "crystal_alpha": ["Crystal Alpha [1/m]", "Float", 120.0],
+            "inversion_mesh_extent": ["Radius [m]", "Float", 0.01],
+            "crystal_alpha": ["Alpha [1/m]", "Float", 120.0],
             "pump_waist": ["Pump Waist [m]", "Float", 0.00164],
             "pump_wavelength": ["Pump Wavelength [m]", "Float", 532.0e-9],
             "pump_energy": ["Pump Energy [J]", "Float", 0.0211, "Pump laser energy onto the crystal"],
@@ -135,32 +137,20 @@
             "origin": ["Crystal", "CrystalOrigin", "new"],
             "n0n2Plot": ["", "N0n2Plot", "n0n2Plot"],
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
-            "pump_offset_x": ["Pump Offset X [m]", "Float", 0],
-            "pump_offset_y": ["Pump Offset X [m]", "Float", 0],
-            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float", 1000.0]
+            "pump_offset_x": ["Pump Offset X [m]", "Float", 0.0],
+            "pump_offset_y": ["Pump Offset Y [m]", "Float", 0.0],
+            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float", 1.0]
         },
         "crystalAnimation": {},
-        "crystalSettings": {
-            "meshDensity": ["Mesh Density", "Integer", 30, "", 10, 50],
-            "time": ["Simulation Time [sec]", "Float", 1, "", 1e-24],
-            "steps": ["Number of Time Steps", "Integer", 100, "", 1],
-            "plotInterval": ["Number of Intervals Between Records", "Integer", 10, "", 1],
-            "tolerance": ["Boundary Tolerance", "Float", 8e-3, "Adjust this value to avoid points outside domain (for a coarse mesh, increase this value)"]
+        "tempProfileAnimation": {
+            "tempProfilePlot": ["Temperature Profile", "TempProfilePlot", "radialPlot"]
         },
-        "crystalCylinder": {
-            "alpha": ["$\\Large \\alpha$ 1/[cm]", "Float", 0, "Inverse Absorption Length"],
-            "diameter": ["Diameter [cm]", "Float", 7, "", 1e-24],
-            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float"],
-            "crystal": ["Crystal in Beamline", "SelectCrystal", 0],
-            "crystalLength": ["Length [cm]", "Float", 2],
-            "half_length": ["$\\Large z0$ [cm]", "Float"],
-            "pump_type": ["Pump Type", "PumpType"],
-            "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
-            "pump_pulse_profile": ["", "EquationText", ""],
-            "T0": ["$\\Large T_0$ [$\\bf \\degree C$]", "Float", 20],
-            "dT": ["$\\Large \\delta_T$ [$\\bf\\degree C$]", "Float", 3.8],
-            "wdT": ["$\\Large wp$ [cm]", "Float", 1],
-            "supergaussian": ["$\\Large P$", "Integer", 8, "Supergaussian degree", 1, 12]
+        "tempHeatMapAnimation": {
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "x": ["Horizontal Value to Plot", "ValueList", "x"],
+            "y1": ["Vertical Value to Plot", "ValueList", "y"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "afmhot"]
         },
         "crystal3dAnimation": {},
         "laserPulse": {
@@ -176,7 +166,7 @@
             "poltype": ["Polarization", "GaussianBeamPolarization", "1"],
             "tau_fwhm": ["FWHM Length [ps]", "Float", 23.5865],
             "tau_0": ["Fourier-limited pulse length of a given spectral bandwidth [ps]", "Float",  23.5865],
-            "chirp": ["Chirp", "Float", 1.0],
+            "chirp": ["Chirp", "Float", 0.0012459],
             "pulseE": ["Total Laser Pulse Energy [J]", "Float", 0.001],
             "distribution": ["Distribution Type", "DistributionType", "gaussian"],
             "sigx_waist": ["Horizontal Beam Size [m]", "Float", 0.001, "Size is in terms of RMS"],
@@ -222,13 +212,23 @@
             "drift_length_3": ["Drift Length 3 [m]", "Float", 0.54],
             "title": ["Element Name", "String", "Telescope"]
         },
+        "thermalTransportCrystal": {
+            "crystal_id": ["Crystal in Beamline", "SelectThermalTransportCrystal", 0],
+            "crystal": ["", "model"]
+        },
+        "thermalTransportSettings": {
+            "grid_points_r": ["Grid Points R", "Integer", 200],
+            "grid_points_w": ["Grid Points W", "Integer", 0],
+            "grid_points_z": ["Grid Points Z", "Integer", 200],
+            "edge_fraction": ["Fraction of Radial Edge", "Float", 0.98]
+        },
         "watch": {
             "_super": ["_", "model", "beamElement"],
             "title": ["Element Name", "SafePath", "Watchpoint"]
         },
         "watchpointReport": {
             "_super": ["_", "model", "initialIntensityReport"],
-            "crystalPlot": ["Value to Plot", "CrystalPlot", "excited_states"]
+            "crystalPlot": ["Value to Plot", "CrystalPlot", "total_excited_states"]
         }
     },
     "strings": {
@@ -257,6 +257,7 @@
                 ]],
                 ["Propagation", [
                     "propagationType",
+                    "calc_type",
                     "initial_temp",
                     "mesh_density",
                     "l_scale"
@@ -286,34 +287,14 @@
             "title": "Crystal Animation",
             "advanced": []
         },
-        "crystalSettings": {
-            "title": "Simulation Settings",
-            "basic": [
-                "meshDensity",
-                "time",
-                "steps",
-                "plotInterval",
-                "tolerance"
-            ],
-            "advanced": []
+        "tempProfileAnimation": {
+            "title": "Temperature Profile",
+            "advanced": [
+                "tempProfilePlot"
+            ]
         },
-        "crystalCylinder": {
-            "title": "Ti:Sapphire Crystal Cylinder",
-            "basic": [
-                "crystal",
-                "pump_type",
-                "pump_rep_rate",
-                "crystalLength",
-                "diameter",
-                "diffusionConstant",
-                "pump_pulse_profile",
-                "T0",
-                "half_length",
-                "alpha",
-                "dT",
-                "wdT",
-                "supergaussian"
-            ],
+        "tempHeatMapAnimation": {
+            "title": "Radial/Axial Temperature Profile",
             "advanced": []
         },
         "crystal3dAnimation": {
@@ -421,6 +402,47 @@
                 "drift_length_2",
                 "drift_length_3"
             ]
+        },
+        "thermalTransportCrystal": {
+            "title": "Ti:Sapphire Crystal Cylinder",
+            "basic": [
+                ["Crystal", [
+                    "crystal_id",
+                    "crystal.length",
+                    "crystal.inversion_mesh_extent",
+                    "crystal.crystal_alpha",
+                    "crystal.nslice",
+                    "crystal.initial_temp",
+                    "crystal.mesh_density"
+                ]],
+                ["Pump Pulse", [
+                    "crystal.pump_type",
+                    "crystal.pump_energy",
+                    "crystal.pump_waist",
+                    "crystal.pump_rep_rate",
+                    "crystal.pump_gaussian_order",
+                    "crystal.pump_pulse_profile",
+                    "crystal.pump_wavelength",
+                    "crystal.pump_offset_x",
+                    "crystal.pump_offset_y",
+                    "crystal.inversion_n_cells"
+                ]]
+            ],
+            "advanced": []
+        },
+        "thermalTransportSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                [
+                    ["R", [
+                        "grid_points_r"
+                    ]],
+                    ["Z", [
+                        "grid_points_z"
+                    ]]
+                ]
+            ],
+            "advanced": []
         },
         "watch": {
             "title": "Watchpoint",
