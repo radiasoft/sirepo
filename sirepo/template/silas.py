@@ -20,6 +20,8 @@ import time
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _CRYSTAL_CSV_FILE = "crystal.csv"
+_TEMP_PROFILE_FILE = "tempProfile.h5"
+_TEMP_HEATMAP_FILE = "tempHeatMap.h5"
 _RESULTS_FILE = "results{}.h5"
 _CRYSTAL_FILE = "crystal{}.h5"
 _MAX_H5_READ_TRIES = 10
@@ -42,8 +44,11 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if model in ("plotAnimation", "plot2Animation"):
-        return _CRYSTAL_CSV_FILE
+    if model in ("tempProfileAnimation", "tempHeatMapAnimation"):
+        return PKDict(
+            tempProfileAnimation=_TEMP_PROFILE_FILE,
+            tempHeatMapAnimation=_TEMP_HEATMAP_FILE,
+        )[model]
     if model == "crystal3dAnimation":
         return "intensity.npy"
     if model == "beamlineAnimation0" or model in _SIM_DATA.SOURCE_REPORTS:
@@ -65,7 +70,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
-    if model in ("crystal3dAnimation", "plotAnimation", "plot2Animation"):
+    if model in ("crystal3dAnimation", "tempProfileAnimation", "tempHeatMapAnimation"):
         data.report = "crystalAnimation"
     else:
         if model:
@@ -106,12 +111,46 @@ def sim_frame_crystal3dAnimation(frame_args):
     )
 
 
-def sim_frame_plotAnimation(frame_args):
-    return _crystal_plot(frame_args, "xv", "ux", "[m]", 1e-2)
+def sim_frame_tempProfileAnimation(frame_args):
+    with h5py.File(frame_args.run_dir.join(_TEMP_PROFILE_FILE), "r") as f:
+        d = PKDict(
+            radialPlot=template_common.h5_to_dict(f).radial,
+            longitudinalPlot=template_common.h5_to_dict(f).longitudinal,
+        )[frame_args.tempProfilePlot]
+        return template_common.parameter_plot(
+            [n * 1e-2 for n in 0.98 * numpy.array(d[0])],
+            [
+                PKDict(
+                    points=[n for n in 0.98 * numpy.array(d[1])],
+                    label="(T-T₀), K",
+                ),
+            ],
+            PKDict(),
+            PKDict(
+                x_label=(
+                    "Radial"
+                    if frame_args.tempProfilePlot == "radialPlot"
+                    else "Longitudinal"
+                )
+                + " Position [m]",
+            ),
+        )
 
 
-def sim_frame_plot2Animation(frame_args):
-    return _crystal_plot(frame_args, "zv", "uz", "[m]", 1e-2)
+def sim_frame_tempHeatMapAnimation(frame_args):
+    with h5py.File(frame_args.run_dir.join(_TEMP_HEATMAP_FILE), "r") as f:
+        d = template_common.h5_to_dict(f)
+        r = d.ranges
+        z = d.intensity
+        return PKDict(
+            title="",
+            x_range=[r.x[0], r.x[1], len(z)],
+            y_range=[r.y[0], r.y[1], len(z[0])],
+            x_label="Radial Position [m]",
+            y_label="Longitudinal Position [m]",
+            z_label="Temperature (T-T₀), K",
+            z_matrix=z,
+        )
 
 
 def stateful_compute_mesh_dimensions(data, **kwargs):
@@ -263,28 +302,15 @@ def _beamline_animation_percent_complete(run_dir, res, data):
 def _crystal_animation_percent_complete(run_dir, res, data):
     assert data.report == "crystalAnimation"
     count = 0
-    path = run_dir.join(_CRYSTAL_CSV_FILE)
+    res = PKDict()
+    path = run_dir.join(_TEMP_HEATMAP_FILE)
     if path.exists():
-        with pkio.open_text(str(path)) as f:
-            for line in f:
-                count += 1
-        # first two lines are axis points
-        if count > 2:
-            plot_count = int((count - 2) / 2)
-            res.frameCount = plot_count
-            res.percentComplete = (
-                plot_count
-                * 100
-                / (
-                    1
-                    + data.models.crystalSettings.steps
-                    / data.models.crystalSettings.plotInterval
-                )
-            )
+        res.frameCount = 1
+        res.percentComplete = 100
     return res
 
 
-def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
+def _crystal_plot(frame_args):
     x = None
     plots = []
     with open(str(frame_args.run_dir.join(_CRYSTAL_CSV_FILE))) as f:
@@ -400,10 +426,34 @@ def _generate_crystal(crystal):
 
 
 def _generate_parameters_file(data):
+    from rslaser.optics import Crystal
+
     res, v = template_common.generate_parameters_file(data)
     if data.report == "crystalAnimation":
+        v.crystalParams = PKDict(
+            l_scale=_get_crystal(data).l_scale,
+            length=_get_crystal(data).length * 1e-2,
+            nslice=_get_crystal(data).nslice,
+            A=_get_crystal(data).A,
+            B=_get_crystal(data).B,
+            C=_get_crystal(data).C,
+            D=_get_crystal(data).D,
+            pop_inversion_n_cells=_get_crystal(data).inversion_n_cells,
+            pop_inversion_mesh_extent=_get_crystal(data).inversion_mesh_extent,
+            pop_inversion_crystal_alpha=_get_crystal(data).crystal_alpha,
+            pop_inversion_pump_waist=_get_crystal(data).pump_waist,
+            pop_inversion_pump_wavelength=_get_crystal(data).pump_wavelength,
+            pop_inversion_pump_gaussian_order=_get_crystal(data).pump_gaussian_order,
+            pop_inversion_pump_energy=_get_crystal(data).pump_energy,
+            pop_inversion_pump_type=_get_crystal(data).pump_type,
+            pop_inversion_pump_rep_rate=_get_crystal(data).pump_rep_rate,
+            pop_inversion_pump_offset_x=_get_crystal(data).pump_offset_x,
+            pop_inversion_pump_offset_y=_get_crystal(data).pump_offset_y,
+        )
+        v.pump_pulse_profile = _get_crystal(data).pump_pulse_profile
         v.crystalLength = _get_crystal(data).length
         v.crystalCSV = _CRYSTAL_CSV_FILE
+        v.thermalCrystal = _get_crystal(data)
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
     if data.report in _SIM_DATA.SOURCE_REPORTS:
         data.models.beamline = []
@@ -419,13 +469,7 @@ def _generate_parameters_file(data):
 
 
 def _get_crystal(data):
-    crystals = [
-        x for x in data.models.beamline if x.type == "crystal" and x.origin == "new"
-    ]
-    for e in crystals:
-        if e.id == data.models.crystalCylinder.crystal:
-            return e
-    return crystals[0]
+    return data.models.thermalTransportCrystal.crystal
 
 
 def _initial_intensity_percent_complete(run_dir, res, data, model_names):

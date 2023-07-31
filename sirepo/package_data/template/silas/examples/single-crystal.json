@@ -41,30 +41,12 @@
                 "_super": "beamElement",
                 "id": 3,
                 "position": 2,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             }
         ],
         "crystal3dAnimation": {},
         "crystalAnimation": {},
-        "crystalCylinder": {
-            "T0": 20,
-            "crystal": "0",
-            "crystalLength": 2,
-            "dT": 3.8,
-            "diameter": 7,
-            "diffusionConstant": 0.0565,
-            "supergaussian": 8,
-            "wdT": 1
-        },
-        "crystalSettings": {
-            "meshDensity": 30,
-            "plotInterval": 10,
-            "steps": 100,
-            "time": 1,
-            "tolerance": 0.008
-        },
         "initialIntensityReport": {
             "colorMap": "viridis",
             "dataType": "intensity",
