@@ -2177,7 +2177,6 @@ def _process_rsopt_elements(els):
 
 
 def _remap_3d(info, allrange, out, report):
-    pkdp("REMAP {}", report)
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
     ar2d = info.points
