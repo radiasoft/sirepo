@@ -54,16 +54,16 @@ def render_jinja(*paths, target_dir=None, j2_ctx=None):
         j2_ctx (PKDict): parameters to jinja file
 
     Returns:
-        py.path: path to rendered file
+        py.path: output path which is target_dir.join(paths[-1])
     """
     f = paths[-1]
-    t = target_dir.join(f)
+    res = target_dir.join(f)
     pykern.pkjinja.render_file(
         file_path(*paths[:-1], f + pykern.pkjinja.RESOURCE_SUFFIX),
         j2_ctx,
-        output=t,
+        output=res,
     )
-    return t
+    return res
 
 
 def root_modules():

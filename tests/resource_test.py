@@ -5,7 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import pytest
-from pykern.pkcollections import PKDict
 
 
 def test_static_files():
@@ -22,6 +21,7 @@ def test_static_files():
 
 def test_render_resource():
     from sirepo import resource
+    from pykern.pkcollections import PKDict
     from pykern import pkunit
     from pykern import pkio
 
