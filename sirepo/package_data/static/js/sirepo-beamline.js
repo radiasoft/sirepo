@@ -452,7 +452,9 @@ SIREPO.app.directive('beamlineIcon', function() {
             <div data-ng-if="::isSVG">
               <data-ng-include src="::iconUrl" data-onload="iconLoaded()"/>
             </div>
-            <img class="srw-beamline-item-icon" data-ng-if="::! isSVG" data-ng-attr-src="{{ ::iconUrl }}"/>
+            <div data-ng-if="::! isSVG">
+              <img class="srw-beamline-item-icon" data-ng-attr-src="{{ ::iconUrl }}"/>
+            </div>
         `,
         controller: function($scope, $element) {
             var adjustmentsByType = {
@@ -466,9 +468,12 @@ SIREPO.app.directive('beamlineIcon', function() {
                 lens: [5],
                 mask: [5, 0, 5],
                 mirror: [15, 5, 12],
+                mirror2: [15],
                 obstacle: [-15, 10, -2],
                 sample: [20, -10, 10],
                 sphericalMirror: [10, 10, 7],
+                splitter: [-10, 5, 0],
+                telescope: [5],
                 toroidalMirror: [15, 0, 7],
                 watch: [0, 15, 10],
                 zonePlate: [20, -10, -5],
@@ -722,11 +727,11 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
                   <div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">
                     <div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section[0] }}</span></div>
                     <span data-ng-repeat="item in ::section[1]" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
-                      <span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}
+                      <span data-beamline-icon="" data-item="item"></span>{{ ::item.title }}
                     </span>
                   </div>
                   <span data-ng-repeat="item in ::standaloneItems" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
-                    <span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}
+                    <span data-beamline-icon="" data-item="item"></span>{{ ::item.title }}
                   </span>
                 </div>
               </div>
