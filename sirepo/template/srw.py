@@ -2272,7 +2272,7 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
     ar2d = ndimage.rotate(
         ar2d, float(rotate_angle), reshape=rotate_reshape, mode="constant", order=3
     )
-    print(f"Size after rotate: {ar2d.size}  Dimensions: {ar2d.shape}")
+    pkdc("Size after rotate: {}  Dimensions: {}", ar2d.size, ar2d.shape)
     shape_rotate = list(ar2d.shape)
 
     pkdc(
