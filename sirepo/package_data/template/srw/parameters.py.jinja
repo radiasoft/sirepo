@@ -29,7 +29,6 @@ import srwlib
 import srwlpy
 {% if beamlineOpticsParameters %}
 import math
-import numpy
 import srwl_uti_smp
 {% endif %}
 
@@ -441,6 +440,7 @@ def epilogue():
 
 def _process_watch(filename, report):
     import pickle
+    import numpy
 
     with open(filename, 'rb') as f:
         wfr = pickle.load(f)
