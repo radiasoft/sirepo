@@ -843,7 +843,7 @@ SIREPO.app.directive('watchPointList', function(appState, beamlineService) {
     };
 });
 
-SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
+SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelState, persistentSimulation) {
     return {
         restrict: 'A',
         scope: {},
@@ -865,7 +865,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
           </div>
           <div style="margin-bottom: 1em" class="clearfix"></div>
           <div data-ng-repeat="report in reports" data-ng-if="simState.hasFrames()">
-            <div data-watchpoint-report="" data-item-id="report.id"></div>
+            <div data-watchpoint-report="" data-item-id="report.id" data-ng-if="showReport(report)"></div>
             <div class="clearfix hidden-xl" data-ng-hide="($index + 1) % 2"></div>
             <div class="clearfix visible-xl" data-ng-hide="($index + 1) % 3"></div>
           </div>
@@ -878,6 +878,13 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
                 $scope.reports = [];
             });
 
+            $scope.showReport = report => {
+                if ($scope.simState.isStateRunning()) {
+                    return true;
+                }
+                return frameCache.getFrameCount(report.modelAccess.modelKey) !== SIREPO.nonDataFileFrame;
+            };
+
             $scope.start = function() {
                 $rootScope.$broadcast('saveLattice', appState.models);
                 appState.models.simulation.framesCleared = false;
@@ -887,24 +894,39 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persist
             };
 
             $scope.simHandleStatus = (data) => {
+                function getReport(id) {
+                    for(const r of $scope.reports) {
+                        if (id === r.id) {
+                            return r;
+                        }
+                    }
+                    return null;
+                }
+
                 if (appState.models.simulation.framesCleared) {
                     return;
                 }
                 if (! data.outputInfo) {
                     return;
                 }
-                for (let i = 0; i < data.frameCount; i++) {
-                    if ($scope.reports.length != i) {
-                        continue;
-                    }
+
+                for (let i = 0; i < data.outputInfo.length; i++) {
                     let info = data.outputInfo[i];
-                    $scope.reports.push({
-                        id: info.id,
-                        modelAccess: {
-                            modelKey: info.modelKey,
-                        },
-                    });
-                    frameCache.setFrameCount(info.frameCount || 1, info.modelKey);
+                    if (! getReport(info.id)) {
+                        $scope.reports.push(
+                            {
+                                id: info.id,
+                                modelAccess: {
+                                    modelKey: info.modelKey,
+                                },
+                            }
+                        );
+                    }
+                    frameCache.setFrameCount(
+                        info.waitForData ? SIREPO.nonDataFileFrame : (info.frameCount || 1),
+                        info.modelKey
+                    );
+                    panelState.setWaiting(info.modelKey, ! ! info.waitForData);
                 }
                 frameCache.setFrameCount(data.frameCount || 0);
             };
