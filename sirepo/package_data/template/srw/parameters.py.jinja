@@ -30,7 +30,6 @@ import srwlpy
 {% if beamlineOpticsParameters %}
 import math
 import numpy
-import pickle
 import srwl_uti_smp
 {% endif %}
 
@@ -441,6 +440,8 @@ def epilogue():
 
 
 def _process_watch(filename, report):
+    import pickle
+
     with open(filename, 'rb') as f:
         wfr = pickle.load(f)
     data, mesh = srwl_bl.SRWLBeamline().calc_int_from_wfr(
