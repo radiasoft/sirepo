@@ -272,7 +272,7 @@ def _build_stl(**kwargs):
         d.stlVertices, (numpy.array(d.stlFaces) + 1).tolist(), d.magnetization
     )
     if d.preserveVerticesOnImport == "0":
-        center = [x - d.stlCentroid[i] for i, x in enumerate(d.center)]
+        center = [x - d.stlBoundsCenter[i] for i, x in enumerate(d.center)]
         radia.TrfOrnt(g_id, radia.TrfTrsl([center[0], center[1], center[2]]))
     return g_id
 
