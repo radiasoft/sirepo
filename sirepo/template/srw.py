@@ -512,16 +512,15 @@ def sim_frame(frame_args):
         else:
             frame_args.sim_in.report = "initialIntensityReport"
             frame_args.sim_in.models.initialIntensityReport = m
-    if "beamlineAnimation" not in r:
-        # some reports may be written at the same time as the reader
-        # if the file is invalid, wait a bit and try again
-        for i in (1, 2, 3):
-            try:
-                return extract_report_data(frame_args.sim_in)
-            except Exception:
-                # sleep and retry to work-around concurrent file read/write
-                pkdlog("sleep and retry simulation frame read: {} {}", i, r)
-                time.sleep(2)
+    # some reports may be written at the same time as the reader
+    # if the file is invalid, wait a bit and try again
+    for i in (1, 2, 3):
+        try:
+            return extract_report_data(frame_args.sim_in)
+        except Exception:
+            # sleep and retry to work-around concurrent file read/write
+            pkdlog("sleep and retry simulation frame read: {} {}", i, r)
+            time.sleep(2)
     return extract_report_data(frame_args.sim_in)
 
 

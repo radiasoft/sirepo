@@ -463,7 +463,6 @@ def _process_watch(filename, report):
     d, x_range, y_range = _resize_report(report, d, x_range, y_range)
     if report.get("rotateAngle", 0):
         d, x_range, y_range = _rotate_report(report, d, x_range, y_range, info)
-    print(f"Size before: {len(data)}  after: {d.size} Dimensions: {d.shape}, Resize: [{y_range}, {x_range}]")
     new_mesh = srwlib.SRWLRadMesh(
         _eStart=mesh.eStart,
         _eFin=mesh.eFin,
