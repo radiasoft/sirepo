@@ -1152,10 +1152,6 @@ def _beamline_animation_percent_complete(run_dir, res):
         try:
             if template_common.read_last_csv_line(pkio.py_path(info.filename)):
                 count += 1
-            #with open(info.filename, "r") as f:
-                # TODO(pjm): instead look at last byte == pickle.STOP, see template_common.read_last_csv_line()
-                #wfr = pickle.load(f)
-                #count += 1
         except Exception as e:
             break
     res.frameCount = count
@@ -1941,7 +1937,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
 
 
 def _generate_srw_main(data, plot_reports, beamline_info):
-
     def _process_watch_str(wid, f, m):
         return f"""
     data_file = '{_wavefront_intensity_filename(wid)}'
@@ -1996,7 +1991,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                         _process_watch_str(
                             prev_wid,
                             prev_wavefront if prev_wavefront else init_wavefront,
-                            data.models[f"{report}{prev_wid or 0}"]
+                            data.models[f"{report}{prev_wid or 0}"],
                         )
                     )
                     prev_wid = next_wid
@@ -2071,10 +2066,14 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
     if report == "beamlineAnimation":
         content.append(
-            _process_watch_str(prev_wid, prev_wavefront, data.models[f"{report}{prev_wid}"])
+            _process_watch_str(
+                prev_wid, prev_wavefront, data.models[f"{report}{prev_wid}"]
+            )
         )
         content.append(
-            _process_watch_str(next_wid, next_wavefront, data.models[f"{report}{next_wid}"])
+            _process_watch_str(
+                next_wid, next_wavefront, data.models[f"{report}{next_wid}"]
+            )
         )
     return "\n".join(
         [f"    {x}" for x in content] + [""] + ([] if is_for_rsopt else ["main()", ""])
@@ -2190,13 +2189,17 @@ def _remap_3d(info, allrange, out, report):
     # beamlineAnimation reports have already been resized and rotated
     if not info.report == "beamlineAnimation":
         if report.get("usePlotRange", "0") == "1":
-            ar2d, x_range, y_range = _update_report_range(report, ar2d, x_range, y_range)
+            ar2d, x_range, y_range = _update_report_range(
+                report, ar2d, x_range, y_range
+            )
         if report.get("useIntensityLimits", "0") == "1":
             ar2d[ar2d < report.minIntensityLimit] = report.minIntensityLimit
             ar2d[ar2d > report.maxIntensityLimit] = report.maxIntensityLimit
         ar2d, x_range, y_range = _resize_report(report, ar2d, x_range, y_range)
         if report.get("rotateAngle", 0):
-            ar2d, x_range, y_range = _rotate_report(report, ar2d, x_range, y_range, info)
+            ar2d, x_range, y_range = _rotate_report(
+                report, ar2d, x_range, y_range, info
+            )
     if out.units[2]:
         out.labels[2] = "{} [{}]".format(out.labels[2], out.units[2])
     if report.get("useIntensityLimits", "0") == "1":
@@ -2219,15 +2222,14 @@ def _remap_3d(info, allrange, out, report):
 
 def _resize_report(report, ar2d, x_range, y_range):
     from pykern.pkdebug import pkdc
+
     width_pixels = int(report.get("intensityPlotsWidth", 0))
     if not width_pixels:
         # upper limit is browser's max html canvas size
         width_pixels = _CANVAS_MAX_SIZE
     # roughly 20x size increase for json
     if ar2d.size * _JSON_MESSAGE_EXPANSION > _MAX_MESSAGE_BYTES:
-        max_width = int(
-            math.sqrt(_MAX_MESSAGE_BYTES / _JSON_MESSAGE_EXPANSION)
-        )
+        max_width = int(math.sqrt(_MAX_MESSAGE_BYTES / _JSON_MESSAGE_EXPANSION))
         if max_width < width_pixels:
             pkdc(
                 "auto scaling dimensions to fit message size. size: {}, max_width: {}",
@@ -2402,6 +2404,7 @@ def _set_magnetic_measurement_parameters(run_dir, v, qcall=None):
 
 def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     import inspect
+
     report = data.report
     is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     dm = data.models
@@ -2675,14 +2678,17 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
 
 
 def _wavefront_intensity_filename(el_id):
-    return _OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=el_id) if el_id else _OUTPUT_FOR_MODEL.initialIntensityReport.filename
+    return (
+        _OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=el_id)
+        if el_id
+        else _OUTPUT_FOR_MODEL.initialIntensityReport.filename
+    )
 
 
-def _wavefront_pickle_filename(el_id, pre_process=False):
-    p = '-preprocessed' if pre_process else ''
+def _wavefront_pickle_filename(el_id):
     if el_id:
-        return f"wid-{el_id}{p}.pkl"
-    return f"initial{p}.pkl"
+        return f"wid-{el_id}.pkl"
+    return "initial.pkl"
 
 
 def _write_rsopt_files(data, run_dir, ctx):
