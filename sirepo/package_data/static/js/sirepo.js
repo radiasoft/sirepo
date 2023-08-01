@@ -1635,6 +1635,17 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
     }
 
+    function urlForExport(simulationId, route, args) {
+        if (! simulationId) {
+            return null;
+        }
+        const a = {
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        };
+        return requestSender.formatUrl(route, {...a, ...args});
+    }
+
     self.addPendingRequest = function(name, requestFunction) {
         pendingRequests[name] = requestFunction;
     };
@@ -1666,6 +1677,23 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.enableFields = function(model, fieldInfo) {
         applyToFields('enableField', model, fieldInfo);
+    };
+
+    self.exportArchiveUrl = (simulationId, filename) => {
+        return urlForExport(simulationId, 'exportArchive', {
+            '<filename>':  filename,
+        });
+    };
+
+    self.exportJupyterNotebookUrl = (simulationId, modelName, reportTitle) => {
+        const args = {};
+        if (modelName) {
+            args['<model>'] = modelName;
+        }
+        if (reportTitle) {
+            args['<title>'] = reportTitle;
+        }
+        return urlForExport(simulationId, 'exportJupyterNotebook', args);
     };
 
     // lazy creation/storage of field delegates
@@ -1763,10 +1791,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return queueItems[name] && queueItems[name].qState == 'processing' ? true : false;
     };
 
-    self.exportJupyterNotebook = function(simulationId, modelName, reportTitle) {
-        _downloadFile('exportJupyterNotebook', simulationId, modelName, reportTitle);
-    };
-
     self.maybeSetState = function(model, state) {
         if (!model) {
             return;
@@ -1783,8 +1807,15 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         return 'sr-' + name + '-editor';
     };
 
-    self.pythonSource = function(simulationId, modelName, reportTitle) {
-        _downloadFile('pythonSource', simulationId, modelName, reportTitle);
+    self.pythonSourceUrl = (simulationId, modelName, reportTitle) => {
+        const args = {};
+        if (modelName) {
+            args['<model>'] = modelName;
+        }
+        if (reportTitle) {
+            args['<title>'] = reportTitle;
+        }
+        return urlForExport(simulationId, 'pythonSource', args);
     };
 
     self.reportNotGenerated = function(modelName) {
@@ -4143,18 +4174,12 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         return fileManager.pathName(folder);
     };
 
-    self.pythonSource = function(item) {
-        panelState.pythonSource(item.simulationId);
+    self.pythonSourceUrl = function(item) {
+        return panelState.pythonSourceUrl(item.simulationId);
     };
 
-    self.exportArchive = function(item, extension) {
-        requestSender.newWindow(
-            'exportArchive',
-            {
-                '<simulation_id>': item.simulationId,
-                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                '<filename>': item.name + '.' + extension,
-            });
+    self.exportArchiveUrl = function(item, extension) {
+        return panelState.exportArchiveUrl(item.simulationId, `${item.name}.${extension}`);
     };
 
     self.renameItem = function(item) {

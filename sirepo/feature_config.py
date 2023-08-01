@@ -31,6 +31,7 @@ PROD_FOSS_CODES = frozenset(
         "opal",
         "radia",
         "shadow",
+        "silas",
         "srw",
         "warppba",
         "warpvnd",
@@ -43,7 +44,6 @@ _NON_PROD_FOSS_CODES = frozenset(
     (
         "epicsllrf",
         "myapp",
-        "silas",
         "hellweg",
     )
 )
