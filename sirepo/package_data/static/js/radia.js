@@ -3182,6 +3182,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             'extrudedObject.extrusionAxis',
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
+            'stl.preserveVerticesOnImport',
         ], updateEditor
     ];
 
@@ -3340,6 +3341,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
         if (modelType === 'stl') {
             panelState.enableField('geomObject', 'size', false);
+            panelState.enableField('geomObject', 'center', o.preserveVerticesOnImport === '0');
             return;
         }
 

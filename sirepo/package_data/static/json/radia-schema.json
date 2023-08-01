@@ -978,8 +978,9 @@
         },
         "stl": {
             "_super": ["_", "model", "geomObject"],
-            "type": ["_", "ObjectType", "stl"],
-            "file": ["STL File", "InputFile", ""]
+            "file": ["STL File", "InputFile", ""],
+            "preserveVerticesOnImport": ["Preserve Vertices on Import", "Boolean", "1", "When true, the imported values of the vertices are preserved; otherwise the vertices are shifted relative to the center you specify. In any case the object is free to move after import"],
+            "type": ["_", "ObjectType", "stl"]
         },
         "spatialTransform": {
             "_super": ["_", "model", "transform"]
@@ -1344,7 +1345,8 @@
                     "stemmed.stemPosition",
                     "jay.hookHeight",
                     "jay.hookWidth",
-                    "stl.file"
+                    "stl.file",
+                    "stl.preserveVerticesOnImport"
                 ]],
                 ["Material", [
                     "material",
