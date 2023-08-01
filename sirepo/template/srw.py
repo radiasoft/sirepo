@@ -1142,6 +1142,7 @@ def _beamline_animation_percent_complete(run_dir, res):
         if item.type == "watch":
             res.outputInfo.append(
                 PKDict(
+                    waitForData=True,
                     modelKey=f"beamlineAnimation{item.id}",
                     filename=_wavefront_intensity_filename(item.id),
                     id=item.id,
@@ -1152,6 +1153,7 @@ def _beamline_animation_percent_complete(run_dir, res):
         try:
             if template_common.read_last_csv_line(pkio.py_path(info.filename)):
                 count += 1
+                info.waitForData = False
         except Exception as e:
             break
     res.frameCount = count
