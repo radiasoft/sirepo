@@ -1721,6 +1721,9 @@ def _update_geom_obj(o, qcall=None, **kwargs):
             d.stlFaces.append(list(f))
         o.stlVertices = d.stlVertices
         o.stlFaces = d.stlFaces
+        o.stlBoundsCenter = list(
+            mesh.bounding_box.bounds[0] + 0.5 * mesh.bounding_box.extents
+        )
         o.size = list(mesh.bounding_box.primitive.extents)
         o.stlCentroid = mesh.centroid.tolist()
 
