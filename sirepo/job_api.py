@@ -78,8 +78,8 @@ class API(sirepo.quest.API):
     async def api_downloadDataFile(
         self, simulation_type, simulation_id, model, frame, suffix=None
     ):
-        def _raise_content_too_large(req):
-            raise sirepo.util.ContentTooLarge(
+        def _content_too_large(req):
+            return sirepo.util.ContentTooLarge(
                 "sim_type={} sid={} report={}",
                 req.type,
                 req.id,
@@ -111,10 +111,10 @@ class API(sirepo.quest.API):
                 if r.state == sirepo.job.CANCELED:
                     # POSIT: Users can't cancel donwloadDataFile. So canceled means there was a
                     # timeout (max_run_secs exceeded).
-                    _raise_content_too_large(req)
+                    raise _content_too_large(req)
                 if r.state == sirepo.job.ERROR:
                     if r.get("errorCode") == sirepo.job.ERROR_CODE_RESPONSE_TOO_LARGE:
-                        _raise_content_too_large(req)
+                        raise _content_too_large(req)
                     raise AssertionError(pkdformat("error state in request=={}", r))
                 f = d.listdir()
                 if len(f) > 0:

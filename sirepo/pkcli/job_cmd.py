@@ -166,7 +166,7 @@ def _do_analysis_job(msg, template):
 
 
 def _do_download_data_file(msg, template):
-    def _error_file_too_large():
+    def _response_too_large():
         return PKDict(state=job.ERROR, errorCode=job.ERROR_CODE_RESPONSE_TOO_LARGE)
 
     try:
@@ -184,10 +184,8 @@ def _do_download_data_file(msg, template):
         if u is None:
             u = r.filename.basename
         c = r.get("content")
-        if _is_over_response_size_limit(
-            len(c) if c else os.path.getsize(str(r.filename))
-        ):
-            return _error_file_too_large()
+        if _is_over_response_size_limit(len(c) if c else r.filename.size()):
+            return _response_too_large()
         if c is None:
             c = (
                 pkcompat.to_bytes(pkio.read_text(r.filename))
