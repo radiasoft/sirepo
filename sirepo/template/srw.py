@@ -2426,6 +2426,7 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     v.setupMagneticMeasurementFiles = (
         plot_reports or is_for_rsopt
     ) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
+    v.isBeamlineAnimation = "beamlineAnimation" in report
     v.maxMsgBytes = _MAX_MESSAGE_BYTES
     v.canvasMaxSize = _CANVAS_MAX_SIZE
     v.jsonExpandFactor = _JSON_MESSAGE_EXPANSION

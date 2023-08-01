@@ -437,7 +437,7 @@ def epilogue():
     pass
     {% endif %}
 
-
+{% if isBeamlineAnimation %}
 def _process_watch(filename, report):
     import pickle
     import numpy
@@ -501,7 +501,7 @@ _MAX_MESSAGE_BYTES = {{ maxMsgBytes }}
 
 
 {{ updateReportRange }}
-
+{% endif %}
 
 def main():
 {{srwMain}}
