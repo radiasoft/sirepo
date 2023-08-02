@@ -295,7 +295,7 @@
         },
         "tempHeatMapAnimation": {
             "title": "Radial/Axial Temperature Profile",
-            "advanced": []
+            "advanced": ["colorMap"]
         },
         "crystal3dAnimation": {
             "title": "Crystal 3D Mesh",
