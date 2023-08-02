@@ -918,6 +918,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     $scope.$on('layout.object.dropped', function (e, lo) {
         const m = appState.setModelDefaults({}, lo.type);
+        m.isNew = true;
         m.center = lo.center;
         m.name = lo.type;
         m.name = newObjectName(m);
@@ -3287,6 +3288,11 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     function setSTLSize(data) {
+        if ($scope.modelData.isNew && $scope.modelData.preserveVerticesOnImport) {
+            $scope.modelData.center = data.center;
+        }
+        $scope.modelData.isNew = false;
+        $scope.modelData.preserveVerticesOnImport = "0";
         $scope.modelData.size = data.size;
         appState.saveQuietly(editedModels);
     }
@@ -3341,6 +3347,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
         if (modelType === 'stl') {
             panelState.enableField('geomObject', 'size', false);
+            panelState.showField('stl', 'preserveVerticesOnImport', o.isNew);
             panelState.enableField('geomObject', 'center', o.preserveVerticesOnImport === '0');
             return;
         }
