@@ -27,10 +27,8 @@ def thermo_optic_sim():
         thermo.set_load('{{ pump_pulse_profile }}')
         r = crystal.params.pop_inversion_pump_rep_rate
         if r <= 1:
-            print("Using slow_solution")
             Ts = thermo.slow_solution('{{ pump_pulse_profile }}')
         elif r >= 100:
-            print("Using solve_steady")
             Ts = thermo.solve_steady()
         else:
             raise AssertionError(f"Invalid rep rate for simulated {'{{ pump_pulse_profile }}'}")

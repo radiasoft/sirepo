@@ -337,7 +337,6 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
 
             $scope.isFormValid = function() {
                 // this is a first step in using HTML5 field validation
-                srdbg('from components', appState.models[$scope.modelName]);
                 let ctlsValid = getControls($scope.form)
                     .map(function (el) {
                         return el.validity.valid;

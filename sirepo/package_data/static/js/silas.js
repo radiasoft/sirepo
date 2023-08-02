@@ -362,25 +362,30 @@ SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $
     };
 });
 
-SIREPO.app.directive('pumpRepRate', function(appState, silasService) {
+SIREPO.app.directive('pumpRepRate', function(appState, validationService) {
     return {
         restrict: 'A',
         scope: {
             model: '=',
             field: '=',
+            modelName: '=',
         },
         template: `
             <div class="col-sm-2">
-              <input data-string-to-number="" data-ng-model="model[field]" class="form-control {{ validRange() }}" style="text-align: right" />
+              <input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right"/>
+              <div class="{{ validRange() }}"></div>
             </div>
         `,
         controller: function($scope) {
             $scope.validRange = () => {
-                if ($scope.model[$scope.field] >= 1 && $scope.model[$scope.field] < 100) {
-                    srdbg($scope.model.form);
-                    return 'ng-invalid ng-dirty';
-                }
-                return '';
+                validationService.validateField(
+                    $scope.modelName,
+                    $scope.field,
+                    'input',
+                    ! ($scope.model[$scope.field] >= 1 && $scope.model[$scope.field] < 100),
+                    '1 < Pump Rep Rate < 100 is not a valid choice',
+                )
+                return 'sr-input-warning';
             }
         }
     };
@@ -541,30 +546,21 @@ SIREPO.viewLogic('thermalTransportCrystalView', function(appState, panelState, s
 
 SIREPO.viewLogic('thermalTransportSettingsView', function(appState, panelState, silasService, $scope) {
 
-    const enableSimTypeSelection = (enable) => {
+    const setSimType = () => {
+        const r = appState.models.thermalTransportCrystal.crystal.pump_rep_rate
+        // can only do simulated/fenics if pump_rep_rate <= 1
+        if (r <= 1) {
+            appState.models.thermalTransportSettings.crystalSimType = 'simulated';
+        }
+        appState.saveChanges('thermalTransportSettings');
         panelState.enableField(
             'thermalTransportSettings',
             'crystalSimType',
-            enable,
+            r > 1,
         )
     }
 
-    $scope.$on('crystal.changed', () => {
-        const r = appState.models.thermalTransportCrystal.crystal.pump_rep_rate;
-
-        if (r <= 1) {
-            // can only do simulated/fenics if pump_rep_rate <= 1
-            appState.models.thermalTransportSettings.crystalSimType = 'simulated';
-            appState.saveChanges('thermalTransportSettings');
-            enableSimTypeSelection(false);
-            return;
-        }
-        if (r < 100) {
-            // disable all sim?
-            return;
-        }
-        enableSimTypeSelection(true);
-    });
+    $scope.$on('crystal.changed', setSimType);
 });
 
 SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plotToPNG, utilities) {
