@@ -518,6 +518,7 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
 });
 
 SIREPO.viewLogic('thermalTransportCrystalView', function(appState, panelState, silasService, $scope) {
+
     function checkThermalTransportCrystal() {
         if (! appState.applicationState().thermalTransportCrystal.crystal_id) {
             updateThermalTransportCrystal();
