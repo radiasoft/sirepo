@@ -3288,7 +3288,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     function setSTLSize(data) {
-        if ($scope.modelData.isNew && $scope.modelData.preserveVerticesOnImport) {
+        if ($scope.modelData.isNew && $scope.modelData.preserveVerticesOnImport === "1") {
             $scope.modelData.center = data.center;
         }
         $scope.modelData.isNew = false;
