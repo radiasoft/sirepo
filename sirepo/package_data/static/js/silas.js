@@ -384,9 +384,9 @@ SIREPO.app.directive('pumpRepRate', function(appState, validationService) {
                     'input',
                     ! ($scope.model[$scope.field] >= 1 && $scope.model[$scope.field] < 100),
                     '1 < Pump Rep Rate < 100 is not a valid choice',
-                )
+                );
                 return 'sr-input-warning';
-            }
+            };
         }
     };
 });
@@ -547,7 +547,7 @@ SIREPO.viewLogic('thermalTransportCrystalView', function(appState, panelState, s
 SIREPO.viewLogic('thermalTransportSettingsView', function(appState, panelState, silasService, $scope) {
 
     const setSimType = () => {
-        const r = appState.models.thermalTransportCrystal.crystal.pump_rep_rate
+        const r = appState.models.thermalTransportCrystal.crystal.pump_rep_rate;
         // can only do simulated/fenics if pump_rep_rate <= 1
         if (r <= 1) {
             appState.models.thermalTransportSettings.crystalSimType = 'simulated';
@@ -557,8 +557,8 @@ SIREPO.viewLogic('thermalTransportSettingsView', function(appState, panelState, 
             'thermalTransportSettings',
             'crystalSimType',
             r > 1,
-        )
-    }
+        );
+    };
 
     $scope.$on('crystal.changed', setSimType);
 });
