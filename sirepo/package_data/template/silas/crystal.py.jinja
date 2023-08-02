@@ -9,9 +9,9 @@ import numpy
 crystal = Crystal(params=PKDict({{crystalParams}}))
 
 def thermo_optic_sim():
-    # Initialize a simulator with a crystal object set
     thermo = ThermoOptic(crystal, {{thermalCrystal.mesh_density}})
 
+    # Initialize a simulator with a crystal object set
     # Set evaluation points & boundary conditions
     thermo.set_points((
         {{thermalTransportSettings_grid_points_r}},
@@ -19,29 +19,32 @@ def thermo_optic_sim():
         {{thermalTransportSettings_grid_points_z}},
     ), {{thermalTransportSettings_edge_fraction}})
     thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
-    thermo.set_load("{{ pump_pulse_profile }}")
 
-    Ts = thermo.{{ pump_pulse_profile }}_solution() #solve_steady()#gaussian_solution()
-    nT, n0Fit, n2Fit = thermo.compute_indices(Ts)
+    if '{{ crystalSimType }}' == "analytical":
+        Ts = thermo.{{ pump_pulse_profile }}_solution() #solve_steady()#gaussian_solution()
+        nT, n0Fit, n2Fit = thermo.compute_indices(Ts)
 
-    # Positions of each evaluation point & sets of the unique values
-    ptzs = thermo.eval_pts[:, 2]
-    ptrs = (thermo.eval_pts[:, 0] ** 2 + thermo.eval_pts[:, 1] ** 2) ** 0.5
-    zs = unique(ptzs)
-    rs = unique(ptrs)
-    rcenter = rs.min()
-    zface = zs.min() if crystal.params.pop_inversion_pump_type != "right" else zs.max()
+        # Positions of each evaluation point & sets of the unique values
+        ptzs = thermo.eval_pts[:, 2]
+        ptrs = (thermo.eval_pts[:, 0] ** 2 + thermo.eval_pts[:, 1] ** 2) ** 0.5
+        zs = unique(ptzs)
+        rs = unique(ptrs)
+        rcenter = rs.min()
+        zface = zs.min() if crystal.params.pop_inversion_pump_type != "right" else zs.max()
 
-    # Radial values reflected across axis & meshgrid with longitudinal values
-    rrs = array((-rs[::-1]).tolist() + rs[1:].tolist())
-    RZ, ZR = meshgrid(rrs, zs)
-    temp_profile = PKDict(
-        radial=[rs, Ts[ptzs==zface]],
-        longitudinal=[zs, Ts[ptrs==rcenter]]
-    )
-    pTs = Ts.reshape((len(rs), len(zs)), order='F')
-    pTs = array((pTs[::-1]).tolist()+pTs[1:].tolist())
-    heat_map = pTs.T
+        # Radial values reflected across axis & meshgrid with longitudinal values
+        rrs = array((-rs[::-1]).tolist() + rs[1:].tolist())
+        RZ, ZR = meshgrid(rrs, zs)
+        temp_profile = PKDict(
+            radial=[rs, Ts[ptzs==zface]],
+            longitudinal=[zs, Ts[ptrs==rcenter]]
+        )
+        pTs = Ts.reshape((len(rs), len(zs)), order='F')
+        pTs = array((pTs[::-1]).tolist()+pTs[1:].tolist())
+        heat_map = pTs.T
+    elif '{{ crystalSimType }}' == "simulated":
+        raise AssertionError("not yet implemented")
+
     return PKDict(
         thermo=thermo,
         heat_map=heat_map,
@@ -50,6 +53,7 @@ def thermo_optic_sim():
         n0Fit=n0Fit,
         n2Fit=n2Fit,
     )
+
 
 
 res = thermo_optic_sim()

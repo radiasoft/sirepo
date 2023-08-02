@@ -53,6 +53,10 @@
             ["dual", "Dual"],
             ["left", "Left"],
             ["right", "Right"]
+        ],
+        "CrystalSimType": [
+            ["analytical", "Analytical"],
+            ["simulated", "Simulated/Fenics"]
         ]
     },
     "dynamicFiles": {
@@ -220,7 +224,8 @@
             "grid_points_r": ["Grid Points R", "Integer", 200],
             "grid_points_w": ["Grid Points W", "Integer", 0],
             "grid_points_z": ["Grid Points Z", "Integer", 200],
-            "edge_fraction": ["Fraction of Radial Edge", "Float", 0.98]
+            "edge_fraction": ["Fraction of Radial Edge", "Float", 0.98],
+            "crystalSimType": ["Simulation Method", "CrystalSimType", "analytical"]
         },
         "watch": {
             "_super": ["_", "model", "beamElement"],
@@ -433,6 +438,7 @@
         "thermalTransportSettings": {
             "title": "Simulation Settings",
             "basic": [
+                "crystalSimType",
                 [
                     ["R", [
                         "grid_points_r"
