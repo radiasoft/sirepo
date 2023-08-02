@@ -21,7 +21,7 @@ def thermo_optic_sim():
     thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
 
     if '{{ crystalSimType }}' == "analytical":
-        Ts = thermo.{{ pump_pulse_profile }}_solution() #solve_steady()#gaussian_solution()
+        Ts = thermo.{{ pump_pulse_profile }}_solution()
 
     elif '{{ crystalSimType }}' == "simulated":
         thermo.set_load('{{ pump_pulse_profile }}')
@@ -31,7 +31,7 @@ def thermo_optic_sim():
         elif r >= 100:
             Ts = thermo.solve_steady()
         else:
-            raise AssertionError(f"Invalid rep rate for simulated {'{{ pump_pulse_profile }}'}")
+            raise AssertionError(f"Invalid rep rate for simulated solve heat_load={'{{ pump_pulse_profile }}'}")
 
     nT, n0Fit, n2Fit = thermo.compute_indices(Ts)
     # Positions of each evaluation point & sets of the unique values
