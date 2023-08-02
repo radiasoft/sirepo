@@ -176,6 +176,9 @@ SIREPO.app.controller('CrystalController', function (appState, frameCache, persi
         if (! appState.isLoaded()) {
             return;
         }
+        if (data.error) {
+            throw new Error(data.error);
+        }
         frameCache.setFrameCount(data.frameCount);
     };
 

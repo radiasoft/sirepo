@@ -648,7 +648,7 @@ def _parse_silas_log(run_dir):
         return res
     with pkio.open_text(str(path)) as f:
         for line in f:
-            m = re.search(r"^\s*\*+\s+Error:\s+(.*)$", line)
+            m = re.search(r"^.*Error:\s+(.*)$", line)
             if m:
                 err = m.group(1)
                 if re.search("Unable to evaluate function at point", err):
