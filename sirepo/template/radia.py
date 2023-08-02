@@ -342,10 +342,8 @@ def stateless_compute_stl_size(data, **kwargs):
     )
     m = _create_stl_trimesh(f)
     return PKDict(
-        center=(
-            m.bounding_box.bounds[0] + 0.5 * m.bounding_box.extents
-        ).tolist(),
-        size=m.bounding_box.primitive.extents.tolist()
+        center=(m.bounding_box.bounds[0] + 0.5 * m.bounding_box.extents).tolist(),
+        size=m.bounding_box.primitive.extents.tolist(),
     )
 
 

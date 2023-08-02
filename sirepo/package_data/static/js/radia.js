@@ -3380,7 +3380,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             return;
         }
 
-        srdbg(o);
         panelState.showField('extrudedPoints', 'referencePoints', hasPoints());
         panelState.enableField('extrudedPoints', 'pointsFile', ! hasPoints());
         panelState.showField('extrudedPoints', 'preservePointsOnImport', o.isNew);
