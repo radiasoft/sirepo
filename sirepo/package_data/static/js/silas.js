@@ -32,6 +32,9 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="Float6">
           <div data-float-6="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="PumpRepRate">
+          <div data-pump-rep-rate="" data-model-name="modelName" data-model="model" data-field="field"></div>
+        </div>
     `;
     SIREPO.appDownloadLinks = [
         '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
@@ -359,6 +362,30 @@ SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $
     };
 });
 
+SIREPO.app.directive('pumpRepRate', function(appState, silasService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <div class="col-sm-2">
+              <input data-string-to-number="" data-ng-model="model[field]" class="form-control {{ validRange() }}" style="text-align: right" />
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.validRange = () => {
+                if ($scope.model[$scope.field] >= 1 && $scope.model[$scope.field] < 100) {
+                    srdbg($scope.model.form);
+                    return 'ng-invalid ng-dirty';
+                }
+                return '';
+            }
+        }
+    };
+});
+
 SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scope) {
     function updateCrystalFields(item) {
         const crystals = silasService.getPriorCrystals(item.id);
@@ -486,7 +513,6 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
 });
 
 SIREPO.viewLogic('thermalTransportCrystalView', function(appState, panelState, silasService, $scope) {
-
     function checkThermalTransportCrystal() {
         if (! appState.applicationState().thermalTransportCrystal.crystal_id) {
             updateThermalTransportCrystal();
@@ -510,6 +536,34 @@ SIREPO.viewLogic('thermalTransportCrystalView', function(appState, panelState, s
     $scope.$on('crystal.changed', () => {
         appState.models.thermalTransportCrystal.crystal = appState.models.crystal;
         appState.saveQuietly('thermalTransportCrystal');
+    });
+});
+
+SIREPO.viewLogic('thermalTransportSettingsView', function(appState, panelState, silasService, $scope) {
+
+    const enableSimTypeSelection = (enable) => {
+        panelState.enableField(
+            'thermalTransportSettings',
+            'crystalSimType',
+            enable,
+        )
+    }
+
+    $scope.$on('crystal.changed', () => {
+        const r = appState.models.thermalTransportCrystal.crystal.pump_rep_rate;
+
+        if (r <= 1) {
+            // can only do simulated/fenics if pump_rep_rate <= 1
+            appState.models.thermalTransportSettings.crystalSimType = 'simulated';
+            appState.saveChanges('thermalTransportSettings');
+            enableSimTypeSelection(false);
+            return;
+        }
+        if (r < 100) {
+            // disable all sim?
+            return;
+        }
+        enableSimTypeSelection(true);
     });
 });
 
