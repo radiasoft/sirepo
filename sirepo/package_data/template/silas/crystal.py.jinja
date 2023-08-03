@@ -52,6 +52,22 @@ def thermo_optic_sim():
     pTs = Ts.reshape((len(rs), len(zs)), order='F')
     pTs = array((pTs[::-1]).tolist()+pTs[1:].tolist())
     heat_map = pTs.T
+
+    # Get lists of unique x, y, and z values
+    xs = numpy.unique(thermo.eval_pts[0])
+    ys = numpy.unique(thermo.eval_pts[1])
+    zs = numpy.unique(thermo.eval_pts[2])
+
+    # Assign temperature values to each point in 3D space
+    intensity = numpy.zeros((len(xs), len(ys), len(zs)))
+    print("x", intensity.shape)
+    for x in range(len(xs)):
+        for y in range(len(ys)):
+            for z in range(len(zs)):
+                this_pt = (thermo.eval_pts[:,0]==xs[x]) * (thermo.eval_pts[:,1]==ys[y]) * (thermo.eval_pts[:,2]==zs[z])
+                print(Ts[this_pt])
+                #intensity[x][y][z] = Ts[this_pt]
+
     return PKDict(
         thermo=thermo,
         heat_map=heat_map,
@@ -59,7 +75,7 @@ def thermo_optic_sim():
         nT=nT,
         n0Fit=n0Fit,
         n2Fit=n2Fit,
-        intensity=Ts,
+        intensity=thermo.eval_pts,
     )
 
 
@@ -72,10 +88,11 @@ for item in dolfin.cpp.mesh.facets(res.thermo.mesh):
     inds.append(item.entities(0).tolist())
 
 # we will provide these indices to plotly so it can draw proper surfaces
-print("intensity", res.intensity)
+print("intensity", res.intensity.shape)
 inds = numpy.array(inds)
 numpy.save("indices.npy", inds)
-print("indices", inds)
+print("indices", inds.shape)
+print("vertices", res.thermo.mesh.coordinates().shape)
 numpy.save("intensity.npy", res.intensity)
 numpy.save("vertices.npy", res.thermo.mesh.coordinates())
 template_common.write_dict_to_h5(
