@@ -23,6 +23,7 @@ import sirepo.template.cloudmc
 import sirepo.util
 import uuid
 
+_DECIMATION_MAX_POLYGONS = 10000
 
 def extract_dagmc(dagmc_filename):
     gc = _MoabGroupCollector(dagmc_filename)
@@ -174,6 +175,7 @@ class _MoabGroupExtractor:
         # )
         ms.apply_filter(
             "meshing_decimation_quadric_edge_collapse",
+            targetfacenum=_DECIMATION_MAX_POLYGONS,
             preservenormal=True,
         )
         m = ms.current_mesh()
