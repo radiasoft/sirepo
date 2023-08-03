@@ -14,13 +14,6 @@ import sirepo.tornado
 import sirepo.util
 import tornado.web
 
-_AUTH_HEADER_RE = re.compile(
-    sirepo.util.AUTH_HEADER_SCHEME_BEARER
-    + r"\s("
-    + sirepo.job.UNIQUE_KEY_CHARS_RE
-    + ")",
-    re.IGNORECASE,
-)
 
 # TODO(robnagler) figure out how to do in tornado, e.g. get path_info
 _URI_RE = re.compile(f"^{sirepo.job.SIM_DB_FILE_URI}/(.+)")
@@ -49,7 +42,7 @@ class FileReq(tornado.web.RequestHandler):
         p = t.split(" ")
         if len(p) != 2:
             raise sirepo.tornado.error_forbidden()
-        m = _AUTH_HEADER_RE.search(t)
+        m = sirepo.util.AUTH_HEADER_RE.search(t)
         if not m:
             pkdlog("invalid auth header={}", t)
             raise sirepo.tornado.error_forbidden()
@@ -76,7 +69,7 @@ class FileReq(tornado.web.RequestHandler):
 def token_for_user(uid):
     def _token():
         for _ in range(10):
-            t = sirepo.job.unique_key()
+            t = sirepo.util.unique_key()
             if t not in _TOKEN_TO_UID:
                 _TOKEN_TO_UID[t] = uid
                 return t

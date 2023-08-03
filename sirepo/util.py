@@ -30,10 +30,22 @@ _cfg = None
 AUTH_HEADER = "Authorization"
 
 #: http auth header scheme bearer
-AUTH_HEADER_SCHEME_BEARER = "Bearer"
+_AUTH_HEADER_SCHEME_BEARER = "Bearer"
+
+#: Match output of unique_key
+_UNIQUE_KEY_CHARS_RE = r"\w+"
+
+#: Verifies shape of auth header
+AUTH_HEADER_RE = re.compile(
+    rf"{_AUTH_HEADER_SCHEME_BEARER}\s({_UNIQUE_KEY_CHARS_RE})",
+    re.IGNORECASE,
+)
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
+
+#: A standalone unique key
+UNIQUE_KEY_RE = re.compile(r"^{}$".format(_UNIQUE_KEY_CHARS_RE))
 
 # See https://github.com/radiasoft/sirepo/pull/3889#discussion_r738769716
 # for reasoning on why define both
@@ -232,6 +244,10 @@ def assert_sim_type(sim_type):
     """
     assert is_sim_type(sim_type), f"invalid simulation type={sim_type}"
     return sim_type
+
+
+def auth_header(token):
+    return PKDict({AUTH_HEADER: f"{_AUTH_HEADER_SCHEME_BEARER} {token}"})
 
 
 def create_token(value):
@@ -445,6 +461,15 @@ def split_comma_delimited_string(s, f_type):
 
 def to_comma_delimited_string(arr):
     return ",".join([str(x) for x in arr])
+
+
+def unique_key():
+    """Returns a unique key of 32 characters.
+
+    This is a "reasonably sized" key that can be assumed to be globally unique. So, it is
+    safe to be used across the web and filesystem.
+    """
+    return random_base62(32)
 
 
 def url_safe_hash(value):

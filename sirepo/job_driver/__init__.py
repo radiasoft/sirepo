@@ -82,7 +82,7 @@ class DriverBase(PKDict):
             # there should only be one OP_ANALYSIS running on an agent at one time.
             op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in SLOT_OPS}),
             uid=op.msg.uid,
-            _agentId=job.unique_key(),
+            _agentId=sirepo.util.unique_key(),
             _agent_start_lock=tornado.locks.Lock(),
             _agent_starting_timeout=None,
             _idle_timer=None,
@@ -136,7 +136,7 @@ class DriverBase(PKDict):
                     m.simulationType,
                     qcall=qcall,
                 )
-                op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
+                op.lib_dir_symlink = job.LIB_FILE_ROOT.join(sirepo.util.unique_key())
                 op.lib_dir_symlink.mksymlinkto(d, absolute=True)
                 m.pkupdate(
                     libFileUri=job.supervisor_file_uri(

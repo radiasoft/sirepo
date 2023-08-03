@@ -4,8 +4,8 @@
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import asyncio
 from pykern.pkcollections import PKDict
+import asyncio
 
 ASYNC_CANCELED_ERROR = asyncio.CancelledError
 
@@ -35,6 +35,6 @@ PORT_DEFAULTS = PKDict(
 )
 
 
-TEST_PORT_RANGE = range(10000, 11000)
-
 SRUNIT_USER_AGENT = "srunit/1.0"
+
+TEST_PORT_RANGE = range(10000, 11000)

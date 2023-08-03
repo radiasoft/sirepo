@@ -11,7 +11,6 @@ import base64
 import databroker
 import databroker.queries
 import io
-import os
 import requests
 import sirepo.feature_config
 import sirepo.raydata
@@ -201,6 +200,7 @@ class _Req(_JsonPostRequestHandler):
         return getattr(self, "_" + req.pkdel("method"))(req)
 
     async def post(self):
+        self._authenticate()
         self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
 
     def _analysis_output(self, req):
@@ -236,6 +236,13 @@ class _Req(_JsonPostRequestHandler):
             log_path=str(p),
             run_log=pkio.read_text(p) if p.exists() else "",
         )
+
+    def _authenticate(self):
+        if (
+            self.request.headers.get("Authorization").split()[-1]
+            != sirepo.feature_config.for_sim_type("raydata").scan_monitor_api_secret
+        ):
+            raise tornado.web.HTTPError(403)
 
     def _begin_replay(self, req):
         sirepo.raydata.replay.begin(

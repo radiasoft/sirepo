@@ -182,6 +182,11 @@ def _init():
                 str,
                 "url to reach scan monitor daemon",
             ),
+            scan_monitor_api_secret=(
+                "a_secret",
+                str,
+                "secret to secure communication with scan monitor",
+            ),
         ),
         react_sim_types=(
             ("jspec", "genesis", "warppba", "myapp", "shadow", "madx")
