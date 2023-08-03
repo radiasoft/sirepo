@@ -357,14 +357,15 @@ def save_field_srw(gap, vectors, beam_axis, filename):
 
 
 def validate_file(file_type, path):
-    if path.ext not in (".csv", ".dat", ".stl", ".txt"):
+    p = path.ext.lower()
+    if p not in (".csv", ".dat", ".stl", ".txt"):
         return f"invalid file type: {path.ext}"
     if file_type == "extrudedPoints-pointsFile":
         try:
             _ = sirepo.csv.read_as_number_list(path)
         except RuntimeError as e:
             return e
-    if path.ext == ".stl":
+    if p == ".stl":
         mesh = _create_stl_trimesh(path)
         if trimesh.convex.is_convex(mesh) == False:
             return f"not convex model: {path.basename}"
@@ -1720,6 +1721,9 @@ def _update_geom_obj(o, qcall=None, **kwargs):
             d.stlFaces.append(list(f))
         o.stlVertices = d.stlVertices
         o.stlFaces = d.stlFaces
+        o.stlBoundsCenter = list(
+            mesh.bounding_box.bounds[0] + 0.5 * mesh.bounding_box.extents
+        )
         o.size = list(mesh.bounding_box.primitive.extents)
         o.stlCentroid = mesh.centroid.tolist()
 

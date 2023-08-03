@@ -168,15 +168,21 @@ def init_module(**imports):
                 "maximum run-time for sequential job",
             ),
         ),
-        purge_non_premium_after_secs=(
-            0,
-            pkconfig.parse_seconds,
-            "expiration period for purging non-premium users simulations",
-        ),
-        purge_non_premium_task_secs=(
+        purge_check_interval=(
             None,
             pkconfig.parse_seconds,
-            "when to clean up simulation runs of non-premium users (%H:%M:%S)",
+            "time interval to clean up simulation runs of non-premium users, value of 0 means no checks are performed",
+        ),
+        purge_non_premium_after_secs=pkconfig.ReplacedBy(
+            "sirepo.job_supervisor.run_dir_lifetime"
+        ),
+        purge_non_premium_task_secs=pkconfig.ReplacedBy(
+            "sirepo.job_supervisor.purge_check_interval"
+        ),
+        run_dir_lifetime=(
+            "1d",
+            pkconfig.parse_seconds,
+            "expiration period for purging non-premium users simulation run output",
         ),
         sbatch_poll_secs=(15, int, "how often to poll squeue and parallel status"),
     )
@@ -518,22 +524,24 @@ class _ComputeJob(_Supervisor):
                 d.simulationType
             ):
                 return
-            p = sirepo.simulation_db.simulation_run_dir(d, qcall=qcall)
-            pkio.unchecked_remove(p)
+            try:
+                pkio.unchecked_remove(
+                    sirepo.simulation_db.simulation_run_dir(d, qcall=qcall)
+                )
+            except sirepo.util.UserDirNotFound:
+                pass
             n = cls.__db_init_new(d, d)
             n.status = job.JOB_RUN_PURGED
             cls.__db_write_file(n)
             pkdlog("jid={}", jid)
 
-        if not _cfg.purge_non_premium_task_secs:
+        if not _cfg.purge_check_interval:
             return
         s = sirepo.srtime.utc_now()
         u = None
         f = None
         try:
-            _too_old = (
-                sirepo.srtime.utc_now_as_int() - _cfg.purge_non_premium_after_secs
-            )
+            _too_old = sirepo.srtime.utc_now_as_int() - _cfg.run_dir_lifetime
             with sirepo.quest.start() as qcall:
                 for u, v in _get_uids_and_files(qcall):
                     with qcall.auth.logged_in_user_set(u):
@@ -544,7 +552,7 @@ class _ComputeJob(_Supervisor):
             pkdlog("u={} f={} error={} stack={}", u, f, e, pkdexc())
         finally:
             tornado.ioloop.IOLoop.current().call_later(
-                _cfg.purge_non_premium_task_secs,
+                _cfg.purge_check_interval,
                 cls.purge_non_premium,
             )
 
