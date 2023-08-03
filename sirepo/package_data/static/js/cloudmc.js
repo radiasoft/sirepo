@@ -349,19 +349,18 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                    <div class="col-md-6" style="padding: 8px;" data-field-editor="'axis'" data-model="tallyReport" data-model-name="'tallyReport'" data-label-size="2"></div>
                </div>
                <div class="row">
-                   <!--<div class="col-md-6" style="padding: 8px;" data-field-editor="'planePos'" data-model="tallyReport" data-model-name="'tallyReport'"></div>-->
                    <div class="col-md-6">
-                       <label>Slice</label>
+                       <label style="padding-left: 15px; padding-right: 15px;">Slice</label>
                        <div class="plane-pos-slider"></div>
                        <div style="display:flex; justify-content:space-between;">
-                            <span>{{ getMeshRanges()[$index][0] }}</span>
-                            <span>{{ getMeshRanges()[$index][1] }}</span>
+                            <span>{{ getDisplayRange(tallyReport.axis)[0] }}</span>
+                            <span>{{ getDisplayRange(tallyReport.axis)[1] }}</span>
                        </div>
                    </div>
                </div>
                <div class="row"><label>Clipping</label></div>
                <div class="row">
-                   <div data-ng-repeat="dim in axes track by $index" class="col-md-4">
+                   <div data-ng-repeat="dim in axes track by $index" data-ng-show="dim !== tallyReport.axis" class="col-md-4">
                        <div data-label-with-tooltip="" class="control-label" data-label="{{ dim }}"></div>    
                        <div class="axis-display-slider axis-display-{{ dim }}"></div>
                        <div style="display:flex; justify-content:space-between;">
