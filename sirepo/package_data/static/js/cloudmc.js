@@ -304,7 +304,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             <div>
                 <div data-ng-if="! isClientOnly && displayType === '3D'" class="col-sm-12">
                     <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><div data-ng-click="toggleVolumeList()" style="cursor: pointer; display: inline-block"><span class="glyphicon" data-ng-class="isVolumeListExpanded ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up'"></span> Volume Selection</div></div>
-                    <div data-ng-if="! volumeList" style="padding-top: 8px; padding-bottom: 8px;">Loading Volumes...</div>
+                    <div data-ng-if="! volumeList" style="padding-top: 8px; padding-bottom: 8px;">Loading Volumes<span data-header-tooltip="'loading'"></span></div>
                     <table data-ng-show="isVolumeListExpanded" class="table-condensed">
                         <thead>
                         <th style="border-bottom: solid lightgray;" colspan="{{ numVolumeCols }}">
@@ -544,6 +544,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     z_range: ranges[n],
                 };
                 panelState.setData('tallyReport', r);
+                srdbg('RLD TALLY');
                 $scope.$broadcast('tallyReport.reload', r);
             }
 

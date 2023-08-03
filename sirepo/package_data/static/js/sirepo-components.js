@@ -1332,6 +1332,7 @@ SIREPO.app.directive('headerTooltip', function() {
                     canceled: 'ban-circle',
                     completed: 'ok completed-icon',
                     error: 'remove error-icon',
+                    loading: 'refresh running-icon',
                     missing: 'question-sign',
                     none: 'minus',
                     pending: 'hourglass',
