@@ -25,6 +25,7 @@ import uuid
 
 _DECIMATION_MAX_POLYGONS = 10000
 
+
 def extract_dagmc(dagmc_filename):
     gc = _MoabGroupCollector(dagmc_filename)
     sirepo.mpi.restrict_ops_to_first_node(_MoabGroupExtractor(gc).get_items())
