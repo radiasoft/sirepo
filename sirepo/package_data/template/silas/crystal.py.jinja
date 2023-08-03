@@ -59,6 +59,7 @@ def thermo_optic_sim():
         nT=nT,
         n0Fit=n0Fit,
         n2Fit=n2Fit,
+        intensity=Ts,
     )
 
 
@@ -71,8 +72,11 @@ for item in dolfin.cpp.mesh.facets(res.thermo.mesh):
     inds.append(item.entities(0).tolist())
 
 # we will provide these indices to plotly so it can draw proper surfaces
+print("intensity", res.intensity)
 inds = numpy.array(inds)
 numpy.save("indices.npy", inds)
+print("indices", inds)
+numpy.save("intensity.npy", res.intensity)
 numpy.save("vertices.npy", res.thermo.mesh.coordinates())
 template_common.write_dict_to_h5(
     res.temp_profile,
