@@ -160,7 +160,12 @@ def _get_server_data(energy, material, h, k, l):
         "df1df2": -1,
         "modeout": 1,
     }
-    r = requests.get(X0H_SERVER, params=payload, timeout=5)
+    r = requests.get(
+        X0H_SERVER,
+        params=payload,
+        timeout=5,
+        verify=job.cfg().verify_tls,
+    )
     content = r.text
     content = content.split("\n")
     return content

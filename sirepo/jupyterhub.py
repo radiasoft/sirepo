@@ -72,6 +72,7 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
             # POSIT: sirepo.simulation_db.SCHEMA_COMMON.route.checkAuthJupyterhub
             self.sirepo_uri + "/check-auth-jupyterhub",
             cookies={k: handler.get_cookie(k) for k in handler.cookies.keys()},
+            verify=not pkconfig.channel_in("dev"),
         )
         _cookies(r)
         if r.status_code == requests.codes.forbidden:
