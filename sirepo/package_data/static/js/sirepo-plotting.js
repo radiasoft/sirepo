@@ -1915,7 +1915,7 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
                                       .replace(/(\.\d+?)0+($|e)/, '$1$2')
                                       .replace(/\.0+($|e)/, '$1');
                 if (unit) {
-                    v += unit.symbol + self.units;
+                    v += ' ' + unit.symbol + self.units;
                 }
             }
             return v;
