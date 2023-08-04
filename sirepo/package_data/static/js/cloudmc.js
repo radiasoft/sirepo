@@ -511,7 +511,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 if (! mesh) {
                     return;
                 }
-                srdbg('btr');
                 const [z, x, y] = tallyReportAxes();
                 const [n, l, m] = tallyReportAxisIndices();
                 const ranges = getMeshRanges();
@@ -545,7 +544,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     z_range: ranges[n],
                 };
                 panelState.setData('tallyReport', r);
-                srdbg('RLD TALLY');
                 $scope.$broadcast('tallyReport.reload', r);
             }
 
@@ -964,10 +962,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             }
 
             function updateSlice() {
-                srdbg('upd sl');
                 buildTallyReport();
-                //appState.saveChanges('tallyReport');
+                // save quietly but immediately
                 appState.saveQuietly('tallyReport');
+                appState.autoSave();
             }
 
             function updateSliceAxis() {
@@ -984,7 +982,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 if (! mesh) {
                     return;
                 }
-                let pos = appState.models.tallyReport.planePos;
                 const i = tallyReportAxisIndices()[0];
                 const r = getMeshRanges()[i];
                 const step = Math.abs((r[1] - r[0])) / mesh.dimension[i];
@@ -993,7 +990,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     r,
                     step
                 );
-                srdbg(r, 'pos before', pos, 'after', appState.models.tallyReport.planePos);
                 appState.saveChanges('tallyReport');
                 updateSlice();
                 $('.plane-pos-slider').slider({
@@ -1221,18 +1217,17 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 setVolumeProperty(bundleByVolume[volId], prop, val);
             });
 
-            $scope.$on('tallyReport.summaryData', () => {srdbg('sl axis after summary data'); updateSliceAxis();});
+            $scope.$on('tallyReport.summaryData', updateSliceAxis);
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
 
             appState.watchModelFields($scope, ['voxels.colorMap'], setTallyColors);
 
-            appState.watchModelFields($scope, ['tallyReport.axis'], () => {srdbg('sl axis after tr axis'); updateSliceAxis();});
+            appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
 
             appState.watchModelFields(
                 $scope,
                 [
-                    //'tallyReport.planePos',
                     'tallyReport.xDisplayRange',
                     'tallyReport.yDisplayRange',
                     'tallyReport.zDisplayRange',
