@@ -971,17 +971,29 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             }
 
             function updateSliceAxis() {
+                function adjustToRange(val, range, step) {
+                    if (val < range[0]) {
+                        return range[0];
+                    }
+                    if (val > range[1]) {
+                        return  range[1];
+                    }
+                    return range[0] + step * Math.round((val - range[0]) / step);
+                }
+
                 if (! mesh) {
                     return;
                 }
-                srdbg('upd sl axis');
                 let pos = appState.models.tallyReport.planePos;
                 const i = tallyReportAxisIndices()[0];
                 const r = getMeshRanges()[i];
                 const step = Math.abs((r[1] - r[0])) / mesh.dimension[i];
-                pos = Math.max(Math.min(r[1], pos), r[0]);
-                srdbg(r, 'pos before', pos, 'closest', Math.round((pos - r[0]) / step));
-                //appState.models.tallyReport.planePos = r[0] + step * Math.round((pos - r[0]) / step);
+                appState.models.tallyReport.planePos = adjustToRange(
+                    appState.models.tallyReport.planePos,
+                    r,
+                    step
+                );
+                srdbg(r, 'pos before', pos, 'after', appState.models.tallyReport.planePos);
                 appState.saveChanges('tallyReport');
                 updateSlice();
                 $('.plane-pos-slider').slider({
@@ -992,7 +1004,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                         $scope.$apply(() => {
                             $scope.tallyReport.planePos = ui.value;
                             updateSlice();
-                            //appState.saveQuietly('tallyReport');
                         });
                     },
                     step: step,
