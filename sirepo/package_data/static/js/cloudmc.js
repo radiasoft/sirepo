@@ -303,7 +303,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             </ul>
             <div>
                 <div data-ng-if="! isClientOnly && displayType === '3D'" class="col-sm-12">
-                    <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><div data-ng-click="toggleVolumeList()" style="cursor: pointer; display: inline-block"><span class="glyphicon" data-ng-class="isVolumeListExpanded ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up'"></span> Volume Selection</div></div>
+                    <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><div data-ng-click="toggleVolumeList()" style="cursor: pointer; display: inline-block">Volume Selection <span class="glyphicon" data-ng-class="isVolumeListExpanded ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up'"></span></div></div>
                     <div data-ng-if="! volumeList" style="padding-top: 8px; padding-bottom: 8px;">Loading Volumes<span data-header-tooltip="'loading'"></span></div>
                     <table data-ng-show="isVolumeListExpanded" class="table-condensed">
                         <thead>
@@ -511,6 +511,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 if (! mesh) {
                     return;
                 }
+                srdbg('btr');
                 const [z, x, y] = tallyReportAxes();
                 const [n, l, m] = tallyReportAxisIndices();
                 const ranges = getMeshRanges();
@@ -757,9 +758,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
-                updateSliceAxis();
+                srdbg('sl axis aftter load');
                 updateDisplayRange();
-                $scope.$broadcast('sliderParent.ready', appState.models.tallyReport);
             }
 
             function loadVolumes(volIds) {
@@ -964,6 +964,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             }
 
             function updateSlice() {
+                srdbg('upd sl');
                 buildTallyReport();
                 //appState.saveChanges('tallyReport');
                 appState.saveQuietly('tallyReport');
@@ -973,6 +974,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 if (! mesh) {
                     return;
                 }
+                srdbg('upd sl axis');
                 let pos = appState.models.tallyReport.planePos;
                 const i = tallyReportAxisIndices()[0];
                 const r = getMeshRanges()[i];
@@ -1208,13 +1210,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 setVolumeProperty(bundleByVolume[volId], prop, val);
             });
 
-            $scope.$on('tallyReport.summaryData', updateSliceAxis);
+            $scope.$on('tallyReport.summaryData', () => {srdbg('sl axis after summary data'); updateSliceAxis();});
 
             appState.watchModelFields($scope, watchFields, setGlobalProperties);
 
             appState.watchModelFields($scope, ['voxels.colorMap'], setTallyColors);
 
-            appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
+            appState.watchModelFields($scope, ['tallyReport.axis'], () => {srdbg('sl axis after tr axis'); updateSliceAxis();});
 
             appState.watchModelFields(
                 $scope,
