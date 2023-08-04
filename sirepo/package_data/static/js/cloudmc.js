@@ -756,7 +756,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
-                srdbg('sl axis aftter load');
                 updateDisplayRange();
             }
 
