@@ -351,8 +351,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                        <label style="padding-left: 15px; padding-right: 15px;">Slice</label>
                        <div class="plane-pos-slider"></div>
                        <div style="display:flex; justify-content:space-between;">
-                            <span>{{ getDisplayRange(tallyReport.axis)[0] }}</span>
-                            <span>{{ getDisplayRange(tallyReport.axis)[1] }}</span>
+                            <span>{{ planePosRange().min }}</span>
+                            <span>{{ planePosRange().max }}</span>
                        </div>
                    </div>
                </div>
@@ -768,21 +768,17 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 return appState.models[$scope.modelName];
             }
 
-            function planePosRange() {
-                let r = {
-                    min: -1,
-                    max: 1,
-                    step: 0.01
-                };
+            $scope.planePosRange = () => {
                 if (! mesh) {
-                    return r;
+                    return {};
                 }
                 const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(appState.models.tallyReport.axis);
                 const s = Math.abs((mesh.upper_right[i] - mesh.lower_left[i])) / mesh.dimension[i];
-                r.min = mesh.lower_left[i] + 0.5 * s;
-                r.max = mesh.upper_right[i] - 0.5 * s;
-                r.step = mesh.dimension[i] === 1 ? r.max : s;
-                return r;
+                return {
+                    min: scale * (mesh.lower_left[i] + 0.5 * s),
+                    max: scale * (mesh.upper_right[i] - 0.5 * s),
+                    step: scale * s,
+                }
             }
 
             function reorderFieldData(outerAxis, dims) {
@@ -968,32 +964,33 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             }
 
             function updateSliceAxis() {
-                function adjustToRange(val, range, step) {
-                    if (val < range[0]) {
-                        return range[0];
+                function adjustToRange(val, range) {
+                    if (val < range.min) {
+                        return range.min;
                     }
-                    if (val > range[1]) {
-                        return  range[1];
+                    if (val > range.max) {
+                        return  range.max;
                     }
-                    return range[0] + step * Math.round((val - range[0]) / step);
+                    return range.min + range.step * Math.round((val - range.min) / range.step);
                 }
 
                 if (! mesh) {
                     return;
                 }
-                const i = tallyReportAxisIndices()[0];
-                const r = getMeshRanges()[i];
-                const step = Math.abs((r[1] - r[0])) / mesh.dimension[i];
+                const r = $scope.planePosRange();
+                //const i = tallyReportAxisIndices()[0];
+                //const r = getMeshRanges()[i];
+                //const step = Math.abs((r[1] - r[0])) / r[2];
+                srdbg(r);
                 appState.models.tallyReport.planePos = adjustToRange(
                     appState.models.tallyReport.planePos,
-                    r,
-                    step
+                    r
                 );
                 appState.saveChanges('tallyReport');
                 updateSlice();
                 $('.plane-pos-slider').slider({
-                    min: r[0],
-                    max: r[1],
+                    min: r.min,
+                    max: r.max,
                     range: false,
                     slide: (e, ui) => {
                         $scope.$apply(() => {
@@ -1001,7 +998,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                             updateSlice();
                         });
                     },
-                    step: step,
+                    step: r.step,
                     value: $scope.tallyReport.planePos,
                 });
             }
