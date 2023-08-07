@@ -5,6 +5,7 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdformat
+import abc
 import aenum
 import asyncio
 import base64
@@ -155,6 +156,25 @@ class _Analysis(_DbBase):
             .filter(cls.catalog_name == catalog_name, cls.uid.in_(uids))
             .all()
         )
+
+
+class _Beamline(abc.ABC):
+    def __init__(self, catalog_name):
+        self.catalog_name = catalog_name
+
+
+class CHX(_Beamline):
+    def notebooks(self):
+        with zipfile.ZipFile(_notebook_zip_path(self.catalog_name), "r") as z:
+            z.extractall()
+        return pkio.sorted_glob("*.ipynb")
+
+
+class CSX(_Beamline):
+    def notebooks(self):
+        with zipfile.ZipFile(_notebook_zip_path(self.catalog_name), "r") as z:
+            z.extractall()
+        return pkio.sorted_glob("*.ipynb")
 
 
 # TODO(e-carlin): copied from sirepo
@@ -348,6 +368,16 @@ def _analysis_pdf_paths(uid):
     return pkio.walk_tree(_Analysis.analysis_output_dir(uid), r".*\.pdf$")
 
 
+def _beamline_for_scan(scan):
+    if scan.catalog_name == "chx":
+        return CHX(scan.catalog_name)
+    elif scan.catalog_name == "csx":
+        return CSX(scan.catalog_name)
+    else:
+        # TODO(rorour)
+        assert 0
+
+
 def _catalog(name):
     return databroker.catalog[name]
 
@@ -355,12 +385,6 @@ def _catalog(name):
 def _check_notebooks_for_catalogs():
     for n in _cfg.catalog_names:
         _notebook_zip_path(n)
-
-
-def _get_notebooks(catalog_name):
-    with zipfile.ZipFile(_notebook_zip_path(catalog_name), "r") as z:
-        z.extractall()
-    return pkio.sorted_glob("*.ipynb")
 
 
 async def _init_analysis_processors():
@@ -379,7 +403,7 @@ async def _init_analysis_processors():
                     _Analysis.analysis_output_dir(v.uid), mkdir=True
                 ), pkio.open_text("run.log", mode="w") as l:
                     try:
-                        for n in _get_notebooks(v.catalog_name):
+                        for n in _beamline_for_scan(v).notebooks():
                             p = await asyncio.create_subprocess_exec(
                                 "papermill",
                                 str(n),
