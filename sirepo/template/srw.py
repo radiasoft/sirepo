@@ -2422,8 +2422,6 @@ def _set_magnetic_measurement_parameters(run_dir, v, qcall=None):
 
 
 def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
-    import inspect
-
     report = data.report
     is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
     dm = data.models
@@ -2443,14 +2441,6 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     v.setupMagneticMeasurementFiles = (
         plot_reports or is_for_rsopt
     ) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
-    v.isBeamlineAnimation = "beamlineAnimation" in report
-    v.maxMsgBytes = _MAX_MESSAGE_BYTES
-    v.canvasMaxSize = _CANVAS_MAX_SIZE
-    v.jsonExpandFactor = _JSON_MESSAGE_EXPANSION
-    v.extendPlot = inspect.getsource(_extend_plot)
-    v.resizeReport = inspect.getsource(_resize_report)
-    v.rotateReport = inspect.getsource(_rotate_report)
-    v.updateReportRange = inspect.getsource(_update_report_range)
     v.srwMain = _generate_srw_main(data, plot_reports, beamline_info)
     if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         _set_magnetic_measurement_parameters(run_dir or "", v, qcall=qcall)
