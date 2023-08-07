@@ -84,6 +84,7 @@ _KICK_MAP_COLS = ["x", "y", "xpFactor", "ypFactor"]
 _KICK_MAP_UNITS = ["m", "m", "(T*m)$a2$n", "(T*m)$a2$n"]
 _GEOM_DIR = "geometryReport"
 _GEOM_FILE = "geometryReport.h5"
+_HEADER_FILE = "header.py"
 _KICK_FILE = "kickMap.h5"
 _KICK_SDDS_FILE = "kickMap.sdds"
 _KICK_TEXT_FILE = "kickMap.txt"
@@ -970,8 +971,19 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.h5SolutionPath = _H5_PATH_SOLUTION
     v.h5IdMapPath = _H5_PATH_ID_MAP
 
+    h = (
+        template_common.render_jinja(
+            SIM_TYPE,
+            v,
+            _HEADER_FILE,
+            jinja_env=PKDict(loader=jinja2.PackageLoader("sirepo", "template")),
+        )
+        if for_export or rpt_out in _SIM_REPORTS
+        else ""
+    )
+
     j_file = RADIA_EXPORT_FILE if for_export else f"{rpt_out}.py"
-    return template_common.render_jinja(
+    return h + template_common.render_jinja(
         SIM_TYPE,
         v,
         j_file,
