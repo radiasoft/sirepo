@@ -149,6 +149,17 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     self.centerExtrudedPoints = o =>  {
         const idx = [self.axisIndex(o.widthAxis), self.axisIndex(o.heightAxis)];
+        if (o.isNew) {
+            o.isNew = false;
+            if (o.preservePointsOnImport === "1") {
+                o.preservePointsOnImport = "0";
+                o.points = o.referencePoints.slice();
+                idx.forEach(i => {
+                    o.center[i] = SIREPO.UTILS.minForIndex(o.referencePoints, i) + o.size[i] / 2.0;
+                });
+                return;
+            }
+        }
         o.points = o.referencePoints.map(
             p => p.map(
                 (x, i) => p[i] + o.center[idx[i]] - (
@@ -918,6 +929,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     $scope.$on('layout.object.dropped', function (e, lo) {
         const m = appState.setModelDefaults({}, lo.type);
+        m.isNew = true;
         m.center = lo.center;
         m.name = lo.type;
         m.name = newObjectName(m);
@@ -3178,10 +3190,12 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         [
             'geomObject.type', 'geomObject.segmentation', 'geomObject.segmentationCylUseObjectCenter', 'geomObject.segmentationCylAxis',
             'cylinder.radius',
+            'extrudedPoints.preservePointsOnImport',
             'extrudedPoly.extrusionAxisSegments', 'extrudedPoly.triangulationLevel',
             'extrudedObject.extrusionAxis',
             'stemmed.armHeight', 'stemmed.armPosition', 'stemmed.stemWidth', 'stemmed.stemPosition',
             'jay.hookHeight', 'jay.hookWidth',
+            'stl.preserveVerticesOnImport',
         ], updateEditor
     ];
 
@@ -3286,6 +3300,11 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     function setSTLSize(data) {
+        if ($scope.modelData.isNew && $scope.modelData.preserveVerticesOnImport === "1") {
+            $scope.modelData.center = data.center;
+        }
+        $scope.modelData.isNew = false;
+        $scope.modelData.preserveVerticesOnImport = "0";
         $scope.modelData.size = data.size;
         appState.saveQuietly(editedModels);
     }
@@ -3340,6 +3359,8 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
         if (modelType === 'stl') {
             panelState.enableField('geomObject', 'size', false);
+            panelState.showField('stl', 'preserveVerticesOnImport', o.isNew);
+            panelState.enableField('geomObject', 'center', o.preserveVerticesOnImport === '0');
             return;
         }
 
@@ -3361,6 +3382,8 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
 
         panelState.showField('extrudedPoints', 'referencePoints', hasPoints());
         panelState.enableField('extrudedPoints', 'pointsFile', ! hasPoints());
+        panelState.showField('extrudedPoints', 'preservePointsOnImport', o.isNew);
+        panelState.enableField('geomObject', 'center', o.preservePointsOnImport === '0');
     }
 
     appState.watchModelFields($scope, materialFields, () => {
