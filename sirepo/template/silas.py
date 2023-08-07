@@ -454,6 +454,7 @@ def _generate_parameters_file(data):
         v.crystalLength = _get_crystal(data).length
         v.crystalCSV = _CRYSTAL_CSV_FILE
         v.thermalCrystal = _get_crystal(data)
+        v.crystalSimType = data.models.thermalTransportSettings.crystalSimType
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
     if data.report in _SIM_DATA.SOURCE_REPORTS:
         data.models.beamline = []
@@ -647,7 +648,7 @@ def _parse_silas_log(run_dir):
         return res
     with pkio.open_text(str(path)) as f:
         for line in f:
-            m = re.search(r"^\s*\*+\s+Error:\s+(.*)$", line)
+            m = re.search(r"^.*Error:\s+(.*)$", line)
             if m:
                 err = m.group(1)
                 if re.search("Unable to evaluate function at point", err):

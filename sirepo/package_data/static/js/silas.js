@@ -32,6 +32,9 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="Float6">
           <div data-float-6="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="PumpRepRate">
+          <div data-pump-rep-rate="" data-model-name="modelName" data-model="model" data-field="field"></div>
+        </div>
     `;
     SIREPO.appDownloadLinks = [
         '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
@@ -175,6 +178,9 @@ SIREPO.app.controller('CrystalController', function (appState, frameCache, persi
     self.simHandleStatus = (data) => {
         if (! appState.isLoaded()) {
             return;
+        }
+        if (data.error) {
+            throw new Error(data.error);
         }
         frameCache.setFrameCount(data.frameCount);
     };
@@ -356,6 +362,39 @@ SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $
     };
 });
 
+SIREPO.app.directive('pumpRepRate', function(appState, validationService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            modelName: '=',
+        },
+        template: `
+            <div class="col-sm-3">
+              <input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />
+              <div class="{{ validRange() }}"></div>
+            </div>
+        `,
+        controller: function($scope) {
+            const info = appState.modelInfo($scope.modelName)[$scope.field];
+            const low = info[4];
+            const high = info[5];
+            $scope.validRange = () => {
+                const v = ($scope.model[$scope.field] < low || $scope.model[$scope.field] >= high) && $scope.model[$scope.field] >= 0;
+                validationService.validateField(
+                    $scope.modelName,
+                    $scope.field,
+                    'input',
+                    v,
+                    `Rate must be between 0 and ${low} or greater than ${high}`,
+                );
+                return 'sr-input-warning';
+            };
+        }
+    };
+});
+
 SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scope) {
     function updateCrystalFields(item) {
         const crystals = silasService.getPriorCrystals(item.id);
@@ -508,6 +547,25 @@ SIREPO.viewLogic('thermalTransportCrystalView', function(appState, panelState, s
         appState.models.thermalTransportCrystal.crystal = appState.models.crystal;
         appState.saveQuietly('thermalTransportCrystal');
     });
+});
+
+SIREPO.viewLogic('thermalTransportSettingsView', function(appState, panelState, silasService, $scope) {
+
+    const setSimType = () => {
+        const r = appState.models.thermalTransportCrystal.crystal.pump_rep_rate;
+        // can only do simulated/fenics if pump_rep_rate <= 1
+        if (r <= 1) {
+            appState.models.thermalTransportSettings.crystalSimType = 'simulated';
+        }
+        appState.saveChanges('thermalTransportSettings');
+        panelState.enableField(
+            'thermalTransportSettings',
+            'crystalSimType',
+            r > 1,
+        );
+    };
+
+    $scope.$on('crystal.changed', setSimType);
 });
 
 SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plotToPNG, utilities) {
