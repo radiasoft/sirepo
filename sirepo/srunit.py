@@ -193,12 +193,12 @@ class _TestClient:
         Returns:
             dict: parsed auth_state
         """
-        from pykern import pkunit
-        from pykern import pkcollections
+        from pykern import pkunit, pkcollections
+        from pykern.pkdebug import pkdp
 
         m = re.search(
             r"(\{.*\})",
-            pkcompat.from_bytes(self.sr_get("authState").data),
+            pkdp(pkcompat.from_bytes(self.sr_get("authState").data)),
         )
         s = pkcollections.json_load_any(m.group(1))
         for k, v in kwargs.items():
@@ -694,6 +694,9 @@ class _HTTPResponse:
 
 
 class _WebSocket:
+
+    _AUTH_RE = re.compile(r"/auth-|https?:")
+
     def __init__(self, test_client):
         self._enabled = False
         self._connection = None
@@ -724,11 +727,21 @@ class _WebSocket:
             return m
 
         def _must_be_http():
-            # POSIT: /auth- match like sirepo.js msgRouter
-            return headers or uri.startswith("/auth-") or not self._enabled
+            # POSIT: /auth- match like sirepo.js msgRouter and https?:
+            # for browser click on email msg. If there are headers,
+            # it's a change in auth.
+            if headers or self._AUTH_RE.search(uri):
+                # Stop the socket
+                self.stop()
+                return True
+            if self._enabled:
+                return False
+            if self._test_client.sr_uid:
+                self.start()
+                return False
+            return True
 
         if _must_be_http():
-            # Headers means something special (usually auth testing)
             pkdlog("uri={} enabled={}", uri, self._enabled)
             return None
         assert uri[0] == "/", f"uri={uri} must begin with '/'"

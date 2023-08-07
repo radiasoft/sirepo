@@ -2167,6 +2167,11 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
 
     self.send = (url, data, httpConfig) => {
         if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url)) {
+            // Might be auto logged out so close socket so can re-authenticate
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
             return data == null ? $http.get(url, httpConfig)
                 : $http.post(url, data, httpConfig);
         }
