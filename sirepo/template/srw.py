@@ -821,9 +821,7 @@ def process_watch(wid=0):
             _arSurf=mesh.arSurf,
         )
         srwlib.srwl_uti_save_intens_ascii(
-            d.flatten().tolist(),
-            new_mesh,
-            _wavefront_intensity_filename(wid)
+            d.flatten().tolist(), new_mesh, _wavefront_intensity_filename(wid)
         )
 
     sirepo.mpi.restrict_op_to_first_rank(_op)
@@ -2104,7 +2102,9 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 content.append("v.tr_pl = 'xz'")
     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
     if report == "beamlineAnimation":
-        content.append(f"process_watch(wid={beamline_info.watches[beamline_info.names[-1]]})")
+        content.append(
+            f"process_watch(wid={beamline_info.watches[beamline_info.names[-1]]})"
+        )
     return "\n".join(
         [f"    {x}" for x in content] + [""] + ([] if is_for_rsopt else ["main()", ""])
     )
