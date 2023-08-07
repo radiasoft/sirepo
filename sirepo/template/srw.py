@@ -837,10 +837,17 @@ def run_epilogue():
             for p in pkio.sorted_glob("*_mi.h5"):
                 p.remove()
         if sim_in.report == "beamlineAnimation":
-            pass
-            #data_file = '{_wavefront_intensity_filename(wid)}'
-            #data, mesh = _process_watch('{f}', {m})
-            #srwlib.srwl_uti_save_intens_ascii(data, mesh, data_file)
+            for f in pkio.sorted_glob("*.pkl"):
+                m = re.match(r"wid-(\d+)", f.basename)
+                wid = m.group(1) if m else 0
+                pkdp("PROC WID {}...", wid)
+                data, mesh = _process_watch(f, sim_in.models[f"beamlineAnimation{wid}"])
+                srwlib.srwl_uti_save_intens_ascii(
+                    data,
+                    mesh,
+                    _wavefront_intensity_filename(wid)
+                )
+                pkdp("...WID {} DONE", wid)
 
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
