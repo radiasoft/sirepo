@@ -341,7 +341,11 @@ def stateless_compute_stl_size(data, **kwargs):
     f = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_type(data.args.file, SCHEMA.constants.fileTypeSTL)
     )
-    return PKDict(size=_create_stl_trimesh(f).bounding_box.primitive.extents.tolist())
+    m = _create_stl_trimesh(f)
+    return PKDict(
+        center=(m.bounding_box.bounds[0] + 0.5 * m.bounding_box.extents).tolist(),
+        size=m.bounding_box.primitive.extents.tolist(),
+    )
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
