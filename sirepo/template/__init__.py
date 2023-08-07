@@ -32,3 +32,9 @@ def run_epilogue(sim_type):
     # POSIT: only called from a parameters.py run by server and
     # cwd is the run_dir
     return getattr(import_module(sim_type), "run_epilogue")()
+
+
+def run_on_server(sim_type, fn, **kwargs):
+    # POSIT: only called from a parameters.py run by server and
+    # cwd is the run_dir
+    return getattr(import_module(sim_type), fn)(**kwargs)

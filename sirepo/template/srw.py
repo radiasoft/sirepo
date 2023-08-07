@@ -775,18 +775,11 @@ def process_undulator_definition(model):
         return model
 
 
-def python_source_for_model(data, model, qcall, plot_reports=True, **kwargs):
-    data.report = model or _SIM_DATA.SRW_RUN_ALL_MODEL
-    data.report = re.sub("beamlineAnimation0", "initialIntensityReport", data.report)
-    data.report = re.sub("beamlineAnimation", "watchpointReport", data.report)
-    if not _SIM_DATA.is_for_ml(data.report):
-        data.fdir = sirepo.util.secure_filename(data.models.simulation.name) + "/"
-    return _generate_parameters_file(data, plot_reports=plot_reports, qcall=qcall)
-
-
-def run_epilogue():
-    def _process_watch(filename, report):
-        with open(filename, 'rb') as f:
+def process_watch(wid=0):
+    def _op():
+        sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        report = sim_in.models[f"beamlineAnimation{wid}"]
+        with open(_wavefront_pickle_filename(wid), "rb") as f:
             wfr = pickle.load(f)
         data, mesh = srwl_bl.SRWLBeamline().calc_int_from_wfr(
             wfr,
@@ -827,8 +820,25 @@ def run_epilogue():
             _hvz=mesh.hvz,
             _arSurf=mesh.arSurf,
         )
-        return d.flatten().tolist(), new_mesh
+        srwlib.srwl_uti_save_intens_ascii(
+            d.flatten().tolist(),
+            new_mesh,
+            _wavefront_intensity_filename(wid)
+        )
 
+    sirepo.mpi.restrict_op_to_first_rank(_op)
+
+
+def python_source_for_model(data, model, qcall, plot_reports=True, **kwargs):
+    data.report = model or _SIM_DATA.SRW_RUN_ALL_MODEL
+    data.report = re.sub("beamlineAnimation0", "initialIntensityReport", data.report)
+    data.report = re.sub("beamlineAnimation", "watchpointReport", data.report)
+    if not _SIM_DATA.is_for_ml(data.report):
+        data.fdir = sirepo.util.secure_filename(data.models.simulation.name) + "/"
+    return _generate_parameters_file(data, plot_reports=plot_reports, qcall=qcall)
+
+
+def run_epilogue():
     # POSIT: only called from template.run_epilogue
     def _op():
         sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
@@ -836,18 +846,6 @@ def run_epilogue():
             # this sim creates _really_ large intermediate files which should get removed
             for p in pkio.sorted_glob("*_mi.h5"):
                 p.remove()
-        if sim_in.report == "beamlineAnimation":
-            for f in pkio.sorted_glob("*.pkl"):
-                m = re.match(r"wid-(\d+)", f.basename)
-                wid = m.group(1) if m else 0
-                pkdp("PROC WID {}...", wid)
-                data, mesh = _process_watch(f, sim_in.models[f"beamlineAnimation{wid}"])
-                srwlib.srwl_uti_save_intens_ascii(
-                    data,
-                    mesh,
-                    _wavefront_intensity_filename(wid)
-                )
-                pkdp("...WID {} DONE", wid)
 
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
@@ -2019,6 +2017,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             content.append("op = None")
         content.append("v.ws_fne = '{}'".format(_wavefront_pickle_filename(0)))
         prev_wavefront = None
+        prev_watch = 0
         names = []
         for n in beamline_info.names:
             names.append(n)
@@ -2033,6 +2032,9 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 content.append("op = set_optics(v, names, {})".format(is_last_watch))
                 if not is_last_watch:
                     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
+                    content.append(f"process_watch(wid={prev_watch})")
+                prev_watch = beamline_info.watches[n]
+
     elif run_all or (
         _SIM_DATA.srw_is_beamline_report(report) and len(data.models.beamline)
     ):
@@ -2101,6 +2103,8 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             if plot_reports:
                 content.append("v.tr_pl = 'xz'")
     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
+    if report == "beamlineAnimation":
+        content.append(f"process_watch(wid={beamline_info.watches[beamline_info.names[-1]]})")
     return "\n".join(
         [f"    {x}" for x in content] + [""] + ([] if is_for_rsopt else ["main()", ""])
     )

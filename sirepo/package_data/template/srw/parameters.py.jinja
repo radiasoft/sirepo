@@ -438,6 +438,15 @@ def epilogue():
     {% endif %}
 
 
+def process_watch(**kwargs):
+    {% if in_server %}
+    import sirepo.template
+    sirepo.template.run_on_server("srw", "process_watch", **kwargs)
+    {% else %}
+    pass
+    {% endif %}
+
+
 def main():
 {{srwMain}}
 epilogue()
