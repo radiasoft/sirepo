@@ -11,6 +11,7 @@ from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
+from srwpy import srwl_bl
 import array
 import copy
 import math
@@ -23,7 +24,6 @@ import sirepo.job
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.util
-import srwl_bl
 import srwlib
 import time
 import traceback

@@ -8,7 +8,7 @@ except:
     pass
 
 
-import srwl_bl
+from srwpy import srwl_bl
 import srwlib
 import srwlpy
 
