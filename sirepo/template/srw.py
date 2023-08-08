@@ -788,20 +788,11 @@ def process_watch(wid=0):
             _int_type=int(report.get("characteristic", "0")),
             _pr=False,
         )
-        d = np.array(data)
-        x_range = [mesh.xStart, mesh.xFin, mesh.nx]
-        y_range = [mesh.yStart, mesh.yFin, mesh.ny]
-        l = x_range[2] * y_range[2]
-        n = d.size if l > d.size else l
-        d = np.reshape(d[0:n], (y_range[2], x_range[2]))
-        if report.get("usePlotRange", "0") == "1":
-            d, x_range, y_range = _update_report_range(report, d, x_range, y_range)
-        if report.get("useIntensityLimits", "0") == "1":
-            d[d < report["minIntensityLimit"]] = report["minIntensityLimit"]
-            d[d > report["maxIntensityLimit"]] = report["maxIntensityLimit"]
-        d, x_range, y_range = _resize_report(report, d, x_range, y_range)
-        if report.get("rotateAngle", 0):
-            d, x_range, y_range = _rotate_report(report, d, x_range, y_range, info)
+        d, x_range, y_range = _reshape_3d(
+            np.array(data),
+            [0, 0, 0, mesh.xStart, mesh.xFin, mesh.nx, mesh.yStart, mesh.yFin, mesh.ny],
+            report
+        )
         new_mesh = srwlib.SRWLRadMesh(
             _eStart=mesh.eStart,
             _eFin=mesh.eFin,
@@ -2215,26 +2206,14 @@ def _process_rsopt_elements(els):
 
 
 def _remap_3d(info, allrange, out, report):
-    x_range = [allrange[3], allrange[4], allrange[5]]
-    y_range = [allrange[6], allrange[7], allrange[8]]
-    ar2d = info.points
-    totLen = int(x_range[2] * y_range[2])
-    n = len(ar2d) if totLen > len(ar2d) else totLen
-    ar2d = np.reshape(ar2d[0:n], (int(y_range[2]), int(x_range[2])))
-    # beamlineAnimation reports have already been resized and rotated
-    if not info.report == "beamlineAnimation":
-        if report.get("usePlotRange", "0") == "1":
-            ar2d, x_range, y_range = _update_report_range(
-                report, ar2d, x_range, y_range
-            )
-        if report.get("useIntensityLimits", "0") == "1":
-            ar2d[ar2d < report.minIntensityLimit] = report.minIntensityLimit
-            ar2d[ar2d > report.maxIntensityLimit] = report.maxIntensityLimit
-        ar2d, x_range, y_range = _resize_report(report, ar2d, x_range, y_range)
-        if report.get("rotateAngle", 0):
-            ar2d, x_range, y_range = _rotate_report(
-                report, ar2d, x_range, y_range, info
-            )
+    ar2d, x_range, y_range = _reshape_3d(
+        np.array(info.points),
+        allrange,
+        report
+    )
+    rotate_angle = report.get("rotateAngle", 0)
+    if rotate_angle and info.title != "Power Density":
+        info.subtitle = info.subtitle + " Image Rotate {}^0".format(rotate_angle)
     if out.units[2]:
         out.labels[2] = "{} [{}]".format(out.labels[2], out.units[2])
     if report.get("useIntensityLimits", "0") == "1":
@@ -2253,6 +2232,23 @@ def _remap_3d(info, allrange, out, report):
         z_range=z_range,
         summaryData=info.summaryData,
     )
+
+
+def _reshape_3d(ar1d, allrange, report):
+    x_range = [allrange[3], allrange[4], allrange[5]]
+    y_range = [allrange[6], allrange[7], allrange[8]]
+    totLen = int(x_range[2] * y_range[2])
+    n = len(ar1d) if totLen > len(ar1d) else totLen
+    ar2d = np.reshape(ar1d[0:n], (int(y_range[2]), int(x_range[2])))
+    if report.get("usePlotRange", "0") == "1":
+        ar2d, x_range, y_range = _update_report_range(report, ar2d, x_range, y_range)
+    if report.get("useIntensityLimits", "0") == "1":
+        ar2d[ar2d < report["minIntensityLimit"]] = report["minIntensityLimit"]
+        ar2d[ar2d > report["maxIntensityLimit"]] = report["maxIntensityLimit"]
+    ar2d, x_range, y_range = _resize_report(report, ar2d, x_range, y_range)
+    if report.get("rotateAngle", 0):
+        ar2d, x_range, y_range = _rotate_report(report, ar2d, x_range, y_range)
+    return ar2d, x_range, y_range
 
 
 def _resize_report(report, ar2d, x_range, y_range):
@@ -2296,7 +2292,7 @@ def _resize_report(report, ar2d, x_range, y_range):
     return ar2d, x_range, y_range
 
 
-def _rotate_report(report, ar2d, x_range, y_range, info):
+def _rotate_report(report, ar2d, x_range, y_range):
     from scipy import ndimage
     from pykern.pkdebug import pkdc
 
@@ -2331,8 +2327,8 @@ def _rotate_report(report, ar2d, x_range, y_range, info):
 
     x_range[2] = ar2d.shape[1]
     y_range[2] = ar2d.shape[0]
-    if info.title != "Power Density":
-        info.subtitle = info.subtitle + " Image Rotate {}^0".format(rotate_angle)
+    #if info.title != "Power Density":
+    #    info.subtitle = info.subtitle + " Image Rotate {}^0".format(rotate_angle)
     return ar2d, x_range, y_range
 
 
