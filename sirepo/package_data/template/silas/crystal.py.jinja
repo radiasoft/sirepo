@@ -16,7 +16,7 @@ def thermo_optic_sim():
         if sim_type == "analytical":
             return thermo.{{ pump_pulse_profile }}_solution()
 
-        elif sim_type == "simulated":
+        elif sim_type == "fenics":
             thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
             thermo.set_load('{{ pump_pulse_profile }}')
             r = crystal.params.pop_inversion_pump_rep_rate
