@@ -13,19 +13,14 @@ crystal = Crystal(params=PKDict({{crystalParams}}))
 def thermo_optic_sim():
     md = {{ thermalCrystal.mesh_density }}
     thermo = ThermoOptic(crystal, md)
-    domain = mshr.Cylinder(
-        fenics.Point(0, 0, crystal.params.length / 2),
-        fenics.Point(0., 0., -crystal.params.length / 2),
-        crystal.params.pop_inversion_mesh_extent,
-        crystal.params.pop_inversion_mesh_extent,
-    )
+    #domain = mshr.Cylinder(
+    #    fenics.Point(0, 0, crystal.params.length / 2),
+    #    fenics.Point(0., 0., -crystal.params.length / 2),
+    #    crystal.params.pop_inversion_mesh_extent,
+    #    crystal.params.pop_inversion_mesh_extent,
+    #)
     #mesh = mshr.generate_mesh(domain, md)
 
-    thermo.set_points((
-        {{thermalTransportSettings_grid_points_r}},
-        {{thermalTransportSettings_grid_points_w}},
-        {{thermalTransportSettings_grid_points_z}},
-    ))
     thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
     mesh = thermo.mesh
     inds = []
@@ -33,6 +28,7 @@ def thermo_optic_sim():
         inds.append(item.entities(0).tolist())
     vertices = mesh.coordinates()
     thermo.eval_pts = vertices
+
     if '{{ crystalSimType }}' == "analytical":
         Ts = thermo.{{ pump_pulse_profile }}_solution()
 
@@ -46,9 +42,16 @@ def thermo_optic_sim():
         else:
             raise AssertionError(f"Invalid rep rate for simulated solve heat_load={'{{ pump_pulse_profile }}'}")
 
+    i = Ts
     print("intensity shape=", Ts.shape)
+    print("thermo.eval_pts.shape", thermo.eval_pts.shape)
     print("indices shape=", numpy.array(inds).shape)
     print("vertices shape=", vertices.shape)
+    thermo.set_points((
+        {{thermalTransportSettings_grid_points_r}},
+        {{thermalTransportSettings_grid_points_w}},
+        {{thermalTransportSettings_grid_points_z}},
+    ))
     # Positions of each evaluation point & sets of the unique values
     ptzs = thermo.eval_pts[:, 2]
     ptrs = (thermo.eval_pts[:, 0] ** 2 + thermo.eval_pts[:, 1] ** 2) ** 0.5
@@ -69,9 +72,9 @@ def thermo_optic_sim():
 
     return PKDict(
         thermo=thermo,
-        heat_map=heat_map,
-        temp_profile=temp_profile,
-        intensity=Ts,
+        heat_map=[],
+        temp_profile=[],
+        intensity=i,
         vertices=vertices,
         indices=numpy.array(inds),
         #indices=numpy.array([nT, n0Fit, n2Fit])
