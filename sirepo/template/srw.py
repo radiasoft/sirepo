@@ -791,7 +791,7 @@ def process_watch(wid=0):
         d, x_range, y_range = _reshape_3d(
             np.array(data),
             [0, 0, 0, mesh.xStart, mesh.xFin, mesh.nx, mesh.yStart, mesh.yFin, mesh.ny],
-            report
+            report,
         )
         new_mesh = srwlib.SRWLRadMesh(
             _eStart=mesh.eStart,
@@ -814,11 +814,8 @@ def process_watch(wid=0):
         )
         dst = _wavefront_intensity_filename(wid)
         src = f"tmp_{dst}"
-        srwlib.srwl_uti_save_intens_ascii(
-            d.flatten().tolist(), new_mesh, src
-        )
+        srwlib.srwl_uti_save_intens_ascii(d.flatten().tolist(), new_mesh, src)
         pkio.py_path(src).rename(dst)
-
 
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
@@ -2206,11 +2203,7 @@ def _process_rsopt_elements(els):
 
 
 def _remap_3d(info, allrange, out, report):
-    ar2d, x_range, y_range = _reshape_3d(
-        np.array(info.points),
-        allrange,
-        report
-    )
+    ar2d, x_range, y_range = _reshape_3d(np.array(info.points), allrange, report)
     rotate_angle = report.get("rotateAngle", 0)
     if rotate_angle and info.title != "Power Density":
         info.subtitle = info.subtitle + " Image Rotate {}^0".format(rotate_angle)
@@ -2327,7 +2320,7 @@ def _rotate_report(report, ar2d, x_range, y_range):
 
     x_range[2] = ar2d.shape[1]
     y_range[2] = ar2d.shape[0]
-    #if info.title != "Power Density":
+    # if info.title != "Power Density":
     #    info.subtitle = info.subtitle + " Image Rotate {}^0".format(rotate_angle)
     return ar2d, x_range, y_range
 
