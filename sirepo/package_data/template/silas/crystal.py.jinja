@@ -11,48 +11,31 @@ import numpy
 crystal = Crystal(params=PKDict({{crystalParams}}))
 
 def thermo_optic_sim():
-    md = {{ thermalCrystal.mesh_density }}
-    thermo = ThermoOptic(crystal, md)
-    #domain = mshr.Cylinder(
-    #    fenics.Point(0, 0, crystal.params.length / 2),
-    #    fenics.Point(0., 0., -crystal.params.length / 2),
-    #    crystal.params.pop_inversion_mesh_extent,
-    #    crystal.params.pop_inversion_mesh_extent,
-    #)
-    #mesh = mshr.generate_mesh(domain, md)
+    def _solve():
+        if '{{ crystalSimType }}' == "analytical":
+            return thermo.{{ pump_pulse_profile }}_solution()
 
-    thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
-    mesh = thermo.mesh
-    inds = []
-    for item in dolfin.cpp.mesh.facets(mesh):
-        inds.append(item.entities(0).tolist())
-    vertices = mesh.coordinates()
-    thermo.eval_pts = vertices
+        elif '{{ crystalSimType }}' == "simulated":
+            thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
+            thermo.set_load('{{ pump_pulse_profile }}')
+            r = crystal.params.pop_inversion_pump_rep_rate
+            if r <= 1:
+                return thermo.slow_solution('{{ pump_pulse_profile }}')
+            elif r >= 100:
+                return thermo.solve_steady()
+            else:
+                raise AssertionError(f"Invalid rep rate for simulated solve heat_load={'{{ pump_pulse_profile }}'}")
 
-    if '{{ crystalSimType }}' == "analytical":
-        Ts = thermo.{{ pump_pulse_profile }}_solution()
+    thermo = ThermoOptic(crystal, {{ thermalCrystal.mesh_density }})
 
-    elif '{{ crystalSimType }}' == "simulated":
-        thermo.set_load('{{ pump_pulse_profile }}')
-        r = crystal.params.pop_inversion_pump_rep_rate
-        if r <= 1:
-            Ts = thermo.slow_solution('{{ pump_pulse_profile }}')
-        elif r >= 100:
-            Ts = thermo.solve_steady()
-        else:
-            raise AssertionError(f"Invalid rep rate for simulated solve heat_load={'{{ pump_pulse_profile }}'}")
-
-    i = Ts
-    print("intensity shape=", Ts.shape)
-    print("thermo.eval_pts.shape", thermo.eval_pts.shape)
-    print("indices shape=", numpy.array(inds).shape)
-    print("vertices shape=", vertices.shape)
+    # prep for 2d solve
     thermo.set_points((
         {{thermalTransportSettings_grid_points_r}},
         {{thermalTransportSettings_grid_points_w}},
         {{thermalTransportSettings_grid_points_z}},
     ))
-    # Positions of each evaluation point & sets of the unique values
+    res_2d = _solve()
+
     ptzs = thermo.eval_pts[:, 2]
     ptrs = (thermo.eval_pts[:, 0] ** 2 + thermo.eval_pts[:, 1] ** 2) ** 0.5
     zs = unique(ptzs)
@@ -62,22 +45,27 @@ def thermo_optic_sim():
 
     # Radial values reflected across axis & meshgrid with longitudinal values
     temp_profile = PKDict(
-        radial=[rs, Ts[ptzs==zface]],
-        longitudinal=[zs, Ts[ptrs==rcenter]]
+        radial=[rs, res_2d[ptzs==zface]],
+        longitudinal=[zs, res_2d[ptrs==rcenter]]
     )
-    pTs = Ts.reshape((len(rs), len(zs)), order='F')
-    print("pTs.shape:", pTs.shape)
+    pTs = res_2d.reshape((len(rs), len(zs)), order='F')
     pTs = array((pTs[::-1]).tolist()+pTs[1:].tolist())
-    heat_map = pTs.T
 
+    # prep for 3d solve
+    mesh = thermo.mesh
+    inds = []
+    for item in dolfin.cpp.mesh.facets(mesh):
+        inds.append(item.entities(0).tolist())
+    vertices = mesh.coordinates()
+    thermo.eval_pts = vertices
+    res_3d = _solve()
     return PKDict(
         thermo=thermo,
-        heat_map=[],
-        temp_profile=[],
-        intensity=i,
+        heat_map=pTs,
+        temp_profile=temp_profile,
+        intensity=res_3d,
         vertices=vertices,
         indices=numpy.array(inds),
-        #indices=numpy.array([nT, n0Fit, n2Fit])
     )
 
 
@@ -85,10 +73,7 @@ res = thermo_optic_sim()
 
 
 # we will provide these indices to plotly so it can draw proper surfaces
-print("intensity", res.intensity.shape)
 numpy.save("indices.npy", res.indices)
-print("indices", res.indices.shape)
-print("vertices", res.vertices.shape)
 numpy.save("intensity.npy", res.intensity)
 numpy.save("vertices.npy", res.vertices)
 template_common.write_dict_to_h5(
