@@ -16,7 +16,6 @@ def test_myapp_cancel(fc):
     """https://github.com/radiasoft/sirepo/issues/2346"""
     from pykern import pkunit
     import time
-    import threading
     from pykern.pkdebug import pkdlog
 
     d1 = fc.sr_sim_data()
@@ -93,10 +92,9 @@ def test_elegant_concurrent_sim_frame(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdlog, pkdp
     import sirepo.sim_data
-    import threading
     import time
 
-    def _get_frames():
+    def _get_frames(fc):
         for i in range(3):
             f = fc.sr_get_json(
                 "simulationFrame",
@@ -104,8 +102,8 @@ def test_elegant_concurrent_sim_frame(fc):
             )
             pkunit.pkeq("completed", f.state)
 
-    def _t2(get_frames):
-        get_frames()
+    def _t2(fc):
+        _get_frames(fc)
 
     d = fc.sr_sim_data(sim_name="Backtracking", sim_type="elegant")
     s = sirepo.sim_data.get_class(fc.sr_sim_type)
@@ -131,10 +129,9 @@ def test_elegant_concurrent_sim_frame(fc):
             r1 = fc.sr_post("runStatus", r1.nextRequest)
         else:
             pkunit.pkfail("runStatus: failed to complete: {}", r1)
-        t2 = threading.Thread(target=_t2, args=(_get_frames,))
-        t2.start()
-        _get_frames()
-        t2.join()
+        fc.sr_thread_start("t2", _t2)
+        _get_frames(fc)
+        fc.sr_thread_join()
     finally:
         if r1.get("nextRequest"):
             fc.sr_post("runCancel", r1.nextRequest)
