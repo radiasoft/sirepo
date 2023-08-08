@@ -371,19 +371,23 @@ SIREPO.app.directive('pumpRepRate', function(appState, validationService) {
             modelName: '=',
         },
         template: `
-            <div class="col-sm-2">
-              <input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right"/>
+            <div class="col-sm-3">
+              <input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />
               <div class="{{ validRange() }}"></div>
             </div>
         `,
         controller: function($scope) {
+            const info = appState.modelInfo($scope.modelName)[$scope.field];
+            const low = info[4];
+            const high = info[5];
             $scope.validRange = () => {
+                const v = ($scope.model[$scope.field] < low || $scope.model[$scope.field] >= high) && $scope.model[$scope.field] >= 0;
                 validationService.validateField(
                     $scope.modelName,
                     $scope.field,
                     'input',
-                    ! ($scope.model[$scope.field] >= 1 && $scope.model[$scope.field] < 100),
-                    '1 < Pump Rep Rate < 100 is not a valid choice',
+                    v,
+                    `Rate must be between 0 and ${low} or greater than ${high}`,
                 );
                 return 'sr-input-warning';
             };
