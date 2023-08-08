@@ -512,15 +512,16 @@ def sim_frame(frame_args):
         else:
             frame_args.sim_in.report = "initialIntensityReport"
             frame_args.sim_in.models.initialIntensityReport = m
-    # some reports may be written at the same time as the reader
-    # if the file is invalid, wait a bit and try again
-    for i in (1, 2, 3):
-        try:
-            return extract_report_data(frame_args.sim_in)
-        except Exception:
-            # sleep and retry to work-around concurrent file read/write
-            pkdlog("sleep and retry simulation frame read: {} {}", i, r)
-            time.sleep(2)
+    if "beamlineAnimation" not in r:
+        # some reports may be written at the same time as the reader
+        # if the file is invalid, wait a bit and try again
+        for i in (1, 2, 3):
+            try:
+                return extract_report_data(frame_args.sim_in)
+            except Exception:
+                # sleep and retry to work-around concurrent file read/write
+                pkdlog("sleep and retry simulation frame read: {} {}", i, r)
+                time.sleep(2)
     return extract_report_data(frame_args.sim_in)
 
 
@@ -820,9 +821,13 @@ def process_watch(wid=0):
             _hvz=mesh.hvz,
             _arSurf=mesh.arSurf,
         )
+        dst = _wavefront_intensity_filename(wid)
+        src = f"tmp_{dst}"
         srwlib.srwl_uti_save_intens_ascii(
-            d.flatten().tolist(), new_mesh, _wavefront_intensity_filename(wid)
+            d.flatten().tolist(), new_mesh, src
         )
+        pkio.py_path(src).rename(dst)
+
 
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
