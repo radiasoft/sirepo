@@ -7,11 +7,12 @@ import dolfin
 import numpy
 
 crystal = Crystal(params=PKDict({{crystalParams}}))
+sim_type = "{{ thermalCrystal.calc_type }}"
 
 def thermo_optic_sim():
-    # Initialize a simulator with a crystal object set
     thermo = ThermoOptic(crystal, {{thermalCrystal.mesh_density}})
 
+    # Initialize a simulator with a crystal object set
     # Set evaluation points & boundary conditions
     thermo.set_points((
         {{thermalTransportSettings_grid_points_r}},
@@ -19,11 +20,21 @@ def thermo_optic_sim():
         {{thermalTransportSettings_grid_points_z}},
     ), {{thermalTransportSettings_edge_fraction}})
     thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
-    thermo.set_load("{{ pump_pulse_profile }}")
 
-    Ts = thermo.{{ pump_pulse_profile }}_solution() #solve_steady()#gaussian_solution()
+    if sim_type == "analytical":
+        Ts = thermo.{{ pump_pulse_profile }}_solution()
+
+    elif sim_type == "fenics":
+        thermo.set_load('{{ pump_pulse_profile }}')
+        r = crystal.params.pop_inversion_pump_rep_rate
+        if r <= 1:
+            Ts = thermo.slow_solution('{{ pump_pulse_profile }}')
+        elif r >= 100:
+            Ts = thermo.solve_steady()
+        else:
+            raise AssertionError(f"Invalid rep rate for simulated solve heat_load={'{{ pump_pulse_profile }}'}")
+
     nT, n0Fit, n2Fit = thermo.compute_indices(Ts)
-
     # Positions of each evaluation point & sets of the unique values
     ptzs = thermo.eval_pts[:, 2]
     ptrs = (thermo.eval_pts[:, 0] ** 2 + thermo.eval_pts[:, 1] ** 2) ** 0.5
@@ -41,7 +52,7 @@ def thermo_optic_sim():
     )
     pTs = Ts.reshape((len(rs), len(zs)), order='F')
     pTs = array((pTs[::-1]).tolist()+pTs[1:].tolist())
-    heat_map = pTs.T
+    heat_map = pTs
     return PKDict(
         thermo=thermo,
         heat_map=heat_map,
@@ -73,12 +84,12 @@ template_common.write_dict_to_h5(
         intensity=res.heat_map,
         ranges=PKDict(
             x=[
-                -crystal.params.pop_inversion_mesh_extent,
-                crystal.params.pop_inversion_mesh_extent,
-            ],
-            y=[
                 -crystal.params.length / 2,
                 crystal.params.length / 2,
+            ],
+            y=[
+                -crystal.params.pop_inversion_mesh_extent,
+                crystal.params.pop_inversion_mesh_extent,
             ],
         ),
     ),
