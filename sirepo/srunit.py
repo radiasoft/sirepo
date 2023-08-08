@@ -201,7 +201,7 @@ class _TestClient:
 
         m = re.search(
             r"(\{.*\})",
-            pkdp(pkcompat.from_bytes(self.sr_get("authState").data)),
+            pkcompat.from_bytes(self.sr_get("authState").data),
         )
         s = pkcollections.json_load_any(m.group(1))
         for k, v in kwargs.items():

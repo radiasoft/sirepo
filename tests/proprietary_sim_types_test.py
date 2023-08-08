@@ -41,6 +41,5 @@ def test_myapp(auth_fc):
         sirepo.auth_role.for_sim_type(fc.sr_sim_type),
     )
     r = fc.sr_run_sim(fc.sr_sim_data(), "heightWeightReport")
-    pkdp(type(r))
     p = r.get("plots")
     pkunit.pkok(p, "expecting truthy r.plots={}", p)
