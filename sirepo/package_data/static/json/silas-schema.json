@@ -414,6 +414,7 @@
                     "crystal.mesh_density"
                 ]],
                 ["Pump Pulse", [
+                    "crystal_id",
                     "crystal.pump_type",
                     "crystal.pump_energy",
                     "crystal.pump_waist",
