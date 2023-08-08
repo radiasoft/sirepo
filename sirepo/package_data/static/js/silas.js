@@ -37,7 +37,7 @@ SIREPO.app.config(function() {
         </div>
     `;
     SIREPO.appDownloadLinks = [
-        '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
+        `<li data-export-python-link="" data-report-title="{{ reportTitle().replace('/', ' ') }}"></li>`,
     ].join('');
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
