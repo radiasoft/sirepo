@@ -18,7 +18,7 @@ import os
 import py.path
 import re
 import sirepo.sim_data
-from srwpy import srwl_bl
+import srwl_bl
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals("srw")
 
