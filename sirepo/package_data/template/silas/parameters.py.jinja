@@ -125,7 +125,12 @@ def get_element(elements, index):
     e = elements[index]
     if isinstance(e[0], Crystal) and index not in crystal_init:
         crystal_init.add(index)
-        e[0].calc_n0n2(set_n=True, mesh_density=e[2], heat_load=e[3], method=e[4])
+        abcd = e[0].calc_n0n2(set_n=True, mesh_density=e[2], heat_load=e[3], method=e[4])[2]
+        for s in e[0].slice:
+            s.A = abcd[0][0]
+            s.B = abcd[0][1]
+            s.C = abcd[1][0]
+            s.D = abcd[1][1]
     return e
 
 

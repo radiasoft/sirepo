@@ -9,6 +9,7 @@ import fenics
 import numpy
 
 crystal = Crystal(params=PKDict({{crystalParams}}))
+sim_type = "{{ thermalCrystal.calc_type }}"
 
 def thermo_optic_sim():
     def _solve():
@@ -85,12 +86,12 @@ template_common.write_dict_to_h5(
         intensity=res.heat_map,
         ranges=PKDict(
             x=[
-                -crystal.params.pop_inversion_mesh_extent,
-                crystal.params.pop_inversion_mesh_extent,
-            ],
-            y=[
                 -crystal.params.length / 2,
                 crystal.params.length / 2,
+            ],
+            y=[
+                -crystal.params.pop_inversion_mesh_extent,
+                crystal.params.pop_inversion_mesh_extent,
             ],
         ),
     ),
