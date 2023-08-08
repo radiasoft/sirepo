@@ -16,6 +16,7 @@ import pykern.pkinspect
 import re
 import requests
 import urllib
+import threading
 
 #: Default "app"
 MYAPP = "myapp"
@@ -109,6 +110,7 @@ class _TestClient:
         self.http_prefix = f"http://{env.SIREPO_PKCLI_SERVICE_IP}:{port}"
         self._session = requests.Session()
         self.cookie_jar = self._session.cookies
+        self._threads = PKDict()
         if feature_config.cfg().ui_websocket:
             self._websocket = _WebSocket(self)
 
@@ -216,8 +218,8 @@ class _TestClient:
 
     def sr_clone(self):
         res = self.__class__(**self._init_args)
-        self._session = copy.deepcopy(self._session)
-        self.cookie_jar = self._session.cookies
+        res._session = copy.deepcopy(self._session)
+        res.cookie_jar = res._session.cookies
         return res
 
     def sr_email_confirm(self, resp, display_name=None):
@@ -527,6 +529,25 @@ class _TestClient:
         self.sr_sim_type = sim_type or self.sr_sim_type or SR_SIM_TYPE_DEFAULT
         return self
 
+    def sr_thread_join(self, *names):
+        from pykern import pkunit
+
+        res = PKDict()
+        for n in names or list(self._threads.keys()):
+            t = self._threads[n]
+            t.join()
+            del self._threads[n]
+            pkunit.pkok(t.sr_ok, f"thread={n} got an exception")
+            res[n] = t.sr_res
+        return res
+
+    def sr_thread_start(self, name, op, **kwargs):
+        t = self._threads[name] = _Thread(
+            op=op,
+            kwargs=PKDict(kwargs).pkupdate(fc=self.sr_clone()),
+        )
+        t.start()
+
     def sr_user_dir(self, uid=None):
         """User's db dir"""
         from pykern import pkunit
@@ -698,6 +719,18 @@ class _HTTPResponse:
             headers=PKDict(Location=uri),
         )
         return self
+
+
+class _Thread(threading.Thread):
+    def __init__(self, op, kwargs):
+        super().__init__()
+        self.sr_ok = False
+        self._op = op
+        self._kwargs = kwargs
+
+    def run(self):
+        self.sr_res = self._op(**self._kwargs)
+        self.sr_ok = True
 
 
 class _WebSocket:

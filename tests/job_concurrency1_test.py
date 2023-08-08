@@ -19,45 +19,53 @@ def test_myapp_cancel(fc):
     import threading
     from pykern.pkdebug import pkdlog
 
-    d = fc.sr_sim_data()
-    d.models.simulation.name = "srunit_long_run"
-    r = "heightWeightReport"
+    d1 = fc.sr_sim_data()
+    d1.models.simulation.name = "srunit_long_run"
+    d2 = fc.sr_post(
+        "copySimulation",
+        dict(
+            simulationId=d1.models.simulation.simulationId,
+            simulationType=fc.sr_sim_type,
+            name="sim2",
+            folder="/",
+        ),
+    )
+    report = "heightWeightReport"
 
-    def _t2():
+    def _t2(fc, sim_data):
         pkdlog("start 2")
         r2 = fc.sr_post(
             "runSimulation",
             dict(
                 forceRun=False,
-                models=d.models,
-                report=r,
-                simulationId=d.models.simulation.simulationId,
-                simulationType=d.simulationType,
+                models=sim_data.models,
+                report=report,
+                simulationId=sim_data.models.simulation.simulationId,
+                simulationType=sim_data.simulationType,
             ),
         )
         pkdlog(r2)
         for _ in range(40):
+            time.sleep(0.1)
             pkunit.pkok(r2.state != "error", "unexpected error state: {}")
             if r2.state == "running":
+                pkdlog("running")
                 break
-            if r2.state == "canceled":
-                pkdlog("canceled")
-                break
-            time.sleep(0.1)
-            pkdlog("runStatus 2")
+            pkunit.pkeq("pending", r2.state)
             r2 = fc.sr_post("runStatus", r2.nextRequest)
         else:
             pkunit.pkfail("runStatus: failed to start running: {}", r2)
+        return r2
 
     pkdlog("start 1")
     r1 = fc.sr_post(
         "runSimulation",
         dict(
             forceRun=False,
-            models=d.models,
-            report=r,
-            simulationId=d.models.simulation.simulationId,
-            simulationType=d.simulationType,
+            models=d1.models,
+            report=report,
+            simulationId=d1.models.simulation.simulationId,
+            simulationType=d1.simulationType,
         ),
     )
     for _ in range(100):
@@ -69,35 +77,14 @@ def test_myapp_cancel(fc):
         r1 = fc.sr_post("runStatus", r1.nextRequest)
     else:
         pkunit.pkfail("runStatus: failed to start running: {}", r1)
-
-    t2 = threading.Thread(target=_t2)
-    t2.start()
-    time.sleep(0.5)
-    pkdlog("runCancel")
-    c = fc.sr_post("runCancel", r1.nextRequest)
-    pkunit.pkeq("canceled", c.state)
-
-    pkdlog("start 3")
-    r1 = fc.sr_post(
-        "runSimulation",
-        dict(
-            forceRun=False,
-            models=d.models,
-            report=r,
-            simulationId=d.models.simulation.simulationId,
-            simulationType=d.simulationType,
-        ),
-    )
-    for _ in range(20):
-        pkunit.pkok(r1.state != "error", "unexpected error state: {}")
-        if r1.state == "running":
-            break
-        time.sleep(0.1)
-        r1 = fc.sr_post("runStatus", r1.nextRequest)
-    else:
-        pkunit.pkfail("runStatus: failed to start running: {}", r1)
-    c = fc.sr_post("runCancel", r1.nextRequest)
-    pkunit.pkeq("canceled", c.state)
+    fc.sr_thread_start("sim2", _t2, sim_data=d2)
+    time.sleep(1)
+    pkdlog("runCancel 1")
+    fc.sr_post("runCancel", r1.nextRequest)
+    pkunit.pkeq("canceled", fc.sr_post("runStatus", r1.nextRequest).state)
+    r2 = fc.sr_thread_join().sim2
+    fc.sr_post("runCancel", r2.nextRequest)
+    pkunit.pkeq("canceled", fc.sr_post("runStatus", r2.nextRequest).state)
 
 
 def test_elegant_concurrent_sim_frame(fc):
