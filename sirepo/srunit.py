@@ -696,6 +696,7 @@ class _HTTPResponse:
 class _WebSocket:
 
     _AUTH_RE = re.compile(r"/auth-|https?:")
+    _ANCHOR_RE = re.compile(r"(/.*?)#")
 
     def __init__(self, test_client):
         self._enabled = False
@@ -707,7 +708,7 @@ class _WebSocket:
         from pykern.pkdebug import pkdp, pkdlog
         import msgpack
 
-        def _marshall_req():
+        def _marshall_req(uri):
             m = PKDict(msgType="request", uri=uri)
             if op == "get":
                 assert (
@@ -726,7 +727,7 @@ class _WebSocket:
                     )
             return m
 
-        def _must_be_http():
+        def _must_be_http(uri):
             # POSIT: /auth- match like sirepo.js msgRouter and https?:
             # for browser click on email msg. If there are headers,
             # it's a change in auth.
@@ -741,11 +742,12 @@ class _WebSocket:
                 return False
             return True
 
-        if _must_be_http():
+        if _must_be_http(uri):
             pkdlog("uri={} enabled={}", uri, self._enabled)
             return None
         assert uri[0] == "/", f"uri={uri} must begin with '/'"
-        return self._send(_marshall_req())
+        m = self._ANCHOR_RE.search(uri)
+        return self._send(_marshall_req(m.group(1) if m else uri))
 
     def _send(self, msg):
         from pykern import pkjson
