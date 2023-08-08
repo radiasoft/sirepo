@@ -33,14 +33,11 @@ SR_SIM_NAME_DEFAULT = "Scooby Doo"
 #: Sirepo db dir
 _DB_DIR = "db"
 
-_client = None
-
 
 def http_client(
     env=None, sim_types=None, job_run_mode=None, empty_work_dir=True, port=None
 ):
     """Create an http_client that talks to server"""
-    global _client
     t = sim_types or CONFTEST_DEFAULT_CODES
     if t:
         if isinstance(t, (tuple, list)):
@@ -50,8 +47,6 @@ def http_client(
     from pykern import pkconfig
 
     pkconfig.reset_state_for_testing(env)
-    if _client:
-        return _client
 
     from pykern import pkunit
 
@@ -64,8 +59,7 @@ def http_client(
     from sirepo import modules
 
     modules.import_and_init("sirepo.uri")
-    _client = _TestClient(env=env, job_run_mode=job_run_mode, port=port)
-    return _client
+    return _TestClient(env=env, job_run_mode=job_run_mode, port=port)
 
 
 @contextlib.contextmanager
@@ -106,6 +100,7 @@ class _TestClient:
         from sirepo import feature_config
 
         super().__init__()
+        self._init_args = PKDict(env=env, job_run_mode=job_run_mode, port=port)
         self.sr_job_run_mode = job_run_mode
         self.sr_sbatch_logged_in = False
         self.sr_sim_type = None
@@ -116,6 +111,12 @@ class _TestClient:
         self.cookie_jar = self._session.cookies
         if feature_config.cfg().ui_websocket:
             self._websocket = _WebSocket(self)
+
+    def assert_websocket_req_seq(self, expect, *args, **kwargs):
+        from pykern import pkunit
+
+        if "_websocket" in self:
+            pkunit.pkeq(expect, self._websocket.req_seq, *args, **kwargs)
 
     def get(self, uri, headers=None):
         return self._requests_op("get", uri, headers, kwargs=PKDict())
@@ -212,6 +213,12 @@ class _TestClient:
                 s,
             )
         return s
+
+    def sr_clone(self):
+        res = self.__class__(**self._init_args)
+        self._session = copy.deepcopy(self._session)
+        self.cookie_jar = self._session.cookies
+        return res
 
     def sr_email_confirm(self, resp, display_name=None):
         from pykern.pkdebug import pkdlog
@@ -695,7 +702,8 @@ class _HTTPResponse:
 
 class _WebSocket:
 
-    _AUTH_RE = re.compile(r"/auth-|https?:")
+    # /download is special below
+    _HTTP_RE = re.compile(r"^(?:/(?:auth|download)-|https?:)")
     _ANCHOR_RE = re.compile(r"(/.*?)#")
 
     def __init__(self, test_client):
@@ -730,10 +738,11 @@ class _WebSocket:
         def _must_be_http(uri):
             # POSIT: /auth- match like sirepo.js msgRouter and https?:
             # for browser click on email msg. If there are headers,
-            # it's a change in auth.
-            if headers or self._AUTH_RE.search(uri):
-                # Stop the socket
-                self.stop()
+            # it's a change in auth. /download is special, because we
+            # don't have a way of saving a file (easily) in sirepo.js.
+            if headers or self._HTTP_RE.search(uri):
+                if not uri.startswith("/download"):
+                    self.stop()
                 return True
             if self._enabled:
                 return False
@@ -764,12 +773,12 @@ class _WebSocket:
                 additional_headers=r.headers,
                 max_size=job.cfg().max_message_bytes,
             )
-            self._req_seq = 1
+            self.req_seq = 1
 
         if not self._connection:
             _connect()
-        self._req_seq += 1
-        msg.reqSeq = self._req_seq
+        self.req_seq += 1
+        msg.reqSeq = self.req_seq
         self._connection.send(pkjson.dump_pretty(msg, pretty=False))
         return _WebSocketResponse(
             self._connection.recv(timeout=self._test_client.DEFAULT_TIMEOUT_SECS),
@@ -785,7 +794,7 @@ class _WebSocket:
         c = self._connection
         self._connection = None
         self._enabled = False
-        self._req_seq = None
+        self.req_seq = None
         if c:
             c.close()
 

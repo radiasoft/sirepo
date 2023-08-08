@@ -25,12 +25,13 @@ def test_myapp(fc):
         simulationId=d.models.simulation.simulationId,
         simulationType=d.simulationType,
     )
-    t1 = threading.Thread(target=lambda: fc.sr_post("runSimulation", x))
+    t1 = threading.Thread(target=lambda: fc.sr_clone().sr_post("runSimulation", x))
     t1.start()
     time.sleep(1)
-    t2 = threading.Thread(target=lambda: fc.sr_post("runCancel", x))
+    t2 = threading.Thread(target=lambda: fc.sr_clone().sr_post("runCancel", x))
     t2.start()
     time.sleep(1)
+    pkunit.pkeq("canceled", fc.sr_post("runStatus", x).state)
     r = fc.sr_run_sim(d, _REPORT)
     p = r.get("plots")
     pkunit.pkok(p, "expecting truthy r.plots={}", p)

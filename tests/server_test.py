@@ -16,6 +16,7 @@ def test_elegant_data_file(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     import sdds
+    from sirepo import feature_config
 
     data = fc.sr_sim_data("bunchComp - fourDipoleCSR")
     run = fc.sr_post(
@@ -61,16 +62,17 @@ def test_elegant_data_file(fc):
         ),
     )
     pkunit.pkeq(200, r.status_code)
+    d = pkunit.work_dir()
     m = re.search(
         r'attachment; filename="([^"]+)"',
         r.header_get("Content-Disposition"),
     )
-    d = pkunit.work_dir()
     path = d.join(m.group(1))
     path.write_binary(r.data)
     pkunit.pkeq(1, sdds.sddsdata.InitializeInput(0, str(path)))
     pkunit.pkne(0, len(sdds.sddsdata.GetColumnNames(0)))
     sdds.sddsdata.Terminate(0)
+    fc.assert_websocket_req_seq(10, "ensure downloads don't interrupt websocket")
 
 
 def test_myapp_basic(fc):
