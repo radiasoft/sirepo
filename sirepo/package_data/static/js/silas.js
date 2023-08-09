@@ -20,7 +20,7 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="IntArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Int"></div>
         </div>
-        <div data-ng-switch-when="SelectCrystal" data-ng-class="col-sm-7">
+        <div data-ng-switch-when="SelectCrystal" class="col-sm-7">
           <div data-select-crystal="" data-model="model" data-field="field"></div>
         </div>
         <div data-ng-switch-when="SelectThermalTransportCrystal" class="col-sm-7">
@@ -32,9 +32,12 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="Float6">
           <div data-float-6="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="PumpRepRate">
+          <div data-pump-rep-rate="" data-model-name="modelName" data-model="model" data-field="field"></div>
+        </div>
     `;
     SIREPO.appDownloadLinks = [
-        '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
+        `<li data-export-python-link="" data-report-title="{{ reportTitle().replace('/', ' ') }}"></li>`,
     ].join('');
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
@@ -95,6 +98,7 @@ SIREPO.app.factory('silasService', function(appState) {
 
 SIREPO.app.controller('SourceController', function (appState, frameCache, persistentSimulation, silasService, $scope) {
     const self = this;
+    let errorMessage;
     self.simScope = $scope;
     self.simAnalysisModel = 'laserPulseAnimation';
 
@@ -102,6 +106,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, persis
         if (! appState.isLoaded()) {
             return;
         }
+        errorMessage = data.error;
         if (data.outputInfo) {
             for (const m of data.outputInfo) {
                 frameCache.setFrameCount(m.frameCount, m.modelKey);
@@ -116,6 +121,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, persis
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
+    self.simState.errorMessage = () => errorMessage;
 
     $scope.$on('laserPulse.changed', () => {
         self.simState.runSimulation();
@@ -164,6 +170,7 @@ SIREPO.app.controller('BeamlineController', function (appState, beamlineService,
 
 SIREPO.app.controller('CrystalController', function (appState, frameCache, persistentSimulation, silasService, $scope) {
     var self = this;
+    let errorMessage;
     self.appState = appState;
     self.simScope = $scope;
     self.simAnalysisModel = 'crystalAnimation';
@@ -176,13 +183,12 @@ SIREPO.app.controller('CrystalController', function (appState, frameCache, persi
         if (! appState.isLoaded()) {
             return;
         }
-        if (data.error) {
-            throw new Error(data.error);
-        }
+        errorMessage = data.error;
         frameCache.setFrameCount(data.frameCount);
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
+    self.simState.errorMessage = () => errorMessage;
 
     appState.whenModelsLoaded($scope, () => {
         $scope.$on('plotAnimation.summaryData', function (e, data) {
@@ -337,6 +343,10 @@ SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $
                             $scope.errorMessage = response.error;
                             return;
                         }
+                        if (response.state == 'canceled') {
+                            $scope.errorMessage = 'Request canceled';
+                            return;
+                        }
                         if ($('.' + $scope.imageClass).length) {
                             $('.' + $scope.imageClass)[0].src = response.uri;
                         }
@@ -349,6 +359,7 @@ SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $
                     },
                     {
                         method: 'n0n2_plot',
+                        sigx_waist: appState.applicationState().laserPulse.sigx_waist,
                         model: $scope.model,
                     }
                 );
@@ -359,7 +370,52 @@ SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $
     };
 });
 
+SIREPO.app.directive('pumpRepRate', function(appState, validationService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            modelName: '=',
+        },
+        template: `
+            <div class="col-sm-3">
+              <input data-string-to-number="" data-ng-model="model[field]" class="form-control" style="text-align: right" required />
+              <div class="{{ validRange() }}"></div>
+            </div>
+        `,
+        controller: function($scope) {
+            const info = appState.modelInfo($scope.modelName)[$scope.field];
+            const low = info[4];
+            const high = info[5];
+            $scope.validRange = () => {
+                if (! $scope.model) {
+                    return;
+                }
+                const v = ($scope.model[$scope.field] <= low || $scope.model[$scope.field] >= high) && $scope.model[$scope.field] >= 0;
+                validationService.validateField(
+                    $scope.modelName,
+                    $scope.field,
+                    'input',
+                    v,
+                    `Rate must be between 0 and ${low} or greater than ${high}`,
+                );
+                return 'sr-input-warning';
+            };
+        }
+    };
+});
+
 SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scope) {
+    function updateAll(item) {
+        updateCrystalFields(item);
+        updateCalculationType(item);
+    }
+
+    function updateCalculationType(item) {
+        panelState.showField('crystal', 'calc_type', item.pump_rep_rate >= 100);
+    }
+
     function updateCrystalFields(item) {
         const crystals = silasService.getPriorCrystals(item.id);
         const hasCrystals = crystals.length > 0;
@@ -387,9 +443,10 @@ SIREPO.beamlineItemLogic('crystalView', function(panelState, silasService, $scop
         panelState.showTab(item.type, 4, item.origin === 'new');
     }
 
-    $scope.whenSelected = updateCrystalFields;
+    $scope.whenSelected = updateAll;
     $scope.watchFields = [
         ['propagationType', 'origin', 'reuseCrystal'], updateCrystalFields,
+        ['pump_rep_rate'], updateCalculationType,
     ];
 });
 
@@ -487,11 +544,21 @@ SIREPO.viewLogic('laserPulseView', function(appState, panelState, requestSender,
 
 SIREPO.viewLogic('thermalTransportCrystalView', function(appState, panelState, silasService, $scope) {
 
+    function checkAll() {
+        checkThermalTransportCrystal();
+        updateCalculationType();
+    }
+
     function checkThermalTransportCrystal() {
         if (! appState.applicationState().thermalTransportCrystal.crystal_id) {
             updateThermalTransportCrystal();
             appState.saveChanges(['crystal', 'thermalTransportCrystal']);
         }
+    }
+
+    function updateCalculationType() {
+        const c = appState.models.crystal;
+        panelState.showField('crystal', 'calc_type', c.pump_rep_rate >= 100);
     }
 
     function updateThermalTransportCrystal() {
@@ -500,11 +567,10 @@ SIREPO.viewLogic('thermalTransportCrystalView', function(appState, panelState, s
         appState.models.thermalTransportCrystal.crystal = c;
     }
 
-    $scope.whenSelected = () => checkThermalTransportCrystal();
+    $scope.whenSelected = checkAll;
     $scope.watchFields = [
-        [
-            'thermalTransportCrystal.crystal_id',
-        ], () => updateThermalTransportCrystal(),
+        ['thermalTransportCrystal.crystal_id'], updateThermalTransportCrystal,
+        ['crystal.pump_rep_rate'], updateCalculationType,
     ];
 
     $scope.$on('crystal.changed', () => {
