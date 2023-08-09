@@ -2023,7 +2023,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 content.append("op = set_optics(v, names, {})".format(is_last_watch))
                 if not is_last_watch:
                     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
-                    content.append(f"process_watch(wid={prev_watch})")
+                    content.append(f"sirepo.template.import_module('srw').process_watch(wid={prev_watch})")
                 prev_watch = beamline_info.watches[n]
 
     elif run_all or (
@@ -2096,7 +2096,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
     if report == "beamlineAnimation":
         content.append(
-            f"process_watch(wid={beamline_info.watches.get(final_watch, 0)})"
+            f"sirepo.template.import_module('srw').process_watch(wid={beamline_info.watches.get(final_watch, 0)})"
         )
     return "\n".join(
         [f"    {x}" for x in content] + [""] + ([] if is_for_rsopt else ["main()", ""])

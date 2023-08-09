@@ -24,6 +24,10 @@ try:
 except:
     pass
 
+{% if in_server %}
+import sirepo.template
+{% endif %}
+
 import srwl_bl
 import srwlib
 import srwlpy
@@ -431,21 +435,11 @@ def _rsopt_set_params({{ rsOptFuctionSignature() }}):
 
 def epilogue():
     {% if in_server %}
-    import sirepo.template
     sirepo.template.run_epilogue('srw')
     {% else %}
     pass
     {% endif %}
 
-{% if isBeamlineAnimation %}
-def process_watch(**kwargs):
-    {% if in_server %}
-    import sirepo.template
-    sirepo.template.run_on_server("srw", "process_watch", **kwargs)
-    {% else %}
-    pass
-    {% endif %}
-{% endif %}
 
 def main():
 {{srwMain}}
