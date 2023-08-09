@@ -2446,7 +2446,6 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     v.setupMagneticMeasurementFiles = (
         plot_reports or is_for_rsopt
     ) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
-    v.isBeamlineAnimation = "beamlineAnimation" in report
     v.srwMain = _generate_srw_main(data, plot_reports, beamline_info)
     if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         _set_magnetic_measurement_parameters(run_dir or "", v, qcall=qcall)
