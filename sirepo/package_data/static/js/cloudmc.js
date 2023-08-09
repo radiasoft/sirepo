@@ -978,10 +978,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     return;
                 }
                 const r = $scope.planePosRange();
-                //const i = tallyReportAxisIndices()[0];
-                //const r = getMeshRanges()[i];
-                //const step = Math.abs((r[1] - r[0])) / r[2];
-                srdbg(r);
                 appState.models.tallyReport.planePos = adjustToRange(
                     appState.models.tallyReport.planePos,
                     r
@@ -1001,6 +997,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     step: r.step,
                     value: $scope.tallyReport.planePos,
                 });
+                // jqueryui sometimes decrements the max by the step value due to floating-point
+                // shenanigans. Reset it here
+                $('.plane-pos-slider').slider('instance').max = r.max;
             }
 
             function volumesError(reason) {
