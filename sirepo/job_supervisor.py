@@ -393,7 +393,6 @@ class _Supervisor(PKDict):
 
     @classmethod
     def _reply_exception(cls, exc):
-        n = exc.__class__
         if isinstance(exc, sirepo.util.SRException):
             return PKDict(
                 {
@@ -849,7 +848,7 @@ class _ComputeJob(_Supervisor):
         if r:
             return r
         r = await self._send_op_analysis(req, "sequential_result")
-        if r.state == job.ERROR:
+        if r.state == job.ERROR and "errorCode" not in r:
             return self._init_db_missing_response(req)
         return r
 

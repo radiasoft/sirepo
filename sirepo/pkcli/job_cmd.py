@@ -5,6 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkcompat
+from pykern import pkconst
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -13,7 +14,6 @@ from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
 import contextlib
-import os
 import re
 import requests
 import signal
@@ -22,7 +22,6 @@ import sirepo.template
 import sirepo.util
 import subprocess
 import sys
-import tempfile
 import time
 
 _MAX_FASTCGI_EXCEPTIONS = 3
@@ -79,10 +78,6 @@ def _background_percent_complete(msg, template, is_running):
     )
 
 
-def _is_over_response_size_limit(payload):
-    return payload >= job.cfg().max_message_bytes
-
-
 def _dispatch_compute(msg, template):
     def _op(expect_file):
         r = getattr(template_common, f"{msg.jobCmd}_dispatch")(
@@ -96,8 +91,7 @@ def _dispatch_compute(msg, template):
                 state=job.ERROR,
                 error=f"method={template.SIM_TYPE}.{msg.jobCmd}_{msg.data.method} unexpected return=JobCmdFile uri={r.uri}",
             )
-        e = _error_if_response_too_large(r.content)
-        if e:
+        if e := _error_if_response_too_large(r.content):
             return e
         requests.put(
             msg.dataFileUri + r.uri,
@@ -166,9 +160,6 @@ def _do_analysis_job(msg, template):
 
 
 def _do_download_data_file(msg, template):
-    def _response_too_large():
-        return PKDict(state=job.ERROR, errorCode=job.ERROR_CODE_RESPONSE_TOO_LARGE)
-
     try:
         r = template.get_data_file(
             msg.runDir,
@@ -184,8 +175,8 @@ def _do_download_data_file(msg, template):
         if u is None:
             u = r.filename.basename
         c = r.get("content")
-        if _is_over_response_size_limit(len(c) if c else r.filename.size()):
-            return _response_too_large()
+        if e := _error_if_response_too_large(c if c else r.filename):
+            return e
         if c is None:
             c = (
                 pkcompat.to_bytes(pkio.read_text(r.filename))
@@ -307,8 +298,19 @@ def _do_stateless_compute(msg, template):
 
 
 def _error_if_response_too_large(payload):
-    if _is_over_response_size_limit(len(payload)):
-        return PKDict(state=job.COMPLETED, error="Response is too large to send")
+    def _payload_size(payload):
+        return (
+            payload.size()
+            if isinstance(payload, pkconst.PY_PATH_LOCAL_TYPE)
+            else len(payload)
+        )
+
+    if _payload_size(payload) >= job.cfg().max_message_bytes:
+        return PKDict(
+            state=job.COMPLETED,
+            error="Response is too large to send",
+            errorCode=job.ERROR_CODE_RESPONSE_TOO_LARGE,
+        )
     return None
 
 
