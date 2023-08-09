@@ -5,7 +5,6 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdformat
-import abc
 import aenum
 import asyncio
 import base64
@@ -16,6 +15,7 @@ import os
 import requests
 import sirepo.feature_config
 import sirepo.raydata
+import sirepo.raydata.analysis_driver
 import sirepo.srdb
 import sirepo.srtime
 import sqlalchemy
@@ -158,25 +158,6 @@ class _Analysis(_DbBase):
         )
 
 
-class _Beamline(abc.ABC):
-    def __init__(self, catalog_name):
-        self.catalog_name = catalog_name
-
-
-class CHX(_Beamline):
-    def notebooks(self):
-        with zipfile.ZipFile(_notebook_zip_path(self.catalog_name), "r") as z:
-            z.extractall()
-        return pkio.sorted_glob("*.ipynb")
-
-
-class CSX(_Beamline):
-    def notebooks(self):
-        with zipfile.ZipFile(_notebook_zip_path(self.catalog_name), "r") as z:
-            z.extractall()
-        return pkio.sorted_glob("*.ipynb")
-
-
 # TODO(e-carlin): copied from sirepo
 # TODO(e-carlin): Since we are going to sockets for communication we should probably use them here.
 # But, for now it is easier to just make a normal http request
@@ -216,9 +197,15 @@ class _Metadata:
         return self._metadata["start"]["uid"]
 
 
-class _Req(_JsonPostRequestHandler):
-    async def _incoming(self, req):
-        return getattr(self, "_" + req.pkdel("method"))(req)
+class _RequestHandler(_JsonPostRequestHandler):
+    async def _incoming(self, request_body):
+        r = PKDict(
+            body=PKDict(request_body),
+            analysis_driver=sirepo.raydata.analysis_driver.AnalysisDriverBase.get_analysis_driver(
+                request_body
+            ),
+        )
+        return getattr(self, "_" + r.body.pkdel("method"))(r)
 
     async def post(self):
         self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
@@ -246,12 +233,16 @@ class _Req(_JsonPostRequestHandler):
             )
 
         return PKDict(
-            images=[_filename_and_image(p) for p in _image_paths(req.uid)],
-            jsonFiles=[_filename_and_json(p) for p in _json_paths(req.uid)],
+            images=[
+                _filename_and_image(p) for p in _image_paths(req.body.data.args.uid)
+            ],
+            jsonFiles=[
+                _filename_and_json(p) for p in _json_paths(req.body.data.args.uid)
+            ],
         )
 
     def _analysis_run_log(self, req):
-        p = _Analysis.analysis_output_dir(req.uid).join("run.log")
+        p = _Analysis.analysis_output_dir(req.body.data.args.uid).join("run.log")
         return PKDict(
             log_path=str(p),
             run_log=pkio.read_text(p) if p.exists() else "",
@@ -259,9 +250,9 @@ class _Req(_JsonPostRequestHandler):
 
     def _begin_replay(self, req):
         sirepo.raydata.replay.begin(
-            req.data.sourceCatalogName,
-            req.data.destinationCatalogName,
-            req.data.numScans,
+            req.body.data.sourceCatalogName,
+            req.body.data.destinationCatalogName,
+            req.body.data.numScans,
         )
         return PKDict(data="ok")
 
@@ -287,23 +278,23 @@ class _Req(_JsonPostRequestHandler):
                     raise FileNotFoundError(f"no analysis pdfs found for uid={u}")
                 yield u, p
 
-        for u in req.data.args.uids:
+        for u in req.body.data.args.uids:
             assert _is_valid_uuid(u), f"invalid uid={u}"
         with io.BytesIO() as t:
             with zipfile.ZipFile(t, "w") as f:
-                for u, v in _all_pdfs(req.data.args.uids):
+                for u, v in _all_pdfs(req.body.data.args.uids):
                     for p in v:
                         f.write(p, pkio.py_path(f"/uids/{u}").join(p.basename))
             t.seek(0)
             requests.put(
-                req.data.dataFileUri + "analysis_pdfs.zip",
+                req.body.data.dataFileUri + "analysis_pdfs.zip",
                 data=t.getbuffer(),
                 verify=not pkconfig.channel_in("dev"),
             ).raise_for_status()
             return PKDict()
 
     def _get_scans(self, req):
-        a = req.data.args
+        a = req.body.data.args
         c = _catalog(a.catalogName)
         if a.analysisStatus == "allStatuses":
             l = [
@@ -353,29 +344,19 @@ class _Req(_JsonPostRequestHandler):
         return _scan_info_result(s)
 
     def _run_analysis(self, req):
-        _queue_for_analysis(req.data.args.uid, req.data.args.catalogName)
+        _queue_for_analysis(req.body.data.args.uid, req.body.data.args.catalogName)
         return PKDict(data="ok")
 
     def _scan_fields(self, req):
         return PKDict(
             columns=_Metadata(
-                _catalog(req.data.args.catalogName)[-1]
+                _catalog(req.body.data.args.catalogName)[-1]
             ).get_scan_fields(),
         )
 
 
 def _analysis_pdf_paths(uid):
     return pkio.walk_tree(_Analysis.analysis_output_dir(uid), r".*\.pdf$")
-
-
-def _beamline_for_scan(scan):
-    if scan.catalog_name == "chx":
-        return CHX(scan.catalog_name)
-    elif scan.catalog_name == "csx":
-        return CSX(scan.catalog_name)
-    else:
-        # TODO(rorour)
-        assert 0
 
 
 def _catalog(name):
@@ -385,6 +366,12 @@ def _catalog(name):
 def _check_notebooks_for_catalogs():
     for n in _cfg.catalog_names:
         _notebook_zip_path(n)
+
+
+def _get_notebooks(catalog_name):
+    with zipfile.ZipFile(_notebook_zip_path(catalog_name), "r") as z:
+        z.extractall()
+    return pkio.sorted_glob("*.ipynb")
 
 
 async def _init_analysis_processors():
@@ -403,7 +390,7 @@ async def _init_analysis_processors():
                     _Analysis.analysis_output_dir(v.uid), mkdir=True
                 ), pkio.open_text("run.log", mode="w") as l:
                     try:
-                        for n in _beamline_for_scan(v).notebooks():
+                        for n in _get_notebooks(v.catalog_name):
                             p = await asyncio.create_subprocess_exec(
                                 "papermill",
                                 str(n),
@@ -570,7 +557,7 @@ def start():
     def _start():
         l = pkasyncio.Loop()
         l.run(_init_catalog_monitors(), _init_analysis_processors())
-        l.http_server(PKDict(uri_map=((_URI, _Req),)))
+        l.http_server(PKDict(uri_map=((_URI, _RequestHandler),)))
         l.start()
 
     if _cfg:
