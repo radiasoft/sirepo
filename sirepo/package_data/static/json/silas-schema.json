@@ -149,7 +149,7 @@
             "x": ["Horizontal Value to Plot", "ValueList", "x"],
             "y1": ["Vertical Value to Plot", "ValueList", "y"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
-            "colorMap": ["Color Map", "ColorMap", "afmhot"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "crystal3dAnimation": {},
         "laserPulse": {
@@ -192,8 +192,6 @@
             "_super": ["_", "model", "beamElement"],
             "title": ["Element Name", "String", "Mirror"]
         },
-        "plotAnimation": {},
-        "plot2Animation": {},
         "simulation": {
             "distanceFromSource": ["", "Float", 0.0 , "", 0.0]
         },
@@ -297,7 +295,8 @@
         },
         "crystal3dAnimation": {
             "title": "Crystal 3D Mesh",
-            "advanced": []
+            "advanced": [],
+            "canFullScreen": false
         },
         "mirror2": {
             "title": "Two Mirrors",
@@ -363,14 +362,6 @@
                 "position",
                 "focalLength"
             ]
-        },
-        "plotAnimation": {
-            "title": "Radial Temperature Profile",
-            "advanced": []
-        },
-        "plot2Animation": {
-            "title": "Longitudinal Temperature Profile",
-            "advanced": []
         },
         "n0n2Plot": {
             "title": "",

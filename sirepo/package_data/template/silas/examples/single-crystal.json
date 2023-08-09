@@ -67,12 +67,9 @@
             "sigy_waist": 0.001,
             "wfs": ""
         },
-        "plot2Animation": {},
-        "plotAnimation": {},
         "simulation": {
             "distanceFromSource": 0,
             "folder": "/Examples",
-            "isExample": true,
             "name": "Single Crystal"
         },
         "watchpointReport3": {
