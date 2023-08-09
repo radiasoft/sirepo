@@ -1571,7 +1571,6 @@ def _export_rsopt_config(data, run_dir):
 def _extend_plot(
     ar2d, x_range, y_range, horizontalStart, horizontalEnd, verticalStart, verticalEnd
 ):
-
     x_step = (x_range[1] - x_range[0]) / x_range[2]
     y_step = (y_range[1] - y_range[0]) / y_range[2]
 
@@ -2578,7 +2577,6 @@ def _update_report_labels(out, vals):
 
 
 def _update_report_range(report, ar2d, x_range, y_range):
-
     horizontalStart = (report.horizontalOffset - report.horizontalSize / 2) * 1e-3
     horizontalEnd = (report.horizontalOffset + report.horizontalSize / 2) * 1e-3
     verticalStart = (report.verticalOffset - report.verticalSize / 2) * 1e-3
