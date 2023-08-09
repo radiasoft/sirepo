@@ -1989,6 +1989,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     source_type = data.models.simulation.sourceType
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or is_for_rsopt
     vp_var = "vp" if is_for_rsopt else "varParam"
+    final_watch = None
     content = [
         f"v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options({vp_var}), use_sys_argv={plot_reports})",
     ]
@@ -2013,6 +2014,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         for n in beamline_info.names:
             names.append(n)
             if n in beamline_info.watches:
+                final_watch = n
                 is_last_watch = n == beamline_info.names[-1]
                 content.append("names = ['" + "','".join(names) + "']")
                 names = []
@@ -2096,7 +2098,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
     if report == "beamlineAnimation":
         content.append(
-            f"process_watch(wid={beamline_info.watches[beamline_info.names[-1]]})"
+            f"process_watch(wid={beamline_info.watches.get(final_watch, 0)})"
         )
     return "\n".join(
         [f"    {x}" for x in content] + [""] + ([] if is_for_rsopt else ["main()", ""])
