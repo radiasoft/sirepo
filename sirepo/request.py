@@ -33,14 +33,15 @@ def init_quest(qcall, internal_req=None):
             http_authorization=None,
             http_headers=PKDict(),
             http_method="GET",
-            #            http_request_uri="/",
             http_server_uri="http://localhost/",
             internal_req=internal_req,
             _kind="pkcli",
             remote_addr="0.0.0.0",
+            _set_log_user=lambda u: None,
         )
     elif "werkzeug" in str(type(internal_req)):
         import flask
+        from sirepo import flask as sirepo_flask
 
         sreq = _SRequest(
             body_as_bytes=lambda: internal_req.get_data(cache=False),
@@ -54,10 +55,10 @@ def init_quest(qcall, internal_req=None):
             remote_addr=internal_req.remote_addr,
             _form_file_class=_FormFileFlask,
             _form_get=internal_req.form.get,
+            _set_log_user=sirepo_flask.set_log_user,
         )
     elif "websocket" in str(type(internal_req)).lower():
-        u = f"http://localhost"
-        # TODO(robnagler) logging
+
         sreq = _SRequest(
             # This is not use except in error logging, which shouldn't happen
             body_as_bytes=lambda: pykern.pkjson.dump_bytes(
@@ -67,16 +68,13 @@ def init_quest(qcall, internal_req=None):
             http_authorization=None,
             http_headers=internal_req.headers,
             http_method="POST" if "content" in internal_req.msg else "GET",
-            # _content_type=PKDict(_key="application/json"),
-            # TODO: this will not
-            #            http_request_uri=u + internal_req.msg.uri,
-            http_server_uri=u + "/",
+            http_server_uri=internal_req.handler.http_server_uri,
+            remote_addr=internal_req.handler.remote_addr,
             internal_req=internal_req,
             _kind=_TORNADO_WEBSOCKET,
-            remote_addr="0.0.0.0",
-            #            remote_addr=r.remote_ip,
             _form_file_class=_FormFileWebSocket,
             _form_get=lambda x, y: internal_req.msg.get("content").get(x, y),
+            _set_log_user=internal_req.set_log_user,
         )
     elif "tornado" in str(type(internal_req)):
         r = internal_req.request
@@ -93,6 +91,7 @@ def init_quest(qcall, internal_req=None):
             remote_addr=r.remote_ip,
             _form_file_class=_FormFileTornado,
             _form_get=internal_req.get_argument,
+            _set_log_user=lambda TODO: None,
         )
     else:
         raise AssertionError(f"unknown internal_req={type(internal_req)}")
@@ -204,6 +203,9 @@ class _SRequest(sirepo.quest.Attr):
 
     def method_is_post(self):
         return self.http_method == "POST"
+
+    def set_log_user(self, state_and_user):
+
 
     def set_post(self, data=None):
         """Interface for uri_router"""

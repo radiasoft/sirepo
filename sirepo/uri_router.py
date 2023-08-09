@@ -231,12 +231,14 @@ def start_tornado(ip, port, debug):
 
         async def on_message(self, msg):
             self.msg_count += 1
+            i = self.msg_count
             pkdlog(
-                "start ws={} msg={} remote_ip={}",
+                "start ws_id={} msg_count={} remote_addr={}",
                 self.ws_id,
-                self.msg_count,
-                self.remote_ip,
+                i,
+                self.remote_addr,
             )
+            w = None
             try:
                 # TODO(robnagler) what if msg poorly constructed? Close socket?
                 c = pkjson.load_any(msg)
@@ -244,24 +246,24 @@ def start_tornado(ip, port, debug):
                 if e:
                     pkdlog("uri={} {}; route={} kwargs={} ", c.uri, e, r, k)
                     r = _not_found_route
+                w = _WebSocketRequest(
+                    handler=self, msg=c, headers=self.__headers, log_user=None
+                )
                 await _call_api(
                     None,
                     r,
                     kwargs=k,
-                    internal_req=_WebSocketRequest(
-                        handler=self,
-                        msg=c,
-                        headers=self.__headers,
-                    ),
+                    internal_req=w,
                     reply_op=_websocket_response,
                 )
             finally:
                 # TODO(robnagler) log uid need to get in SRequest somehow
                 pkdlog(
-                    "end ws={} msg={} uri={}",
+                    "end ws_id={} msg_id={} uri={} uid={}",
                     self.ws_id,
-                    self.msg_count,
+                    i,
                     c and c.get("uri"),
+                    w and w.log_user,
                 )
 
         # def on_ping(self, *args, **kwargs):
@@ -277,16 +279,18 @@ def start_tornado(ip, port, debug):
         def open(self):
             nonlocal ws_count
 
-            self.__headers = PKDict(self.request.headers)
+            r = self.request
+            self.__headers = PKDict(r.headers)
             # self.set_nodelay(True)
-            # self.uri = self.request.uri
-            self.remote_ip = self.request.remote_ip
+            self.remote_addr = r.remote_ip
+            self.http_server_uri = f"{r.protocol}://{r.host}"
             self.msg_count = 0
             ws_count += 1
             self.ws_id = ws_count
 
     class _WebSocketRequest(PKDict):
-        pass
+        def set_log_user(self, log_user):
+            self.log_user = log_user
 
     sirepo.modules.import_and_init("sirepo.server").init_tornado()
     s = httpserver.HTTPServer(
