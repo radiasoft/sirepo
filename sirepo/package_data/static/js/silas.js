@@ -5,11 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.INITIAL_INTENSITY_REPORT_TITLE = 'Initial Laser Pulse';
-    SIREPO.SINGLE_FRAME_ANIMATION = [
-        'plotAnimation',
-        'plot2Animation',
-        'crystal3dAnimation',
-    ];
+    SIREPO.SINGLE_FRAME_ANIMATION = [];
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
@@ -50,7 +46,7 @@ SIREPO.app.factory('silasService', function(appState) {
     const self = {};
 
     self.computeModel = (analysisModel) => {
-        if (['crystalAnimation', 'crystal3dAnimation', 'plotAnimation', 'plot2Animation', 'tempHeatMapAnimation', 'tempProfileAnimation'].indexOf(analysisModel) >= 0) {
+        if (['crystalAnimation', 'crystal3dAnimation', 'tempHeatMapAnimation', 'tempProfileAnimation'].indexOf(analysisModel) >= 0) {
             return 'crystalAnimation';
         }
         if (['laserPulseAnimation', 'laserPulse2Animation'].includes(analysisModel)) {
@@ -189,14 +185,6 @@ SIREPO.app.controller('CrystalController', function (appState, frameCache, persi
 
     self.simState = persistentSimulation.initSimulationState(self);
     self.simState.errorMessage = () => errorMessage;
-
-    appState.whenModelsLoaded($scope, () => {
-        $scope.$on('plotAnimation.summaryData', function (e, data) {
-            if (data.crystalLength && data.crystalLength != silasService.getThermalCrystal().length) {
-                frameCache.setFrameCount(0);
-            }
-        });
-    });
 });
 
 SIREPO.app.directive('appFooter', function(appState, silasService) {
@@ -677,11 +665,12 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plo
                 let len = [];
                 let indices = [];
                 let verts = data.vertices;
+                const c = appState.applicationState().thermalTransportCrystal.crystal;
                 let size = $scope.boundAxis == 'Z'
-                    ? silasService.getThermalCrystal().length
-                    : appState.applicationState().thermalTransportCrystal.crystal.inversion_mesh_extent * 2;
+                    ? c.length
+                    : c.inversion_mesh_extent * 2 * 100;
                 let axisIdx = $scope.axes.indexOf($scope.boundAxis);
-                $scope.bound = (size + 0.01) * ($scope.sliderValue - 50) / 100;
+                $scope.bound = (size + 0.01) * $scope.sliderValue / 100 - size / 2;
                 for (let i = 0; i < data.indices.length; i += 3) {
                     if (checkBounds(i, axisIdx)) {
                         indices.push(data.indices[i], data.indices[i + 1], data.indices[i + 2]);
@@ -732,7 +721,6 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plo
                     camera.setFocalPoint(0, 0, 0);
                     camera.setViewUp(0, -1, 0);
                     renderer.resetCamera();
-                    camera.zoom(1.3);
                     orientationMarker.updateMarkerOrientation();
                 }
                 fsRenderer.getRenderWindow().render();
