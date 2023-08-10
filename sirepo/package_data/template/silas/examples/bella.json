@@ -612,11 +612,8 @@
             "reportType": "3d",
             "watchpointPlot": "total_intensity"
         },
-        "plot2Animation": {},
-        "plotAnimation": {},
         "simulation": {
             "distanceFromSource": 0,
-            "documentationUrl": "",
             "folder": "/Examples",
             "name": "100TW amplifier with 3 crystals"
         }
