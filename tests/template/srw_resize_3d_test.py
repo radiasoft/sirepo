@@ -29,8 +29,12 @@ def test_srw_resize_3d(fc):
         PKDict(),
     )
     pkok(
-        xr[2] < _N_BINS and yr[2] < _N_BINS,
-        "did not reduce bins nx={} ny={}",
+        xr[2] < _N_BINS,
+        "did not reduce bins nx={}",
         xr[2],
+    )
+    pkok(
+        yr[2] < _N_BINS,
+        "did not reduce bins ny={}",
         yr[2],
     )
