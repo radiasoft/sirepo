@@ -10,7 +10,7 @@ from pykern.pkunit import pkeq, pkok
 _N_BINS = 100
 
 
-def setup_module(module):
+def test_srw_resize_3d():
     from pykern import pkconfig
     pkconfig.reset_state_for_testing(
         dict(
@@ -18,8 +18,6 @@ def setup_module(module):
         )
     )
 
-
-def test_srw_resize_3d():
     from sirepo import job
     from sirepo.template import srw
     import numpy
