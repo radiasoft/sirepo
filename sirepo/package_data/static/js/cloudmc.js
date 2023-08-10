@@ -351,8 +351,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                        <label style="padding-left: 15px; padding-right: 15px;">Slice</label>
                        <div class="plane-pos-slider"></div>
                        <div style="display:flex; justify-content:space-between;">
-                            <span>{{ planePosRange().min }}</span>
-                            <span>{{ planePosRange().max }}</span>
+                            <span>{{ formatFloat(planePosRange(tallyReport.axis).min) }}</span>
+                            <span>{{ formatFloat(planePosRange(tallyReport.axis).max) }}</span>
                        </div>
                    </div>
                </div>
@@ -362,9 +362,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                        <div data-label-with-tooltip="" class="control-label" data-label="{{ dim }}"></div>    
                        <div class="axis-display-slider axis-display-{{ dim }}"></div>
                        <div style="display:flex; justify-content:space-between;">
-                            <span>{{ getMeshRanges()[$index][0] }}</span>
+                            <span>{{ formatFloat(planePosRange(dim).min) }}</span>
                             <span>{{ getDisplayRange(dim) }}</span>
-                            <span>{{ getMeshRanges()[$index][1] }}</span>
+                            <span>{{ formatFloat(planePosRange(dim).max) }}</span>
                        </div>
                    </div>
                </div>
@@ -374,6 +374,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
         controller: function($scope, $element) {
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
             $scope.allVolumesVisible = false;
+            $scope.axes = SIREPO.GEOMETRY.GeometryUtils.BASIS();
             $scope.displayType = '3D';
             $scope.axes = SIREPO.GEOMETRY.GeometryUtils.BASIS();
             $scope.isClientOnly = isGeometryOnly;
@@ -392,7 +393,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             let mesh = null;
             let minField, maxField;
             let picker = null;
-            let planePosDelegate = null;
             let selectedVolume = null;
             let tally = null;
 
@@ -767,11 +767,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 return appState.models[$scope.modelName];
             }
 
-            $scope.planePosRange = () => {
+            $scope.planePosRange = dim => {
                 if (! mesh) {
                     return {};
                 }
-                const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(appState.models.tallyReport.axis);
+                const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim);
                 const s = Math.abs((mesh.upper_right[i] - mesh.lower_left[i])) / mesh.dimension[i];
                 return {
                     min: scale * (mesh.lower_left[i] + 0.5 * s),
@@ -921,27 +921,28 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 }
                 $scope.axes.forEach((dim, i) => {
                     const s = $(`.axis-display-${dim}`);
-                    const r = getMeshRanges()[SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim)];
+                    const r = $scope.planePosRange(dim);
                     const dr = $scope.tallyReport[`${dim}DisplayRange`];
-                    if (dr[0] < r[0]) {
-                        dr[0] = r[0];
+                    if (dr[0] < r.min) {
+                        dr[0] = r.min;
                     }
-                    if (dr[1] > r[1]) {
-                        dr[1] = r[1];
+                    if (dr[1] > r.max) {
+                        dr[1] = r.max;
                     }
                     s.slider({
-                        min: r[0],
-                        max: r[1],
+                        min: r.min,
+                        max: r.max,
                         range: true,
                         slide: (e, ui) => {
                             $scope.$apply(() => {
                                 dr[ui.handleIndex] = ui.value;
                             });
                         },
-                        step: Math.abs((r[1] - r[0])) / mesh.dimension[i],
+                        step: r.step,
                         values: dr,
                     });
-                    s.slider('option', 'disabled', r[2] === 1);
+                    s.slider('option', 'disabled', r.min === r.max);
+                    s.slider('instance').max = r.max;
                 });
 
                 appState.saveQuietly('tallyReport');
@@ -973,7 +974,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 if (! mesh) {
                     return;
                 }
-                const r = $scope.planePosRange();
+                const r = $scope.planePosRange($scope.tallyReport.axis);
                 appState.models.tallyReport.planePos = adjustToRange(
                     appState.models.tallyReport.planePos,
                     r
@@ -1059,8 +1060,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 vtkScene = null;
             };
 
+            $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
+
             $scope.getDisplayRange = dim => {
-                return $scope.tallyReport[`${dim}DisplayRange`];
+                return $scope.tallyReport[`${dim}DisplayRange`].map($scope.formatFloat);
             };
 
             $scope.getMeshRanges = () => {
