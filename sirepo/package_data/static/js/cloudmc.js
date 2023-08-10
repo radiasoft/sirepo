@@ -398,7 +398,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
             const bundleByVolume = {};
             const colorbarThickness = 30;
-            const displaySliders = {};
 
             let tallyBundle = null;
             let vtkScene = null;
@@ -930,21 +929,18 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     if (dr[1] > r[1]) {
                         dr[1] = r[1];
                     }
-                    if (! displaySliders[dim]) {
-                        // jquery-ui slider
-                        displaySliders[dim] = s.slider({
-                            min: r[0],
-                            max: r[1],
-                            range: true,
-                            slide: (e, ui) => {
-                                $scope.$apply(() => {
-                                    dr[ui.handleIndex] = ui.value;
-                                });
-                            },
-                            step: Math.abs((r[1] - r[0])) / mesh.dimension[i],
-                            values: dr,
-                        });
-                    }
+                    s.slider({
+                        min: r[0],
+                        max: r[1],
+                        range: true,
+                        slide: (e, ui) => {
+                            $scope.$apply(() => {
+                                dr[ui.handleIndex] = ui.value;
+                            });
+                        },
+                        step: Math.abs((r[1] - r[0])) / mesh.dimension[i],
+                        values: dr,
+                    });
                     s.slider('option', 'disabled', r[2] === 1);
                 });
 
