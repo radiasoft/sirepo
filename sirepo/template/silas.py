@@ -19,7 +19,6 @@ import time
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
-_CRYSTAL_CSV_FILE = "crystal.csv"
 _TEMP_PROFILE_FILE = "tempProfile.h5"
 _TEMP_HEATMAP_FILE = "tempHeatMap.h5"
 _RESULTS_FILE = "results{}.h5"
@@ -309,38 +308,6 @@ def _crystal_animation_percent_complete(run_dir, res, data):
     return res
 
 
-def _crystal_plot(frame_args):
-    x = None
-    plots = []
-    with open(str(frame_args.run_dir.join(_CRYSTAL_CSV_FILE))) as f:
-        for r in csv.reader(f):
-            if x is None and r[0] == x_column:
-                r.pop(0)
-                r.pop(0)
-                x = [float(v) * scale for v in r]
-            elif r[0] == y_column:
-                r.pop(0)
-                t = r.pop(0)
-                plots.append(
-                    PKDict(
-                        points=[float(v) for v in r],
-                        label="{:.1f} sec".format(float(t)),
-                    )
-                )
-    return PKDict(
-        title="",
-        x_range=[min(x), max(x)],
-        y_label="Temperature [°C]",
-        x_label=x_heading,
-        x_points=x,
-        plots=plots,
-        y_range=template_common.compute_plot_color_and_range(plots),
-        summaryData=PKDict(
-            crystalLength=_get_crystal(frame_args.sim_in).length,
-        ),
-    )
-
-
 def _generate_beamline_elements(data):
     def _callback(state, element, dz):
         if dz:
@@ -425,7 +392,7 @@ def _generate_parameters_file(data):
 
     res, v = template_common.generate_parameters_file(data)
     if data.report == "crystalAnimation":
-        c = _get_crystal(data)
+        c = data.models.thermalTransportCrystal.crystal
         if c.pump_rep_rate <= 1:
             c.calc_type = "fenics"
         v.crystalParams = PKDict(
@@ -445,7 +412,6 @@ def _generate_parameters_file(data):
         )
         v.pump_pulse_profile = c.pump_pulse_profile
         v.crystalLength = c.length
-        v.crystalCSV = _CRYSTAL_CSV_FILE
         v.thermalCrystal = c
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
     if data.report in _SIM_DATA.SOURCE_REPORTS:
@@ -459,10 +425,6 @@ def _generate_parameters_file(data):
     v.beamlineElements = _generate_beamline_elements(data)
     v.beamlineIndices = _generate_beamline_indices(data)
     return res + template_common.render_jinja(SIM_TYPE, v)
-
-
-def _get_crystal(data):
-    return data.models.thermalTransportCrystal.crystal
 
 
 def _initial_intensity_percent_complete(run_dir, res, data, model_names):
@@ -612,25 +574,6 @@ class _LaserPulsePlot(PKDict):
             except BlockingIOError as e:
                 time.sleep(3)
         raise AssertionError("Report is unavailable")
-
-
-def _laser_pulse_report(value_index, filename, title, label):
-    values = numpy.load(filename)
-    return template_common.parameter_plot(
-        values[0].tolist(),
-        [
-            PKDict(
-                points=values[value_index].tolist(),
-                label=label,
-            ),
-        ],
-        PKDict(),
-        PKDict(
-            title=title,
-            y_label="",
-            x_label="s [m]",
-        ),
-    )
 
 
 def _parse_silas_log(run_dir):
