@@ -205,7 +205,7 @@ class _SRequest(sirepo.quest.Attr):
         return self.http_method == "POST"
 
     def set_log_user(self, state_and_user):
-
+        pass
 
     def set_post(self, data=None):
         """Interface for uri_router"""

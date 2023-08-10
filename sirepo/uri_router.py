@@ -292,6 +292,16 @@ def start_tornado(ip, port, debug):
         def set_log_user(self, log_user):
             self.log_user = log_user
 
+    def log_function(handler):
+        log.access_log.info(
+            "here: %d %s %s (%s) %.2fms",
+            handler.get_status(),
+            handler.request.method,
+            handler.request.uri,
+            handler.request.remote_ip,
+            handler.request.request_time() * 1000,
+        )
+
     sirepo.modules.import_and_init("sirepo.server").init_tornado()
     s = httpserver.HTTPServer(
         web.Application(
@@ -303,6 +313,7 @@ def start_tornado(ip, port, debug):
             websocket_max_message_size=sirepo.job.cfg().max_message_bytes,
             websocket_ping_interval=sirepo.job.cfg().ping_interval_secs,
             websocket_ping_timeout=sirepo.job.cfg().ping_timeout_secs,
+            log_function=log_function,
         ),
         xheaders=True,
         max_buffer_size=sirepo.job.cfg().max_message_bytes,
