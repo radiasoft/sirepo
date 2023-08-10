@@ -11,20 +11,21 @@ _N_BINS = 100
 
 
 def setup_module(module):
-    import os
-
-    # Set max to something reasonable for testing
-    os.environ.update(
-        SIREPO_JOB_MAX_MESSAGE_BYTES=str(_N_BINS * _N_BINS),
+    from pykern import pkconfig
+    pkconfig.reset_state_for_testing(
+        dict(
+            SIREPO_JOB_MAX_MESSAGE_BYTES=str(_N_BINS * _N_BINS),
+        )
     )
 
 
-def test_srw_resize_3d(fc):
+def test_srw_resize_3d():
+    from sirepo import job
     from sirepo.template import srw
     import numpy
 
     a, xr, yr = srw._reshape_3d(
-        numpy.random.rand(srw._MAX_MESSAGE_BYTES),
+        numpy.random.rand(job.cfg().max_message_bytes),
         [0, 0, 0, 0.0, 1.0, _N_BINS, 0.0, 1.0, _N_BINS],
         PKDict(),
     )
