@@ -13,27 +13,55 @@ SIREPO.app.config(() => {
 
 SIREPO.app.factory('omegaService', function(appState) {
     const self = {};
+    const modelAccess = {};
     appState.setAppService(self);
-    self.computeModel = function(analysisModel) {
-        return 'animation';
+    self.computeModel = analysisModel => 'animation';
+
+    self.modelAccess = modelKey => {
+        if (! modelAccess[modelKey]) {
+            modelAccess[modelKey] = {
+                modelKey: modelKey,
+                getData: () => appState.models[modelKey],
+            };
+        }
+        return modelAccess[modelKey];
     };
     return self;
 });
 
-SIREPO.app.controller('SourceController', function (appState, frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('SourceController', function (appState, frameCache, omegaService, persistentSimulation, $scope) {
     const self = this;
     let errorMessage;
+    self.omegaService = omegaService;
     self.simScope = $scope;
     self.reports = null;
+    self.simAnalysisModel = 'animation';
 
     self.simHandleStatus = data => {
         errorMessage = data.error;
         frameCache.setFrameCount(data.frameCount || 0);
-        self.reports = data.reports;
-        if (data.reports) {
-            for (const r of data.reports) {
-                frameCache.setFrameCount(r.modelName, r.frameCount);
+        self.reports = [];
+        self.reportNames = [];
+        if (data.outputInfo) {
+            // sim --> report-group --> report
+            for (const s of data.outputInfo) {
+                for (const rg of s) {
+                    for (const r of rg) {
+                        self.reportNames.push(r);
+                        let m = appState.models[r.modelKey];
+                        if (! m) {
+                            m = appState.models[r.modelKey] = {
+                                simCount: r.simCount,
+                                reportCount: r.reportCount,
+                            };
+                        }
+                        appState.setModelDefaults(m, r.modelName);
+                        appState.saveQuietly(r.modelKey);
+                        frameCache.setFrameCount(1, r.modelKey);
+                    }
+                }
             }
+            self.reports = data.outputInfo;
         }
     };
 
@@ -83,7 +111,7 @@ SIREPO.app.directive('appHeader', function(omegaService) {
     };
 });
 
-SIREPO.app.directive('beamAndPhasePlots', function(appState) {
+SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
     return {
         restrict: 'A',
         scope: {
@@ -91,16 +119,18 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState) {
         },
         template: `
             <div class="clearfix"></div>
-            <div data-ng-repeat="simCount in count track by $index">
+            <div data-ng-repeat="sim in reports track by $index">
               <div class="clearfix hidden-xl"></div>
-              <div class="col-md-5 col-xxl-3" data-ng-if="hasReport(beamReport(simCount))">
-                <div data-report-panel="parameter" data-model-name="{{ beamReport(simCount) }}"></div>
+              <div class="col-md-5 col-xxl-3">
+                <div data-ng-repeat="report in sim[0] track by $index">
+                  <div data-report-panel="parameter" data-model-data="omegaService.modelAccess(report.modelKey)" data-model-name="{{ report.modelName }}" data-panel-title="{{ title(report) }}"></div>
+                </div>
               </div>
-              <div class="col-md-7 col-xxl-3" data-ng-if="hasReport(phaseSpaceReport(simCount, 1))">
-                <div data-simple-panel="{{ phaseSpaceReport(simCount, 1) }}" data-is-report="1">
+              <div class="col-md-7 col-xxl-3">
+                <div data-simple-panel="simPhaseSpaceAnimation" data-model-key="sim[1][0].modelKey" data-is-report="1">
                   <div class="sr-screenshot" style="display: grid; grid-template-columns: 50% 50%">
-                    <div data-ng-repeat="reportCount in count track by $index">
-                      <div data-heatmap="" data-model-name="{{ phaseSpaceReport(simCount, reportCount) }}"></div>
+                    <div data-ng-repeat="report in sim[1] track by $index">
+                      <div data-heatmap="" data-model-name="{{ report.modelKey }}"></div>
                     </div>
                   </div>
                 </div>
@@ -108,32 +138,18 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState) {
             </div>
         `,
         controller: function($scope) {
-            $scope.count = [1, 2, 3, 4];
-            $scope.beamReport = simCount => `sim${simCount}BeamAnimation`;
-            $scope.phaseSpaceReport = (simCount, reportCount) => `sim${simCount}Phase${reportCount}Animation`;
-
-            $scope.hasReport = name => {
-                if ($scope.reports) {
-                    for (const r of $scope.reports) {
-                        if (r.modelName == name) {
-                            return r.frameCount > 0;
-                        }
-                    }
-                }
-                return false;
-            };
-
+            $scope.omegaService = omegaService;
+            $scope.title = report => `Simulation ${report.simCount} Beam Parameters`;
             $scope.$on('modelChanged', (e, name) => {
-                for (const i of $scope.count) {
-                    const updated = [];
-                    const n = $scope.phaseSpaceReport(i, 1);
-                    if (name === n) {
-                        for (const j of $scope.count) {
-                            if (j > 1) {
-                                const p = $scope.phaseSpaceReport(i, j);
-                                appState.models[p].colorMap = appState.models[n].colorMap;
-                                appState.models[p].histogramBins = appState.models[n].histogramBins;
-                                updated.push(p);
+                for (const sim of $scope.reports) {
+                    if (name === sim[1][0].modelKey) {
+                        const updated = [];
+                        for (const r of sim[1]) {
+                            if (name !== r.modelKey) {
+                                const m = appState.models[r.modelKey];
+                                m.colorMap = appState.models[name].colorMap;
+                                m.histogramBins = appState.models[name].histogramBins;
+                                updated.push(r.modelKey);
                             }
                         }
                         appState.saveChanges(updated);
