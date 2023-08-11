@@ -535,7 +535,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
                 const r =  {
                     aspectRatio: ar,
-                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(scale * $scope.tallyReport.planePos, 6)}m`,
+                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces($scope.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
