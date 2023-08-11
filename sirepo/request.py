@@ -58,7 +58,6 @@ def init_quest(qcall, internal_req=None):
             _set_log_user=sirepo_flask.set_log_user,
         )
     elif "websocket" in str(type(internal_req)).lower():
-
         sreq = _SRequest(
             # This is not use except in error logging, which shouldn't happen
             body_as_bytes=lambda: pykern.pkjson.dump_bytes(
@@ -91,7 +90,7 @@ def init_quest(qcall, internal_req=None):
             remote_addr=r.remote_ip,
             _form_file_class=_FormFileTornado,
             _form_get=internal_req.get_argument,
-            _set_log_user=lambda TODO: None,
+            _set_log_user=internal_req.sr_set_log_user,
         )
     else:
         raise AssertionError(f"unknown internal_req={type(internal_req)}")
@@ -204,8 +203,8 @@ class _SRequest(sirepo.quest.Attr):
     def method_is_post(self):
         return self.http_method == "POST"
 
-    def set_log_user(self, state_and_user):
-        pass
+    def set_log_user(self, log_user):
+        self._set_log_user(log_user)
 
     def set_post(self, data=None):
         """Interface for uri_router"""

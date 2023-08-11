@@ -224,6 +224,12 @@ def start_tornado(ip, port, debug):
         async def post(self):
             await self._route()
 
+        def sr_set_log_user(self, log_user):
+            self._sr_log_user = log_user
+
+        def sr_get_log_user(self):
+            return getattr(self, _sr_log_user, None)
+
     class _WebSocket(websocket.WebSocketHandler):
         #        def on_close(self):
         #            #TODO(robnagler): need to free resources
@@ -293,13 +299,19 @@ def start_tornado(ip, port, debug):
             self.log_user = log_user
 
     def log_function(handler):
-        log.access_log.info(
-            "here: %d %s %s (%s) %.2fms",
-            handler.get_status(),
+        # slightly different than common log format (CLF)
+        pkdlog(
+            '{} - {} {.2f}ms "{} {} {}" {} {} {} {}',
+            handler.request.remote_ip,
+            handler.sr_get_log_user() or "=",
+            handler.request.request_time() * 1000,
             handler.request.method,
             handler.request.uri,
-            handler.request.remote_ip,
-            handler.request.request_time() * 1000,
+            handler.request.version,
+            handler.get_status(),
+            0,
+            handler.request.headers.get("Referer"),
+            handler.request.headers.get("User-Agent"),
         )
 
     sirepo.modules.import_and_init("sirepo.server").init_tornado()
