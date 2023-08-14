@@ -484,6 +484,42 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 });
             }
 
+            function buildSlider(modelName, field, selectorString, range) {
+                const sel = $(selectorString);
+                const val = appState.models[modelName][field];
+                const isMulti = Array.isArray(val);
+                if (isMulti) {
+                    if (val[0] < range.min) {
+                        val[0] = range.min;
+                    }
+                    if (val[1] > range.max) {
+                        val[1] = range.max;
+                    }
+                }
+                sel.slider({
+                    min: range.min,
+                    max: range.max,
+                    range: isMulti,
+                    slide: (e, ui) => {
+                        $scope.$apply(() => {
+                            if (isMulti) {
+                                appState.models[modelName][field][ui.handleIndex] = ui.value;
+                            }
+                            else {
+                                appState.models[modelName][field] = ui.value;
+                            }
+                        });
+                    },
+                    step: range.step,
+                });
+                // jqueryui sometimes decrements the max by the step value due to floating-point
+                // shenanigans. Reset it here
+                sel.slider('instance').max = range.max;
+                sel.slider('option', isMulti ? 'values' : 'value', val);
+                sel.slider('option', 'disabled', range.min === range.max);
+                return sel.slider;
+            }
+
             function buildRangeDelegate(modelName, field) {
                 const d = panelState.getFieldDelegate(modelName, field);
                 d.range = () => {
@@ -921,32 +957,14 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 if (! mesh) {
                     return;
                 }
-                $scope.axes.forEach((dim, i) => {
-                    const sel = $(`.axis-display-${dim}`);
-                    const r = $scope.planePosRange(dim);
-                    const dr = $scope.tallyReport[`${dim}DisplayRange`];
-                    if (dr[0] < r.min) {
-                        dr[0] = r.min;
-                    }
-                    if (dr[1] > r.max) {
-                        dr[1] = r.max;
-                    }
-                    sel.slider({
-                        min: r.min,
-                        max: r.max,
-                        range: true,
-                        slide: (e, ui) => {
-                            $scope.$apply(() => {
-                                dr[ui.handleIndex] = ui.value;
-                            });
-                        },
-                        step: r.step,
-                        values: dr,
-                    });
-                    sel.slider('option', 'disabled', r.min === r.max);
-                    sel.slider('instance').max = r.max;
+                $scope.axes.forEach(dim => {
+                    buildSlider(
+                        'tallyReport',
+                        `${dim}DisplayRange`,
+                        `.axis-display-${dim}`,
+                        $scope.planePosRange(dim)
+                    );
                 });
-
                 appState.saveQuietly('tallyReport');
             }
 
@@ -983,24 +1001,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 );
                 appState.saveChanges('tallyReport');
                 updateSlice();
-
-                const sel = $('.plane-pos-slider')
-                sel.slider({
-                    min: r.min,
-                    max: r.max,
-                    range: false,
-                    slide: (e, ui) => {
-                        $scope.$apply(() => {
-                            $scope.tallyReport.planePos = ui.value;
-                        });
-                    },
-                    step: r.step,
-                    value: appState.models.tallyReport.planePos,
-                });
-                // jqueryui sometimes decrements the max by the step value due to floating-point
-                // shenanigans. Reset it and the initial value here
-                sel.slider('instance').max = r.max;
-                sel.slider('option', 'value', appState.models.tallyReport.planePos);
+                buildSlider('tallyReport', 'planePos', '.plane-pos-slider', r);
             }
 
             function volumesError(reason) {
