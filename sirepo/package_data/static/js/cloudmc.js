@@ -394,6 +394,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             let mesh = null;
             let minField, maxField;
             let picker = null;
+            let planePosSlider = null;
+            let clipSliders = {};
             let selectedVolume = null;
             let tally = null;
 
@@ -517,7 +519,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 sel.slider('instance').max = range.max;
                 sel.slider('option', isMulti ? 'values' : 'value', val);
                 sel.slider('option', 'disabled', range.min === range.max);
-                return sel.slider;
+                return sel;
             }
 
             function buildRangeDelegate(modelName, field) {
@@ -958,7 +960,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     return;
                 }
                 $scope.axes.forEach(dim => {
-                    buildSlider(
+                    clipSliders[dim] = buildSlider(
                         'tallyReport',
                         `${dim}DisplayRange`,
                         `.axis-display-${dim}`,
@@ -1001,7 +1003,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 );
                 appState.saveChanges('tallyReport');
                 updateSlice();
-                buildSlider('tallyReport', 'planePos', '.plane-pos-slider', r);
+                planePosSlider = buildSlider(
+                    'tallyReport',
+                    'planePos',
+                    '.plane-pos-slider',
+                    r
+                );
             }
 
             function volumesError(reason) {
@@ -1063,6 +1070,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             // the vtk teardown is handled in vtkPlotting
             $scope.destroy = () => {
                 vtkScene = null;
+                [planePosSlider, ...Object.values(clipSliders)]
+                    .filter(x => x)
+                    .forEach(x => {
+                        x.slider('destroy');
+                        x = null;
+                });
             };
 
             $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
