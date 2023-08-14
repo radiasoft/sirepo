@@ -224,84 +224,78 @@ def start_tornado(ip, port, debug):
         async def post(self):
             await self._route()
 
+        def sr_get_log_user(self):
+            return getattr(self, "_sr_log_user", None)
+
         def sr_set_log_user(self, log_user):
             self._sr_log_user = log_user
 
-        def sr_get_log_user(self):
-            return getattr(self, _sr_log_user, None)
-
     class _WebSocket(websocket.WebSocketHandler):
-        #        def on_close(self):
-        #            #TODO(robnagler): need to free resources
-        #            pass
-
         async def on_message(self, msg):
-            self.msg_count += 1
-            i = self.msg_count
-            pkdlog(
-                "start ws_id={} msg_count={} remote_addr={}",
-                self.ws_id,
-                i,
-                self.remote_addr,
-            )
-            w = None
+            w = _WebSocketRequest(handler=self, headers=self.__headers)
             try:
-                # TODO(robnagler) what if msg poorly constructed? Close socket?
-                c = pkjson.load_any(msg)
-                e, r, k = _path_to_route(c.uri[1:])
-                if e:
-                    pkdlog("uri={} {}; route={} kwargs={} ", c.uri, e, r, k)
-                    r = _not_found_route
-                w = _WebSocketRequest(
-                    handler=self, msg=c, headers=self.__headers, log_user=None
-                )
+                w.parse_msg(msg)
                 await _call_api(
                     None,
-                    r,
-                    kwargs=k,
+                    w.route,
+                    kwargs=w.kwargs,
                     internal_req=w,
                     reply_op=_websocket_response,
                 )
+            # TODO(robnagler) what if msg poorly constructed? Close socket?
             finally:
-                # TODO(robnagler) log uid need to get in SRequest somehow
                 pkdlog(
-                    "end ws_id={} msg_id={} uri={} uid={}",
+                    "end ws_id={} req_seq={} uri={} uid={}",
                     self.ws_id,
-                    i,
-                    c and c.get("uri"),
-                    w and w.log_user,
+                    w.get("req_seq"),
+                    w.get("uri"),
+                    w.get("log_user"),
                 )
-
-        # def on_ping(self, *args, **kwargs):
-        #     # do we care?
-        #     return None
-
-        # def select_subprotocol(self, subprotocols):
-        #     # return one of the subprotocols and setup the dispatcher
-        #     return None
-        # WebSocketHandler.get_compression_options
-        # WebSocketHandler.set_nodelay
 
         def open(self):
             nonlocal ws_count
 
+            # self.get_compression_options
+            self.set_nodelay(True)
             r = self.request
             self.__headers = PKDict(r.headers)
-            # self.set_nodelay(True)
             self.remote_addr = r.remote_ip
             self.http_server_uri = f"{r.protocol}://{r.host}"
             self.msg_count = 0
             ws_count += 1
             self.ws_id = ws_count
 
+        def sr_get_log_user(self):
+            """Needed for initial websocket creation call"""
+            return None
+
     class _WebSocketRequest(PKDict):
+        def parse_msg(self, msg):
+            self.msg = pkjson.load_any(msg)
+            # Ensures protocol conforms for all requests
+            self.req_seq = self.msg.reqSeq
+            self.uri = self.msg.uri
+            # content may or may not exist so defer checking
+            e, self.route, self.kwargs = _path_to_route(self.uri[1:])
+            if e:
+                pkdlog(
+                    "error ws_id={} req_seq={} uri={} {}; route={} kwargs={} ",
+                    self.handler.ws_id,
+                    self.msg.reqSeq,
+                    self.uri,
+                    e,
+                    self.route,
+                    k,
+                )
+                self.route = _not_found_route
+
         def set_log_user(self, log_user):
             self.log_user = log_user
 
-    def log_function(handler):
-        # slightly different than common log format (CLF)
+    def _log_function(handler):
+        # slightly different than common log format (CLF), but more practical
         pkdlog(
-            '{} - {} {.2f}ms "{} {} {}" {} {} {} {}',
+            '{} - {} {:.2f}ms "{} {} {}" {} {} {} {}',
             handler.request.remote_ip,
             handler.sr_get_log_user() or "=",
             handler.request.request_time() * 1000,
@@ -325,7 +319,7 @@ def start_tornado(ip, port, debug):
             websocket_max_message_size=sirepo.job.cfg().max_message_bytes,
             websocket_ping_interval=sirepo.job.cfg().ping_interval_secs,
             websocket_ping_timeout=sirepo.job.cfg().ping_timeout_secs,
-            log_function=log_function,
+            log_function=_log_function,
         ),
         xheaders=True,
         max_buffer_size=sirepo.job.cfg().max_message_bytes,

@@ -778,7 +778,7 @@ class _Auth(sirepo.quest.Attr):
                 return "="
             return self._qcall_bound_state() + "-" + u
 
-        self.qcall.sreq.set_log_user(_user)
+        self.qcall.sreq.set_log_user(_user())
 
     def _validate_method(self, module, sim_type=None):
         if module.AUTH_METHOD in valid_methods:
