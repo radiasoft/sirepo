@@ -1,0 +1,17 @@
+{
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["viz3d.js"]
+        }
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "VizedSourceController as source",
+                "templateUrl": "/static/html/viz3d-source.html"
+            }
+        }
+    },
+    "model": {},
+    "view": {}
+}

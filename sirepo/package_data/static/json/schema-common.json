@@ -76,6 +76,10 @@
             "longName": "Synchrotron Radiation Workshop",
             "shortName": "SRW"
         },
+        "viz3d": {
+            "longName": "Viz3d",
+            "shortName": "Viz3d"
+        },
         "warppba": {
             "longName": "Warp PBA",
             "shortName": "Warp PBA"
