@@ -285,7 +285,7 @@ def start_tornado(ip, port, debug):
                     self.uri,
                     e,
                     self.route,
-                    k,
+                    self.kwargs,
                 )
                 self.route = _not_found_route
 
