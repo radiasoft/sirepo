@@ -303,7 +303,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             </ul>
             <div>
                 <div data-ng-if="! isClientOnly && displayType === '3D'" class="col-sm-12">
-                    <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><div data-ng-click="toggleVolumeList()" style="cursor: pointer; display: inline-block">Volume Selection <span class="glyphicon" data-ng-class="isVolumeListExpanded ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up'"></span></div></div>
+                    <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><div data-ng-click="toggleVolumeList()" style="cursor: pointer; display: inline-block">Select Volumes <span class="glyphicon" data-ng-class="isVolumeListExpanded ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up'"></span></div></div>
                     <div data-ng-if="! volumeList" style="padding-top: 8px; padding-bottom: 8px;">Loading Volumes<span data-header-tooltip="'loading'"></span></div>
                     <table data-ng-show="isVolumeListExpanded" class="table-condensed">
                         <thead>
