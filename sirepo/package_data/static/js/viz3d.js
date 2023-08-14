@@ -20,11 +20,7 @@ SIREPO.app.controller('Viz3dSourceController', function (appState, panelState, p
     const self = this;
     self.simScope = $scope;
 
-    self.simHandleStatus = data => {
-        if (self.simState.isStateCompleted()) {
-            alert('done');
-        }
-    };
+    self.simHandleStatus = data => {};
     self.simState = persistentSimulation.initSimulationState(self);
 });
 

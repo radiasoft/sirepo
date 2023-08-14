@@ -13,10 +13,6 @@ import sirepo.sim_data
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
-# def background_percent_complete(report, run_dir, is_running):
-#     return PKDict()
-
-
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
