@@ -8,7 +8,6 @@
                 "id": 2,
                 "inversion_mesh_extent": 0.01,
                 "inversion_n_cells": 64,
-                "l_scale": 0.001,
                 "length": 2,
                 "n0": [
                     1.75,
@@ -54,7 +53,6 @@
         },
         "laserPulse": {
             "ccd": "",
-            "chirp": 0.0012459,
             "distribution": "gaussian",
             "meta": "",
             "nslice": 3,
@@ -67,15 +65,11 @@
             "pulseE": 0.001,
             "sigx_waist": 0.001,
             "sigy_waist": 0.001,
-            "tau_fwhm": 2.35865e-11,
             "wfs": ""
         },
-        "plot2Animation": {},
-        "plotAnimation": {},
         "simulation": {
             "distanceFromSource": 0,
             "folder": "/Examples",
-            "isExample": true,
             "name": "Single Crystal"
         },
         "watchpointReport3": {

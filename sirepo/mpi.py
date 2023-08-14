@@ -92,7 +92,7 @@ def restrict_ops_to_first_node(ops):
 
     def _run():
         # TODO(robnagler): if run on multiple machines, cores need to be tasks_per_node
-        with multiprocessing.Pool(_cfg.cores) as p:
+        with multiprocessing.Pool(_cfg.cores, maxtasksperchild=1) as p:
             p.map(_globalize_op, ops)
 
     restrict_op_to_first_rank(_run)
