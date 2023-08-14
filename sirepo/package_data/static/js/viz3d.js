@@ -7,8 +7,25 @@ SIREPO.app.config(function() {
     SIREPO.appFieldEditors += ``;
 });
 
+SIREPO.app.factory('viz3dService', function(appState) {
+    const self = {};
 
-SIREPO.app.controller('Viz3dSourceController', function (appState, panelState, $scope) {
+    self.computeModel = () => 'viz3dReport';
+
+    appState.setAppService(self);
+    return self;
+});
+
+SIREPO.app.controller('Viz3dSourceController', function (appState, panelState, persistentSimulation, viz3dService, $scope) {
+    const self = this;
+    self.simScope = $scope;
+
+    self.simHandleStatus = data => {
+        if (self.simState.isStateCompleted()) {
+            alert('done');
+        }
+    };
+    self.simState = persistentSimulation.initSimulationState(self);
 });
 
 

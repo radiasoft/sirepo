@@ -7,11 +7,19 @@
     "localRoutes": {
         "source": {
             "config": {
-                "controller": "VizedSourceController as source",
+                "controller": "Viz3dSourceController as source",
                 "templateUrl": "/static/html/viz3d-source.html"
             }
         }
     },
-    "model": {},
-    "view": {}
+    "model": {
+        "simulationStatus": {},
+        "viz3dReport": {}
+    },
+    "view": {
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        }
+    }
 }

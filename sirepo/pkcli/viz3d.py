@@ -5,12 +5,16 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkcollections import PKDict
+from pykern import pksubprocess
 from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
+import sys
 
 
 def run(cfg_dir):
-    template_common.exec_parameters()
+    pksubprocess.check_call_with_signals(
+        [sys.executable, template_common.PARAMETERS_PYTHON_FILE],
+    )
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    template.save_sequential_report_data(py.path.local(cfg_dir), data)
+    template_common.write_sequential_result(data)

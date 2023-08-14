@@ -1,10 +1,9 @@
 {
     "models": {
         "simulation": {
-            "distanceFromSource": 0,
             "folder": "/Examples",
             "name": "Viewer"
-        },
+        }
     },
     "simulationType": "viz3d"
 }
