@@ -817,8 +817,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     min: r[0] + f * s,
                     max: r[1] - f * s,
                     step: s,
-                }
-            }
+                };
+            };
 
             function reorderFieldData(outerAxis, dims) {
                 const [n, l, m] = tallyReportAxisIndices();
