@@ -352,8 +352,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                        <div data-label-with-tooltip="" data-label="Plane position"></div>
                        <div class="plane-pos-slider"></div>
                        <div style="display:flex; justify-content:space-between;">
-                            <span>{{ formatFloat(planePosRange(tallyReport.axis, true).min) }}</span>
-                            <span>{{ formatFloat(planePosRange(tallyReport.axis, true).max) }}</span>
+                            <span>{{ formatFloat(tallyRange(tallyReport.axis, true).min) }}</span>
+                            <span>{{ formatFloat(tallyRange(tallyReport.axis, true).max) }}</span>
                        </div>
                    </div>
                </div>
@@ -363,9 +363,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                        <div data-label-with-tooltip="" class="control-label" data-label="{{ dim }}"></div>    
                        <div class="axis-display-slider axis-display-{{ dim }}"></div>
                        <div style="display:flex; justify-content:space-between;">
-                            <span>{{ formatFloat(planePosRange(dim).min) }}</span>
+                            <span>{{ formatFloat(tallyRange(dim).min) }}</span>
                             <span>{{ getDisplayRange(dim) }}</span>
-                            <span>{{ formatFloat(planePosRange(dim).max) }}</span>
+                            <span>{{ formatFloat(tallyRange(dim).max) }}</span>
                        </div>
                    </div>
                </div>
@@ -806,17 +806,17 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 return appState.models[$scope.modelName];
             }
 
-            $scope.planePosRange = (dim, useBinCenter=false) => {
+            $scope.tallyRange = (dim, useBinCenter=false) => {
                 if (! mesh) {
                     return {};
                 }
-                const i = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim);
-                const s = Math.abs((mesh.upper_right[i] - mesh.lower_left[i])) / mesh.dimension[i];
+                const r = getMeshRanges()[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim)];
+                const s = Math.abs((r[1] - r[0])) / r[2];
                 const f = useBinCenter ? 0.5 : 0;
                 return {
-                    min: scale * (mesh.lower_left[i] + f * s),
-                    max: scale * (mesh.upper_right[i] - f * s),
-                    step: scale * s,
+                    min: r[0] + f * s,
+                    max: r[1] - f * s,
+                    step: s,
                 }
             }
 
@@ -964,7 +964,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                         'tallyReport',
                         `${dim}DisplayRange`,
                         `.axis-display-${dim}`,
-                        $scope.planePosRange(dim)
+                        $scope.tallyRange(dim)
                     );
                 });
                 appState.saveQuietly('tallyReport');
@@ -996,7 +996,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 if (! mesh) {
                     return;
                 }
-                const r = $scope.planePosRange($scope.tallyReport.axis, true);
+                const r = $scope.tallyRange($scope.tallyReport.axis, true);
                 appState.models.tallyReport.planePos = adjustToRange(
                     appState.models.tallyReport.planePos,
                     r
