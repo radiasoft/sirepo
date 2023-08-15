@@ -27,14 +27,14 @@ class SimData(sirepo.sim_data.SimDataBase):
             (
                 "crystalAnimation",
                 "crystal3dAnimation",
-                "crystalCylinder",
-                "crystalSettings",
                 "laserPulse",
                 "laserPulseAnimation",
                 "laserPulse2Animation",
                 "initialIntensityReport",
-                "plotAnimation",
-                "plot2Animation",
+                "tempHeatMapAnimation",
+                "tempProfileAnimation",
+                "thermalTransportCrystal",
+                "thermalTransportSettings",
                 "simulation",
             ),
         )
@@ -48,7 +48,14 @@ class SimData(sirepo.sim_data.SimDataBase):
                 del m["n0"]
                 if "n2" in m:
                     del m["n2"]
+                if m.propagationType in ("n0n2_lct", "default"):
+                    m.propagationType = "n0n2_srw"
+            if m.type == "mirror":
+                m.type = "mirror2"
             cls.update_model_defaults(m, m.type)
+        for n in ("crystalCylinder", "crystalSettings"):
+            if dm.get(n):
+                del dm[n]
         cls.__fixup_laser_pulse(dm.laserPulse)
 
     @classmethod
@@ -56,8 +63,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         if analysis_model in (
             "crystalAnimation",
             "crystal3dAnimation",
-            "plotAnimation",
-            "plot2Animation",
+            "tempProfileAnimation",
+            "tempHeatMapAnimation",
         ):
             return "crystalAnimation"
         if "beamlineAnimation" in analysis_model:

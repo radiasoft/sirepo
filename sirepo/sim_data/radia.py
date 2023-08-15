@@ -350,6 +350,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                     "extrudedPoints", "pointsFile", o.pointsFile
                 )
             )
+        for o in filter(
+            lambda x: x.get("type") == "stl" and "file" in x,
+            data.models.geometryReport.objects,
+        ):
+            res.append(cls.lib_file_name_with_model_field("stl", "file", o.file))
 
         return res
 
