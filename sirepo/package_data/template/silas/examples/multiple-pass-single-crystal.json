@@ -5,7 +5,6 @@
                 "_super": "beamElement",
                 "id": 10,
                 "position": 1.375,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -15,14 +14,13 @@
                 "C": -0.260693,
                 "D": 0.99892682,
                 "_super": "beamElement",
-                "calc_type": "fenics",
+                "calc_type": "analytical",
                 "crystal_alpha": 106.4,
                 "icon": "ti-sapphire-crystal.png",
                 "id": 2,
                 "initial_temp": 0.0,
                 "inversion_mesh_extent": 0.005,
                 "inversion_n_cells": 64,
-                "l_scale": 0.001,
                 "length": 2.5,
                 "mesh_density": 80,
                 "n0": [
@@ -61,7 +59,6 @@
                 "_super": "beamElement",
                 "id": 11,
                 "position": 1.375,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -69,7 +66,6 @@
                 "_super": "beamElement",
                 "id": 12,
                 "position": 2.75,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -77,7 +73,6 @@
                 "_super": "beamElement",
                 "id": 3,
                 "position": 2.75,
-                "propagationType": "default",
                 "title": "Mirror",
                 "type": "mirror"
             },
@@ -85,7 +80,6 @@
                 "_super": "beamElement",
                 "id": 13,
                 "position": 4.125,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -95,14 +89,13 @@
                 "C": -0.260693,
                 "D": 0.99892682,
                 "_super": "beamElement",
-                "calc_type": "fenics",
+                "calc_type": "analytical",
                 "crystal_alpha": 120,
                 "icon": "ti-sapphire-crystal.png",
                 "id": 4,
                 "initial_temp": 0.0,
                 "inversion_mesh_extent": 0.01,
                 "inversion_n_cells": 64,
-                "l_scale": 0.001,
                 "length": 2,
                 "mesh_density": 80,
                 "n0": [
@@ -129,7 +122,7 @@
                 "pump_gaussian_order": 2,
                 "pump_offset_x": 0,
                 "pump_offset_y": 0,
-                "pump_rep_rate": 1,
+                "pump_rep_rate": 1000,
                 "pump_type": "dual",
                 "pump_waist": 0.00164,
                 "pump_wavelength": 5.32e-07,
@@ -141,7 +134,6 @@
                 "_super": "beamElement",
                 "id": 14,
                 "position": 4.125,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -149,7 +141,6 @@
                 "_super": "beamElement",
                 "id": 15,
                 "position": 5.5,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -157,7 +148,6 @@
                 "_super": "beamElement",
                 "id": 5,
                 "position": 5.5,
-                "propagationType": "default",
                 "title": "Mirror",
                 "type": "mirror"
             },
@@ -165,7 +155,6 @@
                 "_super": "beamElement",
                 "id": 16,
                 "position": 6.875,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -175,14 +164,13 @@
                 "C": -0.260693,
                 "D": 0.99892682,
                 "_super": "beamElement",
-                "calc_type": "fenics",
+                "calc_type": "analytical",
                 "crystal_alpha": 120,
                 "icon": "ti-sapphire-crystal.png",
                 "id": 6,
                 "initial_temp": 0.0,
                 "inversion_mesh_extent": 0.01,
                 "inversion_n_cells": 64,
-                "l_scale": 0.001,
                 "length": 2,
                 "mesh_density": 80,
                 "n0": [
@@ -209,7 +197,7 @@
                 "pump_gaussian_order": 2,
                 "pump_offset_x": 0,
                 "pump_offset_y": 0,
-                "pump_rep_rate": 1,
+                "pump_rep_rate": 1000,
                 "pump_type": "dual",
                 "pump_waist": 0.00164,
                 "pump_wavelength": 5.32e-07,
@@ -221,7 +209,6 @@
                 "_super": "beamElement",
                 "id": 17,
                 "position": 6.875,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -229,7 +216,6 @@
                 "_super": "beamElement",
                 "id": 18,
                 "position": 8.25,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -237,7 +223,6 @@
                 "_super": "beamElement",
                 "id": 7,
                 "position": 8.25,
-                "propagationType": "default",
                 "title": "Mirror",
                 "type": "mirror"
             },
@@ -245,7 +230,6 @@
                 "_super": "beamElement",
                 "id": 19,
                 "position": 9.625,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -255,14 +239,13 @@
                 "C": -0.260693,
                 "D": 0.99892682,
                 "_super": "beamElement",
-                "calc_type": "fenics",
+                "calc_type": "analytical",
                 "crystal_alpha": 120,
                 "icon": "ti-sapphire-crystal.png",
                 "id": 8,
                 "initial_temp": 0.0,
                 "inversion_mesh_extent": 0.01,
                 "inversion_n_cells": 64,
-                "l_scale": 0.001,
                 "length": 2,
                 "mesh_density": 80,
                 "n0": [
@@ -289,7 +272,7 @@
                 "pump_gaussian_order": 2,
                 "pump_offset_x": 0,
                 "pump_offset_y": 0,
-                "pump_rep_rate": 1,
+                "pump_rep_rate": 1000,
                 "pump_type": "dual",
                 "pump_waist": 0.00164,
                 "pump_wavelength": 5.32e-07,
@@ -301,7 +284,6 @@
                 "_super": "beamElement",
                 "id": 20,
                 "position": 9.625,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             },
@@ -309,37 +291,18 @@
                 "_super": "beamElement",
                 "id": 9,
                 "position": 11,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             }
         ],
         "crystal3dAnimation": {},
         "crystalAnimation": {},
-        "crystalCylinder": {
-            "T0": 20,
-            "crystal": 2,
-            "crystalLength": 2.5,
-            "dT": 3.8,
-            "diameter": 7,
-            "diffusionConstant": 0.0565,
-            "supergaussian": 8,
-            "wdT": 1
-        },
-        "crystalSettings": {
-            "meshDensity": 30,
-            "plotInterval": 10,
-            "steps": 100,
-            "time": 1,
-            "tolerance": 0.008
-        },
         "initialIntensityReport": {
             "colorMap": "viridis",
             "watchpointPlot": "total_intensity"
         },
         "laserPulse": {
             "ccd": "",
-            "chirp": 0,
             "distribution": "gaussian",
             "meta": "",
             "nslice": 10,
@@ -353,16 +316,11 @@
             "pulseE": 0.002,
             "sigx_waist": 0.003056,
             "sigy_waist": 0.003056,
-            "tau_0": 23.5865,
-            "tau_fwhm": 212.13203,
             "wfs": ""
         },
-        "plot2Animation": {},
-        "plotAnimation": {},
         "simulation": {
             "distanceFromSource": 0,
             "folder": "/Examples",
-            "isExample": true,
             "name": "Multiple Passes Through Single Crystal"
         }
     },
