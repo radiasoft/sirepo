@@ -2620,6 +2620,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             </div>
         `,
         controller: function($element, $scope) {
+            // TODO (gurhar1133): fix cancellation error
             $scope.fileUploadError = '';
             // used by sub componenets to possibly hide the "main" file import selector
             $scope.hideMainImportSelector = false;
