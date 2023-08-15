@@ -968,16 +968,13 @@
             "tolerance": ["Tolerance", "Float", 0.0001]
         },
         "optimizerAnimation": {
-            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "notes": ["Notes", "Text", ""],
             "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchCores": ["Cores", "Integer", 1],
-            "sbatchProject": ["Project", "OptionalString", ""],
-            "x": ["Horizontal Value to Plot", "OptimizationField", 0],
-            "y": ["Vertical Value to Plot", "OptimizationField", 1]
+            "sbatchProject": ["Project", "OptionalString", ""]
         },
         "pointsReport": {
             "doSnap": ["Snap to Grid", "Boolean", "0"],
@@ -1604,15 +1601,6 @@
         "optimizerAnimation": {
             "title": "Optimization Path",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y"
-                    ]]
-                ],
-                "colorMap",
                 "notes"
             ]
         },
