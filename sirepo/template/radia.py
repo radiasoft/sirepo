@@ -1461,7 +1461,7 @@ def _rsopt_percent_complete(run_dir, res):
     out_files = pkio.walk_tree(run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT)
     if not out_files:
         return res
-    count = len(res.summary)
+    count = len(out_files)
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
     res.frameCount = count
     res.percentComplete = 100 * (1 if pkio.sorted_glob("H_*.npy") else count / dm.optimizer.maxIterations)
