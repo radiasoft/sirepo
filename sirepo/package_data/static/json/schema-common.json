@@ -124,6 +124,7 @@
         "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
         "checkAuthJupyterhub": "/check-auth-jupyterhub",
+        "contentTooLarge": "/content-too-large",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteFile": "/delete-file",
@@ -542,6 +543,11 @@
             "url": "not-found.html",
             "msg": "File Not Found",
             "route": "notFound"
+        },
+        "413": {
+            "url": "content-too-large.html",
+            "msg": "Content Too Large",
+            "route": "contentTooLarge"
         },
         "422": {
             "url": "srw-magnet-file-error.html",
