@@ -224,7 +224,7 @@ SIREPO.app.directive('appFooter', function() {
         template: `
             <div data-common-footer="nav"></div>
             <div data-import-dialog="" data-title="Import Opal File" data-description="Select an OPAL .in or .madx file." data-file-formats=".in,.madx,.zip">
-              <div data-opal-import-options=""></div>
+              <div data-import-options=""></div>
             </div>
         `,
     };
@@ -579,105 +579,6 @@ SIREPO.app.directive('srCommanddistributionEditor', function(appState, panelStat
                     name + '.emissionmodel',
                 ], processType);
             });
-        },
-    };
-});
-
-SIREPO.app.directive('opalImportOptions', function(fileUpload, requestSender) {
-    return {
-        restrict: 'A',
-        template: `
-            <div data-ng-if="hasMissingFiles()" class="form-horizontal" style="margin-top: 1em;">
-              <div style="margin-bottom: 1ex; white-space: pre;">{{ additionalFileText() }}</div>
-              <div data-ng-repeat="info in missingFiles">
-                <div data-ng-if="! info.hasFile" class="col-sm-11 col-sm-offset-1">
-                  <span data-ng-if="info.invalidFilename" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="info.invalidFilename" class="text-danger">Filename does not match, expected: </span>
-                  <label>{{ info.filename }}</label>
-                  ({{ info.label + ": " + info.type }})
-                  <input id="file-import" type="file" data-file-model="info.file">
-                  <div data-ng-if="uploadDatafile(info)"></div>
-                </div>
-              </div>
-            </div>
-        `,
-
-        controller: function($scope) {
-            var parentScope = $scope.$parent;
-            $scope.missingFiles = null;
-
-            function checkFiles() {
-                if (parentScope.fileUploadError) {
-                    var hasFiles = true;
-                    $scope.missingFiles.forEach(function(f) {
-                        if (! f.hasFile) {
-                            hasFiles = false;
-                        }
-                    });
-                    if (hasFiles) {
-                        parentScope.fileUploadError = null;
-                    }
-                }
-            }
-
-            $scope.additionalFileText = function() {
-                if ($scope.missingFiles) {
-                    return 'Please upload the files below which are referenced in the opal file.';
-                }
-            };
-
-            $scope.uploadDatafile = function(info) {
-                if (info.file.name) {
-                    if (info.file.name != info.filename) {
-                        if (! info.invalidFilename) {
-                            info.invalidFilename = true;
-                            $scope.$applyAsync();
-                        }
-                        return false;
-                    }
-                    info.invalidFilename = false;
-                    parentScope.isUploading = true;
-                    fileUpload.uploadFileToUrl(
-                        info.file,
-                        null,
-                        requestSender.formatUrl(
-                            'uploadFile',
-                            {
-                                // dummy id because no simulation id is available or required
-                                '<simulation_id>': '11111111',
-                                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                                '<file_type>': info.file_type,
-                            }),
-                        function(data) {
-                            parentScope.isUploading = false;
-                            if (data.error) {
-                                parentScope.fileUploadError = data.error;
-                                return;
-                            }
-                            info.hasFile = true;
-                            checkFiles();
-                        });
-                    info.file = {};
-                }
-                return false;
-            };
-
-            $scope.hasMissingFiles = function() {
-                if (parentScope.fileUploadError) {
-                    if (parentScope.errorData && parentScope.errorData.missingFiles) {
-                        parentScope.hideMainImportSelector = true;
-                        $scope.missingFiles = [];
-                        parentScope.errorData.missingFiles.forEach(function(f) {
-                            f.file = {};
-                            $scope.missingFiles.push(f);
-                        });
-                        delete parentScope.errorData;
-                    }
-                }
-                else {
-                    $scope.missingFiles = null;
-                }
-                return $scope.missingFiles && $scope.missingFiles.length;
-            };
         },
     };
 });

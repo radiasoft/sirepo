@@ -393,7 +393,11 @@ def _parse_namelist(data, text, req):
                 #    'filename': 'Reference-Particles-1.dat', 'label': 'Dist2',
                 #    'lib_filename': 'command_distribution-fname.Reference-Particles-1.dat',
                 #    'type': 'distribution'}
-                missing_files.append(v)
+                missing_files.append(
+                    PKDict(
+                        filename=v,
+                    )
+                )
             d = dm[m]
             if t == "Float":
                 d[f] = float(v)
