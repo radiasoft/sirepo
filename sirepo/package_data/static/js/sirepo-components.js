@@ -2599,6 +2599,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                       <form name="importForm">
                         <div class="form-group">
                           <div data-ng-show="! hideMainImportSelector">
+                          aaa
                             <label>{{ description }}</label>
                             <input id="file-import" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}">
                             <br />
@@ -2610,7 +2611,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                         <div class="clearfix"></div>
                         <div class="col-sm-6 pull-right">
                           <button data-ng-click="importFile(inputFile)" class="btn btn-primary" data-ng-disabled="! inputFile || isUploading">Import File</button>
-                           <button data-ng-click="inputFile = null" data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>
+                           <button data-ng-click="cancel()" data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>
                         </div>
                       </form>
                     </div>
@@ -2627,6 +2628,12 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             $scope.isUploading = false;
             $scope.title = $scope.title || 'Import ZIP File';
             $scope.description = $scope.description || 'Select File';
+            $scope.cancel = () => {
+                $scope.importFile = null;
+                // $scope.errorData = null;
+                srdbg("cancelled and errorData={}", $scope.errorData);
+                // $scope.hideMainImportSelector = false;
+            }
             $scope.importFile = function(inputFile) {
                 if (! inputFile) {
                     return;
