@@ -8,6 +8,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="SimList" data-ng-class="fieldClass">
           <div data-dynamic-sim-list="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="SimArray">
+          <div data-sim-array="" data-model="model" data-field="field" data-sub-model-name="coupledSim"></div>
+        </div>
     `;
 });
 
@@ -19,6 +22,7 @@ SIREPO.app.factory('omegaService', function(appState) {
 
     self.modelAccess = modelKey => {
         if (! modelAccess[modelKey]) {
+            // this structure has no state, so it can be cached across simulations
             modelAccess[modelKey] = {
                 modelKey: modelKey,
                 getData: () => appState.models[modelKey],
@@ -174,37 +178,78 @@ SIREPO.app.directive('dynamicSimList', function(appState) {
         `,
         controller: function($scope) {
             $scope.selectedCode = () => {
-                if ($scope.field) {
-                    const i = $scope.field.match(/(\d+)$/)[0];
-                    if (i) {
-                        $scope.code = $scope.model[`simType_${i}`];
-                        return $scope.code;
-                    }
+                if ($scope.model) {
+                    $scope.code = $scope.model.simulationType;
+                    return $scope.code;
                 }
             };
         },
     };
 });
 
-SIREPO.viewLogic('simWorkflowView', function(appState, panelState, $scope) {
-    function updateVisibility() {
-        const wf = appState.models.simWorkflow;
-        panelState.showFields('simWorkflow', [
-            ['simId_2', 'simType_2'], wf.simType_1 && wf.simId_1,
-            ['simId_3', 'simType_3'], wf.simType_2 && wf.simId_2,
-            ['simId_4', 'simType_4'], wf.simType_3 && wf.simId_3,
-        ]);
-    }
+SIREPO.app.directive('simArray', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            subModelName: '@',
+        },
+        template: `
+          <div class="clearfix" style="margin-top:-20px"></div>
+            <div class="col-sm-4 col-sm-offset-1 lead">{{:: label('simulationType') }}</div>
+            <div class="col-sm-7 lead">{{:: label('simulationId') }}</div>
+            <div class="col-sm-12">
+              <div data-ng-repeat="sim in model[field] track by $index">
+                <div class="form-group">
+                  <div class="col-sm-1 control-label"><label>{{ $index + 1 }}</label></div>
+                  <div data-model-field="'simulationType'" data-model-name="subModelName" data-model-data="modelData($index)" data-label-size="0" data-field-size="4"></div>
+                  <div data-model-field="'simulationId'" data-model-name="subModelName" data-model-data="modelData($index)" data-label-size="0" data-field-size="6"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `,
+        controller: function($scope) {
+            const modelData = {};
 
-    $scope.whenSelected = updateVisibility;
-    $scope.watchFields = [
-        [
-            'simWorkflow.simType_1',
-            'simWorkflow.simId_1',
-            'simWorkflow.simType_2',
-            'simWorkflow.simId_2',
-            'simWorkflow.simType_3',
-            'simWorkflow.simId_3',
-        ], updateVisibility,
-    ];
+            function checkArray() {
+                // ensure there is always an empty selection available at the end of the list
+                const a = $scope.model[$scope.field];
+                if (! a.length || (a[a.length - 1].simulationType && a[a.length - 1].simulationId)) {
+                    a.push(appState.setModelDefaults({}, $scope.subModelName));
+                }
+            }
+
+            $scope.label = field => appState.modelInfo($scope.subModelName)[field][0];
+
+            $scope.modelData = index => {
+                if (! $scope.model) {
+                    return;
+                }
+                checkArray();
+                if (! modelData[index]) {
+                    modelData[index] = {
+                        getData: () => $scope.model[$scope.field][index],
+                    };
+                }
+                return modelData[index];
+            };
+        },
+    };
+});
+
+SIREPO.viewLogic('simWorkflowView', function(appState, $scope) {
+    $scope.$on('simWorkflow.changed', () => {
+        const w = appState.models.simWorkflow;
+        const sims = [];
+        for (const s of w.coupledSims) {
+            if (s.simulationType && s.simulationId) {
+                sims.push(s);
+            }
+        }
+        sims.push(appState.setModelDefaults({}, 'coupledSim'));
+        w.coupledSims = sims;
+        appState.saveQuietly('simWorkflow');
+    });
 });

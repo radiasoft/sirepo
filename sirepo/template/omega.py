@@ -13,7 +13,6 @@ import re
 import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
-_MAX_SIMS = 100
 _PHASE_PLOT_COUNT = 4
 _PHASE_PLOTS = PKDict(
     genesis=[
@@ -130,7 +129,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
                 if m:
                     return m.group(1)
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
-    for idx in reversed(range(_MAX_SIMS)):
+    for idx in reversed(range(len(dm.simWorkflow.coupledSims))):
         sim_type, sim_id = _sim_info(dm, idx)
         if not sim_type or not sim_id:
             continue
@@ -159,7 +158,9 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def sim_frame(frame_args):
-    sim_type = frame_args.sim_in.models.simWorkflow[f"simType_{frame_args.simCount}"]
+    sim_type = frame_args.sim_in.models.simWorkflow.coupledSims[
+        int(frame_args.simCount) - 1
+    ].simulationType
     sub_dir = f"run{frame_args.simCount}"
     frame_args.run_dir = frame_args.run_dir.join(sub_dir)
     frame_args.sim_in = simulation_db.read_json(
@@ -235,7 +236,7 @@ def _generate_parameters_file(data):
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
     sim_list = []
-    for idx in range(_MAX_SIMS):
+    for idx in range(len(dm.simWorkflow.coupledSims)):
         sim_type, sim_id = _sim_info(dm, idx)
         if sim_type and sim_id:
             sim_list.append(
@@ -262,29 +263,33 @@ def _output_info(run_dir):
         )
 
     res = []
-    for idx in range(_MAX_SIMS):
+    idx = 0
+    while True:
         sim_dir = run_dir.join(f"run{idx + 1}")
-        if sim_dir.exists():
-            has_file = False
-            for f in _SUCCESS_OUTPUT_FILE:
-                s = sim_dir.join(_SUCCESS_OUTPUT_FILE[f])
-                if s.exists() and s.size() > 0:
-                    has_file = True
-            if not has_file:
-                break
-            r = []
-            res.append(r)
-            r.append(
-                [
-                    _report_info(idx + 1, "simBeamAnimation", 1),
-                ]
-            )
-            r.append(
-                [
-                    _report_info(idx + 1, "simPhaseSpaceAnimation", phase + 1)
-                    for phase in range(_PHASE_PLOT_COUNT)
-                ]
-            )
+        if not sim_dir.exists():
+            break
+        has_file = False
+        for f in _SUCCESS_OUTPUT_FILE:
+            s = sim_dir.join(_SUCCESS_OUTPUT_FILE[f])
+            if s.exists() and s.size() > 0:
+                has_file = True
+        if not has_file:
+            break
+        r = []
+        res.append(r)
+        r.append(
+            [
+                _report_info(idx + 1, "simBeamAnimation", 1),
+            ]
+        )
+        r.append(
+            [
+                _report_info(idx + 1, "simPhaseSpaceAnimation", phase + 1)
+                for phase in range(_PHASE_PLOT_COUNT)
+            ]
+        )
+        idx += 1
+
     return res
 
 
@@ -351,8 +356,10 @@ def _plot_phase(sim_type, frame_args):
 
 
 def _sim_info(dm, idx):
-    w = dm.simWorkflow
-    return w.get(f"simType_{idx + 1}"), w.get(f"simId_{idx + 1}")
+    s = dm.simWorkflow.coupledSims
+    if len(s) > idx:
+        return s[idx].simulationType, s[idx].simulationId
+    return None, None
 
 
 def _sim_list(sim_type):
