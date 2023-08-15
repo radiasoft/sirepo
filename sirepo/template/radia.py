@@ -15,6 +15,7 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
+from rsopt.libe_tools import tools
 from scipy.spatial.transform import Rotation
 from sirepo import simulation_db
 from sirepo.template import radia_util
@@ -1456,6 +1457,7 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 
 
 def _rsopt_percent_complete(run_dir, res):
+    #from rsopt.libe_tools import tools
     res.frameCount = 0
     res.percentComplete = 0
     out_files = pkio.walk_tree(run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT)
@@ -1464,13 +1466,21 @@ def _rsopt_percent_complete(run_dir, res):
     count = len(out_files)
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
     res.frameCount = count
-    res.percentComplete = 100 * (1 if pkio.sorted_glob("H_*.npy") else count / dm.optimizer.maxIterations)
+    p = count / dm.optimizer.maxIterations
+    if pkio.sorted_glob("H_*.npy"):
+        p = 1
+        s = libe_tools.tools.parse_stat_file("libE_stats.txt")
+        if any([x == 'Task Failed' in x for x in s.status.values]):
+            #p = 0
+            res.error = "Error during optimization"
+    res.percentComplete = 100 * p
     return res
 
 
 def _rsopt_jinja_context(data):
     import multiprocessing
     res = PKDict(
+        errFileName="optimize.err",
         libFiles=_SIM_DATA.lib_file_basenames(data),
         numWorkers=max(1, multiprocessing.cpu_count() - 1),
         optimizer=data.models.optimizer,
