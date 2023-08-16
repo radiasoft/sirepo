@@ -2711,8 +2711,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
 
             $scope.additionalFileText = function() {
                 if ($scope.missingFiles) {
-                    // TODO (gurhar1133): sim type, not opal
-                    return 'Please upload the files below which are referenced in the opal file.';
+                    return `Please upload the files below which are referenced in the ${SIREPO.APP_SCHEMA.simulationType} file.`;
                 }
             };
 

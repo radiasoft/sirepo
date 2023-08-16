@@ -2131,6 +2131,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         }
         var r = map[n];
         var u = r.baseUri ? '/' + r.baseUri : '';
+        srdbg("params=", params);
         for (p of r.params) {
             if (p.name in params) {
                 u = u + '/' + encodeURIComponent(serializeValue(params[p.name], p.name));
@@ -2159,6 +2160,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     // Started from serializeValue in angular, but need more specialization.
     // https://github.com/angular/angular.js/blob/2420a0a77e27b530dbb8c41319b2995eccf76791/src/ng/http.js#L12
     function serializeValue(v, param) {
+        srdbg("v, param", v, param);
         if (v === null) {
             throw new Error(param + ': may not be null');
         }

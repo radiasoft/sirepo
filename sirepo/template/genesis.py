@@ -387,8 +387,7 @@ def _parse_namelist(data, text, req):
                 v = v[-1]
             t = SCHEMA.model[m][f][1]
             pkdp("\n\n\n\nt={}, v={}, m={}, f={}", t, v, m, f)
-            if t == "InputFile" and not _SIM_DATA.lib_file_exists(v, qcall=req.qcall):
-                # TODO (gurhar1133): missing file fmt
+            if t == "InputFile" and not _SIM_DATA.lib_file_exists("infile." + v, qcall=req.qcall):
                 # {'field': 'fname', 'file_type': 'command_distribution-fname',
                 #    'filename': 'Reference-Particles-1.dat', 'label': 'Dist2',
                 #    'lib_filename': 'command_distribution-fname.Reference-Particles-1.dat',
@@ -396,6 +395,7 @@ def _parse_namelist(data, text, req):
                 missing_files.append(
                     PKDict(
                         filename=v,
+                        file_type="infile",
                     )
                 )
             d = dm[m]
