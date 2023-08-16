@@ -822,10 +822,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 scope.$broadcast('sr-plotEvent', args);
                 scope.$emit('sr-plotEvent', args);
             };
-
+            // work-around for #6230 Safari browser
+            $(element, 'div.sr-plot').on('wheel', e => {});
             scope.$on('$destroy', function() {
                 scope.destroy();
                 $(d3.select(scope.element).select('svg.sr-plot').node()).off();
+                $(scope.element, 'div.sr-plot').off();
                 scope.element = null;
             });
 
