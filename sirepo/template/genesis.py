@@ -142,7 +142,9 @@ async def import_file(req, **kwargs):
     res = sirepo.simulation_db.default_data(SIM_TYPE)
     p = pkio.py_path(req.filename)
     res.models.simulation.name = p.purebasename
-    return _parse_namelist(res, text, req)
+    n = _parse_namelist(res, text, req)
+    pkdp(n)
+    return n
 
 
 def parse_genesis_error(run_dir):
@@ -386,18 +388,19 @@ def _parse_namelist(data, text, req):
             if isinstance(v, list):
                 v = v[-1]
             t = SCHEMA.model[m][f][1]
-            pkdp("\n\n\n\nt={}, v={}, m={}, f={}", t, v, m, f)
-            if t == "InputFile" and not _SIM_DATA.lib_file_exists(f + "." + v, qcall=req.qcall):
-                # {'field': 'fname', 'file_type': 'command_distribution-fname',
-                #    'filename': 'Reference-Particles-1.dat', 'label': 'Dist2',
-                #    'lib_filename': 'command_distribution-fname.Reference-Particles-1.dat',
-                #    'type': 'distribution'}
-                missing_files.append(
-                    PKDict(
-                        filename=v,
-                        file_type=f,
+            if t == "InputFile":
+                if not _SIM_DATA.lib_file_exists(
+                    _SIM_DATA.lib_file_name_with_model_field(m, f, v),
+                    qcall=req.qcall
+                ):
+                    missing_files.append(
+                        PKDict(
+                            filename=v,
+                            file_type="{}-{}".format(m, f),
+                        )
                     )
-                )
+                else:
+                    dm.io[f] = v
             d = dm[m]
             if t == "Float":
                 d[f] = float(v)

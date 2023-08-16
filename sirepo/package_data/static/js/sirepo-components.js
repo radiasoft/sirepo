@@ -2691,6 +2691,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
             </div>
         `,
         controller: function($scope) {
+            const simType = SIREPO.APP_SCHEMA.simulationType;
             var parentScope = $scope.$parent;
             $scope.missingFiles = null;
 
@@ -2711,7 +2712,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
 
             $scope.additionalFileText = function() {
                 if ($scope.missingFiles) {
-                    return `Please upload the files below which are referenced in the ${SIREPO.APP_SCHEMA.simulationType} file.`;
+                    return `Please upload the files below which are referenced in the ${simType} file.`;
                 }
             };
 
@@ -2734,7 +2735,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
                             {
                                 // dummy id because no simulation id is available or required
                                 '<simulation_id>': '11111111',
-                                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                                '<simulation_type>': simType,
                                 '<file_type>': info.file_type,
                             }),
                         function(data) {
