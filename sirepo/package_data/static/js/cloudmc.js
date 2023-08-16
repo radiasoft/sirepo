@@ -537,7 +537,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     return;
                 }
                 const [z, x, y] = tallyReportAxes();
-                const [n, l, m] = tallyReportAxisIndices();
+                const [n, m, l] = tallyReportAxisIndices();
                 const ranges = getMeshRanges();
                 const inds = displayRangeIndices();
                 for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
@@ -808,7 +808,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             };
 
             function reorderFieldData(outerAxis, dims) {
-                const [n, l, m] = tallyReportAxisIndices();
+                const [n, m, l] = tallyReportAxisIndices();
                 const fd = getFieldData();
                 const d = SIREPO.UTILS.reshape(fd, dims.slice().reverse());
                 const inds = displayRangeIndices();
@@ -934,7 +934,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             function tallyReportAxes() {
                 return [
                     $scope.tallyReport.axis,
-                    ...SIREPO.GEOMETRY.GeometryUtils.nextAxes($scope.tallyReport.axis)
+                    ...SIREPO.GEOMETRY.GeometryUtils.nextAxes($scope.tallyReport.axis).reverse()
                 ];
             }
 
