@@ -782,6 +782,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
+                updateDisplayRange();
             }
 
             function loadVolumes(volIds) {
@@ -940,6 +941,23 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
             function tallyReportAxisIndices() {
                 return SIREPO.GEOMETRY.GeometryUtils.axisIndices($scope.tallyReport.axis);
+            }
+
+            function updateDisplayRange() {
+                if (! mesh) {
+                    return;
+                }
+                $scope.axes.forEach(dim => {
+                    const r = $scope.tallyRange(dim);
+                    const v = appState.models.tallyReport[`${dim}DisplayRange`];
+                    if (v[0] < r.min) {
+                        v[0] = r.min;
+                    }
+                    if (v[1] > r.max) {
+                        v[1] = r.max;
+                    }
+                });
+                appState.saveQuietly('tallyReport');
             }
 
             function updateMarker() {
