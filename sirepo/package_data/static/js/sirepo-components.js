@@ -2690,7 +2690,6 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
               </div>
             </div>
         `,
-
         controller: function($scope) {
             var parentScope = $scope.$parent;
             $scope.missingFiles = null;
@@ -2705,6 +2704,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
                     });
                     if (hasFiles) {
                         parentScope.fileUploadError = null;
+                        parentScope.importFile(parentScope.inputFile);
                     }
                 }
             }
