@@ -383,7 +383,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             let minField, maxField;
             let picker = null;
             let planePosSlider = null;
-            let clipSliders = {};
             let selectedVolume = null;
             let tally = null;
 
@@ -1060,12 +1059,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             // the vtk teardown is handled in vtkPlotting
             $scope.destroy = () => {
                 vtkScene = null;
-                [planePosSlider, ...Object.values(clipSliders)]
-                    .filter(x => x)
-                    .forEach(x => {
-                        x.slider('destroy');
-                        x = null;
-                });
+                if (planePosSlider) {
+                    planePosSlider.slider('destroy');
+                    planePosSlider = null;
+                }
             };
 
             $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
