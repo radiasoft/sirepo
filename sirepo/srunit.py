@@ -817,7 +817,7 @@ class _WebSocket:
             _connect()
         self.req_seq += 1
         msg.reqSeq = self.req_seq
-        self._connection.send(pkjson.dump_pretty(msg, pretty=False))
+        self._connection.send(_WebSocketRequest(msg).buf)
         return _WebSocketResponse(
             self._connection.recv(timeout=self._test_client.DEFAULT_TIMEOUT_SECS),
         )
@@ -835,6 +835,17 @@ class _WebSocket:
         self.req_seq = None
         if c:
             c.close()
+
+
+class _WebSocketRequest:
+    def __init__(self, msg):
+        import msgpack
+
+        p = msgpack.Packer(autoreset=False)
+        p.pack("v1")
+        p.pack(msg)
+        self.buf = p.bytes()
+        p.reset()
 
 
 class _WebSocketResponse:

@@ -2017,6 +2017,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     const self = {};
     let socket = null;
     const toSend = [];
+    const _version = "v1";
 
     const _error = (event) => {
         // close: event.code : short, event.reason : str, wasClean : bool
@@ -2056,7 +2057,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             return;
         }
         delete needReply[header.reqSeq];
-        if (version !== "v1" || header.msgType !== "reply") {
+        if (version !== _version || header.msgType !== "reply") {
             srlog("WebSocket frame invalid version=", version, " header=", header, " msg=", m);
             m.deferred.reject("invalid reply from server");
             return;
@@ -2142,7 +2143,16 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         while (toSend.length > 0) {
             const m = toSend.shift();
             needReply[m.frame.reqSeq] = m;
-            socket.send(JSON.stringify(m.frame));
+            m.frame.msgType = "request";
+            let e = new msgpack.Encoder();
+            let v = e.encode(_version)
+            let f = e.encodeSharedRef(m.frame);
+            e = undefined;
+            const a = new Uint8Array(v.length + f.length);
+            a.set(v)
+            a.set(f, v.length);
+            f = undefined;
+            socket.send(a);
         }
     };
 

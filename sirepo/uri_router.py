@@ -4,6 +4,7 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkjson
@@ -271,7 +272,15 @@ def start_tornado(ip, port, debug):
 
     class _WebSocketRequest(PKDict):
         def parse_msg(self, msg):
-            self.msg = pkjson.load_any(msg)
+            import msgpack
+
+            p = msgpack.Unpacker(object_pairs_hook=pkcollections.object_pairs_hook)
+            p.feed(msg)
+            v = p.unpack()
+            assert "v1" == v, f"invalid version={v}"
+            self.msg = p.unpack()
+            del msg
+            assert "request" == self.msg.msgType, f"invalid msgType={self.msg.msgType}"
             # Ensures protocol conforms for all requests
             self.req_seq = self.msg.reqSeq
             self.uri = self.msg.uri
@@ -281,7 +290,7 @@ def start_tornado(ip, port, debug):
                 pkdlog(
                     "error ws_id={} req_seq={} uri={} {}; route={} kwargs={} ",
                     self.handler.ws_id,
-                    self.msg.reqSeq,
+                    self.req_seq,
                     self.uri,
                     e,
                     self.route,
