@@ -357,18 +357,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                        </div>
                    </div>
                </div>
-               <div class="row" style="padding: 8px;"><label>Clip</label></div>
-               <div class="row">
-                   <div data-ng-repeat="dim in axes track by $index" data-ng-show="dim !== tallyReport.axis" class="col-md-4">
-                       <div data-label-with-tooltip="" class="control-label" data-label="{{ dim }}"></div>    
-                       <div class="axis-display-slider axis-display-{{ dim }}"></div>
-                       <div style="display:flex; justify-content:space-between;">
-                            <span>{{ formatFloat(tallyRange(dim).min) }}</span>
-                            <span>{{ getDisplayRange(dim) }}</span>
-                            <span>{{ formatFloat(tallyRange(dim).max) }}</span>
-                       </div>
-                   </div>
-               </div>
                <div data-report-content="heatmap" data-model-key="tallyReport"></div>
             </div>
         `,
@@ -794,7 +782,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             function loadTally(data) {
                 basePolyData = SIREPO.VTK.VTKUtils.parseLegacy(data);
                 buildVoxels();
-                updateDisplayRange();
             }
 
             function loadVolumes(volIds) {
@@ -953,21 +940,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
 
             function tallyReportAxisIndices() {
                 return SIREPO.GEOMETRY.GeometryUtils.axisIndices($scope.tallyReport.axis);
-            }
-
-            function updateDisplayRange() {
-                if (! mesh) {
-                    return;
-                }
-                $scope.axes.forEach(dim => {
-                    clipSliders[dim] = buildSlider(
-                        'tallyReport',
-                        `${dim}DisplayRange`,
-                        `.axis-display-${dim}`,
-                        $scope.tallyRange(dim)
-                    );
-                });
-                appState.saveQuietly('tallyReport');
             }
 
             function updateMarker() {
