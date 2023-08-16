@@ -388,6 +388,7 @@ def _parse_namelist(data, text, req):
             if isinstance(v, list):
                 v = v[-1]
             t = SCHEMA.model[m][f][1]
+            pkdp("\n\n\n\n SCHEMA.model[m][f]={}", SCHEMA.model[m][f])
             if t == "InputFile":
                 if not _SIM_DATA.lib_file_exists(
                     _SIM_DATA.lib_file_name_with_model_field(m, f, v),
