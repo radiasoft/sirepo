@@ -507,7 +507,6 @@ async def import_file(req, unit_test_mode=False, **kwargs):
             if not _SIM_DATA.lib_file_exists(infile.lib_filename, qcall=req.qcall):
                 missing_files.append(infile)
         if missing_files:
-            pkdp("missing_files={}", missing_files)
             return PKDict(
                 error="Missing data files",
                 missingFiles=missing_files,

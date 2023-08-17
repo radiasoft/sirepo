@@ -20,7 +20,6 @@ SIREPO.app.factory('genesisService', function(appState) {
 
 SIREPO.app.controller('SourceController', function(appState, panelState, $scope) {
     const self = this;
-    srdbg(appState.models);
 });
 
 SIREPO.app.controller('VisualizationController', function(appState, frameCache, genesisService, persistentSimulation, $scope) {

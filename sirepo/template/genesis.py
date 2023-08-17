@@ -142,9 +142,7 @@ async def import_file(req, **kwargs):
     res = sirepo.simulation_db.default_data(SIM_TYPE)
     p = pkio.py_path(req.filename)
     res.models.simulation.name = p.purebasename
-    n = _parse_namelist(res, text, req)
-    pkdp(n)
-    return n
+    return _parse_namelist(res, text, req)
 
 
 def parse_genesis_error(run_dir):
@@ -388,11 +386,9 @@ def _parse_namelist(data, text, req):
             if isinstance(v, list):
                 v = v[-1]
             t = SCHEMA.model[m][f][1]
-            pkdp("\n\n\n\n SCHEMA.model[m][f]={}", SCHEMA.model[m][f])
             if t == "InputFile":
                 if not _SIM_DATA.lib_file_exists(
-                    _SIM_DATA.lib_file_name_with_model_field(m, f, v),
-                    qcall=req.qcall
+                    _SIM_DATA.lib_file_name_with_model_field(m, f, v), qcall=req.qcall
                 ):
                     missing_files.append(
                         PKDict(
@@ -424,7 +420,6 @@ def _parse_namelist(data, text, req):
                 d[f] = "1" if int(v) == 1 else "2" if int(v) == 2 else "0"
     # TODO(pjm): remove this if scanning is implemented in the UI
     if missing_files:
-        pkdp("missing_files={}", missing_files)
         return PKDict(
             error="Missing data files",
             missingFiles=missing_files,
