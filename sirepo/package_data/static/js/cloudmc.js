@@ -337,7 +337,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 <div data-ng-show="isClientOnly || displayType === '3D'" data-vtk-display="" class="vtk-display col-sm-11"
                   data-ng-style="sizeStyle()" data-show-border="true"
                   data-report-id="reportId" data-model-name="{{ modelName }}"
-                  data-event-handlers="eventHandlers" data-reset-side="y"
+                  data-event-handlers="eventHandlers" data-reset-side="y" data-reset-direction="-1"
                   data-enable-axes="true" data-axis-cfg="axisCfg"
                   data-axis-obj="axisObj" data-enable-selection="true"></div>
                 <div class="col-sm-1" style="padding-left: 0;" data-ng-show="supportsColorbar()">
