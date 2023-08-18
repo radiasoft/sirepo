@@ -1770,11 +1770,12 @@ SIREPO.app.directive('simplePanel', function(appState, panelState) {
         transclude: true,
         scope: {
             modelName: '@simplePanel',
+            modelKey: '=',
             isReport: '@',
         },
         template: `
             <div class="panel panel-info">
-              <div class="panel-heading clearfix" data-panel-heading="{{ heading }}" data-model-key="modelName" data-is-report="{{ isReport }}"></div>
+              <div class="panel-heading clearfix" data-panel-heading="{{ heading }}" data-model-key="modelKey || modelName" data-is-report="{{ isReport }}"></div>
                 <div class="panel-body" data-ng-hide="isHidden()">
                   <div data-ng-transclude=""></div>
                 </div>
@@ -1785,7 +1786,7 @@ SIREPO.app.directive('simplePanel', function(appState, panelState) {
             var viewInfo = appState.viewInfo($scope.modelName);
             $scope.heading = viewInfo.title;
             $scope.isHidden = function() {
-                return panelState.isHidden($scope.modelName);
+                return panelState.isHidden($scope.modelKey || $scope.modelName);
             };
         },
     };
@@ -4831,7 +4832,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
               <div style="white-space: nowrap">
                 <select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as itemName(item) disable when item.invalidMsg for item in simList"></select>
 
-                <button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>
+                <button type="button" style="padding: 3px 10px 5px 10px; margin-top: -1px" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>
               </div>
             </span>
         `,
