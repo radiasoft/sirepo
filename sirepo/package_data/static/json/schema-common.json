@@ -483,12 +483,14 @@
                 "js": [
                     "angular.min.js",
                     "jquery-2.2.4.min.js",
+                    "jquery-ui.min.js",
                     "cookieconsent.min.js"
                 ],
                 "css": [
                     "bootstrap-3.3.7.min.css",
                     "bootstrap-colxl.css",
                     "bootstrap-toggle.min.css",
+                    "jquery-ui.min.css",
                     "katex.min.css",
                     "cookieconsent.min.css"
                 ]

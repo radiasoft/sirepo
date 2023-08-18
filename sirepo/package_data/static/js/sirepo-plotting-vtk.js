@@ -493,7 +493,7 @@ class VTKScene {
      * @param {{}} container - jquery element in which to place the scene
      * @param {string} resetSide - the dimension to display facing the user when the scene is reset
      */
-    constructor(container, resetSide) {
+    constructor(container, resetSide, resetDirection=1) {
         this.fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
             background: [1, 1, 1, 1],
             container: container,
@@ -506,12 +506,13 @@ class VTKScene {
         this.cam = this.renderer.get().activeCamera;
         this.camProperties = VTKScene.CAM_DEFAULTS();
         this.resetSide = resetSide;
+        this.resetDirection = resetDirection;
 
         this.marker = null;
         this.isMarkerEnabled = false;
 
         this.viewSide = this.resetSide;
-        this.viewDirection = 1;
+        this.viewDirection = this.resetDirection;
     }
 
     /**
@@ -616,7 +617,7 @@ class VTKScene {
      * Sets the camera so that the resetSide is facing the user
      */
     resetView() {
-        this.showSide(this.resetSide, 1);
+        this.showSide();
     }
 
     /**
@@ -681,7 +682,7 @@ class VTKScene {
      * @param {string} side - x|y|z
      * @param {number} direction - -1|0|1
      */
-    showSide(side = this.resetSide, direction = 0) {
+    showSide(side = this.resetSide, direction = this.resetDirection) {
         if (side === this.viewSide) {
             this.viewDirection *= -1;
         }
@@ -3149,6 +3150,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             eventHandlers: '<',
             modelName: '@',
             reportId: '<',
+            resetDirection: '@',
             resetSide: '@',
             showBorder: '@',
         },
@@ -3228,7 +3230,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     };
                 }
 
-                $scope.vtkScene = new VTKScene(rw, $scope.resetSide);
+                $scope.vtkScene = new VTKScene(rw, $scope.resetSide, $scope.resetDirection);
 
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
