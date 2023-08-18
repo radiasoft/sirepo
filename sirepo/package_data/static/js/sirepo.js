@@ -2018,11 +2018,11 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     let socket = null;
     const toSend = [];
 
-    const _appendBuffers = (wsreq, buffers) = {
+    const _appendBuffers = (wsreq, buffers) => {
         buffers.splice(0, 0, wsreq.msg);
-        const f = new Uint8Array(buffers.reduce((a, b) => a + b.length));
-        const i = 0;
-        for (const b in buffers) {
+        const f = new Uint8Array(buffers.reduce((a, b) => a + b.length, 0));
+        let i = 0;
+        for (const b of buffers) {
             f.set(b, i);
             i += b.length;
         }
@@ -2196,7 +2196,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             header: {
                 kind: SIREPO.APP_SCHEMA.websocketMsg.kind.httpRequest,
                 reqSeq: reqSeq++,
-                uri: url,
+                uri: decodeURIComponent(url),
                 version: SIREPO.APP_SCHEMA.websocketMsg.version,
             },
             ...httpConfig,

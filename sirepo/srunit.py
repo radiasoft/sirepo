@@ -754,12 +754,13 @@ class _WebSocket:
         from pykern.pkdebug import pkdp, pkdlog
         import msgpack
         from sirepo import const
+        from sirepo import uri as sirepo_uri
 
-        def _combine_req(uri):
+        def _combine_req(encoded_uri):
             m = PKDict(
                 header=PKDict(
                     kind=const.SCHEMA_COMMON.websocketMsg.kind.httpRequest,
-                    uri=uri,
+                    uri=sirepo_uri.decode_to_str(encoded_uri),
                     version=const.SCHEMA_COMMON.websocketMsg.version,
                 ),
             )

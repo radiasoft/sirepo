@@ -15,7 +15,6 @@ import importlib
 import inspect
 import os
 import pkgutil
-import pykern.pkcompat
 import re
 import sirepo.api_auth
 import sirepo.auth
@@ -205,9 +204,7 @@ def start_tornado(ip, port, debug):
 
     class _HTTPRequest(web.RequestHandler):
         async def _route(self):
-            p = pykern.pkcompat.from_bytes(
-                urllib.parse.unquote_to_bytes(self.request.path),
-            )
+            p = sirepo.uri.decode_to_str(self.request.path)
             e, r, k = _path_to_route(p[1:])
             if e:
                 pkdlog("uri={} {}; route={} kwargs={} ", p, e, r, k)
