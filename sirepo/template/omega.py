@@ -133,7 +133,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
         sim_type, sim_id = _sim_info(dm, idx)
         if not sim_type or not sim_id:
             continue
-        sim_dir = run_dir.join(f"run{idx + 1}")
+        sim_dir = _sim_dir(run_dir, idx + 1)
         sim_template = sirepo.template.import_module(sim_type)
         res = f"{sim_type.upper()} failed\n"
         if success_exit:
@@ -161,8 +161,7 @@ def sim_frame(frame_args):
     sim_type = frame_args.sim_in.models.simWorkflow.coupledSims[
         int(frame_args.simCount) - 1
     ].simulationType
-    sub_dir = f"run{frame_args.simCount}"
-    frame_args.run_dir = frame_args.run_dir.join(sub_dir)
+    frame_args.run_dir = _sim_dir(frame_args.run_dir, frame_args.simCount)
     frame_args.sim_in = simulation_db.read_json(
         frame_args.run_dir.join(template_common.INPUT_BASE_NAME)
     )
@@ -254,6 +253,13 @@ def _generate_parameters_file(data):
 
 
 def _output_info(run_dir):
+    def _has_file(sim_dir):
+        for f in _SUCCESS_OUTPUT_FILE:
+            s = sim_dir.join(_SUCCESS_OUTPUT_FILE[f])
+            if s.exists() and s.size() > 0:
+                return True
+        return False
+
     def _report_info(sim_count, model_name, report_count):
         return PKDict(
             simCount=sim_count,
@@ -264,17 +270,8 @@ def _output_info(run_dir):
 
     res = []
     idx = 0
-    while True:
-        sim_dir = run_dir.join(f"run{idx + 1}")
-        if not sim_dir.exists():
-            break
-        has_file = False
-        for f in _SUCCESS_OUTPUT_FILE:
-            s = sim_dir.join(_SUCCESS_OUTPUT_FILE[f])
-            if s.exists() and s.size() > 0:
-                has_file = True
-        if not has_file:
-            break
+    sim_dir = _sim_dir(run_dir, idx + 1)
+    while sim_dir.exists() and _has_file(sim_dir):
         r = []
         res.append(r)
         r.append(
@@ -289,6 +286,7 @@ def _output_info(run_dir):
             ]
         )
         idx += 1
+        sim_dir = _sim_dir(run_dir, idx + 1)
 
     return res
 
@@ -353,6 +351,10 @@ def _plot_phase(sim_type, frame_args):
             title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
         )
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
+
+
+def _sim_dir(run_dir, sim_count):
+    return run_dir.join(f"run{sim_count}")
 
 
 def _sim_info(dm, idx):
