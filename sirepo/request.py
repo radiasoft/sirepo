@@ -72,7 +72,7 @@ def init_quest(qcall, internal_req=None):
             internal_req=internal_req,
             _kind=_TORNADO_WEBSOCKET,
             _form_file_class=_FormFileWebSocket,
-            _form_get=lambda x, y: internal_req.msg.get("content").get(x, y),
+            _form_get=lambda x, y: internal_req.content.get(x, y),
             _set_log_user=internal_req.set_log_user,
         )
     elif "tornado" in str(type(internal_req)):
@@ -155,10 +155,10 @@ class _FormFileTornado(_FormFileBase):
 
 class _FormFileWebSocket(_FormFileBase):
     def as_bytes(self):
-        return internal_req.msg["file"]
+        return self._internal.blob
 
     def _get(self, internal_req):
-        return internal_req.msg.get("content").get(_FORM_FILE_NAME)
+        return internal_req.get("attachment")
 
 
 class _SRequest(sirepo.quest.Attr):

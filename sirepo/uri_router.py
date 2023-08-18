@@ -272,27 +272,35 @@ def start_tornado(ip, port, debug):
             return None
 
     class _WebSocketRequest(PKDict):
-        def parse_msg(self, msg):
+        def parse_frame(self, frame):
             import msgpack
 
-            p = msgpack.Unpacker(object_pairs_hook=pkcollections.object_pairs_hook)
-            p.feed(msg)
-            self.msg = p.unpack()
-            p.tell()
-            any more objects?
-file
+            assert isinstance(frame, bytes), f"incoming frame type={type(frame)}"
+            u = msgpack.Unpacker(
+                max_buffer_size=sirepo.job.cfg().max_message_bytes,
+                object_pairs_hook=pkcollections.object_pairs_hook,
+            )
+            u.feed(frame)
+            self.header = u.unpack()
             assert (
-                sirepo.const.WEBSOCKET_MSG_VERSION == self.msg.version
-            ), f"invalid msg.version={self.msg.version}"
-            assert "request" == self.msg.kind, f"invalid msg.kind={self.msg.kind}"
+                sirepo.const.SCHEMA_COMMON.websocketMsg.version == self.header.version
+            ), f"invalid header.version={self.header.version}"
             # Ensures protocol conforms for all requests
-            self.req_seq = self.msg.reqSeq
-            self.uri = self.msg.uri
+            assert (
+                sirepo.const.SCHEMA_COMMON.websocketMsg.kind.httpRequest
+                == self.header.kind
+            ), f"invalid header.kind={self.header.kind}"
+            self.req_seq = self.header.reqSeq
+            self.uri = self.header.uri
+            if u.tell() < len(frame):
+                self.content = u.unpack()
+                if u.tell() < len(frame):
+                    self.attachment = u.unpack()
             # content may or may not exist so defer checking
             e, self.route, self.kwargs = _path_to_route(self.uri[1:])
             if e:
                 pkdlog(
-                    "error ws_id={} req_seq={} uri={} {}; route={} kwargs={} ",
+                    "error ws_id={} req_seq={} uri={} {}; route={} kwargs={}",
                     self.handler.ws_id,
                     self.req_seq,
                     self.uri,

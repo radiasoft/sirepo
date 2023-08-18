@@ -21,9 +21,7 @@ import email.utils
 import mimetypes
 import pykern.pkinspect
 import re
-import sirepo.const
 import sirepo.html
-import sirepo.http_request
 import sirepo.resource
 import sirepo.uri
 import sirepo.util

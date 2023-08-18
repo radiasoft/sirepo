@@ -2017,7 +2017,17 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     const self = {};
     let socket = null;
     const toSend = [];
-    const _version = "v1";
+
+    const _appendFrame = (msg, buffers) = {
+        buffers.splice(0, 0, msg.frame);
+        const f = new Uint8Array(buffers.reduce((a, b) => a + b.length));
+        const i = 0;
+        for (const b in buffers) {
+            f.set(b, i);
+            i += b.length;
+        }
+        msg.frame = f;
+    };
 
     const _error = (event) => {
         // close: event.code : short, event.reason : str, wasClean : bool
@@ -2050,24 +2060,22 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     const _reply = (blob) => {
-        let x = msgpack.decodeMulti(blob);
-        header = x[0]
-        assert header.kind == reply_with_content
-        x.length
+        let [header, content] = msgpack.decodeMulti(blob);
         const m = needReply[header.reqSeq];
         if (! m) {
             srlog("WebSocket msg not found reqSeq=", header.reqSeq, " header=", header);
             return;
         }
         delete needReply[header.reqSeq];
-        if (version !== _version || header.msgType !== "reply") {
-            srlog("WebSocket frame invalid version=", version, " header=", header, " msg=", m);
+        if (
+            header.version !== SIREPO.APP_SCHEMA.websocketMsg.version
+            || header.kind !== SIREPO.APP_SCHEMA.websocketMsg.kind.httpReply
+        ) {
+            srlog("WebSocket frame invalid version=", version, " header=", header, " req=", m);
             m.deferred.reject("invalid reply from server");
             return;
         }
-        if response in error:
-           may have json content
-
+        //TODO(robnagler) if response in error, ok to not be blob, so defer
         const b = m.responseType === "blob";
         if (content instanceof Uint8Array) {
             if (! b) {
@@ -2088,9 +2096,9 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         });
     };
 
-    const _reqData = (data, done) => {
+    const _reqData = (data, msg, done) => {
         if (! (data instanceof FormData)) {
-            done(data);
+            done([data]);
             return;
         }
         var d = {};
@@ -2107,7 +2115,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             }
         }
         if (! f) {
-            done(d);
+            done([data]);
             return;
         }
         // a bit of sanity since we assume this on the server side
@@ -2119,18 +2127,19 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
 
     const _reqDataFile = (data, key, file, done) => {
         var r = new FileReader();
-        r.readAsDataURL(file);
+        r.readAsArrayBuffer(file);
         r.onerror = (event) => {
             srlog("failed to read file=" + file.name, event);
             errorService.alertText('Failed to read file=' + file.name);
             return;
         };
         r.onloadend = () => {
-            data[key] = {
-                filename: file.name,
-                base64: r.result.split(",").pop(),
-            };
-            done(data);
+            delete data[key];
+            done([
+                data,
+                {filename: file.name, blob: r.result,},
+            ]);
+            done();
         };
     };
 
@@ -2148,17 +2157,8 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         }
         while (toSend.length > 0) {
             const m = toSend.shift();
-            needReply[m.frame.reqSeq] = m;
-            m.frame.msgType = "request";
-            let e = new msgpack.Encoder();
-            let v = e.encode(_version)
-            let f = e.encodeSharedRef(m.frame);
-            e = undefined;
-            const a = new Uint8Array(v.length + f.length);
-            a.set(v)
-            a.set(f, v.length);
-            f = undefined;
-            socket.send(a);
+            needReply[m.header.reqSeq] = m;
+            socket.send(m.frame);
         }
     };
 
@@ -2188,32 +2188,38 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
                 socket.close();
                 socket = null;
             }
-            return data == null ? $http.get(url, httpConfig)
+            return data === null ? $http.get(url, httpConfig)
                 : $http.post(url, data, httpConfig);
         }
         let m = {
-            frame: {uri: url, reqSeq: reqSeq++},
             deferred: $q.defer(),
+            header: {
+                kind: SIREPO.APP_SCHEMA.websocketMsg.kind.httpRequest,
+                reqSeq: reqSeq++,
+                uri: url,
+                version: SIREPO.APP_SCHEMA.websocketMsg.version,
+            },
             ...httpConfig,
         };
+        m.frame = msgpack.encode(m.header)
         if (m.timeout) {
             m.timeout.then(() => {_remove(m);});
         }
-        const c = () => {
+        const c = (buffers) => {
+            if (buffers) {
+                _appendFrame(
+                    m,
+                    buffers.map((b) => (new msgpack.Encoder()).encodeSharedRef(b)),
+                )
+            }
             toSend.push(m);
             _send();
         };
-        if (data) {
-            _reqData(
-                data,
-                (content) => {
-                    m.frame.content = content;
-                    c();
-                },
-            );
+        if (data === null) {
+            c();
         }
         else {
-            c();
+            _reqData(data, m, c);
         }
         return m.deferred.promise;
     };

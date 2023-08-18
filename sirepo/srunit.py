@@ -755,11 +755,13 @@ class _WebSocket:
         import msgpack
         from sirepo import const
 
-        def _marshall_req(uri):
+        def _combine_req(uri):
             m = PKDict(
-                version=const.WEBSOCKET_MSG_VERSION,
-                kind=const.WEBSOCKET_MSG_KIND_HTTP_REQUEST,
-                uri=uri,
+                header=PKDict(
+                    kind=const.SCHEMA_COMMON.websocketMsg.kind.httpRequest,
+                    uri=uri,
+                    version=const.SCHEMA_COMMON.websocketMsg.version,
+                ),
             )
             if op == "get":
                 assert (
@@ -770,12 +772,7 @@ class _WebSocket:
                     data is None or json is None
                 ), f"only json or data may be supplied uri={uri}"
                 m.content = json if data is None else data
-                if files:
-                    m.content = copy.deepcopy(m.content)
-                    m.content.file = PKDict(
-                        filename=os.path.basename(files.file.name),
-                        base64=pkcompat.from_bytes(base64.b64encode(files.file.read())),
-                    )
+                m.attachment = files.file if files else None
             return m
 
         def _must_be_http(uri):
@@ -799,7 +796,7 @@ class _WebSocket:
             return None
         assert uri[0] == "/", f"uri={uri} must begin with '/'"
         m = self._ANCHOR_RE.search(uri)
-        return self._send(_marshall_req(m.group(1) if m else uri))
+        return self._send(_combine_req(m.group(1) if m else uri))
 
     def _send(self, msg):
         from pykern import pkjson
@@ -821,7 +818,7 @@ class _WebSocket:
         if not self._connection:
             _connect()
         self.req_seq += 1
-        msg.reqSeq = self.req_seq
+        msg.header.reqSeq = self.req_seq
         self._connection.send(_WebSocketRequest(msg).buf)
         return _WebSocketResponse(
             self._connection.recv(timeout=self._test_client.DEFAULT_TIMEOUT_SECS),
@@ -845,39 +842,42 @@ class _WebSocket:
 class _WebSocketRequest:
     def __init__(self, msg):
         import msgpack
-        from sirepo import const
 
         p = msgpack.Packer(autoreset=False)
-        p.pack(msg)
+        p.pack(msg.header)
+        for x in "content", "attachment":
+            if x in msg:
+                p.pack(msg[x])
         self.buf = p.bytes()
         p.reset()
 
 
 class _WebSocketResponse:
     def __init__(self, frame):
-        import msgpack
         from pykern.pkdebug import pkdp
+        from sirepo import const
+        import msgpack
 
-        p = msgpack.Unpacker(object_pairs_hook=pkcollections.object_pairs_hook)
-        p.feed(frame)
-        r = p.unpack()
+        u = msgpack.Unpacker(object_pairs_hook=pkcollections.object_pairs_hook)
+        u.feed(frame)
+        h = u.unpack()
         assert (
-            sirepo.const.WEBSOCKET_MSG_VERSION == r.version
-        ), f"invalid msg.version={r.version}"
+            const.SCHEMA_COMMON.websocketMsg.version == h.version
+        ), f"invalid msg.version={h.version}"
         assert (
-            sirepo.const.WEBSOCKET_MSG_KIND_HTTP_REPLY == r.kind
-        ), f"invalid msg.kind={r.kind}"
+            const.SCHEMA_COMMON.websocketMsg.kind.httpReply == h.kind
+        ), f"invalid msg.kind={h.kind}"
         self._headers = PKDict()
-        self.data = p.unpack()
-        self.mimetype = r.contentType
-        self.status_code = r.httpStatus
+        self.data = u.unpack() if u.tell() < len(frame) else None
+        self.mimetype = h.contentType
+        self.status_code = h.httpStatus
 
     def header_get(self, name):
         return self._headers[name]
 
     def change_to_redirect(self, uri):
         self._headers = PKDict(Location=uri)
-        self.data = ""
+        self.data = None
         self.mimetype = "text/plain"
         self.status_code = 302
         return self
