@@ -773,7 +773,11 @@ class _WebSocket:
                     data is None or json is None
                 ), f"only json or data may be supplied uri={uri}"
                 m.content = json if data is None else data
-                m.attachment = files.file if files else None
+                if files:
+                    m.attachment = PKDict(
+                        blob=files.file.read(),
+                        filename=os.path.basename(files.file.name),
+                    )
             return m
 
         def _must_be_http(uri):
