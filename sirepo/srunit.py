@@ -753,9 +753,14 @@ class _WebSocket:
     def send(self, op, uri, headers, data=None, files=None, json=None):
         from pykern.pkdebug import pkdp, pkdlog
         import msgpack
+        from sirepo import const
 
         def _marshall_req(uri):
-            m = PKDict(msgType="request", uri=uri)
+            m = PKDict(
+                version=const.WEBSOCKET_MSG_VERSION,
+                kind=const.WEBSOCKET_MSG_KIND_HTTP_REQUEST,
+                uri=uri,
+            )
             if op == "get":
                 assert (
                     data is None and json is None and files is None
@@ -840,9 +845,9 @@ class _WebSocket:
 class _WebSocketRequest:
     def __init__(self, msg):
         import msgpack
+        from sirepo import const
 
         p = msgpack.Packer(autoreset=False)
-        p.pack("v1")
         p.pack(msg)
         self.buf = p.bytes()
         p.reset()
@@ -855,10 +860,13 @@ class _WebSocketResponse:
 
         p = msgpack.Unpacker(object_pairs_hook=pkcollections.object_pairs_hook)
         p.feed(frame)
-        v = p.unpack()
-        assert "v1" == v, f"invalid version={v}"
         r = p.unpack()
-        assert "reply" == r.msgType, f"invalid msgType={r.msgType}"
+        assert (
+            sirepo.const.WEBSOCKET_MSG_VERSION == r.version
+        ), f"invalid msg.version={r.version}"
+        assert (
+            sirepo.const.WEBSOCKET_MSG_KIND_HTTP_REPLY == r.kind
+        ), f"invalid msg.kind={r.kind}"
         self._headers = PKDict()
         self.data = p.unpack()
         self.mimetype = r.contentType

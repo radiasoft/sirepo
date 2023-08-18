@@ -21,6 +21,7 @@ import email.utils
 import mimetypes
 import pykern.pkinspect
 import re
+import sirepo.const
 import sirepo.html
 import sirepo.http_request
 import sirepo.resource
@@ -521,13 +522,13 @@ class _SReply(sirepo.quest.Attr):
 
         a = self.__attrs
         p = msgpack.Packer(autoreset=False)
-        p.pack("v1")
         p.pack(
             PKDict(
-                msgType="reply",
                 contentType=a.get("content_type", _MIME_TYPE.txt),
                 httpStatus=a.get("status", 200),
+                kind=sirepo.const.WEBSOCKET_MSG_KIND_HTTP_REPLY,
                 reqSeq=self.internal_req.msg.reqSeq,
+                version=sirepo.const.WEBSOCKET_MSG_VERSION,
             ),
         )
         c = a.get("content")

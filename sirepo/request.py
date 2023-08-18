@@ -155,7 +155,7 @@ class _FormFileTornado(_FormFileBase):
 
 class _FormFileWebSocket(_FormFileBase):
     def as_bytes(self):
-        return base64.b64decode(self._internal.base64)
+        return internal_req.msg["file"]
 
     def _get(self, internal_req):
         return internal_req.msg.get("content").get(_FORM_FILE_NAME)

@@ -19,6 +19,7 @@ import pykern.pkcompat
 import re
 import sirepo.api_auth
 import sirepo.auth
+import sirepo.const
 import sirepo.events
 import sirepo.feature_config
 import sirepo.quest
@@ -276,11 +277,14 @@ def start_tornado(ip, port, debug):
 
             p = msgpack.Unpacker(object_pairs_hook=pkcollections.object_pairs_hook)
             p.feed(msg)
-            v = p.unpack()
-            assert "v1" == v, f"invalid version={v}"
             self.msg = p.unpack()
-            del msg
-            assert "request" == self.msg.msgType, f"invalid msgType={self.msg.msgType}"
+            p.tell()
+            any more objects?
+file
+            assert (
+                sirepo.const.WEBSOCKET_MSG_VERSION == self.msg.version
+            ), f"invalid msg.version={self.msg.version}"
+            assert "request" == self.msg.kind, f"invalid msg.kind={self.msg.kind}"
             # Ensures protocol conforms for all requests
             self.req_seq = self.msg.reqSeq
             self.uri = self.msg.uri

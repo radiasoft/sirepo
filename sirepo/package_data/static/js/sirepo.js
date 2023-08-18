@@ -2050,7 +2050,10 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     const _reply = (blob) => {
-        let [version, header, content] = msgpack.decodeMulti(blob);
+        let x = msgpack.decodeMulti(blob);
+        header = x[0]
+        assert header.kind == reply_with_content
+        x.length
         const m = needReply[header.reqSeq];
         if (! m) {
             srlog("WebSocket msg not found reqSeq=", header.reqSeq, " header=", header);
@@ -2062,6 +2065,9 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             m.deferred.reject("invalid reply from server");
             return;
         }
+        if response in error:
+           may have json content
+
         const b = m.responseType === "blob";
         if (content instanceof Uint8Array) {
             if (! b) {
