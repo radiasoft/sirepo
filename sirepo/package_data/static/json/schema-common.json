@@ -124,6 +124,7 @@
         "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
         "checkAuthJupyterhub": "/check-auth-jupyterhub",
+        "contentTooLarge": "/content-too-large",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteFile": "/delete-file",
@@ -482,12 +483,14 @@
                 "js": [
                     "angular.min.js",
                     "jquery-2.2.4.min.js",
+                    "jquery-ui.min.js",
                     "cookieconsent.min.js"
                 ],
                 "css": [
                     "bootstrap-3.3.7.min.css",
                     "bootstrap-colxl.css",
                     "bootstrap-toggle.min.css",
+                    "jquery-ui.min.css",
                     "katex.min.css",
                     "cookieconsent.min.css"
                 ]
@@ -542,6 +545,11 @@
             "url": "not-found.html",
             "msg": "File Not Found",
             "route": "notFound"
+        },
+        "413": {
+            "url": "content-too-large.html",
+            "msg": "Content Too Large",
+            "route": "contentTooLarge"
         },
         "422": {
             "url": "srw-magnet-file-error.html",

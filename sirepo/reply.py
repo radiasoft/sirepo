@@ -428,7 +428,7 @@ class _SReply(sirepo.quest.Attr):
             if c.cache:
                 resp.set_header(
                     "Cache-Control",
-                    "private, max-age={resp.cache_control.max_age}",
+                    f"private, max-age={CACHE_MAX_AGE}",
                 )
                 if c.mtime is not None:
                     resp.set_header(
@@ -566,6 +566,9 @@ class _SReply(sirepo.quest.Attr):
 
     def _gen_exception_reply_BadRequest(self, args):
         return self._gen_http_exception(400)
+
+    def _gen_exception_reply_ContentTooLarge(self, args):
+        return self._gen_http_exception(413)
 
     def _gen_exception_reply_Error(self, args):
         try:

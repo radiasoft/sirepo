@@ -549,14 +549,15 @@ SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
             reportTitle: '@',
         },
         template: `
-            <a href data-ng-click="exportPython()">Export Python Code</a>
+            <a data-ng-href="{{ exportPythonUrl() }}">Export Python Code</a>
         `,
         controller: function($scope) {
-            $scope.exportPython = function() {
-                panelState.pythonSource(
+            $scope.exportPythonUrl = () => {
+                return panelState.pythonSourceUrl(
                     appState.models.simulation.simulationId,
                     panelState.findParentAttribute($scope, 'modelKey'),
-                    $scope.reportTitle);
+                    $scope.reportTitle
+                );
             };
         },
     };
@@ -1329,11 +1330,13 @@ SIREPO.app.directive('headerTooltip', function() {
             $scope.className = function() {
                 return 'glyphicon sr-info-pointer glyphicon-' + ({
                     canceled: 'ban-circle',
-                    completed: 'ok',
-                    error: 'exclamation-sign',
+                    completed: 'ok completed-icon',
+                    error: 'remove error-icon',
+                    loading: 'refresh running-icon',
                     missing: 'question-sign',
+                    none: 'minus',
                     pending: 'hourglass',
-                    running: 'transfer'
+                    running: 'refresh running-icon'
                 }[$scope.tipText] || 'info-sign');
             };
 
@@ -1744,7 +1747,8 @@ SIREPO.app.directive('showLoadingAndError', function(panelState) {
             modelKey: '@',
         },
         template: `
-            <div data-ng-class="{\'sr-panel-loading\': panelState.isLoading(modelKey), \'sr-panel-error\': panelState.getError(modelKey), \'sr-panel-running\': panelState.isRunning(modelKey), \'has-transclude\': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
+            <div data-ng-class="{'sr-panel-loading': panelState.isLoading(modelKey), 'sr-panel-error': panelState.getError(modelKey), 'sr-panel-running': panelState.isRunning(modelKey), 'sr-panel-waiting': panelState.isWaiting(modelKey), 'has-transclude': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
+              <div data-ng-show="panelState.isWaiting(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Waiting for Data</div>
               <div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> {{ panelState.getStatusText(modelKey) }}</div>
               <div data-ng-show="panelState.getError(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>
               <div data-ng-transclude=""></div>
@@ -2712,16 +2716,16 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                   <ul class="dropdown-menu">
                     <li class="sr-settings-submenu" data-ng-transclude="appSettingsSlot"></li>
                     <li><a href data-ng-if="nav.modeIsDefault() && canShowDocumentationUrl()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>
-                    <li><a href data-ng-if="::canExportArchive()" data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>
-                    <li data-ng-if="::canDownloadInputFile()"><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> {{ ::stringsService.formatKey(\'simulationSource\') }}</a></li>
-                    <li data-ng-if="::canExportJupyter()"><a href data-ng-click="exportJupyterNotebook()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as Jupyter Notebook</a></li>
-                    <li data-ng-if="::canExportMadx()" ><a href data-ng-click="pythonSource(\'madx\')"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>
+                    <li><a href data-ng-if="::canExportArchive()" data-ng-href="{{ exportArchiveUrl('zip') }}"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>
+                    <li data-ng-if="::canDownloadInputFile()"><a data-ng-href="{{ pythonSourceUrl() }}"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> {{ ::stringsService.formatKey('simulationSource') }}</a></li>
+                    <li data-ng-if="::canExportJupyter()"><a data-ng-href="{{ exportJupyterNotebookUrl() }}"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as Jupyter Notebook</a></li>
+                    <li data-ng-if="::canExportMadx()" ><a data-ng-href="{{ pythonSourceUrl('madx') }}"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>
                     <li data-ng-if="canCopy()"><a href data-ng-click="copyItem()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>
                     <li data-ng-if="isExample()"><a href data-target="#reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>
                     <li data-ng-if="! isExample()"><a href data-target="#delete-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>
                     <li data-ng-if="hasRelatedSimulations()" class="divider"></li>
                     <li data-ng-if="hasRelatedSimulations()" class="sr-dropdown-submenu">
-                      <a href><span class="glyphicon glyphicon-menu-left"></span> Related {{ ::stringsService.formatKey(\'simulationDataTypePlural\') }}</a>
+                      <a href><span class="glyphicon glyphicon-menu-left"></span> Related {{ ::stringsService.formatKey('simulationDataTypePlural') }}</a>
                       <ul class="dropdown-menu">
                         <li data-ng-repeat="item in relatedSimulations"><a href data-ng-click="openRelatedSimulation(item)">{{ item.name }}</a></li>
                       </ul>
@@ -2765,15 +2769,12 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 return SIREPO.APP_SCHEMA.constants.hasJupyterExport;
             };
 
-            $scope.exportJupyterNotebook = function(modelName) {
-                panelState.exportJupyterNotebook($scope.simulationId(), modelName);
+            $scope.exportArchiveUrl = extension => {
+                return panelState.exportArchiveUrl($scope.simulationId(), `${$scope.nav.simulationName()}.${extension}`);
             };
 
-            $scope.simulationId = function () {
-                if (appState.isLoaded()) {
-                    return appState.models.simulation.simulationId;
-                }
-                return null;
+            $scope.exportJupyterNotebookUrl = function(modelName) {
+                return panelState.exportJupyterNotebookUrl($scope.simulationId(), modelName);
             };
 
             $scope.copyFolder = fileManager.defaultCreationFolderPath();
@@ -2782,9 +2783,9 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 panelState.showModalEditor('simDoc');
             };
 
-            $scope.pythonSource = function(modelName) {
-                panelState.pythonSource($scope.simulationId(), modelName);
-            };
+            $scope.simulationId = () => appState.isLoaded() ? appState.models.simulation.simulationId : null;
+
+            $scope.pythonSourceUrl = modelName => panelState.pythonSourceUrl($scope.simulationId(), modelName);
 
             $scope.relatedSimulations = [];
 
@@ -2859,14 +2860,6 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     return;
                 }
                 requestSender.localRedirectHome(item.simulationId);
-            };
-
-            $scope.exportArchive = function(extension) {
-                requestSender.newWindow('exportArchive', {
-                    '<simulation_id>': $scope.simulationId(),
-                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<filename>':  $scope.nav.simulationName() + '.' + extension,
-                });
             };
 
             $scope.$on('simulationUnloaded', function() {
