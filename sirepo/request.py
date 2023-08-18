@@ -60,13 +60,11 @@ def init_quest(qcall, internal_req=None):
     elif "websocket" in str(type(internal_req)).lower():
         sreq = _SRequest(
             # This is not use except in error logging, which shouldn't happen
-            body_as_bytes=lambda: pykern.pkjson.dump_bytes(
-                internal_req.msg.get("content"),
-            ),
-            _body_as_content=internal_req.msg.get("content"),
+            body_as_bytes=lambda: pykern.pkjson.dump_bytes(internal_req.get("content")),
+            _body_as_content=internal_req.get("content"),
             http_authorization=None,
             http_headers=internal_req.headers,
-            http_method="POST" if "content" in internal_req.msg else "GET",
+            http_method="POST" if "content" in internal_req else "GET",
             http_server_uri=internal_req.handler.http_server_uri,
             remote_addr=internal_req.handler.remote_addr,
             internal_req=internal_req,

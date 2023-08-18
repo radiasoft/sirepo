@@ -853,13 +853,13 @@ class _WebSocketRequest:
 
 
 class _WebSocketResponse:
-    def __init__(self, frame):
+    def __init__(self, msg):
         from pykern.pkdebug import pkdp
         from sirepo import const
         import msgpack
 
         u = msgpack.Unpacker(object_pairs_hook=pkcollections.object_pairs_hook)
-        u.feed(frame)
+        u.feed(msg)
         h = u.unpack()
         assert (
             const.SCHEMA_COMMON.websocketMsg.version == h.version
@@ -868,7 +868,7 @@ class _WebSocketResponse:
             const.SCHEMA_COMMON.websocketMsg.kind.httpReply == h.kind
         ), f"invalid msg.kind={h.kind}"
         self._headers = PKDict()
-        self.data = u.unpack() if u.tell() < len(frame) else None
+        self.data = u.unpack() if u.tell() < len(msg) else None
         self.mimetype = h.contentType
         self.status_code = h.httpStatus
 

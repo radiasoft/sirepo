@@ -2018,15 +2018,15 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     let socket = null;
     const toSend = [];
 
-    const _appendFrame = (msg, buffers) = {
-        buffers.splice(0, 0, msg.frame);
+    const _appendBuffers = (wsreq, buffers) = {
+        buffers.splice(0, 0, wsreq.msg);
         const f = new Uint8Array(buffers.reduce((a, b) => a + b.length));
         const i = 0;
         for (const b in buffers) {
             f.set(b, i);
             i += b.length;
         }
-        msg.frame = f;
+        wsreq.msg = f;
     };
 
     const _error = (event) => {
@@ -2050,20 +2050,20 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         return url.startsWith("/auth-");
     };
 
-    const _remove = (msg) => {
-        const i = toSend.indexOf(msg);
+    const _remove = (wsreq) => {
+        const i = toSend.indexOf(wsreq);
         if (i >= 0) {
             toSend.splice(i, 1);
             return;
         }
-        delete needReply[msg.reqSeq];
+        delete needReply[wsreq.reqSeq];
     };
 
     const _reply = (blob) => {
         let [header, content] = msgpack.decodeMulti(blob);
-        const m = needReply[header.reqSeq];
-        if (! m) {
-            srlog("WebSocket msg not found reqSeq=", header.reqSeq, " header=", header);
+        const wsreq = needReply[header.reqSeq];
+        if (! wsreq) {
+            srlog("wsreq not found reqSeq=", header.reqSeq, " header=", header);
             return;
         }
         delete needReply[header.reqSeq];
@@ -2071,32 +2071,32 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             header.version !== SIREPO.APP_SCHEMA.websocketMsg.version
             || header.kind !== SIREPO.APP_SCHEMA.websocketMsg.kind.httpReply
         ) {
-            srlog("WebSocket frame invalid version=", version, " header=", header, " req=", m);
-            m.deferred.reject("invalid reply from server");
+            srlog("WebSocket msg invalid header=", header, " req=", wsreq);
+            wsreq.deferred.reject("invalid reply from server");
             return;
         }
         //TODO(robnagler) if response in error, ok to not be blob, so defer
-        const b = m.responseType === "blob";
+        const b = wsreq.responseType === "blob";
         if (content instanceof Uint8Array) {
             if (! b) {
-                srlog("WebSocket not expecting blob header=", header, " msg=", m);
-                m.deferred.reject("invalid reply from server");
+                srlog("WebSocket not expecting blob header=", header, " wsreq=", wsreq);
+                wsreq.deferred.reject("invalid reply from server");
                 return;
             }
             content = new Blob([content]);
         }
         else if (b) {
-            srlog("WebSocket expecting blob header=", header, " msg=", m);
-            m.deferred.reject("invalid reply from server");
+            srlog("WebSocket expecting blob header=", header, " wsreq=", wsreq);
+            wsreq.deferred.reject("invalid reply from server");
             return;
         }
-        m.deferred.resolve({
+        wsreq.deferred.resolve({
             data: header.contentType == "application/json" ? JSON.parse(content) : content,
             status: header.httpStatus
         });
     };
 
-    const _reqData = (data, msg, done) => {
+    const _reqData = (data, wsreq, done) => {
         if (! (data instanceof FormData)) {
             done([data]);
             return;
@@ -2156,9 +2156,9 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             return;
         }
         while (toSend.length > 0) {
-            const m = toSend.shift();
-            needReply[m.header.reqSeq] = m;
-            socket.send(m.frame);
+            const wsreq = toSend.shift();
+            needReply[wsreq.header.reqSeq] = wsreq;
+            socket.send(wsreq.msg);
         }
     };
 
@@ -2191,7 +2191,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             return data === null ? $http.get(url, httpConfig)
                 : $http.post(url, data, httpConfig);
         }
-        let m = {
+        let wsreq = {
             deferred: $q.defer(),
             header: {
                 kind: SIREPO.APP_SCHEMA.websocketMsg.kind.httpRequest,
@@ -2201,32 +2201,33 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             },
             ...httpConfig,
         };
-        m.frame = msgpack.encode(m.header)
-        if (m.timeout) {
-            m.timeout.then(() => {_remove(m);});
+        wsreq.msg = msgpack.encode(wsreq.header)
+        if (wsreq.timeout) {
+            wsreq.timeout.then(() => {_remove(wsreq);});
         }
         const c = (buffers) => {
             if (buffers) {
-                _appendFrame(
-                    m,
+                _appendBuffers(
+                    wsreq,
                     buffers.map((b) => (new msgpack.Encoder()).encodeSharedRef(b)),
                 )
             }
-            toSend.push(m);
+            toSend.push(wsreq);
             _send();
         };
         if (data === null) {
             c();
         }
         else {
-            _reqData(data, m, c);
+            _reqData(data, wsreq, c);
         }
-        return m.deferred.promise;
+        return wsreq.deferred.promise;
     };
 
     return self;
 
 });
+
 SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, msgRouter, $location, $injector, $interval, $q, $rootScope, $window) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');

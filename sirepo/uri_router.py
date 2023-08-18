@@ -272,15 +272,15 @@ def start_tornado(ip, port, debug):
             return None
 
     class _WebSocketRequest(PKDict):
-        def parse_frame(self, frame):
+        def parse_msg(self, msg):
             import msgpack
 
-            assert isinstance(frame, bytes), f"incoming frame type={type(frame)}"
+            assert isinstance(msg, bytes), f"incoming msg type={type(msg)}"
             u = msgpack.Unpacker(
                 max_buffer_size=sirepo.job.cfg().max_message_bytes,
                 object_pairs_hook=pkcollections.object_pairs_hook,
             )
-            u.feed(frame)
+            u.feed(msg)
             self.header = u.unpack()
             assert (
                 sirepo.const.SCHEMA_COMMON.websocketMsg.version == self.header.version
@@ -292,9 +292,9 @@ def start_tornado(ip, port, debug):
             ), f"invalid header.kind={self.header.kind}"
             self.req_seq = self.header.reqSeq
             self.uri = self.header.uri
-            if u.tell() < len(frame):
+            if u.tell() < len(msg):
                 self.content = u.unpack()
-                if u.tell() < len(frame):
+                if u.tell() < len(msg):
                     self.attachment = u.unpack()
             # content may or may not exist so defer checking
             e, self.route, self.kwargs = _path_to_route(self.uri[1:])

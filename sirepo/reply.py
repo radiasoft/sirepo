@@ -21,6 +21,7 @@ import email.utils
 import mimetypes
 import pykern.pkinspect
 import re
+import sirepo.const
 import sirepo.html
 import sirepo.resource
 import sirepo.uri
@@ -524,13 +525,14 @@ class _SReply(sirepo.quest.Attr):
             PKDict(
                 contentType=a.get("content_type", _MIME_TYPE.txt),
                 httpStatus=a.get("status", 200),
-                kind=sirepo.const.WEBSOCKET_MSG_KIND_HTTP_REPLY,
-                reqSeq=self.internal_req.msg.reqSeq,
-                version=sirepo.const.WEBSOCKET_MSG_VERSION,
+                kind=sirepo.const.SCHEMA_COMMON.websocketMsg.kind.httpReply,
+                reqSeq=self.internal_req.req_seq,
+                version=sirepo.const.SCHEMA_COMMON.websocketMsg.version,
             ),
         )
         c = a.get("content")
         if c is None:
+            # always have content, easier for clients
             c = ""
         elif isinstance(c, PKDict):
             # TODO(robnagler) would be ideal to handle this differently, but
