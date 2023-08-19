@@ -2137,9 +2137,8 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             delete data[key];
             done([
                 data,
-                {filename: file.name, blob: r.result,},
+                {filename: file.name, blob: new Uint8Array(r.result),},
             ]);
-            done();
         };
     };
 
