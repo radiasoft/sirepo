@@ -207,7 +207,7 @@ def start_tornado(ip, port, debug):
             p = sirepo.uri.decode_to_str(self.request.path)
             e, r, k = _path_to_route(p[1:])
             if e:
-                pkdlog("uri={} {}; route={} kwargs={} ", p, e, r, k)
+                pkdlog("error uri={} {}; route={} kwargs={} ", p, e, r, k)
                 r = _not_found_route
             await _call_api(
                 None,
@@ -279,6 +279,12 @@ def start_tornado(ip, port, debug):
             )
             u.feed(msg)
             self.header = u.unpack()
+            pkdlog(
+                "start ws_id={} req_seq={} uri={}",
+                self.handler.ws_id,
+                self.header.get("reqSeq"),
+                self.header.get("uri"),
+            )
             assert (
                 sirepo.const.SCHEMA_COMMON.websocketMsg.version == self.header.version
             ), f"invalid header.version={self.header.version}"
