@@ -2200,7 +2200,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             },
             ...httpConfig,
         };
-        wsreq.msg = msgpack.encode(wsreq.header)
+        wsreq.msg = msgpack.encode(wsreq.header);
         if (wsreq.timeout) {
             wsreq.timeout.then(() => {_remove(wsreq);});
         }
@@ -2209,7 +2209,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
                 _appendBuffers(
                     wsreq,
                     buffers.map((b) => (new msgpack.Encoder()).encodeSharedRef(b)),
-                )
+                );
             }
             toSend.push(wsreq);
             _send();
