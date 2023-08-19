@@ -25,7 +25,6 @@ def convert_bunched_beam_to_sdds_beam(data, filename):
             del cmd[k]
     s.update_model_defaults(cmd, 'command_sdds_beam')
     cmd._type = 'sdds_beam'
-    cmd.input = filename
     data.models.bunchSource.inputSource = 'sdds_beam'
 
 
@@ -142,10 +141,12 @@ def update_elegant_sim(data, filename):
         convert_bunched_beam_to_sdds_beam(data, filename)
     assert data.models.bunchSource.inputSource == 'sdds_beam'
     cmd = LatticeUtil.find_first_command(data, "sdds_beam")
+    cmd.input = filename
     cmd.center_arrival_time = '1'
     cmd.center_transversely = '1'
     cmd.reverse_t_sign = '1'
     LatticeUtil.find_first_command(data, "run_setup").expand_for = filename
+    write_sim(data)
 
 
 def update_genesis_sim(data, filename, lib_file):
@@ -177,6 +178,7 @@ def update_genesis_sim(data, filename, lib_file):
         pkio.write_text(lib_file, text)
     factor = 4 * data.models.particleLoading.nbins
     data.models.electronBeam.npart = int(n / factor) * factor
+    write_sim(data)
 
 
 def update_opal_sim(data, filename, lib_file):
@@ -207,6 +209,15 @@ def update_opal_sim(data, filename, lib_file):
         PROTON=0.93827208816,
     )
     b.pc = psum / n * mass_and_charge[b.particle]
+    write_sim(data)
+
+
+def write_sim(data):
+    #TODO(pjm): this should not bypass simulation_db.save_simulation_json()
+    sirepo.simulation_db.write_json(
+        sirepo.simulation_db.sim_data_file(data.simulationType, data.models.simulation.simulationId),
+        data,
+    )
 
 
 #TODO(pjm): need an API to add/update lib files

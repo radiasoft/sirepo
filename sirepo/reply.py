@@ -603,6 +603,9 @@ class _SReply(sirepo.quest.Attr):
     def _gen_exception_reply_BadRequest(self, args):
         return self._gen_http_exception(400)
 
+    def _gen_exception_reply_ContentTooLarge(self, args):
+        return self._gen_http_exception(413)
+
     def _gen_exception_reply_Error(self, args):
         try:
             t = qcall.sim_type_uget(args.pkdel("sim_type"))

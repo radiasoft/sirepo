@@ -1334,6 +1334,7 @@ SIREPO.app.directive('headerTooltip', function() {
                     canceled: 'ban-circle',
                     completed: 'ok completed-icon',
                     error: 'remove error-icon',
+                    loading: 'refresh running-icon',
                     missing: 'question-sign',
                     none: 'minus',
                     pending: 'hourglass',
@@ -1746,7 +1747,8 @@ SIREPO.app.directive('showLoadingAndError', function(panelState) {
             modelKey: '@',
         },
         template: `
-            <div data-ng-class="{\'sr-panel-loading\': panelState.isLoading(modelKey), \'sr-panel-error\': panelState.getError(modelKey), \'sr-panel-running\': panelState.isRunning(modelKey), \'has-transclude\': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
+            <div data-ng-class="{'sr-panel-loading': panelState.isLoading(modelKey), 'sr-panel-error': panelState.getError(modelKey), 'sr-panel-running': panelState.isRunning(modelKey), 'sr-panel-waiting': panelState.isWaiting(modelKey), 'has-transclude': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
+              <div data-ng-show="panelState.isWaiting(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Waiting for Data</div>
               <div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> {{ panelState.getStatusText(modelKey) }}</div>
               <div data-ng-show="panelState.getError(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>
               <div data-ng-transclude=""></div>
@@ -1768,11 +1770,12 @@ SIREPO.app.directive('simplePanel', function(appState, panelState) {
         transclude: true,
         scope: {
             modelName: '@simplePanel',
+            modelKey: '=',
             isReport: '@',
         },
         template: `
             <div class="panel panel-info">
-              <div class="panel-heading clearfix" data-panel-heading="{{ heading }}" data-model-key="modelName" data-is-report="{{ isReport }}"></div>
+              <div class="panel-heading clearfix" data-panel-heading="{{ heading }}" data-model-key="modelKey || modelName" data-is-report="{{ isReport }}"></div>
                 <div class="panel-body" data-ng-hide="isHidden()">
                   <div data-ng-transclude=""></div>
                 </div>
@@ -1783,7 +1786,7 @@ SIREPO.app.directive('simplePanel', function(appState, panelState) {
             var viewInfo = appState.viewInfo($scope.modelName);
             $scope.heading = viewInfo.title;
             $scope.isHidden = function() {
-                return panelState.isHidden($scope.modelName);
+                return panelState.isHidden($scope.modelKey || $scope.modelName);
             };
         },
     };
@@ -4830,7 +4833,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
               <div style="white-space: nowrap">
                 <select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as itemName(item) disable when item.invalidMsg for item in simList"></select>
 
-                <button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>
+                <button type="button" style="padding: 3px 10px 5px 10px; margin-top: -1px" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>
               </div>
             </span>
         `,

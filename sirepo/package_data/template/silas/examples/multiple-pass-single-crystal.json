@@ -21,7 +21,6 @@
                 "initial_temp": 0.0,
                 "inversion_mesh_extent": 0.005,
                 "inversion_n_cells": 64,
-                "l_scale": 0.001,
                 "length": 2.5,
                 "mesh_density": 80,
                 "n0": [
@@ -97,7 +96,6 @@
                 "initial_temp": 0.0,
                 "inversion_mesh_extent": 0.01,
                 "inversion_n_cells": 64,
-                "l_scale": 0.001,
                 "length": 2,
                 "mesh_density": 80,
                 "n0": [
@@ -173,7 +171,6 @@
                 "initial_temp": 0.0,
                 "inversion_mesh_extent": 0.01,
                 "inversion_n_cells": 64,
-                "l_scale": 0.001,
                 "length": 2,
                 "mesh_density": 80,
                 "n0": [
@@ -249,7 +246,6 @@
                 "initial_temp": 0.0,
                 "inversion_mesh_extent": 0.01,
                 "inversion_n_cells": 64,
-                "l_scale": 0.001,
                 "length": 2,
                 "mesh_density": 80,
                 "n0": [
@@ -307,7 +303,6 @@
         },
         "laserPulse": {
             "ccd": "",
-            "chirp": 1.385e-4,
             "distribution": "gaussian",
             "meta": "",
             "nslice": 10,
@@ -321,16 +316,11 @@
             "pulseE": 0.002,
             "sigx_waist": 0.003056,
             "sigy_waist": 0.003056,
-            "tau_0": 23.5865,
-            "tau_fwhm": 212.13203,
             "wfs": ""
         },
-        "plot2Animation": {},
-        "plotAnimation": {},
         "simulation": {
             "distanceFromSource": 0,
             "folder": "/Examples",
-            "isExample": true,
             "name": "Multiple Passes Through Single Crystal"
         }
     },
