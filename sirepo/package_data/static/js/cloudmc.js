@@ -363,9 +363,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
         controller: function($scope, $element) {
             const isGeometryOnly = $scope.modelName === 'geometry3DReport';
             $scope.allVolumesVisible = false;
-            $scope.axes = SIREPO.GEOMETRY.GeometryUtils.BASIS();
             $scope.displayType = '3D';
-            $scope.axes = SIREPO.GEOMETRY.GeometryUtils.BASIS();
+            const axes = SIREPO.GEOMETRY.GeometryUtils.BASIS();
             $scope.isClientOnly = isGeometryOnly;
             $scope.isVolumeListExpanded = false;
             $scope.numVolumeCols = 5;
@@ -764,12 +763,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             function initAxes() {
                 $scope.axisCfg = {};
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
-                    $scope.axisCfg[dim] = {};
-                    $scope.axisCfg[dim].dimLabel = dim;
-                    $scope.axisCfg[dim].label = dim + ' [m]';
-                    $scope.axisCfg[dim].numPoints = 2;
-                    $scope.axisCfg[dim].screenDim = dim === 'z' ? 'y' : 'x';
-                    $scope.axisCfg[dim].showCentral = false;
+                    $scope.axisCfg[dim] = {
+                        dimLabel: dim,
+                        label: dim + ' [m]',
+                        numPoints: 2,
+                        screenDim: dim === 'z' ? 'y' : 'x',
+                        showCentral: false,
+                    };
                 });
             }
 
@@ -946,7 +946,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                 if (! mesh) {
                     return;
                 }
-                $scope.axes.forEach(dim => {
+                axes.forEach(dim => {
                     const r = $scope.tallyRange(dim);
                     const v = appState.models.tallyReport[`${dim}DisplayRange`];
                     if (v[0] < r.min) {
