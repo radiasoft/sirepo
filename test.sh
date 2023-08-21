@@ -14,8 +14,7 @@ test_js() {
     test_no_prints '\s(srdbg|console.log|console.trace)\(' "${jsfiles[@]}"
     jshint --config=etc/jshint.conf "${jsfiles[@]}"
     if [[ ! ${sirepo_test_no_karma:-} ]]; then
-# don't run karma for now
-:        karma start etc/karma-conf.js
+        karma start etc/karma-conf.js
     fi
 }
 
