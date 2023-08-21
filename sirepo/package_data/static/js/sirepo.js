@@ -2195,8 +2195,8 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
                 socket.close();
                 socket = null;
             }
-            return data === null ? $http.get(url, httpConfig)
-                : $http.post(url, data, httpConfig);
+            return data ? $http.post(url, data, httpConfig)
+                : $http.get(url, httpConfig);
         }
         let wsreq = {
             deferred: $q.defer(),
