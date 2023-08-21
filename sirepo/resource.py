@@ -9,6 +9,7 @@ from pykern.pkdebug import pkdp
 import importlib
 import os
 import pykern.pkio
+import pykern.pkjinja
 import sirepo.const
 import sirepo.feature_config
 import sirepo.util
@@ -42,6 +43,27 @@ def glob_paths(*paths):
         _join_paths(paths),
         packages=sirepo.feature_config.cfg().package_path,
     )
+
+
+def render_jinja(*paths, target_dir=None, j2_ctx=None):
+    """Render a resource template file with Jinja into target_dir.
+
+    Args:
+        paths (str): Path components of resource file without pykern.pkjinja.RESOURCE_SUFFIX
+        target_dir (py.path): target directory for rendered file
+        j2_ctx (PKDict): parameters to jinja file
+
+    Returns:
+        py.path: output path which is target_dir.join(paths[-1])
+    """
+    f = paths[-1]
+    res = target_dir.join(f)
+    pykern.pkjinja.render_file(
+        file_path(*paths[:-1], f + pykern.pkjinja.RESOURCE_SUFFIX),
+        j2_ctx,
+        output=res,
+    )
+    return res
 
 
 def root_modules():

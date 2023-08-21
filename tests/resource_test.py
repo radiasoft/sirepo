@@ -17,3 +17,24 @@ def test_static_files():
         "myapp-schema not in list={}",
         x,
     )
+
+
+def test_render_resource():
+    from sirepo import resource
+    from pykern.pkcollections import PKDict
+    from pykern import pkunit
+    from pykern import pkio
+
+    pkunit.pkre(
+        'var = "x"',
+        pkio.read_text(
+            resource.render_jinja(
+                "resource_test_data",
+                "README.txt",
+                target_dir=pkunit.work_dir(),
+                j2_ctx=PKDict(
+                    var="x",
+                ),
+            )
+        ),
+    )
