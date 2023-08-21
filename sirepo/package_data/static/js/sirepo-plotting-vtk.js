@@ -146,7 +146,7 @@ class ObjectViews {
     scaledArray(arr) {
         return ObjectViews.scaledArray(arr, this.scale);
     }
-    
+
     setShapeProperties(props) {
         for (const e in this.shapes) {
             const s = this.shapes[e];
@@ -743,9 +743,7 @@ class ActorBundle {
         /** @member {vtk.Rendering.Core.Property} - properties of the actor */
         this.actorProperties = this.actor.getProperty();
 
-        for (const p in actorProperties) {
-            this.setActorProperty(p, actorProperties[p]);
-        }
+        this.setActorProperties(actorProperties);
 
         this.actor.setUserMatrix(VTKUtils.userMatrix(this.transform.matrix));
     }
@@ -766,6 +764,15 @@ class ActorBundle {
      */
     getActorProperty(name) {
         return this.actorProperties[`get${SIREPO.UTILS.capitalize(name)}`]();
+    }
+
+    /**
+     * Set a group of properties.
+     */
+    setActorProperties(values) {
+        for (const p in values) {
+            this.setActorProperty(p, values[p]);
+        }
     }
 
     /**
@@ -2638,7 +2645,7 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
                                <button data-ng-disabled="locked[o.id]" data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
                             </div>
                           </div>
-                        </td>                    
+                        </td>
                     </tr>
                   </tbody>
                 </table>
@@ -3277,7 +3284,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $scope.vtkScene.rotate(angle);
                 refresh(true);
             };
-            
+
             $scope.showSide = side => {
                 $scope.vtkScene.showSide(side);
                 refresh(true);
