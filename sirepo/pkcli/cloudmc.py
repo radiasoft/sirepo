@@ -176,7 +176,7 @@ class _MoabGroupExtractor:
             "reduce faces: {} to {} ({}%)",
             c,
             len(m.face_matrix()),
-            int(100 - (100 * (len(m.face_matrix()) / c))),
+            int(100 - len(m.face_matrix()) * 100 / c),
         )
         return (
             m.vertex_matrix().astype(numpy.float32),
