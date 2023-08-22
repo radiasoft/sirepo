@@ -1770,11 +1770,12 @@ SIREPO.app.directive('simplePanel', function(appState, panelState) {
         transclude: true,
         scope: {
             modelName: '@simplePanel',
+            modelKey: '=',
             isReport: '@',
         },
         template: `
             <div class="panel panel-info">
-              <div class="panel-heading clearfix" data-panel-heading="{{ heading }}" data-model-key="modelName" data-is-report="{{ isReport }}"></div>
+              <div class="panel-heading clearfix" data-panel-heading="{{ heading }}" data-model-key="modelKey || modelName" data-is-report="{{ isReport }}"></div>
                 <div class="panel-body" data-ng-hide="isHidden()">
                   <div data-ng-transclude=""></div>
                 </div>
@@ -1785,7 +1786,7 @@ SIREPO.app.directive('simplePanel', function(appState, panelState) {
             var viewInfo = appState.viewInfo($scope.modelName);
             $scope.heading = viewInfo.title;
             $scope.isHidden = function() {
-                return panelState.isHidden($scope.modelName);
+                return panelState.isHidden($scope.modelKey || $scope.modelName);
             };
         },
     };
@@ -2662,6 +2663,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {
                 $('#file-import').val(null);
+                scope.hideMainImportSelector = false;
                 scope.fileUploadError = '';
                 delete scope.errorData;
                 scope.isUploading = false;
@@ -2669,6 +2671,106 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             scope.$on('$destroy', function() {
                 $(element).off();
             });
+        },
+    };
+});
+
+SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        template: `
+            <div data-ng-if="hasMissingFiles()" class="form-horizontal" style="margin-top: 1em;">
+              <div style="margin-bottom: 1ex; white-space: pre;">{{ additionalFileText() }}</div>
+              <div data-ng-repeat="info in missingFiles">
+                <div data-ng-if="! info.hasFile" class="col-sm-11 col-sm-offset-1">
+                  <span data-ng-if="info.invalidFilename" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="info.invalidFilename" class="text-danger">Filename does not match, expected: </span>
+                  <label>{{ info.filename }}</label>
+                  <span data-ng-if="info.label && info.type">({{ info.label + ": " + info.type }})</span>
+                  <input id="file-import" type="file" data-file-model="info.file">
+                  <div data-ng-if="uploadDatafile(info)"></div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            const simType = SIREPO.APP_SCHEMA.simulationType;
+            var parentScope = $scope.$parent;
+            $scope.missingFiles = null;
+
+            function checkFiles() {
+                if (parentScope.fileUploadError) {
+                    var hasFiles = true;
+                    $scope.missingFiles.forEach(function(f) {
+                        if (! f.hasFile) {
+                            hasFiles = false;
+                        }
+                    });
+                    if (hasFiles) {
+                        parentScope.fileUploadError = null;
+                        parentScope.importFile(parentScope.inputFile);
+                    }
+                }
+            }
+
+            $scope.additionalFileText = function() {
+                if ($scope.missingFiles) {
+                    return `Please upload the files below which are referenced in the ${simType} file.`;
+                }
+            };
+
+            $scope.uploadDatafile = function(info) {
+                if (info.file.name) {
+                    if (info.file.name != info.filename) {
+                        if (! info.invalidFilename) {
+                            info.invalidFilename = true;
+                            $scope.$applyAsync();
+                        }
+                        return false;
+                    }
+                    info.invalidFilename = false;
+                    parentScope.isUploading = true;
+                    fileUpload.uploadFileToUrl(
+                        info.file,
+                        null,
+                        requestSender.formatUrl(
+                            'uploadFile',
+                            {
+                                // dummy id because no simulation id is available or required
+                                '<simulation_id>': '11111111',
+                                '<simulation_type>': simType,
+                                '<file_type>': info.file_type,
+                            }),
+                        function(data) {
+                            parentScope.isUploading = false;
+                            if (data.error) {
+                                parentScope.fileUploadError = data.error;
+                                return;
+                            }
+                            info.hasFile = true;
+                            checkFiles();
+                        });
+                    info.file = {};
+                }
+                return false;
+            };
+
+            $scope.hasMissingFiles = function() {
+                if (parentScope.fileUploadError) {
+                    if (parentScope.errorData && parentScope.errorData.missingFiles) {
+                        parentScope.hideMainImportSelector = true;
+                        $scope.missingFiles = [];
+                        parentScope.errorData.missingFiles.forEach(function(f) {
+                            f.file = {};
+                            $scope.missingFiles.push(f);
+                        });
+                        delete parentScope.errorData;
+                    }
+                }
+                else {
+                    $scope.missingFiles = null;
+                }
+                return $scope.missingFiles && $scope.missingFiles.length;
+            };
         },
     };
 });
@@ -4831,7 +4933,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
               <div style="white-space: nowrap">
                 <select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as itemName(item) disable when item.invalidMsg for item in simList"></select>
 
-                <button type="button" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>
+                <button type="button" style="padding: 3px 10px 5px 10px; margin-top: -1px" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>
               </div>
             </span>
         `,
