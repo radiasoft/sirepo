@@ -1470,10 +1470,13 @@ def _rsopt_percent_complete(run_dir, res):
     p = count / dm.optimizer.maxIterations
     if pkio.sorted_glob("H_*.npy"):
         p = 1
-        if re.search(r"Status:\s*Task\s+Failed", pkio.read_text("libE_stats.txt")):
-            p = 0
-            res.state = "error"
-            res.error = "Error during optimization"
+        for line in pkio.read_text("libE_stats.txt").split("\n"):
+            m = re.match(r"Worker\s*(\d+):\s+sim_id\s*(\d+).*Status:\s*Task Failed", line, re.IGNORECASE)
+            if m:
+                p = 0
+                res.state = "error"
+                res.error = f"Error during optimization: worker {m.group(1)} sim id {m.group(2)}"
+                break
     res.percentComplete = 100 * p
     return res
 

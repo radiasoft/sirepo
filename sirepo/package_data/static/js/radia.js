@@ -1777,7 +1777,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     {{ item.object }}
                   </td>
                   <td>
-                    <select class="form-control" data-ng-model="item.field" data-ng-options="f for f in fieldsForObject(item.object)">
+                    <select class="form-control" data-ng-model="item.field" data-ng-options="f for f in fieldsForObject(item.object)" data-ng-change="selectField(item)">
                       <option value="" disabled selected>select field</option>
                     </select>
                   </td>
@@ -1889,6 +1889,10 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
             };
 
             $scope.fieldsForObject = name => $scope.optimizableObjects[name].fields;
+
+            $scope.selectField = (f) => {
+                srdbg($scope.selectedItem, f);
+            };
 
             $scope.hasUnusedFields = name => {
                 const f = $scope.field.filter(x => x.name === name).map(x => x.field);
@@ -3779,6 +3783,7 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
 
     function updateInputs() {
         panelState.showField('optimizer', 'parameters', appState.models[$scope.modelName].objective !== 'none');
+
     }
 
     function updateObjectiveFunction(fn) {
