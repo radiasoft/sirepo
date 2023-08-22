@@ -15,7 +15,6 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
-from rsopt.libe_tools import tools
 from scipy.spatial.transform import Rotation
 from sirepo import simulation_db
 from sirepo.template import radia_util
@@ -257,6 +256,7 @@ def get_data_file(run_dir, model, frame, options):
     rpt = data.models[model]
     sfx = options.suffix or SCHEMA.constants.dataDownloads._default[0].suffix
     f = f"{model}.{sfx}"
+    pkdp("FETCH {}", f)
     if model == "electronTrajectoryReport":
         if sfx == "csv":
             return _save_trajectory_csv(
@@ -289,6 +289,8 @@ def get_data_file(run_dir, model, frame, options):
                 pkio.py_path(f),
             )
         return f
+    if model == "optimizerAnimation":
+        return template_common.text_data_file("optimize.out", run_dir)
 
 
 def get_g_id():
@@ -1457,7 +1459,6 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 
 
 def _rsopt_percent_complete(run_dir, res):
-    #from rsopt.libe_tools import tools
     res.frameCount = 0
     res.percentComplete = 0
     out_files = pkio.walk_tree(run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT)
@@ -1469,9 +1470,9 @@ def _rsopt_percent_complete(run_dir, res):
     p = count / dm.optimizer.maxIterations
     if pkio.sorted_glob("H_*.npy"):
         p = 1
-        s = libe_tools.tools.parse_stat_file("libE_stats.txt")
-        if any([x == 'Task Failed' in x for x in s.status.values]):
-            #p = 0
+        if re.search(r"Status:\s*Task\s+Failed", pkio.read_text("libE_stats.txt")):
+            p = 0
+            res.state = "error"
             res.error = "Error during optimization"
     res.percentComplete = 100 * p
     return res

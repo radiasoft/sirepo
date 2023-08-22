@@ -953,19 +953,21 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, panelS
     };
 });
 
-SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCache, persistentSimulation, radiaService, $scope) {
+SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCache, persistentSimulation, radiaService, requestSender, $scope) {
     const self = this;
     self.simScope = $scope;
     self.simAnalysisModel = 'optimizerAnimation';
 
-    self.simHandleStatus = function (data) {
+    self.simHandleStatus = data => {
+        self.errorMessage = data.error;
         if ('frameCount' in data && ! data.error) {
             frameCache.setFrameCount(data.frameCount > 1 ? data.frameCount : 0);
             self.simState.summaryData = data.summary;
         }
+
     };
 
-    self.hasOptFields = function() {
+    self.hasOptFields = () => {
         return true;
         if (appState.isLoaded()) {
             return false;
@@ -975,7 +977,18 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
 
     self.simState = persistentSimulation.initSimulationState(self);
 
-    self.simState.runningMessage = function() {
+    self.simState.errorMessage = () => self.errorMessage;
+
+    self.simState.logFileURL = () => requestSender.formatUrl('downloadDataFile', {
+        '<simulation_id>': appState.models.simulation.simulationId,
+        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        '<model>': self.simState.model,
+        '<frame>': SIREPO.nonDataFileFrame,
+        '<suffix>': 'out',
+    });
+
+    
+    self.simState.runningMessage = () => {
         return 'Completed run: ' + self.simState.getFrameCount();
     };
 });
