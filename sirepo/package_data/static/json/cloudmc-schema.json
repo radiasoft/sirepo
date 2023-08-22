@@ -911,8 +911,7 @@
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
             "tally": ["Tally", "TallyList"],
-            "score": ["Score", "ScoreList"],
-            "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.0, "", 0.0, 1.0]
+            "score": ["Score", "ScoreList"]
         },
         "particle": {
             "value": ["Particle", "FilterParticle"]
@@ -1029,8 +1028,7 @@
         },
         "volumes": {},
         "voxels": {
-            "colorMap": ["Color Map", "ColorMap", "jet"],
-            "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.10, "", 0.0, 1.0]
+            "colorMap": ["Color Map", "ColorMap", "jet"]
         },
         "watt": {
             "_super": [ "_", "model", "univariate"],
@@ -1181,7 +1179,6 @@
                 "tally",
                 "score",
                 "aspect",
-                "voxels.voxelInsetPct",
                 "voxels.colorMap",
                 "opacity",
                 "bgColor",
