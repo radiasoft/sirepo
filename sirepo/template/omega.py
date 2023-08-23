@@ -158,6 +158,7 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def sim_frame(frame_args):
+    pkdp("\n\n\nframe_args ={}", frame_args)
     sim_type = frame_args.sim_in.models.simWorkflow.coupledSims[
         int(frame_args.simCount) - 1
     ].simulationType
@@ -169,6 +170,8 @@ def sim_frame(frame_args):
         return _plot_phase(sim_type, frame_args)
     if "Beam" in frame_args.frameReport:
         return _plot_beam(sim_type, frame_args)
+    if "Field" in frame_args.frameReport:
+        return _plot_field_dist(sim_type, frame_args)
     raise AssertionError(
         "unhandled sim frame report: {}".format(frame_args.frameReport)
     )
@@ -272,6 +275,11 @@ def _output_info(run_dir):
     idx = 0
     sim_dir = _sim_dir(run_dir, idx + 1)
     while sim_dir.exists() and _has_file(sim_dir):
+        t = _sim_info(
+            simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models,
+            idx,
+        )[0]
+        pkdp("sim type? ={}", t)
         r = []
         res.append(r)
         r.append(
@@ -285,6 +293,13 @@ def _output_info(run_dir):
                 for phase in range(_PHASE_PLOT_COUNT)
             ]
         )
+
+        if t == "genesis":
+            r.append(
+                [
+                    _report_info(idx + 1, "simFieldDistributionAnimation", 1),
+                ]
+            )
         idx += 1
         sim_dir = _sim_dir(run_dir, idx + 1)
 
@@ -317,6 +332,12 @@ def _plot_beam(sim_type, frame_args):
         return sirepo.template.genesis.sim_frame_parameterAnimation(frame_args)
 
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
+
+
+def _plot_field_dist(sim_type, frame_args):
+    import sirepo.template.genesis
+
+    return sirepo.template.genesis.sim_frame_fieldDistributionAnimation(frame_args)
 
 
 def _plot_phase(sim_type, frame_args):

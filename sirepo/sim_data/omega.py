@@ -40,4 +40,5 @@ class SimData(sirepo.sim_data.SimDataBase):
             for c2 in range(1, _COUNT + 1):
                 del dm[f"sim{c1}Phase{c2}Animation"]
         sims.append(cls.model_defaults("coupledSim"))
+        pkdp("\n\n\n coupled sims in sim_data {}", sims)
         w.coupledSims = sims

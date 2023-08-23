@@ -63,6 +63,14 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
+        "simFieldDistributionAnimation": {
+            "simCount": ["", "Integer"],
+            "reportCount": ["", "Integer"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
+            "notes": ["Notes", "Text", ""]
+        },
         "simulationStatus": {}
     },
     "view": {
@@ -83,6 +91,15 @@
             "advanced": [
                 "colorMap",
                 "histogramBins"
+            ]
+        },
+        "simFieldDistributionAnimation": {
+            "title": "Field Distribution",
+            "advanced": [
+                "framesPerSecond",
+                "aspectRatio",
+                "colorMap",
+                "notes"
             ]
         },
         "simWorkflow": {
