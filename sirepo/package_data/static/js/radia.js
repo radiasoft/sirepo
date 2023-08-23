@@ -968,7 +968,6 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
     };
 
     self.hasOptFields = () => {
-        return true;
         if (appState.isLoaded()) {
             return false;
         }
@@ -1777,15 +1776,15 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     {{ item.object }}
                   </td>
                   <td>
-                    <select class="form-control" data-ng-model="item.field" data-ng-options="f for f in fieldsForObject(item.object)" data-ng-change="validate(this, item)">
+                    <select class="form-control" data-ng-model="item.field" data-ng-options="f for f in fieldsForObject(item.object)">
                       <option value="" disabled selected>select field</option>
                     </select>
                   </td>
-                  <td data-ng-repeat="attr in ['min', 'max']">
-                    <input data-ng-if="item.field" data-string-to-number="" data-min="fieldMin(item)" data-max="fieldMax(item)" data-ng-model="item[attr]" data-ng-change="validate(this, item)" class="form-control" style="text-align: right" data-lpignore="true" required />
+                  <td data-ng-repeat="attr in ['min', 'max']" class="rsopt-minmax">
+                    <input data-ng-if="item.field" data-string-to-number="" data-min="fieldMin(item)" data-max="fieldMax(item)" data-ng-model="item[attr]" class="form-control" style="text-align: right" data-lpignore="true" required />
                     </td>
-                  <td>
-                    <input data-ng-if="item.field" data-string-to-number="" data-min="fieldMin(item)" data-max="fieldMax(item)" data-ng-model="item.start"  data-ng-change="validate(this, item)" class="form-control" style="text-align: right" data-lpignore="true" required />
+                  <td class="rsopt-start">
+                    <input data-ng-if="item.field" data-string-to-number="" data-min="fieldMin(item)" data-max="fieldMax(item)" data-ng-model="item.start" class="form-control" style="text-align: right" data-lpignore="true" required />
                     <div class="sr-input-warning"></div>
                   </td>
                   <td>
@@ -1806,7 +1805,6 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
         `,
         controller: function($scope, $element) {
 
-            const form = $scope.$parent.form;
             //TODO(mvk): other types such as FloatArray
             const OPTIMIZABLE_TYPES = ['Float'];
 
@@ -1877,7 +1875,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     min: -1,
                     max: 1,
                     start: 0,
-                }
+                };
                 $scope.field.push(m);
                 $scope.selectedItem = null;
             };
@@ -1911,15 +1909,22 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
             };
 
             $scope.validate = (input, item) => {
-                //const o = $scope.optimizableObjects[item.object]
-                //validationService.validateField(o.type, item.field, 'input')
-                //input.setCustomValidity('');
-                //srdbg($('.sr-input-warning'));
-                form.$valid = item.min < item.start && item.start <= item.max;
+                validationService.validateInputSelector(
+                    $('.rsopt-start input').eq($scope.field.indexOf(item)),
+                    item.min < item.start && item.start < item.max,
+                    `start must be between ${item.min} and ${item.max}`
+                );
             };
 
-            $scope.optimizableObjects = getObjectFields();
+            function validateItems() {
+                for (const item of $scope.field) {
+                    $scope.validate(null, item);
+                }
+            }
 
+            $scope.$watch('field', validateItems, true);
+
+            $scope.optimizableObjects = getObjectFields();
         },
     };
 });
@@ -3813,7 +3818,7 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
             }
             panelState.showField(md[0], md[1], md[0] === fn);
         }
-        $scope[`update${SirepoUtils.capitalize(fn)}`](appState.models[fn]);
+        $scope[`update${SIREPO.UTILS.capitalize(fn)}`](appState.models[fn]);
     }
 
     function updateSoftware() {
@@ -3842,7 +3847,7 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
                 fn[f] = currentPath[f];
             });
         }
-    }
+    };
 
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];
