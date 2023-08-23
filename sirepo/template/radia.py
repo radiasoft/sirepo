@@ -774,7 +774,7 @@ def _extract_optimization_results(args):
             )
         )
     return template_common.parameter_plot(
-        numpy.arange(len(out_files)).tolist(),
+        numpy.arange(1, len(out_files) + 1).tolist(),
         plots,
         PKDict(),
         PKDict(

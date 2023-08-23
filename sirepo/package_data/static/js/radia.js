@@ -968,6 +968,7 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
     };
 
     self.hasOptFields = () => {
+        return true;
         if (appState.isLoaded()) {
             return false;
         }
