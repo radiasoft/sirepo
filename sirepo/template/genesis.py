@@ -142,7 +142,7 @@ async def import_file(req, **kwargs):
     res = sirepo.simulation_db.default_data(SIM_TYPE)
     p = pkio.py_path(req.filename)
     res.models.simulation.name = p.purebasename
-    return _parse_namelist(res, text)
+    return _parse_namelist(res, text, req)
 
 
 def parse_genesis_error(run_dir):
@@ -366,7 +366,7 @@ def _is_text_file(path):
         return False
 
 
-def _parse_namelist(data, text):
+def _parse_namelist(data, text, req):
     dm = data.models
     nls = template_common.NamelistParser().parse_text(text)
     if "newrun" not in nls:
@@ -377,7 +377,7 @@ def _parse_namelist(data, text):
         nl["wcoefz1"] = nl["wcoefz"][0]
         nl["wcoefz2"] = nl["wcoefz"][1]
         nl["wcoefz3"] = nl["wcoefz"][2]
-
+    missing_files = []
     for m in SCHEMA.model:
         for f in SCHEMA.model[m]:
             if f not in nl:
@@ -386,6 +386,18 @@ def _parse_namelist(data, text):
             if isinstance(v, list):
                 v = v[-1]
             t = SCHEMA.model[m][f][1]
+            if t == "InputFile":
+                if not _SIM_DATA.lib_file_exists(
+                    _SIM_DATA.lib_file_name_with_model_field(m, f, v), qcall=req.qcall
+                ):
+                    missing_files.append(
+                        PKDict(
+                            filename=v,
+                            file_type="{}-{}".format(m, f),
+                        )
+                    )
+                else:
+                    dm.io[f] = v
             d = dm[m]
             if t == "Float":
                 d[f] = float(v)
@@ -407,6 +419,11 @@ def _parse_namelist(data, text):
             elif t == "TaperModel":
                 d[f] = "1" if int(v) == 1 else "2" if int(v) == 2 else "0"
     # TODO(pjm): remove this if scanning is implemented in the UI
+    if missing_files:
+        return PKDict(
+            error="Missing data files",
+            missingFiles=missing_files,
+        )
     dm.scan.iscan = "0"
     return data
 
