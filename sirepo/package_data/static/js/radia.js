@@ -1751,7 +1751,7 @@ SIREPO.app.directive('multipleModelArray', function(appState, panelState, radiaS
     };
 });
 
-SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radiaService, $compile, $sce) {
+SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radiaService, validationService, $compile, $sce) {
     return {
         restrict: 'A',
         scope: {
@@ -1777,15 +1777,16 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     {{ item.object }}
                   </td>
                   <td>
-                    <select class="form-control" data-ng-model="item.field" data-ng-options="f for f in fieldsForObject(item.object)" data-ng-change="selectField(item)">
+                    <select class="form-control" data-ng-model="item.field" data-ng-options="f for f in fieldsForObject(item.object)" data-ng-change="validate(this, item)">
                       <option value="" disabled selected>select field</option>
                     </select>
                   </td>
                   <td data-ng-repeat="attr in ['min', 'max']">
-                    <input data-ng-if="item.field" data-string-to-number="" data-min="attrForField(item.field, attr)" data-ng-model="item[attr]" data-ng-change="validate(this, item)" class="form-control" style="text-align: right" data-lpignore="true" required />
-                  </td>
+                    <input data-ng-if="item.field" data-string-to-number="" data-min="fieldMin(item)" data-max="fieldMax(item)" data-ng-model="item[attr]" data-ng-change="validate(this, item)" class="form-control" style="text-align: right" data-lpignore="true" required />
+                    </td>
                   <td>
-                    <input data-ng-if="item.field" data-string-to-number="" data-ng-model="item.start"  data-ng-change="validate(this, item)" class="form-control" style="text-align: right" data-lpignore="true" required />
+                    <input data-ng-if="item.field" data-string-to-number="" data-min="fieldMin(item)" data-max="fieldMax(item)" data-ng-model="item.start"  data-ng-change="validate(this, item)" class="form-control" style="text-align: right" data-lpignore="true" required />
+                    <div class="sr-input-warning"></div>
                   </td>
                   <td>
                     <button title="delete" data-ng-click="deleteItem($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
@@ -1803,7 +1804,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
             </div>
             </div>
         `,
-        controller: function($scope) {
+        controller: function($scope, $element) {
 
             const form = $scope.$parent.form;
             //TODO(mvk): other types such as FloatArray
@@ -1819,6 +1820,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     obj[o.name] = {
                         name: o.name,
                         fields: [],
+                        type: o.type,
                     };
                     for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(o.type).has(x))) {
                         obj[o.name].fields.push(f);
@@ -1833,6 +1835,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                     if (! objs[name]) {
                         continue;
                     }
+
                     for (const mod of (o.modifications || [])) {
                         if (! objs[name].modifications) {
                             objs[name].modifications = [];
@@ -1890,8 +1893,16 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
 
             $scope.fieldsForObject = name => $scope.optimizableObjects[name].fields;
 
-            $scope.selectField = (f) => {
-                srdbg($scope.selectedItem, f);
+            $scope.fieldMin = item => {
+                return appState.modelInfo(
+                    $scope.optimizableObjects[item.object].type
+                )[item.field][SIREPO.INFO_INDEX_MIN];
+            };
+
+            $scope.fieldMax = item => {
+                return appState.modelInfo(
+                    $scope.optimizableObjects[item.object].type
+                )[item.field][SIREPO.INFO_INDEX_MAX];
             };
 
             $scope.hasUnusedFields = name => {
@@ -1900,7 +1911,11 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
             };
 
             $scope.validate = (input, item) => {
-                form.$valid = item.min < item.max && item.min < item.start && item.start <= item.max;
+                //const o = $scope.optimizableObjects[item.object]
+                //validationService.validateField(o.type, item.field, 'input')
+                //input.setCustomValidity('');
+                //srdbg($('.sr-input-warning'));
+                form.$valid = item.min < item.start && item.start <= item.max;
             };
 
             $scope.optimizableObjects = getObjectFields();
