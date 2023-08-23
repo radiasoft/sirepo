@@ -968,11 +968,10 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
     };
 
     self.hasOptFields = () => {
-        return true;
-        if (appState.isLoaded()) {
+        if (! appState.isLoaded()) {
             return false;
         }
-        return (appState.applicationState().optimizer.fields || []).length > 0;
+        return (appState.applicationState().optimizer.parameters || []).length > 0;
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
