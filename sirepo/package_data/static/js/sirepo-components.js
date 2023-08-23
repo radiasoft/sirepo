@@ -785,6 +785,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                   <button class="btn sr-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>
                 </div>
                 <select data-ng-if="! wantEnumButtons" number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
+                <div class="sr-input-warning"></div>
               </div>
             </div>
             </div>
