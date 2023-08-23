@@ -68,7 +68,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, omegaS
             }
             self.reports = data.outputInfo;
         }
-        srdbg(appState.models);
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
