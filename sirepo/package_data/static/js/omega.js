@@ -46,7 +46,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, omegaS
         frameCache.setFrameCount(data.frameCount || 0);
         self.reports = [];
         self.reportNames = [];
-        srdbg("output info:", data.outputInfo);
         if (data.outputInfo) {
             // sim --> report-group --> report
             for (const s of data.outputInfo) {
