@@ -140,6 +140,9 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
                   </div>
                 </div>
               </div>
+              <div data-ng-if="sim.length > 2" class="col-md-5 col-xxl-3">
+                  <div data-report-panel="heatmap" data-panel-title="{{ 'Simulation ' + sim[2][0].simCount + ' Field Distribution' }}" data-model-name="sim[2][0].modelName" data-model-data="omegaService.modelAccess(sim[2][0].modelKey)"></div>
+              </div>
             </div>
         `,
         controller: function($scope) {
