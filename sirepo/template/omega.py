@@ -274,12 +274,6 @@ def _output_info(run_dir):
     idx = 0
     sim_dir = _sim_dir(run_dir, idx + 1)
     while sim_dir.exists() and _has_file(sim_dir):
-        t, i = _sim_info(
-            simulation_db.read_json(
-                run_dir.join(template_common.INPUT_BASE_NAME)
-            ).models,
-            idx,
-        )
         r = []
         res.append(r)
         r.append(
@@ -293,7 +287,7 @@ def _output_info(run_dir):
                 for phase in range(_PHASE_PLOT_COUNT)
             ]
         )
-        if t == "genesis":
+        if _is_genesis(run_dir, idx):
             r.append(
                 [
                     _report_info(idx + 1, "simFieldDistributionAnimation", 1),
@@ -303,6 +297,14 @@ def _output_info(run_dir):
         sim_dir = _sim_dir(run_dir, idx + 1)
 
     return res
+
+
+def _is_genesis(run_dir, index):
+    t, i = _sim_info(
+        simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models,
+        index,
+    )
+    return t == "genesis"
 
 
 def _phase_plot_args(sim_type, frame_args):

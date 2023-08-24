@@ -9,7 +9,6 @@ $end
 """
 
 with open('{{ input_filename }}', 'w') as f:
-    print("input_file_variables", input_file_variables)
     f.write(input_file_variables)
 
 subprocess.run(('genesis', '{{ input_filename }}'))
