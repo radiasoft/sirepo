@@ -681,7 +681,6 @@ class VTKScene {
      * other side
      * @param {string} side - x|y|z
      */
-    //showSide(side = this.resetSide, direction = this.resetDirection) {
     showSide(side) {
         if (! side) {
             this.viewSide = this.resetSide;
