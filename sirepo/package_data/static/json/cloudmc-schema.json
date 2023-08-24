@@ -911,6 +911,7 @@
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
             "tally": ["Tally", "TallyList"],
+            "threshold": ["Threshold", "Float", 0.0, "Tally cells with a value below this will not be displayed"],
             "score": ["Score", "ScoreList"],
             "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.0, "", 0.0, 1.0]
         },
@@ -1179,6 +1180,7 @@
             "title": "Tally Results",
             "advanced": [
                 "tally",
+                "threshold",
                 "score",
                 "aspect",
                 "voxels.voxelInsetPct",

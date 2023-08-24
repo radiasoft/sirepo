@@ -562,6 +562,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
                     aspectRatio: ar,
                     global_max: maxField,
                     global_min: minField,
+                    threshold: appState.models.openmcAnimation.threshold,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces($scope.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
@@ -776,8 +777,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, frameCache
             }
 
             function isInFieldThreshold(value) {
-                //TODO(pjm): add a min threshold value to openmcAnimation model
-                return value > 0;
+                return value > appState.models.openmcAnimation.threshold;
             }
 
             function loadTally(data) {
