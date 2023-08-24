@@ -151,6 +151,7 @@ def sim_frame(frame_args):
     v /= t.find_filter(openmc.MeshFilter).mesh.volumes.ravel()
     return PKDict(
         field_data=v.tolist(),
+        summaryData={},
     )
 
 

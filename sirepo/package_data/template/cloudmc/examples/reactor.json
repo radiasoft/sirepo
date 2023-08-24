@@ -3,11 +3,7 @@
 
         "dagmcAnimation": {},
         "geometry3DReport": {
-            "bgColor": [
-                1,
-                0.97647,
-                0.929412
-            ],
+            "bgColor": "#fff9ed",
             "opacity": 1,
             "showEdges": "0"
         },

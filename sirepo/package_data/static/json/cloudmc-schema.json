@@ -134,6 +134,10 @@
             ["energyoutFilter", "EnergyoutFilter"],
             ["particleFilter", "ParticleFilter"]
         ],
+        "TallyGeometry": [
+            ["2D", "2D"],
+            ["3D", "3D"]
+        ],
         "TallyScore": [
             ["flux", "flux: Total flux"],
 
@@ -1001,16 +1005,9 @@
             "nuclides": ["Nuclides", "SimpleListEditor", [], "List of nuclides to use when scoring results", "nuclide"]
         },
         "tallyReport": {
-            "axis": ["Axis", "Axis", "y"],
-            "colorMap": ["Color Map", "ColorMap", "jet"],
-            "horizontalAxis": ["_", "Axis", "z"],
-            "horizontalTrim": ["Trim", "FloatArray", []],
+            "axis": ["Slice Axis", "Axis", "y"],
             "planePos": ["_", "Range", 0.0, ""],
-            "units": ["_", "String", "m"],
-            "verticalAxis": ["_", "Axis", "x"],
-            "xDisplayRange": ["X Range", "FloatArray", [-1e100, 1e100], "", ["min", "max"], [-1e100, 1e100]],
-            "yDisplayRange": ["Y Range", "FloatArray", [-1e100, 1e100], "", ["min", "max"], [-1e100, 1e100]],
-            "zDisplayRange": ["Z Range", "FloatArray", [-1e100, 1e100], "", ["min", "max"], [-1e100, 1e100]]
+            "selectedGeometry": ["", "TallyGeometry", "3D"]
         },
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
@@ -1027,9 +1024,6 @@
             "_type": ["", "ProbabilityDistribution"]
         },
         "volumes": {},
-        "voxels": {
-            "colorMap": ["Color Map", "ColorMap", "jet"]
-        },
         "watt": {
             "_super": [ "_", "model", "univariate"],
             "a": ["a", "Float", 0.988e6, "The Watt fission energy spectrum is characterized by two parameters $a$ and $b$ and has density function $p(E) dE = c e^{-E/a} \\sinh \\sqrt{b \\, E} dE$"],
@@ -1179,10 +1173,9 @@
                 "tally",
                 "score",
                 "aspect",
-                "voxels.colorMap",
+                "colorMap",
                 "opacity",
                 "bgColor",
-                "showEdges",
                 "showMarker"
             ]
         },

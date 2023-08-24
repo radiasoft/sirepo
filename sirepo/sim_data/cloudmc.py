@@ -40,7 +40,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "settings",
                 "tallyReport",
                 "volumes",
-                "voxels",
             ),
         )
         for v in dm.volumes:
