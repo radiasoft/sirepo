@@ -265,14 +265,22 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         };
     };
 
-    self.getObject = function(id) {
-        let objs = appState.models.geometryReport.objects || [];
+    self.getObject = function(id, array=appState.models.geometryReport.objects) {
+        return self.getObjectByAttribute('id', id, array);
+    };
+
+    self.getObjectByAttribute = function(attr, val, array) {
+        let objs = array || [];
         for (const o of objs) {
-            if (o.id == id) {
+            if (o[attr] === val) {
                 return o;
             }
         }
         return null;
+    };
+
+    self.getObjectByName = function(name, array=appState.models.geometryReport.objects) {
+        return self.getObjectByAttribute('name', name, array);
     };
 
     self.getObjects = function() {
@@ -1059,35 +1067,32 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
     }
 
     self.newSimFromResults = () => {
-        srdbg('NEW');
-        const m = appState.clone(appState.models);
-        for (const p in self.summaryData) {
-            const mf = p.split('.');
-            
+        function applyResults(objects) {
+            for (const p in self.summaryData) {
+                const modelField = p.split('.');
+                const o = radiaService.getObjectByName(modelField[0], objects);
+                o[modelField[1]] = self.summaryData[p];
+            }    
         }
-        
-        return;
-        requestSender.sendRequest(
-            'newSimulation',
+
+        appState.copySimulation(
+            appState.models.simulation.simulationId,
             data => {
-                requestSender.openSimulation(
-                    'radia',
-                    'source',
-                    data.models.simulation.simulationId
-                );
+                applyResults(data.models.geometryReport.objects);
+                data.models.simulation.name = `${appState.models.simulation.name} (optimized)`;
+                requestSender.sendRequest(
+                    'saveSimulationData',
+                    () => {
+                        requestSender.localRedirectHome(data.models.simulation.simulationId);
+                    },
+                    data,
+                    err => {
+                        throw new Error('Simulation creation failed: ' + err);
+                    }
+                )
             },
-            {
-                folder: '/',
-                name: appState.models.simulation.name,
-                simulationType: 'radia',
-                notes: 'rsopt results from radia',
-                sourceSimFile: self.resultsFile,
-                sourceSimId: appState.models.simulation.simulationId,
-                sourceSimType: 'radia',
-            },
-            err => {
-                throw new Error('Error creating simulation' + err);
-            }
+            appState.models.simulation.name,
+            appState.models.simulation.folder
         );
     };
 
