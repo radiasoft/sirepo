@@ -749,6 +749,7 @@ def _extract_optimization_results(args):
     plots = []
     objective_vals = []
     params = PKDict()
+    summaryData=PKDict()
     out_files = pkio.walk_tree(args.run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT)
     for f in out_files:
         with h5py.File(f, "r") as h:
@@ -758,6 +759,7 @@ def _extract_optimization_results(args):
                 if k not in params:
                     params[k] = []
                 params[k].append(v)
+                summaryData[k] = v
     plots.append(
         PKDict(
             points=objective_vals,
@@ -781,7 +783,7 @@ def _extract_optimization_results(args):
             title="Optimization Output",
             y_label="Result",
             x_label=f"Run",
-            summaryData=PKDict(),
+            summaryData=summaryData,
         ),
     )
 

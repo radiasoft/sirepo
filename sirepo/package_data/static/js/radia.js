@@ -957,14 +957,13 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
     const self = this;
     self.simScope = $scope;
     self.simAnalysisModel = 'optimizerAnimation';
+    self.summaryData = {};
 
     self.simHandleStatus = data => {
         self.errorMessage = data.error;
         if ('frameCount' in data && ! data.error) {
             frameCache.setFrameCount(data.frameCount > 1 ? data.frameCount : 0);
-            self.simState.summaryData = data.summary;
         }
-
     };
 
     self.hasOptFields = () => {
@@ -987,9 +986,53 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
     });
 
     
+    self.simState.startSimulation = () => {
+        self.summaryData = {};
+        self.simState.runSimulation();
+    }
+
+    self.newSimFromResults = () => {
+        srdbg('NEW');
+        const m = appState.clone(appState.models);
+        for (const p in self.summaryData) {
+            const mf = p.split('.');
+            
+        }
+        
+        return;
+        requestSender.sendRequest(
+            'newSimulation',
+            data => {
+                requestSender.openSimulation(
+                    'radia',
+                    'source',
+                    data.models.simulation.simulationId
+                );
+            },
+            {
+                folder: '/',
+                name: appState.models.simulation.name,
+                simulationType: 'radia',
+                notes: 'rsopt results from radia',
+                sourceSimFile: self.resultsFile,
+                sourceSimId: appState.models.simulation.simulationId,
+                sourceSimType: 'radia',
+            },
+            err => {
+                throw new Error('Error creating simulation' + err);
+            }
+        );
+    };
+
+
     self.simState.runningMessage = () => {
         return 'Completed run: ' + self.simState.getFrameCount();
     };
+
+    $scope.$on(`${self.simAnalysisModel}.summaryData`, (e, d) => {
+        self.summaryData = d;
+    });
+
 });
 
 
