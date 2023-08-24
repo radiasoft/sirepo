@@ -330,10 +330,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         $rootScope.$broadcast('clearCache');
     }
 
-    function broadcastFieldsChanged(modelFields) {
-        $rootScope.$broadcast('fieldsChanged', modelFields);
-    }
-
     function broadcastChanged(name) {
         $rootScope.$broadcast(name + '.changed');
         $rootScope.$broadcast('modelChanged', name);
@@ -803,7 +799,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             }
             broadcastChanged(updatedModels[i]);
         }
-        broadcastFieldsChanged(updatedFields);
         self.autoSave(function() {
             if (requireReportUpdate) {
                 self.updateReports();
