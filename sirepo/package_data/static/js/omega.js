@@ -140,13 +140,18 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
                 </div>
               </div>
               <div data-ng-if="sim.length > 2" class="col-md-5 col-xxl-3">
-                  <div data-report-panel="heatmap" data-panel-title="{{ 'Simulation ' + sim[2][0].simCount + ' Field Distribution' }}" data-model-name="sim[2][0].modelName" data-model-data="omegaService.modelAccess(sim[2][0].modelKey)"></div>
+                <div data-report-panel="heatmap" data-panel-title="{{ title(sim[2][0]) }}" data-model-name="sim[2][0].modelName" data-model-data="omegaService.modelAccess(sim[2][0].modelKey)"></div>
               </div>
             </div>
         `,
         controller: function($scope) {
             $scope.omegaService = omegaService;
-            $scope.title = report => `Simulation ${report.simCount} Beam Parameters`;
+
+            $scope.title = report => {
+                const t = report.modelName.includes('Beam') ? 'Beam Parameters' : 'Field Distribution';
+                return `Simulation ${report.simCount} ${t}`;
+            };
+
             $scope.$on('modelChanged', (e, name) => {
                 for (const sim of $scope.reports) {
                     if (name === sim[1][0].modelKey) {
