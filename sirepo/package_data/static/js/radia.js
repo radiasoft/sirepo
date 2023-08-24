@@ -59,6 +59,73 @@ SIREPO.app.config(function() {
     `;
 });
 
+SIREPO.app.factory('radiaOptimizationService', function(appState, radiaService) {
+    let self = {};
+
+    //TODO(mvk): other types such as FloatArray
+    const OPTIMIZABLE_TYPES = ['Float'];
+
+    self.optimizableObjects = () => {
+
+        function optFieldsOfModelAndSupers(modelName) {
+
+            function optFieldsOfModel(modelName) {
+                const info = appState.modelInfo(modelName);
+                return Object.keys(info).filter(
+                    x => OPTIMIZABLE_TYPES.includes(info[x][SIREPO.INFO_INDEX_TYPE])
+                );
+            }
+    
+            const s = new Set();
+            for (const m of [modelName, ...appState.superClasses(modelName)]) {
+                for (const f of optFieldsOfModel(m)) {
+                    s.add(f);
+                }
+            }
+            return s;
+        }
+
+        function objectOptFields(o) {
+            if (! o.type) {
+                return {};
+            }
+            const obj = {};
+            obj[o.name] = {
+                name: o.name,
+                fields: [],
+                type: o.type,
+            };
+            for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(o.type).has(x))) {
+                obj[o.name].fields.push(f);
+            }
+            return obj;
+        }
+
+        let objs = {};
+        for (const o of radiaService.getObjects()) {
+            const name = o.name;
+            objs = {...objs, ...objectOptFields(o, name)};
+            if (! objs[name]) {
+                continue;
+            }
+
+            for (const mod of (o.modifications || [])) {
+                if (! objs[name].modifications) {
+                    objs[name].modifications = [];
+                }
+                objs[name].modifications.push(objectOptFields(mod, mod.type));
+            }
+            if (! objs[name].fields.length) {
+                delete objs[name];
+            }
+        }
+        return objs;
+    }
+
+
+    return self;
+});
+
 SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
     let self = {};
 
@@ -1793,7 +1860,7 @@ SIREPO.app.directive('multipleModelArray', function(appState, panelState, radiaS
     };
 });
 
-SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radiaService, validationService, $compile, $sce) {
+SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radiaService, radiaOptimizationService, validationService) {
     return {
         restrict: 'A',
         scope: {
@@ -1848,66 +1915,6 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
         `,
         controller: function($scope, $element) {
 
-            //TODO(mvk): other types such as FloatArray
-            const OPTIMIZABLE_TYPES = ['Float'];
-
-            function getObjectFields() {
-
-                function objectOptFields(o) {
-                    if (! o.type) {
-                        return {};
-                    }
-                    const obj = {};
-                    obj[o.name] = {
-                        name: o.name,
-                        fields: [],
-                        type: o.type,
-                    };
-                    for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(o.type).has(x))) {
-                        obj[o.name].fields.push(f);
-                    }
-                    return obj;
-                }
-
-                let objs = {};
-                for (const o of radiaService.getObjects()) {
-                    const name = o.name;
-                    objs = {...objs, ...objectOptFields(o, name)};
-                    if (! objs[name]) {
-                        continue;
-                    }
-
-                    for (const mod of (o.modifications || [])) {
-                        if (! objs[name].modifications) {
-                            objs[name].modifications = [];
-                        }
-                        objs[name].modifications.push(objectOptFields(mod, mod.type));
-                    }
-                    if (! objs[name].fields.length) {
-                        delete objs[name];
-                    }
-                }
-                return objs;
-            }
-
-            function optFieldsOfModelAndSupers(modelName) {
-
-                function optFieldsOfModel(modelName) {
-                    const info = appState.modelInfo(modelName);
-                    return Object.keys(info).filter(
-                        x => OPTIMIZABLE_TYPES.includes(info[x][SIREPO.INFO_INDEX_TYPE])
-                    );
-                }
-
-                const s = new Set();
-                for (const m of [modelName, ...appState.superClasses(modelName)]) {
-                    for (const f of optFieldsOfModel(m)) {
-                        s.add(f);
-                    }
-                }
-                return s;
-            }
-
             $scope.addItem = () => {
                 if (! $scope.selectedItem) {
                     return;
@@ -1921,11 +1928,6 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
                 };
                 $scope.field.push(m);
                 $scope.selectedItem = null;
-            };
-
-            $scope.attrForField = (field, attr) => {
-                const i = field ? field.info : null;
-                return i ? i[SIREPO[`INFO_INDEX_${attr.toUpperCase()}`]] : null;
             };
 
             $scope.deleteItem = index => {
@@ -1967,7 +1969,7 @@ SIREPO.app.directive('objectOptimizerField', function(appState, panelState, radi
 
             $scope.$watch('field', validateItems, true);
 
-            $scope.optimizableObjects = getObjectFields();
+            $scope.optimizableObjects = radiaOptimizationService.optimizableObjects();
         },
     };
 });
