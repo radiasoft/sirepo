@@ -158,7 +158,6 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def sim_frame(frame_args):
-    pkdp("\n\n\nframe_args ={}", frame_args)
     sim_type = frame_args.sim_in.models.simWorkflow.coupledSims[
         int(frame_args.simCount) - 1
     ].simulationType
@@ -275,11 +274,12 @@ def _output_info(run_dir):
     idx = 0
     sim_dir = _sim_dir(run_dir, idx + 1)
     while sim_dir.exists() and _has_file(sim_dir):
-        t = _sim_info(
-            simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models,
+        t, i = _sim_info(
+            simulation_db.read_json(
+                run_dir.join(template_common.INPUT_BASE_NAME)
+            ).models,
             idx,
-        )[0]
-        pkdp("sim type? ={}", t)
+        )
         r = []
         res.append(r)
         r.append(
@@ -293,7 +293,6 @@ def _output_info(run_dir):
                 for phase in range(_PHASE_PLOT_COUNT)
             ]
         )
-
         if t == "genesis":
             r.append(
                 [

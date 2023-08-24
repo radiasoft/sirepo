@@ -712,7 +712,6 @@ def simulation_dir(simulation_type, sid=None, qcall=None):
         uid (str): user id
     """
     p = user_path(qcall=qcall, check=True)
-    pkdp("\n\n\n checking if sim_type={} exists", simulation_type)
     d = p.join(sirepo.template.assert_sim_type(simulation_type))
     if not d.exists():
         with user_lock(uid=uid_from_dir_name(p), qcall=qcall):
@@ -844,7 +843,6 @@ def user_lock(uid=None, qcall=None):
     Returns:
         py.path: user's directory
     """
-    pkdp("print-qcall={}", qcall)
     assert qcall
     p = user_path(uid=uid, qcall=qcall, check=True)
     if getattr(_USER_LOCK, "paths", None) is None:
