@@ -312,6 +312,16 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
     const self = {
         mesh: null,
         fieldData: null,
+        minField: 0,
+        maxField: 0,
+    };
+
+    self.colorScale = modelName => {
+        return SIREPO.PLOTTING.Utils.colorScale(
+            self.minField,
+            self.maxField,
+            SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.applicationState()[modelName].colorMap],
+        );
     };
 
     self.getMeshRanges = () => {
@@ -332,8 +342,10 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         self.mesh = null;
     };
 
-    self.setFieldData = fieldData => {
+    self.setFieldData = (fieldData, min, max) => {
         self.fieldData = fieldData;
+        self.minField = min;
+        self.maxField = max;
     };
 
     self.tallyRange = (dim, useBinCenter=false) => {
@@ -450,7 +462,7 @@ SIREPO.app.directive('tallyVolumePicker', function(cloudmcService, volumeLoading
                 </tbody>
             </table>
         `,
-        controller: function($scope, $element) {
+        controller: function($scope) {
             $scope.allVolumesVisible = false;
             $scope.numVolumeCols = 5;
             $scope.isVolumeListExpanded = false;
@@ -496,7 +508,7 @@ SIREPO.app.directive('tallyVolumePicker', function(cloudmcService, volumeLoading
                     $scope.renderVolumes();
                 }
             };
-            
+
             $scope.toggleVolumeList = () => {
                 $scope.isVolumeListExpanded = ! $scope.isVolumeListExpanded;
             };
@@ -524,21 +536,21 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
                 <div data-ng-if="is3D()">
                     <div data-report-content="geometry3d" data-model-key="{{ modelName }}"></div>
                 </div>
-                <div class="col-sm-12" data-ng-if="is2D()">
+                <div data-ng-if="is2D()">
                     <div data-geometry-2d=""></div>
                 </div>
             </div>
         `,
-        controller: function($scope, $element) {
+        controller: function($scope) {
             plotting.setTextOnlyReport($scope);
             $scope.load = json => {
                 if (json.content) {
-                    // old format
+                    // old format, ignore
                     return;
                 }
-                tallyService.setFieldData(json.field_data);
+                tallyService.setFieldData(json.field_data, json.min_field, json.max_field);
             };
-            
+
             $scope.setSelectedGeometry = d => {
                 appState.models.tallyReport.selectedGeometry = d;
                 appState.saveQuietly('tallyReport');
@@ -591,6 +603,8 @@ SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService) 
                 );
                 const r =  {
                     aspectRatio: ar,
+                    global_max: tallyService.maxField,
+                    global_min: tallyService.minField,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
@@ -668,8 +682,9 @@ SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService) 
                 ['x', 'y', 'z'].forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
                 });
+                updateSliceAxis();
             }
-            
+
             function updateSlice() {
                 buildTallyReport();
                 // save quietly but immediately
@@ -706,16 +721,11 @@ SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService) 
             $scope.$on('tallyReport.summaryData', () => updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
-            $scope.$on('openmcAnimation.summaryData', () => {
-                updateDisplayRange();
-                updateSliceAxis();
-            });
+            $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
             updateDisplayRange();
-            updateSliceAxis();
         },
     };
 });
-
 
 SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, plotToPNG, tallyService, volumeLoadingService, $rootScope) {
     return {
@@ -767,8 +777,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 element: null,
                 pointer: null,
                 THICKNESS: 30,
-                minField: 0,
-                maxField: 0,
             };
             let tallyBundle = null;
             let tallyPolyData = null;
@@ -835,20 +843,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 if (! fd) {
                     return;
                 }
-                colorbar.minField = Number.MAX_VALUE;
-                colorbar.maxField = -Number.MAX_VALUE;
                 for (let zi = 0; zi < nz; zi++) {
                     for (let yi = 0; yi < ny; yi++) {
                         for (let xi = 0; xi < nx; xi++) {
                             const f = fd[zi * nx * ny + yi * nx + xi];
                             if (! isInFieldThreshold(f)) {
                                 continue;
-                            }
-                            if (f < colorbar.minField) {
-                                colorbar.minField = f;
-                            }
-                            else if (f > colorbar.maxField) {
-                                colorbar.maxField = f;
                             }
                             renderedFieldData.push(f);
                             const p = [
@@ -886,12 +886,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
 
             function setTallyColors() {
                 const cellsPerVoxel = voxelPoly.length;
-                const s = SIREPO.PLOTTING.Utils.colorScale(
-                    colorbar.minField,
-                    colorbar.maxField,
-                    SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.applicationState()[$scope.modelName].colorMap],
-                );
-                colorbar.element.scale(s);
+                $scope.colorScale = tallyService.colorScale($scope.modelName);
+                colorbar.element.scale($scope.colorScale);
                 colorbar.element.pointer = d3.select('.colorbar').call(colorbar.element);
                 const sc = [];
                 const o = Math.floor(255 * appState.models.openmcAnimation.opacity);
@@ -899,7 +895,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     if (! isInFieldThreshold(f)) {
                         continue;
                     }
-                    const c = SIREPO.VTK.VTKUtils.colorToFloat(s(f)).map(v => Math.floor(255 * v));
+                    const c = SIREPO.VTK.VTKUtils.colorToFloat($scope.colorScale(f)).map(v => Math.floor(255 * v));
                     c.push(o);
                     for (let j = 0; j < cellsPerVoxel; j++) {
                         sc.push(...c);
@@ -1151,7 +1147,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             $scope.$on('vtk-init', (e, d) => {
                 $rootScope.$broadcast('vtk.showLoader');
                 colorbar.element = Colorbar()
-                    .margin({top: 5, right: colorbar.THICKNESS + 10, bottom: 5, left: 0})
+                    .margin({top: 5, right: colorbar.THICKNESS + 20, bottom: 5, left: 0})
                     .thickness(colorbar.THICKNESS)
                     .orient('vertical')
                     .barlength($('.vtk-canvas-holder').height())
@@ -1218,7 +1214,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     }
                 });
             }
-            
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -1951,25 +1947,19 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
 });
 
 SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
-    $scope.whenSelected = () => {
-        $scope.modelData = appState.models[$scope.modelName];
-        updateEditor();
-    };
-
-    $scope.watchFields = [
-        [
-            'source.type',
-        ], updateEditor,
-    ];
-
     function updateEditor() {
-        const isFile = $scope.modelData.type === 'file';
+        const isFile = appState.models[$scope.modelName].type === 'file';
         panelState.showField($scope.modelName, 'file', isFile);
         $scope.$parent.advancedFields.forEach((x, i) => {
             panelState.showTab($scope.modelName, i + 1, ! isFile || x[0] === 'Type');
         });
     }
 
+    $scope.whenSelected = updateEditor;
+
+    $scope.watchFields = [
+        ['source.type'], updateEditor,
+    ];
 });
 
 SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
@@ -2200,7 +2190,7 @@ SIREPO.viewLogic('openmcAnimationView', function(appState, cloudmcService, panel
         d.watchFields = [];
         return d;
     }
-            
+
     $scope.whenSelected = () => {
         buildRangeDelegate($scope.modelName, 'opacity');
     };

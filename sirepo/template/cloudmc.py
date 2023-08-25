@@ -13,6 +13,7 @@ from sirepo.template import template_common
 import numpy
 import re
 import sirepo.feature_config
+import sirepo.mpi
 import sirepo.sim_data
 
 
@@ -151,6 +152,8 @@ def sim_frame(frame_args):
     v /= t.find_filter(openmc.MeshFilter).mesh.volumes.ravel()
     return PKDict(
         field_data=v.tolist(),
+        min_field=v.min(),
+        max_field=v.max(),
         summaryData={},
     )
 
@@ -345,6 +348,7 @@ def _generate_parameters_file(data, run_dir=None):
     v.sources = _generate_sources(data)
     v.tallies = _generate_tallies(data)
     v.hasGraveyard = _has_graveyard(data)
+    v.mpiCores = sirepo.mpi.cfg().cores
     return template_common.render_jinja(
         SIM_TYPE,
         v,
