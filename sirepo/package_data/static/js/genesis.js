@@ -9,7 +9,6 @@ SIREPO.app.config(function() {
           '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="19"></div>',
         '</div>',
     ].join('');
-    SIREPO.SINGLE_FRAME_ANIMATION = ['parameterAnimation'];
 });
 
 SIREPO.app.factory('genesisService', function(appState) {
@@ -29,10 +28,11 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     self.simScope = $scope;
     self.simComputeModel = 'animation';
     self.simHandleStatus = function (data) {
-        if (data.frameCount) {
-            frameCache.setFrameCount(data.frameCount);
-            frameCache.setFrameCount(data.particleFrameCount, 'particleAnimation');
-            frameCache.setFrameCount(data.fieldFrameCount, 'fieldDistributionAnimation');
+        if (data.reports) {
+            frameCache.setFrameCount(1);
+            for (const r of data.reports) {
+                frameCache.setFrameCount(r.frameCount, r.modelName);
+            }
         }
     };
     self.simState = persistentSimulation.initSimulationState(self);
@@ -47,7 +47,9 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-import-dialog="" data-title="Import Genesis 1.3 File" data-description="Select an Genesis 1.3 (.in) or Sirepo Export (.zip)" data-file-formats=".in,.zip"></div>
+            <div data-import-dialog="" data-title="Import Genesis 1.3 File" data-description="Select an Genesis 1.3 (.in) or Sirepo Export (.zip)" data-file-formats=".in,.zip">
+                <div data-import-options=""></div>
+            </div>
         `,
     };
 });
@@ -103,4 +105,29 @@ SIREPO.viewLogic('meshView', function(appState, panelState, $scope) {
     $scope.watchFields = [
         ['mesh.nscz'], updateSpaceCharge,
     ];
+});
+
+SIREPO.viewLogic('timeDependenceView', function(appState, panelState, $scope) {
+
+    function updateFieldVisibility() {
+        panelState.showFields('timeDependence', [
+            ['curlen', 'zsep', 'nslice', 'ntail', 'shotnoise', 'isntyp'],
+            appState.models.timeDependence.itdp == '1',
+        ]);
+    }
+
+    $scope.whenSelected = updateFieldVisibility;
+    $scope.watchFields = [
+        ['timeDependence.itdp'], updateFieldVisibility,
+    ];
+});
+
+SIREPO.viewLogic('simulationControlView', function(appState, panelState, $scope) {
+    $scope.whenSelected = () => {
+        // hide output frequency tab for time-dependence simulations
+        panelState.showTab(
+            'simulationControl', 2,
+            appState.applicationState().timeDependence.itdp == '0',
+        );
+    };
 });

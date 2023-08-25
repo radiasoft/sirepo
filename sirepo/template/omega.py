@@ -13,8 +13,7 @@ import re
 import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
-_MAX_SIMS = 4
-_MAX_PHASE_PLOTS = 4
+_PHASE_PLOT_COUNT = 4
 _PHASE_PLOTS = PKDict(
     genesis=[
         ["x", "pxmc"],
@@ -115,8 +114,8 @@ def background_percent_complete(report, run_dir, is_running):
         )
     return PKDict(
         percentComplete=100,
-        reports=_completed_reports(run_dir),
         frameCount=1,
+        outputInfo=_output_info(run_dir),
     )
 
 
@@ -130,11 +129,11 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
                 if m:
                     return m.group(1)
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
-    for idx in reversed(range(_MAX_SIMS)):
+    for idx in reversed(range(len(dm.simWorkflow.coupledSims))):
         sim_type, sim_id = _sim_info(dm, idx)
         if not sim_type or not sim_id:
             continue
-        sim_dir = run_dir.join(f"run{idx + 1}")
+        sim_dir = _sim_dir(run_dir, idx + 1)
         sim_template = sirepo.template.import_module(sim_type)
         res = f"{sim_type.upper()} failed\n"
         if success_exit:
@@ -155,18 +154,21 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
-    return _generate_parameters_file(data, None)
+    return _generate_parameters_file(data)
 
 
 def sim_frame(frame_args):
-    sim_type, sub_dir = _sim_type_and_sub_dir_from_report_name(
-        frame_args.sim_in.models,
-        frame_args.frameReport,
+    sim_type = frame_args.sim_in.models.simWorkflow.coupledSims[
+        int(frame_args.simCount) - 1
+    ].simulationType
+    frame_args.run_dir = _sim_dir(frame_args.run_dir, frame_args.simCount)
+    frame_args.sim_in = simulation_db.read_json(
+        frame_args.run_dir.join(template_common.INPUT_BASE_NAME)
     )
     if "Phase" in frame_args.frameReport:
-        return _plot_phase(sim_type, sub_dir, frame_args)
+        return _plot_phase(sim_type, frame_args)
     if "Beam" in frame_args.frameReport:
-        return _plot_beam(sim_type, sub_dir, frame_args)
+        return _plot_beam(sim_type, frame_args)
     raise AssertionError(
         "unhandled sim frame report: {}".format(frame_args.frameReport)
     )
@@ -187,37 +189,8 @@ def stateful_compute_get_opal_sim_list(**kwargs):
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, run_dir),
+        _generate_parameters_file(data),
     )
-
-
-def _completed_reports(run_dir):
-    res = []
-    for idx in range(_MAX_SIMS):
-        sim_dir = run_dir.join(f"run{idx + 1}")
-        if sim_dir.exists():
-            has_file = False
-            for f in _SUCCESS_OUTPUT_FILE:
-                s = sim_dir.join(_SUCCESS_OUTPUT_FILE[f])
-                if s.exists() and s.size() > 0:
-                    has_file = True
-            if not has_file:
-                break
-            res.append(
-                PKDict(
-                    modelName=f"sim{idx + 1}BeamAnimation",
-                    frameCount=1,
-                )
-            )
-            res += [
-                PKDict(
-                    modelName=f"sim{idx + 1}Phase{phase + 1}Animation",
-                    frameCount=1,
-                )
-                for phase in range(_MAX_PHASE_PLOTS)
-            ]
-
-    return res
 
 
 def _extract_elegant_beam_plot(frame_args):
@@ -258,11 +231,11 @@ def _extract_elegant_beam_plot(frame_args):
     return res
 
 
-def _generate_parameters_file(data, run_dir=None):
+def _generate_parameters_file(data):
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
     sim_list = []
-    for idx in range(_MAX_SIMS):
+    for idx in range(len(dm.simWorkflow.coupledSims)):
         sim_type, sim_id = _sim_info(dm, idx)
         if sim_type and sim_id:
             sim_list.append(
@@ -279,19 +252,55 @@ def _generate_parameters_file(data, run_dir=None):
     return res + template_common.render_jinja(SIM_TYPE, v)
 
 
+def _output_info(run_dir):
+    def _has_file(sim_dir):
+        for f in _SUCCESS_OUTPUT_FILE:
+            s = sim_dir.join(_SUCCESS_OUTPUT_FILE[f])
+            if s.exists() and s.size() > 0:
+                return True
+        return False
+
+    def _report_info(sim_count, model_name, report_count):
+        return PKDict(
+            simCount=sim_count,
+            modelName=model_name,
+            reportCount=report_count,
+            modelKey=f"{model_name}{sim_count}-{report_count}",
+        )
+
+    res = []
+    idx = 0
+    sim_dir = _sim_dir(run_dir, idx + 1)
+    while sim_dir.exists() and _has_file(sim_dir):
+        r = []
+        res.append(r)
+        r.append(
+            [
+                _report_info(idx + 1, "simBeamAnimation", 1),
+            ]
+        )
+        r.append(
+            [
+                _report_info(idx + 1, "simPhaseSpaceAnimation", phase + 1)
+                for phase in range(_PHASE_PLOT_COUNT)
+            ]
+        )
+        idx += 1
+        sim_dir = _sim_dir(run_dir, idx + 1)
+
+    return res
+
+
 def _phase_plot_args(sim_type, frame_args):
-    m = re.search(r"Phase(\d+)", frame_args.frameReport)
-    if not m:
-        raise AssertionError(f"unparse-able model name: {frame_args.frameReport}")
-    xy = _PHASE_PLOTS[sim_type][int(m.group(1)) - 1]
+    xy = _PHASE_PLOTS[sim_type][int(frame_args.reportCount) - 1]
+    del frame_args["y1"]
     frame_args.x = xy[0]
     frame_args.y = xy[1]
 
 
-def _plot_beam(sim_type, sub_dir, frame_args):
+def _plot_beam(sim_type, frame_args):
     for f in ("y1", "y2", "y3"):
         frame_args[f] = _BEAM_PARAMETERS[sim_type][frame_args[f]]
-    frame_args.run_dir = frame_args.run_dir.join(sub_dir)
     if sim_type == "opal":
         import sirepo.template.opal
 
@@ -302,12 +311,15 @@ def _plot_beam(sim_type, sub_dir, frame_args):
     if sim_type == "genesis":
         import sirepo.template.genesis
 
+        frame_args.sim_in = simulation_db.read_json(
+            frame_args.run_dir.join(template_common.INPUT_BASE_NAME)
+        )
         return sirepo.template.genesis.sim_frame_parameterAnimation(frame_args)
 
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
 
 
-def _plot_phase(sim_type, sub_dir, frame_args):
+def _plot_phase(sim_type, frame_args):
     _phase_plot_args(sim_type, frame_args)
 
     if sim_type == "opal":
@@ -315,7 +327,7 @@ def _plot_phase(sim_type, sub_dir, frame_args):
 
         r = sirepo.template.opal.bunch_plot(
             frame_args,
-            frame_args.run_dir.join(sub_dir),
+            frame_args.run_dir,
             frame_args.frameIndex,
         )
         return r.pkupdate(
@@ -328,16 +340,12 @@ def _plot_phase(sim_type, sub_dir, frame_args):
         import sirepo.template.elegant
 
         return sirepo.template.elegant.extract_report_data(
-            str(frame_args.run_dir.join(sub_dir, "run_setup.output.sdds")),
+            str(frame_args.run_dir.join(_SUCCESS_OUTPUT_FILE[sim_type])),
             frame_args,
         )
     if sim_type == "genesis":
         import sirepo.template.genesis
 
-        frame_args.sim_in = simulation_db.read_json(
-            frame_args.run_dir.join(sub_dir, template_common.INPUT_BASE_NAME)
-        )
-        frame_args.run_dir = frame_args.run_dir.join(sub_dir)
         frame_args.frameIndex = 1
         return sirepo.template.genesis.sim_frame_particleAnimation(frame_args).pkupdate(
             title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
@@ -345,9 +353,15 @@ def _plot_phase(sim_type, sub_dir, frame_args):
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
 
 
+def _sim_dir(run_dir, sim_count):
+    return run_dir.join(f"run{sim_count}")
+
+
 def _sim_info(dm, idx):
-    w = dm.simWorkflow
-    return w.get(f"simType_{idx + 1}"), w.get(f"simId_{idx + 1}")
+    s = dm.simWorkflow.coupledSims
+    if len(s) > idx:
+        return s[idx].simulationType, s[idx].simulationId
+    return None, None
 
 
 def _sim_list(sim_type):
@@ -359,14 +373,4 @@ def _sim_list(sim_type):
             ),
             key=lambda row: row["name"],
         )
-    )
-
-
-def _sim_type_and_sub_dir_from_report_name(models, report):
-    m = re.match(r"sim(\d+).*?Animation", report)
-    assert m
-    idx = int(m.group(1))
-    return (
-        models.simWorkflow[f"simType_{idx}"],
-        f"run{idx}",
     )

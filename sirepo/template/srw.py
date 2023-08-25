@@ -1154,6 +1154,7 @@ def _beamline_animation_percent_complete(run_dir, res):
         if item.type == "watch":
             res.outputInfo.append(
                 PKDict(
+                    waitForData=True,
                     modelKey=f"beamlineAnimation{item.id}",
                     filename=_wavefront_pickle_filename(item.id),
                     id=item.id,
@@ -1166,6 +1167,7 @@ def _beamline_animation_percent_complete(run_dir, res):
                 # TODO(pjm): instead look at last byte == pickle.STOP, see template_common.read_last_csv_line()
                 wfr = pickle.load(f)
                 count += 1
+                info.waitForData = False
         except Exception as e:
             break
     res.frameCount = count
@@ -2196,7 +2198,7 @@ def _remap_3d(info, allrange, out, report):
 
 
 def _resize_report(report, ar2d, x_range, y_range):
-    width_pixels = int(report.intensityPlotsWidth)
+    width_pixels = int(report.get("intensityPlotsWidth", 0))
     if not width_pixels:
         # upper limit is browser's max html canvas size
         width_pixels = _CANVAS_MAX_SIZE

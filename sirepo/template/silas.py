@@ -11,6 +11,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import csv
 import h5py
+import math
 import numpy
 import re
 import sirepo.sim_data
@@ -18,10 +19,13 @@ import time
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
-_CRYSTAL_CSV_FILE = "crystal.csv"
+_TEMP_PROFILE_FILE = "tempProfile.h5"
+_TEMP_HEATMAP_FILE = "tempHeatMap.h5"
 _RESULTS_FILE = "results{}.h5"
 _CRYSTAL_FILE = "crystal{}.h5"
-_MAX_H5_READ_TRIES = 3
+_MAX_H5_READ_TRIES = 10
+_ABCD_DELTA = 1e-3
+_L_SCALE_EQUATION = "numpy.sqrt(numpy.pi) * numpy.sqrt(2) * pulse.sigx_waist"
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -40,8 +44,11 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if model in ("plotAnimation", "plot2Animation"):
-        return _CRYSTAL_CSV_FILE
+    if model in ("tempProfileAnimation", "tempHeatMapAnimation"):
+        return PKDict(
+            tempProfileAnimation=_TEMP_PROFILE_FILE,
+            tempHeatMapAnimation=_TEMP_HEATMAP_FILE,
+        )[model]
     if model == "crystal3dAnimation":
         return "intensity.npy"
     if model == "beamlineAnimation0" or model in _SIM_DATA.SOURCE_REPORTS:
@@ -63,7 +70,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
-    if model in ("crystal3dAnimation", "plotAnimation", "plot2Animation"):
+    if model in ("crystal3dAnimation", "tempProfileAnimation", "tempHeatMapAnimation"):
         data.report = "crystalAnimation"
     else:
         if model:
@@ -104,12 +111,46 @@ def sim_frame_crystal3dAnimation(frame_args):
     )
 
 
-def sim_frame_plotAnimation(frame_args):
-    return _crystal_plot(frame_args, "xv", "ux", "[m]", 1e-2)
+def sim_frame_tempProfileAnimation(frame_args):
+    with h5py.File(frame_args.run_dir.join(_TEMP_PROFILE_FILE), "r") as f:
+        d = PKDict(
+            radialPlot=template_common.h5_to_dict(f).radial,
+            longitudinalPlot=template_common.h5_to_dict(f).longitudinal,
+        )[frame_args.tempProfilePlot]
+        return template_common.parameter_plot(
+            [n * 1e-2 for n in 0.98 * numpy.array(d[0])],
+            [
+                PKDict(
+                    points=[n for n in 0.98 * numpy.array(d[1])],
+                    label="(T-T₀), K",
+                ),
+            ],
+            PKDict(),
+            PKDict(
+                x_label=(
+                    "Radial"
+                    if frame_args.tempProfilePlot == "radialPlot"
+                    else "Longitudinal"
+                )
+                + " Position [m]",
+            ),
+        )
 
 
-def sim_frame_plot2Animation(frame_args):
-    return _crystal_plot(frame_args, "zv", "uz", "[m]", 1e-2)
+def sim_frame_tempHeatMapAnimation(frame_args):
+    with h5py.File(frame_args.run_dir.join(_TEMP_HEATMAP_FILE), "r") as f:
+        d = template_common.h5_to_dict(f)
+        r = d.ranges
+        z = d.intensity
+        return PKDict(
+            title="",
+            x_range=[r.x[0], r.x[1], len(z)],
+            y_range=[r.y[0], r.y[1], len(z[0])],
+            x_label="Longitudinal Position [m]",
+            y_label="Radial Position [m]",
+            z_label="Temperature (T-T₀), K",
+            z_matrix=z,
+        )
 
 
 def stateful_compute_mesh_dimensions(data, **kwargs):
@@ -125,6 +166,18 @@ def stateful_compute_mesh_dimensions(data, **kwargs):
     return PKDict(numSliceMeshPoints=[m.nx, m.ny])
 
 
+def stateless_compute_calc_chirp(data, **kwargs):
+    from rslaser.pulse import pulse
+
+    try:
+        v = pulse.LaserPulse(params=data.model).initial_chirp
+        if math.isnan(v) or math.isinf(v):
+            v = 0
+    except AssertionError as e:
+        v = 0
+    return PKDict(chirp=round(v, 7))
+
+
 def stateful_compute_n0n2_plot(data, **kwargs):
     import matplotlib.pyplot as plt
     from rslaser.optics import Crystal
@@ -135,15 +188,16 @@ def stateful_compute_n0n2_plot(data, **kwargs):
         with open(path, "rb") as f:
             return "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
 
+    def _determinant(matrix):
+        return matrix[2][0][0] * matrix[2][1][1] - matrix[2][0][1] * matrix[2][1][0]
+
+    if data.model.pump_rep_rate <= 1:
+        data.model.calc_type = "fenics"
     n = Crystal(
         params=PKDict(
-            l_scale=data.model.l_scale,
+            l_scale=numpy.sqrt(numpy.pi) * numpy.sqrt(2) * data.sigx_waist,
             length=data.model.length * 1e-2,
             nslice=data.model.nslice,
-            A=data.model.A,
-            B=data.model.B,
-            C=data.model.C,
-            D=data.model.D,
             pop_inversion_n_cells=data.model.inversion_n_cells,
             pop_inversion_mesh_extent=data.model.inversion_mesh_extent,
             pop_inversion_crystal_alpha=data.model.crystal_alpha,
@@ -156,7 +210,14 @@ def stateful_compute_n0n2_plot(data, **kwargs):
             pop_inversion_pump_offset_x=data.model.pump_offset_x,
             pop_inversion_pump_offset_y=data.model.pump_offset_y,
         )
-    ).calc_n0n2(set_n=True, mesh_density=data.model.mesh_density)
+    ).calc_n0n2(
+        method=data.model.calc_type, set_n=True, mesh_density=data.model.mesh_density
+    )
+    d = _determinant(n)
+    if abs(d - 1) > _ABCD_DELTA:
+        return PKDict(
+            error=f"ERROR: The determinant of ABCD matrix should be 1, got determinant={d}"
+        )
     p = pkio.py_path("n0n2_plot.png")
     plt.clf()
     fig, axes = plt.subplots(2)
@@ -206,9 +267,11 @@ def _beamline_animation_percent_complete(run_dir, res, data):
             crystal=_CRYSTAL_FILE.format(count.crystal),
         )[element.type]
 
-    def _frames(element, data):
+    def _frames(element, data, crystals):
         if element.type == "watch":
             return data.models.laserPulse.nslice
+        if element.reuseCrystal:
+            return crystals[element.reuseCrystal].nslice
         return element.nslice
 
     _initial_intensity_percent_complete(run_dir, res, data, ("beamlineAnimation0",))
@@ -217,16 +280,19 @@ def _beamline_animation_percent_complete(run_dir, res, data):
         crystal=1,
     )
     total_count = 1
+    crystals = PKDict()
     for e in data.models.beamline:
         if e.type in ("watch", "crystal"):
             total_count += 1
             _output_append(
-                _frames(e, data),
+                _frames(e, data, crystals),
                 _file(e, count),
                 count,
                 e,
                 res,
             )
+            if e.type == "crystal":
+                crystals[e.id] = e
     res.percentComplete = res.frameCount * 100 / total_count
     return res
 
@@ -234,57 +300,12 @@ def _beamline_animation_percent_complete(run_dir, res, data):
 def _crystal_animation_percent_complete(run_dir, res, data):
     assert data.report == "crystalAnimation"
     count = 0
-    path = run_dir.join(_CRYSTAL_CSV_FILE)
+    res = PKDict()
+    path = run_dir.join(_TEMP_HEATMAP_FILE)
     if path.exists():
-        with pkio.open_text(str(path)) as f:
-            for line in f:
-                count += 1
-        # first two lines are axis points
-        if count > 2:
-            plot_count = int((count - 2) / 2)
-            res.frameCount = plot_count
-            res.percentComplete = (
-                plot_count
-                * 100
-                / (
-                    1
-                    + data.models.crystalSettings.steps
-                    / data.models.crystalSettings.plotInterval
-                )
-            )
+        res.frameCount = 1
+        res.percentComplete = 100
     return res
-
-
-def _crystal_plot(frame_args, x_column, y_column, x_heading, scale):
-    x = None
-    plots = []
-    with open(str(frame_args.run_dir.join(_CRYSTAL_CSV_FILE))) as f:
-        for r in csv.reader(f):
-            if x is None and r[0] == x_column:
-                r.pop(0)
-                r.pop(0)
-                x = [float(v) * scale for v in r]
-            elif r[0] == y_column:
-                r.pop(0)
-                t = r.pop(0)
-                plots.append(
-                    PKDict(
-                        points=[float(v) for v in r],
-                        label="{:.1f} sec".format(float(t)),
-                    )
-                )
-    return PKDict(
-        title="",
-        x_range=[min(x), max(x)],
-        y_label="Temperature [°C]",
-        x_label=x_heading,
-        x_points=x,
-        plots=plots,
-        y_range=template_common.compute_plot_color_and_range(plots),
-        summaryData=PKDict(
-            crystalLength=_get_crystal(frame_args.sim_in).length,
-        ),
-    )
 
 
 def _generate_beamline_elements(data):
@@ -295,12 +316,16 @@ def _generate_beamline_elements(data):
             return
         if element.type == "lens":
             state.res += f'(Lens_srw({element.focalLength}), ["default"]),\n'
-        elif element.type == "mirror":
+        elif element.type == "mirror2":
             state.res += "(Mirror(), []),\n"
         elif element.type == "crystal":
             if element.origin == "reuse":
                 return
-            state.res += _generate_crystal(element)
+            state.res += _generate_crystal(element, data.models.laserPulse.sigx_waist)
+        elif element.type == "telescope":
+            state.res += f"(Telescope_lct({element.focal_length_1}, {element.focal_length_2}, {element.drift_length_1}, {element.drift_length_2}, {element.drift_length_3}, l_scale={_L_SCALE_EQUATION}), []),\n"
+        elif element.type == "splitter":
+            state.res += f"(Beamsplitter({element.transmitted_fraction}), []),\n"
         else:
             raise AssertionError("unknown element type={}".format(element.type))
 
@@ -335,17 +360,13 @@ def _generate_beamline_indices(data):
     return ", ".join(state.res)
 
 
-def _generate_crystal(crystal):
+def _generate_crystal(crystal, sigx_waist):
     return f"""(
         Crystal(
             params=PKDict(
-                l_scale={crystal.l_scale},
+                l_scale={_L_SCALE_EQUATION},
                 length={crystal.length * 1e-2},
                 nslice={crystal.nslice},
-                A={crystal.A},
-                B={crystal.B},
-                C={crystal.C},
-                D={crystal.D},
                 pop_inversion_n_cells={crystal.inversion_n_cells},
                 pop_inversion_mesh_extent={crystal.inversion_mesh_extent},
                 pop_inversion_crystal_alpha={crystal.crystal_alpha},
@@ -362,14 +383,36 @@ def _generate_crystal(crystal):
         ["{crystal.propagationType}", True, False],
         {crystal.mesh_density},
         "{crystal.pump_pulse_profile}",
+        "{crystal.calc_type}",
     ),\n"""
 
 
 def _generate_parameters_file(data):
+    from rslaser.optics import Crystal
+
     res, v = template_common.generate_parameters_file(data)
     if data.report == "crystalAnimation":
-        v.crystalLength = _get_crystal(data).length
-        v.crystalCSV = _CRYSTAL_CSV_FILE
+        c = data.models.thermalTransportCrystal.crystal
+        if c.pump_rep_rate <= 1:
+            c.calc_type = "fenics"
+        v.crystalParams = PKDict(
+            length=c.length * 1e-2,
+            nslice=c.nslice,
+            pop_inversion_n_cells=c.inversion_n_cells,
+            pop_inversion_mesh_extent=c.inversion_mesh_extent,
+            pop_inversion_crystal_alpha=c.crystal_alpha,
+            pop_inversion_pump_waist=c.pump_waist,
+            pop_inversion_pump_wavelength=c.pump_wavelength,
+            pop_inversion_pump_gaussian_order=c.pump_gaussian_order,
+            pop_inversion_pump_energy=c.pump_energy,
+            pop_inversion_pump_type=c.pump_type,
+            pop_inversion_pump_rep_rate=c.pump_rep_rate,
+            pop_inversion_pump_offset_x=c.pump_offset_x,
+            pop_inversion_pump_offset_y=c.pump_offset_y,
+        )
+        v.pump_pulse_profile = c.pump_pulse_profile
+        v.crystalLength = c.length
+        v.thermalCrystal = c
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
     if data.report in _SIM_DATA.SOURCE_REPORTS:
         data.models.beamline = []
@@ -382,16 +425,6 @@ def _generate_parameters_file(data):
     v.beamlineElements = _generate_beamline_elements(data)
     v.beamlineIndices = _generate_beamline_indices(data)
     return res + template_common.render_jinja(SIM_TYPE, v)
-
-
-def _get_crystal(data):
-    crystals = [
-        x for x in data.models.beamline if x.type == "crystal" and x.origin == "new"
-    ]
-    for e in crystals:
-        if e.id == data.models.crystalCylinder.crystal:
-            return e
-    return crystals[0]
 
 
 def _initial_intensity_percent_complete(run_dir, res, data, model_names):
@@ -429,7 +462,7 @@ class _LaserPulsePlot(PKDict):
         longitudinal_intensity="Intensity",
         total_intensity="Total Intensity",
         total_phase="Total Phase",
-        longitudinal_frequency="Frequency [Rad/s]",
+        longitudinal_frequency="Frequency [rad/s]",
         longitudinal_wavelength="Wavelength [nm]",
         longitudinal_photons="Total Number of Photons",
         excited_states_longitudinal="Excited States",
@@ -437,11 +470,12 @@ class _LaserPulsePlot(PKDict):
         phase="Phase Slice #{slice_index}",
         intensity="Intensity Slice #{slice_index}",
         photons="Photons Slice #{slice_index}",
+        total_excited_states="Total Number of Excited States",
     )
 
     _X_LABELS = PKDict(
         excited_states_longitudinal="Crystal Slice",
-        longitudinal_photons="Crystal width [cm]",
+        longitudinal_photons="Pulse Slice",
         longitudinal_intensity="Pulse Slice",
         longitudinal_frequency="Pulse Slice",
         longitudinal_wavelength="Pulse Slice",
@@ -454,20 +488,8 @@ class _LaserPulsePlot(PKDict):
         phase="Phase [rad]",
         photons="Photons [1/m³]",
         excited_states="Number [1/m³]",
+        total_excited_states="",
     )
-
-    def _cell_volume(self):
-        if self._is_crystal():
-            return (
-                (
-                    (2 * self.element.inversion_mesh_extent)
-                    / self.element.inversion_n_cells
-                )
-                ** 2
-                * self.element.length
-                / self.element.nslice
-            )
-        return None
 
     def _fname(self):
         if self._is_crystal():
@@ -490,19 +512,10 @@ class _LaserPulsePlot(PKDict):
             slice_index=self.slice_index + 1
         )
 
-    def _nslice(self, file):
-        if self._is_crystal():
-            return self.element.nslice
-        return len(file)
-
     def _x_label(self):
         return self._X_LABELS[self.plot_type]
 
     def _y_value(self, index, file):
-        if self._is_crystal():
-            return numpy.sum(
-                numpy.array(file[f"{index}/excited_states"]) * self._cell_volume()
-            )
         y = numpy.array(file[f"{index}/{self.plot_type}"])
         if self.plot_type in self._SCALAR_PLOTS:
             return y
@@ -514,12 +527,14 @@ class _LaserPulsePlot(PKDict):
     def _gen_longitudinal(self, element_file):
         x = []
         y = []
-        nslice = self._nslice(element_file)
-        if self.element:
-            self.element.nslice = nslice
-        for idx in range(nslice):
-            x.append(self._index(idx))
-            y.append(self._y_value(idx, element_file))
+
+        if self._is_crystal():
+            x = (numpy.arange(len(element_file)) + 1).tolist()
+            y = (numpy.array(element_file["0/excited_states_longitudinal"])).tolist()
+        else:
+            for idx in range(len(element_file)):
+                x.append(self._index(idx))
+                y.append(self._y_value(idx, element_file))
         return template_common.parameter_plot(
             x,
             [
@@ -542,6 +557,8 @@ class _LaserPulsePlot(PKDict):
                 ) as f:
                     if self._is_longitudinal_plot():
                         return self._gen_longitudinal(f)
+                    if self.plot_type == "total_excited_states":
+                        self.slice_index = 0
                     d = template_common.h5_to_dict(f, str(self.slice_index))
                     r = d.ranges
                     z = d[self.plot_type]
@@ -559,25 +576,6 @@ class _LaserPulsePlot(PKDict):
         raise AssertionError("Report is unavailable")
 
 
-def _laser_pulse_report(value_index, filename, title, label):
-    values = numpy.load(filename)
-    return template_common.parameter_plot(
-        values[0].tolist(),
-        [
-            PKDict(
-                points=values[value_index].tolist(),
-                label=label,
-            ),
-        ],
-        PKDict(),
-        PKDict(
-            title=title,
-            y_label="",
-            x_label="s [m]",
-        ),
-    )
-
-
 def _parse_silas_log(run_dir):
     res = ""
     path = run_dir.join(template_common.RUN_LOG)
@@ -585,7 +583,7 @@ def _parse_silas_log(run_dir):
         return res
     with pkio.open_text(str(path)) as f:
         for line in f:
-            m = re.search(r"^\s*\*+\s+Error:\s+(.*)$", line)
+            m = re.search(r"^.*Error:\s+(.*)$", line)
             if m:
                 err = m.group(1)
                 if re.search("Unable to evaluate function at point", err):
@@ -621,11 +619,3 @@ def _report_to_file_index(sim_in, report):
             return count_by_type[e.type], e
         count_by_type[e.type] += 1
     raise AssertionError("{} report not found: {}".format(element_type, report))
-
-
-def _slice_n_field(crystal, field):
-    return (
-        crystal[field][0 : crystal.nslice]
-        if crystal.nslice <= 6
-        else f"interpolate_across_slice({crystal.length * 1e-2}, {crystal.nslice}, {crystal[field]})"
-    )
