@@ -21,7 +21,8 @@ test_js() {
 test_main() {
     test_js
     test_no_h5py
-    pykern ci run
+    SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=0 pykern ci run
+    SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=1 pykern test
 }
 
 test_no_h5py() {

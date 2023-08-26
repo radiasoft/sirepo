@@ -307,8 +307,8 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
         if ($route.current.params.simulationId) {
             appState.loadModels(
                 $route.current.params.simulationId,
-                // clear aux data (ex. list items) each time a simulation is loaded
-                requestSender.clearAuxillaryData,
+                // clear list items each time a simulation is loaded
+                requestSender.clearListFilesData,
                 self.getActiveSection());
         }
     });
@@ -1502,6 +1502,20 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         self.ngViewScope = event.targetScope;
     });
 
+    const _downloadFile = (routeName, simulationId, modelName, reportTitle) => {
+        const args = {
+            '<simulation_id>': simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        };
+        if (modelName) {
+            args['<model>'] = modelName;
+        }
+        if (reportTitle) {
+            args['<title>'] = reportTitle;
+        }
+        return requestSender.newWindow(routeName, args);
+    };
+
     function applyToFields(method, modelName, fieldInfo) {
         var enableFun = function(f) {
             self[method](modelName, f, true);
@@ -2004,7 +2018,224 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, $http, $location, $injector, $interval, $q, $rootScope, $window) {
+// cannot import authState factory, because of circular import with requestSender
+SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) => {
+    let needReply = {};
+    let reqSeq = 1;
+    const self = {};
+    let socket = null;
+    const toSend = [];
+
+    const _appendBuffers = (wsreq, buffers) => {
+        buffers.splice(0, 0, wsreq.msg);
+        const f = new Uint8Array(buffers.reduce((a, b) => a + b.length, 0));
+        let i = 0;
+        for (const b of buffers) {
+            f.set(b, i);
+            i += b.length;
+        }
+        wsreq.msg = f;
+    };
+
+    const _error = (event) => {
+        // close: event.code : short, event.reason : str, wasClean : bool
+        // error: app specific
+        socket = null;
+        srlog("WebSocket failed: event=", event);
+        if (! event.wasClean) {
+            toSend.unshift(...Object.values(needReply));
+            needReply = {};
+        }
+        //TODO(robnagler) backoff timer and set status
+        $interval(_socket, 1000, 1);
+    };
+
+    const _isAuthenticated = () =>  {
+        return SIREPO.authState.isLoggedIn && ! SIREPO.authState.needCompleteRegistration;
+    };
+
+    const _isAuthUrl = (url) =>  {
+        return url.startsWith("/auth-");
+    };
+
+    const _remove = (wsreq) => {
+        const i = toSend.indexOf(wsreq);
+        if (i >= 0) {
+            toSend.splice(i, 1);
+            return;
+        }
+        delete needReply[wsreq.reqSeq];
+    };
+
+    const _reply = (blob) => {
+        let [header, content] = msgpack.decodeMulti(blob);
+        const wsreq = needReply[header.reqSeq];
+        if (! wsreq) {
+            srlog("wsreq not found reqSeq=", header.reqSeq, " header=", header);
+            return;
+        }
+        delete needReply[header.reqSeq];
+        if (
+            header.version !== SIREPO.APP_SCHEMA.websocketMsg.version
+            || header.kind !== SIREPO.APP_SCHEMA.websocketMsg.kind.httpReply
+        ) {
+            srlog("WebSocket msg invalid header=", header, " req=", wsreq);
+            wsreq.deferred.reject("invalid reply from server");
+            return;
+        }
+        //TODO(robnagler) if response in error, ok to not be blob, so defer
+        const b = wsreq.responseType === "blob";
+        if (content instanceof Uint8Array) {
+            if (! b) {
+                srlog("WebSocket not expecting blob header=", header, " wsreq=", wsreq);
+                wsreq.deferred.reject("invalid reply from server");
+                return;
+            }
+            content = new Blob([content]);
+        }
+        else if (b) {
+            srlog("WebSocket expecting blob header=", header, " wsreq=", wsreq);
+            wsreq.deferred.reject("invalid reply from server");
+            return;
+        }
+        wsreq.deferred.resolve({
+            data: header.contentType == "application/json" ? JSON.parse(content) : content,
+            status: header.httpStatus
+        });
+    };
+
+    const _reqData = (data, wsreq, done) => {
+        if (! (data instanceof FormData)) {
+            done([data]);
+            return;
+        }
+        var d = {};
+        var f = null;
+        for (const [k, v] of data.entries()) {
+            if (v instanceof File) {
+                if (f) {
+                    throw new Error(`too many form fields ${f.file.name} and ${v.name}`);
+                }
+                f = {key: k, file: v};
+            }
+            else {
+                d[k] = v;
+            }
+        }
+        if (! f) {
+            done([data]);
+            return;
+        }
+        // a bit of sanity since we assume this on the server side
+        if (f.key !== "file") {
+            throw new Error("file form fields must be named 'file' name=" + f.key);
+        }
+        _reqDataFile(d, f.key, f.file, done);
+    };
+
+    const _reqDataFile = (data, key, file, done) => {
+        var r = new FileReader();
+        r.readAsArrayBuffer(file);
+        r.onerror = (event) => {
+            srlog("failed to read file=" + file.name, event);
+            errorService.alertText('Failed to read file=' + file.name);
+            return;
+        };
+        r.onloadend = () => {
+            delete data[key];
+            done([
+                data,
+                {filename: file.name, blob: new Uint8Array(r.result),},
+            ]);
+        };
+    };
+
+    const _send = () => {
+        //if already req_seq use that so server can know if it is a resend
+        if (toSend.length <= 0) {
+            return;
+        }
+        if (socket == null) {
+            _socket();
+            return;
+        }
+        if (socket.readyState != 1) {
+            return;
+        }
+        while (toSend.length > 0) {
+            const wsreq = toSend.shift();
+            needReply[wsreq.header.reqSeq] = wsreq;
+            socket.send(wsreq.msg);
+        }
+    };
+
+    const _socket = () => {
+        if (socket !== null) {
+            return;
+        }
+        const s = new WebSocket(
+            new URL($window.location.href).origin.replace(/^http/i, "ws") + "/ws",
+        );
+        s.onclose = (event) => {_error(event);};
+        s.onerror = (event) => {_error(event);};
+        s.onmessage = (event) => {
+            event.data.arrayBuffer().then(
+                (blob) => {_reply(blob);},
+                (error) => {srlog("WebSocket.onmessage error=", error, " event=", event);}
+            );
+        };
+        s.onopen = (event) => {_send();};
+        socket = s;
+    };
+
+    self.send = (url, data, httpConfig) => {
+        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url)) {
+            // Might be auto logged out so close socket so can re-authenticate
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+            return data ? $http.post(url, data, httpConfig)
+                : $http.get(url, httpConfig);
+        }
+        let wsreq = {
+            deferred: $q.defer(),
+            header: {
+                kind: SIREPO.APP_SCHEMA.websocketMsg.kind.httpRequest,
+                reqSeq: reqSeq++,
+                uri: decodeURIComponent(url),
+                version: SIREPO.APP_SCHEMA.websocketMsg.version,
+            },
+            ...httpConfig,
+        };
+        wsreq.msg = msgpack.encode(wsreq.header);
+        if (wsreq.timeout) {
+            wsreq.timeout.then(() => {_remove(wsreq);});
+        }
+        const c = (buffers) => {
+            if (buffers) {
+                _appendBuffers(
+                    wsreq,
+                    buffers.map((b) => (new msgpack.Encoder()).encodeSharedRef(b)),
+                );
+            }
+            toSend.push(wsreq);
+            _send();
+        };
+        if (data === null) {
+            c();
+        }
+        else {
+            _reqData(data, wsreq, c);
+        }
+        return wsreq.deferred.promise;
+    };
+
+    return self;
+
+});
+
+SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, msgRouter, $location, $injector, $interval, $q, $rootScope, $window) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -2012,7 +2243,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     var LOGIN_URI = null;
     var REDIRECT_RE = new RegExp('window.location = "([^"]+)";', 'i');
     var SR_EXCEPTION_RE = new RegExp('/\\*sr_exception=(.+)\\*/');
-    var auxillaryData = {};
+    var listFilesData = {};
     var globalMap = {_name: 'global'};
     var localMap = {_name: 'local'};
 
@@ -2053,6 +2284,13 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     for (let n in SIREPO.APP_SCHEMA.localRoutes) {
         localMap[n] = routeMapLocal(n, SIREPO.APP_SCHEMA.localRoutes[n].route);
     }
+
+    const _routeNameOrUrl = (routeNameOrUrl, params) => {
+        if (routeNameOrUrl.indexOf('/') >= 0) {
+            return routeNameOrUrl;
+        }
+        return self.formatUrl(routeNameOrUrl, params);
+    };
 
     function routeMapLocal(name, route) {
         const u = route.split('/');
@@ -2181,8 +2419,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         throw new Error(param + ': ' + (typeof v) + ' type cannot be serialized');
     }
 
-    self.clearAuxillaryData = function() {
-        auxillaryData = {};
+    self.clearListFilesData = function() {
+        listFilesData = {};
     };
 
     self.defaultRouteName = function(appMode=null) {
@@ -2198,34 +2436,31 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         return formatUrl(globalMap, routeName, params);
     };
 
-    self.getAuxiliaryData = function(name) {
-        return auxillaryData[name];
+    self.getListFilesData = function(name) {
+        return listFilesData[name];
     };
 
     self.newLocalWindow = function(routeName, params, app) {
         $window.open(self.formatUrlLocal(routeName, params, app), '_blank');
     };
 
-    self.newWindow = function(routeName, params) {
-        $window.open(self.formatUrl(routeName, params), '_blank');
+    self.newWindow = function(routeNameOrUrl, params) {
+        $window.open(_routeNameOrUrl(routeNameOrUrl, params), '_blank');
     };
 
     self.openSimulation = (app, localRoute, simId) => {
-        $window.open(
-            self.formatUrl('simulationRedirect', {
+        self.newWindow(
+            'simulationRedirect',
+            {
                 simulation_type: app,
                 local_route: localRoute,
                 simulation_id: simId,
-            }),
-            '_blank'
+            },
         );
     };
 
     self.globalRedirect = function(routeNameOrUrl, params) {
-        var u = routeNameOrUrl;
-        if (u.indexOf('/') < 0) {
-            u = self.formatUrl(u, params);
-        }
+        var u = _routeNameOrUrl(routeNameOrUrl, params);
         var i = u.indexOf('#');
         // https://github.com/radiasoft/sirepo/issues/2160
         // hash is persistent even if setting href so explicitly
@@ -2300,31 +2535,36 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         );
     };
 
-    self.loadAuxiliaryData = function(name, path, callback) {
-        if (auxillaryData[name] || auxillaryData[name + ".loading"]) {
+    self.loadListFiles = function(name, params, callback) {
+        if (listFilesData[name] || listFilesData[name + ".loading"]) {
             if (callback) {
-                callback(auxillaryData[name]);
+                callback(listFilesData[name]);
             }
             return;
         }
-        auxillaryData[name + ".loading"] = true;
-        $http.get(path + '' + SIREPO.SOURCE_CACHE_KEY).then(
+        listFilesData[name + ".loading"] = true;
+        msgRouter.send(
+            self.formatUrl('listFiles'),
+            params,
+            {},
+        ).then(
             function(response) {
                 var data = response.data;
-                auxillaryData[name] = data;
-                delete auxillaryData[name + ".loading"];
+                listFilesData[name] = data;
+                delete listFilesData[name + ".loading"];
                 if (callback) {
                     callback(data);
                 }
             },
             function() {
-                srlog(path, ' load failed!');
-                delete auxillaryData[name + ".loading"];
-                if (! auxillaryData[name]) {
+                srlog(params, ' loadListFiles failed!');
+                delete listFilesData[name + ".loading"];
+                if (! listFilesData[name]) {
                     // if loading fails, use an empty list to prevent load requests on each digest cycle, see #1339
-                    auxillaryData[name] = [];
+                    listFilesData[name] = [];
                 }
-            });
+            },
+        );
     };
 
     self.isRouteParameter = function(routeName, paramName) {
@@ -2370,7 +2610,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         var timeout = $q.defer();
         var interval, t;
         var timed_out = false;
-        const http_config = {
+        const httpConfig = {
             timeout: timeout.promise,
             responseType: (data || {}).responseType || '',
         };
@@ -2384,9 +2624,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                 1
             );
         }
-        var req = data
-            ? $http.post(url, data, http_config)
-            : $http.get(url, http_config);
+        var req = msgRouter.send(url, data, httpConfig);
         var thisErrorCallback = function(response) {
             var data = response.data;
             var status = response.status;
@@ -2466,7 +2704,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         };
         req.then(
             function(response) {
-                if (http_config.responseType === 'blob') {
+                if (httpConfig.responseType === 'blob') {
                     $interval.cancel(interval);
                     blobResponse(response, successCallback, thisErrorCallback);
                     return;
@@ -3052,8 +3290,7 @@ SIREPO.app.factory('errorService', function($log, $window) {
         $log.error.apply($log, arguments);
         // now try to log the error to the server side.
         try {
-            // use AJAX (in this example jQuery) and NOT
-            // an angular service such as $http
+            // use AJAX (in this example jQuery) and msgRouter
             var message = exception ? String(exception) : '';
             cause = cause ? String(cause) : '';
             self.logToServer(
