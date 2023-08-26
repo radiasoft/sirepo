@@ -788,12 +788,34 @@ def process_watch(wid=0):
             _int_type=int(report.get("characteristic", "0")),
             _pr=False,
         )
-        d, x_range, y_range = _reshape_3d(
+        _, x_range, y_range = _reshape_3d(
             np.array(data),
             [0, 0, 0, mesh.xStart, mesh.xFin, mesh.nx, mesh.yStart, mesh.yFin, mesh.ny],
             report,
         )
-        new_mesh = srwlib.SRWLRadMesh(
+        #new_mesh = srwlib.SRWLRadMesh(
+        #    _eStart=mesh.eStart,
+        #    _eFin=mesh.eFin,
+        #    _ne=mesh.ne,
+        #    _xStart=x_range[0],
+        #    _xFin=x_range[1],
+        #    _nx=x_range[2],
+        #    _yStart=y_range[0],
+        #    _yFin=y_range[1],
+        #    _ny=y_range[2],
+        #    _zStart=mesh.zStart,
+        #    _nvx=mesh.nvx,
+        #    _nvy=mesh.nvy,
+        #    _nvz=mesh.nvz,
+        #    _hvx=mesh.hvx,
+        #    _hvy=mesh.hvy,
+        #    _hvz=mesh.hvz,
+        #    _arSurf=mesh.arSurf,
+        #)
+        new_wfr = srwlib.SRWLWfr(
+            _arEx=wfr.arEx,
+            _arEy=wfr.arEy,
+            _typeE=wfr.numTypeElFld,
             _eStart=mesh.eStart,
             _eFin=mesh.eFin,
             _ne=mesh.ne,
@@ -804,18 +826,21 @@ def process_watch(wid=0):
             _yFin=y_range[1],
             _ny=y_range[2],
             _zStart=mesh.zStart,
-            _nvx=mesh.nvx,
-            _nvy=mesh.nvy,
-            _nvz=mesh.nvz,
-            _hvx=mesh.hvx,
-            _hvy=mesh.hvy,
-            _hvz=mesh.hvz,
-            _arSurf=mesh.arSurf,
+            _partBeam=wfr.partBeam
         )
-        dst = _wavefront_intensity_filename(wid)
-        src = f"tmp_{dst}"
-        srwlib.srwl_uti_save_intens_ascii(d.flatten().tolist(), new_mesh, src)
-        pkio.py_path(src).rename(dst)
+        with open(_wavefront_pickle_filename(wid, is_tmp=False), "wb") as f:
+            pickle.dump(new_wfr, f)
+        srwl_bl.SRWLBeamline().calc_int_from_wfr(
+            new_wfr,
+            _pol=int(report.get("polarization", "6")),
+            _int_type=int(report.get("characteristic", "0")),
+            _pr=False,
+            _fname=_wavefront_intensity_filename(wid),
+        )
+        #dst = _wavefront_intensity_filename(wid)
+        #src = f"tmp_{dst}"
+        #srwlib.srwl_uti_save_intens_ascii(d.flatten().tolist(), new_mesh, src)
+        #pkio.py_path(src).rename(dst)
 
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
@@ -2700,9 +2725,9 @@ def _wavefront_intensity_filename(el_id):
     )
 
 
-def _wavefront_pickle_filename(el_id):
+def _wavefront_pickle_filename(el_id, is_tmp=True):
     if el_id:
-        return f"wid-{el_id}.pkl"
+        return f"wid-{el_id}{'-tmp' if is_tmp else ''}.pkl"
     return "initial.pkl"
 
 
