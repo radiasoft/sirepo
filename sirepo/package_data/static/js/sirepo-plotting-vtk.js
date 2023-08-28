@@ -619,6 +619,11 @@ class VTKScene {
      * Cleans up vtk items
      */
     teardown() {
+        window.removeEventListener('resize', this.fsRenderer.resize);
+        document.removeEventListener(
+            'visibilitychange',
+            this.fsRenderer.getInteractor().handleVisibilityChange,
+        );
         this.isMarkerEnabled = false;
         this.refreshMarker(false);
         this.fsRenderer.getInteractor().unbindEvents();

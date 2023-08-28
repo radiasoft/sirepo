@@ -3371,7 +3371,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             };
 
             $scope.destroy = function() {
-                $('.mouse-rect').off();
+                select('.mouse-rect').on('mousemove', null);
                 zoom.on('zoom', null);
                 document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };

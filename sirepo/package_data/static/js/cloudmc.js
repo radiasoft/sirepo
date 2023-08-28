@@ -772,7 +772,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             let selectedVolume = null;
             let vtkScene = null;
 
-            // tally state
+            // ********* 3d tally state and functions
+            //TODO(pjm): these should be moved to a subdirective
+
             const colorbar = {
                 element: null,
                 pointer: null,
@@ -788,8 +790,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 [4, 0, 3, 7],
                 [1, 5, 6, 2],
             ];
-
-            // ********* 3d tally functions
 
             function addTally(data) {
                 tallyPolyData = vtk.Common.DataModel.vtkPolyData.newInstance();
@@ -1114,6 +1114,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             // the vtk teardown is handled in vtkPlotting
             $scope.destroy = () => {
                 vtkScene = null;
+                plotToPNG.destroyVTK($element);
             };
 
             $scope.init = () => {};
@@ -2161,13 +2162,12 @@ SIREPO.app.directive('planePositionSlider', function(appState, tallyService) {
             $scope.$on('tallyReport.summaryData', updateSlider);
             updateSlider();
 
-            $scope.destroy = () => {
+            $scope.$on('$destroy', () => {
                 if (planePosSlider) {
                     planePosSlider.slider('destroy');
                     planePosSlider = null;
                 }
-            };
-
+            });
         },
     };
 });
