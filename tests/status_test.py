@@ -26,6 +26,7 @@ def test_basic(auth_fc):
 
     # POSIT: sirepo.auth.basic.require_user returns logged_in_user in srunit
     u = auth_fc.sr_login_as_guest()
+    auth_fc.sr_logout()
     r = auth_fc.sr_get_json(
         "serverStatus",
         headers=PKDict(

@@ -22,17 +22,7 @@ def parse_json(qcall):
     d = qcall.http_data_uget()
     if d:
         return d
-    if not qcall.sreq.content_type_eq("application/json"):
-        raise sirepo.util.BadRequest(
-            "Content-Type={} must be application/json",
-            qcall.sreq.header_uget("Content-Type"),
-        )
-    # Adapted from flask.wrappers.Request.get_json
-    # We accept a request charset against the specification as
-    # certain clients have been using this in the past.  This
-    # fits our general approach of being nice in what we accept
-    # and strict in what we send out.
-    return simulation_db.json_load(qcall.sreq.body_as_bytes())
+    return qcall.sreq.body_as_content()
 
 
 def parse_post(qcall, kwargs):
@@ -73,7 +63,11 @@ def parse_post(qcall, kwargs):
     def _type(v):
         from sirepo import auth
 
-        assert not isinstance(v, bool), "missing type in params/post={}".format(kwargs)
+        if isinstance(v, bool):
+            raise sirepo.util.BadRequest(
+                "missing simulationType in params/post={}",
+                kwargs,
+            )
         qcall.auth.check_sim_type_role(v)
         res.sim_data = sirepo.sim_data.get_class(v)
         return v
@@ -114,11 +108,14 @@ def parse_post(qcall, kwargs):
             s = kwargs.pkdel(k)
             n = s["name"] if "name" in s else k
             v = r[n] if n in r else None
-            assert (
-                v is not None or "optional" in s and s["optional"] == True
-            ), "required param={} missing in post={}".format(k, r)
+            if not (v is not None or "optional" in s and s["optional"] == True):
+                raise sirepo.util.BadRequest(
+                    "required param={} missing in post={}",
+                    k,
+                    r,
+                )
             if v is not None:
                 res[n] = v
-
-    assert not kwargs, "unexpected kwargs={}".format(kwargs)
+    if kwargs:
+        raise sirepo.util.BadRequest("unexpected post parameters={}", kwargs)
     return res
