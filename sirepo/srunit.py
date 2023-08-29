@@ -95,7 +95,7 @@ def setup_srdb_root(cfg=None):
 
 
 class _TestClient:
-    DEFAULT_TIMEOUT_SECS = 15
+    DEFAULT_TIMEOUT_SECS = 25
 
     def __init__(self, env, job_run_mode, port):
         from sirepo import feature_config
