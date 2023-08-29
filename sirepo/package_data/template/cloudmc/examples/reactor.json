@@ -13,7 +13,7 @@
         "openmcAnimation": {
             "aspect": "mean",
             "bgColor": "#fff9ed",
-            "colorMap": "jet",
+            "colorMap": "viridis",
             "opacity": 1,
             "score": "heating",
             "showEdges": "0",
@@ -799,10 +799,6 @@
                 "opacity": 0.3,
                 "volId": "23"
             }
-        },
-        "voxels": {
-            "colorMap": "jet",
-            "voxelInsetPct": 0
         }
     },
     "simulationType": "cloudmc"

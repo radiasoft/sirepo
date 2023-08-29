@@ -910,7 +910,7 @@
         "openmcAnimation": {
             "aspect": ["Aspect", "TallyAspect", "mean"],
             "bgColor": ["Background color", "Color", "#fff9ed"],
-            "colorMap": ["Color Map", "ColorMap", "jet"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
@@ -1006,6 +1006,7 @@
         },
         "tallyReport": {
             "axis": ["Slice Axis", "Axis", "y"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "planePos": ["_", "Range", 0.0, ""],
             "selectedGeometry": ["", "TallyGeometry", "3D"]
         },

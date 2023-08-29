@@ -13,7 +13,7 @@
         "openmcAnimation": {
             "aspect": "mean",
             "bgColor": "#fff9ed",
-            "colorMap": "jet",
+            "colorMap": "viridis",
             "opacity": 1,
             "score": "flux",
             "showEdges": "0",
@@ -166,11 +166,8 @@
         },
         "tallyReport": {
             "axis": "y",
-            "colorMap": "afmhot",
-            "horizontalAxis": "z",
-            "horizontalTrim": [],
-            "planePos": 0,
-            "verticalAxis": "x"
+            "colorMap": "viridis",
+            "planePos": 0
         },
         "volumes": {
             "aluminum": {
@@ -1325,10 +1322,6 @@
                 "opacity": 0.3,
                 "volId": "101"
             }
-        },
-        "voxels": {
-            "colorMap": "afmhot",
-            "voxelInsetPct": 0
         }
     },
     "simulationType": "cloudmc"
