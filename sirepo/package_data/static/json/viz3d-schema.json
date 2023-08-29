@@ -1,4 +1,9 @@
 {
+    "appModes": {
+        "default": {
+            "localRoute": "visualization"
+        }
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": ["viz3d.js"]
@@ -6,7 +11,7 @@
     },
     "localRoutes": {
         "visualization": {
-            "route": "/visualization",
+            "route": "/visualization/:simulationId",
             "config": {
                 "controller": "Viz3dVisualizationController as visualization",
                 "templateUrl": "/static/html/viz3d-visualization.html"
