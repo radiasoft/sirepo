@@ -8,7 +8,7 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdlog, pkdp
+from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import contextlib
 import datetime
 import importlib
@@ -438,7 +438,26 @@ class _Auth(sirepo.quest.Attr):
         return not self.user_display_name(uid=u)
 
     def only_for_api_auth_state(self):
-        return self._auth_state()
+        try:
+            try:
+                return self._auth_state()
+            except sirepo.util.UserDirNotFound as e:
+                # Clear login and return new auth_state
+                self._handle_user_dir_not_found(**e.sr_args)
+                return self._auth_state()
+        except Exception as e:
+            pkdlog("exception={}", e, " stack={}", pkdexc())
+            # POSIT: minimal authState record, see _auth_state
+            return PKDict(
+                displayName=None,
+                guestIsOnlyMethod=not non_guest_methods,
+                isGuestUser=False,
+                isLoggedIn=False,
+                roles=[],
+                userName=None,
+                uiWebSocket=sirepo.feature_config.cfg().ui_websocket,
+                visibleMethods=visible_methods,
+            )
 
     def only_for_api_logout(self):
         sirepo.events.emit(
@@ -551,16 +570,7 @@ class _Auth(sirepo.quest.Attr):
             user_dir (str): directory not found
             uid (str): user
         """
-        for m in _METHOD_MODULES.values():
-            u = self._method_user_model(m, uid)
-            if u:
-                u.delete()
-        u = self.qcall.auth_db.model("UserRegistration").unchecked_search_by(uid=uid)
-        if u:
-            u.delete()
-        self.reset_state()
-        self.qcall.auth_db.commit()
-        pkdlog("user_dir={} uid={}", user_dir, uid)
+        self._handle_user_dir_not_found(user_dir, uid)
         return self.qcall.reply_redirect_for_app_root()
 
     def user_display_name(self, uid):
@@ -634,6 +644,7 @@ class _Auth(sirepo.quest.Attr):
             roles=[],
             slackUri=_get_slack_uri(),
             userName=None,
+            uiWebSocket=sirepo.feature_config.cfg().ui_websocket,
             visibleMethods=visible_methods,
         )
         if "sbatch" in v.jobRunModeMap:
@@ -678,6 +689,18 @@ class _Auth(sirepo.quest.Attr):
             with self.logged_in_user_set(u, method=module.AUTH_METHOD):
                 self._create_roles_for_new_user(module.AUTH_METHOD)
         return u
+
+    def _handle_user_dir_not_found(self, user_dir, uid):
+        for m in _METHOD_MODULES.values():
+            u = self._method_user_model(m, uid)
+            if u:
+                u.delete()
+        u = self.qcall.auth_db.model("UserRegistration").unchecked_search_by(uid=uid)
+        if u:
+            u.delete()
+        self.reset_state()
+        self.qcall.auth_db.commit()
+        pkdlog("user_dir={} uid={}", user_dir, uid)
 
     def _login_user(self, module, uid):
         """Set up the cookie for logged in state
@@ -755,7 +778,7 @@ class _Auth(sirepo.quest.Attr):
                 return "="
             return self._qcall_bound_state() + "-" + u
 
-        sirepo.flask.set_log_user(_user)
+        self.qcall.sreq.set_log_user(_user())
 
     def _validate_method(self, module, sim_type=None):
         if module.AUTH_METHOD in valid_methods:

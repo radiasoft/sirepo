@@ -21,8 +21,8 @@ import email.utils
 import mimetypes
 import pykern.pkinspect
 import re
+import sirepo.const
 import sirepo.html
-import sirepo.http_request
 import sirepo.resource
 import sirepo.uri
 import sirepo.util
@@ -82,7 +82,7 @@ def init_quest(qcall):
 class _SReply(sirepo.quest.Attr):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Needed in tornado_response
+        # Needed in tornado_response, after _SRequest is destroyed
         self.internal_req = self.qcall.sreq.internal_req
         self._cookies_to_delete = None
 
@@ -210,28 +210,33 @@ class _SReply(sirepo.quest.Attr):
         return self._gen_exception_error(exc)
 
     def gen_file(self, path, content_type, filename):
+        def _open():
+            if self.qcall.sreq.is_websocket() and content_type in _MIME_TYPE_UTF8:
+                return pkio.open_text(path)
+            return open(path, "rb")
+
         # Always (re-)initialize __attrs
         self.from_kwargs()
-        e = None
-        if content_type is None:
-            content_type, e = self._guess_content_type(path.basename)
-        self._download_name(filename or path.basename)
-        self.__attrs.content_type = content_type
-        h = None
         try:
-            h = open(path, "rb")
+            e = None
+            if content_type is None:
+                content_type, e = self._guess_content_type(path.basename)
+            self._download_name(filename or path.basename)
+            self.__attrs.content_type = content_type
             self.__attrs.content = PKDict(
                 encoding=e,
-                handle=h,
                 length=path.size(),
                 mtime=int(path.mtime()),
                 path=path,
             )
+            # Need a handle, because path may get deleted before response.
+            # Here to avoid unclosed handles on exceptions.
+            self.__attrs.content.handle = _open()
             return self
         except Exception:
-            if h:
-                h.close()
-                self.__attrs.pkdel("content")
+            self.__attrs.pkdel("content")
+            self.__attrs.pkdel("content_type")
+            self.__attrs.pkdel("download_name")
             raise
 
     def gen_file_as_attachment(self, content_or_path, filename=None, content_type=None):
@@ -511,6 +516,37 @@ class _SReply(sirepo.quest.Attr):
         _cookie(r)
         return r
 
+    async def websocket_response(self):
+        import msgpack
+
+        a = self.__attrs
+        p = msgpack.Packer(autoreset=False)
+        p.pack(
+            PKDict(
+                contentType=a.get("content_type", _MIME_TYPE.txt),
+                httpStatus=a.get("status", 200),
+                kind=sirepo.const.SCHEMA_COMMON.websocketMsg.kind.httpReply,
+                reqSeq=self.internal_req.req_seq,
+                version=sirepo.const.SCHEMA_COMMON.websocketMsg.version,
+            ),
+        )
+        c = a.get("content")
+        if c is None:
+            # always have content, easier for clients
+            c = ""
+        elif isinstance(c, PKDict):
+            # TODO(robnagler) would be ideal to handle this differently, but
+            # it may not be possible. Tornado/msgpack has lots of copying.
+            x = c.handle.read()
+            c.handle.close()
+            c = x
+        else:
+            pass
+        p.pack(c)
+        # TODO(robnagler) getbuffer() would be better
+        await self.internal_req.handler.write_message(p.bytes(), binary=True)
+        p.reset()
+
     def _copy(self, source):
         """Destructive copy unless `self` is `res`"""
         if source == self:
@@ -566,6 +602,9 @@ class _SReply(sirepo.quest.Attr):
 
     def _gen_exception_reply_BadRequest(self, args):
         return self._gen_http_exception(400)
+
+    def _gen_exception_reply_ContentTooLarge(self, args):
+        return self._gen_http_exception(413)
 
     def _gen_exception_reply_Error(self, args):
         try:

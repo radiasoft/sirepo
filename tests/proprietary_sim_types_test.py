@@ -37,7 +37,7 @@ def test_myapp(auth_fc):
     )
     pkunit.pkeq(403, r.status_code)
     sirepo.pkcli.roles.add_roles(
-        fc.sr_auth_state().uid,
+        fc.sr_uid,
         sirepo.auth_role.for_sim_type(fc.sr_sim_type),
     )
     r = fc.sr_run_sim(fc.sr_sim_data(), "heightWeightReport")
