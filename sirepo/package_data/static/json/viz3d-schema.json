@@ -5,10 +5,10 @@
         }
     },
     "localRoutes": {
-        "source": {
+        "visualization": {
             "config": {
-                "controller": "Viz3dSourceController as source",
-                "templateUrl": "/static/html/viz3d-source.html"
+                "controller": "Viz3dVisualizationController as visualization",
+                "templateUrl": "/static/html/viz3d-visualization.html"
             }
         }
     },

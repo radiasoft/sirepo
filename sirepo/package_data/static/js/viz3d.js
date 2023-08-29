@@ -16,7 +16,7 @@ SIREPO.app.factory('viz3dService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('Viz3dSourceController', function (appState, panelState, persistentSimulation, viz3dService, $scope) {
+SIREPO.app.controller('Viz3dVisualizationController', function (appState, panelState, persistentSimulation, viz3dService, $scope) {
     const self = this;
     self.simScope = $scope;
 
@@ -51,7 +51,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-flash"></span> Visualization</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
