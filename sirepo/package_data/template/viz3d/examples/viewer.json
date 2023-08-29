@@ -1,8 +1,7 @@
 {
     "models": {
-        "simFolder": {},
         "simulation": {
-            "folder": "/",
+            "folder": "/Examples",
             "name": "Viewer",
             "isExample": true
         }
