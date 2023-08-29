@@ -6,6 +6,7 @@
     },
     "localRoutes": {
         "visualization": {
+            "route": "/visualization/:simulationId",
             "config": {
                 "controller": "Viz3dVisualizationController as visualization",
                 "templateUrl": "/static/html/viz3d-visualization.html"
