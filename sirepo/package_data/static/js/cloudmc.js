@@ -574,6 +574,11 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
             };
             $scope.is2D = () => appState.applicationState().tallyReport.selectedGeometry === '2D';
             $scope.is3D = () => ! $scope.is2D();
+            $scope.$on('openmcAnimation.changed', () => {
+                // keep colorMap synchronized
+                appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
+                appState.saveQuietly('tallyReport');
+            });
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
