@@ -89,7 +89,7 @@ SIREPO.app.config(() => {
     };
 });
 
-SIREPO.app.factory('cloudmcService', function(appState) {
+SIREPO.app.factory('cloudmcService', function(appState, panelState) {
     const self = {};
     appState.setAppService(self);
 
@@ -105,6 +105,23 @@ SIREPO.app.factory('cloudmcService', function(appState) {
 
     // volumes are measured in centimeters
     self.GEOMETRY_SCALE = 0.01;
+
+    self.buildRangeDelegate = (modelName, field) => {
+        const d = panelState.getFieldDelegate(modelName, field);
+        d.range = () => {
+            return {
+                min: appState.fieldProperties(modelName, field).min,
+                max: appState.fieldProperties(modelName, field).max,
+                step: 0.01
+            };
+        };
+        d.readout = () => {
+            return appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_LABEL];
+        };
+        d.update = () => {};
+        d.watchFields = [];
+        return d;
+    };
 
     self.computeModel = modelKey => modelKey;
 
@@ -2172,29 +2189,18 @@ SIREPO.app.directive('planePositionSlider', function(appState, tallyService) {
     };
 });
 
-SIREPO.viewLogic('openmcAnimationView', function(appState, cloudmcService, panelState, $scope) {
-
-    function buildRangeDelegate(modelName, field) {
-        const d = panelState.getFieldDelegate(modelName, field);
-        d.range = () => {
-            return {
-                min: appState.fieldProperties(modelName, field).min,
-                max: appState.fieldProperties(modelName, field).max,
-                step: 0.01
-            };
-        };
-        d.readout = () => {
-            return appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_LABEL];
-        };
-        d.update = () => {};
-        d.watchFields = [];
-        return d;
-    }
+SIREPO.viewLogic('openmcAnimationView', function(cloudmcService, $scope) {
 
     $scope.whenSelected = () => {
-        buildRangeDelegate($scope.modelName, 'opacity');
+        cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
     };
     $scope.watchFields = [
         ['openmcAnimation.tally'], cloudmcService.validateSelectedTally,
     ];
+});
+
+SIREPO.viewLogic('geometry3DReportView', function(cloudmcService, $scope) {
+    $scope.whenSelected = () => {
+        cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
+    };
 });
