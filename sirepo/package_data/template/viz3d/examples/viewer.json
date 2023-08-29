@@ -2,8 +2,9 @@
     "models": {
         "simFolder": {},
         "simulation": {
-            "folder": "/Examples",
-            "name": "Viewer"
+            "folder": "/",
+            "name": "Viewer",
+            "isExample": true
         }
     },
     "simulationType": "viz3d"
