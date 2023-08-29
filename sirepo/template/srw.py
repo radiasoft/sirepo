@@ -780,38 +780,23 @@ def process_watch(wid=0):
     def _op():
         sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
         report = sim_in.models[f"beamlineAnimation{wid}"]
-        with open(_wavefront_pickle_filename(wid), "rb") as f:
+        p = _wavefront_pickle_filename(wid)
+        with open(p, "rb") as f:
             wfr = pickle.load(f)
+        # calculate but do not save to file yet
         data, mesh = srwl_bl.SRWLBeamline().calc_int_from_wfr(
             wfr,
             _pol=int(report.get("polarization", "6")),
             _int_type=int(report.get("characteristic", "0")),
             _pr=False,
         )
+        pkio.unchecked_remove(p)
         _, x_range, y_range = _reshape_3d(
             np.array(data),
             [0, 0, 0, mesh.xStart, mesh.xFin, mesh.nx, mesh.yStart, mesh.yFin, mesh.ny],
             report,
         )
-        #new_mesh = srwlib.SRWLRadMesh(
-        #    _eStart=mesh.eStart,
-        #    _eFin=mesh.eFin,
-        #    _ne=mesh.ne,
-        #    _xStart=x_range[0],
-        #    _xFin=x_range[1],
-        #    _nx=x_range[2],
-        #    _yStart=y_range[0],
-        #    _yFin=y_range[1],
-        #    _ny=y_range[2],
-        #    _zStart=mesh.zStart,
-        #    _nvx=mesh.nvx,
-        #    _nvy=mesh.nvy,
-        #    _nvz=mesh.nvz,
-        #    _hvx=mesh.hvx,
-        #    _hvy=mesh.hvy,
-        #    _hvz=mesh.hvz,
-        #    _arSurf=mesh.arSurf,
-        #)
+        # create new wavefront with reshaped mesh
         new_wfr = srwlib.SRWLWfr(
             _arEx=wfr.arEx,
             _arEy=wfr.arEy,
@@ -828,19 +813,18 @@ def process_watch(wid=0):
             _zStart=mesh.zStart,
             _partBeam=wfr.partBeam
         )
-        with open(_wavefront_pickle_filename(wid, is_tmp=False), "wb") as f:
+        with open(_wavefront_pickle_filename(wid, is_processed=True), "wb") as f:
             pickle.dump(new_wfr, f)
+        dst = _wavefront_intensity_filename(wid)
+        src = f"tmp_{dst}"
         srwl_bl.SRWLBeamline().calc_int_from_wfr(
             new_wfr,
             _pol=int(report.get("polarization", "6")),
             _int_type=int(report.get("characteristic", "0")),
             _pr=False,
-            _fname=_wavefront_intensity_filename(wid),
+            _fname=src,
         )
-        #dst = _wavefront_intensity_filename(wid)
-        #src = f"tmp_{dst}"
-        #srwlib.srwl_uti_save_intens_ascii(d.flatten().tolist(), new_mesh, src)
-        #pkio.py_path(src).rename(dst)
+        pkio.py_path(src).rename(dst)
 
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
@@ -2715,7 +2699,7 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
         )
 
 
-def _wavefront_intensity_filename(el_id):
+def _wavefront_intensity_filename(el_id, is_processed=True):
     return (
         _OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=el_id)
         if el_id
@@ -2723,9 +2707,9 @@ def _wavefront_intensity_filename(el_id):
     )
 
 
-def _wavefront_pickle_filename(el_id, is_tmp=True):
+def _wavefront_pickle_filename(el_id, is_processed=False):
     if el_id:
-        return f"wid-{el_id}{'-tmp' if is_tmp else ''}.pkl"
+        return f"wid-{el_id}{'' if is_processed else '-preproc'}.pkl"
     return "initial.pkl"
 
 
