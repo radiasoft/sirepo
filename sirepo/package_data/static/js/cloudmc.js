@@ -735,7 +735,7 @@ SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService) 
                 updateSlice();
             }
 
-            $scope.$on('tallyReport.summaryData', () => updateSliceAxis);
+            $scope.$on('tallyReport.summaryData', updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
             $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
