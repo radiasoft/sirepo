@@ -2347,8 +2347,6 @@ def _rotate_report(report, ar2d, x_range, y_range):
 
     x_range[2] = ar2d.shape[1]
     y_range[2] = ar2d.shape[0]
-    # if info.title != "Power Density":
-    #    info.subtitle = info.subtitle + " Image Rotate {}^0".format(rotate_angle)
     return ar2d, x_range, y_range
 
 
