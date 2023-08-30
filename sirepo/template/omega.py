@@ -338,6 +338,7 @@ def _plot_beam(sim_type, frame_args):
 def _plot_field_dist(sim_type, frame_args):
     import sirepo.template.genesis
 
+    frame_args.frameIndex = 1
     return sirepo.template.genesis.sim_frame_fieldDistributionAnimation(frame_args)
 
 
