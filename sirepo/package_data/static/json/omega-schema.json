@@ -66,9 +66,7 @@
         "simFieldDistributionAnimation": {
             "simCount": ["", "Integer"],
             "reportCount": ["", "Integer"],
-            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "notes": ["Notes", "Text", ""]
         },
         "simulationStatus": {}
@@ -96,8 +94,6 @@
         "simFieldDistributionAnimation": {
             "title": "Field Distribution",
             "advanced": [
-                "framesPerSecond",
-                "aspectRatio",
                 "colorMap",
                 "notes"
             ]
