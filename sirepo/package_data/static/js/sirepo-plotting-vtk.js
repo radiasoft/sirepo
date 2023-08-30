@@ -680,16 +680,18 @@ class VTKScene {
      * Sets the camera so that the given side is facing the user. If that side is already set, flip to the
      * other side
      * @param {string} side - x|y|z
-     * @param {number} direction - -1|0|1
      */
-    showSide(side = this.resetSide, direction = this.resetDirection) {
-        if (side === this.viewSide) {
-            this.viewDirection *= -1;
+    showSide(side) {
+        if (! side) {
+            this.viewSide = this.resetSide;
+            this.viewDirection = this.resetDirection;
         }
-        if (direction) {
-            this.viewDirection = Math.sign(direction);
+        else {
+            if (side === this.viewSide) {
+                this.viewDirection *= -1;
+            }
+            this.viewSide = side;
         }
-        this.viewSide = side || this.resetSide;
         const pos = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[this.viewSide]
             .map(c =>  c * this.viewDirection);
         this.setCam(pos, this.camProperties[this.viewSide].viewUp);
