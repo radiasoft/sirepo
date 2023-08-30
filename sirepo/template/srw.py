@@ -792,6 +792,7 @@ def process_undulator_definition(model):
 
 def process_watch(wid=0):
     def _op():
+        pkdp("PROCESS {}", wid)
         sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
         report = sim_in.models[f"beamlineAnimation{wid}"]
         p = _wavefront_pickle_filename(wid)
@@ -810,6 +811,7 @@ def process_watch(wid=0):
             [0, 0, 0, mesh.xStart, mesh.xFin, mesh.nx, mesh.yStart, mesh.yFin, mesh.ny],
             report,
         )
+
         # create new wavefront with reshaped mesh
         new_wfr = srwlib.SRWLWfr(
             _arEx=wfr.arEx,
@@ -2012,6 +2014,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     source_type = data.models.simulation.sourceType
     run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL or is_for_rsopt
     vp_var = "vp" if is_for_rsopt else "varParam"
+    prev_watch = 0
     final_watch = None
     content = [
         f"v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options({vp_var}), use_sys_argv={plot_reports})",
@@ -2032,7 +2035,6 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             content.append("op = None")
         content.append("v.ws_fne = '{}'".format(_wavefront_pickle_filename(0)))
         prev_wavefront = None
-        prev_watch = 0
         names = []
         for n in beamline_info.names:
             names.append(n)
@@ -2051,7 +2053,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                     content.append(
                         f"sirepo.template.import_module('srw').process_watch(wid={prev_watch})"
                     )
-                prev_watch = beamline_info.watches[n]
+                    prev_watch = beamline_info.watches[n]
 
     elif run_all or (
         _SIM_DATA.srw_is_beamline_report(report) and len(data.models.beamline)
@@ -2122,6 +2124,9 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 content.append("v.tr_pl = 'xz'")
     content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
     if report == "beamlineAnimation":
+        content.append(
+            f"sirepo.template.import_module('srw').process_watch(wid={prev_watch})"
+        )
         content.append(
             f"sirepo.template.import_module('srw').process_watch(wid={beamline_info.watches.get(final_watch, 0)})"
         )
