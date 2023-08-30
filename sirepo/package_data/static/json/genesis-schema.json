@@ -92,7 +92,8 @@
     "frameIdFields": {
         "fieldDistributionAnimation": [],
         "parameterAnimation": ["y1", "y2", "y3"],
-        "particleAnimation": ["x", "y", "histogramBins"]
+        "particleAnimation": ["x", "y", "histogramBins"],
+        "phaseAnimation": []
     },
     "localRoutes": {
         "source": {
@@ -768,6 +769,12 @@
                 4
             ]
         },
+        "phaseAnimation": {
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
+            "notes": ["Notes", "Text", ""]
+        },
         "mesh": {
             "dgrid": [
                 "Grid size [m]",
@@ -1288,6 +1295,15 @@
                         ]]
                     ]
                 ]]
+            ]
+        },
+        "phaseAnimation": {
+            "title": "Field Phase",
+            "advanced": [
+                "framesPerSecond",
+                "aspectRatio",
+                "colorMap",
+                "notes"
             ]
         },
         "radiation": {

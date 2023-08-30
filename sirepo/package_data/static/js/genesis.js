@@ -29,6 +29,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     self.simComputeModel = 'animation';
     self.simHandleStatus = function (data) {
         if (data.reports) {
+            srdbg("data.reports", data.reports);
             frameCache.setFrameCount(1);
             for (const r of data.reports) {
                 frameCache.setFrameCount(r.frameCount, r.modelName);

@@ -100,6 +100,10 @@ def background_percent_complete(report, run_dir, is_running):
                 modelName="particleAnimation",
                 frameCount=c.particle,
             ),
+            PKDict(
+                modelName="phaseAnimation",
+                frameCount=c.phase,
+            ),
         ],
     )
 
@@ -128,7 +132,7 @@ def genesis_success_exit(run_dir):
 def get_data_file(run_dir, model, frame, options):
     if model == "particleAnimation":
         return _PARTICLE_OUTPUT_FILENAME
-    if model == "fieldDistributionAnimation":
+    if model in ("fieldDistributionAnimation", "phaseAnimation"):
         return _FIELD_DISTRIBUTION_OUTPUT_FILENAME
     if model == "parameterAnimation":
         return _OUTPUT_FILENAME
@@ -167,16 +171,24 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def sim_frame_fieldDistributionAnimation(frame_args):
-    r = _get_field_distribution(frame_args.run_dir, frame_args.sim_in)
-    d = numpy.abs(r[int(frame_args.frameIndex), 0, :, :])
-    s = d.shape[0]
-    return PKDict(
-        title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ipradi),
-        x_label="",
-        x_range=[0, s, s],
-        y_label="",
-        y_range=[0, s, s],
-        z_matrix=d.tolist(),
+    return _field_heatmap(
+        numpy.abs(
+            _get_field_distribution(
+                frame_args.run_dir,
+                frame_args.sim_in,
+            )[int(frame_args.frameIndex), 0, :, :]
+        ),
+        frame_args,
+    )
+
+
+def sim_frame_phaseAnimation(frame_args):
+    f = _get_field_distribution(frame_args.run_dir, frame_args.sim_in)
+    return _field_heatmap(
+        numpy.abs(
+            numpy.arctan(f.imag/f.real)[int(frame_args.frameIndex), 0, :, :]
+        ),
+        frame_args,
     )
 
 
@@ -258,6 +270,18 @@ def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
+    )
+
+
+def _field_heatmap(data, frame_args):
+    s = data.shape[0]
+    return PKDict(
+        title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ipradi),
+        x_label="",
+        x_range=[0, s, s],
+        y_label="",
+        y_range=[0, s, s],
+        z_matrix=data.tolist(),
     )
 
 
@@ -355,6 +379,7 @@ def _get_frame_counts(run_dir):
                 res[m.group(2)] = int(m.group(1))
                 if m.group(1) == "field":
                     break
+    res.phase = res.field
     return res
 
 
