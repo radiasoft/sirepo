@@ -87,6 +87,10 @@
             ["1", "Gaussian"],
             ["2", "Uniform"],
             ["3", "Parabolic"]
+        ],
+        "FieldPlot": [
+            ["fieldDistributionPlot", "Field Distribution Plot"],
+            ["phasePlot", "Phase Plot"]
         ]
     },
     "frameIdFields": {
@@ -242,6 +246,7 @@
             ]
         },
         "fieldDistributionAnimation": {
+            "fieldPlot": ["Value to Plot", "FieldPlot", "fieldDistributionPlot"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
@@ -1158,6 +1163,7 @@
         "fieldDistributionAnimation": {
             "title": "Field Distribution",
             "advanced": [
+                "fieldPlot",
                 "framesPerSecond",
                 "aspectRatio",
                 "colorMap",

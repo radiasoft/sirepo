@@ -108,6 +108,20 @@ SIREPO.viewLogic('meshView', function(appState, panelState, $scope) {
     ];
 });
 
+SIREPO.viewLogic('fieldDistributionAnimationView', function(appState, panelState, $scope) {
+    function modelKey() {
+        return $scope.modelData
+             ? $scope.modelData.modelKey
+             : $scope.modelName;
+    }
+
+    $scope.$on('modelChanged', (e, name) => {
+        // srdbg("name", appState.models[name]);
+        srdbg("modelkey", modelKey());
+        srdbg(appState.models[name])
+    });
+});
+
 SIREPO.viewLogic('timeDependenceView', function(appState, panelState, $scope) {
 
     function updateFieldVisibility() {

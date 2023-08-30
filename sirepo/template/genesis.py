@@ -171,12 +171,16 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def sim_frame_fieldDistributionAnimation(frame_args):
+    pkdp("\n\n\n plot ={}", frame_args.sim_in.models.fieldDistributionAnimation.fieldPlot)
+    # pkdp("\n\n\n\n HIT TO FIELD DIST ANIMATION args={}\n\n\n\n", frame_args)
+    # pkdp("\n\n\n PLOT TYPE ={}", frame_args.sim_in.keys())
+    # pkdp("\n\n\n frame_args.frameReport={}", frame_args.frameReport)
+    f = _get_field_distribution(frame_args.run_dir, frame_args.sim_in)
+    if frame_args.sim_in.models.fieldDistributionAnimation.fieldPlot == "phasePlot":
+        f = numpy.arctan(f.imag/f.real)
     return _field_heatmap(
         numpy.abs(
-            _get_field_distribution(
-                frame_args.run_dir,
-                frame_args.sim_in,
-            )[int(frame_args.frameIndex), 0, :, :]
+            f[int(frame_args.frameIndex), 0, :, :]
         ),
         frame_args,
     )
