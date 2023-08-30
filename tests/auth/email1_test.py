@@ -31,7 +31,7 @@ def test_different_email(auth_fc):
         },
     )
     t = fc.sr_auth_state(userName="diff@b.c", displayName="abc")
-    fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
+    fc.sr_logout()
     uid = fc.sr_auth_state(userName=None, isLoggedIn=False).uid
     r = fc.sr_post(
         "authEmailLogin", {"email": "x@y.z", "simulationType": fc.sr_sim_type}
@@ -60,7 +60,7 @@ def test_follow_email_auth_link_twice(auth_fc):
     d = fc.sr_get(r.uri)
     assert not re.search(r"login-fail", pkcompat.from_bytes(d.data))
     fc.sr_email_confirm(r)
-    fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
+    fc.sr_logout()
     # now logged out, should see login fail for bad link
     pkre("login-fail", pkcompat.from_bytes(fc.get(r.uri).data))
 
@@ -79,7 +79,7 @@ def test_force_login(auth_fc):
         "authEmailLogin", {"email": "force@b.c", "simulationType": fc.sr_sim_type}
     )
     fc.get(r.uri)
-    fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
+    fc.sr_logout()
     with pkexcept("SRException.*routeName.*login"):
         fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
     r = fc.sr_post(
@@ -121,7 +121,7 @@ def test_guest_merge(auth_fc):
             folder="/",
         ),
     )
-    guest_uid = fc.sr_auth_state().uid
+    guest_uid = fc.sr_uid
 
     # Convert to email user
     r = fc.sr_post(
@@ -149,7 +149,7 @@ def test_guest_merge(auth_fc):
             folder="/",
         ),
     )
-    fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
+    fc.sr_logout()
 
     # Login as email user
     r = fc.sr_post(
@@ -191,7 +191,7 @@ def test_happy_path(auth_fc):
         isLoggedIn=True,
         userName="happy@b.c",
     ).uid
-    r = fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
+    r = fc.sr_logout()
     fc.sr_auth_state(
         displayName=None,
         isLoggedIn=False,

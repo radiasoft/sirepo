@@ -12,6 +12,7 @@ var SIREPO = {
         isLoginExpired: false,
         method: 'guest',
         needCompleteRegistration: false,
+        uiWebSocket: false,
         userName: null,
         visibleMethods: []
     }

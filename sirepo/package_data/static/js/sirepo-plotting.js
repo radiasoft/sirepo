@@ -308,8 +308,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         scope.prevFrameIndex = SIREPO.nonDataFileFrame;
         scope.isPlaying = false;
         var requestData = scope.requestData || function() {
-            if (! scope.hasFrames() || scope.onlyClientFieldsChanged) {
-                scope.onlyClientFieldsChanged = false;
+            if (! scope.hasFrames()) {
                 return;
             }
             var index = frameCache.getCurrentFrame(scope.modelName);
@@ -3382,7 +3381,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             };
 
             $scope.destroy = function() {
-                $('.mouse-rect').off();
+                select('.mouse-rect').on('mousemove', null);
                 zoom.on('zoom', null);
                 document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };

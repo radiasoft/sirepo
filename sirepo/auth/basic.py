@@ -32,9 +32,6 @@ def require_user(qcall):
         if _cfg.uid == v.username:
             return _cfg.uid
         if _in_srunit:
-            # POSIT: tests/status_test
-            # Robust way to return the user which can't be in the cfg
-            assert v.username == qcall.auth.logged_in_user()
             return v.username
     return None
 
