@@ -834,10 +834,9 @@ def process_watch(wid=0):
 
         # resize the electic fields in the wavefront mesh - note it modifies wfr
         srwlpy.ResizeElecFieldMesh(wfr, new_mesh, [0, 1])
-    
+
         with open(_wavefront_pickle_filename(wid, is_processed=True), "wb") as f:
             pickle.dump(wfr, f)
-
 
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
@@ -1218,7 +1217,7 @@ def _beamline_animation_percent_complete(run_dir, res):
     count = 0
     for info in res.outputInfo:
         try:
-            with open(pkio.py_path(info.filename), 'rb') as f:
+            with open(pkio.py_path(info.filename), "rb") as f:
                 f.seek(-1, os.SEEK_END)
                 if f.read(1) == pickle.STOP:
                     count += 1
