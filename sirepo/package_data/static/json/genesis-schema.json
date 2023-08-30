@@ -87,10 +87,6 @@
             ["1", "Gaussian"],
             ["2", "Uniform"],
             ["3", "Parabolic"]
-        ],
-        "FieldPlot": [
-            ["fieldDistributionPlot", "Field Distribution Plot"],
-            ["phasePlot", "Phase Plot"]
         ]
     },
     "frameIdFields": {
