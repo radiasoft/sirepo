@@ -29,7 +29,6 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     self.simComputeModel = 'animation';
     self.simHandleStatus = function (data) {
         if (data.reports) {
-            srdbg("data.reports", data.reports);
             frameCache.setFrameCount(1);
             for (const r of data.reports) {
                 frameCache.setFrameCount(r.frameCount, r.modelName);
@@ -106,20 +105,6 @@ SIREPO.viewLogic('meshView', function(appState, panelState, $scope) {
     $scope.watchFields = [
         ['mesh.nscz'], updateSpaceCharge,
     ];
-});
-
-SIREPO.viewLogic('fieldDistributionAnimationView', function(appState, panelState, $scope) {
-    function modelKey() {
-        return $scope.modelData
-             ? $scope.modelData.modelKey
-             : $scope.modelName;
-    }
-
-    $scope.$on('modelChanged', (e, name) => {
-        // srdbg("name", appState.models[name]);
-        srdbg("modelkey", modelKey());
-        srdbg(appState.models[name])
-    });
 });
 
 SIREPO.viewLogic('timeDependenceView', function(appState, panelState, $scope) {
