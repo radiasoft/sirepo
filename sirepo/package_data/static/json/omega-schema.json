@@ -22,11 +22,16 @@
             ["rmspy", "Y' RMS"],
             ["meanx", "X Mean"],
             ["meany", "Y Mean"]
+        ],
+        "FieldPlot": [
+            ["fieldDistributionPlot", "Field Distribution Plot"],
+            ["phasePlot", "Phase Plot"]
         ]
     },
     "frameIdFields": {
         "animation": [
             "simCount",
+            "fieldPlot",
             "reportCount",
             "y1",
             "y2",
@@ -64,6 +69,7 @@
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "simFieldDistributionAnimation": {
+            "fieldPlot": ["Value to Plot", "FieldPlot", "fieldDistributionPlot"],
             "simCount": ["", "Integer"],
             "reportCount": ["", "Integer"],
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
@@ -94,6 +100,7 @@
         "simFieldDistributionAnimation": {
             "title": "Field Distribution",
             "advanced": [
+                "fieldPlot",
                 "colorMap",
                 "notes"
             ]
