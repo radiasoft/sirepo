@@ -161,11 +161,8 @@
         },
         "tallyReport": {
             "axis": "y",
-            "colorMap": "jet",
-            "horizontalAxis": "z",
-            "horizontalTrim": [],
-            "planePos": 0,
-            "verticalAxis": "x"
+            "colorMap": "afmhot",
+            "planePos": 0
         },
         "volumes": {
             "air": {
@@ -249,10 +246,6 @@
                 "opacity": 0.06,
                 "volId": "5"
             }
-        },
-        "voxels": {
-            "colorMap": "jet",
-            "voxelInsetPct": 0
         }
     },
     "simulationType": "cloudmc"
