@@ -25,6 +25,7 @@ import sirepo.mpi
 import sirepo.sim_data
 import sirepo.util
 import srwlib
+import srwlpy
 import time
 import traceback
 import uti_io
@@ -792,13 +793,12 @@ def process_undulator_definition(model):
 
 def process_watch(wid=0):
     def _op():
-        pkdp("PROCESS {}", wid)
         sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
         report = sim_in.models[f"beamlineAnimation{wid}"]
         p = _wavefront_pickle_filename(wid)
         with open(p, "rb") as f:
             wfr = pickle.load(f)
-        # calculate but do not save to file yet
+        # calculate but do not save to file
         data, mesh = srwl_bl.SRWLBeamline().calc_int_from_wfr(
             wfr,
             _pol=int(report.get("polarization", "6")),
@@ -811,12 +811,8 @@ def process_watch(wid=0):
             [0, 0, 0, mesh.xStart, mesh.xFin, mesh.nx, mesh.yStart, mesh.yFin, mesh.ny],
             report,
         )
-
-        # create new wavefront with reshaped mesh
-        new_wfr = srwlib.SRWLWfr(
-            _arEx=wfr.arEx,
-            _arEy=wfr.arEy,
-            _typeE=wfr.numTypeElFld,
+        # reshaped mesh
+        new_mesh = srwlib.SRWLRadMesh(
             _eStart=mesh.eStart,
             _eFin=mesh.eFin,
             _ne=mesh.ne,
@@ -827,20 +823,21 @@ def process_watch(wid=0):
             _yFin=y_range[1],
             _ny=y_range[2],
             _zStart=mesh.zStart,
-            _partBeam=wfr.partBeam
+            _nvx=mesh.nvx,
+            _nvy=mesh.nvy,
+            _nvz=mesh.nvz,
+            _hvx=mesh.hvx,
+            _hvy=mesh.hvy,
+            _hvz=mesh.hvz,
+            _arSurf=mesh.arSurf,
         )
+
+        # resize the electic fields in the wavefront mesh - note it modifies wfr
+        srwlpy.ResizeElecFieldMesh(wfr, new_mesh, [0, 1])
+    
         with open(_wavefront_pickle_filename(wid, is_processed=True), "wb") as f:
-            pickle.dump(new_wfr, f)
-        #dst = _wavefront_intensity_filename(wid)
-        #src = f"tmp_{dst}"
-        #srwl_bl.SRWLBeamline().calc_int_from_wfr(
-        #    new_wfr,
-        #    _pol=int(report.get("polarization", "6")),
-        ##    _int_type=int(report.get("characteristic", "0")),
-        #    _pr=False,
-        #    _fname=src,
-        #)
-        #pkio.py_path(src).rename(dst)
+            pickle.dump(wfr, f)
+
 
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
