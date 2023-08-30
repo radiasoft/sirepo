@@ -44,6 +44,7 @@ _NON_PROD_FOSS_CODES = frozenset(
     (
         "epicsllrf",
         "myapp",
+        "viz3d",
         "hellweg",
     )
 )
