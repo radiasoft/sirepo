@@ -67,7 +67,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
     user_premium = "premium@x.y"
     fc.sr_email_login(user_free)
     fc.sr_email_login(user_premium)
-    _make_user_premium(fc.sr_auth_state().uid)
+    _make_user_premium(fc.sr_uid)
     _make_invalid_job()
     next_req_premium = _run_sim(fc.sr_sim_data())
     fc.sr_email_login(user_free)

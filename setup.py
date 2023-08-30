@@ -15,15 +15,19 @@ install_requires = [
     "cryptography>=2.8",
     "futures",
     "matplotlib",
+    "msgpack",
     "numconv",
     "numpy",
     "Pillow",
     "pyIsEmail",
     "pykern",
+    "pytest-asyncio",
     "pytz",
     "requests",
     "tornado",
     "user-agents",
+    # only needed for testing (srunit)
+    "websockets",
     "werkzeug==2.0.3",
     # Optional dependencies
     # required for email login and smtp

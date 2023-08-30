@@ -938,7 +938,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
     };
 });
 
-SIREPO.app.directive('fileField', function(errorService, panelState, requestSender, $http) {
+SIREPO.app.directive('fileField', function(errorService, panelState, requestSender) {
     return {
         restrict: 'A',
         transclude: true,
@@ -1013,7 +1013,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                                     + data.fileList.join("\n");
                             }
                             else {
-                                var list = requestSender.getAuxiliaryData($scope.fileType);
+                                var list = requestSender.getListFilesData($scope.fileType);
                                 list.splice(list.indexOf($scope.deleteItem), 1);
                                 $('#' + modalId).modal('hide');
                             }
@@ -1063,16 +1063,18 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                 if (! $scope.fileType) {
                     $scope.fileType = $scope.modelName + '-' + $scope.fileField;
                 }
-                if (requestSender.getAuxiliaryData($scope.fileType)) {
-                    return requestSender.getAuxiliaryData($scope.fileType);
+                if (requestSender.getListFilesData($scope.fileType)) {
+                    return requestSender.getListFilesData($scope.fileType);
                 }
-                requestSender.loadAuxiliaryData(
+                requestSender.loadListFiles(
                     $scope.fileType,
-                    requestSender.formatUrl('listFiles', {
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<file_type>': $scope.fileType,
-                        '<simulation_id>': 'unused',
-                    }), sortList);
+                    {
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
+                        fileType: $scope.fileType,
+                        simulationId: 'unused',
+                    },
+                    sortList,
+                );
                 return null;
             };
             $scope.selectItem = function(item) {
@@ -1289,7 +1291,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         }
                         if ($scope.model[$scope.field] != data.filename) {
                             $scope.model[$scope.field] = data.filename;
-                            var list = requestSender.getAuxiliaryData($scope.fileType);
+                            var list = requestSender.getListFilesData($scope.fileType);
                             if (list.indexOf(data.filename) < 0) {
                                 list.push(data.filename);
                             }
@@ -1357,7 +1359,7 @@ SIREPO.app.directive('headerTooltip', function() {
     };
 });
 
-SIREPO.app.directive('helpButton', function($window) {
+SIREPO.app.directive('helpButton', function(requestSender) {
     var HELP_WIKI_ROOT = 'https://github.com/radiasoft/sirepo/wiki/' + SIREPO.APP_NAME.toUpperCase() + '-';
     return {
         restrict: 'A',
@@ -1369,9 +1371,9 @@ SIREPO.app.directive('helpButton', function($window) {
         `,
         controller: function($scope) {
             $scope.openHelp = function() {
-                $window.open(
+                requestSender.newWindow(
                     HELP_WIKI_ROOT + $scope.helpTopic.replace(/\s+/, '-'),
-                    '_blank');
+                );
             };
             $scope.showHelp = function() {
                 if ('SHOW_HELP_BUTTONS' in SIREPO) {
@@ -1405,7 +1407,7 @@ SIREPO.app.directive('helpLink', function(appState) {
     };
 });
 
-SIREPO.app.directive('videoButton', function(appState, $window) {
+SIREPO.app.directive('videoButton', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -1419,9 +1421,7 @@ SIREPO.app.directive('videoButton', function(appState, $window) {
             $scope.showLink = SIREPO.APP_SCHEMA.feature_config.show_video_links;
             $scope.tooltip = viewInfo.title + ' Help Video';
             $scope.openVideo = function() {
-                $window.open(
-                    viewInfo.helpVideoURL,
-                    '_blank');
+                requestSender.newWindow(viewInfo.helpVideoURL);
             };
         },
     };
@@ -2439,7 +2439,7 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
     };
 });
 
-SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appState, fileManager, requestSender, panelState, $window) {
+SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appState, fileManager, requestSender, panelState) {
     return {
         restrict: 'A',
         transclude: {
@@ -2539,7 +2539,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                 return false;
             };
             $scope.openDocumentation = function() {
-                $window.open(appState.models.simulation.documentationUrl, '_blank');
+                requestSender.newWindow(appState.models.simulation.documentationUrl);
             };
 
             $scope.showImportModal = function() {
@@ -3044,7 +3044,7 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
     };
 });
 
-SIREPO.app.directive('completeRegistration', function($window, requestSender, errorService) {
+SIREPO.app.directive('completeRegistration', function(requestSender, errorService) {
     return {
         restrict: 'A',
         template: `
@@ -4571,7 +4571,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
     };
 });
 
-SIREPO.app.service('plotToPNG', function($http) {
+SIREPO.app.service('plotToPNG', function() {
 
     function screenshotElement(element, isVisible) {
         return $(element).find(`.sr-screenshot${isVisible ? ':visible' : ''}`)[0];
@@ -4609,7 +4609,7 @@ SIREPO.app.service('plotToPNG', function($http) {
 
 });
 
-SIREPO.app.service('fileUpload', function($http) {
+SIREPO.app.service('fileUpload', function(msgRouter) {
     this.uploadFileToUrl = function(file, args, uploadUrl, callback) {
         var fd = new FormData();
         fd.append('file', file);
@@ -4618,7 +4618,8 @@ SIREPO.app.service('fileUpload', function($http) {
                 fd.append(k, args[k]);
             }
         }
-        $http.post(uploadUrl, fd, {
+        //TODO(robnagler) formData needs to be handled properly
+        msgRouter.send(uploadUrl, fd, {
             transformRequest: angular.identity,
             headers: {'Content-Type': undefined}
         }).then(
