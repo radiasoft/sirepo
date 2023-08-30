@@ -114,19 +114,6 @@ class _TestClient:
         if feature_config.cfg().ui_websocket:
             self._websocket = _WebSocket(self)
 
-    def assert_websocket_req_seq(self, expect, reason):
-        from pykern import pkunit
-
-        if hasattr(self, "_websocket"):
-            pkunit.pkeq(
-                expect,
-                self._websocket.req_seq,
-                "expect={} disagrees with actual={} msg={}",
-                expect,
-                self._websocket.req_seq,
-                reason,
-            )
-
     def get(self, uri, headers=None):
         return self._requests_op("get", uri, headers, kwargs=PKDict())
 
