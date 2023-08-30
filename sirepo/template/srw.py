@@ -806,11 +806,15 @@ def process_watch(wid=0):
             _pr=False,
         )
         pkio.unchecked_remove(p)
+
+        # for the purposes of resizing the wavefront, ignore usePlotRange, useIntensityLimits, and rotateAngle
         _, x_range, y_range = _reshape_3d(
             np.array(data),
             [0, 0, 0, mesh.xStart, mesh.xFin, mesh.nx, mesh.yStart, mesh.yFin, mesh.ny],
             report,
+            _use_plot_params=False
         )
+
         # reshaped mesh
         new_mesh = srwlib.SRWLRadMesh(
             _eStart=mesh.eStart,
@@ -2255,19 +2259,20 @@ def _remap_3d(info, allrange, out, report):
     )
 
 
-def _reshape_3d(ar1d, allrange, report):
+def _reshape_3d(ar1d, allrange, report, **kwargs):
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
     totLen = int(x_range[2] * y_range[2])
     n = len(ar1d) if totLen > len(ar1d) else totLen
     ar2d = np.reshape(ar1d[0:n], (int(y_range[2]), int(x_range[2])))
-    if report.get("usePlotRange", "0") == "1":
+    use_plot_params = kwargs.get("use_plot_params", True)
+    if use_plot_params and report.get("usePlotRange", "0") == "1":
         ar2d, x_range, y_range = _update_report_range(report, ar2d, x_range, y_range)
-    if report.get("useIntensityLimits", "0") == "1":
+    if use_plot_params and report.get("useIntensityLimits", "0") == "1":
         ar2d[ar2d < report["minIntensityLimit"]] = report["minIntensityLimit"]
         ar2d[ar2d > report["maxIntensityLimit"]] = report["maxIntensityLimit"]
     ar2d, x_range, y_range = _resize_report(report, ar2d, x_range, y_range)
-    if report.get("rotateAngle", 0):
+    if use_plot_params and report.get("rotateAngle", 0):
         ar2d, x_range, y_range = _rotate_report(report, ar2d, x_range, y_range)
     return ar2d, x_range, y_range
 
