@@ -122,6 +122,8 @@ class _TestClient:
                 expect,
                 self._websocket.req_seq,
                 "expect={} disagrees with actual={} msg={}",
+                expect,
+                self._websocket.req_seq,
                 reason,
             )
 
