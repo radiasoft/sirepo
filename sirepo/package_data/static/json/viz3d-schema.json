@@ -4,6 +4,11 @@
             "localRoute": "visualization"
         }
     },
+    "constants": {
+         "canDownloadInputFile": false,
+         "canExportArchive": false,
+         "canShowDocumentationUrl": false
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": ["viz3d.js"]
