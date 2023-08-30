@@ -63,6 +63,12 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
+        "simFieldDistributionAnimation": {
+            "simCount": ["", "Integer"],
+            "reportCount": ["", "Integer"],
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"],
+            "notes": ["Notes", "Text", ""]
+        },
         "simulationStatus": {}
     },
     "view": {
@@ -83,6 +89,13 @@
             "advanced": [
                 "colorMap",
                 "histogramBins"
+            ]
+        },
+        "simFieldDistributionAnimation": {
+            "title": "Field Distribution",
+            "advanced": [
+                "colorMap",
+                "notes"
             ]
         },
         "simWorkflow": {

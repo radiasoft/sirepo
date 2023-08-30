@@ -146,7 +146,7 @@ class ObjectViews {
     scaledArray(arr) {
         return ObjectViews.scaledArray(arr, this.scale);
     }
-    
+
     setShapeProperties(props) {
         for (const e in this.shapes) {
             const s = this.shapes[e];
@@ -376,96 +376,6 @@ class VTKUtils {
      */
     static colorToHex(hexStringOrArray) {
        return Array.isArray(hexStringOrArray) ? vtk.Common.Core.vtkMath.floatRGB2HexCode(hexStringOrArray) : hexStringOrArray;
-    }
-
-    /**
-     * vtk.IO.Legacy.vtkLegacyAsciiParser.parseLegacyASCII ignores field data. This adds it
-     * to the PolyData
-     * @param {string} str - the contents of an ASCII legacy (.vtk) file
-     */
-    static parseLegacy(str) {
-
-        /**
-         * Parses field data
-         * @param {string} d - the contents of an ASCII legacy (.vtk) file
-         * @returns {null|*[]}
-         */
-        function parseFieldData(d) {
-
-            /**
-             * Creates a vtk data array from
-             * @param {string[]} lines - lines from the file
-             * @returns {{arr, index: number}|null}
-             */
-            function buildArray(lines) {
-                const ARR_TYPES = {
-                    double: vtk.Common.Core.vtkDataArray.VtkDataTypes.DOUBLE,
-                    int: vtk.Common.Core.vtkDataArray.VtkDataTypes.INT,
-                };
-
-                let hdr = lines[0].split(/\s+/);
-                const name = hdr[0];
-                const numComps = parseInt(hdr[1]);
-                const numTuples = parseInt(hdr[2]);
-                const a = [];
-                let i = 1;
-                for (i = 1; i < lines.length; ++i) {
-                    const l = lines[i];
-                    if (! l) {
-                        break;
-                    }
-                    a.push(...l.trim().split(/\s+/).map(x => parseFloat(x)));
-                    if (a.length === numComps * numTuples) {
-                        break;
-                    }
-                }
-                if (! a.length) {
-                    return null;
-                }
-                return {
-                    arr: vtk.Common.Core.vtkDataArray.newInstance({
-                        dataType: ARR_TYPES[hdr[3]],
-                        name: name,
-                        numberOfComponents: numComps,
-                        size: a.length,
-                        values: a,
-                    }),
-                    index: i,
-                };
-            }
-
-            const lines = d.split('\n');
-            let i = 0;
-            for (i = 0; i < lines.length; ++i) {
-                if (lines[i].startsWith('FIELD')) {
-                    break;
-                }
-            }
-            if (i >= lines.length) {
-                return null;
-            }
-            let l = lines[i];
-            const numArrays = parseInt(l.split(/\s+/)[2]);
-            if (! numArrays) {
-                return null;
-            }
-            let index = i + 1;
-            let a = [];
-            for (let i = 0; i < numArrays; ++i) {
-                const x = buildArray(lines.slice(index));
-                a.push(x.arr);
-                index = index + x.index + 1;
-            }
-            return a;
-        }
-
-        const v = vtk.IO.Legacy.vtkLegacyAsciiParser.parseLegacyASCII(str);
-        const pd = v.dataset;
-        for (const a of parseFieldData(str)) {
-            pd.getFieldData().addArray(a);
-        }
-        pd.buildCells();
-        return pd;
     }
 
     /**
@@ -711,6 +621,11 @@ class VTKScene {
      * Cleans up vtk items
      */
     teardown() {
+        window.removeEventListener('resize', this.fsRenderer.resize);
+        document.removeEventListener(
+            'visibilitychange',
+            this.fsRenderer.getInteractor().handleVisibilityChange,
+        );
         this.isMarkerEnabled = false;
         this.refreshMarker(false);
         this.fsRenderer.getInteractor().unbindEvents();
@@ -745,9 +660,7 @@ class ActorBundle {
         /** @member {vtk.Rendering.Core.Property} - properties of the actor */
         this.actorProperties = this.actor.getProperty();
 
-        for (const p in actorProperties) {
-            this.setActorProperty(p, actorProperties[p]);
-        }
+        this.setActorProperties(actorProperties);
 
         this.actor.setUserMatrix(VTKUtils.userMatrix(this.transform.matrix));
     }
@@ -768,6 +681,15 @@ class ActorBundle {
      */
     getActorProperty(name) {
         return this.actorProperties[`get${SIREPO.UTILS.capitalize(name)}`]();
+    }
+
+    /**
+     * Set a group of properties.
+     */
+    setActorProperties(values) {
+        for (const p in values) {
+            this.setActorProperty(p, values[p]);
+        }
     }
 
     /**
@@ -2640,7 +2562,7 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
                                <button data-ng-disabled="locked[o.id]" data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
                             </div>
                           </div>
-                        </td>                    
+                        </td>
                     </tr>
                   </tbody>
                 </table>
@@ -3279,7 +3201,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $scope.vtkScene.rotate(angle);
                 refresh(true);
             };
-            
+
             $scope.showSide = side => {
                 $scope.vtkScene.showSide(side);
                 refresh(true);

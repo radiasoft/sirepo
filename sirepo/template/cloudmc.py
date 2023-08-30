@@ -13,6 +13,7 @@ from sirepo.template import template_common
 import numpy
 import re
 import sirepo.feature_config
+import sirepo.mpi
 import sirepo.sim_data
 
 
@@ -141,29 +142,19 @@ def sim_frame(frame_args):
     t = openmc.StatePoint(
         frame_args.run_dir.join(_statepoint_filename(frame_args.sim_in))
     ).get_tally(name=frame_args.tally)
-    f = str(frame_args.run_dir.join(f"{frame_args.tally}.vtk"))
     try:
         # openmc doesn't have a has_filter() api
         t.find_filter(openmc.MeshFilter)
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
-    try:
-        t.find_filter(openmc.MeshFilter).mesh.write_data_to_vtk(
-            filename=f,
-            datasets={
-                frame_args.aspect: getattr(t, frame_args.aspect)[
-                    :, :, t.get_score_index(frame_args.score)
-                ],
-            },
-        )
-    except RuntimeError as e:
-        if re.search(r"should be equal to the number of cells", str(e)):
-            return PKDict(
-                error=f"Tally {frame_args.tally} contains a Mesh and another multi-binned Filter"
-            )
-        raise
+    v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
+    # volume normalize copied from openmc.UnstructuredMesh.write_data_to_vtk()
+    v /= t.find_filter(openmc.MeshFilter).mesh.volumes.ravel()
     return PKDict(
-        content=_grid_to_poly(f),
+        field_data=v.tolist(),
+        min_field=v.min(),
+        max_field=v.max(),
+        summaryData={},
     )
 
 
@@ -357,6 +348,7 @@ def _generate_parameters_file(data, run_dir=None):
     v.sources = _generate_sources(data)
     v.tallies = _generate_tallies(data)
     v.hasGraveyard = _has_graveyard(data)
+    v.mpiCores = sirepo.mpi.cfg().cores
     return template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -487,47 +479,6 @@ t{tally._index + 1}.scores = [{','.join(["'" + s.score + "'" for s in tally.scor
 t{tally._index + 1}.nuclides = [{','.join(["'" + s.nuclide + "'" for s in tally.nuclides if s.nuclide])}]
 """
     return res
-
-
-def _grid_to_poly(path):
-    def _poly_lines(nx, ny, nz):
-        l = []
-        for k in range(nz):
-            # only rects
-            z = k * (nx + 1) * (ny + 1)
-            for j in range(ny):
-                y = j * (nx + 1)
-                d = y + z
-                c = [0, 1, nx + 2, nx + 1]
-                for i in range(nx):
-                    l.append("4 ")
-                    for n in range(len(c)):
-                        l.append(f"{c[n] + d + i} ")
-                    l.append("\n")
-        return l
-
-    with pkio.open_text(path) as f:
-        state = "header"
-        lines = []
-        for line in f:
-            # force version 4.1
-            if line.startswith("# vtk DataFile Version"):
-                lines.append("# vtk DataFile Version 4.1\n")
-                continue
-            # only polydata is allowed
-            if line.startswith("DATASET STRUCTURED_GRID"):
-                lines.append("DATASET POLYDATA\n")
-                continue
-            if line.startswith("DIMENSIONS"):
-                continue
-            if "POINTS" in line:
-                state = "points"
-                lines.append("POINTS 0 double\nPOLYGONS 0 0\n")
-            if "CELL_DATA" in line:
-                state = "cells"
-            if state != "points":
-                lines.append(line)
-    return "".join(lines)
 
 
 def _has_graveyard(data):
