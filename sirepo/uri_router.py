@@ -4,8 +4,10 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import contextlib
@@ -13,10 +15,10 @@ import importlib
 import inspect
 import os
 import pkgutil
-import pykern.pkcompat
 import re
 import sirepo.api_auth
 import sirepo.auth
+import sirepo.const
 import sirepo.events
 import sirepo.feature_config
 import sirepo.quest
@@ -193,16 +195,19 @@ def register_api_module(module):
 
 def start_tornado(ip, port, debug):
     """Start tornado server, does not return"""
-    from tornado import httpserver, ioloop, web, log
+    from tornado import httpserver, ioloop, web, log, websocket
 
-    class _Handler(web.RequestHandler):
+    ws_count = 0
+
+    async def _websocket_response(sreply):
+        await sreply.websocket_response()
+
+    class _HTTPRequest(web.RequestHandler):
         async def _route(self):
-            p = pykern.pkcompat.from_bytes(
-                urllib.parse.unquote_to_bytes(self.request.path),
-            )
+            p = sirepo.uri.decode_to_str(self.request.path)
             e, r, k = _path_to_route(p[1:])
             if e:
-                pkdlog("uri={} {}; route={} kwargs={} ", p, e, r, k)
+                pkdlog("error uri={} {}; route={} kwargs={} ", p, e, r, k)
                 r = _not_found_route
             await _call_api(
                 None,
@@ -218,11 +223,127 @@ def start_tornado(ip, port, debug):
         async def post(self):
             await self._route()
 
+        def sr_get_log_user(self):
+            return getattr(self, "_sr_log_user", None)
+
+        def sr_set_log_user(self, log_user):
+            self._sr_log_user = log_user
+
+    class _WebSocket(websocket.WebSocketHandler):
+        async def on_message(self, msg):
+            w = _WebSocketRequest(handler=self, headers=self.__headers)
+            try:
+                w.parse_msg(msg)
+                await _call_api(
+                    None,
+                    w.route,
+                    kwargs=w.kwargs,
+                    internal_req=w,
+                    reply_op=_websocket_response,
+                )
+            # TODO(robnagler) what if msg poorly constructed? Close socket?
+            finally:
+                pkdlog(
+                    "end ws_id={} req_seq={} uri={} uid={}",
+                    self.ws_id,
+                    w.get("req_seq"),
+                    w.get("uri"),
+                    w.get("log_user"),
+                )
+
+        def open(self):
+            nonlocal ws_count
+
+            # self.get_compression_options
+            self.set_nodelay(True)
+            r = self.request
+            self.__headers = PKDict(r.headers)
+            self.remote_addr = r.remote_ip
+            self.http_server_uri = f"{r.protocol}://{r.host}"
+            self.msg_count = 0
+            ws_count += 1
+            self.ws_id = ws_count
+
+        def sr_get_log_user(self):
+            """Needed for initial websocket creation call"""
+            return None
+
+    class _WebSocketRequest(PKDict):
+        def parse_msg(self, msg):
+            import msgpack
+
+            assert isinstance(msg, bytes), f"incoming msg type={type(msg)}"
+            u = msgpack.Unpacker(
+                max_buffer_size=sirepo.job.cfg().max_message_bytes,
+                object_pairs_hook=pkcollections.object_pairs_hook,
+            )
+            u.feed(msg)
+            self.header = u.unpack()
+            pkdlog(
+                "start ws_id={} req_seq={} uri={}",
+                self.handler.ws_id,
+                self.header.get("reqSeq"),
+                self.header.get("uri"),
+            )
+            assert (
+                sirepo.const.SCHEMA_COMMON.websocketMsg.version == self.header.version
+            ), f"invalid header.version={self.header.version}"
+            # Ensures protocol conforms for all requests
+            assert (
+                sirepo.const.SCHEMA_COMMON.websocketMsg.kind.httpRequest
+                == self.header.kind
+            ), f"invalid header.kind={self.header.kind}"
+            self.req_seq = self.header.reqSeq
+            self.uri = self.header.uri
+            if u.tell() < len(msg):
+                self.content = u.unpack()
+                if u.tell() < len(msg):
+                    self.attachment = u.unpack()
+            # content may or may not exist so defer checking
+            e, self.route, self.kwargs = _path_to_route(self.uri[1:])
+            if e:
+                pkdlog(
+                    "error ws_id={} req_seq={} uri={} {}; route={} kwargs={}",
+                    self.handler.ws_id,
+                    self.req_seq,
+                    self.uri,
+                    e,
+                    self.route,
+                    self.kwargs,
+                )
+                self.route = _not_found_route
+
+        def set_log_user(self, log_user):
+            self.log_user = log_user
+
+    def _log_function(handler):
+        # slightly different than common log format (CLF), but more practical
+        pkdlog(
+            '{} - {} {:.2f}ms "{} {} {}" {} {} {} {}',
+            handler.request.remote_ip,
+            handler.sr_get_log_user() or "=",
+            handler.request.request_time() * 1000,
+            handler.request.method,
+            handler.request.uri,
+            handler.request.version,
+            handler.get_status(),
+            0,
+            handler.request.headers.get("Referer"),
+            handler.request.headers.get("User-Agent"),
+        )
+
     sirepo.modules.import_and_init("sirepo.server").init_tornado()
     s = httpserver.HTTPServer(
         web.Application(
-            [("/.*", _Handler)],
+            [
+                ("/ws", _WebSocket),
+                ("/.*", _HTTPRequest),
+            ],
             debug=debug,
+            websocket_max_message_size=sirepo.job.cfg().max_message_bytes,
+            websocket_ping_interval=sirepo.job.cfg().ping_interval_secs,
+            websocket_ping_timeout=sirepo.job.cfg().ping_timeout_secs,
+            log_function=_log_function,
         ),
         xheaders=True,
         max_buffer_size=sirepo.job.cfg().max_message_bytes,
@@ -333,7 +454,10 @@ async def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_o
         sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
         if pkconfig.in_dev_mode():
             r.header_set("Access-Control-Allow-Origin", "*")
-        return reply_op(r)
+        if inspect.iscoroutinefunction(reply_op):
+            return await reply_op(r)
+        else:
+            return reply_op(r)
     except:
         c = False
         raise

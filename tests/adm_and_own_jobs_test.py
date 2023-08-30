@@ -36,9 +36,7 @@ def test_adm_jobs_forbidden(auth_fc):
         with srunit.quest_start() as qcall:
             qcall.auth_db.model("UserRole").delete_all_for_column_by_values(
                 "uid",
-                [
-                    fc.sr_auth_state().uid,
-                ],
+                [fc.sr_uid],
             )
         r = fc.sr_post(
             "admJobs",
