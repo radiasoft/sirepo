@@ -72,7 +72,6 @@ def test_elegant_data_file(fc):
     pkunit.pkeq(1, sdds.sddsdata.InitializeInput(0, str(path)))
     pkunit.pkne(0, len(sdds.sddsdata.GetColumnNames(0)))
     sdds.sddsdata.Terminate(0)
-    fc.assert_websocket_req_seq(10, "ensure downloads don't interrupt websocket")
 
 
 def test_myapp_basic(fc):

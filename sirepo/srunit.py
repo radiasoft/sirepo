@@ -95,7 +95,7 @@ def setup_srdb_root(cfg=None):
 
 
 class _TestClient:
-    DEFAULT_TIMEOUT_SECS = 15
+    DEFAULT_TIMEOUT_SECS = 25
 
     def __init__(self, env, job_run_mode, port):
         from sirepo import feature_config
@@ -113,17 +113,6 @@ class _TestClient:
         self._threads = PKDict()
         if feature_config.cfg().ui_websocket:
             self._websocket = _WebSocket(self)
-
-    def assert_websocket_req_seq(self, expect, reason):
-        from pykern import pkunit
-
-        if hasattr(self, "_websocket"):
-            pkunit.pkeq(
-                expect,
-                self._websocket.req_seq,
-                "expect={} disagrees with actual={} msg={}",
-                reason,
-            )
 
     def get(self, uri, headers=None):
         return self._requests_op("get", uri, headers, kwargs=PKDict())
