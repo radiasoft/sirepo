@@ -504,14 +504,28 @@ def sim_frame(frame_args):
         _copy_frame_args_into_model(frame_args, r)
     elif "beamlineAnimation" in r:
         wid = int(re.search(r".*?(\d+)$", r)[1])
+        fn = _wavefront_pickle_filename(wid, is_processed=True)
+        with open(fn, "rb") as f:
+            wfr = pickle.load(f)
         m = _copy_frame_args_into_model(frame_args, "watchpointReport")
         if wid:
             m.id = wid
             frame_args.sim_in.report = "beamlineAnimation"
             frame_args.sim_in.models.beamlineAnimation = m
+            data_file = _OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(
+                watchpoint_id=wid
+            )
         else:
             frame_args.sim_in.report = "initialIntensityReport"
             frame_args.sim_in.models.initialIntensityReport = m
+            data_file = _OUTPUT_FOR_MODEL.initialIntensityReport.filename
+        srwl_bl.SRWLBeamline().calc_int_from_wfr(
+            wfr,
+            _pol=int(frame_args.polarization),
+            _int_type=int(frame_args.characteristic),
+            _fname=data_file,
+            _pr=False,
+        )
     if "beamlineAnimation" not in r:
         # some reports may be written at the same time as the reader
         # if the file is invalid, wait a bit and try again
@@ -815,16 +829,16 @@ def process_watch(wid=0):
         )
         with open(_wavefront_pickle_filename(wid, is_processed=True), "wb") as f:
             pickle.dump(new_wfr, f)
-        dst = _wavefront_intensity_filename(wid)
-        src = f"tmp_{dst}"
-        srwl_bl.SRWLBeamline().calc_int_from_wfr(
-            new_wfr,
-            _pol=int(report.get("polarization", "6")),
-            _int_type=int(report.get("characteristic", "0")),
-            _pr=False,
-            _fname=src,
-        )
-        pkio.py_path(src).rename(dst)
+        #dst = _wavefront_intensity_filename(wid)
+        #src = f"tmp_{dst}"
+        #srwl_bl.SRWLBeamline().calc_int_from_wfr(
+        #    new_wfr,
+        #    _pol=int(report.get("polarization", "6")),
+        ##    _int_type=int(report.get("characteristic", "0")),
+        #    _pr=False,
+        #    _fname=src,
+        #)
+        #pkio.py_path(src).rename(dst)
 
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
@@ -1185,7 +1199,7 @@ def _beamline_animation_percent_complete(run_dir, res):
     res.outputInfo = [
         PKDict(
             modelKey="beamlineAnimation0",
-            filename=_wavefront_intensity_filename(0),
+            filename=_wavefront_pickle_filename(0, is_processed=True),
             id=0,
         ),
     ]
@@ -1198,16 +1212,18 @@ def _beamline_animation_percent_complete(run_dir, res):
                 PKDict(
                     waitForData=True,
                     modelKey=f"beamlineAnimation{item.id}",
-                    filename=_wavefront_intensity_filename(item.id),
+                    filename=_wavefront_pickle_filename(item.id, is_processed=True),
                     id=item.id,
                 )
             )
     count = 0
     for info in res.outputInfo:
         try:
-            if template_common.read_last_csv_line(pkio.py_path(info.filename)):
-                count += 1
-                info.waitForData = False
+            with open(pkio.py_path(info.filename), 'rb') as f:
+                f.seek(-1, os.SEEK_END)
+                if f.read(1) == pickle.STOP:
+                    count += 1
+                    info.waitForData = False
         except Exception as e:
             break
     res.frameCount = count
