@@ -1,7 +1,12 @@
 {
     "models": {
         "simWorkflow": {
-            "coupledSims": []
+            "coupledSims": [
+                {
+                    "simulationId": "",
+                    "simulationType": ""
+                }
+            ]
         },
         "simulation": {
         }

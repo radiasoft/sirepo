@@ -164,22 +164,20 @@ class _MoabGroupExtractor:
     def _decimate(self, vertices, polygons):
         ms = pymeshlab.MeshSet()
         ms.add_mesh(pymeshlab.Mesh(vertices, polygons))
-        # TODO(pjm): use different decimation values based on mesh size
-        # ms.apply_filter(
-        #     "meshing_decimation_quadric_edge_collapse",
-        #     preservenormal=True,
-        #     targetperc=0.3,
-        #     preserveboundary=True,
-        #     qualitythr=1,
-        #     preservetopology=True,
-        #     planarquadric=True,
-        # )
-        ms.apply_filter(
-            "meshing_decimation_quadric_edge_collapse",
-            targetfacenum=_DECIMATION_MAX_POLYGONS,
-            preservenormal=True,
-        )
+        c = len(ms.current_mesh().face_matrix())
+        if c > _DECIMATION_MAX_POLYGONS:
+            ms.apply_filter(
+                "meshing_decimation_quadric_edge_collapse",
+                preservenormal=True,
+                targetperc=max(0.2, _DECIMATION_MAX_POLYGONS / c),
+            )
         m = ms.current_mesh()
+        pkdlog(
+            "reduce faces: {} to {} ({}%)",
+            c,
+            len(m.face_matrix()),
+            int(100 - len(m.face_matrix()) * 100 / c),
+        )
         return (
             m.vertex_matrix().astype(numpy.float32),
             m.face_matrix().astype(numpy.uint32),

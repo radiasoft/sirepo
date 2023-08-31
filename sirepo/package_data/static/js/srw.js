@@ -2380,7 +2380,7 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
     };
 });
 
-SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
+SIREPO.app.directive('samplePreview', function(appState, requestSender) {
     return {
         restrict: 'A',
         template: `
@@ -2438,9 +2438,9 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                     (data) => {
                         imageData = data;
                         $scope.isLoading = false;
-                        const u = window.URL || window.webkitURL;
                         if ($('.srw-processed-image').length) {
-                            $('.srw-processed-image')[0].src = u.createObjectURL(data);
+                            // TODO(robnagler) need to call revokeObjectURL for previous url
+                            $('.srw-processed-image')[0].src = URL.createObjectURL(data);
                         }
                     },
                 );

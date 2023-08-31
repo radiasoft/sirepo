@@ -44,6 +44,7 @@ _NON_PROD_FOSS_CODES = frozenset(
     (
         "epicsllrf",
         "myapp",
+        "viz3d",
         "hellweg",
     )
 )
@@ -210,6 +211,11 @@ def _init():
             False,
             bool,
             "Trust Bash env to run Python and agents",
+        ),
+        ui_websocket=(
+            pkconfig.in_dev_mode(),
+            bool,
+            "whether the UI should use a websocket",
         ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, "Include 3D features in the Warp VND UI"),

@@ -76,6 +76,10 @@
             "longName": "Synchrotron Radiation Workshop",
             "shortName": "SRW"
         },
+        "viz3d": {
+            "longName": "Viz3d",
+            "shortName": "Viz3d"
+        },
         "warppba": {
             "longName": "Warp PBA",
             "shortName": "Warp PBA"
@@ -146,7 +150,7 @@
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
         "jupyterHub": "/jupyter",
-        "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
+        "listFiles": "/file-list",
         "listSimulations": "/simulation-list",
         "migrateJupyterhub": "/migrate-jupyterhub",
         "newSimulation": "/new-simulation",
@@ -256,7 +260,8 @@
                     "canvas-toBlob.js",
                     "d3-3.5.9.min.js",
                     "ie10-viewport-bug-workaround.js",
-                    "katex.min.js"
+                    "katex.min.js",
+                    "msgpack.js"
                 ]
             },
             "sirepoLibs": {
