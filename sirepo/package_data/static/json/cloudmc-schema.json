@@ -915,6 +915,7 @@
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
             "tally": ["Tally", "TallyList"],
+            "threshold": ["Threshold", "Float", 0.0, "Tally cells with a value below this will not be displayed"],
             "score": ["Score", "ScoreList"]
         },
         "particle": {
@@ -1172,6 +1173,7 @@
             "title": "Tally Results",
             "advanced": [
                 "tally",
+                "threshold",
                 "score",
                 "aspect",
                 "colorMap",
