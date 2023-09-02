@@ -387,6 +387,33 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
     return self;
 });
 
+SIREPO.app.factory('geometryService', function(appState, cloudmcService, geometry, tallyService, $rootScope) {
+    const self = {
+        bundleByVolume: {},
+        cutter: null,
+        outlinePlanes: {x: [], y: [], z: []}
+    };
+
+
+    self.setOutlinePlanes = dim => {
+        const mr = tallyService.getMeshRanges()[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim)];
+        const r = tallyService.tallyRange(dim, true);
+        self.outlinePlanes[dim] = SIREPO.UTILS.linearlySpacedArray(r.min, r.max, mr[2]);
+    };
+
+    self.getOutlines = dim => {
+
+        for (const v in self.bundleByVolume) {
+            const b = self.bundleByVolume[v];
+            srdbg('v', v, b.source);
+
+        }
+    };
+
+    self.cutter = vtk.Filters.Core.vtkCutter.newInstance();
+    return self;
+});
+
 SIREPO.app.factory('volumeLoadingService', function(appState, requestSender, $rootScope) {
     const self = {};
     let cacheReadersByVol = {};
@@ -586,7 +613,7 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
     };
 });
 
-SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService) {
+SIREPO.app.directive('geometry2d', function(appState, geometryService, panelState, tallyService, volumeLoadingService) {
     return {
         restrict: 'A',
         scope: {},
@@ -713,11 +740,14 @@ SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService) 
                 }
                 ['x', 'y', 'z'].forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
+                    geometryService.setOutlinePlanes(dim);
+                    geometryService.getOutlines(dim);
                 });
                 updateSliceAxis();
             }
 
             function updateSlice() {
+                srdbg(appState.models.tallyReport.axis, appState.models.tallyReport.planePos);
                 buildTallyReport();
                 // save quietly but immediately
                 appState.saveQuietly('tallyReport');
@@ -759,7 +789,7 @@ SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService) 
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, plotToPNG, tallyService, volumeLoadingService, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, cloudmcService, geometryService, plotting, plotToPNG, tallyService, volumeLoadingService, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -1072,6 +1102,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 const a = volumeAppearance(v);
                 const b = coordMapper.buildActorBundle(reader, a.actorProperties);
                 bundleByVolume[volId] = b;
+                geometryService.bundleByVolume[volId] = b;
                 vtkScene.addActor(b.actor);
                 $scope.setVolumeVisible(volId, v[a.visibilityKey]);
                 if (! hasTallies) {
