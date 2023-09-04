@@ -338,7 +338,7 @@ class _RequestHandler(_JsonPostRequestHandler):
         for i, v in enumerate(l):
             if i > _MAX_NUM_SCANS:
                 raise AssertionError(
-                    f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query."
+                    f"more than {_MAX_NUM_SCANS} scans found. Please reduce your query."
                 )
             s.append(_scan_info(c, v.uid, a, status=v.status))
         return _scan_info_result(s)
