@@ -999,11 +999,13 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
                 if (! appState.isLoaded()) {
                     return null;
                 }
-                return requestSender.formatUrl('downloadFile', {
+                return requestSender.formatUrl('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<filename>': 'geometry.dat',
-                });   
+                    '<frame>': SIREPO.nonDataFileFrame,
+                    '<model>': 'geometryReport',
+                    '<suffix>': '.dat'
+                });  
             };
 
             $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;
