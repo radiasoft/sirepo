@@ -23,20 +23,9 @@ def create_archive(sim, qcall):
     Returns:
         py.path.Local: zip file name
     """
-    if not pkio.has_file_extension(sim.filename, "zip"):
-        raise sirepo.util.NotFound(
-            "unknown file type={}; expecting zip".format(sim.filename)
-        )
     with simulation_db.tmp_dir(qcall=qcall) as d:
-        want_zip = sim.filename.endswith("zip")
-        f, c = _create_zip(sim, out_dir=d, qcall=qcall)
-        if want_zip:
-            t = "application/zip"
-        else:
-            f, t = _create_html(f, c, qcall)
         return qcall.reply_attachment(
-            f,
-            content_type="application/zip",
+            _create_zip(sim, out_dir=d, qcall=qcall)[0],
             filename=sim.filename,
         )
 
