@@ -143,17 +143,6 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
-def create_archive(sim, qcall):
-    if sim.filename.endswith("dat"):
-        return qcall.reply_attachment(
-            simulation_db.simulation_dir(SIM_TYPE, sid=sim.id, qcall=qcall).join(
-                _DMP_FILE
-            ),
-            content_type="application/octet-stream",
-            filename=sim.filename,
-        )
-    return False
-
 
 def extract_report_data(run_dir, sim_in):
     assert sim_in.report in _REPORTS, "report={}: unknown report".format(sim_in.report)
