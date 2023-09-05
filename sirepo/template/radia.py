@@ -216,6 +216,7 @@ def extract_report_data(run_dir, sim_in):
 
 
 def get_data_file(run_dir, model, frame, options):
+    import shutil
     assert model in _REPORTS, "model={}: unknown report".format(model)
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     sim = data.models.simulation
@@ -257,7 +258,9 @@ def get_data_file(run_dir, model, frame, options):
             )
         return f
     if model == "geometryReport":
-        return _DMP_FILE
+        f = f"{name}.{sfx}"
+        shutil.copy(_DMP_FILE, f)
+        return f
 
 
 async def import_file(req, tmp_dir=None, **kwargs):
