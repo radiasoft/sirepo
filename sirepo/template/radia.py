@@ -143,7 +143,6 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
-
 def extract_report_data(run_dir, sim_in):
     assert sim_in.report in _REPORTS, "report={}: unknown report".format(sim_in.report)
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
