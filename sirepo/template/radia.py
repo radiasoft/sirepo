@@ -147,7 +147,7 @@ def extract_report_data(run_dir, sim_in):
     assert sim_in.report in _REPORTS, "report={}: unknown report".format(sim_in.report)
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
     name = sim_in.models.simulation.name
-    g_id = get_g_id(name)
+    g_id = get_g_id()
     if sim_in.report == "reset":
         template_common.write_sequential_result({}, run_dir=run_dir)
     if sim_in.report == "geometryReport":
@@ -224,7 +224,7 @@ def get_data_file(run_dir, model, frame, options):
     sim = data.models.simulation
     name = sim.name
     sim_id = sim.simulationId
-    g_id = get_g_id(name)
+    g_id = get_g_id()
     rpt = data.models[model]
     sfx = options.suffix or SCHEMA.constants.dataDownloads._default[0].suffix
     f = f"{model}.{sfx}"
@@ -261,7 +261,7 @@ def get_data_file(run_dir, model, frame, options):
             )
         return f
     if model == "geometryReport":
-        return _dmp_file(name)
+        return _DMP_FILE
 
 
 async def import_file(req, tmp_dir=None, **kwargs):
@@ -645,10 +645,6 @@ def _copy_geom_obj(o):
     return o_copy
 
 
-def _dmp_file(sim_name):
-    return f"{sim_name}.dat"
-
-
 def _extruded_points_plot(name, points, width_axis, height_axis):
     pts = numpy.array(points).T
     plots = PKDict(points=pts[1].tolist(), label=None, style="line")
@@ -708,7 +704,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None
         field_data
         if field_data
         else (
-            generate_field_data(sim_id, get_g_id(name), name, f_type, [f_path])
+            generate_field_data(sim_id, get_g_id(), name, f_type, [f_path])
             .data[0]
             .vectors
         )
@@ -903,7 +899,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     if for_export:
         pass
 
-    v.dmpOutputFile = _dmp_file(data.models.simulation.name)
+    v.dmpOutputFile = _DMP_FILE
     if "dmpImportFile" in data.models.simulation:
         v.dmpImportFile = (
             data.models.simulation.dmpImportFile
@@ -1063,8 +1059,8 @@ def _get_ell_points(o, stemmed_info):
     )
 
 
-def get_g_id(sim_name):
-    return radia_util.load_bin(pkio.read_binary(_dmp_file(sim_name)))
+def get_g_id():
+    return radia_util.load_bin(pkio.read_binary(_DMP_FILE))
 
 
 def _get_geom_data(
