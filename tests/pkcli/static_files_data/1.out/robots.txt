@@ -15,6 +15,7 @@ Disallow: /radia
 Disallow: /shadow
 Disallow: /silas
 Disallow: /srw
+Disallow: /viz3d
 Disallow: /warppba
 Disallow: /warpvnd
 Disallow: /zgoubi

@@ -1,0 +1,10 @@
+{
+    "models": {
+        "simulation": {
+            "folder": "/Examples",
+            "name": "Viewer",
+            "isExample": true
+        }
+    },
+    "simulationType": "viz3d"
+}
