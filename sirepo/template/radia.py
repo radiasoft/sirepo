@@ -146,8 +146,6 @@ def background_percent_complete(report, run_dir, is_running):
 def extract_report_data(run_dir, sim_in):
     assert sim_in.report in _REPORTS, "report={}: unknown report".format(sim_in.report)
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
-    name = sim_in.models.simulation.name
-    g_id = get_g_id()
     if sim_in.report == "reset":
         template_common.write_sequential_result({}, run_dir=run_dir)
     if sim_in.report == "geometryReport":
@@ -159,8 +157,8 @@ def extract_report_data(run_dir, sim_in):
         )
         d = _get_geom_data(
             sim_in.models.simulation.simulationId,
-            g_id,
-            name,
+            get_g_id(),
+            sim_in.models.simulation.name,
             v_type,
             f_type,
             field_paths=sim_in.models.fieldPaths.paths,
@@ -171,14 +169,14 @@ def extract_report_data(run_dir, sim_in):
         )
     if sim_in.report == "kickMapReport":
         template_common.write_sequential_result(
-            _kick_map_plot(sim_in.models.kickMapReport, g_id),
+            _kick_map_plot(sim_in.models.kickMapReport),
             run_dir=run_dir,
         )
     if sim_in.report == "fieldIntegralReport":
         template_common.write_sequential_result(
             _generate_field_integrals(
                 sim_in.models.simulation.simulationId,
-                g_id,
+                get_g_id(),
                 sim_in.models.fieldPaths.paths or [],
             ),
             run_dir=run_dir,
@@ -192,7 +190,6 @@ def extract_report_data(run_dir, sim_in):
         template_common.write_sequential_result(
             _electron_trajectory_plot(
                 sim_in.models.simulation.simulationId,
-                g_id,
                 energy=sim_in.models.electronTrajectoryReport.energy,
                 pos=sim_in.models.electronTrajectoryReport.initialPosition,
                 angles=angles,
@@ -224,7 +221,6 @@ def get_data_file(run_dir, model, frame, options):
     sim = data.models.simulation
     name = sim.name
     sim_id = sim.simulationId
-    g_id = get_g_id()
     rpt = data.models[model]
     sfx = options.suffix or SCHEMA.constants.dataDownloads._default[0].suffix
     f = f"{model}.{sfx}"
@@ -240,13 +236,13 @@ def get_data_file(run_dir, model, frame, options):
         return f
     if model == "kickMapReport":
         _save_kick_map_sdds(
-            name, f, _read_or_generate_kick_map(g_id, data.models.kickMapReport)
+            name, f, _read_or_generate_kick_map(get_g_id(), data.models.kickMapReport)
         )
         return f
     if model == "fieldLineoutAnimation":
         beam_axis = _rotate_axis(to_axis="z", from_axis=sim.beamAxis)
         f_type = rpt.fieldType
-        fd = generate_field_data(sim_id, g_id, name, f_type, [rpt.fieldPath])
+        fd = generate_field_data(sim_id, get_g_id(), name, f_type, [rpt.fieldPath])
         v = fd.data[0].vectors
         if sfx == "sdds":
             return _save_fm_sdds(name, v, beam_axis, f)
@@ -671,9 +667,9 @@ _FIELD_PT_BUILDERS = {
 }
 
 
-def _electron_trajectory_plot(sim_id, g_id, **kwargs):
+def _electron_trajectory_plot(sim_id, **kwargs):
     d = PKDict(kwargs)
-    t = _generate_electron_trajectory(sim_id, g_id, **kwargs)
+    t = _generate_electron_trajectory(sim_id, get_g_id(), **kwargs)
     pts = (_MILLIS_TO_METERS * t[radia_util.axes_index(d.beam_axis)]).tolist()
     plots = []
     a = [d.width_axis, d.height_axis]
@@ -1150,9 +1146,10 @@ def _get_sdds(cols, units):
     return _cfg.sdds
 
 
-def _kick_map_plot(model, g_id):
+def _kick_map_plot(model):
     from sirepo import srschema
 
+    g_id = get_g_id()
     component = model.component
     km = _generate_kick_map(g_id, model)
     if not km:
