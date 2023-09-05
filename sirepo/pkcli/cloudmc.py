@@ -221,6 +221,12 @@ class _MoabGroupExtractor:
             visited.add(c)
             self._get_verticies_and_triangles(mb, c, verticies, triangles, visited)
 
+
+
+    def _write_mesh(self, vol_id):
+        pass
+    
+
     def _write_vti(self, vol_id, geometry):
         pkio.unchecked_remove(vol_id)
         p = pkio.mkdir_parent(f"{vol_id}/{_MoabGroupExtractor._DATA_DIR}")
