@@ -3,11 +3,7 @@
 
         "dagmcAnimation": {},
         "geometry3DReport": {
-            "bgColor": [
-                1,
-                0.97647,
-                0.929412
-            ],
+            "bgColor": "#fff9ed",
             "opacity": 1,
             "showEdges": "0"
         },
@@ -17,7 +13,7 @@
         "openmcAnimation": {
             "aspect": "mean",
             "bgColor": "#fff9ed",
-            "colorMap": "jet",
+            "colorMap": "viridis",
             "opacity": 1,
             "score": "heating",
             "showEdges": "0",
@@ -803,10 +799,6 @@
                 "opacity": 0.3,
                 "volId": "23"
             }
-        },
-        "voxels": {
-            "colorMap": "jet",
-            "voxelInsetPct": 0
         }
     },
     "simulationType": "cloudmc"

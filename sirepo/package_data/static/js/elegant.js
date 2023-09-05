@@ -938,15 +938,14 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                     return;
                 }
                 var fileType = $scope.missingFileLists.pop();
-                requestSender.loadAuxiliaryData(
+                requestSender.loadListFiles(
                     fileType,
-                    requestSender.formatUrl('listFiles', {
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<file_type>': fileType,
-                        // unused param
-                        '<simulation_id>': $scope.id,
-                    }),
-                    loadFileLists);
+                    {
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
+                        fileType: fileType,
+                    },
+                    loadFileLists,
+                );
             }
 
             function modelInputFiles(type) {
@@ -996,7 +995,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                 var res = [];
                 for (var i = 0; i < $scope.inputFiles.length; i++) {
                     var fileType = $scope.inputFiles[i][3];
-                    if (! requestSender.getAuxiliaryData(fileType)) {
+                    if (! requestSender.getListFilesData(fileType)) {
                         res.push(fileType);
                     }
                 }
@@ -1009,7 +1008,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                 for (var i = 0; i < $scope.inputFiles.length; i++) {
                     var filename = $scope.inputFiles[i][2];
                     var fileType = $scope.inputFiles[i][3];
-                    var list = requestSender.getAuxiliaryData(fileType);
+                    var list = requestSender.getListFilesData(fileType);
                     if (list.indexOf(filename) < 0) {
                         res.push($scope.inputFiles[i]);
                     }
@@ -1093,7 +1092,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                         $scope.fileUploadError = data.error;
                         return;
                     }
-                    requestSender.getAuxiliaryData(data.fileType).push(data.filename);
+                    requestSender.getListFilesData(data.fileType).push(data.filename);
                     hideAndRedirect();
                 };
                 for (var i = 0; i < $scope.missingFiles.length; i++) {

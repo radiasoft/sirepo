@@ -126,8 +126,17 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
             <div data-ng-repeat="sim in reports track by $index">
               <div class="clearfix hidden-xl"></div>
               <div class="col-md-5 col-xxl-3">
-                <div data-ng-repeat="report in sim[0] track by $index">
-                  <div data-report-panel="parameter" data-model-data="omegaService.modelAccess(report.modelKey)" data-model-name="{{ report.modelName }}" data-panel-title="{{ title(report) }}"></div>
+                <div class="row">
+                  <div class="col-sm-12">
+                    <div data-ng-repeat="report in sim[0] track by $index">
+                      <div data-report-panel="parameter" data-model-data="omegaService.modelAccess(report.modelKey)" data-model-name="{{ report.modelName }}" data-panel-title="{{ title(report) }}"></div>
+                    </div>
+                  </div>
+                  <div class="col-sm-12">
+                    <div data-ng-if="sim.length > 2">
+                      <div data-report-panel="heatmap" data-panel-title="{{ title(sim[2][0]) }}" data-model-name="sim[2][0].modelName" data-model-data="omegaService.modelAccess(sim[2][0].modelKey)"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div class="col-md-7 col-xxl-3">
@@ -143,7 +152,12 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
         `,
         controller: function($scope) {
             $scope.omegaService = omegaService;
-            $scope.title = report => `Simulation ${report.simCount} Beam Parameters`;
+
+            $scope.title = report => {
+                const t = report.modelName.includes('Beam') ? 'Beam Parameters' : 'Field Distribution';
+                return `Simulation ${report.simCount} ${t}`;
+            };
+
             $scope.$on('modelChanged', (e, name) => {
                 for (const sim of $scope.reports) {
                     if (name === sim[1][0].modelKey) {
