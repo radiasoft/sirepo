@@ -167,8 +167,10 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def sim_frame_fieldDistributionAnimation(frame_args):
-    r = _get_field_distribution(frame_args.run_dir, frame_args.sim_in)
-    d = numpy.abs(r[int(frame_args.frameIndex), 0, :, :])
+    d = _get_field_distribution(frame_args.run_dir, frame_args.sim_in)
+    if frame_args.fieldPlot == "phasePlot":
+        d = numpy.arctan(d.imag / d.real)
+    d = numpy.abs(d[int(frame_args.frameIndex), 0, :, :])
     s = d.shape[0]
     return PKDict(
         title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ipradi),
