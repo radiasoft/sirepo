@@ -1002,7 +1002,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
                 return requestSender.formatUrl('downloadFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<filename>': `${$scope.nav.simulationName()}.dat`,
+                    '<filename>': 'geometry.dat',
                 });   
             };
 
