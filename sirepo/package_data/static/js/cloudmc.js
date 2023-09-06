@@ -388,10 +388,12 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
 });
 
 SIREPO.app.factory('geometryService', function(appState, cloudmcService, geometry, tallyService, $rootScope) {
+    // for both 2d and 3d
     const self = {
         bundleByVolume: {},
         cutter: null,
-        outlinePlanes: {x: [], y: [], z: []}
+        outlinePlanes: {x: [], y: [], z: []},
+        outlines: {},
     };
 
 
@@ -401,12 +403,71 @@ SIREPO.app.factory('geometryService', function(appState, cloudmcService, geometr
         self.outlinePlanes[dim] = SIREPO.UTILS.linearlySpacedArray(r.min, r.max, mr[2]);
     };
 
-    self.getOutlines = dim => {
+    self.buildOutlines = (volId, vtkSource) => {
+        srdbg('bld o for', volId, vtkSource.getOutputPort());
+        self.outlines[volId] = {x: [], y: [], z: {}};
+        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+            self.setOutlinePlanes(dim);
+            const n = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim];
+            for (const index of self.outlinePlanes[dim]) {
+                const p = vtk.Common.DataModel.vtkPlane.newInstance({
+                    normal: n,
+                    origin: n.map(c => c * self.outlinePlanes[dim][index]),
+                });
+                const cutter = vtk.Filters.Core.vtkCutter.newInstance();
+                cutter.setCutFunction(p);
+                cutter.setInputConnection(vtkSource.getOutputPort());
+                const d = cutter.getOutputData();
+                const l = d.getLines().getData();
+                const pp = d.getPoints().getData();
+                const nc = d.getPoints().getNumberOfComponents();
+                const prd = SIREPO.UTILS.reshape(pp, [pp.length / nc, nc]);
+                let i = 0;
+                const pts = [];
+                while (i < l.length) {
+                    let j = 1;
+                    for (; j <= l[i]; ++j) {
+                        pts.push(prd[l[i + j]]);
+                    }
+                    i += j;
+                }
+                self.outlines[volId][dim].push(pts);
+            }
+            srdbg('v', volId, self.outlines[volId]);
+                
+        });
+    }
 
+    self.getOutline = (volId, dim, index=0) => {
+
+        srdbg('get o');
+        return self.outlines[volId][dim][index];
+        const n = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim];
+        const p = vtk.Common.DataModel.vtkPlane.newInstance({
+            normal: n,
+            origin: n.map(c => c * self.outlinePlanes[dim][index]),
+        });
+        
         for (const v in self.bundleByVolume) {
             const b = self.bundleByVolume[v];
-            srdbg('v', v, b.source);
-
+            self.cutter.setCutFunction(p);
+            self.cutter.setInputConnection(b.source.getOutputPort());
+            const d = self.cutter.getOutputData();
+            const l = d.getLines().getData();
+            const pp = d.getPoints().getData();
+            const nc = d.getPoints().getNumberOfComponents();
+            const prd = SIREPO.UTILS.reshape(pp, [pp.length / nc, nc]);
+            let i = 0;
+            const pts = [];
+            while (i < l.length) {
+                let j = 1;
+                for (; j <= l[i]; ++j) {
+                    pts.push(prd[l[i + j]]);
+                }
+                i += j;
+            }
+            
+            srdbg('v', v, pts);
         }
     };
 
@@ -740,9 +801,8 @@ SIREPO.app.directive('geometry2d', function(appState, geometryService, panelStat
                 }
                 ['x', 'y', 'z'].forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
-                    geometryService.setOutlinePlanes(dim);
-                    geometryService.getOutlines(dim);
                 });
+                //volumeLoadingService.loadOutlines();
                 updateSliceAxis();
             }
 
@@ -1102,11 +1162,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, geometrySe
                 const a = volumeAppearance(v);
                 const b = coordMapper.buildActorBundle(reader, a.actorProperties);
                 bundleByVolume[volId] = b;
-                geometryService.bundleByVolume[volId] = b;
                 vtkScene.addActor(b.actor);
                 $scope.setVolumeVisible(volId, v[a.visibilityKey]);
                 if (! hasTallies) {
                     picker.addPickList(b.actor);
+                }
+                else {
+                    //geometryService.buildOutlines(volId, b.source);
                 }
             }
 

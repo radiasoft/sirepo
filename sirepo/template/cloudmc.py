@@ -93,9 +93,30 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
+    import pymeshlab
+    import dagmc_geometry_slice_plotter
+    import trimesh
+    _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
     # dummy result
     if sim_in.report == "tallyReport":
-        template_common.write_sequential_result(PKDict(x_range=[], summaryData={}, overlayData=[]))
+        pkdp("TR {}", sim_in.models.tallyReport)
+        outlines = PKDict()
+        mesh_files = pkio.sorted_glob(run_dir.join("*.ply"))
+        for mf in mesh_files:
+            vol_id = mf.purebasename
+            outlines[vol_id] = PKDict(x=[], y=[], z=[])
+            with open(mf, "rb") as f:
+                m = trimesh.exchange.ply.load_ply(f)
+                for dim in outlines[vol_id]:
+                    outlines[vol_id][dim] = []
+                    #data = dagmc_geometry_slice_plotter.get_slice_coordinates(
+                    #    dagmc_file_or_trimesh_object=m,
+                    #    plane_origin=[0, 0, 200],
+                    #    plane_normal=[0, 0, 1],
+                    #)
+        template_common.write_sequential_result(
+            PKDict(x_range=[], summaryData={}, overlayData=[], outlines=outlines)
+        )
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -113,8 +134,26 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError("no data file for model={model} and options={options}")
 
 
-def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
+def post_execution_processing(compute_model, sim_id, success_exit, is_parallel, run_dir, **kwargs):
+    def _get_mesh(tallies):
+        for t in tallies:
+            for f in [x for x in t if x.startswith("filter")]:
+                if t[f]._type == "meshFilter":
+                    return t[f]
+        return None
+
     if success_exit:
+        sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        if compute_model== "dagmcAnimation":
+            for f in pkio.sorted_glob(run_dir.join("*.ply")):
+                _SIM_DATA.put_sim_file(sim_id, f, f.basename)
+        if compute_model == "openmcAnimation":
+            pkdp("BLD ARRAYS FROM {}", sim_in.models.openmcAnimation.tallies)
+            m = _get_mesh(sim_in.models.openmcAnimation.tallies)
+            pkdp("TALLY MESH {}", m)
+            if m is None:
+                return None
+            
         return None
     return _parse_run_log(run_dir)
 

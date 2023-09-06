@@ -160,6 +160,7 @@ class _MoabGroupExtractor:
 
     def process_item(self, item):
         self._write_vti(item.vol_id, self._get_points_and_polys(item))
+        self._write_mesh(item)
 
     def _decimate(self, vertices, polygons):
         ms = pymeshlab.MeshSet()
@@ -182,6 +183,25 @@ class _MoabGroupExtractor:
             m.vertex_matrix().astype(numpy.float32),
             m.face_matrix().astype(numpy.uint32),
         )
+
+    def _decimated_mesh(self, vertices, polygons):
+        ms = pymeshlab.MeshSet()
+        ms.add_mesh(pymeshlab.Mesh(vertices, polygons))
+        c = len(ms.current_mesh().face_matrix())
+        if c > _DECIMATION_MAX_POLYGONS:
+            ms.apply_filter(
+                "meshing_decimation_quadric_edge_collapse",
+                preservenormal=True,
+                targetperc=max(0.2, _DECIMATION_MAX_POLYGONS / c),
+            )
+        m = ms.current_mesh()
+        pkdlog(
+            "MESH reduce faces: {} to {} ({}%)",
+            c,
+            len(m.face_matrix()),
+            int(100 - len(m.face_matrix()) * 100 / c),
+        )
+        return m
 
     def _extract_moab_vertices_and_triangles(self, item):
         def _reshape3(v):
@@ -221,11 +241,12 @@ class _MoabGroupExtractor:
             visited.add(c)
             self._get_verticies_and_triangles(mb, c, verticies, triangles, visited)
 
-
-
-    def _write_mesh(self, vol_id):
-        pass
-    
+    def _write_mesh(self, item):
+        v, p = self._extract_moab_vertices_and_triangles(item)
+        v, p = self._decimate(v, p)
+        ms = pymeshlab.MeshSet()
+        ms.add_mesh(pymeshlab.Mesh(v, p))
+        ms.save_current_mesh(f"{item.vol_id}.ply")
 
     def _write_vti(self, vol_id, geometry):
         pkio.unchecked_remove(vol_id)
