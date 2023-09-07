@@ -17,6 +17,7 @@ import sirepo.mpi
 import sirepo.sim_data
 
 
+_OUTLINES_FILE = "outlines.json"
 _VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -108,7 +109,7 @@ def get_data_file(run_dir, model, frame, options):
         if options.suffix == "log":
             return template_common.text_data_file(template_common.RUN_LOG, run_dir)
         if options.suffix == "json":
-            return run_dir.join("outlines.json")
+            return run_dir.join(_OUTLINES_FILE)
         return _statepoint_filename(
             simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         )
@@ -140,15 +141,15 @@ def post_execution_processing(
             if tally_mesh is None:
                 return None
             outlines = PKDict()
-            mesh_files = pkio.sorted_glob(run_dir.join("*.ply"))
-            for mf in mesh_files:
+            basis_vects = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+            for mf in pkio.sorted_glob(run_dir.join("*.ply")):
                 vol_id = mf.purebasename
                 vol_mesh = None
                 outlines[vol_id] = PKDict(x=[], y=[], z=[])
                 with open(mf, "rb") as f:
                     vol_mesh = trimesh.Trimesh(**trimesh.exchange.ply.load_ply(f))
                 for i, dim in enumerate(outlines[vol_id].keys()):
-                    n = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])[i]
+                    n = basis_vects[i]
                     for pos in numpy.linspace(
                         tally_mesh.lower_left[i],
                         tally_mesh.upper_right[i],
@@ -158,17 +159,17 @@ def post_execution_processing(
                         try:
                             coords = dagmc_geometry_slice_plotter.get_slice_coordinates(
                                 dagmc_file_or_trimesh_object=vol_mesh,
-                                plane_origin=(pos * n).tolist(),
-                                plane_normal=n.tolist(),
+                                plane_origin=pos * n,
+                                plane_normal=n,
                             )
                             # get_slice_coordinates returns a list of "TrackedArrays",
                             # arranged for use in matplotlib
-                            coords = [x.T.tolist() for x in coords]
+                            coords = [(SCHEMA.constants.geometryScale * x.T).tolist() for x in coords]
                         except ValueError:
                             # no intersection at this plane position
                             pass
                         outlines[vol_id][dim].append(coords)
-            simulation_db.write_json("outlines.json", outlines)
+            simulation_db.write_json(_OUTLINES_FILE, outlines)
 
         return None
     return _parse_run_log(run_dir)

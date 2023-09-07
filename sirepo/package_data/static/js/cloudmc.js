@@ -104,7 +104,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState) {
     }
 
     // volumes are measured in centimeters
-    self.GEOMETRY_SCALE = 0.01;
+    self.GEOMETRY_SCALE = SIREPO.APP_SCHEMA.constants.geometryScale;
 
     self.buildRangeDelegate = (modelName, field) => {
         const d = panelState.getFieldDelegate(modelName, field);
@@ -256,7 +256,7 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         if (data.tallies) {
             validateSelectedTally(data.tallies);
         }
-        if (self.simState.isStateCompleted) {
+        if (self.simState.isStateCompleted()) {
             tallyService.loadOutlines();
         }
     };
@@ -266,7 +266,7 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         return `Completed batch: ${self.simState.getFrameCount()}`;
     };
     self.simCompletionState = () => {
-        if (self.simState.isStateError) {
+        if (self.simState.isStateError()) {
             return '';
         }
         return `${frameCache.getFrameCount()} batches`;
@@ -334,7 +334,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
         fieldData: null,
         minField: 0,
         maxField: 0,
-        outlines: {},
+        outlines: null,
     };
 
     self.colorScale = modelName => {
@@ -351,7 +351,9 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
         ]);
     };
 
-    self.getOutlines = (volId, dim, index) => self.outlines[`${volId}`][dim][index];
+    self.getOutlines = (volId, dim, index) => {
+        return self.outlines ? self.outlines[`${volId}`][dim][index] : [];
+    };
 
     self.initMesh = () => {
         const t = cloudmcService.findTally();
@@ -383,8 +385,8 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
                 self.outlines = data;
             },
             false,
-            err => {
-                throw new Error(err);
+            res => {
+                throw new Error(res.error);
             }
         );
     }
@@ -412,6 +414,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
     $rootScope.$on('modelsUnloaded', () => {
         self.mesh = null;
         self.fieldData = null;
+        self.outlines = null;
     });
 
     return self;
@@ -616,7 +619,7 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
     };
 });
 
-SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService, volumeLoadingService) {
+SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState, tallyService) {
     return {
         restrict: 'A',
         scope: {},
@@ -643,6 +646,7 @@ SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService, 
                 const [n, m, l] = tallyReportAxisIndices();
                 const ranges = tallyService.getMeshRanges();
                 const inds = displayRangeIndices();
+                const pos = appState.models.tallyReport.planePos;
 
                 // for now set the aspect ratio to something reasonable even if it distorts the shape
                 const arRange = [0.50, 1.5];
@@ -663,17 +667,9 @@ SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService, 
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
                     y_range: ranges[m],
-                    z_matrix: reorderFieldData(z, tallyService.mesh.dimension)[fieldIndex(appState.models.tallyReport.planePos, ranges[n], n)],
+                    z_matrix: reorderFieldData(tallyService.mesh.dimension)[fieldIndex(pos, ranges[n], n)],
                     z_range: ranges[n],
-                    overlayData: [
-                        {
-                            name: 'dummy',
-                            data: [
-                                [-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5], [-0.5, -0.5]
-                            ],
-                            color: 'red',
-                        },
-                    ],
+                    overlayData: getOutlines(pos, ranges[n], n),
                 };
                 panelState.setData('tallyReport', r);
                 $scope.$broadcast('tallyReport.reload', r);
@@ -697,7 +693,23 @@ SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService, 
                 );
             }
 
-            function reorderFieldData(outerAxis, dims) {
+            function getOutlines(pos, range, dimIndex) {
+                const outlines = [];
+                const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
+                for (const volId of cloudmcService.getNonGraveyardVolumes()) {
+                    const o = tallyService.getOutlines(volId, dim, fieldIndex(pos, range, dimIndex));
+                    o.forEach((arr, i) => {
+                        outlines.push({
+                            name: `volume-${volId}-${i}`,
+                            color: cloudmcService.getVolumeById(volId).color,
+                            data: arr.map(x => x.reverse()),
+                        })
+                    });
+                }
+                return outlines;
+            }
+
+            function reorderFieldData(dims) {
                 const [n, m, l] = tallyReportAxisIndices();
                 const fd = tallyService.fieldData;
                 const d = SIREPO.UTILS.reshape(fd, dims.slice().reverse());
@@ -748,7 +760,6 @@ SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService, 
             }
 
             function updateSlice() {
-                srdbg(appState.models.tallyReport.axis, appState.models.tallyReport.planePos);
                 buildTallyReport();
                 // save quietly but immediately
                 appState.saveQuietly('tallyReport');
