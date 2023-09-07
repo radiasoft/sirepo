@@ -230,7 +230,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, cloudmcService, frameCache, persistentSimulation, requestSender, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, cloudmcService, frameCache, persistentSimulation, requestSender, tallyService, $scope) {
     const self = this;
     self.eigenvalue = null;
     self.results = null;
@@ -255,6 +255,9 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         }
         if (data.tallies) {
             validateSelectedTally(data.tallies);
+        }
+        if (self.simState.isStateCompleted) {
+            tallyService.loadOutlines();
         }
     };
     self.simState = persistentSimulation.initSimulationState(self);
@@ -325,12 +328,13 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope) {
+SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSender, $rootScope) {
     const self = {
         mesh: null,
         fieldData: null,
         minField: 0,
         maxField: 0,
+        outlines: {},
     };
 
     self.colorScale = modelName => {
@@ -347,6 +351,8 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         ]);
     };
 
+    self.getOutlines = (volId, dim, index) => self.outlines[`${volId}`][dim][index];
+
     self.initMesh = () => {
         const t = cloudmcService.findTally();
         for (let k = 1; k <= SIREPO.APP_SCHEMA.constants.maxFilters; k++) {
@@ -358,6 +364,30 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         }
         self.mesh = null;
     };
+
+    self.loadOutlines = () => {
+        self.outlines = {};
+        const url = requestSender.formatUrl(
+            'downloadDataFile',
+            {
+                '<simulation_id>': appState.models.simulation.simulationId,
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                '<model>': 'openmcAnimation',
+                '<frame>': SIREPO.nonDataFileFrame,
+                '<suffix>': '.json',
+            }
+        );
+        requestSender.sendRequest(
+            url,
+            data => {
+                self.outlines = data;
+            },
+            false,
+            err => {
+                throw new Error(err);
+            }
+        );
+    }
 
     self.setFieldData = (fieldData, min, max) => {
         self.fieldData = fieldData;
@@ -384,94 +414,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         self.fieldData = null;
     });
 
-    return self;
-});
-
-SIREPO.app.factory('geometryService', function(appState, cloudmcService, geometry, tallyService, $rootScope) {
-    // for both 2d and 3d
-    const self = {
-        bundleByVolume: {},
-        cutter: null,
-        outlinePlanes: {x: [], y: [], z: []},
-        outlines: {},
-    };
-
-
-    self.setOutlinePlanes = dim => {
-        const mr = tallyService.getMeshRanges()[SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(dim)];
-        const r = tallyService.tallyRange(dim, true);
-        self.outlinePlanes[dim] = SIREPO.UTILS.linearlySpacedArray(r.min, r.max, mr[2]);
-    };
-
-    self.buildOutlines = (volId, vtkSource) => {
-        srdbg('bld o for', volId, vtkSource.getOutputPort());
-        self.outlines[volId] = {x: [], y: [], z: {}};
-        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
-            self.setOutlinePlanes(dim);
-            const n = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim];
-            for (const index of self.outlinePlanes[dim]) {
-                const p = vtk.Common.DataModel.vtkPlane.newInstance({
-                    normal: n,
-                    origin: n.map(c => c * self.outlinePlanes[dim][index]),
-                });
-                const cutter = vtk.Filters.Core.vtkCutter.newInstance();
-                cutter.setCutFunction(p);
-                cutter.setInputConnection(vtkSource.getOutputPort());
-                const d = cutter.getOutputData();
-                const l = d.getLines().getData();
-                const pp = d.getPoints().getData();
-                const nc = d.getPoints().getNumberOfComponents();
-                const prd = SIREPO.UTILS.reshape(pp, [pp.length / nc, nc]);
-                let i = 0;
-                const pts = [];
-                while (i < l.length) {
-                    let j = 1;
-                    for (; j <= l[i]; ++j) {
-                        pts.push(prd[l[i + j]]);
-                    }
-                    i += j;
-                }
-                self.outlines[volId][dim].push(pts);
-            }
-            srdbg('v', volId, self.outlines[volId]);
-                
-        });
-    }
-
-    self.getOutline = (volId, dim, index=0) => {
-
-        srdbg('get o');
-        return self.outlines[volId][dim][index];
-        const n = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim];
-        const p = vtk.Common.DataModel.vtkPlane.newInstance({
-            normal: n,
-            origin: n.map(c => c * self.outlinePlanes[dim][index]),
-        });
-        
-        for (const v in self.bundleByVolume) {
-            const b = self.bundleByVolume[v];
-            self.cutter.setCutFunction(p);
-            self.cutter.setInputConnection(b.source.getOutputPort());
-            const d = self.cutter.getOutputData();
-            const l = d.getLines().getData();
-            const pp = d.getPoints().getData();
-            const nc = d.getPoints().getNumberOfComponents();
-            const prd = SIREPO.UTILS.reshape(pp, [pp.length / nc, nc]);
-            let i = 0;
-            const pts = [];
-            while (i < l.length) {
-                let j = 1;
-                for (; j <= l[i]; ++j) {
-                    pts.push(prd[l[i + j]]);
-                }
-                i += j;
-            }
-            
-            srdbg('v', v, pts);
-        }
-    };
-
-    self.cutter = vtk.Filters.Core.vtkCutter.newInstance();
     return self;
 });
 
@@ -674,7 +616,7 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
     };
 });
 
-SIREPO.app.directive('geometry2d', function(appState, geometryService, panelState, tallyService, volumeLoadingService) {
+SIREPO.app.directive('geometry2d', function(appState, panelState, tallyService, volumeLoadingService) {
     return {
         restrict: 'A',
         scope: {},
@@ -802,7 +744,6 @@ SIREPO.app.directive('geometry2d', function(appState, geometryService, panelStat
                 ['x', 'y', 'z'].forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
                 });
-                //volumeLoadingService.loadOutlines();
                 updateSliceAxis();
             }
 
@@ -849,7 +790,7 @@ SIREPO.app.directive('geometry2d', function(appState, geometryService, panelStat
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, cloudmcService, geometryService, plotting, plotToPNG, tallyService, volumeLoadingService, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, plotToPNG, tallyService, volumeLoadingService, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -1166,9 +1107,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, geometrySe
                 $scope.setVolumeVisible(volId, v[a.visibilityKey]);
                 if (! hasTallies) {
                     picker.addPickList(b.actor);
-                }
-                else {
-                    //geometryService.buildOutlines(volId, b.source);
                 }
             }
 

@@ -93,30 +93,9 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
-    import pymeshlab
-    import dagmc_geometry_slice_plotter
-    import trimesh
-
-    _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
     # dummy result
     if sim_in.report == "tallyReport":
-        outlines = PKDict()
-        mesh_files = pkio.sorted_glob(run_dir.join("*.ply"))
-        for mf in mesh_files:
-            vol_id = mf.purebasename
-            outlines[vol_id] = PKDict(x=[], y=[], z=[])
-            with open(mf, "rb") as f:
-                m = trimesh.exchange.ply.load_ply(f)
-                for dim in outlines[vol_id]:
-                    outlines[vol_id][dim] = []
-                    # data = dagmc_geometry_slice_plotter.get_slice_coordinates(
-                    #    dagmc_file_or_trimesh_object=m,
-                    #    plane_origin=[0, 0, 200],
-                    #    plane_normal=[0, 0, 1],
-                    # )
-        template_common.write_sequential_result(
-            PKDict(x_range=[], summaryData={}, overlayData=[], outlines=outlines)
-        )
+        template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -128,6 +107,8 @@ def get_data_file(run_dir, model, frame, options):
     if model == "openmcAnimation":
         if options.suffix == "log":
             return template_common.text_data_file(template_common.RUN_LOG, run_dir)
+        if options.suffix == "json":
+            return run_dir.join("outlines.json")
         return _statepoint_filename(
             simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         )

@@ -2081,6 +2081,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         //TODO(robnagler) if response in error, ok to not be blob, so defer
         const b = wsreq.responseType === "blob";
         if (content instanceof Uint8Array) {
+            srdbg(content);
             if (! b) {
                 srlog("WebSocket not expecting blob header=", header, " wsreq=", wsreq);
                 wsreq.deferred.reject("invalid reply from server");
