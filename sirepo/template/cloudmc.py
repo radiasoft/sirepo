@@ -96,6 +96,7 @@ def extract_report_data(run_dir, sim_in):
     import pymeshlab
     import dagmc_geometry_slice_plotter
     import trimesh
+
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
     # dummy result
     if sim_in.report == "tallyReport":
@@ -108,11 +109,11 @@ def extract_report_data(run_dir, sim_in):
                 m = trimesh.exchange.ply.load_ply(f)
                 for dim in outlines[vol_id]:
                     outlines[vol_id][dim] = []
-                    #data = dagmc_geometry_slice_plotter.get_slice_coordinates(
+                    # data = dagmc_geometry_slice_plotter.get_slice_coordinates(
                     #    dagmc_file_or_trimesh_object=m,
                     #    plane_origin=[0, 0, 200],
                     #    plane_normal=[0, 0, 1],
-                    #)
+                    # )
         template_common.write_sequential_result(
             PKDict(x_range=[], summaryData={}, overlayData=[], outlines=outlines)
         )
@@ -133,7 +134,9 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError("no data file for model={model} and options={options}")
 
 
-def post_execution_processing(compute_model, sim_id, success_exit, is_parallel, run_dir, **kwargs):
+def post_execution_processing(
+    compute_model, sim_id, success_exit, is_parallel, run_dir, **kwargs
+):
     import trimesh
     import dagmc_geometry_slice_plotter
 
@@ -147,7 +150,7 @@ def post_execution_processing(compute_model, sim_id, success_exit, is_parallel, 
     if success_exit:
         sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
-        if compute_model== "dagmcAnimation":
+        if compute_model == "dagmcAnimation":
             for f in ply_files:
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
         if compute_model == "openmcAnimation":
@@ -165,7 +168,11 @@ def post_execution_processing(compute_model, sim_id, success_exit, is_parallel, 
                     vol_mesh = trimesh.Trimesh(**trimesh.exchange.ply.load_ply(f))
                 for i, dim in enumerate(outlines[vol_id].keys()):
                     n = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])[i]
-                    for pos in numpy.linspace(tally_mesh.lower_left[i], tally_mesh.upper_right[i], tally_mesh.dimension[i]):
+                    for pos in numpy.linspace(
+                        tally_mesh.lower_left[i],
+                        tally_mesh.upper_right[i],
+                        tally_mesh.dimension[i],
+                    ):
                         coords = []
                         try:
                             coords = dagmc_geometry_slice_plotter.get_slice_coordinates(
@@ -181,7 +188,7 @@ def post_execution_processing(compute_model, sim_id, success_exit, is_parallel, 
                             pass
                         outlines[vol_id][dim].append(coords)
             simulation_db.write_json("outlines.json", outlines)
-            
+
         return None
     return _parse_run_log(run_dir)
 
@@ -546,7 +553,6 @@ t{tally._index + 1}.scores = [{','.join(["'" + s.score + "'" for s in tally.scor
 t{tally._index + 1}.nuclides = [{','.join(["'" + s.nuclide + "'" for s in tally.nuclides if s.nuclide])}]
 """
     return res
-
 
 
 def _has_graveyard(data):
