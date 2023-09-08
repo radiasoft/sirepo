@@ -352,7 +352,10 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
     };
 
     self.getOutlines = (volId, dim, index) => {
-        return self.outlines ? self.outlines[`${volId}`][dim][index] : [];
+        if (! self.outlines || $.isEmptyObject(self.outlines)) {
+            return [];
+        }
+        return self.outlines[`${volId}`][dim][index];
     };
 
     self.initMesh = () => {
@@ -383,6 +386,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
             url,
             data => {
                 self.outlines = data;
+                $rootScope.$broadcast('outlines.loaded');
             },
             false,
             res => {
@@ -702,7 +706,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
                         outlines.push({
                             name: `volume-${volId}-${i}`,
                             color: cloudmcService.getVolumeById(volId).color,
-                            data: arr.map(x => x.reverse()),
+                            data: arr,
                         })
                     });
                 }
@@ -796,6 +800,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
             $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
+            $scope.$on('outlines.loaded', buildTallyReport);
             updateDisplayRange();
         },
     };

@@ -131,9 +131,8 @@ def post_execution_processing(
 
     if success_exit:
         sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
         if compute_model == "dagmcAnimation":
-            for f in ply_files:
+            for f in pkio.sorted_glob(run_dir.join("*.ply")):
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
         if compute_model == "openmcAnimation":
             _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
@@ -142,7 +141,9 @@ def post_execution_processing(
                 return None
             outlines = PKDict()
             basis_vects = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-            for mf in pkio.sorted_glob(run_dir.join("*.ply")):
+            do_swap = [False, True, True]
+            ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
+            for mf in ply_files:
                 vol_id = mf.purebasename
                 vol_mesh = None
                 outlines[vol_id] = PKDict(x=[], y=[], z=[])
