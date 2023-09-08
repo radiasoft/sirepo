@@ -18,7 +18,7 @@ SIREPO.app.config(() => {
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="recentlyExecuted"></div>
         </div>
         <div data-ng-switch-when="RunAnalysisTable" class="col-sm-12">
-          <div data-scans-table="" data-model-name="modelName" data-analysis-status="allStatuses"></div>
+          <div class="row" data-scans-table="" data-model-name="modelName" data-analysis-status="allStatuses"></div>
         </div>
         <div data-ng-switch-when="QueuedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="queued"></div>
@@ -369,7 +369,7 @@ SIREPO.app.directive('scansTable', function() {
             modelName: '=',
         },
         template: `
-            <div data-show-loading-and-error="" data-model-key="scans">
+            <div class="row" data-show-loading-and-error="" data-model-key="scans">
               <div>
                 <div class="pull-right" data-ng-if="pageLocationText">
                   <span class="raydata-button">{{ pageLocationText }}</span>
@@ -381,7 +381,7 @@ SIREPO.app.directive('scansTable', function() {
                 <table class="table table-striped table-hover">
                   <thead>
                     <tr>
-                      <th style="width: 20px; height: 40px; white-space: nowrap" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-checked="pdfSelectAllScans" data-ng-click="togglePdfSelectAll()"/> PDF</th>
+                      <th style="width: 20px; height: 40px; white-space: nowrap" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-checked="pdfSelectAllScans" data-ng-click="togglePdfSelectAll()"/> <span style="vertical-align: top">PDF</span></th>
                       <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" data-ng-click="sortCol(column)" style="width: 100px; height: 40px; white-space: nowrap">
                         <span style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
                         <span style="cursor: pointer">{{ column }}</span>
@@ -392,10 +392,10 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans">
-                      <td style="width: 20px; height: 20px;" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans[s.uid]" data-ng-click="togglePdfSelectScan(s.uid)"/></td>
-                      <td><span data-header-tooltip="s.status"></span></td>
+                      <td style="width: 1%" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans[s.uid]" data-ng-click="togglePdfSelectScan(s.uid)"/></td>
+                      <td width="1%"><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
-                      <td style="white-space: nowrap">
+                      <td style="white-space: nowrap" width="1%">
                         <button data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="runAnalysis(s)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button>
                         <button class="btn btn-info btn-xs" data-ng-if="raydataService.canViewOutput(s)" data-ng-click="setAnalysisScan(s)">View Output</button>
                         <button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s)">View Log</button>
@@ -628,6 +628,9 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.setAvailableColumns = function() {
+                if (! masterListColumns) {
+                    return;
+                }
                 $scope.availableColumns = masterListColumns.filter((value) => {
                     return value !== 'uid' && ! $scope.columnHeaders.includes(value);
                 });
