@@ -213,9 +213,9 @@
             "maxSimCopies": 100,
             "oneDayMillis": 86400000,
             "paymentPlans": {
-                "basic": "Sirepo Basic",
+                "community": "Sirepo Community",
                 "enterprise": "Sirepo Enterprise",
-                "premium": "Sirepo Premium"
+                "professional": "Sirepo Professional"
             },
             "plansUrl": "/en/plans.html",
             "simulationSourceExtension": "py"
