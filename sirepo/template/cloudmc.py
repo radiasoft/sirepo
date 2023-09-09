@@ -137,11 +137,16 @@ def post_execution_processing(
         if compute_model == "openmcAnimation":
             _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
             tally_mesh = _get_mesh(sim_in.models.openmcAnimation.tallies)
+            pkdp("TALLY MESH {}", tally_mesh)
             if tally_mesh is None:
                 return None
             outlines = PKDict()
             basis_vects = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-            do_swap = [False, True, True]
+            rots = [
+                numpy.array([[1, 0], [0, 1]]),
+                numpy.array([[0, -1],[1, 0]]),
+                numpy.array([[0, 1], [-1, 0]]),
+            ]
             ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
             for mf in ply_files:
                 vol_id = mf.purebasename
@@ -151,6 +156,7 @@ def post_execution_processing(
                     vol_mesh = trimesh.Trimesh(**trimesh.exchange.ply.load_ply(f))
                 for i, dim in enumerate(outlines[vol_id].keys()):
                     n = basis_vects[i]
+                    r = rots[i]
                     for pos in numpy.linspace(
                         tally_mesh.lower_left[i],
                         tally_mesh.upper_right[i],
@@ -165,7 +171,10 @@ def post_execution_processing(
                             )
                             # get_slice_coordinates returns a list of "TrackedArrays",
                             # arranged for use in matplotlib
-                            coords = [(SCHEMA.constants.geometryScale * x.T).tolist() for x in coords]
+                            ct = []
+                            for c in [(SCHEMA.constants.geometryScale * x.T) for x in coords]:
+                                ct.append([numpy.dot(r, x).tolist() for x in c])
+                            coords = ct
                         except ValueError:
                             # no intersection at this plane position
                             pass
