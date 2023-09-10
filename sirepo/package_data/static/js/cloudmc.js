@@ -352,11 +352,9 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
     };
 
     self.getOutlines = (volId, dim, index) => {
-        srdbg(volId, dim, index);
         if (! self.outlines || $.isEmptyObject(self.outlines)) {
             return [];
         }
-        srdbg(self.outlines[`${volId}`]);
         return self.outlines[`${volId}`][dim][index];
     };
 
@@ -692,7 +690,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
             }
 
             function fieldIndex(pos, range, dimIndex) {
-                srdbg(dimIndex, pos, range);
                 const d = tallyService.mesh.dimension[dimIndex];
                 return Math.min(
                     d - 1,
@@ -707,7 +704,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
                     const o = tallyService.getOutlines(volId, dim, fieldIndex(pos, range, dimIndex));
                     o.forEach((arr, i) => {
                         outlines.push({
-                            name: `volume-${volId}-${i}`,
+                            name: `${cloudmcService.getVolumeById(volId).name}-${i}`,
                             color: cloudmcService.getVolumeById(volId).color,
                             data: arr,
                         })
