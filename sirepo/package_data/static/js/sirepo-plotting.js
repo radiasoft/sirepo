@@ -3284,12 +3284,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     .data(overlayData);
                 ds.exit().remove();
                 ds.enter()
-                    .append(d => {
-                        return document.createElementNS(ns, 'path');
-                    })
-                    .append(d => {
-                        return document.createElementNS(ns, 'title');
-                    });
+                    .append(d => document.createElementNS(ns, 'path'))
+                    .append(d => document.createElementNS(ns, 'title'));
                 ds.call(updateOverlay);
             }
 
@@ -3406,9 +3402,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                         return `${overlayDataClass}-${d.name}`;
                     })
                     .attr('clip-path', 'url(#sr-plot-window)')
-                    .attr('stroke', d => {
-                        return d.color;
-                    })
+                    .attr('stroke', d => d.color)
                     .attr('stroke-width', 2.0)
                     .attr('fill', 'none')
                     .attr('d', d => {
@@ -3416,14 +3410,10 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                         // a path string
                         return new SIREPO.DOM.SVGPath(
                             null,
-                            d.data.map(c => {
-                                return [axes.x.scale(c[0]), axes.y.scale(c[1])];
-                            })
+                            d.data.map(c => [axes.x.scale(c[0]), axes.y.scale(c[1])])
                         ).pathString();
                     })
-                    .select('title').text(d => {
-                        return d.name;
-                    });
+                    .select('title').text(d => d.name);
             }
 
             $scope.clearData = function() {
