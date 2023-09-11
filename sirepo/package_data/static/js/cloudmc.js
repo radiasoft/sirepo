@@ -393,7 +393,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
                 throw new Error(res.error);
             }
         );
-    }
+    };
 
     self.setFieldData = (fieldData, min, max) => {
         self.fieldData = fieldData;
@@ -701,13 +701,14 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
                 const outlines = [];
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
                 for (const volId of cloudmcService.getNonGraveyardVolumes()) {
+                    const v = cloudmcService.getVolumeById(volId);
                     const o = tallyService.getOutlines(volId, dim, fieldIndex(pos, range, dimIndex));
                     o.forEach((arr, i) => {
                         outlines.push({
-                            name: `${cloudmcService.getVolumeById(volId).name}-${i}`,
-                            color: cloudmcService.getVolumeById(volId).color,
+                            name: `${v.name}-${i}`,
+                            color: v.color,
                             data: arr,
-                        })
+                        });
                     });
                 }
                 return outlines;
