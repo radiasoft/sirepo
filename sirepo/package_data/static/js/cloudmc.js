@@ -701,6 +701,9 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
                 for (const volId of cloudmcService.getNonGraveyardVolumes()) {
                     const v = cloudmcService.getVolumeById(volId);
+                    if (! v.isVisibleWithTallies) {
+                        continue;
+                    }
                     const o = tallyService.getOutlines(volId, dim, fieldIndex(pos, range, dimIndex));
                     o.forEach((arr, i) => {
                         outlines.push({
