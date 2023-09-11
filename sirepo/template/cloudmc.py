@@ -135,9 +135,8 @@ def post_execution_processing(
             for f in pkio.sorted_glob(run_dir.join("*.ply")):
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
         if compute_model == "openmcAnimation":
-            _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
+            #_SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
             tally_mesh = _get_mesh(sim_in.models.openmcAnimation.tallies)
-            pkdp("TALLY MESH {}", tally_mesh)
             if tally_mesh is None:
                 return None
             outlines = PKDict()
@@ -400,8 +399,6 @@ def _generate_materials(data):
 
 def _generate_parameters_file(data, run_dir=None):
     report = data.get("report", "")
-    for f in [b.basename for b in _SIM_DATA.sim_file_basenames(data)]:
-        pkio.unchecked_remove(f)
     if report == "dagmcAnimation":
         return _dagmc_animation_python(_SIM_DATA.dagmc_filename(data))
     if report == "tallyReport":

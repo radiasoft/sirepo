@@ -50,13 +50,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         if "tally" in dm:
             del dm["tally"]
 
-    @classmethod
-    def sim_files_to_run_dir(cls, data, run_dir, post_init=False):
-        try:
-            super().sim_files_to_run_dir(data, run_dir)
-        except sirepo.sim_data.SimDbFileNotFound as e:
-            if post_init:
-                raise e
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
@@ -77,6 +70,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _sim_file_basenames(cls, data):
         res = []
-        for v in data.models.volumes:
-            res.append(PKDict(basename=f"{data.models.volumes[v].volId}.ply"))
+        if data.report == "openmcAnimation":
+            for v in data.models.volumes:
+                res.append(PKDict(basename=f"{data.models.volumes[v].volId}.ply"))
         return res

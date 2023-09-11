@@ -184,25 +184,6 @@ class _MoabGroupExtractor:
             m.face_matrix().astype(numpy.uint32),
         )
 
-    def _decimated_mesh(self, vertices, polygons):
-        ms = pymeshlab.MeshSet()
-        ms.add_mesh(pymeshlab.Mesh(vertices, polygons))
-        c = len(ms.current_mesh().face_matrix())
-        if c > _DECIMATION_MAX_POLYGONS:
-            ms.apply_filter(
-                "meshing_decimation_quadric_edge_collapse",
-                preservenormal=True,
-                targetperc=max(0.2, _DECIMATION_MAX_POLYGONS / c),
-            )
-        m = ms.current_mesh()
-        pkdlog(
-            "MESH reduce faces: {} to {} ({}%)",
-            c,
-            len(m.face_matrix()),
-            int(100 - len(m.face_matrix()) * 100 / c),
-        )
-        return m
-
     def _extract_moab_vertices_and_triangles(self, item):
         def _reshape3(v):
             return v.reshape(int(len(v) / 3), 3)
