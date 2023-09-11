@@ -224,11 +224,9 @@ class _MoabGroupExtractor:
 
     def _write_mesh(self, item):
         ms = pymeshlab.MeshSet()
-        ms.add_mesh(
-            pymeshlab.Mesh(
-                *self._decimate(*self._extract_moab_vertices_and_triangles(item))
-            )
-        )
+        ms.add_mesh(pymeshlab.Mesh(
+            *self._decimate(*self._extract_moab_vertices_and_triangles(item))
+        ))
         ms.save_current_mesh(f"{item.vol_id}.ply")
 
     def _write_vti(self, vol_id, geometry):
