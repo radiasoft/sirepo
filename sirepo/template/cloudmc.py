@@ -533,19 +533,22 @@ def _write_volume_outlines(tallies, ply_files):
     tally_mesh = _get_mesh(tallies)
     if tally_mesh is None:
         return
-    tally_ranges = [numpy.linspace(
-        tally_mesh.lower_left[i],
-        tally_mesh.upper_right[i],
-        tally_mesh.dimension[i],
-    ) for i in range(3)]
+    tally_ranges = [
+        numpy.linspace(
+            tally_mesh.lower_left[i],
+            tally_mesh.upper_right[i],
+            tally_mesh.dimension[i],
+        )
+        for i in range(3)
+    ]
     outlines = PKDict()
     basis_vects = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     rots = [
         numpy.array([[1, 0], [0, 1]]),
-        numpy.array([[0, -1],[1, 0]]),
+        numpy.array([[0, -1], [1, 0]]),
         numpy.array([[0, 1], [-1, 0]]),
     ]
-    #ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
+    # ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
     for mf in ply_files:
         vol_id = mf.purebasename
         vol_mesh = None

@@ -50,7 +50,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         if "tally" in dm:
             del dm["tally"]
 
-
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
         return []
