@@ -649,7 +649,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
                 const [z, x, y] = tallyReportAxes();
                 const [n, m, l] = tallyReportAxisIndices();
                 const ranges = tallyService.getMeshRanges();
-                const inds = displayRangeIndices();
                 const pos = appState.models.tallyReport.planePos;
 
                 // for now set the aspect ratio to something reasonable even if it distorts the shape
@@ -801,7 +800,11 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
             $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
-            $scope.$on('outlines.loaded', buildTallyReport);
+            $scope.$on('outlines.loaded', () => {
+                if (tallyService.fieldData) {
+                    buildTallyReport();
+                }
+            });
             updateDisplayRange();
         },
     };
