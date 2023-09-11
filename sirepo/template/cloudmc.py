@@ -548,7 +548,6 @@ def _write_volume_outlines(tallies, ply_files):
         numpy.array([[0, -1], [1, 0]]),
         numpy.array([[0, 1], [-1, 0]]),
     ]
-    # ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
     for mf in ply_files:
         vol_id = mf.purebasename
         vol_mesh = None
