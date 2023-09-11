@@ -174,18 +174,24 @@ SIREPO.app.directive('columnPicker', function() {
         },
         template: `
             <div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">
-              <div class="modal-dialog modal-lg">
+              <div class="modal-dialog">
                 <div class="modal-content">
                   <div class="modal-header bg-info">
                     <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                     <span class="lead modal-title text-info">{{ title }}</span>
                   </div>
                   <div class="modal-body">
-                    <div class="container-fluid">
-                      <label style="margin-right: 10px;">Field:</label>
-                      <select data-ng-model="selected" ng-change="selectColumn()">
-                        <option ng-repeat="column in availableColumns">{{column}}</option>
-                      </select>
+                    <div class="form-horizontal">
+                      <div class="form-group form-group-sm">
+                        <div class="control-label col-sm-4">
+                          <label style="margin-right: 10px;">Field:</label>
+                        </div>
+                        <div class="col-sm-7">
+                          <select class="form-control" data-ng-model="selected" ng-change="selectColumn()">
+                            <option ng-repeat="column in availableColumns">{{column}}</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -633,7 +639,7 @@ SIREPO.app.directive('scansTable', function() {
                 }
                 $scope.availableColumns = masterListColumns.filter((value) => {
                     return value !== 'uid' && ! $scope.columnHeaders.includes(value);
-                });
+                }).sort((a, b) => a.localeCompare(b));
             };
 
             $scope.setColumnHeaders = function() {
