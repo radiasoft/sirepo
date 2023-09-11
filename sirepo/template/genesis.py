@@ -211,6 +211,13 @@ def sim_frame_parameterAnimation(frame_args):
     )
 
 
+def sim_frame_dpaAnimation(frame_args):
+    d = numpy.fromfile(
+        str(frame_args.run_dir.join("genesis.out.dpa")), dtype=numpy.float64
+    )
+    pkdp("\n\n\n d={}", d)
+
+
 def sim_frame_particleAnimation(frame_args):
     def _get_col(col_key):
         # POSIT: ParticleColumn keys are in same order as columns in output
