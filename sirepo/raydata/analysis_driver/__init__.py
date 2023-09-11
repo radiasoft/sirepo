@@ -3,15 +3,19 @@ from pykern.pkdebug import pkdp
 
 
 class AnalysisDriverBase(PKDict):
-    def get_analysis_driver(req_body):
+    pass
+
+
+def get_analysis_driver(catalog_name=None, req_body=None):
+    if not catalog_name:
+        assert req_body, "need catalog_name or req_body to get analysis driver"
         if _analysis_driver_not_needed(req_body):
             return
 
-        k = PKDict(
-            catalog_name=req_body.pknested_get("data.args.catalogName"),
-        )
-
-        return _class_for_catalog_name(k.catalog_name)(k)
+    k = PKDict(
+        catalog_name=catalog_name or req_body.pknested_get("data.args.catalogName"),
+    )
+    return _class_for_catalog_name(k.catalog_name)(k)
 
 
 def _analysis_driver_not_needed(req_body):

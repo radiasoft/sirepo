@@ -46,7 +46,7 @@ _SCANS_AWAITING_ANALYSIS = []
 #: path scan_monitor registers to receive api requests
 _URI = "/scan-monitor"
 
-_cfg = None
+cfg = None
 
 engine = None
 
@@ -85,7 +85,7 @@ class _Analysis(_DbBase):
 
     @classmethod
     def analysis_output_dir(cls, uid):
-        return _cfg.db_dir.join(uid)
+        return cfg.db_dir.join(uid)
 
     @classmethod
     def get_recently_updated(cls, num_scans, catalog_name, statuses):
@@ -198,11 +198,11 @@ class _Metadata:
 
 
 class _RequestHandler(_JsonPostRequestHandler):
-    async def _incoming(self, request_body):
+    async def _incoming(self, req_body):
         r = PKDict(
-            body=PKDict(request_body),
-            analysis_driver=sirepo.raydata.analysis_driver.AnalysisDriverBase.get_analysis_driver(
-                request_body
+            body=PKDict(req_body),
+            analysis_driver=sirepo.raydata.analysis_driver.get_analysis_driver(
+                req_body=req_body
             ),
         )
         return getattr(self, "_" + r.body.pkdel("method"))(r)
@@ -344,7 +344,9 @@ class _RequestHandler(_JsonPostRequestHandler):
         return _scan_info_result(s)
 
     def _run_analysis(self, req):
-        _queue_for_analysis(req.body.data.args.uid, req.body.data.args.catalogName)
+        _queue_for_analysis(
+            req.body.data.args.uid, req.body.data.args.catalogName, req.analysis_driver
+        )
         return PKDict(data="ok")
 
     def _scan_fields(self, req):
@@ -364,14 +366,8 @@ def _catalog(name):
 
 
 def _check_notebooks_for_catalogs():
-    for n in _cfg.catalog_names:
+    for n in cfg.catalog_names:
         _notebook_zip_path(n)
-
-
-def _get_notebooks(catalog_name):
-    with zipfile.ZipFile(_notebook_zip_path(catalog_name), "r") as z:
-        z.extractall()
-    return pkio.sorted_glob("*.ipynb")
 
 
 async def _init_analysis_processors():
@@ -390,7 +386,9 @@ async def _init_analysis_processors():
                     _Analysis.analysis_output_dir(v.uid), mkdir=True
                 ), pkio.open_text("run.log", mode="w") as l:
                     try:
-                        for n in _get_notebooks(v.catalog_name):
+                        for n in v.analysis_driver.get_notebooks(
+                            _Metadata(_catalog(v.catalog_name)[v.uid])
+                        ):
                             p = await asyncio.create_subprocess_exec(
                                 "papermill",
                                 str(n),
@@ -422,7 +420,7 @@ async def _init_analysis_processors():
     assert not _ANALYSIS_PROCESSOR_TASKS
     _ANALYSIS_PROCESSOR_TASKS = [
         asyncio.create_task(_process_analysis_queue())
-    ] * _cfg.concurrent_analyses
+    ] * cfg.concurrent_analyses
     await asyncio.gather(*_ANALYSIS_PROCESSOR_TASKS)
 
 
@@ -431,15 +429,15 @@ async def _init_catalog_monitors():
         assert catalog_name not in _CATALOG_MONITOR_TASKS
         return asyncio.create_task(_poll_catalog_for_scans(catalog_name))
 
-    if not _cfg.automatic_analysis:
+    if not cfg.automatic_analysis:
         return
-    for c in _cfg.catalog_names:
+    for c in cfg.catalog_names:
         _CATALOG_MONITOR_TASKS[c] = _monitor_catalog(c)
     await asyncio.gather(*_CATALOG_MONITOR_TASKS.values())
 
 
 def _notebook_zip_path(catalog_name):
-    return _cfg.notebook_dir.join(f"{catalog_name}.zip")
+    return cfg.notebook_dir.join(f"{catalog_name}.zip")
 
 
 # TODO(e-carlin): Rather than polling for scans we should explore using RunEngine.subscribe
@@ -487,10 +485,14 @@ async def _poll_catalog_for_scans(catalog_name):
     raise AssertionError("should never get here")
 
 
-def _queue_for_analysis(scan, catalog_name):
+def _queue_for_analysis(scan, catalog_name, analysis_driver=None):
     s = PKDict(
         uid=scan if isinstance(scan, str) else _Metadata(scan).uid(),
         catalog_name=catalog_name,
+        analysis_driver=analysis_driver
+        or sirepo.raydata.analysis_driver.get_analysis_driver(
+            catalog_name=catalog_name,
+        ),
     )
     pkdlog("scan={}", s)
     if s not in _SCANS_AWAITING_ANALYSIS:
@@ -527,8 +529,8 @@ def _scan_info_result(scans):
 
 def start():
     def _init():
-        global _cfg
-        _cfg = pkconfig.init(
+        global cfg
+        cfg = pkconfig.init(
             automatic_analysis=(
                 True,
                 bool,
@@ -551,8 +553,8 @@ def start():
         )
         sirepo.srtime.init_module()
         _check_notebooks_for_catalogs()
-        pkio.mkdir_parent(_cfg.db_dir)
-        _Analysis.init(_cfg.db_dir.join("analysis.db"))
+        pkio.mkdir_parent(cfg.db_dir)
+        _Analysis.init(cfg.db_dir.join("analysis.db"))
 
     def _start():
         l = pkasyncio.Loop()
@@ -560,7 +562,7 @@ def start():
         l.http_server(PKDict(uri_map=((_URI, _RequestHandler),)))
         l.start()
 
-    if _cfg:
+    if cfg:
         return
     _init()
     _start()
