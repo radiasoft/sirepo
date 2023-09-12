@@ -146,7 +146,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState) {
     };
 
     self.findTally = () => {
-        return findTally(appState.models.openmcAnimation.tallies, appState.models.openmcAnimation.tally);
+        return findTally(appState.models.settings.tallies, appState.models.openmcAnimation.tally);
     };
 
     self.isGraveyard = volume => {
