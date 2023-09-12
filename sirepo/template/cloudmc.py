@@ -126,7 +126,7 @@ def post_execution_processing(
             for f in ply_files:
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
         if compute_model == "openmcAnimation":
-            _write_volume_outlines(sim_in.models.openmcAnimation.tallies, ply_files)
+            _write_volume_outlines(sim_in.models.settings.tallies, ply_files)
         return None
     return _parse_run_log(run_dir)
 
