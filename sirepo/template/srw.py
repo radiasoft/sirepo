@@ -543,7 +543,7 @@ async def import_file(req, tmp_dir, qcall, **kwargs):
     r = None
     try:
         r = kwargs["srw_save_sim"](simulation_db.default_data(SIM_TYPE))
-        d = pykern.pkjson.load_any(r.content_as_str())
+        d = r.content_as_object()
         r.destroy()
         r = None
         i = d.models.simulation.simulationId
@@ -565,25 +565,16 @@ async def import_file(req, tmp_dir, qcall, **kwargs):
         )
         r = await qcall.call_api("runSimulation", data=d)
         for _ in range(_IMPORT_PYTHON_POLLS):
-            if r.status_as_int() != 200:
-                raise sirepo.util.UserAlert(
-                    "error parsing python",
-                    "unexpected response status={} data={}",
-                    r.status_as_int(),
-                    r.content_as_str(),
-                )
-            c = None
             try:
-                c = r.content_as_str()
+                x = r.content_as_object()
                 r.destroy()
                 r = None
-                x = pykern.pkjson.load_any(c)
             except Exception as e:
                 raise sirepo.util.UserAlert(
                     "error parsing python",
-                    "error={} parsing response data={}",
+                    "error={} parsing reply={}",
                     e,
-                    c,
+                    r,
                 )
             if "error" in x:
                 pkdc("runSimulation error msg={}", x)

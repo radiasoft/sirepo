@@ -32,17 +32,8 @@ def create_archive(sim, qcall):
             "unknown file type={}; expecting zip".format(sim.filename)
         )
     with simulation_db.tmp_dir(qcall=qcall) as d:
-        want_zip = sim.filename.endswith("zip")
         f, c = _create_zip(sim, out_dir=d, qcall=qcall)
-        if want_zip:
-            t = "application/zip"
-        else:
-            f, t = _create_html(f, c, qcall)
-        return qcall.reply_attachment(
-            f,
-            content_type="application/zip",
-            filename=sim.filename,
-        )
+        return qcall.reply_attachment(f, filename=sim.filename)
 
 
 def _create_zip(sim, out_dir, qcall):

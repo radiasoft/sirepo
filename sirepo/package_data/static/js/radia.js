@@ -74,24 +74,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.isEditing = false;
     self.objBounds = null;
     self.pointFieldTypes = appState.enumVals('FieldType').slice(1);
-    self.pointFieldExports = {
-        csv: {
-            contentType: 'text/csv;charset=utf-8',
-            extension: 'csv',
-            responseType: '',
-        },
-        sdds: {
-            contentType: 'application/octet-stream',
-            extension: 'sdds',
-            responseType: '',
-        },
-        SRW: {
-            contentType: 'application/zip',
-            extension: 'zip',
-            responseType: 'arraybuffer',
-        }
-    };
-    self.pointFieldExportTypes = Object.keys(self.pointFieldExports);
 
     self.selectedObject = null;
 
@@ -1068,7 +1050,7 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
                       <div class="sr-button-bar-parent">
                         <div class="sr-button-bar">
                           <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
-                        </div>                      
+                        </div>
                       </div>
                     </td>
                 </tr>
@@ -1598,7 +1580,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                     $scope.integrals = data;
                 }, true);
             }
-            
+
             $scope.$on('fieldPaths.saved', updateTable);
 
             updateTable();
@@ -1703,7 +1685,7 @@ SIREPO.app.directive('pointsTable', function() {
                       <span title="click to collapse" class="glyphicon glyphicon-chevron-down" data-ng-click="toggleExpand()"></span>
                     </th>
                     <th scope="col" data-ng-hide="isExpanded">
-                      <span title="click to expand" class="glyphicon glyphicon-chevron-up" data-ng-click="toggleExpand()"></span> 
+                      <span title="click to expand" class="glyphicon glyphicon-chevron-up" data-ng-click="toggleExpand()"></span>
                     </th>
                   </tr>
                   <tr data-ng-show="isExpanded">

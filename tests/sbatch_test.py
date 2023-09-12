@@ -91,7 +91,7 @@ def test_srw_data_file(new_user_fc):
             frame="0",
         ),
     )
-    pkeq(200, r.status_code)
+    r.assert_http_status(200)
 
 
 def _warppba_login_setup(fc):

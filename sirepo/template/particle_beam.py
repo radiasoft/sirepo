@@ -8,9 +8,6 @@ import numpy as np
 from pykern.pkdebug import pkdp
 import scipy.constants as sc
 
-# Methods provided from jupyter notebook with no changes
-# https://github.com/radiasoft/rscon/blob/master/webcon/madx_examples/psr/PSR_example_PTC.ipynb
-
 m_p_MeV = sc.physical_constants["proton mass energy equivalent in MeV"][0]
 m_p_GeV = m_p_MeV / 1.0e3
 

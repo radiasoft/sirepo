@@ -149,7 +149,6 @@ def create_archive(sim, qcall):
             simulation_db.simulation_dir(SIM_TYPE, sid=sim.id, qcall=qcall).join(
                 _DMP_FILE
             ),
-            content_type="application/octet-stream",
             filename=sim.filename,
         )
     return False

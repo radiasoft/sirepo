@@ -171,7 +171,7 @@ class _Auth(sirepo.quest.Attr):
         elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
             oauth.raise_authorize_redirect(self.qcall, sirepo.auth_role.sim_type(r))
         if r in sirepo.auth_role.for_moderated_sim_types():
-            auth_role_moderation.raise_control_for_user(self.qcall, u, r, t)
+            auth_role_moderation.raise_control_for_user(self.qcall, u, r)
         raise sirepo.util.Forbidden(f"uid={u} does not have access to sim_type={t}")
 
     def complete_registration(self, name=None):
@@ -324,7 +324,7 @@ class _Auth(sirepo.quest.Attr):
             want_redirect (bool): http redirect on success [False]
         """
         mm = _METHOD_MODULES[method] if isinstance(method, str) else method
-        self._validate_method(mm, sim_type=sim_type)
+        self._validate_method(mm)
         guest_uid = None
         if model:
             uid = model.uid
@@ -341,9 +341,7 @@ class _Auth(sirepo.quest.Attr):
                 self.reset_state()
             # We are logged in with a deprecated method, and now the user
             # needs to login with an allowed method.
-            self.login_fail_redirect(
-                sim_type=sim_type, module=mm, reason="deprecated", reload_js=not uid
-            )
+            self.login_fail_redirect(module=mm, reason="deprecated")
         if not uid:
             # No user in the cookie and method didn't provide one so
             # the user might be switching methods (e.g. github to email or guest to email).
@@ -375,17 +373,10 @@ class _Auth(sirepo.quest.Attr):
             self.login_success_response(sim_type, want_redirect)
         assert not mm.AUTH_METHOD_VISIBLE
 
-    def login_fail_redirect(
-        self, sim_type=None, module=None, reason=None, reload_js=False
-    ):
+    def login_fail_redirect(self, module=None, reason=None):
         raise sirepo.util.SRException(
             "loginFail",
-            PKDict(
-                method=module.AUTH_METHOD,
-                reason=reason,
-                reload_js=reload_js,
-                sim_type=sim_type,
-            ),
+            PKDict(method=module.AUTH_METHOD, reason=reason),
             "login failed: reason={} method={}",
             reason,
             module.AUTH_METHOD,
@@ -780,8 +771,8 @@ class _Auth(sirepo.quest.Attr):
 
         self.qcall.sreq.set_log_user(_user())
 
-    def _validate_method(self, module, sim_type=None):
+    def _validate_method(self, module):
         if module.AUTH_METHOD in valid_methods:
             return None
         pkdlog("invalid auth method={}".format(module.AUTH_METHOD))
-        self.login_fail_redirect(sim_type, module, "invalid-method", reload_js=True)
+        self.login_fail_redirect(module, "invalid-method")

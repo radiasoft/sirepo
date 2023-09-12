@@ -43,7 +43,7 @@ def test_moderation(auth_fc):
         PKDict(),
         raw_response=True,
     )
-    pkunit.pkeq(403, r.status_code)
+    r.assert_http_status(403)
     roles.add(auth_fc.sr_auth_state().uid, auth_role.ROLE_ADM)
     r = auth_fc.sr_post("getModerationRequestRows", PKDict())
     pkunit.pkeq(len(r.rows), 1)
@@ -72,4 +72,4 @@ def test_no_guest(auth_fc):
         ),
         raw_response=True,
     )
-    pkunit.pkeq(403, r.status_code)
+    r.assert_http_status(403)

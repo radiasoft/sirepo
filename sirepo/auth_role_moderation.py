@@ -8,6 +8,7 @@ from pykern import pkconfig
 from pykern.pkdebug import pkdexc, pkdp, pkdlog
 from pykern.pkcollections import PKDict
 from pykern import pkjinja
+import datetime
 import sirepo.quest
 import sirepo.auth_role
 import sirepo.feature_config
@@ -97,16 +98,16 @@ class API(sirepo.quest.API):
             return res[0] if res else sorted(x)[0]
 
         raise sirepo.util.Redirect(
-            self.absolute_uri(
-                sirepo.uri.local_route(_type(), route_name="admRoles"),
-            ),
+            sirepo.uri.local_route(_type(), route_name="admRoles"),
         )
 
     @sirepo.quest.Spec("require_adm")
     async def api_getModerationRequestRows(self):
-        return self.reply_json(
+        return self.reply_dict(
             PKDict(
-                rows=self.auth_db.model("UserRoleInvite").get_moderation_request_rows(),
+                rows=_datetime_to_str(
+                    self.auth_db.model("UserRoleInvite").get_moderation_request_rows()
+                ),
             ),
         )
 
@@ -164,15 +165,23 @@ class API(sirepo.quest.API):
         return self.reply_ok()
 
 
-def raise_control_for_user(qcall, uid, role, sim_type):
+def _datetime_to_str(rows):
+    for r in rows:
+        for k, v in r.items():
+            if isinstance(v, datetime.datetime):
+                r[k] = str(v)
+    return rows
+
+
+def raise_control_for_user(qcall, uid, role):
     s = qcall.auth_db.model("UserRoleInvite").get_status(role=role)
     if s in _ACTIVE:
-        raise sirepo.util.SRException("moderationPending", PKDict(sim_type=sim_type))
+        raise sirepo.util.SRException("moderationPending", None)
     if s == sirepo.auth_role.ModerationStatus.DENY:
         raise sirepo.util.Forbidden(f"uid={uid} role={role} already denied")
     assert s is None, f"Unexpected status={s} for uid={uid} and role={role}"
     qcall.auth.require_email_user()
-    raise sirepo.util.SRException("moderationRequest", PKDict(sim_type=sim_type))
+    raise sirepo.util.SRException("moderationRequest", None)
 
 
 def init_apis(*args, **kwargs):
