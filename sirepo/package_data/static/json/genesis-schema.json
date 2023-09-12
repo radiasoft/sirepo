@@ -90,7 +90,7 @@
         ]
     },
     "frameIdFields": {
-        "fieldDistributionAnimation": [],
+        "fieldDistributionAnimation": ["fieldPlot"],
         "parameterAnimation": ["y1", "y2", "y3"],
         "particleAnimation": ["x", "y", "histogramBins"]
     },
@@ -241,6 +241,7 @@
             ]
         },
         "fieldDistributionAnimation": {
+            "fieldPlot": ["Value to Plot", "FieldPlot", "fieldDistributionPlot"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
@@ -1151,6 +1152,7 @@
         "fieldDistributionAnimation": {
             "title": "Field Distribution",
             "advanced": [
+                "fieldPlot",
                 "framesPerSecond",
                 "aspectRatio",
                 "colorMap",
