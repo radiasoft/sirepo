@@ -26,7 +26,7 @@ def test_runError(fc):
             simulationType=d.simulationType,
         ),
     )
-    for _ in range(fc.DEFAULT_TIMEOUT_SECS):
+    for _ in range(fc.timeout_secs()):
         if d.state == "error":
             pkunit.pkeq("a big ugly error", d.error)
             return

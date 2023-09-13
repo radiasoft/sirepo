@@ -35,6 +35,9 @@ SR_SIM_NAME_DEFAULT = "Scooby Doo"
 _DB_DIR = "db"
 
 
+__cfg = None
+
+
 def http_client(
     env=None, sim_types=None, job_run_mode=None, empty_work_dir=True, port=None
 ):
@@ -95,8 +98,6 @@ def setup_srdb_root(cfg=None):
 
 
 class _TestClient:
-    DEFAULT_TIMEOUT_SECS = 25
-
     def __init__(self, env, job_run_mode, port):
         from sirepo import feature_config
 
@@ -550,6 +551,11 @@ class _TestClient:
             uid = self.sr_auth_state().uid
         return pkunit.work_dir().join(_DB_DIR, "user", uid)
 
+    def timeout_secs(self):
+        if not hasattr(self, "_timeout_secs"):
+            self._timeout_secs = round(_cfg().cpu_div * 0.5)
+        return self._timeout_secs
+
     def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):
         """Make request and parse result
 
@@ -815,7 +821,7 @@ class _WebSocket:
         msg.header.reqSeq = self.req_seq
         self._connection.send(_WebSocketRequest(msg).buf)
         return _WebSocketResponse(
-            self._connection.recv(timeout=self._test_client.DEFAULT_TIMEOUT_SECS),
+            self._connection.recv(timeout=self._test_client.timeout_secs()),
         )
 
     def start(self):
@@ -875,3 +881,18 @@ class _WebSocketResponse:
         self.mimetype = "text/plain"
         self.status_code = 302
         return self
+
+
+def _cfg():
+    global __cfg
+
+    if __cfg:
+        return __cfg
+
+    from pykern import pkconfig
+
+    __cfg = pkconfig.init(
+        # 25 is based on the speed of a MacBook Pro 2019.
+        cpu_div=(25, int, "cpu speed divisor to compute timeouts"),
+    )
+    return __cfg
