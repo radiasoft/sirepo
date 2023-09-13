@@ -440,6 +440,7 @@ async def _init_analysis_processors():
                                 "-p",
                                 "run_dose",
                                 "False",
+                                "--report-mode",
                             ]
                             if m.get_scan_field("user"):
                                 q += [
