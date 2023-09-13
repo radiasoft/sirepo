@@ -2649,6 +2649,9 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         );
     };
 
+    self.sendGlobalResources = function(appState, callback, data, errorCb) {
+        sendWithSimulationFields('globalResources', appState, callback, data, errorCb);
+    };
 
     self.sendRequest = function(urlOrParams, successCallback, requestData, errorCallback) {
         const blobResponse = (response, successCallback, thisErrorCallback) => {
