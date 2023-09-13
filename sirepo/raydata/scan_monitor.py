@@ -427,7 +427,7 @@ async def _init_analysis_processors():
                     try:
                         m = _Metadata(_catalog(v.catalog_name)[v.uid])
                         for n in v.analysis_driver.get_notebooks(scan_metadata=m):
-                            papermill_params = [
+                            q = [
                                 "-p",
                                 "uid",
                                 v.uid,
@@ -442,7 +442,7 @@ async def _init_analysis_processors():
                                 "False",
                             ]
                             if m.get_scan_field("user"):
-                                papermill_params += [
+                                q += [
                                     "-p",
                                     "username",
                                     m.get_scan_field("user"),
@@ -451,7 +451,7 @@ async def _init_analysis_processors():
                                 "papermill",
                                 str(n),
                                 f"{n}-out.ipynb",
-                                *papermill_params,
+                                *q,
                                 stderr=asyncio.subprocess.STDOUT,
                                 stdout=l,
                             )

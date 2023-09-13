@@ -1,5 +1,4 @@
 from pykern.pkdebug import pkdp
-import pykern.pkio
 import sirepo.raydata.analysis_driver
 import sirepo.raydata.scan_monitor
 
