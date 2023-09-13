@@ -846,9 +846,10 @@ def user_lock(uid=None, qcall=None):
     assert qcall
     p = user_path(uid=uid, qcall=qcall, check=True)
     if getattr(_USER_LOCK, "paths", None) is None:
-        # TODO(robnagler) only needed for flask. thread locals are very limited
+        # TODO(robnagler) only needs to be here for flask. when flask goes, put in init_module
         _USER_LOCK.paths = set()
     if p in _USER_LOCK.paths:
+        # re-enter, already locked path
         yield p
     else:
         try:
@@ -961,6 +962,7 @@ def _init_schemas():
     SCHEMA_COMMON = json_load(
         sirepo.resource.static("json", f"schema-common{sirepo.const.JSON_SUFFIX}")
     )
+    SCHEMA_COMMON.pkupdate(sirepo.const.SCHEMA_COMMON)
     a = SCHEMA_COMMON.appInfo
     for t in sirepo.feature_config.cfg().sim_types:
         s = read_json(sirepo.resource.static("json", f"{t}-schema.json"))

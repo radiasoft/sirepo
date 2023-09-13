@@ -189,13 +189,10 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec(
         "require_user",
-        sid="SimId deprecated",
         file_type="LibFileType",
-        sim_data="SimData",
     )
-    async def api_listFiles(self, simulation_type, simulation_id, file_type):
-        # TODO(pjm): simulation_id is an unused argument
-        req = self.parse_params(type=simulation_type, file_type=file_type)
+    async def api_listFiles(self):
+        req = self.parse_post(file_type=True)
         return self.reply_json(
             req.sim_data.lib_file_names_for_type(req.file_type, qcall=self),
         )

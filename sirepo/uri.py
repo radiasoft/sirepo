@@ -6,6 +6,7 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
+import pykern.pkcompat
 import pykern.pkinspect
 import re
 import sirepo.feature_config
@@ -32,6 +33,10 @@ def app_root(sim_type=None):
         "root",
         params=PKDict(path_info=sim_type) if sim_type else None,
     )
+
+
+def decode_to_str(encoded):
+    return pykern.pkcompat.from_bytes(urllib.parse.unquote_to_bytes(encoded))
 
 
 def default_local_route_name(schema):

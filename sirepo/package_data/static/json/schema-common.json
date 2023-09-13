@@ -146,7 +146,7 @@
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
         "jupyterHub": "/jupyter",
-        "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
+        "listFiles": "/file-list",
         "listSimulations": "/simulation-list",
         "migrateJupyterhub": "/migrate-jupyterhub",
         "newSimulation": "/new-simulation",
@@ -256,7 +256,8 @@
                     "canvas-toBlob.js",
                     "d3-3.5.9.min.js",
                     "ie10-viewport-bug-workaround.js",
-                    "katex.min.js"
+                    "katex.min.js",
+                    "msgpack.js"
                 ]
             },
             "sirepoLibs": {
@@ -319,6 +320,10 @@
                 ["none", "None"],
                 ["fit", "Fit Data"],
                 ["fixed", "Fixed"]
+            ],
+            "FieldPlot": [
+                ["fieldDistributionPlot", "Field Distribution Plot"],
+                ["phasePlot", "Phase Plot"]
             ]
         },
         "localRoutes": {

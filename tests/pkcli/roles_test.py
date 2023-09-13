@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import os
 import pytest
 
@@ -23,10 +22,7 @@ def test_flash_change_role_change_lib_files(auth_fc):
 
     def _change_role(add=True):
         f = getattr(roles, "add" if add else "delete")
-        f(
-            fc.sr_auth_state().uid,
-            auth_role.for_sim_type(fc.sr_sim_type),
-        )
+        f(fc.sr_uid, auth_role.for_sim_type(fc.sr_sim_type))
 
     def _check_file(exists=True):
         pkunit.pkeq(
@@ -61,4 +57,4 @@ def test_flash_list_role_by_email(auth_fc):
     auth_fc.sr_email_login(e, sim_type="flash")
     roles.add(e, *r)
     pkunit.pkeq(r, roles.list(e))
-    pkunit.pkeq(r, roles.list(auth_fc.sr_auth_state().uid))
+    pkunit.pkeq(r, roles.list(auth_fc.sr_uid))
