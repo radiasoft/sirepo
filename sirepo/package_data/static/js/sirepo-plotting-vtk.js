@@ -146,7 +146,7 @@ class ObjectViews {
     scaledArray(arr) {
         return ObjectViews.scaledArray(arr, this.scale);
     }
-    
+
     setShapeProperties(props) {
         for (const e in this.shapes) {
             const s = this.shapes[e];
@@ -379,96 +379,6 @@ class VTKUtils {
     }
 
     /**
-     * vtk.IO.Legacy.vtkLegacyAsciiParser.parseLegacyASCII ignores field data. This adds it
-     * to the PolyData
-     * @param {string} str - the contents of an ASCII legacy (.vtk) file
-     */
-    static parseLegacy(str) {
-
-        /**
-         * Parses field data
-         * @param {string} d - the contents of an ASCII legacy (.vtk) file
-         * @returns {null|*[]}
-         */
-        function parseFieldData(d) {
-
-            /**
-             * Creates a vtk data array from
-             * @param {string[]} lines - lines from the file
-             * @returns {{arr, index: number}|null}
-             */
-            function buildArray(lines) {
-                const ARR_TYPES = {
-                    double: vtk.Common.Core.vtkDataArray.VtkDataTypes.DOUBLE,
-                    int: vtk.Common.Core.vtkDataArray.VtkDataTypes.INT,
-                };
-
-                let hdr = lines[0].split(/\s+/);
-                const name = hdr[0];
-                const numComps = parseInt(hdr[1]);
-                const numTuples = parseInt(hdr[2]);
-                const a = [];
-                let i = 1;
-                for (i = 1; i < lines.length; ++i) {
-                    const l = lines[i];
-                    if (! l) {
-                        break;
-                    }
-                    a.push(...l.trim().split(/\s+/).map(x => parseFloat(x)));
-                    if (a.length === numComps * numTuples) {
-                        break;
-                    }
-                }
-                if (! a.length) {
-                    return null;
-                }
-                return {
-                    arr: vtk.Common.Core.vtkDataArray.newInstance({
-                        dataType: ARR_TYPES[hdr[3]],
-                        name: name,
-                        numberOfComponents: numComps,
-                        size: a.length,
-                        values: a,
-                    }),
-                    index: i,
-                };
-            }
-
-            const lines = d.split('\n');
-            let i = 0;
-            for (i = 0; i < lines.length; ++i) {
-                if (lines[i].startsWith('FIELD')) {
-                    break;
-                }
-            }
-            if (i >= lines.length) {
-                return null;
-            }
-            let l = lines[i];
-            const numArrays = parseInt(l.split(/\s+/)[2]);
-            if (! numArrays) {
-                return null;
-            }
-            let index = i + 1;
-            let a = [];
-            for (let i = 0; i < numArrays; ++i) {
-                const x = buildArray(lines.slice(index));
-                a.push(x.arr);
-                index = index + x.index + 1;
-            }
-            return a;
-        }
-
-        const v = vtk.IO.Legacy.vtkLegacyAsciiParser.parseLegacyASCII(str);
-        const pd = v.dataset;
-        for (const a of parseFieldData(str)) {
-            pd.getFieldData().addArray(a);
-        }
-        pd.buildCells();
-        return pd;
-    }
-
-    /**
      * Creates a vtk user matrix from a SquareMatrix.
      * * @param {SquareMatrix} matrix - vtk actor
      * @returns {[[number]]}
@@ -493,7 +403,7 @@ class VTKScene {
      * @param {{}} container - jquery element in which to place the scene
      * @param {string} resetSide - the dimension to display facing the user when the scene is reset
      */
-    constructor(container, resetSide) {
+    constructor(container, resetSide, resetDirection=1) {
         this.fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
             background: [1, 1, 1, 1],
             container: container,
@@ -506,12 +416,13 @@ class VTKScene {
         this.cam = this.renderer.get().activeCamera;
         this.camProperties = VTKScene.CAM_DEFAULTS();
         this.resetSide = resetSide;
+        this.resetDirection = resetDirection;
 
         this.marker = null;
         this.isMarkerEnabled = false;
 
         this.viewSide = this.resetSide;
-        this.viewDirection = 1;
+        this.viewDirection = this.resetDirection;
     }
 
     /**
@@ -616,7 +527,7 @@ class VTKScene {
      * Sets the camera so that the resetSide is facing the user
      */
     resetView() {
-        this.showSide(this.resetSide, 1);
+        this.showSide();
     }
 
     /**
@@ -679,16 +590,18 @@ class VTKScene {
      * Sets the camera so that the given side is facing the user. If that side is already set, flip to the
      * other side
      * @param {string} side - x|y|z
-     * @param {number} direction - -1|0|1
      */
-    showSide(side = this.resetSide, direction = 0) {
-        if (side === this.viewSide) {
-            this.viewDirection *= -1;
+    showSide(side) {
+        if (! side) {
+            this.viewSide = this.resetSide;
+            this.viewDirection = this.resetDirection;
         }
-        if (direction) {
-            this.viewDirection = Math.sign(direction);
+        else {
+            if (side === this.viewSide) {
+                this.viewDirection *= -1;
+            }
+            this.viewSide = side;
         }
-        this.viewSide = side || this.resetSide;
         const pos = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[this.viewSide]
             .map(c =>  c * this.viewDirection);
         this.setCam(pos, this.camProperties[this.viewSide].viewUp);
@@ -708,6 +621,11 @@ class VTKScene {
      * Cleans up vtk items
      */
     teardown() {
+        window.removeEventListener('resize', this.fsRenderer.resize);
+        document.removeEventListener(
+            'visibilitychange',
+            this.fsRenderer.getInteractor().handleVisibilityChange,
+        );
         this.isMarkerEnabled = false;
         this.refreshMarker(false);
         this.fsRenderer.getInteractor().unbindEvents();
@@ -742,9 +660,7 @@ class ActorBundle {
         /** @member {vtk.Rendering.Core.Property} - properties of the actor */
         this.actorProperties = this.actor.getProperty();
 
-        for (const p in actorProperties) {
-            this.setActorProperty(p, actorProperties[p]);
-        }
+        this.setActorProperties(actorProperties);
 
         this.actor.setUserMatrix(VTKUtils.userMatrix(this.transform.matrix));
     }
@@ -765,6 +681,15 @@ class ActorBundle {
      */
     getActorProperty(name) {
         return this.actorProperties[`get${SIREPO.UTILS.capitalize(name)}`]();
+    }
+
+    /**
+     * Set a group of properties.
+     */
+    setActorProperties(values) {
+        for (const p in values) {
+            this.setActorProperty(p, values[p]);
+        }
     }
 
     /**
@@ -2637,7 +2562,7 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
                                <button data-ng-disabled="locked[o.id]" data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
                             </div>
                           </div>
-                        </td>                    
+                        </td>
                     </tr>
                   </tbody>
                 </table>
@@ -3149,6 +3074,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             eventHandlers: '<',
             modelName: '@',
             reportId: '<',
+            resetDirection: '@',
             resetSide: '@',
             showBorder: '@',
         },
@@ -3228,7 +3154,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     };
                 }
 
-                $scope.vtkScene = new VTKScene(rw, $scope.resetSide);
+                $scope.vtkScene = new VTKScene(rw, $scope.resetSide, $scope.resetDirection);
 
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
@@ -3275,7 +3201,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 $scope.vtkScene.rotate(angle);
                 refresh(true);
             };
-            
+
             $scope.showSide = side => {
                 $scope.vtkScene.showSide(side);
                 refresh(true);

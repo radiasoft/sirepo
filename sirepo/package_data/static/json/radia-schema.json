@@ -732,6 +732,7 @@
         "extrudedPoints": {
             "_super": ["_", "model", "extrudedPoly"],
             "pointsFile": ["File", "InputFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns", false],
+            "preservePointsOnImport": ["Preserve Points on Import", "Boolean", "1", "When true, the imported values of the points are preserved; otherwise the points are shifted relative to the center you specify. In any case the object is free to move after import"],
             "referencePoints": ["Points", "Points", []],
             "type": ["_", "ObjectType", "extrudedPoints"]
         },
@@ -978,8 +979,9 @@
         },
         "stl": {
             "_super": ["_", "model", "geomObject"],
-            "type": ["_", "ObjectType", "stl"],
-            "file": ["STL File", "InputFile", ""]
+            "file": ["STL File", "InputFile", ""],
+            "preserveVerticesOnImport": ["Preserve Vertices on Import", "Boolean", "1", "When true, the imported values of the vertices are preserved; otherwise the vertices are shifted relative to the center you specify. In any case the object is free to move after import"],
+            "type": ["_", "ObjectType", "stl"]
         },
         "spatialTransform": {
             "_super": ["_", "model", "transform"]
@@ -1324,6 +1326,7 @@
                 ["Geometry", [
                     "extrudedPoints.pointsFile",
                     "extrudedPoints.referencePoints",
+                    "extrudedPoints.preservePointsOnImport",
                     "center",
                     "size",
                     "segmentation",
@@ -1344,7 +1347,8 @@
                     "stemmed.stemPosition",
                     "jay.hookHeight",
                     "jay.hookWidth",
-                    "stl.file"
+                    "stl.file",
+                    "stl.preserveVerticesOnImport"
                 ]],
                 ["Material", [
                     "material",

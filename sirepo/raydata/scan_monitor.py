@@ -11,7 +11,8 @@ import base64
 import databroker
 import databroker.queries
 import io
-import os
+import math
+import pymongo
 import requests
 import sirepo.feature_config
 import sirepo.raydata
@@ -31,7 +32,11 @@ _ANALYSIS_PROCESSOR_TASKS = None
 #: task(s) monitoring catalogs for new scans
 _CATALOG_MONITOR_TASKS = PKDict()
 
-_DEFAULT_COLUMNS = ["start", "stop", "suid"]
+_DEFAULT_COLUMNS = PKDict(
+    start="time",
+    stop="time",
+    suid="uid",
+)
 
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
@@ -263,6 +268,64 @@ class _RequestHandler(_JsonPostRequestHandler):
             )
         )
 
+    def _databroker_search(self, catalog, args):
+        def _search_params(args):
+            q = databroker.queries.TimeRange(
+                since=args.searchStartTime, until=args.searchStopTime
+            )
+            if args.get("searchText"):
+                q = {
+                    "$and": [
+                        q.query,
+                        databroker.queries.TextQuery(args.searchText).query,
+                    ],
+                }
+            return q
+
+        def _sort_params(args):
+            c = _DEFAULT_COLUMNS.get(args.sortColumn, args.sortColumn)
+            s = [
+                (
+                    c,
+                    pymongo.ASCENDING if args.sortOrder else pymongo.DESCENDING,
+                ),
+            ]
+            if c != "time":
+                s.append(
+                    (
+                        "time",
+                        pymongo.DESCENDING,
+                    )
+                )
+            return s
+
+        pc = math.ceil(
+            len(
+                catalog.search(
+                    _search_params(args),
+                    sort=_sort_params(args),
+                )
+            )
+            / args.pageSize
+        )
+        l = [
+            PKDict(uid=u)
+            for u in catalog.search(
+                _search_params(args),
+                sort=_sort_params(args),
+                limit=args.pageSize,
+                skip=args.pageNumber * args.pageSize,
+            )
+        ]
+        d = PKDict(
+            _Analysis.statuses_for_scans(
+                catalog_name=args.catalogName, uids=[s.uid for s in l]
+            )
+        )
+        for s in l:
+            s.status = d.get(s.uid, _AnalysisStatus.NONE)
+        return l, pc
+
     def _download_analysis_pdfs(self, req):
         def _is_valid_uuid(uid):
             try:
@@ -296,27 +359,16 @@ class _RequestHandler(_JsonPostRequestHandler):
     def _get_scans(self, req):
         a = req.body.data.args
         c = _catalog(a.catalogName)
+        s = 1
         if a.analysisStatus == "allStatuses":
-            l = [
-                PKDict(uid=u)
-                for u in c.search(
-                    databroker.queries.TimeRange(
-                        since=a.searchStartTime, until=a.searchStopTime
-                    )
-                )
-            ]
-            d = PKDict(
-                _Analysis.statuses_for_scans(
-                    catalog_name=a.catalogName, uids=[s.uid for s in l]
-                )
-            )
-            for s in l:
-                s.status = d.get(s.uid, _AnalysisStatus.NONE)
+            l, s = self._databroker_search(c, a)
         elif a.analysisStatus == "executed":
             assert a.searchStartTime and a.searchStopTime, pkdformat(
                 "must have both searchStartTime and searchStopTime args={}", a
             )
             l = []
+            # TODO(pjm): this could be very slow if there were a lot of old analysis records in the db
+            # it makes a mongo call per row with no datetime window
             for s in _Analysis.scans_with_status(
                 a.catalogName, _AnalysisStatus.EXECUTED
             ):
@@ -333,15 +385,7 @@ class _RequestHandler(_JsonPostRequestHandler):
             )
         else:
             raise AssertionError(f"unrecognized analysisStatus={a.analysisStatus}")
-
-        s = []
-        for i, v in enumerate(l):
-            if i > _MAX_NUM_SCANS:
-                raise AssertionError(
-                    f"more than {_MAX_NUM_SCANS} scans found. Please reduce your query."
-                )
-            s.append(_scan_info(c, v.uid, a, status=v.status))
-        return _scan_info_result(s)
+        return _scan_info_result(l, c, a, s)
 
     def _run_analysis(self, req):
         _queue_for_analysis(
@@ -513,7 +557,7 @@ def _scan_info(catalog, scan_uuid, scans_data, status=None):
         status=status,
         pdf=True if _analysis_pdf_paths(scan_uuid) else False,
     )
-    for c in _DEFAULT_COLUMNS:
+    for c in _DEFAULT_COLUMNS.keys():
         d[c] = getattr(m, c)()
 
     for c in scans_data.get("selectedColumns", []):
@@ -521,13 +565,21 @@ def _scan_info(catalog, scan_uuid, scans_data, status=None):
     return d
 
 
-def _scan_info_result(scans):
+def _scan_info_result(scans, catalog, args, count):
+    s = []
+    for i, v in enumerate(scans):
+        if i > _MAX_NUM_SCANS:
+            raise AssertionError(
+                f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query."
+            )
+        s.append(_scan_info(catalog, v.uid, args, status=v.status))
     return PKDict(
         data=PKDict(
-            scans=sorted(scans, key=lambda e: e.start),
-            cols=[k for k in scans[0].keys() if k not in _NON_DISPLAY_SCAN_FIELDS]
-            if scans
+            scans=s,
+            cols=[k for k in s[0].keys() if k not in _NON_DISPLAY_SCAN_FIELDS]
+            if s
             else [],
+            pageCount=count,
         )
     )
 

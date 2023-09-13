@@ -19,13 +19,13 @@ import time
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
-_CRYSTAL_CSV_FILE = "crystal.csv"
 _TEMP_PROFILE_FILE = "tempProfile.h5"
 _TEMP_HEATMAP_FILE = "tempHeatMap.h5"
 _RESULTS_FILE = "results{}.h5"
 _CRYSTAL_FILE = "crystal{}.h5"
 _MAX_H5_READ_TRIES = 10
 _ABCD_DELTA = 1e-3
+_L_SCALE_EQUATION = "numpy.sqrt(numpy.pi) * numpy.sqrt(2) * pulse.sigx_waist"
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -146,8 +146,8 @@ def sim_frame_tempHeatMapAnimation(frame_args):
             title="",
             x_range=[r.x[0], r.x[1], len(z)],
             y_range=[r.y[0], r.y[1], len(z[0])],
-            x_label="Radial Position [m]",
-            y_label="Longitudinal Position [m]",
+            x_label="Longitudinal Position [m]",
+            y_label="Radial Position [m]",
             z_label="Temperature (T-T₀), K",
             z_matrix=z,
         )
@@ -191,15 +191,13 @@ def stateful_compute_n0n2_plot(data, **kwargs):
     def _determinant(matrix):
         return matrix[2][0][0] * matrix[2][1][1] - matrix[2][0][1] * matrix[2][1][0]
 
+    if data.model.pump_rep_rate <= 1:
+        data.model.calc_type = "fenics"
     n = Crystal(
         params=PKDict(
-            l_scale=data.model.l_scale,
+            l_scale=numpy.sqrt(numpy.pi) * numpy.sqrt(2) * data.sigx_waist,
             length=data.model.length * 1e-2,
             nslice=data.model.nslice,
-            A=data.model.A,
-            B=data.model.B,
-            C=data.model.C,
-            D=data.model.D,
             pop_inversion_n_cells=data.model.inversion_n_cells,
             pop_inversion_mesh_extent=data.model.inversion_mesh_extent,
             pop_inversion_crystal_alpha=data.model.crystal_alpha,
@@ -310,38 +308,6 @@ def _crystal_animation_percent_complete(run_dir, res, data):
     return res
 
 
-def _crystal_plot(frame_args):
-    x = None
-    plots = []
-    with open(str(frame_args.run_dir.join(_CRYSTAL_CSV_FILE))) as f:
-        for r in csv.reader(f):
-            if x is None and r[0] == x_column:
-                r.pop(0)
-                r.pop(0)
-                x = [float(v) * scale for v in r]
-            elif r[0] == y_column:
-                r.pop(0)
-                t = r.pop(0)
-                plots.append(
-                    PKDict(
-                        points=[float(v) for v in r],
-                        label="{:.1f} sec".format(float(t)),
-                    )
-                )
-    return PKDict(
-        title="",
-        x_range=[min(x), max(x)],
-        y_label="Temperature [°C]",
-        x_label=x_heading,
-        x_points=x,
-        plots=plots,
-        y_range=template_common.compute_plot_color_and_range(plots),
-        summaryData=PKDict(
-            crystalLength=_get_crystal(frame_args.sim_in).length,
-        ),
-    )
-
-
 def _generate_beamline_elements(data):
     def _callback(state, element, dz):
         if dz:
@@ -355,9 +321,9 @@ def _generate_beamline_elements(data):
         elif element.type == "crystal":
             if element.origin == "reuse":
                 return
-            state.res += _generate_crystal(element)
+            state.res += _generate_crystal(element, data.models.laserPulse.sigx_waist)
         elif element.type == "telescope":
-            state.res += f"(Telescope_lct({element.focal_length_1}, {element.focal_length_2}, {element.drift_length_1}, {element.drift_length_2}, {element.drift_length_3}, l_scale=numpy.sqrt(2) * pulse.sigx_waist), []),\n"
+            state.res += f"(Telescope_lct({element.focal_length_1}, {element.focal_length_2}, {element.drift_length_1}, {element.drift_length_2}, {element.drift_length_3}, l_scale={_L_SCALE_EQUATION}), []),\n"
         elif element.type == "splitter":
             state.res += f"(Beamsplitter({element.transmitted_fraction}), []),\n"
         else:
@@ -394,17 +360,13 @@ def _generate_beamline_indices(data):
     return ", ".join(state.res)
 
 
-def _generate_crystal(crystal):
+def _generate_crystal(crystal, sigx_waist):
     return f"""(
         Crystal(
             params=PKDict(
-                l_scale={crystal.l_scale},
+                l_scale={_L_SCALE_EQUATION},
                 length={crystal.length * 1e-2},
                 nslice={crystal.nslice},
-                A={crystal.A},
-                B={crystal.B},
-                C={crystal.C},
-                D={crystal.D},
                 pop_inversion_n_cells={crystal.inversion_n_cells},
                 pop_inversion_mesh_extent={crystal.inversion_mesh_extent},
                 pop_inversion_crystal_alpha={crystal.crystal_alpha},
@@ -430,30 +392,27 @@ def _generate_parameters_file(data):
 
     res, v = template_common.generate_parameters_file(data)
     if data.report == "crystalAnimation":
+        c = data.models.thermalTransportCrystal.crystal
+        if c.pump_rep_rate <= 1:
+            c.calc_type = "fenics"
         v.crystalParams = PKDict(
-            l_scale=_get_crystal(data).l_scale,
-            length=_get_crystal(data).length * 1e-2,
-            nslice=_get_crystal(data).nslice,
-            A=_get_crystal(data).A,
-            B=_get_crystal(data).B,
-            C=_get_crystal(data).C,
-            D=_get_crystal(data).D,
-            pop_inversion_n_cells=_get_crystal(data).inversion_n_cells,
-            pop_inversion_mesh_extent=_get_crystal(data).inversion_mesh_extent,
-            pop_inversion_crystal_alpha=_get_crystal(data).crystal_alpha,
-            pop_inversion_pump_waist=_get_crystal(data).pump_waist,
-            pop_inversion_pump_wavelength=_get_crystal(data).pump_wavelength,
-            pop_inversion_pump_gaussian_order=_get_crystal(data).pump_gaussian_order,
-            pop_inversion_pump_energy=_get_crystal(data).pump_energy,
-            pop_inversion_pump_type=_get_crystal(data).pump_type,
-            pop_inversion_pump_rep_rate=_get_crystal(data).pump_rep_rate,
-            pop_inversion_pump_offset_x=_get_crystal(data).pump_offset_x,
-            pop_inversion_pump_offset_y=_get_crystal(data).pump_offset_y,
+            length=c.length * 1e-2,
+            nslice=c.nslice,
+            pop_inversion_n_cells=c.inversion_n_cells,
+            pop_inversion_mesh_extent=c.inversion_mesh_extent,
+            pop_inversion_crystal_alpha=c.crystal_alpha,
+            pop_inversion_pump_waist=c.pump_waist,
+            pop_inversion_pump_wavelength=c.pump_wavelength,
+            pop_inversion_pump_gaussian_order=c.pump_gaussian_order,
+            pop_inversion_pump_energy=c.pump_energy,
+            pop_inversion_pump_type=c.pump_type,
+            pop_inversion_pump_rep_rate=c.pump_rep_rate,
+            pop_inversion_pump_offset_x=c.pump_offset_x,
+            pop_inversion_pump_offset_y=c.pump_offset_y,
         )
-        v.pump_pulse_profile = _get_crystal(data).pump_pulse_profile
-        v.crystalLength = _get_crystal(data).length
-        v.crystalCSV = _CRYSTAL_CSV_FILE
-        v.thermalCrystal = _get_crystal(data)
+        v.pump_pulse_profile = c.pump_pulse_profile
+        v.crystalLength = c.length
+        v.thermalCrystal = c
         return res + template_common.render_jinja(SIM_TYPE, v, "crystal.py")
     if data.report in _SIM_DATA.SOURCE_REPORTS:
         data.models.beamline = []
@@ -466,10 +425,6 @@ def _generate_parameters_file(data):
     v.beamlineElements = _generate_beamline_elements(data)
     v.beamlineIndices = _generate_beamline_indices(data)
     return res + template_common.render_jinja(SIM_TYPE, v)
-
-
-def _get_crystal(data):
-    return data.models.thermalTransportCrystal.crystal
 
 
 def _initial_intensity_percent_complete(run_dir, res, data, model_names):
@@ -619,25 +574,6 @@ class _LaserPulsePlot(PKDict):
             except BlockingIOError as e:
                 time.sleep(3)
         raise AssertionError("Report is unavailable")
-
-
-def _laser_pulse_report(value_index, filename, title, label):
-    values = numpy.load(filename)
-    return template_common.parameter_plot(
-        values[0].tolist(),
-        [
-            PKDict(
-                points=values[value_index].tolist(),
-                label=label,
-            ),
-        ],
-        PKDict(),
-        PKDict(
-            title=title,
-            y_label="",
-            x_label="s [m]",
-        ),
-    )
 
 
 def _parse_silas_log(run_dir):

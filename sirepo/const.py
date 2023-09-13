@@ -34,6 +34,16 @@ PORT_DEFAULTS = PKDict(
     uwsgi=8000,
 )
 
+#: These values will be injected into simulation_db.SCHEMA_COMMON
+SCHEMA_COMMON = PKDict(
+    websocketMsg=PKDict(
+        kind=PKDict(
+            httpReply=2,
+            httpRequest=1,
+        ),
+        version=1,
+    ),
+)
 
 TEST_PORT_RANGE = range(10000, 11000)
 

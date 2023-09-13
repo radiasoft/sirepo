@@ -862,6 +862,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelSt
                 <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
               </div>
             </div>
+            <div data-ng-show="simState.isStateError()">{{ simState.errorMessage() }}</div>
           </div>
           <div style="margin-bottom: 1em" class="clearfix"></div>
           <div data-ng-repeat="report in reports" data-ng-if="simState.hasFrames()">
@@ -871,6 +872,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelSt
           </div>
         `,
         controller: function($scope, $rootScope) {
+            let errorMessage;
             $scope.reports = [];
             $scope.simScope = $scope;
             $scope.simComputeModel = 'beamlineAnimation';
@@ -906,6 +908,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelSt
                 if (appState.models.simulation.framesCleared) {
                     return;
                 }
+                errorMessage = data.error;
                 if (! data.outputInfo) {
                     return;
                 }
@@ -932,6 +935,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelSt
             };
 
             $scope.simState = persistentSimulation.initSimulationState($scope);
+            $scope.simState.errorMessage = () => errorMessage;
 
             $scope.$on('modelChanged', (e, name) => {
                 if (! appState.isReportModelName(name)) {

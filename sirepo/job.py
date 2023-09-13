@@ -14,6 +14,7 @@ import sirepo.srdb
 import sirepo.util
 import re
 
+ERROR_CODE_RESPONSE_TOO_LARGE = "response_too_large"
 
 OP_ANALYSIS = "analysis"
 OP_CANCEL = "cancel"

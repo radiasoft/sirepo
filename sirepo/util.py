@@ -126,6 +126,12 @@ class Redirect(OKReplyExc):
         super().__init__(*args, sr_args=PKDict(uri=uri), **kwargs)
 
 
+class ContentTooLarge(ReplyExc):
+    """The content requested by the user was too large (ex large data file)"""
+
+    pass
+
+
 class ServerError(ReplyExc):
     """Raised for server error"""
 

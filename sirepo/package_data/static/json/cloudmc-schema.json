@@ -134,6 +134,10 @@
             ["energyoutFilter", "EnergyoutFilter"],
             ["particleFilter", "ParticleFilter"]
         ],
+        "TallyGeometry": [
+            ["2D", "2D"],
+            ["3D", "3D"]
+        ],
         "TallyScore": [
             ["flux", "flux: Total flux"],
 
@@ -906,13 +910,13 @@
         "openmcAnimation": {
             "aspect": ["Aspect", "TallyAspect", "mean"],
             "bgColor": ["Background color", "Color", "#fff9ed"],
-            "colorMap": ["Color Map", "ColorMap", "jet"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
             "tally": ["Tally", "TallyList"],
-            "score": ["Score", "ScoreList"],
-            "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.0, "", 0.0, 1.0]
+            "threshold": ["Threshold", "Float", 0.0, "Tally cells with a value below this will not be displayed"],
+            "score": ["Score", "ScoreList"]
         },
         "particle": {
             "value": ["Particle", "FilterParticle"]
@@ -1002,18 +1006,10 @@
             "nuclides": ["Nuclides", "SimpleListEditor", [], "List of nuclides to use when scoring results", "nuclide"]
         },
         "tallyReport": {
-            "axis": ["Axis", "Axis", "y"],
-            "colorMap": ["Color Map", "ColorMap", "jet"],
-            "horizontalAxis": ["_", "Axis", "z"],
-            "horizontalTrim": ["Trim", "FloatArray", []],
+            "axis": ["Slice Axis", "Axis", "y"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "planePos": ["_", "Range", 0.0, ""],
-            "verticalAxis": ["_", "Axis", "x"],
-            "xDisplayMin": ["Min X", "Float", -1e100],
-            "xDisplayMax": ["Max X", "Float", 1e100],
-            "yDisplayMin": ["Min Y", "Float", -1e100],
-            "yDisplayMax": ["Max Y", "Float", 1e100],
-            "zDisplayMin": ["Min Z", "Float", -1e100],
-            "zDisplayMax": ["Max Z", "Float", 1e100]
+            "selectedGeometry": ["", "TallyGeometry", "3D"]
         },
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
@@ -1030,10 +1026,6 @@
             "_type": ["", "ProbabilityDistribution"]
         },
         "volumes": {},
-        "voxels": {
-            "colorMap": ["Color Map", "ColorMap", "jet"],
-            "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.10, "", 0.0, 1.0]
-        },
         "watt": {
             "_super": [ "_", "model", "univariate"],
             "a": ["a", "Float", 0.988e6, "The Watt fission energy spectrum is characterized by two parameters $a$ and $b$ and has density function $p(E) dE = c e^{-E/a} \\sinh \\sqrt{b \\, E} dE$"],
@@ -1181,13 +1173,12 @@
             "title": "Tally Results",
             "advanced": [
                 "tally",
+                "threshold",
                 "score",
                 "aspect",
-                "voxels.voxelInsetPct",
-                "voxels.colorMap",
+                "colorMap",
                 "opacity",
                 "bgColor",
-                "showEdges",
                 "showMarker"
             ]
         },

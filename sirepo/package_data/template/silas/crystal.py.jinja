@@ -7,24 +7,34 @@ import dolfin
 import numpy
 
 crystal = Crystal(params=PKDict({{crystalParams}}))
+sim_type = "{{ thermalCrystal.calc_type }}"
 
 def thermo_optic_sim():
-    # Initialize a simulator with a crystal object set
-    thermo = ThermoOptic(crystal, {{thermalCrystal.mesh_density}})
+    def _solve():
+        if sim_type == "analytical":
+            return thermo.{{ pump_pulse_profile }}_solution()
 
-    # Set evaluation points & boundary conditions
+        elif sim_type == "fenics":
+            thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
+            thermo.set_load('{{ pump_pulse_profile }}')
+            r = crystal.params.pop_inversion_pump_rep_rate
+            if r <= 1:
+                return thermo.slow_solution('{{ pump_pulse_profile }}')
+            elif r >= 100:
+                return thermo.solve_steady()
+            else:
+                raise AssertionError(f"Invalid rep rate for simulated solve heat_load={'{{ pump_pulse_profile }}'}")
+
+    thermo = ThermoOptic(crystal, {{ thermalCrystal.mesh_density }})
+
+    # prep for 2d solve
     thermo.set_points((
         {{thermalTransportSettings_grid_points_r}},
         {{thermalTransportSettings_grid_points_w}},
         {{thermalTransportSettings_grid_points_z}},
-    ), {{thermalTransportSettings_edge_fraction}})
-    thermo.set_boundary(2*(crystal.radius*100.)**2./40.)
-    thermo.set_load("{{ pump_pulse_profile }}")
+    ))
+    res_2d = _solve()
 
-    Ts = thermo.{{ pump_pulse_profile }}_solution() #solve_steady()#gaussian_solution()
-    nT, n0Fit, n2Fit = thermo.compute_indices(Ts)
-
-    # Positions of each evaluation point & sets of the unique values
     ptzs = thermo.eval_pts[:, 2]
     ptrs = (thermo.eval_pts[:, 0] ** 2 + thermo.eval_pts[:, 1] ** 2) ** 0.5
     zs = unique(ptzs)
@@ -33,37 +43,38 @@ def thermo_optic_sim():
     zface = zs.min() if crystal.params.pop_inversion_pump_type != "right" else zs.max()
 
     # Radial values reflected across axis & meshgrid with longitudinal values
-    rrs = array((-rs[::-1]).tolist() + rs[1:].tolist())
-    RZ, ZR = meshgrid(rrs, zs)
     temp_profile = PKDict(
-        radial=[rs, Ts[ptzs==zface]],
-        longitudinal=[zs, Ts[ptrs==rcenter]]
+        radial=[rs, res_2d[ptzs==zface]],
+        longitudinal=[zs, res_2d[ptrs==rcenter]]
     )
-    pTs = Ts.reshape((len(rs), len(zs)), order='F')
+    pTs = res_2d.reshape((len(rs), len(zs)), order='F')
     pTs = array((pTs[::-1]).tolist()+pTs[1:].tolist())
-    heat_map = pTs.T
+
+    # prep for 3d solve
+    mesh = thermo.mesh
+    inds = []
+    for item in dolfin.cpp.mesh.facets(mesh):
+        inds.append(item.entities(0).tolist())
+    vertices = mesh.coordinates()
+    thermo.eval_pts = vertices
+    res_3d = _solve()
     return PKDict(
         thermo=thermo,
-        heat_map=heat_map,
+        heat_map=pTs,
         temp_profile=temp_profile,
-        nT=nT,
-        n0Fit=n0Fit,
-        n2Fit=n2Fit,
+        intensity=res_3d,
+        vertices=vertices,
+        indices=numpy.array(inds),
     )
 
 
 res = thermo_optic_sim()
 
-# for 3D plots, get the facets, and build an array
-# containing the indices of their coordinates
-inds = []
-for item in dolfin.cpp.mesh.facets(res.thermo.mesh):
-    inds.append(item.entities(0).tolist())
 
 # we will provide these indices to plotly so it can draw proper surfaces
-inds = numpy.array(inds)
-numpy.save("indices.npy", inds)
-numpy.save("vertices.npy", res.thermo.mesh.coordinates())
+numpy.save("indices.npy", res.indices)
+numpy.save("intensity.npy", res.intensity)
+numpy.save("vertices.npy", res.vertices)
 template_common.write_dict_to_h5(
     res.temp_profile,
     "tempProfile.h5"
@@ -73,12 +84,12 @@ template_common.write_dict_to_h5(
         intensity=res.heat_map,
         ranges=PKDict(
             x=[
-                -crystal.params.pop_inversion_mesh_extent,
-                crystal.params.pop_inversion_mesh_extent,
-            ],
-            y=[
                 -crystal.params.length / 2,
                 crystal.params.length / 2,
+            ],
+            y=[
+                -crystal.params.pop_inversion_mesh_extent,
+                crystal.params.pop_inversion_mesh_extent,
             ],
         ),
     ),

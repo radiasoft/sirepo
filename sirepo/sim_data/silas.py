@@ -65,8 +65,6 @@ class SimData(sirepo.sim_data.SimDataBase):
             "crystal3dAnimation",
             "tempProfileAnimation",
             "tempHeatMapAnimation",
-            "plotAnimation",
-            "plot2Animation",
         ):
             return "crystalAnimation"
         if "beamlineAnimation" in analysis_model:

@@ -5,7 +5,7 @@
 """
 from pykern import pkcompat, pkinspect, pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty, pkdformat
 from sirepo import simulation_db
 from sirepo.template import template_common
 import asyncio
@@ -78,6 +78,14 @@ class API(sirepo.quest.API):
     async def api_downloadDataFile(
         self, simulation_type, simulation_id, model, frame, suffix=None
     ):
+        def _content_too_large(req):
+            return sirepo.util.ContentTooLarge(
+                "sim_type={} sid={} report={}",
+                req.type,
+                req.id,
+                req.req_data.report,
+            )
+
         # TODO(robnagler) validate suffix and frame
         req = self.parse_params(
             id=simulation_id,
@@ -100,7 +108,14 @@ class API(sirepo.quest.API):
                     req_data=req.req_data,
                     suffix=s,
                 )
-                assert not r.state == "error", f"error state in request=={r}"
+                if r.state == sirepo.job.CANCELED:
+                    # POSIT: Users can't cancel donwloadDataFile. So canceled means there was a
+                    # timeout (max_run_secs exceeded).
+                    raise _content_too_large(req)
+                if r.state == sirepo.job.ERROR:
+                    if r.get("errorCode") == sirepo.job.ERROR_CODE_RESPONSE_TOO_LARGE:
+                        raise _content_too_large(req)
+                    raise AssertionError(pkdformat("error state in request=={}", r))
                 f = d.listdir()
                 if len(f) > 0:
                     assert len(f) == 1, "too many files={}".format(f)

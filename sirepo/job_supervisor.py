@@ -393,7 +393,6 @@ class _Supervisor(PKDict):
 
     @classmethod
     def _reply_exception(cls, exc):
-        n = exc.__class__
         if isinstance(exc, sirepo.util.SRException):
             return PKDict(
                 {
@@ -724,8 +723,11 @@ class _ComputeJob(_Supervisor):
             r = set(
                 o
                 for o in self.ops
-                # Do not cancel sim frames. Allow them to come back for a canceled run
-                if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
+                # Do not cancel sim frames and file requests. Allow them to come back for a canceled
+                # compute job. Both can have relevant data in the event of a canceled compute job.
+                # In the case of OP_IO we excpect that the only reason for cancelation is due to
+                # a timeout (max_run_secs reached) in which case we send back "content-too-large".
+                if not (self.db.isParallel and o.opName in (job.OP_ANALYSIS, job.OP_IO))
             )
             if timed_out_op in self.ops:
                 r.add(timed_out_op)
@@ -849,7 +851,7 @@ class _ComputeJob(_Supervisor):
         if r:
             return r
         r = await self._send_op_analysis(req, "sequential_result")
-        if r.state == job.ERROR:
+        if r.state == job.ERROR and "errorCode" not in r:
             return self._init_db_missing_response(req)
         return r
 

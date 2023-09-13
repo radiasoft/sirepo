@@ -308,8 +308,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         scope.prevFrameIndex = SIREPO.nonDataFileFrame;
         scope.isPlaying = false;
         var requestData = scope.requestData || function() {
-            if (! scope.hasFrames() || scope.onlyClientFieldsChanged) {
-                scope.onlyClientFieldsChanged = false;
+            if (! scope.hasFrames()) {
                 return;
             }
             var index = frameCache.getCurrentFrame(scope.modelName);
@@ -755,7 +754,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return scope.isAnimation ? 1 : INITIAL_HEIGHT;
         },
 
-        initImage: function(plotRange, heatmap, cacheCanvas, imageData, modelName) {
+        initImage: function(plotRange, heatmap, cacheCanvas, imageData, modelName, threshold=null) {
             var scaleFunction = this.scaleFunction(modelName);
             if (scaleFunction) {
                 if (["e", "10", "2"].indexOf(scaleFunction.powerName) >= 0) {
@@ -790,7 +789,11 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     img.data[++p] = c.r;
                     img.data[++p] = c.g;
                     img.data[++p] = c.b;
-                    img.data[++p] = 255;
+                    let a = 255;
+                    if (threshold !== null) {
+                        a = v > threshold ? 255 : 0;
+                    }
+                    img.data[++p] = a;
                 }
             }
             try {
@@ -822,10 +825,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 scope.$broadcast('sr-plotEvent', args);
                 scope.$emit('sr-plotEvent', args);
             };
-
+            // work-around for #6230 Safari browser
+            $(element, 'div.sr-plot').on('wheel', e => {});
             scope.$on('$destroy', function() {
                 scope.destroy();
                 $(d3.select(scope.element).select('svg.sr-plot').node()).off();
+                $(scope.element, 'div.sr-plot').off();
                 scope.element = null;
             });
 
@@ -3246,6 +3251,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             var canvas, ctx, amrLine, heatmap, mouseMovePoint, pointer, zoom;
             var globalMin = 0.0;
             var globalMax = 1.0;
+            let threshold = null;
             var cacheCanvas, imageData;
             var colorbar, hideColorBar;
             var axes = {
@@ -3353,7 +3359,12 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                         min: plotMin,
                         max: plotMax,
                     },
-                    heatmap, cacheCanvas, imageData, $scope.modelName);
+                    heatmap,
+                    cacheCanvas,
+                    imageData,
+                    $scope.modelName,
+                    threshold
+                );
                 colorbar.scale(colorScale);
             }
 
@@ -3370,7 +3381,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             };
 
             $scope.destroy = function() {
-                $('.mouse-rect').off();
+                select('.mouse-rect').on('mousemove', null);
                 zoom.on('zoom', null);
                 document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
@@ -3413,6 +3424,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
                 globalMin = json.global_min;
                 globalMax = json.global_max;
+                threshold = json.threshold;
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
                 $.each(axes, function(dim, axis) {

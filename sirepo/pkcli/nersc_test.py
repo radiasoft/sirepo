@@ -43,7 +43,7 @@ class _Sequential(PKDict):
     """Run a sequential job by mocking the input to job_cmd"""
 
     JOB_CMD_FILE = "sequential_job_cmd.json"
-    RESOURCE_DIR = "nersc_test/"
+    RESOURCE_DIR = "nersc_test"
     RESULT_FILE = "sequential_result.json"
     RUN_DIR = "sirepo_run_dir"
     RUN_FILE = "sequential_run.sh"
@@ -71,11 +71,6 @@ class _Sequential(PKDict):
         if self.result_parsed.state != "completed":
             raise RuntimeError(f"unexpected result state={self.result_parsed.state}")
 
-    def _file_path(self, filename):
-        return sirepo.resource.file_path(
-            self.RESOURCE_DIR + filename + pykern.pkjinja.RESOURCE_SUFFIX
-        )
-
     def _job_cmd_file(self):
         if self.pkunit_deviance:
             return pykern.pkio.py_path(self.pkunit_deviance)
@@ -93,14 +88,13 @@ class _Sequential(PKDict):
         return res
 
     def _render_resource(self, filename):
-        res = self.run_dir.join(filename)
-        pykern.pkjinja.render_file(
-            self._file_path(filename),
-            PKDict(
+        return sirepo.resource.render_jinja(
+            self.RESOURCE_DIR,
+            filename,
+            target_dir=self.run_dir,
+            j2_ctx=PKDict(
                 job_cmd_file=self.get("job_cmd_file"),
                 run_dir=self.run_dir,
                 user=self.user,
             ),
-            output=res,
         )
-        return res

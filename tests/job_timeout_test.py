@@ -84,4 +84,4 @@ def test_myapp_analysis(fc):
             suffix="sr_long_analysis",
         ),
     )
-    pkunit.pkok(r.status_code == 404, "r={}", r)
+    pkunit.pkeq(413, r.status_code)

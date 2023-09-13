@@ -37,7 +37,7 @@
             ["1", "Linear Horizontal"]
         ],
         "PropCalcType": [
-            ["fenics", "Calculated by Fenics"],
+            ["fenics", "Simulated"],
             ["analytical", "Analytical"]
         ],
         "PropagationType": [
@@ -118,12 +118,11 @@
             "initial_temp": ["Inital Temperature [°C]", "Float", 0.0],
             "mesh_density": ["Mesh Density", "Integer", 80],
             "title": ["Element Name", "String", "Crystal"],
-            "A": ["A", "Float", 0.99765495],
-            "B": ["B", "Float", 1.41975385],
-            "C": ["C", "Float", -0.0023775],
-            "D": ["D", "Float", 0.99896716],
+            "A": ["A", "Float", 0],
+            "B": ["B", "Float", 0],
+            "C": ["C", "Float", 0],
+            "D": ["D", "Float", 0],
             "length": ["Length [cm]", "Float", 2],
-            "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
             "calc_type": ["Propagation Calculation Type", "PropCalcType", "analytical"],
             "inversion_n_cells": ["Mesh Cell Count", "Integer", 64],
             "inversion_mesh_extent": ["Radius [m]", "Float", 0.01],
@@ -139,7 +138,7 @@
             "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
             "pump_offset_x": ["Pump Offset X [m]", "Float", 0.0],
             "pump_offset_y": ["Pump Offset Y [m]", "Float", 0.0],
-            "pump_rep_rate": ["Pump Rep Rate [Hz]", "Float", 1.0]
+            "pump_rep_rate": ["Pump Rep Rate [Hz]", "PumpRepRate", 1.0, "", 1, 100]
         },
         "crystalAnimation": {},
         "tempProfileAnimation": {
@@ -150,7 +149,7 @@
             "x": ["Horizontal Value to Plot", "ValueList", "x"],
             "y1": ["Vertical Value to Plot", "ValueList", "y"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
-            "colorMap": ["Color Map", "ColorMap", "afmhot"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "crystal3dAnimation": {},
         "laserPulse": {
@@ -164,9 +163,9 @@
             "nslice": ["Number of Slices", "Integer", 5, "", 1],
             "photon_e_ev": ["Photon energy [eV]", "Float", 1.5],
             "poltype": ["Polarization", "GaussianBeamPolarization", "1"],
-            "tau_fwhm": ["FWHM Length [ps]", "Float", 23.5865],
-            "tau_0": ["Fourier-limited pulse length of a given spectral bandwidth [ps]", "Float",  23.5865],
-            "chirp": ["Chirp", "Float", 0.0012459],
+            "tau_fwhm": ["FWHM Length [ps]", "Float", 424.264068],
+            "tau_0": ["Fourier-limited pulse length of a given spectral bandwidth [ps]", "Float",  0.04949747],
+            "chirp": ["Chirp", "Float", 0.066014],
             "pulseE": ["Total Laser Pulse Energy [J]", "Float", 0.001],
             "distribution": ["Distribution Type", "DistributionType", "gaussian"],
             "sigx_waist": ["Horizontal Beam Size [m]", "Float", 0.001, "Size is in terms of RMS"],
@@ -193,8 +192,6 @@
             "_super": ["_", "model", "beamElement"],
             "title": ["Element Name", "String", "Mirror"]
         },
-        "plotAnimation": {},
-        "plot2Animation": {},
         "simulation": {
             "distanceFromSource": ["", "Float", 0.0 , "", 0.0]
         },
@@ -257,16 +254,15 @@
                 ]],
                 ["Propagation", [
                     "propagationType",
-                    "calc_type",
                     "initial_temp",
-                    "mesh_density",
-                    "l_scale"
+                    "mesh_density"
                 ]],
                 ["Pump Pulse", [
                     "pump_type",
                     "pump_energy",
                     "pump_waist",
                     "pump_rep_rate",
+                    "calc_type",
                     "pump_gaussian_order",
                     "pump_pulse_profile",
                     "pump_wavelength",
@@ -299,7 +295,8 @@
         },
         "crystal3dAnimation": {
             "title": "Crystal 3D Mesh",
-            "advanced": []
+            "advanced": [],
+            "canFullScreen": false
         },
         "mirror2": {
             "title": "Two Mirrors",
@@ -366,14 +363,6 @@
                 "focalLength"
             ]
         },
-        "plotAnimation": {
-            "title": "Radial Temperature Profile",
-            "advanced": []
-        },
-        "plot2Animation": {
-            "title": "Longitudinal Temperature Profile",
-            "advanced": []
-        },
         "n0n2Plot": {
             "title": "",
             "advanced": []
@@ -416,10 +405,12 @@
                     "crystal.mesh_density"
                 ]],
                 ["Pump Pulse", [
+                    "crystal_id",
                     "crystal.pump_type",
                     "crystal.pump_energy",
                     "crystal.pump_waist",
                     "crystal.pump_rep_rate",
+                    "crystal.calc_type",
                     "crystal.pump_gaussian_order",
                     "crystal.pump_pulse_profile",
                     "crystal.pump_wavelength",

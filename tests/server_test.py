@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import csv
 import pytest
 import re
@@ -17,6 +16,7 @@ def test_elegant_data_file(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     import sdds
+    from sirepo import feature_config
 
     data = fc.sr_sim_data("bunchComp - fourDipoleCSR")
     run = fc.sr_post(
@@ -30,7 +30,7 @@ def test_elegant_data_file(fc):
         ),
     )
     pkunit.pkeq("pending", run.state, "not pending, run={}", run)
-    for _ in range(fc.DEFAULT_TIMEOUT_SECS):
+    for _ in range(fc.timeout_secs()):
         if run.state == "completed":
             break
         time.sleep(1)
@@ -62,11 +62,11 @@ def test_elegant_data_file(fc):
         ),
     )
     pkunit.pkeq(200, r.status_code)
+    d = pkunit.work_dir()
     m = re.search(
         r'attachment; filename="([^"]+)"',
         r.header_get("Content-Disposition"),
     )
-    d = pkunit.work_dir()
     path = d.join(m.group(1))
     path.write_binary(r.data)
     pkunit.pkeq(1, sdds.sddsdata.InitializeInput(0, str(path)))
