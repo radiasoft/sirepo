@@ -1061,11 +1061,6 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
     });
 
     
-    self.simState.startSimulation = () => {
-        self.summaryData = {};
-        self.simState.runSimulation();
-    }
-
     self.newSimFromResults = () => {
         function applyResults(objects) {
             for (const p in self.summaryData) {
@@ -1100,6 +1095,11 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
     self.simState.runningMessage = () => {
         return 'Completed run: ' + self.simState.getFrameCount();
     };
+
+    $scope.startSimulation = () => {
+        self.summaryData = {};
+        self.simState.runSimulation();
+    }
 
     $scope.$on(`${self.simAnalysisModel}.summaryData`, (e, d) => {
         self.summaryData = d;
