@@ -27,6 +27,7 @@
     "frameIdFields": {
         "animation": [
             "simCount",
+            "fieldPlot",
             "reportCount",
             "y1",
             "y2",
@@ -63,6 +64,13 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
+        "simFieldDistributionAnimation": {
+            "fieldPlot": ["Value to Plot", "FieldPlot", "fieldDistributionPlot"],
+            "simCount": ["", "Integer"],
+            "reportCount": ["", "Integer"],
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"],
+            "notes": ["Notes", "Text", ""]
+        },
         "simulationStatus": {}
     },
     "view": {
@@ -83,6 +91,14 @@
             "advanced": [
                 "colorMap",
                 "histogramBins"
+            ]
+        },
+        "simFieldDistributionAnimation": {
+            "title": "Field Distribution",
+            "advanced": [
+                "fieldPlot",
+                "colorMap",
+                "notes"
             ]
         },
         "simWorkflow": {

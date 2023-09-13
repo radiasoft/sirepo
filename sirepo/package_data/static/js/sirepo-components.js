@@ -4577,6 +4577,13 @@ SIREPO.app.service('plotToPNG', function() {
         return $(element).find(`.sr-screenshot${isVisible ? ':visible' : ''}`)[0];
     }
 
+    this.destroyVTK = element => {
+        const el = screenshotElement(element);
+        if (el && el.srUpdateCanvas) {
+            el.srUpdateCanvas = null;
+        }
+    };
+
     this.downloadPNG = function(el, outputHeight, fileName) {
         el = screenshotElement(el, true);
         if (el.srUpdateCanvas) {

@@ -320,6 +320,10 @@
                 ["none", "None"],
                 ["fit", "Fit Data"],
                 ["fixed", "Fixed"]
+            ],
+            "FieldPlot": [
+                ["fieldDistributionPlot", "Field Distribution Plot"],
+                ["phasePlot", "Phase Plot"]
             ]
         },
         "localRoutes": {
