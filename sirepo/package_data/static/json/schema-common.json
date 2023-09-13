@@ -76,10 +76,6 @@
             "longName": "Synchrotron Radiation Workshop",
             "shortName": "SRW"
         },
-        "viz3d": {
-            "longName": "Viz3d",
-            "shortName": "Viz3d"
-        },
         "warppba": {
             "longName": "Warp PBA",
             "shortName": "Warp PBA"
@@ -324,6 +320,10 @@
                 ["none", "None"],
                 ["fit", "Fit Data"],
                 ["fixed", "Fixed"]
+            ],
+            "FieldPlot": [
+                ["fieldDistributionPlot", "Field Distribution Plot"],
+                ["phasePlot", "Phase Plot"]
             ]
         },
         "localRoutes": {

@@ -4,3 +4,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.raydata-button {
+  margin: 5px;
+}
+body {
+  overflow-y: scroll;
+}

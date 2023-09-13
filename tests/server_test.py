@@ -30,7 +30,7 @@ def test_elegant_data_file(fc):
         ),
     )
     pkunit.pkeq("pending", run.state, "not pending, run={}", run)
-    for _ in range(fc.DEFAULT_TIMEOUT_SECS):
+    for _ in range(fc.timeout_secs()):
         if run.state == "completed":
             break
         time.sleep(1)
