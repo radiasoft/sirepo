@@ -367,7 +367,7 @@ def _catalog(name):
 
 def _check_notebooks_for_catalogs():
     for n in cfg.catalog_names:
-        _notebook_zip_path(n)
+        sirepo.analysis_driver.get_analysis_driver(catalog_name=n).check_notebooks()
 
 
 async def _init_analysis_processors():
@@ -434,10 +434,6 @@ async def _init_catalog_monitors():
     for c in cfg.catalog_names:
         _CATALOG_MONITOR_TASKS[c] = _monitor_catalog(c)
     await asyncio.gather(*_CATALOG_MONITOR_TASKS.values())
-
-
-def _notebook_zip_path(catalog_name):
-    return cfg.notebook_dir.join(f"{catalog_name}.zip")
 
 
 # TODO(e-carlin): Rather than polling for scans we should explore using RunEngine.subscribe
@@ -547,8 +543,11 @@ def start():
                 pkio.py_path,
                 "root directory for db",
             ),
-            notebook_dir=pkconfig.Required(
-                pkio.py_path, "directory for analysis notebooks"
+            notebook_dir_chx=pkconfig.Required(
+                pkio.py_path, "base directory for CHX analysis notebooks"
+            ),
+            notebook_dir_csx=pkconfig.Required(
+                pkio.py_path, "directory for CSX analysis notebooks"
             ),
         )
         sirepo.srtime.init_module()

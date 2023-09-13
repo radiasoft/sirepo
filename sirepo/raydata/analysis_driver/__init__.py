@@ -3,7 +3,9 @@ from pykern.pkdebug import pkdp
 
 
 class AnalysisDriverBase(PKDict):
-    pass
+    def check_notebooks():
+        # TODO(rorour): check corresponding notebook dir for instance
+        pass
 
 
 def get_analysis_driver(catalog_name=None, req_body=None):
