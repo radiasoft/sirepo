@@ -365,11 +365,6 @@ def _catalog(name):
     return databroker.catalog[name]
 
 
-def _check_notebooks_for_catalogs():
-    for n in cfg.catalog_names:
-        sirepo.analysis_driver.get_analysis_driver(catalog_name=n).check_notebooks()
-
-
 async def _init_analysis_processors():
     global _ANALYSIS_PROCESSOR_TASKS
 
@@ -386,19 +381,33 @@ async def _init_analysis_processors():
                     _Analysis.analysis_output_dir(v.uid), mkdir=True
                 ), pkio.open_text("run.log", mode="w") as l:
                     try:
-                        for n in v.analysis_driver.get_notebooks(
-                            _Metadata(_catalog(v.catalog_name)[v.uid])
-                        ):
-                            p = await asyncio.create_subprocess_exec(
-                                "papermill",
-                                str(n),
-                                f"{n}-out.ipynb",
+                        m = _Metadata(_catalog(v.catalog_name)[v.uid])
+                        for n in v.analysis_driver.get_notebooks(scan_metadata=m):
+                            papermill_params = [
                                 "-p",
                                 "uid",
                                 v.uid,
                                 "-p",
                                 "scan",
                                 v.uid,
+                                "-p",
+                                "run_two_time",
+                                "True",
+                                "-p",
+                                "run_dose",
+                                "False",
+                            ]
+                            if m.get_scan_field("user"):
+                                papermill_params += [
+                                    "-p",
+                                    "username",
+                                    m.get_scan_field("user"),
+                                ]
+                            p = await asyncio.create_subprocess_exec(
+                                "papermill",
+                                str(n),
+                                f"{n}-out.ipynb",
+                                *papermill_params,
                                 stderr=asyncio.subprocess.STDOUT,
                                 stdout=l,
                             )
@@ -551,7 +560,6 @@ def start():
             ),
         )
         sirepo.srtime.init_module()
-        _check_notebooks_for_catalogs()
         pkio.mkdir_parent(cfg.db_dir)
         _Analysis.init(cfg.db_dir.join("analysis.db"))
 
