@@ -167,7 +167,7 @@ class GeometricObject {
      * because various numerical operations can cause values to differ by amounts that are negligible for
      * practical purposes but nonetheless large enough to be unequal according to "==".
      */
-    constructor(equalityTolerance= 1e-4) {
+    constructor(equalityTolerance= 1e-6) {
         this.equalityTolerance = equalityTolerance;
     }
 
