@@ -565,6 +565,7 @@ SIREPO.app.directive('scansTable', function() {
                         responseType: 'blob',
                         args: {
                             uids: Object.keys($scope.pdfSelectedScans),
+                            catalogName: appState.applicationState().catalog.catalogName,
                         }
                     },
                     errorOptions,
@@ -817,7 +818,7 @@ SIREPO.app.directive('analysisModal', function() {
                               <div class="panel panel-info">
                                 <div class="panel-heading"><span class="sr-panel-heading">{{ i.filename }}</span></div>
                                 <div class="panel-body">
-                                  <div data-png-image="" data-image="{{ i.image }}"></div>
+                                  <div data-png-image="" data-image="{{ i.data }}"></div>
                                 </div>
                               </div>
                             </div>
@@ -825,7 +826,7 @@ SIREPO.app.directive('analysisModal', function() {
                               <div class="panel panel-info">
                                 <div class="panel-heading"><span class="sr-panel-heading">{{ j.filename }}</span></div>
                                 <div class="panel-body">
-                                  <pre style="overflow: scroll; height: 150px">{{ formatJsonFile(j.json) }}</pre>
+                                  <pre style="overflow: scroll; height: 150px">{{ formatJsonFile(j.data }}</pre>
                                 </div>
                               </div>
                             </div>

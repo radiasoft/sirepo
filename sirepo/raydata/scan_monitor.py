@@ -1,5 +1,4 @@
 from pykern import pkasyncio
-from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
@@ -7,7 +6,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdformat
 import aenum
 import asyncio
-import base64
 import databroker
 import databroker.queries
 import io
@@ -88,6 +86,7 @@ class _Analysis(_DbBase):
         nullable=False,
     )
 
+    # TODO(e-carlin): rm
     @classmethod
     def analysis_output_dir(cls, uid):
         return cfg.db_dir.join(uid)
@@ -144,12 +143,16 @@ class _Analysis(_DbBase):
         return cls.session.query(cls).filter_by(**kwargs).first()
 
     @classmethod
-    def set_scan_status(cls, analysis_queue_record, status):
-        u = analysis_queue_record.uid
-        c = analysis_queue_record.catalog_name
-        r = cls.search_by(uid=u, catalog_name=c)
+    def set_scan_status(cls, analysis_driver, status):
+        r = cls.search_by(
+            uid=analysis_driver.uid, catalog_name=analysis_driver.catalog_name
+        )
         if not r:
-            cls(uid=u, catalog_name=c, status=status).save()
+            cls(
+                uid=analysis_driver.uid,
+                catalog_name=analysis_driver.catalog_name,
+                status=status,
+            ).save()
             return
         r.status = status
         r.save()
@@ -176,10 +179,12 @@ class _Metadata:
         self.scan = scan
         self._metadata = self.scan.metadata
 
-    def get_scan_field(self, name):
-        return self._metadata["start"].get(name)
+    def get_start_field(self, name, unchecked=False):
+        if unchecked:
+            return self._metadata["start"].get(name)
+        return self._metadata["start"]["name"]
 
-    def get_scan_fields(self):
+    def get_start_fields(self):
         return list(self._metadata["start"].keys())
 
     def is_scan_plan_executing(self):
@@ -203,70 +208,11 @@ class _Metadata:
 
 
 class _RequestHandler(_JsonPostRequestHandler):
-    async def _incoming(self, req_body):
-        r = PKDict(
-            body=PKDict(req_body),
-            analysis_driver=sirepo.raydata.analysis_driver.get_analysis_driver(
-                req_body=req_body
-            ),
-        )
-        return getattr(self, "_" + r.body.pkdel("method"))(r)
+    async def _incoming(self, body):
+        return getattr(self, "_request_" + body.method)(body.data.get("args"))
 
     async def post(self):
         self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
-
-    def _analysis_output(self, req):
-        def _filename_and_image(path):
-            return PKDict(
-                filename=path.basename,
-                image=pkcompat.from_bytes(
-                    base64.b64encode(
-                        pkio.read_binary(path),
-                    ),
-                ),
-            )
-
-        def _filename_and_json(path):
-            return PKDict(filename=path.basename, json=pkjson.load_any(path))
-
-        def _image_paths(uid):
-            return pkio.sorted_glob(_Analysis.analysis_output_dir(uid).join("**/*.png"))
-
-        def _json_paths(uid):
-            return pkio.sorted_glob(
-                _Analysis.analysis_output_dir(uid).join("**/*.json")
-            )
-
-        return PKDict(
-            images=[
-                _filename_and_image(p) for p in _image_paths(req.body.data.args.uid)
-            ],
-            jsonFiles=[
-                _filename_and_json(p) for p in _json_paths(req.body.data.args.uid)
-            ],
-        )
-
-    def _analysis_run_log(self, req):
-        p = _Analysis.analysis_output_dir(req.body.data.args.uid).join("run.log")
-        return PKDict(
-            log_path=str(p),
-            run_log=pkio.read_text(p) if p.exists() else "",
-        )
-
-    def _begin_replay(self, req):
-        sirepo.raydata.replay.begin(
-            req.body.data.sourceCatalogName,
-            req.body.data.destinationCatalogName,
-            req.body.data.numScans,
-        )
-        return PKDict(data="ok")
-
-    def _catalog_names(self, _):
-        return PKDict(
-            data=PKDict(
-                catalogs=[str(s) for s in databroker.catalog.keys()],
-            )
-        )
 
     def _databroker_search(self, catalog, args):
         def _search_params(args):
@@ -326,7 +272,28 @@ class _RequestHandler(_JsonPostRequestHandler):
             s.status = d.get(s.uid, _AnalysisStatus.NONE)
         return l, pc
 
-    def _download_analysis_pdfs(self, req):
+    def _request_analysis_output(self, req_data):
+        return sirepo.raydata.analysis_driver.get(**req_data).get_output()
+
+    def _request_analysis_run_log(self, req_data):
+        return sirepo.raydata.analysis_driver.get(**req_data).get_run_log()
+
+    def _request_begin_replay(self, req_data):
+        sirepo.raydata.replay.begin(
+            req_data.sourceCatalogName,
+            req_data.destinationCatalogName,
+            req_data.numScans,
+        )
+        return PKDict(data="ok")
+
+    def _request_catalog_names(self, _):
+        return PKDict(
+            data=PKDict(
+                catalogs=[str(s) for s in databroker.catalog.keys()],
+            )
+        )
+
+    def _request_download_analysis_pdfs(self, req_data):
         def _is_valid_uuid(uid):
             try:
                 uuid.UUID(str(uid))
@@ -341,67 +308,71 @@ class _RequestHandler(_JsonPostRequestHandler):
                     raise FileNotFoundError(f"no analysis pdfs found for uid={u}")
                 yield u, p
 
-        for u in req.body.data.args.uids:
+        for u in req_data.uids:
             assert _is_valid_uuid(u), f"invalid uid={u}"
         with io.BytesIO() as t:
             with zipfile.ZipFile(t, "w") as f:
-                for u, v in _all_pdfs(req.body.data.args.uids):
+                for u, v in _all_pdfs(req_data.uids):
                     for p in v:
                         f.write(p, pkio.py_path(f"/uids/{u}").join(p.basename))
             t.seek(0)
             requests.put(
-                req.body.data.dataFileUri + "analysis_pdfs.zip",
+                req_data.dataFileUri + "analysis_pdfs.zip",
                 data=t.getbuffer(),
                 verify=not pkconfig.channel_in("dev"),
             ).raise_for_status()
             return PKDict()
 
-    def _get_scans(self, req):
-        a = req.body.data.args
-        c = _catalog(a.catalogName)
+    def _request_get_scans(self, req_data):
+        c = _catalog(req_data.catalogName)
         s = 1
-        if a.analysisStatus == "allStatuses":
-            l, s = self._databroker_search(c, a)
-        elif a.analysisStatus == "executed":
-            assert a.searchStartTime and a.searchStopTime, pkdformat(
-                "must have both searchStartTime and searchStopTime args={}", a
+        if req_data.analysisStatus == "allStatuses":
+            l, s = self._databroker_search(c, req_data)
+        elif req_data.analysisStatus == "executed":
+            assert req_data.searchStartTime and req_data.searchStopTime, pkdformat(
+                "must have both searchStartTime and searchStopTime req_data={}",
+                req_data,
             )
             l = []
             # TODO(pjm): this could be very slow if there were a lot of old analysis records in the db
             # it makes a mongo call per row with no datetime window
             for s in _Analysis.scans_with_status(
-                a.catalogName, _AnalysisStatus.EXECUTED
+                req_data.catalogName, _AnalysisStatus.EXECUTED
             ):
                 m = _Metadata(c[s.uid])
-                if m.start() >= a.searchStartTime and m.stop() <= a.searchStopTime:
+                if (
+                    m.start() >= req_data.searchStartTime
+                    and m.stop() <= req_data.searchStopTime
+                ):
                     l.append(s)
-        elif a.analysisStatus == "queued":
-            l = _Analysis.scans_with_status(a.catalogName, _AnalysisStatus.NON_STOPPED)
-        elif a.analysisStatus == "recentlyExecuted":
+        elif req_data.analysisStatus == "queued":
+            l = _Analysis.scans_with_status(
+                req_data.catalogName, _AnalysisStatus.NON_STOPPED
+            )
+        elif req_data.analysisStatus == "recentlyExecuted":
             l = _Analysis.get_recently_updated(
                 _NUM_RECENTLY_EXECUTED_SCANS,
-                a.catalogName,
+                req_data.catalogName,
                 _AnalysisStatus.EXECUTED,
             )
         else:
-            raise AssertionError(f"unrecognized analysisStatus={a.analysisStatus}")
-        return _scan_info_result(l, c, a, s)
+            raise AssertionError(
+                f"unrecognized analysisStatus={req_data.analysisStatus}"
+            )
+        return _scan_info_result(l, c, req_data, s)
 
-    def _run_analysis(self, req):
-        _queue_for_analysis(
-            req.body.data.args.uid, req.body.data.args.catalogName, req.analysis_driver
-        )
+    def _request_run_analysis(self, req_data):
+        _queue_for_analysis(req_data.uid, req_data.catalogName)
         return PKDict(data="ok")
 
-    def _scan_fields(self, req):
+    def _request_scan_fields(self, req_data):
         return PKDict(
-            columns=_Metadata(
-                _catalog(req.body.data.args.catalogName)[-1]
-            ).get_scan_fields(),
+            columns=_Metadata(_catalog(req_data.catalogName)[-1]).get_start_fields(),
         )
 
 
 def _analysis_pdf_paths(uid):
+    sirepo.raydata.analysis_driver.get(**req_data)
     return pkio.walk_tree(_Analysis.analysis_output_dir(uid), r".*\.pdf$")
 
 
@@ -417,13 +388,13 @@ async def _init_analysis_processors():
             if not _SCANS_AWAITING_ANALYSIS:
                 await pkasyncio.sleep(5)
                 continue
-            v = _SCANS_AWAITING_ANALYSIS.pop(0)
+            v = sirepo.raydata.analysis_driver.get(**_SCANS_AWAITING_ANALYSIS.pop(0))
             s = _AnalysisStatus.ERROR
             try:
                 _Analysis.set_scan_status(v, _AnalysisStatus.RUNNING)
-                with pkio.save_chdir(
-                    _Analysis.analysis_output_dir(v.uid), mkdir=True
-                ), pkio.open_text("run.log", mode="w") as l:
+                with pkio.save_chdir(v.get_output_dir(), mkdir=True), pkio.open_text(
+                    "run.log", mode="w"
+                ) as l:
                     try:
                         m = _Metadata(_catalog(v.catalog_name)[v.uid])
                         for n in v.analysis_driver.get_notebooks(scan_metadata=m):
@@ -442,11 +413,11 @@ async def _init_analysis_processors():
                                 "False",
                                 "--report-mode",
                             ]
-                            if m.get_scan_field("user"):
+                            if u := m.get_start_field("user", unchecked=True):
                                 q += [
                                     "-p",
                                     "username",
-                                    m.get_scan_field("user"),
+                                    u,
                                 ]
                             p = await asyncio.create_subprocess_exec(
                                 "papermill",
@@ -535,18 +506,16 @@ async def _poll_catalog_for_scans(catalog_name):
     raise AssertionError("should never get here")
 
 
-def _queue_for_analysis(scan, catalog_name, analysis_driver=None):
+def _queue_for_analysis(scan, catalog_name):
     s = PKDict(
+        # TODO(e-carlin): fix _Metadata(scan), it is weird to have two types in here
         uid=scan if isinstance(scan, str) else _Metadata(scan).uid(),
         catalog_name=catalog_name,
-        analysis_driver=analysis_driver
-        or sirepo.raydata.analysis_driver.get_analysis_driver(
-            catalog_name=catalog_name,
-        ),
     )
     pkdlog("scan={}", s)
+    # TODO(e-carlin): should this all just be on analysis_driver?
     if s not in _SCANS_AWAITING_ANALYSIS:
-        pkio.unchecked_remove(_Analysis.analysis_output_dir(s.uid).join("*"))
+        pkio.unchecked_remove(sirepo.raydata.analysis_driver.get(**s).get_output_dir())
         _SCANS_AWAITING_ANALYSIS.append(s)
         _Analysis.set_scan_status(s, _AnalysisStatus.PENDING)
 
@@ -562,10 +531,11 @@ def _scan_info(catalog, scan_uuid, scans_data, status=None):
         d[c] = getattr(m, c)()
 
     for c in scans_data.get("selectedColumns", []):
-        d[c] = m.get_scan_field(c)
+        d[c] = m.get_start_field(c, unchecked=True)
     return d
 
 
+# TODO(e-carlin): rename args to req_data
 def _scan_info_result(scans, catalog, args, count):
     s = []
     for i, v in enumerate(scans):
@@ -615,6 +585,7 @@ def start():
         sirepo.srtime.init_module()
         pkio.mkdir_parent(cfg.db_dir)
         _Analysis.init(cfg.db_dir.join("analysis.db"))
+        sirepo.raydata.analysis_driver.init(cfg.catalog_names)
 
     def _start():
         l = pkasyncio.Loop()
