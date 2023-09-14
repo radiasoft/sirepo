@@ -732,17 +732,17 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function addViewsForObject(o) {
 
-        function addSymmetryToGroup(g, r) {
+        function applyMatrixToGroup(g, m) {
             for (const m_id of g.members) {
-                let mv = self.getObjectView(m_id);
-                const m = self.getObject(m_id);
-                if (! mv) {
-                    mv = self.viewsForObject(m);
-                    self.views.push(mv);
+                let v = self.getObjectView(m_id);
+                const member = self.getObject(m_id);
+                if (! v) {
+                    v = self.viewsForObject(member);
+                    self.views.push(v);
                 }
-                mv.addCopyingTransform(r);
-                if (self.isGroup(m)) {
-                    addSymmetryToGroup(m, r);
+                v.addCopyingTransform(m);
+                if (self.isGroup(member)) {
+                    applyMatrixToGroup(member, m);
                 }
             }
         }
@@ -779,7 +779,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 const r = new SIREPO.GEOMETRY.ReflectionMatrix(plane);
                 baseViews.addCopyingTransform(r);
                 if (self.isGroup(o)) {
-                    addSymmetryToGroup(o, r);
+                    applyMatrixToGroup(o, r);
                 }
                 continue;
             }
