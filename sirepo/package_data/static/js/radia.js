@@ -223,6 +223,8 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     // Instead, generate an id here and map it when the Radia object is created. A random string is good enough
     self.generateId = () => SIREPO.UTILS.randomString(16);
 
+    self.isGroup = o => o.members !== undefined;
+
     self.reloadGeometry = (callback=() => {}) => {
         const r = 'geometryReport';
         panelState.clear(r);
@@ -553,7 +555,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.isDropEnabled = () => self.dropEnabled;
 
-    self.isGroup = o => o.members !== undefined;
+    self.isGroup = radiaService.isGroup;
 
     self.loadObjectViews = loadObjectViews;
 
@@ -633,7 +635,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         const supers = appState.superClasses(o.type);
         let center = o.center;
         let size = o.size;
-        const isGroup = o.members && o.members.length;
+        const isGroup = self.isGroup(o);
         const scale = SIREPO.APP_SCHEMA.constants.objectScale;
 
         if (isGroup) {
@@ -730,7 +732,21 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function addViewsForObject(o) {
 
-        const isGroup = (o.members || []).length;
+        function addSymmetryToGroup(g, r) {
+            for (const m_id of g.members) {
+                let mv = self.getObjectView(m_id);
+                const m = self.getObject(m_id);
+                if (! mv) {
+                    mv = self.viewsForObject(m);
+                    self.views.push(mv);
+                }
+                mv.addCopyingTransform(r);
+                if (self.isGroup(m)) {
+                    addSymmetryToGroup(m, r);
+                }
+            }
+        }
+
         let baseViews = self.getObjectView(o.id);
         if (! baseViews) {
             baseViews = self.viewsForObject(o);
@@ -762,15 +778,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 //TODO(mvk): symmetry plane shapes
                 const r = new SIREPO.GEOMETRY.ReflectionMatrix(plane);
                 baseViews.addCopyingTransform(r);
-                if (isGroup) {
-                    for (const m_id of o.members) {
-                        let mv = self.getObjectView(m_id);
-                        if (! mv) {
-                            mv = self.viewsForObject(self.getObject(m_id));
-                            self.views.push(mv);
-                        }
-                        mv.addCopyingTransform(r);
-                    }
+                if (self.isGroup(o)) {
+                    addSymmetryToGroup(o, r);
                 }
                 continue;
             }
