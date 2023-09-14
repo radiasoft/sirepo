@@ -17,52 +17,6 @@ import pytest
 # EOF
 
 
-def test_warppba_no_creds(new_user_fc):
-    from pykern.pkunit import pkexcept
-
-    c, d = _warppba_login_setup(new_user_fc)
-    with pkexcept("SRException.*no-creds"):
-        new_user_fc.sr_run_sim(d, c, expect_completed=False)
-
-
-def test_warppba_invalid_creds(new_user_fc):
-    from pykern.pkunit import pkexcept
-
-    c, d = _warppba_login_setup(new_user_fc)
-    with pkexcept("SRException.*no-creds"):
-        new_user_fc.sr_run_sim(d, c, expect_completed=False)
-    with pkexcept("SRException.*invalid-creds"):
-        new_user_fc.sr_post(
-            "sbatchLogin",
-            PKDict(
-                password="fake pass",
-                report=c,
-                simulationId=d.models.simulation.simulationId,
-                simulationType=d.simulationType,
-                username="notarealuser",
-            ),
-        )
-
-
-def test_warppba_login(new_user_fc):
-    from pykern.pkunit import pkexcept
-
-    c, d = _warppba_login_setup(new_user_fc)
-    with pkexcept("SRException.*no-creds"):
-        new_user_fc.sr_run_sim(d, c, expect_completed=False)
-    new_user_fc.sr_post(
-        "sbatchLogin",
-        PKDict(
-            password="vagrant",
-            report=c,
-            simulationId=d.models.simulation.simulationId,
-            simulationType=d.simulationType,
-            username="vagrant",
-        ),
-    )
-    new_user_fc.sr_run_sim(d, c, expect_completed=False)
-
-
 def test_srw_data_file(new_user_fc):
     from pykern.pkunit import pkeq
 
@@ -93,5 +47,50 @@ def test_srw_data_file(new_user_fc):
     r.assert_http_status(200)
 
 
+def test_warppba_invalid_creds(new_user_fc):
+    from pykern.pkunit import pkexcept
+
+    with pkexcept("SRException.*invalid-creds"):
+        _warppba_login(new_user_fc, username="vagrant", password="incorrect password")
+
+
+def test_warppba_login(new_user_fc):
+    from pykern.pkunit import pkexcept
+
+    x = _warppba_login(new_user_fc, username="vagrant", password="vagrant")
+    new_user_fc.sr_run_sim(*x, expect_completed=False)
+
+
+def test_warppba_no_creds(new_user_fc):
+    from pykern.pkunit import pkexcept
+
+    x = _warppba_login_setup(new_user_fc)
+    with pkexcept("SRException.*no-creds"):
+        new_user_fc.sr_run_sim(*x, expect_completed=False)
+
+
+def _warppba_login(fc, username, password):
+    from pykern import pkunit
+    from sirepo import util
+
+    d, c = _warppba_login_setup(fc)
+    try:
+        r = fc.sr_run_sim(d, c, expect_completed=False)
+        pkunit.pkfail("did not raise SRException reply={}", r)
+    except util.SRException as e:
+        p = e.sr_args.params
+    fc.sr_post(
+        "sbatchLogin",
+        PKDict(
+            password=password,
+            computeModel=p.computeModel,
+            simulationId=p.simulationId,
+            simulationType=d.simulationType,
+            username=username,
+        ),
+    )
+    return d, c
+
+
 def _warppba_login_setup(fc):
-    return "animation", fc.sr_sim_data("Laser Pulse")
+    return fc.sr_sim_data("Laser Pulse"), "animation"

@@ -4316,20 +4316,21 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 el.modal('hide');
             }
 
-            $scope.$on('showSbatchLoginModal', function(e, data) {
+            $scope.$on('showSbatchLoginModal', function(e, broadcastArg) {
                 // When a user enters invalid login creds 'showSbatchLoginModal' is
                 // broadcast again. onHidden keeps a references to the
                 // errorCallback of only the first broadcast's errorCallback
+                const p = broadcastArg.srExceptionParams;
                 if (onHidden === null) {
-                    onHidden = data.errorCallback;
+                    onHidden = broadcastArg.errorCallback;
                 }
                 sbatchLoginStatusService.loggedIn = false;
                 $scope.otp = '';
                 $scope.password = '';
                 awaitingSendResponse = false;
-                $scope.host = data.host;
-                $scope.showOtp = data.host.indexOf('nersc') >= 0;
-                $scope.showWarning = data.reason === 'invalid-creds';
+                $scope.host = p.host;
+                $scope.showOtp = p.host.indexOf('nersc') >= 0;
+                $scope.showWarning = p.reason === 'invalid-creds';
                 $scope.warningText = 'Your credentials were invalid. Please try again.';
                 $scope.submit = function() {
                     awaitingSendResponse = true;
@@ -4339,9 +4340,9 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                         {
                             otp: $scope.otp,
                             password: $scope.password,
-                            computeModel: data.computeModel,
-                            simulationId: data.simulationId,
-                            simulationType: data.simulationType,
+                            computeModel: p.computeModel,
+                            simulationId: p.simulationId,
+                            simulationType: SIREPO.APP_SCHEMA.simulationType,
                             username: $scope.username,
                         },
                         handleResponse

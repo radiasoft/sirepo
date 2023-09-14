@@ -239,7 +239,6 @@ scancel -u $USER >& /dev/null || true
                 reason=reason,
                 computeModel=msg.computeModel,
                 simulationId=msg.simulationId,
-                simulationType=msg.simulationType,
             ),
         )
 

@@ -2498,7 +2498,13 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         }
         if (e.params && e.params.isModal && e.routeName.includes('sbatch')) {
             e.params.errorCallback = errorCallback;
-            $rootScope.$broadcast('showSbatchLoginModal', e.params);
+            $rootScope.$broadcast(
+                'showSbatchLoginModal',
+                {
+                    errorCallback: errorCallback,
+                    srExceptionParams: e.params,
+                },
+            );
             return;
         }
         if (e.routeName == LOGIN_ROUTE_NAME) {

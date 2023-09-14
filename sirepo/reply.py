@@ -758,7 +758,9 @@ class _Base:
 
     def _sr_exception(self, routeName, params, **kwargs):
         # Only supply parameters that match the localRoute, and simulationType
-        # is not in localRoutes.
+        # is not in any localRoutes. It's added automatically to params in
+        # certain cases.
+        # TODO(robnagler) this probably should be an assert
         params.pkdel("simulationType")
         return (
             PKDict(routeName=routeName, params=params),
