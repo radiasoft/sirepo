@@ -259,7 +259,7 @@ def start_tornado(ip, port, debug):
             r = self.request
             self.__headers = PKDict(r.headers)
             self.remote_addr = r.remote_ip
-            self.http_server_uri = f"{r.protocol}://{r.host}"
+            self.http_server_uri = f"{r.protocol}://{r.host}/"
             self.msg_count = 0
             ws_count += 1
             self.ws_id = ws_count
