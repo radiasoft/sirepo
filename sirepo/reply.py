@@ -724,8 +724,8 @@ class _Base:
                 # inject the error in the html without jinja or simply generate from a different template
                 # with a title and the respective error.
                 # check self.value.error or have it passed explicitly
-                j.body = (
-                    sirepo.html.render(path=sirepo.resource.static("html", x["url"])),
+                j.body = sirepo.html.render(
+                    path=sirepo.resource.static("html", x["url"])
                 )
             except Exception as e:
                 pkdlog(
