@@ -2293,8 +2293,6 @@ def _reshape_3d(ar1d, allrange, report):
 
 
 def _resize_report(report, ar2d, x_range, y_range):
-    from pykern.pkdebug import pkdc
-
     width_pixels = int(report.get("intensityPlotsWidth", 0))
     if not width_pixels:
         # upper limit is browser's max html canvas size
@@ -2325,7 +2323,6 @@ def _resize_report(report, ar2d, x_range, y_range):
 
 def _rotate_report(report, ar2d, x_range, y_range):
     from scipy import ndimage
-    from pykern.pkdebug import pkdc
 
     rotate_angle = report.rotateAngle
     rotate_reshape = report.get("rotateReshape", "0") == "1"
