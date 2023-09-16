@@ -5,36 +5,30 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-_N_BINS = 100
-
 
 def test_srw_resize_3d():
-    from pykern import pkconfig
-
-    pkconfig.reset_state_for_testing(
-        dict(
-            SIREPO_JOB_MAX_MESSAGE_BYTES=str(_N_BINS * _N_BINS),
-        )
-    )
-
-    from pykern.pkcollections import PKDict
     from pykern import pkunit
-    from sirepo import job
     from sirepo.template import srw
-    import numpy
 
-    a, xr, yr = srw._reshape_3d(
-        numpy.random.rand(job.cfg().max_message_bytes),
-        [0, 0, 0, 0.0, 1.0, _N_BINS, 0.0, 1.0, _N_BINS],
-        PKDict(),
-    )
-    pkunit.pkok(
-        xr[2] < _N_BINS,
-        "did not reduce bins nx={}",
-        xr[2],
-    )
-    pkunit.pkok(
-        yr[2] < _N_BINS,
-        "did not reduce bins ny={}",
-        yr[2],
-    )
+    MAX = srw._CANVAS_MAX_SIZE
+
+    for t in (
+        [(100, 100), (100, 100)],
+        [(100, MAX + 1), (100, MAX)],
+        [(MAX + 1, 100), (MAX, 100)],
+        [(400, 400), (400, 400)],
+        [(MAX, MAX), (4472, 4472)],
+        [(MAX, MAX * 2), (3162, 6324)],
+        [(MAX * 2, MAX), (6324, 3162)],
+        [(MAX + 1, 300), (MAX, 300)],
+        [(300, MAX + 1), (300, MAX)],
+        [(400, MAX), (349, 57242)],
+        [(MAX, 400), (57242, 349)],
+        [(400, 1e6), (305, MAX)],
+        [(1e6, 400), (MAX, 305)],
+        [(MAX * 10, MAX), (14142, 1414)],
+        [(MAX, MAX * 10), (1414, 14142)],
+    ):
+        x, y = srw._resize_mesh_dimensions(t[0][0], t[0][1])
+        assert x * y <= srw._MAX_REPORT_POINTS
+        pkunit.pkeq((x, y), t[1])

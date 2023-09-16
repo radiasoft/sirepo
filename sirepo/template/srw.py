@@ -794,23 +794,7 @@ def process_undulator_definition(model):
 def process_watch(wid=0):
     def _resize_wavefront(wfr):
         mesh = wfr.mesh
-        nx = min(mesh.nx, _CANVAS_MAX_SIZE)
-        ny = min(mesh.ny, _CANVAS_MAX_SIZE)
-        _MIN_DIMENSION = int(_MAX_REPORT_POINTS / _CANVAS_MAX_SIZE) + 1
-        r = math.sqrt(_MAX_REPORT_POINTS / (nx * ny))
-        if nx < _MIN_DIMENSION:
-            ny = int(_MAX_REPORT_POINTS / nx)
-        elif r * nx < _MIN_DIMENSION:
-            nx = _MIN_DIMENSION
-            ny = int(_MAX_REPORT_POINTS / nx)
-        elif ny < _MIN_DIMENSION:
-            nx = int(_MAX_REPORT_POINTS / ny)
-        elif r * ny < _MIN_DIMENSION:
-            ny = _MIN_DIMENSION
-            nx = int(_MAX_REPORT_POINTS / ny)
-        else:
-            nx = int(r * nx)
-            ny = int(r * ny)
+        nx, ny = _resize_mesh_dimensions(mesh.nx, mesh.ny)
         pkdc("resized mesh: {}x{}", nx, ny)
         # resize the electic fields in the wavefront mesh - note it modifies wfr
         srwlpy.ResizeElecFieldMesh(
@@ -2506,6 +2490,34 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
 
 def _core_error(cores):
     raise sirepo.util.UserAlert(f"cores={cores} when cores must be >= {_MIN_CORES}")
+
+
+def _resize_mesh_dimensions(num_x, num_y):
+    def _max_size(v, v2):
+        return min(v, int(_MAX_REPORT_POINTS / v2))
+
+    nx = num_x
+    ny = num_y
+    _MIN_DIMENSION = int(_MAX_REPORT_POINTS / _CANVAS_MAX_SIZE)
+    if nx > _MIN_DIMENSION and ny > _MIN_DIMENSION and nx * ny > _MAX_REPORT_POINTS:
+        r = math.sqrt(_MAX_REPORT_POINTS / (nx * ny))
+        if r * nx <= _MIN_DIMENSION:
+            nx = _MIN_DIMENSION
+            ny = _max_size(ny, nx)
+        elif r * ny <= _MIN_DIMENSION:
+            ny = _MIN_DIMENSION
+            nx = _max_size(nx, ny)
+        elif r * nx >= _CANVAS_MAX_SIZE:
+            nx = _CANVAS_MAX_SIZE
+            ny = _max_size(ny, nx)
+        elif r * ny >= _CANVAS_MAX_SIZE:
+            ny = _CANVAS_MAX_SIZE
+            nx = _max_size(nx, ny)
+        else:
+            nx = int(r * nx)
+            ny = int(r * ny)
+
+    return min(nx, _CANVAS_MAX_SIZE), min(ny, _CANVAS_MAX_SIZE)
 
 
 def _superscript(val):
