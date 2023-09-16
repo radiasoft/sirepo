@@ -804,7 +804,7 @@ def process_watch(wid=0):
             nx = _MIN_DIMENSION
             ny = int(_MAX_REPORT_POINTS / nx)
         elif ny < _MIN_DIMENSION:
-            nx = int(_MIN_DIMENSION / ny)
+            nx = int(_MAX_REPORT_POINTS / ny)
         elif r * ny < _MIN_DIMENSION:
             ny = _MIN_DIMENSION
             nx = int(_MAX_REPORT_POINTS / ny)
