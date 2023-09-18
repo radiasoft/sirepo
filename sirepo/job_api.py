@@ -78,7 +78,7 @@ class API(sirepo.quest.API):
     async def api_downloadDataFile(
         self, simulation_type, simulation_id, model, frame, suffix=None
     ):
-        return await self.api_downloadRunFile(simulation_type, simulation_id, model, frame, suffix=None)
+        return await self.api_downloadRunFile(simulation_type, simulation_id, model, frame, suffix=suffix)
         def _content_too_large(req):
             return sirepo.util.ContentTooLarge(
                 "sim_type={} sid={} report={}",
