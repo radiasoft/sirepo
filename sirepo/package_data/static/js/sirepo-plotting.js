@@ -3247,17 +3247,21 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
-            var aspectRatio = 1.0;
-            var canvas, ctx, amrLine, heatmap, mouseMovePoint, pointer, zoom;
-            var globalMin = 0.0;
-            var globalMax = 1.0;
-            let threshold = null;
-            var cacheCanvas, imageData;
-            var colorbar, hideColorBar;
-            var axes = {
+            const axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
             };
+            const overlayDataClass = 'sr-overlay-data';
+
+            let aspectRatio = 1.0;
+            let canvas, ctx, amrLine, heatmap, mouseMovePoint, pointer, zoom;
+            let globalMin = 0.0;
+            let globalMax = 1.0;
+            let threshold = null;
+            let cacheCanvas, imageData;
+            let colorbar, hideColorBar;
+
+            let overlayData = null;
 
             function colorbarSize() {
                 var tickFormat = colorbar.tickFormat();
@@ -3271,6 +3275,18 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 var res = textSize + colorbar.thickness() + colorbar.margin().left;
                 colorbar.margin().right = res;
                 return res;
+            }
+
+            function drawOverlay() {
+                const ns = 'http://www.w3.org/2000/svg';
+                let ds = d3.select('svg.sr-plot g.sr-overlay-data-group')
+                    .selectAll(`path.${overlayDataClass}`)
+                    .data(overlayData);
+                ds.exit().remove();
+                ds.enter()
+                    .append(d => document.createElementNS(ns, 'path'))
+                    .append(d => document.createElementNS(ns, 'title'));
+                ds.call(updateOverlay);
             }
 
             function getRange(values) {
@@ -3337,6 +3353,10 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     select('svg.colorbar').remove();
                     $scope.margin.right = 20;
                 }
+
+                if (overlayData) {
+                    drawOverlay();
+                }
             }
 
             function resetZoom() {
@@ -3373,6 +3393,27 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     return appState.models[$scope.modelName].colorMap != 'contrast';
                 }
                 return false;
+            }
+
+            function updateOverlay(selection) {
+                selection
+                    .attr('class', overlayDataClass)
+                    .attr('id', d => {
+                        return `${overlayDataClass}-${d.name}`;
+                    })
+                    .attr('clip-path', 'url(#sr-plot-window)')
+                    .attr('stroke', d => d.color)
+                    .attr('stroke-width', 2.0)
+                    .attr('fill', 'none')
+                    .attr('d', d => {
+                        // we don't use the SVGPath directly, but it is a convenient way to build
+                        // a path string
+                        return new SIREPO.DOM.SVGPath(
+                            null,
+                            d.data.map(c => [axes.x.scale(c[0]), axes.y.scale(c[1])])
+                        ).pathString();
+                    })
+                    .select('title').text(d => d.name);
             }
 
             $scope.clearData = function() {
@@ -3419,6 +3460,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     //TODO(pjm): plot may be loaded with { state: 'canceled' }?
                     return;
                 }
+                overlayData = json.overlayData;
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
                 heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());

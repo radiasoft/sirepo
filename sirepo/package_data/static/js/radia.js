@@ -1004,9 +1004,18 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
         `,
         controller: function($scope) {
 
-            $scope.exportDmpUrl = () => appState.isLoaded() ?
-                panelState.exportArchiveUrl($scope.simulationId(), `${$scope.nav.simulationName()}.dat`) :
-                null;
+            $scope.exportDmpUrl = () => {
+                if (! appState.isLoaded()) {
+                    return null;
+                }
+                return requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<frame>': SIREPO.nonDataFileFrame,
+                    '<model>': 'geometryReport',
+                    '<suffix>': '.dat'
+                });  
+            };
 
             $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;
 
