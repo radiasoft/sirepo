@@ -773,7 +773,8 @@ SIREPO.app.directive('logModal', function() {
                     {
                         method: 'analysis_run_log',
                         args: {
-                            uid: $scope.scanId,
+			    catalogName: appState.applicationState().catalog.catalogName,
+			    uid: $scope.scanId,
                         }
                     },
                     {

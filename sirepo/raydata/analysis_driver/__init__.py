@@ -6,45 +6,17 @@ from pykern.pkdebug import pkdp
 import base64
 import importlib
 import sirepo.raydata.scan_monitor
+import uuid
 
 _ANALYSIS_DRIVERS = PKDict()
 
 
 class AnalysisDriverBase(PKDict):
-    def __init__(self, uid, catalog_name, *args, **kwargs):
-        super().__init__(*args, uid=uid, catalog_name=catalog_name, **kwargs)
+    def __init__(self, catalog_name, uid, *args, **kwargs):
+        super().__init__(catalog_name=catalog_name, uid=uid, *args, **kwargs)
 
-    def get_analysis_pdfs(self):
-        def _is_safe_name(uid):
-            # UUIDs don't have any specials (ex ../) so checking that the
-            # value is in fact a uuid also checks that it is safe.
-            try:
-                uuid.UUID(str(uid))
-                return True
-            except ValueError:
-                return False
-
-        def _all_pdfs(uids):
-            for u in uids:
-                p = _analysis_pdf_paths(u)
-                if not p:
-                    raise FileNotFoundError(f"no analysis pdfs found for uid={u}")
-                yield u, p
-
-        for u in req_data.uids:
-            assert _is_safe_name(u), f"invalid uid={u}"
-        with io.BytesIO() as t:
-            with zipfile.ZipFile(t, "w") as f:
-                for u, v in _all_pdfs(req_data.uids):
-                    for p in v:
-                        f.write(p, pkio.py_path(f"/uids/{u}").join(p.basename))
-            t.seek(0)
-            requests.put(
-                req_data.dataFileUri + "analysis_pdfs.zip",
-                data=t.getbuffer(),
-                verify=not pkconfig.channel_in("dev"),
-            ).raise_for_status()
-            return PKDict()
+    def get_analysis_pdf_paths(self):
+        return pkio.walk_tree(self.get_output_dir(), r".*\.pdf$")
 
     def get_notebooks(self, *args, **kwargs):
         raise NotImplementedError("children must implement this method")
@@ -85,9 +57,22 @@ class AnalysisDriverBase(PKDict):
             run_log=pkio.read_text(p) if p.exists() else "",
         )
 
+    def has_analysis_pdfs(self):
+        return len(self.get_analysis_pdf_paths()) > 0
 
-def get(uid, catalog_name, **kwargs):
-    return _ANALYSIS_DRIVERS[catalog_name](uid, catalog_name)
+
+def get(**kwargs):
+    def _verify_uid(uid):
+        # uid will be combined with paths throughout the application.
+        # So, verify that uid is actually a UUID from the start.
+        # UUIDs don't have any specials (ex ../) so checking that the
+        # value is in fact a uuid also checks that it is safe.
+        return str(uuid.UUID(uid))
+
+    k = PKDict(kwargs)
+    c = k.pkdel("catalogName" if "catalogName" in k else "catalog_name")
+    u = _verify_uid(k.pkdel("uid"))
+    return _ANALYSIS_DRIVERS[c](catalog_name=c, uid=u, data=k)
 
 
 def init(catalog_names):

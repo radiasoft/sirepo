@@ -21,7 +21,6 @@ import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 import tornado.websocket
-import uuid
 import zipfile
 
 #: task(s) monitoring the execution of the analysis process
@@ -214,6 +213,7 @@ class _RequestHandler(_JsonPostRequestHandler):
     async def post(self):
         self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
 
+    # TODO(e-carlin): rename args to req_data
     def _databroker_search(self, catalog, args):
         def _search_params(args):
             q = databroker.queries.TimeRange(
@@ -273,10 +273,10 @@ class _RequestHandler(_JsonPostRequestHandler):
         return l, pc
 
     def _request_analysis_output(self, req_data):
-        return sirepo.raydata.analysis_driver.get(**req_data).get_output()
+        return sirepo.raydata.analysis_driver.get(req_data).get_output()
 
     def _request_analysis_run_log(self, req_data):
-        return sirepo.raydata.analysis_driver.get(**req_data).get_run_log()
+        return sirepo.raydata.analysis_driver.get(req_data).get_run_log()
 
     def _request_begin_replay(self, req_data):
         sirepo.raydata.replay.begin(
@@ -294,22 +294,15 @@ class _RequestHandler(_JsonPostRequestHandler):
         )
 
     def _request_download_analysis_pdfs(self, req_data):
-        def _is_valid_uuid(uid):
-            try:
-                uuid.UUID(str(uid))
-                return True
-            except ValueError:
-                return False
-
         def _all_pdfs(uids):
             for u in uids:
-                p = _analysis_pdf_paths(u)
+                p = sirepo.raydata.analysis_driver.get(
+                    PKDict(uid=u, **req_data)
+                ).get_analysis_pdf_paths()
                 if not p:
-                    raise FileNotFoundError(f"no analysis pdfs found for uid={u}")
+                    raise AssertionError(f"no analysis pdfs found for uid={u}")
                 yield u, p
 
-        for u in req_data.uids:
-            assert _is_valid_uuid(u), f"invalid uid={u}"
         with io.BytesIO() as t:
             with zipfile.ZipFile(t, "w") as f:
                 for u, v in _all_pdfs(req_data.uids):
@@ -359,7 +352,11 @@ class _RequestHandler(_JsonPostRequestHandler):
             raise AssertionError(
                 f"unrecognized analysisStatus={req_data.analysisStatus}"
             )
-        return _scan_info_result(l, c, req_data, s)
+        if len(l) > _MAX_NUM_SCANS:
+            raise AssertionError(
+                f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query."
+            )
+        return _scan_info_result(l, s, req_data)
 
     def _request_run_analysis(self, req_data):
         _queue_for_analysis(req_data.uid, req_data.catalogName)
@@ -369,11 +366,6 @@ class _RequestHandler(_JsonPostRequestHandler):
         return PKDict(
             columns=_Metadata(_catalog(req_data.catalogName)[-1]).get_start_fields(),
         )
-
-
-def _analysis_pdf_paths(uid):
-    sirepo.raydata.analysis_driver.get(**req_data)
-    return pkio.walk_tree(_Analysis.analysis_output_dir(uid), r".*\.pdf$")
 
 
 def _catalog(name):
@@ -388,7 +380,7 @@ async def _init_analysis_processors():
             if not _SCANS_AWAITING_ANALYSIS:
                 await pkasyncio.sleep(5)
                 continue
-            v = sirepo.raydata.analysis_driver.get(**_SCANS_AWAITING_ANALYSIS.pop(0))
+            v = sirepo.raydata.analysis_driver.get(_SCANS_AWAITING_ANALYSIS.pop(0))
             s = _AnalysisStatus.ERROR
             try:
                 _Analysis.set_scan_status(v, _AnalysisStatus.RUNNING)
@@ -513,44 +505,38 @@ def _queue_for_analysis(scan, catalog_name):
         catalog_name=catalog_name,
     )
     pkdlog("scan={}", s)
-    # TODO(e-carlin): should this all just be on analysis_driver?
     if s not in _SCANS_AWAITING_ANALYSIS:
-        pkio.unchecked_remove(sirepo.raydata.analysis_driver.get(**s).get_output_dir())
+        pkio.unchecked_remove(sirepo.raydata.analysis_driver.get(s).get_output_dir())
         _SCANS_AWAITING_ANALYSIS.append(s)
         _Analysis.set_scan_status(s, _AnalysisStatus.PENDING)
 
 
-def _scan_info(catalog, scan_uuid, scans_data, status=None):
-    m = _Metadata(catalog[scan_uuid])
+def _scan_info(uid, status, req_data):
+    m = _Metadata(_catalog(req_data.catalogName)[uid])
     d = PKDict(
-        uid=scan_uuid,
+        uid=uid,
         status=status,
-        pdf=True if _analysis_pdf_paths(scan_uuid) else False,
+        pdf=sirepo.raydata.analysis_driver.get(
+            PKDict(uid=uid, **req_data)
+        ).has_analysis_pdfs(),
     )
     for c in _DEFAULT_COLUMNS.keys():
         d[c] = getattr(m, c)()
 
-    for c in scans_data.get("selectedColumns", []):
+    for c in req_data.get("selectedColumns", []):
         d[c] = m.get_start_field(c, unchecked=True)
     return d
 
 
-# TODO(e-carlin): rename args to req_data
-def _scan_info_result(scans, catalog, args, count):
-    s = []
-    for i, v in enumerate(scans):
-        if i > _MAX_NUM_SCANS:
-            raise AssertionError(
-                f"More than {_MAX_NUM_SCANS} scans found. Please reduce your query."
-            )
-        s.append(_scan_info(catalog, v.uid, args, status=v.status))
+def _scan_info_result(scans, page_count, req_data):
+    s = [_scan_info(x.uid, x.status, req_data) for x in scans]
     return PKDict(
         data=PKDict(
             scans=s,
             cols=[k for k in s[0].keys() if k not in _NON_DISPLAY_SCAN_FIELDS]
             if s
             else [],
-            pageCount=count,
+            pageCount=page_count,
         )
     )
 
