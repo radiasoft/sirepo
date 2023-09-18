@@ -78,8 +78,9 @@ class API(sirepo.quest.API):
     async def api_downloadDataFile(
         self, simulation_type, simulation_id, model, frame, suffix=None
     ):
-        return await self.api_downloadRunFile(simulation_type, simulation_id, model, frame, suffix=suffix)
-       
+        return await self.api_downloadRunFile(
+            simulation_type, simulation_id, model, frame, suffix=suffix
+        )
 
     @sirepo.quest.Spec(
         "require_user",

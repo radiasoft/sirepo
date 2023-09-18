@@ -699,12 +699,12 @@ class _ComputeJob(_Supervisor):
 
     async def _receive_api_downloadDataFile(self, req):
         return await self._receive_api_downloadRunFile(req)
-        #self._raise_if_purged_or_missing(req)
-        #return await self._send_with_single_reply(
+        # self._raise_if_purged_or_missing(req)
+        # return await self._send_with_single_reply(
         #    job.OP_IO,
         #    req,
         #    jobCmd="download_data_file",
-        #)
+        # )
 
     async def _receive_api_downloadRunFile(self, req):
         self._raise_if_purged_or_missing(req)
