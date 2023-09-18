@@ -79,57 +79,7 @@ class API(sirepo.quest.API):
         self, simulation_type, simulation_id, model, frame, suffix=None
     ):
         return await self.api_downloadRunFile(simulation_type, simulation_id, model, frame, suffix=suffix)
-        def _content_too_large(req):
-            return sirepo.util.ContentTooLarge(
-                "sim_type={} sid={} report={}",
-                req.type,
-                req.id,
-                req.req_data.report,
-            )
-
-        # TODO(robnagler) validate suffix and frame
-        req = self.parse_params(
-            id=simulation_id,
-            model=model,
-            type=simulation_type,
-            check_sim_exists=True,
-        )
-        s = suffix and sirepo.srschema.parse_name(suffix)
-        t = None
-        with simulation_db.tmp_dir(qcall=self) as d:
-            # TODO(e-carlin): computeJobHash
-            t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
-            t.mksymlinkto(d, absolute=True)
-            try:
-                r = await self._request_api(
-                    computeJobHash="unused",
-                    dataFileKey=t.basename,
-                    frame=int(frame),
-                    isParallel=False,
-                    req_data=req.req_data,
-                    suffix=s,
-                )
-                if r.state == sirepo.job.CANCELED:
-                    # POSIT: Users can't cancel donwloadDataFile. So canceled means there was a
-                    # timeout (max_run_secs exceeded).
-                    raise _content_too_large(req)
-                if r.state == sirepo.job.ERROR:
-                    if r.get("errorCode") == sirepo.job.ERROR_CODE_RESPONSE_TOO_LARGE:
-                        raise _content_too_large(req)
-                    raise AssertionError(pkdformat("error state in request=={}", r))
-                f = d.listdir()
-                if len(f) > 0:
-                    assert len(f) == 1, "too many files={}".format(f)
-                    return self.reply_attachment(f[0])
-            except tornado.httpclient.HTTPClientError:
-                # TODO(robnagler) HTTPClientError is too coarse a check
-                pass
-            finally:
-                if t:
-                    pykern.pkio.unchecked_remove(t)
-            raise sirepo.util.NotFound(
-                f"frame={frame} not found sid={req.id} sim_type={req.type}",
-            )
+       
 
     @sirepo.quest.Spec(
         "require_user",
