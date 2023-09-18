@@ -2735,14 +2735,6 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
         )
 
 
-def _wavefront_intensity_filename(el_id, is_processed=True):
-    return (
-        _OUTPUT_FOR_MODEL.beamlineAnimation.filename.format(watchpoint_id=el_id)
-        if el_id
-        else _OUTPUT_FOR_MODEL.initialIntensityReport.filename
-    )
-
-
 def _wavefront_pickle_filename(el_id, is_processed=False):
     f = f"wid-{el_id}" if el_id else "initial"
     if not is_processed:
