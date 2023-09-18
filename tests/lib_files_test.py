@@ -7,6 +7,41 @@
 import pytest
 
 
+def _get_file(fc, api_str):
+    from pykern import pkunit, pkcompat
+    from sirepo import sim_data
+    from pykern.pkcollections import PKDict
+    from pykern.pkunit import pkre, pkeq
+
+    d = fc.sr_sim_data("Sample from Image")
+    s = sim_data.get_class(fc.sr_sim_type)
+    r = fc.sr_get(
+        api_str,
+        params=PKDict(
+            simulation_type=fc.sr_sim_type,
+            simulation_id=d.models.simulation.simulationId,
+            filename="sample.tif",
+        ),
+        data=PKDict(),
+        redirect=False,
+    )
+    pkre("/tif", r.mimetype)
+    f = s.lib_file_resource_path("sample.tif")
+    r = fc.sr_post_form(
+        "uploadFile",
+        params=PKDict(
+            simulation_type=fc.sr_sim_type,
+            simulation_id=d.models.simulation.simulationId,
+            file_type="sample",
+        ),
+        data=PKDict(confirm="1"),
+        file=f,
+    )
+    pkeq("sample.tif", r.filename)
+    pkeq("sample", r.fileType)
+    pkeq(d.models.simulation.simulationId, r.simulationId)
+
+
 def test_elegant_upload_sdds(fc):
     from pykern import pkio
     from pykern import pkunit
@@ -119,6 +154,18 @@ def test_srw_delete(fc):
     )
     pkunit.pkre("does not exist", r.error)
 
+    r = fc.sr_get_json(
+        "downloadLibFile",
+        params=PKDict(
+            simulation_type=fc.sr_sim_type,
+            simulation_id=d.models.simulation.simulationId,
+            filename=u.basename,
+        ),
+        data=PKDict(),
+        redirect=False,
+    )
+    pkunit.pkre("does not exist", r.error)
+
 
 def test_srw_upload(fc):
     from pykern import pkunit, pkcompat
@@ -176,6 +223,17 @@ def test_srw_upload(fc):
     )
     pkunit.pkre(r"^\s*-1.39500", pkcompat.from_bytes(r.data))
 
+    r = fc.sr_get(
+        "downloadLibFile",
+        params=PKDict(
+            simulation_type=fc.sr_sim_type,
+            simulation_id=d.models.simulation.simulationId,
+            filename=f.basename,
+        ),
+        data=PKDict(),
+    )
+    pkunit.pkre(r"^\s*-1.39500", pkcompat.from_bytes(r.data))
+
 
 def test_srw_validate_file(fc):
     from pykern import pkunit
@@ -184,33 +242,8 @@ def test_srw_validate_file(fc):
     from pykern.pkunit import pkre, pkeq
     from sirepo import sim_data
 
-    d = fc.sr_sim_data("Sample from Image")
-    s = sim_data.get_class(fc.sr_sim_type)
-    r = fc.sr_get(
-        "downloadFile",
-        params=PKDict(
-            simulation_type=fc.sr_sim_type,
-            simulation_id=d.models.simulation.simulationId,
-            filename="sample.tif",
-        ),
-        data=PKDict(),
-        redirect=False,
-    )
-    pkre("/tif", r.mimetype)
-    f = s.lib_file_resource_path("sample.tif")
-    r = fc.sr_post_form(
-        "uploadFile",
-        params=PKDict(
-            simulation_type=fc.sr_sim_type,
-            simulation_id=d.models.simulation.simulationId,
-            file_type="sample",
-        ),
-        data=PKDict(confirm="1"),
-        file=f,
-    )
-    pkeq("sample.tif", r.filename)
-    pkeq("sample", r.fileType)
-    pkeq(d.models.simulation.simulationId, r.simulationId)
+    _get_file(fc, "downloadFile")
+    _get_file(fc, "downloadLibFile")
 
 
 def test_warpvnd_import(fc):
