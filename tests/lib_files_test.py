@@ -7,7 +7,7 @@
 import pytest
 
 
-def _get_file(fc, api_str):
+def _get_file(fc, api_name):
     from pykern import pkunit, pkcompat
     from sirepo import sim_data
     from pykern.pkcollections import PKDict
@@ -16,7 +16,7 @@ def _get_file(fc, api_str):
     d = fc.sr_sim_data("Sample from Image")
     s = sim_data.get_class(fc.sr_sim_type)
     r = fc.sr_get(
-        api_str,
+        api_name,
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id=d.models.simulation.simulationId,

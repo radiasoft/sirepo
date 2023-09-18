@@ -11,13 +11,13 @@ import six
 import time
 
 
-def _get_file(fc, data, api_str):
+def _get_file(fc, data, api_name):
     import sdds
     from pykern import pkunit, pkcompat
     from pykern.pkcollections import PKDict
 
     r = fc.sr_get(
-        api_str,
+        api_name,
         PKDict(
             simulation_type=data.simulationType,
             simulation_id=data.models.simulation.simulationId,
@@ -32,7 +32,7 @@ def _get_file(fc, data, api_str):
     pkunit.pkeq(50001, len(list(csv.reader(six.StringIO(pkcompat.from_bytes(r.data))))))
 
     r = fc.sr_get(
-        api_str,
+        api_name,
         PKDict(
             simulation_type=data.simulationType,
             simulation_id=data.models.simulation.simulationId,
