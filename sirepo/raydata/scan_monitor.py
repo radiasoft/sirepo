@@ -181,7 +181,7 @@ class _Metadata:
     def get_start_field(self, name, unchecked=False):
         if unchecked:
             return self._metadata["start"].get(name)
-        return self._metadata["start"]["name"]
+        return self._metadata["start"][name]
 
     def get_start_fields(self):
         return list(self._metadata["start"].keys())
@@ -389,7 +389,7 @@ async def _init_analysis_processors():
                 ) as l:
                     try:
                         m = _Metadata(_catalog(v.catalog_name)[v.uid])
-                        for n in v.analysis_driver.get_notebooks(scan_metadata=m):
+                        for n in v.get_notebooks(scan_metadata=m):
                             q = [
                                 "-p",
                                 "uid",

@@ -14,5 +14,5 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
             )
         ]
 
-    def get_output_dir(self):
-        raise NotImplementedError("# TODO(e-carlin): need to impl")
+    # def get_output_dir(self):
+    #     raise NotImplementedError("# TODO(e-carlin): need to impl")

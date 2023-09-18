@@ -4,6 +4,7 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import base64
+import copy
 import importlib
 import sirepo.raydata.scan_monitor
 import uuid
@@ -61,7 +62,7 @@ class AnalysisDriverBase(PKDict):
         return len(self.get_analysis_pdf_paths()) > 0
 
 
-def get(**kwargs):
+def get(incoming):
     def _verify_uid(uid):
         # uid will be combined with paths throughout the application.
         # So, verify that uid is actually a UUID from the start.
@@ -69,10 +70,10 @@ def get(**kwargs):
         # value is in fact a uuid also checks that it is safe.
         return str(uuid.UUID(uid))
 
-    k = PKDict(kwargs)
-    c = k.pkdel("catalogName" if "catalogName" in k else "catalog_name")
-    u = _verify_uid(k.pkdel("uid"))
-    return _ANALYSIS_DRIVERS[c](catalog_name=c, uid=u, data=k)
+    i = copy.deepcopy(incoming)
+    c = i.pkdel("catalogName" if "catalogName" in i else "catalog_name")
+    u = _verify_uid(i.pkdel("uid"))
+    return _ANALYSIS_DRIVERS[c](catalog_name=c, uid=u, data=i)
 
 
 def init(catalog_names):
