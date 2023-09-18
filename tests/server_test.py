@@ -38,8 +38,9 @@ def test_elegant_data_file(fc):
     else:
         if run.state != "completed":
             pkunit.pkfail("runStatus: failed to complete: {}", run)
+
     r = fc.sr_get(
-        "downloadDataFile",
+        "downloadRunFile",
         PKDict(
             simulation_type=data.simulationType,
             simulation_id=data.models.simulation.simulationId,
@@ -52,8 +53,10 @@ def test_elegant_data_file(fc):
     pkunit.pkre("no-cache", r.header_get("Cache-Control"))
     # 50,000 particles plus header row
     pkunit.pkeq(50001, len(list(csv.reader(six.StringIO(pkcompat.from_bytes(r.data))))))
+
+
     r = fc.sr_get(
-        "downloadDataFile",
+        "downloadRunFile",
         PKDict(
             simulation_type=data.simulationType,
             simulation_id=data.models.simulation.simulationId,
