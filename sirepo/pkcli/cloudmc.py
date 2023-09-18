@@ -159,8 +159,9 @@ class _MoabGroupExtractor:
         return self._items
 
     def process_item(self, item):
-        self._write_vti(item.vol_id, self._get_points_and_polys(item))
-        self._write_mesh(item)
+        v, p = self._decimate(*self._extract_moab_vertices_and_triangles(item))
+        self._write_vti(item.vol_id, self._get_points_and_polys(v, p))
+        self._write_mesh(item.vol_id, v, p)
 
     def _decimate(self, vertices, polygons):
         ms = pymeshlab.MeshSet()
@@ -199,14 +200,11 @@ class _MoabGroupExtractor:
             _reshape3(numpy.searchsorted(vr, mb.get_connectivity(tr))),
         )
 
-    def _get_points_and_polys(self, item):
-        v, p = self._extract_moab_vertices_and_triangles(item)
-        v, p = self._decimate(v, p)
-        # inserts polygon point count (always 3 for triangles)
-        p = numpy.insert(p, 0, 3, axis=1)
+    def _get_points_and_polys(self, points, polys):
         return PKDict(
-            points=v.ravel(),
-            polys=p.ravel(),
+            points=points.ravel(),
+            # inserts polygon point count (always 3 for triangles)
+            polys=numpy.insert(polys, 0, 3, axis=1).ravel(),
         )
 
     def _get_verticies_and_triangles(
@@ -222,14 +220,10 @@ class _MoabGroupExtractor:
             visited.add(c)
             self._get_verticies_and_triangles(mb, c, verticies, triangles, visited)
 
-    def _write_mesh(self, item):
+    def _write_mesh(self, vol_id, points, polys):
         ms = pymeshlab.MeshSet()
-        ms.add_mesh(
-            pymeshlab.Mesh(
-                *self._decimate(*self._extract_moab_vertices_and_triangles(item))
-            )
-        )
-        ms.save_current_mesh(f"{item.vol_id}.ply")
+        ms.add_mesh(pymeshlab.Mesh(points, polys))
+        ms.save_current_mesh(f"{vol_id}.ply")
 
     def _write_vti(self, vol_id, geometry):
         pkio.unchecked_remove(vol_id)
