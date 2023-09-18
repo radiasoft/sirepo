@@ -429,7 +429,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
         };
     };
 
-    $rootScope.$on('modelsUnloaded', self.clearMesh)
+    $rootScope.$on('modelsUnloaded', self.clearMesh);
 
     return self;
 });
