@@ -146,7 +146,10 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState) {
     };
 
     self.findTally = () => {
-        return findTally(appState.models.settings.tallies, appState.models.openmcAnimation.tally);
+        return findTally(
+            appState.models.openmcAnimation.tallies,
+            appState.models.openmcAnimation.tally,
+        );
     };
 
     self.isGraveyard = volume => {
@@ -271,6 +274,11 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         }
         return `${frameCache.getFrameCount()} batches`;
     };
+    self.startSimulation = function() {
+        tallyService.clearMesh();
+        delete appState.models.openmcAnimation.tallies;
+        self.simState.saveAndRunSimulation('openmcAnimation');
+    };
     self.simState.logFileURL = function() {
         return requestSender.formatUrl('downloadDataFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
@@ -335,6 +343,12 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
         minField: 0,
         maxField: 0,
         outlines: null,
+    };
+
+    self.clearMesh = () => {
+        self.mesh = null;
+        self.fieldData = null;
+        self.outlines = null;
     };
 
     self.colorScale = modelName => {
@@ -415,11 +429,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
         };
     };
 
-    $rootScope.$on('modelsUnloaded', () => {
-        self.mesh = null;
-        self.fieldData = null;
-        self.outlines = null;
-    });
+    $rootScope.$on('modelsUnloaded', self.clearMesh)
 
     return self;
 });
