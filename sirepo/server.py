@@ -123,6 +123,12 @@ class API(sirepo.quest.API):
         "require_user", sid="SimId optional", filename="SimFileName", sim_data="SimData"
     )
     async def api_downloadFile(self, simulation_type, simulation_id, filename):
+        return await self.api_downloadLibFile(simulation_type, simulation_id, filename)
+
+    @sirepo.quest.Spec(
+        "require_user", sid="SimId optional", filename="SimFileName", sim_data="SimData"
+    )
+    async def api_downloadLibFile(self, simulation_type, simulation_id, filename):
         # TODO(pjm): simulation_id is an unused argument
         req = self.parse_params(type=simulation_type, filename=filename)
         n = req.sim_data.lib_file_name_without_type(req.filename)
