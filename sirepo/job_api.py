@@ -307,7 +307,9 @@ class API(sirepo.quest.API):
 
         a = _args(kwargs)
         with self._reply_maybe_file(a.content) as d:
-            r = tornado.httpclient.AsyncHTTPClient().fetch(
+            r = tornado.httpclient.AsyncHTTPClient(
+                max_buffer_size=sirepo.job.cfg().max_message_bytes,
+            ).fetch(
                 tornado.httpclient.HTTPRequest(
                     body=pkjson.dump_bytes(a.content),
                     connect_timeout=60,
