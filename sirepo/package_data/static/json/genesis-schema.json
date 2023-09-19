@@ -93,7 +93,8 @@
         "fieldDistributionAnimation": ["fieldPlot"],
         "parameterAnimation": ["y1", "y2", "y3"],
         "particleAnimation": ["x", "y", "histogramBins"],
-        "dpaAnimation": []
+        "dpaAnimation": [],
+        "dflAnimation": []
     },
     "localRoutes": {
         "source": {
@@ -704,6 +705,15 @@
             "x": ["Horizontal Value to Plot", "ParticleColumn", "x"],
             "y": ["Vertical Value to Plot", "ParticleColumn", "pxmc"]
         },
+        "dflAnimation": {
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
+            "notes": ["Notes", "Text", ""],
+            "x": ["Horizontal Value to Plot", "ParticleColumn", "x"],
+            "y": ["Vertical Value to Plot", "ParticleColumn", "pxmc"]
+        },
         "particleLoading": {
             "iall": [
                 "Slices start with the same sequence element",
@@ -1212,7 +1222,8 @@
                     "iotail",
                     "ndcut",
                     "ffspec",
-                    "idump"
+                    "idmppar",
+                    "idmpfld"
                 ]],
                 ["Field", [
                     "fieldfile",
@@ -1276,6 +1287,24 @@
         },
         "dpaAnimation": {
             "title": "dpa Distribution",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "framesPerSecond",
+                "histogramBins",
+                "aspectRatio",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "dflAnimation": {
+            "title": "dfl Distribution",
             "advanced": [
                 [
                     ["Horizontal", [

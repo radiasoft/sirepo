@@ -215,7 +215,44 @@ def sim_frame_dpaAnimation(frame_args):
     d = numpy.fromfile(
         str(frame_args.run_dir.join("genesis.out.dpa")), dtype=numpy.float64
     )
-    pkdp("\n\n\n d={}", d)
+    pkdp("\n\n\n dpa shape before={}", d.shape)
+    return PKDict()
+
+
+def sim_frame_dflAnimation(frame_args):
+    def _get_col(col_key):
+        # POSIT: ParticleColumn keys are in same order as columns in output
+        for i, c in enumerate(SCHEMA.enum.ParticleColumn):
+            if c[0] == col_key:
+                return i, c[1]
+        raise AssertionError(
+            f"No column={SCHEMA.enum.ParticleColumn} with key={col_key}",
+        )
+
+    n = frame_args.sim_in.models.electronBeam.npart
+    d = numpy.fromfile(
+        str(frame_args.run_dir.join("genesis.out.dfl")), dtype=numpy.float64
+    )
+    pkdp("\n\n dfl shape before={}", d.shape)
+    b = d.reshape(
+        int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
+        len(SCHEMA.enum.ParticleColumn),
+        n,
+    )
+    x = _get_col(frame_args.x)
+    y = _get_col(frame_args.y)
+    return template_common.heatmap(
+        [
+            b[int(frame_args.frameIndex), x[0], :].tolist(),
+            b[int(frame_args.frameIndex), y[0], :].tolist(),
+        ],
+        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args),
+        PKDict(
+            title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ippart),
+            x_label=x[1],
+            y_label=y[1],
+        ),
+    )
 
 
 def sim_frame_particleAnimation(frame_args):
@@ -232,11 +269,13 @@ def sim_frame_particleAnimation(frame_args):
     d = numpy.fromfile(
         str(frame_args.run_dir.join(_PARTICLE_OUTPUT_FILENAME)), dtype=numpy.float64
     )
+    pkdp("\n\n\n particles={}, shape before={}", d, d.shape)
     b = d.reshape(
         int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
         len(SCHEMA.enum.ParticleColumn),
         n,
     )
+    pkdp("\n\n\n shape after reshape={}", b.shape)
     x = _get_col(frame_args.x)
     y = _get_col(frame_args.y)
     return template_common.heatmap(
