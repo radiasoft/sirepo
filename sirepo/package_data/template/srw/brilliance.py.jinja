@@ -1,6 +1,6 @@
 
-import srwlib
-from sirepo.template.srwl_uti_brightness import *
+import srwpy.srwlib
+from sirepo.template.srwpy.srwl_uti_brightness import *
 
 def main():
     lam_u = {{ undulator_period }} * 100.0 # undulator.period in cm
@@ -223,6 +223,6 @@ def main():
             columns.append(x.tolist())
             columns.append(y)
 {% endif %}
-    srwlib.srwl_uti_write_data_cols('res_brilliance.dat', columns, '\t', '#' + ', '.join(header))
+    srwpy.srwlib.srwl_uti_write_data_cols('res_brilliance.dat', columns, '\t', '#' + ', '.join(header))
 
 main()

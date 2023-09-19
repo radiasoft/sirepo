@@ -25,7 +25,7 @@
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
-from srwl_bl import *
+from srwpy.srwl_bl import *
 #import time
 
 #*********************************Setting Up Optical Elements and Propagation Parameters
@@ -234,13 +234,13 @@ varParam = [
     #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
 ]
 
-varParam = srwl_uti_ext_options(varParam) #Adding other default options (defined in srwl_bl.py)
+varParam = srwl_uti_ext_options(varParam) #Adding other default options (defined in srwpy.srwl_bl.py)
     
 #*********************************Entry
 if __name__ == "__main__":
 
 #---Parse options
-    v = srwl_uti_parse_options(varParam)
+    v = srwl_srwpy.uti_parse_options(varParam)
     
 #---Setup optics only if Wavefront Propagation is required:
     op = set_optics(v) if(v.ws or v.wm) else None

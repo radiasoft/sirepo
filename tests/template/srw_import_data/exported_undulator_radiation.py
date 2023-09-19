@@ -7,9 +7,9 @@ except:
     pass
 
 
-import srwl_bl
-import srwlib
-import srwlpy
+import srwpy.srwl_bl
+import srwpy.srwlib
+import srwpy.srwlpy
 
 
 def set_optics(v=None):
@@ -17,10 +17,10 @@ def set_optics(v=None):
     pp = []
     pp.append([])
 
-    return srwlib.SRWLOptC(el, pp)
+    return srwpy.srwlib.SRWLOptC(el, pp)
 
 
-varParam = srwl_bl.srwl_uti_ext_options([
+varParam = srwpy.srwl_bl.srwl_uti_ext_options([
     ['name', 's', 'Undulator Radiation', 'simulation name'],
 
 #---Data Folder
@@ -189,9 +189,9 @@ varParam = srwl_bl.srwl_uti_ext_options([
 ])
 
 if __name__ == '__main__':
-    v = srwl_bl.srwl_uti_parse_options(varParam)
-    source_type, mag = srwl_bl.setup_source(v)
+    v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(varParam)
+    source_type, mag = srwpy.srwl_bl.setup_source(v)
     op = None
     v.si = True
     v.si_pl = 'xy'
-    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
+    srwpy.srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)

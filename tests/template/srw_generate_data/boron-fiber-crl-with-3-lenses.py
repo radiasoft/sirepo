@@ -8,11 +8,11 @@ try:
 except:
     pass
 
-import srwl_bl
-import srwlib
-import srwlpy
+import srwpy.srwl_bl
+import srwpy.srwlib
+import srwpy.srwlpy
 import math
-import srwl_uti_smp
+import srwpy.srwl_uti_smp
 
 def set_optics(v, names=None, want_final_propagation=True):
     el = []
@@ -22,7 +22,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     for el_name in names:
         if el_name == 'CRL':
             # CRL: crl 36.0m
-            el.append(srwlib.srwl_opt_setup_CRL(
+            el.append(srwpy.srwlib.srwl_opt_setup_CRL(
                 _foc_plane=v.op_CRL_foc_plane,
                 _delta=v.op_CRL_delta,
                 _atten_len=v.op_CRL_atten_len,
@@ -38,13 +38,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_CRL_pp)
         elif el_name == 'CRL_Watchpoint':
             # CRL_Watchpoint: drift 36.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_CRL_Watchpoint_L,
             ))
             pp.append(v.op_CRL_Watchpoint_pp)
         elif el_name == 'Fiber':
             # Fiber: fiber 70.1915m
-            el.append(srwlib.srwl_opt_setup_cyl_fiber(
+            el.append(srwpy.srwlib.srwl_opt_setup_cyl_fiber(
                 _foc_plane=v.op_Fiber_foc_plane,
                 _delta_ext=v.op_Fiber_delta_ext,
                 _delta_core=v.op_Fiber_delta_core,
@@ -58,14 +58,14 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Fiber_pp)
         elif el_name == 'Fiber_Watchpoint2':
             # Fiber_Watchpoint2: drift 70.1915m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Fiber_Watchpoint2_L,
             ))
             pp.append(v.op_Fiber_Watchpoint2_pp)
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
-    return srwlib.SRWLOptC(el, pp)
+    return srwpy.srwlib.SRWLOptC(el, pp)
 
 
 
@@ -313,7 +313,7 @@ def epilogue():
 
 
 def main():
-    v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     names = ['CRL','CRL_Watchpoint','Fiber','Fiber_Watchpoint2']
     op = set_optics(v, names, True)
     v.ws = True
@@ -329,7 +329,7 @@ def main():
     v.si_pl = 'xy'
     v.tr = True
     v.tr_pl = 'xz'
-    srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
+    srwpy.srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
 

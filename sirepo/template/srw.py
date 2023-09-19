@@ -23,13 +23,13 @@ import re
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.util
-import srwl_bl
-import srwlib
-import srwlpy
+import srwpy.srwl_bl
+import srwpy.srwlib
+import srwpy.srwlpy
 import time
 import traceback
-import uti_io
-import uti_plot_com
+import srwpy.uti_io
+import srwpy.srwpy.uti_plot_com
 import zipfile
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -342,7 +342,7 @@ def export_filename(sim_filename, filename):
 
 def _extract_coherent_modes(model, out_info):
     out_file = "combined-modes.dat"
-    wfr = srwlib.srwl_uti_read_wfr_cm_hdf5(_file_path=out_info.filename)
+    wfr = srwpy.srwlib.srwl_uti_read_wfr_cm_hdf5(_file_path=out_info.filename)
     if model.plotModesEnd > len(wfr):
         model.plotModesEnd = len(wfr)
     if model.plotModesStart > model.plotModesEnd:
@@ -352,7 +352,7 @@ def _extract_coherent_modes(model, out_info):
     mesh = wfr[0].mesh
     arI = array.array("f", [0] * mesh.nx * mesh.ny)
     for i in range(model.plotModesStart, model.plotModesEnd + 1):
-        srwlib.srwl.CalcIntFromElecField(
+        srwpy.srwlib.srwl.CalcIntFromElecField(
             arI,
             wfr[i - 1],
             int(model.polarization),
@@ -363,7 +363,7 @@ def _extract_coherent_modes(model, out_info):
             0,
             [2],
         )
-    srwlib.srwl_uti_save_intens_ascii(
+    srwpy.srwlib.srwl_uti_save_intens_ascii(
         arI,
         mesh,
         out_file,
@@ -392,7 +392,7 @@ def extract_report_data(sim_in):
         return out
     if r in ("coherenceXAnimation", "coherenceYAnimation", "multiElectronAnimation"):
         out.filename = _best_data_file(out.filename)
-    # TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
+    # TODO(pjm): remove fixup after dcx/dcy files can be read by srwpy.srwpy.uti_plot_com
     if r in ("coherenceXAnimation", "coherenceYAnimation"):
         _fix_file_header(out.filename)
     if r == "coherentModesAnimation":
@@ -416,7 +416,7 @@ def extract_report_data(sim_in):
         out.units[1] = "[m]"
     else:
         out.units[1] = "({})".format(out.units[1])
-    data, _, allrange, _, _ = uti_plot_com.file_load(out.filename)
+    data, _, allrange, _, _ = srwpy.srwpy.uti_plot_com.file_load(out.filename)
     res = PKDict(
         title=out.title,
         subtitle=out.get("subtitle", ""),
@@ -518,7 +518,7 @@ def sim_frame(frame_args):
             frame_args.sim_in.report = "initialIntensityReport"
             frame_args.sim_in.models.initialIntensityReport = m
             data_file = _OUTPUT_FOR_MODEL.initialIntensityReport.filename
-        srwl_bl.SRWLBeamline().calc_int_from_wfr(
+        srwpy.srwl_bl.SRWLBeamline().calc_int_from_wfr(
             wfr,
             _pol=int(frame_args.polarization),
             _int_type=int(frame_args.characteristic),
@@ -775,14 +775,14 @@ def process_undulator_definition(model):
     try:
         if model.undulator_definition == "B":
             # Convert B -> K:
-            und = srwlib.SRWLMagFldU(
-                [srwlib.SRWLMagFldH(1, "v", float(model.amplitude), 0, 1)],
+            und = srwpy.srwlib.SRWLMagFldU(
+                [srwpy.srwlib.SRWLMagFldH(1, "v", float(model.amplitude), 0, 1)],
                 float(model.undulator_period),
             )
             model.undulator_parameter = _SIM_DATA.srw_format_float(und.get_K())
         elif model.undulator_definition == "K":
             # Convert K to B:
-            und = srwlib.SRWLMagFldU([], float(model.undulator_period))
+            und = srwpy.srwlib.SRWLMagFldU([], float(model.undulator_period))
             model.amplitude = _SIM_DATA.srw_format_float(
                 und.K_2_B(float(model.undulator_parameter)),
             )
@@ -797,9 +797,9 @@ def process_watch(wid=0):
         nx, ny = _resize_mesh_dimensions(mesh.nx, mesh.ny)
         pkdc("resized mesh: {}x{}", nx, ny)
         # resize the electic fields in the wavefront mesh - note it modifies wfr
-        srwlpy.ResizeElecFieldMesh(
+        srwpy.srwlpy.ResizeElecFieldMesh(
             wfr,
-            srwlib.SRWLRadMesh(
+            srwpy.srwlib.SRWLRadMesh(
                 _eStart=mesh.eStart,
                 _eFin=mesh.eFin,
                 _ne=mesh.ne,
@@ -873,7 +873,7 @@ def stateful_compute_sample_preview(data, **kwargs):
     Returns:
         JobCmdFile: file to be returned
     """
-    import srwl_uti_smp
+    import srwpy.srwl_uti_smp
 
     def _input_file(data):
         """This should just be a basename, but secure_filename ensures it."""
@@ -900,7 +900,7 @@ def stateful_compute_sample_preview(data, **kwargs):
     m = data.model
     d = pkio.py_path()
     if m.sampleSource == "file":
-        s = srwl_uti_smp.SRWLUtiSmp(
+        s = srwpy.srwl_uti_smp.SRWLUtiSmp(
             file_path=_input_file(data),
             area=None
             if not int(m.cropArea)
@@ -920,7 +920,7 @@ def stateful_compute_sample_preview(data, **kwargs):
         p = pkio.py_path(s.processed_image_name)
     else:
         assert m.sampleSource == "randomDisk"
-        s = srwl_uti_smp.srwl_opt_setup_smp_rnd_obj2d(
+        s = srwpy.srwl_uti_smp.srwl_opt_setup_smp_rnd_obj2d(
             _thickness=0,
             _delta=0,
             _atten_len=0,
@@ -1046,7 +1046,7 @@ def stateless_compute_process_undulator_definition(data, **kwargs):
 
 def validate_file(file_type, path):
     """Ensure the data file contains parseable rows data"""
-    import srwl_uti_smp
+    import srwpy.srwl_uti_smp
 
     if not _SIM_DATA.srw_is_valid_file_type(file_type, path):
         return "invalid file type: {}".format(path.ext)
@@ -1073,7 +1073,7 @@ def validate_file(file_type, path):
         except AssertionError as err:
             return str(err)
     elif file_type == "sample":
-        srwl_uti_smp.SRWLUtiSmp(
+        srwpy.srwl_uti_smp.SRWLUtiSmp(
             file_path=str(path),
             # srw processes the image so we save to tmp location
             is_save_images=True,
@@ -1301,7 +1301,7 @@ def _compute_material_characteristics(model, photon_energy, prefix=""):
 def _compute_PGM_value(model):
     parms_list = ["energyAvg", "cff", "grazingAngle"]
     try:
-        mirror = srwlib.SRWLOptMirPl(
+        mirror = srwpy.srwlib.SRWLOptMirPl(
             _size_tang=model.tangentialSize,
             _size_sag=model.sagittalSize,
             _nvx=model.nvx,
@@ -1315,7 +1315,7 @@ def _compute_PGM_value(model):
         # existing data may have photonEnergy as a string
         model.energyAvg = float(model.energyAvg)
         if model.computeParametersFrom == "1":
-            opGr = srwlib.SRWLOptG(
+            opGr = srwpy.srwlib.SRWLOptG(
                 _mirSub=mirror,
                 _m=model.diffractionOrder,
                 _grDen=model.grooveDensity0,
@@ -1331,7 +1331,7 @@ def _compute_PGM_value(model):
             grAng, defAng = opGr.cff2ang(_en=model.energyAvg, _cff=model.cff)
             model.grazingAngle = grAng * 1000.0
         elif model.computeParametersFrom == "2":
-            opGr = srwlib.SRWLOptG(
+            opGr = srwpy.srwlib.SRWLOptG(
                 _mirSub=mirror,
                 _m=model.diffractionOrder,
                 _grDen=model.grooveDensity0,
@@ -1386,7 +1386,7 @@ def _compute_grating_orientation(model):
         "outframevy",
     ]
     try:
-        mirror = srwlib.SRWLOptMirPl(
+        mirror = srwpy.srwlib.SRWLOptMirPl(
             _size_tang=model.tangentialSize,
             _size_sag=model.sagittalSize,
             _nvx=model.nvx,
@@ -1403,7 +1403,7 @@ def _compute_grating_orientation(model):
             grazingAngle = 0
         elif model.computeParametersFrom == "2":
             cff = None
-        opGr = srwlib.SRWLOptG(
+        opGr = srwpy.srwlib.SRWLOptG(
             _mirSub=mirror,
             _m=model.diffractionOrder,
             _grDen=model.grooveDensity0,
@@ -1444,7 +1444,7 @@ def _compute_grating_orientation(model):
 
 
 def _compute_crystal_init(model):
-    import srwl_uti_cryst
+    import srwpy.srwl_uti_cryst
 
     parms_list = ["dSpacing", "psi0r", "psi0i", "psiHr", "psiHi", "psiHBr", "psiHBi"]
     try:
@@ -1467,8 +1467,8 @@ def _compute_crystal_init(model):
             xrh = crystal_parameters["xrh"]
             xih = crystal_parameters["xih"]
         elif re.search("(SRW)", material_raw):
-            dc = srwl_uti_cryst.srwl_uti_cryst_pl_sp(millerIndices, material)
-            xr0, xi0, xrh, xih = srwl_uti_cryst.srwl_uti_cryst_pol_f(
+            dc = srwpy.srwl_uti_cryst.srwpy.srwl_uti_cryst_pl_sp(millerIndices, material)
+            xr0, xi0, xrh, xih = srwpy.srwl_uti_cryst.srwpy.srwl_uti_cryst_pol_f(
                 energy, millerIndices, material
             )
         else:
@@ -1490,7 +1490,7 @@ def _compute_crystal_init(model):
             model.orientation = "y"
     except Exception:
         pkdlog(
-            "{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py}: error: {}",
+            "{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwpy.srwlib.py}: error: {}",
             material_raw,
         )
         for key in parms_list:
@@ -1514,7 +1514,7 @@ def _compute_crystal_orientation(model):
         "outframevy",
     ]
     try:
-        opCr = srwlib.SRWLOptCryst(
+        opCr = srwpy.srwlib.SRWLOptCryst(
             _d_sp=model.dSpacing,
             _psi0r=model.psi0r,
             _psi0i=model.psi0i,
@@ -1623,7 +1623,7 @@ def _extend_plot(
 
 def _extract_beamline_orientation(filename):
     cols = np.array(
-        uti_io.read_ascii_data_cols(filename, "\t", _i_col_start=1, _n_line_skip=1)
+        srwpy.uti_io.read_ascii_data_cols(filename, "\t", _i_col_start=1, _n_line_skip=1)
     )
     rows = list(reversed(np.rot90(cols).tolist()))
     rows = np.reshape(rows, (len(rows), 4, 3))
@@ -1649,7 +1649,7 @@ def _extract_beamline_orientation(filename):
 
 
 def _extract_brilliance_report(model, filename):
-    data, _, _, _, _ = uti_plot_com.file_load(filename, multicolumn_data=True)
+    data, _, _, _, _ = srwpy.srwpy.uti_plot_com.file_load(filename, multicolumn_data=True)
     label = _enum_text("BrillianceReportType", model, "reportType")
     if model.reportType in ("3", "4"):
         label += " [rad]"
@@ -1691,7 +1691,7 @@ def _extract_brilliance_report(model, filename):
 
 
 def _extract_trajectory_report(model, filename):
-    data, _, _, _, _ = uti_plot_com.file_load(filename, multicolumn_data=True)
+    data, _, _, _, _ = srwpy.srwpy.uti_plot_com.file_load(filename, multicolumn_data=True)
     available_axes = PKDict()
     for s in SCHEMA.enum.TrajectoryPlotAxis:
         available_axes[s[0]] = s[1]
@@ -2017,7 +2017,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     prev_watch = 0
     final_watch = None
     content = [
-        f"v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options({vp_var}), use_sys_argv={plot_reports})",
+        f"v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options({vp_var}), use_sys_argv={plot_reports})",
     ]
     if (plot_reports or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append(
@@ -2049,7 +2049,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 content.append("v.ws_fnep = '{}'".format(prev_wavefront))
                 content.append("op = set_optics(v, names, {})".format(is_last_watch))
                 if not is_last_watch:
-                    content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
+                    content.append("srwpy.srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
                     content.append(
                         f"sirepo.template.import_module('srw').process_watch(wid={prev_watch})"
                     )
@@ -2122,7 +2122,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             content.append("v.tr = True")
             if plot_reports:
                 content.append("v.tr_pl = 'xz'")
-    content.append("srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
+    content.append("srwpy.srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
     if report == "beamlineAnimation":
         content.append(
             f"sirepo.template.import_module('srw').process_watch(wid={prev_watch})"

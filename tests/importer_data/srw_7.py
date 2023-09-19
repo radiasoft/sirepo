@@ -8,10 +8,10 @@ except:
     pass
 
 
-import srwl_bl
-import srwlib
-import srwlpy
-import srwl_uti_smp
+import srwpy.srwl_bl
+import srwpy.srwlib
+import srwpy.srwlpy
+import srwpy.srwl_uti_smp
 
 
 def set_optics(v=None):
@@ -21,7 +21,7 @@ def set_optics(v=None):
     for el_name in names:
         if el_name == 'S0':
             # S0: aperture 20.5m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_S0_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_S0_Dx,
@@ -32,7 +32,7 @@ def set_optics(v=None):
             pp.append(v.op_S0_pp)
         elif el_name == 'S0_HDM':
             # S0_HDM: drift 20.5m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_S0_HDM_L,
             ))
             pp.append(v.op_S0_HDM_pp)
@@ -41,8 +41,8 @@ def set_optics(v=None):
             mirror_file = v.op_HDM_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by HDM beamline element'.format(mirror_file)
-            el.append(srwlib.srwl_opt_setup_surf_height_1d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_HDM_dim,
                 _ang=abs(v.op_HDM_ang),
                 _amp_coef=v.op_HDM_amp_coef,
@@ -52,13 +52,13 @@ def set_optics(v=None):
             pp.append(v.op_HDM_pp)
         elif el_name == 'HDM_S1':
             # HDM_S1: drift 27.4m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_HDM_S1_L,
             ))
             pp.append(v.op_HDM_S1_pp)
         elif el_name == 'S1':
             # S1: aperture 29.9m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_S1_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_S1_Dx,
@@ -69,13 +69,13 @@ def set_optics(v=None):
             pp.append(v.op_S1_pp)
         elif el_name == 'S1_S2':
             # S1_S2: drift 29.9m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_S1_S2_L,
             ))
             pp.append(v.op_S1_S2_pp)
         elif el_name == 'S2':
             # S2: aperture 34.3m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_S2_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_S2_Dx,
@@ -86,13 +86,13 @@ def set_optics(v=None):
             pp.append(v.op_S2_pp)
         elif el_name == 'S2_CRL1':
             # S2_CRL1: drift 34.3m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_S2_CRL1_L,
             ))
             pp.append(v.op_S2_CRL1_pp)
         elif el_name == 'CRL1':
             # CRL1: crl 35.4m
-            el.append(srwlib.srwl_opt_setup_CRL(
+            el.append(srwpy.srwlib.srwl_opt_setup_CRL(
                 _foc_plane=v.op_CRL1_foc_plane,
                 _delta=v.op_CRL1_delta,
                 _atten_len=v.op_CRL1_atten_len,
@@ -108,7 +108,7 @@ def set_optics(v=None):
             pp.append(v.op_CRL1_pp)
         elif el_name == 'CRL2':
             # CRL2: crl 35.4m
-            el.append(srwlib.srwl_opt_setup_CRL(
+            el.append(srwpy.srwlib.srwl_opt_setup_CRL(
                 _foc_plane=v.op_CRL2_foc_plane,
                 _delta=v.op_CRL2_delta,
                 _atten_len=v.op_CRL2_atten_len,
@@ -124,13 +124,13 @@ def set_optics(v=None):
             pp.append(v.op_CRL2_pp)
         elif el_name == 'CRL2_KLA':
             # CRL2_KLA: drift 35.4m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_CRL2_KLA_L,
             ))
             pp.append(v.op_CRL2_KLA_pp)
         elif el_name == 'KLA':
             # KLA: aperture 44.5m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_KLA_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_KLA_Dx,
@@ -141,7 +141,7 @@ def set_optics(v=None):
             pp.append(v.op_KLA_pp)
         elif el_name == 'KL':
             # KL: lens 44.5m
-            el.append(srwlib.SRWLOptL(
+            el.append(srwpy.srwlib.SRWLOptL(
                 _Fx=v.op_KL_Fx,
                 _Fy=v.op_KL_Fy,
                 _x=v.op_KL_x,
@@ -150,13 +150,13 @@ def set_optics(v=None):
             pp.append(v.op_KL_pp)
         elif el_name == 'KL_S3':
             # KL_S3: drift 44.5m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_KL_S3_L,
             ))
             pp.append(v.op_KL_S3_pp)
         elif el_name == 'S3':
             # S3: aperture 48.0m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_S3_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_S3_Dx,
@@ -167,7 +167,7 @@ def set_optics(v=None):
             pp.append(v.op_S3_pp)
         elif el_name == 'S3_Sample':
             # S3_Sample: drift 48.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_S3_Sample_L,
             ))
             pp.append(v.op_S3_Sample_pp)
@@ -175,10 +175,10 @@ def set_optics(v=None):
             # Sample: watch 48.7m
             pass
     pp.append(v.op_fin_pp)
-    return srwlib.SRWLOptC(el, pp)
+    return srwpy.srwlib.SRWLOptC(el, pp)
 
 
-varParam = srwl_bl.srwl_uti_ext_options([
+varParam = srwpy.srwl_bl.srwl_uti_ext_options([
     ['name', 's', 'NSLS-II CHX beamline', 'simulation name'],
 
 #---Data Folder
@@ -482,7 +482,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
 
 
 def main():
-    v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(varParam, use_sys_argv=True)
     op = set_optics(v)
     v.ss = True
     v.ss_pl = 'e'
@@ -498,11 +498,11 @@ def main():
     v.ws_pl = 'xy'
     mag = None
     if v.rs_type == 'm':
-        mag = srwlib.SRWLMagFldC()
+        mag = srwpy.srwlib.SRWLMagFldC()
         mag.arXc.append(0)
         mag.arYc.append(0)
-        mag.arMagFld.append(srwlib.SRWLMagFldM(v.mp_field, v.mp_order, v.mp_distribution, v.mp_len))
+        mag.arMagFld.append(srwpy.srwlib.SRWLMagFldM(v.mp_field, v.mp_order, v.mp_distribution, v.mp_len))
         mag.arZc.append(v.mp_zc)
-    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
+    srwpy.srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
 
 main()

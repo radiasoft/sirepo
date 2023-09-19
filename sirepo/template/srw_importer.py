@@ -18,7 +18,7 @@ import os
 import py.path
 import re
 import sirepo.sim_data
-import srwl_bl
+import srwpy.srwl_bl
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals("srw")
 
@@ -38,7 +38,7 @@ class SRWParser:
             import shlex
 
             arguments = shlex.split(arguments)
-        self.var_param = srwl_bl.srwl_uti_parse_options(
+        self.var_param = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(
             m.varParam, use_sys_argv=False, args=arguments
         )
         self.replace_mirror_files()
@@ -651,7 +651,7 @@ def _name(user_filename):
 def _parsed_dict(v, op):
     import sirepo.template.srw
 
-    std_options = Struct(**_list2dict(srwl_bl.srwl_uti_std_options()))
+    std_options = Struct(**_list2dict(srwpy.srwl_bl.srwl_uti_std_options()))
 
     beamline_elements = _get_beamline(op.arOpt, v.op_r)
 
@@ -1006,7 +1006,7 @@ def _update_crystals(data, v):
                 pass
 
             if not data[i]["energy"]:
-                try:  # update energy if an old srwlib.py is used
+                try:  # update energy if an old srwpy.srwlib.py is used
                     data[i]["energy"] = v.op_DCM_e
                 except Exception:
                     data[i]["energy"] = v.w_e
