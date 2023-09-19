@@ -3199,6 +3199,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
 SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, requestSender, $rootScope, $scope) {
 
+    const builtinExtruded = ['cee', 'ell', 'jay'];
     const ctl = angular.element($('div[data-ng-controller]').eq(0)).controller('ngController');
     let editedModels = [];
     const materialFields = ['geomObject.magnetization', 'geomObject.material'];
@@ -3382,7 +3383,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             return;
         }
 
-        if (! appState.isSubclass(modelType, 'extrudedObject')) {
+        if (! appState.isSubclass(modelType, 'extrudedObject') || builtinExtruded.includes(modelType)) {
             return;
         }
 
