@@ -3025,7 +3025,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     rebuildAxes();
                     refresh();
                 }
-            });
+            }, true);
 
             init();
         },
