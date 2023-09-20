@@ -51,6 +51,17 @@ class AnalysisDriverBase(PKDict):
     def get_output_dir(self):
         return sirepo.raydata.scan_monitor.cfg.db_dir.join(self.uid)
 
+    def get_papermill_args(self, scan_metadata):
+        res = []
+        for n, v in [
+            ["uid", self.uid],
+            ["scan", self.uid],
+            *self._get_papermill_args(scan_metadata),
+        ]:
+            res.extend(["-p", n, str(v)])
+        res.append("--report-mode")
+        return res
+
     def get_run_log(self):
         p = self.get_output_dir().join("run.log")
         return PKDict(
@@ -60,6 +71,9 @@ class AnalysisDriverBase(PKDict):
 
     def has_analysis_pdfs(self):
         return len(self.get_analysis_pdf_paths()) > 0
+
+    def _get_papermill_args(self, *args, **kwargs):
+        return []
 
 
 def get(incoming):

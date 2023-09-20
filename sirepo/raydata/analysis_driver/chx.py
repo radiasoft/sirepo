@@ -14,5 +14,12 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
             )
         ]
 
+    def _get_papermill_args(self, scan_metadata, *args, **kwargs):
+        return [
+            ["run_two_time", True],
+            ["run_dose", False],
+            ["username", scan_metadata.get_start_field("user")],
+        ]
+
     # def get_output_dir(self):
     #     raise NotImplementedError("# TODO(e-carlin): need to impl")

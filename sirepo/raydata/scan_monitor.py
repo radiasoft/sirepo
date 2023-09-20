@@ -380,59 +380,41 @@ async def _init_analysis_processors():
             if not _SCANS_AWAITING_ANALYSIS:
                 await pkasyncio.sleep(5)
                 continue
-            v = sirepo.raydata.analysis_driver.get(_SCANS_AWAITING_ANALYSIS.pop(0))
+            d = sirepo.raydata.analysis_driver.get(_SCANS_AWAITING_ANALYSIS.pop(0))
             s = _AnalysisStatus.ERROR
             try:
-                _Analysis.set_scan_status(v, _AnalysisStatus.RUNNING)
-                with pkio.save_chdir(v.get_output_dir(), mkdir=True), pkio.open_text(
+                _Analysis.set_scan_status(d, _AnalysisStatus.RUNNING)
+                with pkio.save_chdir(d.get_output_dir(), mkdir=True), pkio.open_text(
                     "run.log", mode="w"
                 ) as l:
                     try:
-                        m = _Metadata(_catalog(v.catalog_name)[v.uid])
-                        for n in v.get_notebooks(scan_metadata=m):
-                            q = [
-                                "-p",
-                                "uid",
-                                v.uid,
-                                "-p",
-                                "scan",
-                                v.uid,
-                                "-p",
-                                "run_two_time",
-                                "True",
-                                "-p",
-                                "run_dose",
-                                "False",
-                                "--report-mode",
-                            ]
-                            if u := m.get_start_field("user", unchecked=True):
-                                q += [
-                                    "-p",
-                                    "username",
-                                    u,
-                                ]
+                        # TODO(e-carlin): Metadata should be its own module and we should
+                        # call it in  get_papermill_args instead of creating here
+                        m = _Metadata(_catalog(d.catalog_name)[d.uid])
+                        # TODO(e-carlin): this should return the input notebook and the matching output notebook
+                        for n in d.get_notebooks(scan_metadata=m):
                             p = await asyncio.create_subprocess_exec(
                                 "papermill",
                                 str(n),
                                 f"{n}-out.ipynb",
-                                *q,
+                                *d.get_papermill_args(m),
                                 stderr=asyncio.subprocess.STDOUT,
                                 stdout=l,
                             )
                             r = await p.wait()
                             assert (
                                 r == 0
-                            ), f"error returncode={r} scan={v} notebook={n} log={pkio.py_path().join('run.log')}"
+                            ), f"error returncode={r} catalog={d.catalog_name} scan={d.uid} notebook={n} log={pkio.py_path().join('run.log')}"
                             s = _AnalysisStatus.COMPLETED
                     except Exception as e:
                         pkdlog(
                             "error analyzing scan={} error={} stack={}",
-                            v,
+                            d.uid,
                             e,
                             pkdexc(),
                         )
             finally:
-                _Analysis.set_scan_status(v, s)
+                _Analysis.set_scan_status(d, s)
 
     assert not _ANALYSIS_PROCESSOR_TASKS
     _ANALYSIS_PROCESSOR_TASKS = [
