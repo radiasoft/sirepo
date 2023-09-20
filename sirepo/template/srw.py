@@ -2021,7 +2021,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     prev_watch = 0
     final_watch = None
     content = [
-        f"v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options({vp_var}), use_sys_argv={plot_reports})",
+        f"v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options({vp_var}), use_sys_argv={plot_reports})",
     ]
     if (plot_reports or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append(

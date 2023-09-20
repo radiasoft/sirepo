@@ -501,7 +501,7 @@ def epilogue():
 
 
 def main():
-    v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     names = ['S0','S0_HDM','HDM','HDM_S1','S1','S1_S2','S2','S2_CRL1','CRL1','CRL2','CRL2_KLA','KLA','KL','KL_S3','S3','S3_Sample']
     op = set_optics(v, names, True)
     v.ws = True

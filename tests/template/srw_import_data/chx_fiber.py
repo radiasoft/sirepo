@@ -536,7 +536,7 @@ varParam = srwl_uti_ext_options(varParam)
 if __name__ == "__main__":
 
 #---Parse options, defining Beamline elements and running calculations
-    v = srwl_srwpy.uti_parse_options(varParam)
+    v = srwl_uti_parse_options(varParam)
 
 #---Add some constant "parameters" (not allowed to be varied) for the beamline
     #v.und_per = 0.02 #['und_per', 'f', 0.02, 'undulator period [m]'],

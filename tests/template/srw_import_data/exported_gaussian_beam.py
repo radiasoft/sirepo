@@ -176,7 +176,7 @@ varParam = srwpy.srwl_bl.srwl_uti_ext_options([
 
 
 def main():
-    v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(varParam, use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
     source_type, mag = srwpy.srwl_bl.setup_source(v)
     op = set_optics(v)
     v.ws = True

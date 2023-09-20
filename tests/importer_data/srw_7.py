@@ -482,7 +482,7 @@ varParam = srwpy.srwl_bl.srwl_uti_ext_options([
 
 
 def main():
-    v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(varParam, use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
     op = set_optics(v)
     v.ss = True
     v.ss_pl = 'e'

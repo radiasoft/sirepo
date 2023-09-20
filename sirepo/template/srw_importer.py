@@ -38,7 +38,7 @@ class SRWParser:
             import shlex
 
             arguments = shlex.split(arguments)
-        self.var_param = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(
+        self.var_param = srwpy.srwl_bl.srwl_uti_parse_options(
             m.varParam, use_sys_argv=False, args=arguments
         )
         self.replace_mirror_files()

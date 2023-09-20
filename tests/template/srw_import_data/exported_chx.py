@@ -236,7 +236,7 @@ varParam = srwpy.srwl_bl.srwl_uti_ext_options([
 ])
 
 if __name__ == '__main__':
-    v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(varParam)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(varParam)
     source_type, mag = srwpy.srwl_bl.setup_source(v)
     op = None
     op = set_optics()

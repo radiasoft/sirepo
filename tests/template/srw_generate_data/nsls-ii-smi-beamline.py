@@ -597,7 +597,7 @@ def epilogue():
 
 
 def main():
-    v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     names = ['MOAT_1','MOAT_1_MOAT_2','MOAT_2','MOAT_2_HFM','HFM','HFM_VFM','VFM','VFM_VDM','VDM','VDM_SSA','SSA','SSA_ES1','ES1_CRL','CRL','CRL_ES2']
     op = set_optics(v, names, True)
     v.ws = True

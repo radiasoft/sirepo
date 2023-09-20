@@ -240,7 +240,7 @@ varParam = srwl_uti_ext_options(varParam) #Adding other default options (defined
 if __name__ == "__main__":
 
 #---Parse options
-    v = srwl_srwpy.uti_parse_options(varParam)
+    v = srwl_uti_parse_options(varParam)
     
 #---Setup optics only if Wavefront Propagation is required:
     op = set_optics(v) if(v.ws or v.wm) else None

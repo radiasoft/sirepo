@@ -389,7 +389,7 @@ def epilogue():
 
 
 def main():
-    v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     names = ['ApM1','M1','M1_Watchpoint','ApKB','VFM','VFM_HFM','HFM','HFM_Sample']
     op = set_optics(v, names, True)
     v.ws = True

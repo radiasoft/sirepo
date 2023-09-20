@@ -300,7 +300,7 @@ def epilogue():
 
 
 def main():
-    v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     setup_magnetic_measurement_files(v.fdir + "magnetic_measurements.zip", v)
     names = ['Aperture','Aperture_Watchpoint']
     op = set_optics(v, names, True)

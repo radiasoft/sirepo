@@ -313,7 +313,7 @@ def epilogue():
 
 
 def main():
-    v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     names = ['CRL','CRL_Watchpoint','Fiber','Fiber_Watchpoint2']
     op = set_optics(v, names, True)
     v.ws = True

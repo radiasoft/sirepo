@@ -638,7 +638,7 @@ def epilogue():
 
 
 def main():
-    v = srwpy.srwl_bl.srwl_srwpy.uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     setup_magnetic_measurement_files(v.fdir + "magn_meas_srx.zip", v)
     names = ['S0','S0_HFM','HFM','HFM_S1','S1','S1_DCM_C1','DCM_C1','DCM_C2','DCM_C2_At_BPM1','At_BPM1_Before_SSA','SSA','SSA_AKB','AKB','AKB_KBV','KBV','KBV_KBH','KBH','KBH_At_Sample']
     op = set_optics(v, names, True)
