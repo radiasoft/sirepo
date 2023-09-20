@@ -12,10 +12,10 @@
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="parameter" data-model-name="parameterAnimation"></div>
     </div>
-    <div class="col-md-6 col-xl-4" data-ng-if="visualization.frameCache.hasFrames('dpaAnimation')">
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.frameCache.hasFrames('dpaAnimation') && visualization.dpa()">
       <div data-report-panel="heatmap" data-model-name="dpaAnimation"></div>
     </div>
-    <div class="col-md-6 col-xl-4" data-ng-if="visualization.frameCache.hasFrames('dflAnimation')">
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.frameCache.hasFrames('dflAnimation') && visualization.dfl()">
       <div data-report-panel="heatmap" data-model-name="dflAnimation"></div>
     </div>
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.frameCache.hasFrames('particleAnimation')">

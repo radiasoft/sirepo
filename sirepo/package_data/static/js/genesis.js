@@ -35,6 +35,8 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             }
         }
     };
+    self.dpa = () => appState.models.io.idmppar == '1';
+    self.dfl = () => appState.models.io.idmpfld == '1';
     self.simState = persistentSimulation.initSimulationState(self);
     return self;
 });
