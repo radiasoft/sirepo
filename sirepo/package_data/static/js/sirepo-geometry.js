@@ -197,7 +197,7 @@ class GeometricObject {
      * @returns {boolean}
      */
     equalWithin(val1, val2) {
-        return Math.abs(val2 - val1) < this.equalityTolerance;
+        return Math.abs(val2 - val1) < (this.equalityTolerance * Math.max(Math.abs(val1), Math.abs(val2)));
     }
 
     /**

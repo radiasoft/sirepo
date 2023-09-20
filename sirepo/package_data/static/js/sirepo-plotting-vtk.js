@@ -2537,8 +2537,8 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
                         <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/lock.svg" data-ng-show="locked[o.id]" data-ng-class="{'sr-disabled-image': ! unlockable[o.id]}" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
                         <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/unlock.svg" data-ng-show="! locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
                         <span style="font-size: large; color: {{o.color || '#cccccc'}}; padding-left: 1px;">■</span>
-                          <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': expanded[o.id], 'glyphicon-chevron-up': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
-                            <span>{{ o.name }}</span>
+                        <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-up': expanded[o.id], 'glyphicon-chevron-down': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
+                        <span>{{ o.name }}</span>
                       </td>
                         <td style="text-align: right">
                           <div class="sr-button-bar-parent">
