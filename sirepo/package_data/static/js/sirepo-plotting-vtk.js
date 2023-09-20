@@ -2815,7 +2815,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             var axisCfg = axisCfgDefault;
 
             var d3self = select();
-            var lastSize = [1, 1];
+            var lastSize = null;
 
             function select(selector) {
                 var e = d3.select($element[0]);
@@ -2823,7 +2823,10 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             }
 
             function refresh() {
-                const size = [$($element).width(), $($element).height()];
+                let size = [$($element).width(), $($element).height()];
+                if (! size[0] || ! size[1] && lastSize) {
+                    size = lastSize;
+                }
                 const screenRect = new SIREPO.GEOMETRY.Rect(
                     new SIREPO.GEOMETRY.Point(
                         $scope.axesMargins.x.width,
@@ -3049,7 +3052,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     rebuildAxes();
                     refresh();
                 }
-            });
+            }, true);
 
             init();
         },
@@ -3086,7 +3089,7 @@ SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSende
 });
 
 // General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting, vtkService, vtkUtils, utilities, $document, $window) {
+SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $document, $window) {
 
     return {
         restrict: 'A',
@@ -3152,7 +3155,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             }
 
             function resize() {
-                refresh(true);
+                refresh();
             }
 
             $scope.init = function() {
@@ -3223,19 +3226,19 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
             $scope.rotate = angle => {
                 $scope.vtkScene.rotate(angle);
-                refresh(true);
+                refresh();
             };
 
             $scope.showSide = side => {
                 $scope.vtkScene.showSide(side);
-                refresh(true);
+                refresh();
             };
 
             $scope.toggleOrtho = () => {
                 $scope.isOrtho = ! $scope.isOrtho;
                 $scope.vtkScene.cam.setParallelProjection($scope.isOrtho);
                 $scope.vtkScene.render();
-                refresh(true);
+                refresh();
             };
 
             $scope.$on('$destroy', function() {
@@ -3246,7 +3249,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
             function refresh() {
                 if ($scope.axisObj) {
-                    $scope.$broadcast('axes.refresh');
+                    $scope.$broadcast('axes.refresh', $scope.axisObj);
                 }
             }
 
@@ -3265,6 +3268,11 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             $scope.$on('vtk.hideLoader', function (e, d) {
                 $scope.vtkScene.setBgColor(appState.models[$scope.modelName].bgColor || '#ffffff');
                 $($element).find('.vtk-load-indicator img').css('display', 'none');
+            });
+            $scope.$on(`panel.${$scope.modelName}.hidden`, (e, v) => {
+                if (! v) {
+                    panelState.waitForUI(refresh);
+                }
             });
             $scope.init();
 
