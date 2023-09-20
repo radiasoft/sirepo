@@ -25,7 +25,7 @@
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
-from srwpy.srwl_bl import *
+from srwl_bl import *
 try:
     import cPickle as pickle
 except:
@@ -141,9 +141,9 @@ def set_optics(_v):
         hc = [1,1,1]
         if(_v.op_DCM_r == '311'): hc = [3,1,1]
 
-        dc = srwpy.srwl_uti_cryst_pl_sp(hc, 'Si')
+        dc = srwl_uti_cryst_pl_sp(hc, 'Si')
         #print('DCM Interplannar dist.:', dc)
-        psi = srwpy.srwl_uti_cryst_pol_f(_v.op_DCM_e0, hc, 'Si')  #MR15032016: replaced "op_DCM_e" by "op_DCM_e0" to test the import in Sirepo
+        psi = srwl_uti_cryst_pol_f(_v.op_DCM_e0, hc, 'Si')  #MR15032016: replaced "op_DCM_e" by "op_DCM_e0" to test the import in Sirepo
         #print('DCM Fourier Components:', psi)
 
         #---------------------- DCM Crystal #1
@@ -159,12 +159,12 @@ def set_optics(_v):
         # print('DCM Crystal #1 Orientation (original):')
         # print('  t =', tCr1, 's =', orientCr1[1], 'n =', nCr1)
 
-        import srwpy.uti_math
+        import uti_math
         if(_v.op_DCM_ac1 != 0): #Small rotation of DCM Crystal #1:
-            rot = srwpy.uti_math.trf_rotation([0,1,0], _v.op_DCM_ac1, [0,0,0])
-            tCr1 = srwpy.uti_math.matr_prod(rot[0], tCr1)
-            sCr1 = srwpy.uti_math.matr_prod(rot[0], sCr1)
-            nCr1 = srwpy.uti_math.matr_prod(rot[0], nCr1)
+            rot = uti_math.trf_rotation([0,1,0], _v.op_DCM_ac1, [0,0,0])
+            tCr1 = uti_math.matr_prod(rot[0], tCr1)
+            sCr1 = uti_math.matr_prod(rot[0], sCr1)
+            nCr1 = uti_math.matr_prod(rot[0], nCr1)
 
         #Set the Crystal #1 orientation:
         opCr1.set_orient(nCr1[0], nCr1[1], nCr1[2], tCr1[0], tCr1[1])
@@ -180,7 +180,7 @@ def set_optics(_v):
         #Incoming/Outgoing beam frame transformation matrix for the DCM Crystal #1
         TCr1 = [rxCr1, ryCr1, rzCr1]
         # print('Total transformation matrix after DCM Crystal #1:')
-        # srwpy.uti_math.matr_print(TCr1)
+        # uti_math.matr_print(TCr1)
         #print(' ')
 
         el.append(opCr1); pp.append(_v.op_DCMC1_pp)
@@ -199,10 +199,10 @@ def set_optics(_v):
         # print('  t =', tCr2, 's =', sCr2, 'n =', nCr2)
 
         if(_v.op_DCM_ac2 != 0): #Small rotation of DCM Crystal #2:
-            rot = srwpy.uti_math.trf_rotation([0,1,0], _v.op_DCM_ac2, [0,0,0])
-            tCr2 = srwpy.uti_math.matr_prod(rot[0], tCr2)
-            sCr2 = srwpy.uti_math.matr_prod(rot[0], sCr2)
-            nCr2 = srwpy.uti_math.matr_prod(rot[0], nCr2)
+            rot = uti_math.trf_rotation([0,1,0], _v.op_DCM_ac2, [0,0,0])
+            tCr2 = uti_math.matr_prod(rot[0], tCr2)
+            sCr2 = uti_math.matr_prod(rot[0], sCr2)
+            nCr2 = uti_math.matr_prod(rot[0], nCr2)
 
         #Set the Crystal #2 orientation
         opCr2.set_orient(nCr2[0], nCr2[1], nCr2[2], tCr2[0], tCr2[1])
@@ -217,9 +217,9 @@ def set_optics(_v):
 
         #Incoming/Outgoing beam transformation matrix for the DCM Crystal #2
         TCr2 = [rxCr2, ryCr2, rzCr2]
-        Ttot = srwpy.uti_math.matr_prod(TCr2, TCr1)
+        Ttot = uti_math.matr_prod(TCr2, TCr1)
         # print('Total transformation matrix after DCM Crystal #2:')
-        # srwpy.uti_math.matr_print(Ttot)
+        # uti_math.matr_print(Ttot)
         #print(' ')
 
         el.append(opCr2); pp.append(_v.op_DCMC2_pp)

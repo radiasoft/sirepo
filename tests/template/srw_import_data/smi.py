@@ -26,7 +26,7 @@
 
 from __future__ import print_function  # Python 2.7 compatibility
 
-from srwpy.srwl_bl import *
+from srwl_bl import *
 
 try:
     import cPickle as pickle

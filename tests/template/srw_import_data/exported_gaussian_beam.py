@@ -8,18 +8,18 @@ except:
     pass
 
 
-import srwpy.srwl_bl
-import srwpy.srwlib
-import srwpy.srwlpy
+import srwl_bl
+import srwlib
+import srwlpy
 
 
 def set_optics(v=None):
     el = []
-    el.append(srwpy.srwlib.SRWLOptA("r", "a", 0.001, 0.001, 0.0, 0.0))
+    el.append(srwlib.SRWLOptA("r", "a", 0.001, 0.001, 0.0, 0.0))
 
-    el.append(srwpy.srwlib.SRWLOptD(0.02))
+    el.append(srwlib.SRWLOptD(0.02))
 
-    el.append(srwpy.srwlib.SRWLOptD(3.48))
+    el.append(srwlib.SRWLOptD(3.48))
 
     pp = []
     pp.append([0, 0, 1.0, 0, 0, 0.3, 5.0, 0.3, 5.0])
@@ -30,10 +30,10 @@ def set_optics(v=None):
     pp.append([0, 0, 1.0, 3, 0, 4.0, 1.0, 4.0, 1.0])
 
     pp.append([0, 0, 1.0, 0, 0, 0.075, 1.0, 0.075, 1.0])
-    return srwpy.srwlib.SRWLOptC(el, pp)
+    return srwlib.SRWLOptC(el, pp)
 
 
-varParam = srwpy.srwl_bl.srwl_uti_ext_options([
+varParam = srwl_bl.srwl_uti_ext_options([
     ['name', 's', 'Diffraction by an Aperture', 'simulation name'],
 
 #---Data Folder
@@ -176,12 +176,12 @@ varParam = srwpy.srwl_bl.srwl_uti_ext_options([
 
 
 def main():
-    v = srwpy.srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
-    source_type, mag = srwpy.srwl_bl.setup_source(v)
+    v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
+    source_type, mag = srwl_bl.setup_source(v)
     op = set_optics(v)
     v.ws = True
     v.ws_pl = 'xy'
-    srwpy.srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
+    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
 
 
 if __name__ == '__main__':
