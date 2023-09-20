@@ -85,11 +85,6 @@ class _Analysis(_DbBase):
         nullable=False,
     )
 
-    # TODO(e-carlin): rm
-    @classmethod
-    def analysis_output_dir(cls, uid):
-        return cfg.db_dir.join(uid)
-
     @classmethod
     def get_recently_updated(cls, num_scans, catalog_name, statuses):
         r = []
@@ -213,27 +208,26 @@ class _RequestHandler(_JsonPostRequestHandler):
     async def post(self):
         self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
 
-    # TODO(e-carlin): rename args to req_data
-    def _databroker_search(self, catalog, args):
-        def _search_params(args):
+    def _databroker_search(self, catalog, req_data):
+        def _search_params(req_data):
             q = databroker.queries.TimeRange(
-                since=args.searchStartTime, until=args.searchStopTime
+                since=req_data.searchStartTime, until=req_data.searchStopTime
             )
-            if args.get("searchText"):
+            if req_data.get("searchText"):
                 q = {
                     "$and": [
                         q.query,
-                        databroker.queries.TextQuery(args.searchText).query,
+                        databroker.queries.TextQuery(req_data.searchText).query,
                     ],
                 }
             return q
 
-        def _sort_params(args):
-            c = _DEFAULT_COLUMNS.get(args.sortColumn, args.sortColumn)
+        def _sort_params(req_data):
+            c = _DEFAULT_COLUMNS.get(req_data.sortColumn, req_data.sortColumn)
             s = [
                 (
                     c,
-                    pymongo.ASCENDING if args.sortOrder else pymongo.DESCENDING,
+                    pymongo.ASCENDING if req_data.sortOrder else pymongo.DESCENDING,
                 ),
             ]
             if c != "time":
@@ -248,24 +242,24 @@ class _RequestHandler(_JsonPostRequestHandler):
         pc = math.ceil(
             len(
                 catalog.search(
-                    _search_params(args),
-                    sort=_sort_params(args),
+                    _search_params(req_data),
+                    sort=_sort_params(req_data),
                 )
             )
-            / args.pageSize
+            / req_data.pageSize
         )
         l = [
             PKDict(uid=u)
             for u in catalog.search(
-                _search_params(args),
-                sort=_sort_params(args),
-                limit=args.pageSize,
-                skip=args.pageNumber * args.pageSize,
+                _search_params(req_data),
+                sort=_sort_params(req_data),
+                limit=req_data.pageSize,
+                skip=req_data.pageNumber * req_data.pageSize,
             )
         ]
         d = PKDict(
             _Analysis.statuses_for_scans(
-                catalog_name=args.catalogName, uids=[s.uid for s in l]
+                catalog_name=req_data.catalogName, uids=[s.uid for s in l]
             )
         )
         for s in l:
@@ -388,8 +382,6 @@ async def _init_analysis_processors():
                     "run.log", mode="w"
                 ) as l:
                     try:
-                        # TODO(e-carlin): Metadata should be its own module and we should
-                        # call it in  get_papermill_args instead of creating here
                         m = _Metadata(_catalog(d.catalog_name)[d.uid])
                         # TODO(e-carlin): this should return the input notebook and the matching output notebook
                         for n in d.get_notebooks(scan_metadata=m):
