@@ -215,7 +215,9 @@ def sim_frame_parameterAnimation(frame_args):
 
 def sim_frame_dflAnimation(frame_args):
     nx = int(frame_args.sim_in.models.mesh.ncar)
-    d = numpy.fromfile(str(frame_args.run_dir.join(_DFL_OUTPUT_FILENAME)), dtype=complex).astype(numpy.float64)
+    d = numpy.fromfile(
+        str(frame_args.run_dir.join(_DFL_OUTPUT_FILENAME)), dtype=complex
+    ).astype(numpy.float64)
     ny = nx
     nz = int(d.shape[0] / ny / nx)
     assert nz == 1, f"Confused shape {nx} {ny} {nz}"
@@ -264,6 +266,7 @@ def _get_col(col_key):
     raise AssertionError(
         f"No column={SCHEMA.enum.ParticleColumn} with key={col_key}",
     )
+
 
 def _generate_parameters_file(data):
     io = data.models.io
@@ -434,9 +437,7 @@ def _parse_namelist(data, text, req):
 
 def _particle_plot(frame_args, filename):
     n = frame_args.sim_in.models.electronBeam.npart
-    d = numpy.fromfile(
-        str(frame_args.run_dir.join(filename)), dtype=numpy.float64
-    )
+    d = numpy.fromfile(str(frame_args.run_dir.join(filename)), dtype=numpy.float64)
     b = d.reshape(
         int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
         len(SCHEMA.enum.ParticleColumn),

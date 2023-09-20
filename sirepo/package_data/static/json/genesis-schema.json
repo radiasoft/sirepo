@@ -710,9 +710,7 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
-            "notes": ["Notes", "Text", ""],
-            "x": ["Horizontal Value to Plot", "ParticleColumn", "x"],
-            "y": ["Vertical Value to Plot", "ParticleColumn", "pxmc"]
+            "notes": ["Notes", "Text", ""]
         },
         "particleLoading": {
             "iall": [
@@ -1306,14 +1304,6 @@
         "dflAnimation": {
             "title": "Dump Field Distribution",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y"
-                    ]]
-                ],
                 "framesPerSecond",
                 "histogramBins",
                 "aspectRatio",
