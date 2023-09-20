@@ -407,7 +407,7 @@ class VTKScene {
         this.fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
             background: [1, 1, 1, 1],
             container: container,
-            listenWindowResize: true,
+            listenWindowResize: $(this.container).is(':visible'),
         });
 
         this.container = this.fsRenderer.getContainer();
@@ -423,6 +423,8 @@ class VTKScene {
 
         this.viewSide = this.resetSide;
         this.viewDirection = this.resetDirection;
+
+        //this.setResizeListen();
     }
 
     /**
@@ -474,6 +476,14 @@ class VTKScene {
      */
     hasMarker() {
         return ! ! this.marker;
+    }
+
+    /**
+     * @returns {boolean} - true if the container is visible
+     */
+    isVisible() {
+        srdbg('isVisible()?', $(this.container).is(':visible'));
+        return $(this.container).is(':visible');
     }
 
     /**
@@ -584,6 +594,20 @@ class VTKScene {
      */
     setCamProperty(dim, name, val) {
         this.camProperties[dim][name] = val;
+    }
+
+    /**
+     * Sets whether the renderer responds to resize events
+     */
+    setResizeListen(doListen) {
+        if (doListen) {
+            srdbg('VIS');
+            window.addEventListener('resize', this.fsRenderer.resize);
+        }
+        else {
+            srdbg('HID');
+            window.removeEventListener('resize', this.fsRenderer.resize);
+        }
     }
 
     /**
@@ -3226,6 +3250,9 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 }
             }
 
+            $scope.$on(`panel.${$scope.modelName}.hidden`, (e, d) => {
+                $scope.vtkScene.setResizeListen(! d);
+            });
             $scope.$on('vtk.selected', function (e, d) {
                 $scope.$applyAsync(() => {
                     $scope.selection = d;
