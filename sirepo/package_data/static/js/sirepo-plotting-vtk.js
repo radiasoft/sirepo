@@ -478,13 +478,6 @@ class VTKScene {
         return ! ! this.marker;
     }
 
-    /**
-     * @returns {boolean} - true if the container is visible
-     */
-    isVisible() {
-        srdbg('isVisible()?', $(this.container).is(':visible'));
-        return $(this.container).is(':visible');
-    }
 
     /**
      * Refreshes the visibility of the orientation marker, if one exists
@@ -601,11 +594,9 @@ class VTKScene {
      */
     setResizeListen(doListen) {
         if (doListen) {
-            srdbg('VIS');
             window.addEventListener('resize', this.fsRenderer.resize);
         }
         else {
-            srdbg('HID');
             window.removeEventListener('resize', this.fsRenderer.resize);
         }
     }
