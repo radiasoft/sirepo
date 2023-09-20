@@ -41,7 +41,7 @@ def create_predefined(out_dir=None):
         ).dirpath(b)
 
     beams = []
-    for beam in srwpy.srwl_uti_src.srwpy.srwl_uti_src_e_beam_predef():
+    for beam in srwpy.srwl_uti_src.srwl_uti_src_e_beam_predef():
         info = beam[1]
         # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
         beams.append(

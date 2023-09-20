@@ -16,8 +16,8 @@ PREDEFINED_JSON = "predefined.json"
 
 
 def process_beam_parameters(ebeam):
-    import srwpy.srwlib
     import sirepo.sim_data
+    import srwpy.srwlib
 
     sim_data = sirepo.sim_data.get_class("srw")
 

@@ -1467,10 +1467,8 @@ def _compute_crystal_init(model):
             xrh = crystal_parameters["xrh"]
             xih = crystal_parameters["xih"]
         elif re.search("(SRW)", material_raw):
-            dc = srwpy.srwl_uti_cryst.srwpy.srwl_uti_cryst_pl_sp(
-                millerIndices, material
-            )
-            xr0, xi0, xrh, xih = srwpy.srwl_uti_cryst.srwpy.srwl_uti_cryst_pol_f(
+            dc = srwpy.srwl_uti_cryst.srwl_uti_cryst_pl_sp(millerIndices, material)
+            xr0, xi0, xrh, xih = srwpy.srwl_uti_cryst.srwl_uti_cryst_pol_f(
                 energy, millerIndices, material
             )
         else:
