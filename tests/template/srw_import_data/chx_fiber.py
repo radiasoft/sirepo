@@ -25,7 +25,7 @@
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
-from srwpy.rwl_bl import *
+from srwpy.srwl_bl import *
 try:
     import cPickle as pickle
 except:
