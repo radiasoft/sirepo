@@ -8,11 +8,11 @@ try:
 except:
     pass
 
-import srwl_bl
-import srwlib
-import srwlpy
+import srwpy.srwl_bl
+import srwpy.srwlib
+import srwpy.srwlpy
 import math
-import srwl_uti_smp
+import srwpy.srwl_uti_smp
 
 def set_optics(v, names=None, want_final_propagation=True):
     el = []
@@ -22,7 +22,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     for el_name in names:
         if el_name == 'Lens':
             # Lens: lens 20.0m
-            el.append(srwlib.SRWLOptL(
+            el.append(srwpy.srwlib.SRWLOptL(
                 _Fx=v.op_Lens_Fx,
                 _Fy=v.op_Lens_Fy,
                 _x=v.op_Lens_x,
@@ -31,13 +31,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Lens_pp)
         elif el_name == 'Lens_CRL':
             # Lens_CRL: drift 20.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Lens_CRL_L,
             ))
             pp.append(v.op_Lens_CRL_pp)
         elif el_name == 'CRL':
             # CRL: crl 21.0m
-            el.append(srwlib.srwl_opt_setup_CRL(
+            el.append(srwpy.srwlib.srwl_opt_setup_CRL(
                 _foc_plane=v.op_CRL_foc_plane,
                 _delta=v.op_CRL_delta,
                 _atten_len=v.op_CRL_atten_len,
@@ -53,13 +53,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_CRL_pp)
         elif el_name == 'CRL_Zone_Plate':
             # CRL_Zone_Plate: drift 21.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_CRL_Zone_Plate_L,
             ))
             pp.append(v.op_CRL_Zone_Plate_pp)
         elif el_name == 'Zone_Plate':
             # Zone_Plate: zonePlate 22.0m
-            el.append(srwlib.SRWLOptZP(
+            el.append(srwpy.srwlib.SRWLOptZP(
                 _nZones=v.op_Zone_Plate_nZones,
                 _rn=v.op_Zone_Plate_rn,
                 _thick=v.op_Zone_Plate_thick,
@@ -73,13 +73,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Zone_Plate_pp)
         elif el_name == 'Zone_Plate_Fiber':
             # Zone_Plate_Fiber: drift 22.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Zone_Plate_Fiber_L,
             ))
             pp.append(v.op_Zone_Plate_Fiber_pp)
         elif el_name == 'Fiber':
             # Fiber: fiber 23.0m
-            el.append(srwlib.srwl_opt_setup_cyl_fiber(
+            el.append(srwpy.srwlib.srwl_opt_setup_cyl_fiber(
                 _foc_plane=v.op_Fiber_foc_plane,
                 _delta_ext=v.op_Fiber_delta_ext,
                 _delta_core=v.op_Fiber_delta_core,
@@ -93,13 +93,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Fiber_pp)
         elif el_name == 'Fiber_Aperture':
             # Fiber_Aperture: drift 23.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Fiber_Aperture_L,
             ))
             pp.append(v.op_Fiber_Aperture_pp)
         elif el_name == 'Aperture':
             # Aperture: aperture 24.0m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_Aperture_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_Aperture_Dx,
@@ -110,13 +110,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Aperture_pp)
         elif el_name == 'Aperture_Obstacle':
             # Aperture_Obstacle: drift 24.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Aperture_Obstacle_L,
             ))
             pp.append(v.op_Aperture_Obstacle_pp)
         elif el_name == 'Obstacle':
             # Obstacle: obstacle 25.0m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_Obstacle_shape,
                 _ap_or_ob='o',
                 _Dx=v.op_Obstacle_Dx,
@@ -127,13 +127,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Obstacle_pp)
         elif el_name == 'Obstacle_Mask':
             # Obstacle_Mask: drift 25.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Obstacle_Mask_L,
             ))
             pp.append(v.op_Obstacle_Mask_pp)
         elif el_name == 'Mask':
             # Mask: mask 26.0m
-            el.append(srwlib.srwl_opt_setup_mask(
+            el.append(srwpy.srwlib.srwl_opt_setup_mask(
                 _delta=v.op_Mask_delta,
                 _atten_len=v.op_Mask_atten_len,
                 _thick=v.op_Mask_thick,
@@ -155,13 +155,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Mask_pp)
         elif el_name == 'Mask_Sample':
             # Mask_Sample: drift 26.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Mask_Sample_L,
             ))
             pp.append(v.op_Mask_Sample_pp)
         elif el_name == 'Sample':
             # Sample: sample 27.0m
-            el.append(srwl_uti_smp.srwl_opt_setup_transm_from_file(
+            el.append(srwpy.srwl_uti_smp.srwl_opt_setup_transm_from_file(
                 file_path=v.op_Sample_file_path,
                 resolution=v.op_Sample_resolution,
                 thickness=v.op_Sample_thick,
@@ -194,7 +194,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Sample_pp)
         elif el_name == 'Sample_Planar':
             # Sample_Planar: drift 27.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Sample_Planar_L,
             ))
             pp.append(v.op_Sample_Planar_pp)
@@ -203,8 +203,8 @@ def set_optics(v, names=None, want_final_propagation=True):
             mirror_file = v.op_Planar_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by Planar beamline element'.format(mirror_file)
-            el.append(srwlib.srwl_opt_setup_surf_height_1d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_Planar_dim,
                 _ang=abs(v.op_Planar_ang),
                 _amp_coef=v.op_Planar_amp_coef,
@@ -214,13 +214,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Planar_pp)
         elif el_name == 'Planar_Circular_Cylinder':
             # Planar_Circular_Cylinder: drift 28.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Planar_Circular_Cylinder_L,
             ))
             pp.append(v.op_Planar_Circular_Cylinder_pp)
         elif el_name == 'Circular_Cylinder':
             # Circular_Cylinder: sphericalMirror 29.0m
-            el.append(srwlib.SRWLOptMirSph(
+            el.append(srwpy.srwlib.SRWLOptMirSph(
                 _r=v.op_Circular_Cylinder_r,
                 _size_tang=v.op_Circular_Cylinder_size_tang,
                 _size_sag=v.op_Circular_Cylinder_size_sag,
@@ -236,13 +236,13 @@ def set_optics(v, names=None, want_final_propagation=True):
 
         elif el_name == 'Circular_Cylinder_Circular_Cylinder2':
             # Circular_Cylinder_Circular_Cylinder2: drift 29.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Circular_Cylinder_Circular_Cylinder2_L,
             ))
             pp.append(v.op_Circular_Cylinder_Circular_Cylinder2_pp)
         elif el_name == 'Circular_Cylinder2':
             # Circular_Cylinder2: sphericalMirror 29.5m
-            el.append(srwlib.SRWLOptMirSph(
+            el.append(srwpy.srwlib.SRWLOptMirSph(
                 _r=v.op_Circular_Cylinder2_r,
                 _size_tang=v.op_Circular_Cylinder2_size_tang,
                 _size_sag=v.op_Circular_Cylinder2_size_sag,
@@ -258,8 +258,8 @@ def set_optics(v, names=None, want_final_propagation=True):
             mirror_file = v.op_Circular_Cylinder2_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by Circular_Cylinder2 beamline element'.format(mirror_file)
-            el.append(srwlib.srwl_opt_setup_surf_height_1d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_Circular_Cylinder2_dim,
                 _ang=abs(v.op_Circular_Cylinder2_ang),
                 _amp_coef=v.op_Circular_Cylinder2_amp_coef,
@@ -267,13 +267,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
         elif el_name == 'Circular_Cylinder2_Elliptical_Cylinder':
             # Circular_Cylinder2_Elliptical_Cylinder: drift 29.5m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Circular_Cylinder2_Elliptical_Cylinder_L,
             ))
             pp.append(v.op_Circular_Cylinder2_Elliptical_Cylinder_pp)
         elif el_name == 'Elliptical_Cylinder':
             # Elliptical_Cylinder: ellipsoidMirror 30.0m
-            el.append(srwlib.SRWLOptMirEl(
+            el.append(srwpy.srwlib.SRWLOptMirEl(
                 _p=v.op_Elliptical_Cylinder_p,
                 _q=v.op_Elliptical_Cylinder_q,
                 _ang_graz=v.op_Elliptical_Cylinder_ang,
@@ -291,13 +291,13 @@ def set_optics(v, names=None, want_final_propagation=True):
 
         elif el_name == 'Elliptical_Cylinder_Elliptical_Cylinder2':
             # Elliptical_Cylinder_Elliptical_Cylinder2: drift 30.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Elliptical_Cylinder_Elliptical_Cylinder2_L,
             ))
             pp.append(v.op_Elliptical_Cylinder_Elliptical_Cylinder2_pp)
         elif el_name == 'Elliptical_Cylinder2':
             # Elliptical_Cylinder2: ellipsoidMirror 30.5m
-            el.append(srwlib.SRWLOptMirEl(
+            el.append(srwpy.srwlib.SRWLOptMirEl(
                 _p=v.op_Elliptical_Cylinder2_p,
                 _q=v.op_Elliptical_Cylinder2_q,
                 _ang_graz=v.op_Elliptical_Cylinder2_ang,
@@ -315,8 +315,8 @@ def set_optics(v, names=None, want_final_propagation=True):
             mirror_file = v.op_Elliptical_Cylinder2_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by Elliptical_Cylinder2 beamline element'.format(mirror_file)
-            el.append(srwlib.srwl_opt_setup_surf_height_2d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t"),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_2d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t"),
                 _dim=v.op_Elliptical_Cylinder2_dim,
                 _ang=abs(v.op_Elliptical_Cylinder2_ang),
                 _amp_coef=v.op_Elliptical_Cylinder2_amp_coef,
@@ -324,13 +324,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
         elif el_name == 'Elliptical_Cylinder2_Toroid':
             # Elliptical_Cylinder2_Toroid: drift 30.5m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Elliptical_Cylinder2_Toroid_L,
             ))
             pp.append(v.op_Elliptical_Cylinder2_Toroid_pp)
         elif el_name == 'Toroid':
             # Toroid: toroidalMirror 31.0m
-            el.append(srwlib.SRWLOptMirTor(
+            el.append(srwpy.srwlib.SRWLOptMirTor(
                 _rt=v.op_Toroid_rt,
                 _rs=v.op_Toroid_rs,
                 _size_tang=v.op_Toroid_size_tang,
@@ -348,13 +348,13 @@ def set_optics(v, names=None, want_final_propagation=True):
 
         elif el_name == 'Toroid_Toroid2':
             # Toroid_Toroid2: drift 31.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Toroid_Toroid2_L,
             ))
             pp.append(v.op_Toroid_Toroid2_pp)
         elif el_name == 'Toroid2':
             # Toroid2: toroidalMirror 31.5m
-            el.append(srwlib.SRWLOptMirTor(
+            el.append(srwpy.srwlib.SRWLOptMirTor(
                 _rt=v.op_Toroid2_rt,
                 _rs=v.op_Toroid2_rs,
                 _size_tang=v.op_Toroid2_size_tang,
@@ -372,8 +372,8 @@ def set_optics(v, names=None, want_final_propagation=True):
             mirror_file = v.op_Toroid2_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by Toroid2 beamline element'.format(mirror_file)
-            el.append(srwlib.srwl_opt_setup_surf_height_1d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_Toroid2_dim,
                 _ang=abs(v.op_Toroid2_ang),
                 _amp_coef=v.op_Toroid2_amp_coef,
@@ -381,13 +381,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
         elif el_name == 'Toroid2_Crystal':
             # Toroid2_Crystal: drift 31.5m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Toroid2_Crystal_L,
             ))
             pp.append(v.op_Toroid2_Crystal_pp)
         elif el_name == 'Crystal':
             # Crystal: crystal 32.0m
-            crystal = srwlib.SRWLOptCryst(
+            crystal = srwpy.srwlib.SRWLOptCryst(
                 _d_sp=v.op_Crystal_d_sp,
                 _psi0r=v.op_Crystal_psi0r,
                 _psi0i=v.op_Crystal_psi0i,
@@ -411,13 +411,13 @@ def set_optics(v, names=None, want_final_propagation=True):
 
         elif el_name == 'Crystal_Crystal2':
             # Crystal_Crystal2: drift 32.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Crystal_Crystal2_L,
             ))
             pp.append(v.op_Crystal_Crystal2_pp)
         elif el_name == 'Crystal2':
             # Crystal2: crystal 32.5m
-            crystal = srwlib.SRWLOptCryst(
+            crystal = srwpy.srwlib.SRWLOptCryst(
                 _d_sp=v.op_Crystal2_d_sp,
                 _psi0r=v.op_Crystal2_psi0r,
                 _psi0i=v.op_Crystal2_psi0i,
@@ -441,8 +441,8 @@ def set_optics(v, names=None, want_final_propagation=True):
             mirror_file = v.op_Crystal2_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by Crystal2 beamline element'.format(mirror_file)
-            el.append(srwlib.srwl_opt_setup_surf_height_1d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_Crystal2_dim,
                 _ang=abs(v.op_Crystal2_ang),
                 _amp_coef=v.op_Crystal2_amp_coef,
@@ -450,13 +450,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
         elif el_name == 'Crystal2_Grating':
             # Crystal2_Grating: drift 32.5m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Crystal2_Grating_L,
             ))
             pp.append(v.op_Crystal2_Grating_pp)
         elif el_name == 'Grating':
             # Grating: grating 33.0m
-            mirror = srwlib.SRWLOptMirPl(
+            mirror = srwpy.srwlib.SRWLOptMirPl(
                 _size_tang=v.op_Grating_size_tang,
                 _size_sag=v.op_Grating_size_sag,
                 _nvx=v.op_Grating_nvx,
@@ -467,7 +467,7 @@ def set_optics(v, names=None, want_final_propagation=True):
                 _x=v.op_Grating_x,
                 _y=v.op_Grating_y,
             )
-            opEl=srwlib.SRWLOptG(
+            opEl=srwpy.srwlib.SRWLOptG(
                 _mirSub=mirror,
                 _m=v.op_Grating_m,
                 _grDen=v.op_Grating_grDen,
@@ -485,14 +485,14 @@ def set_optics(v, names=None, want_final_propagation=True):
 
         elif el_name == 'Grating_Watchpoint':
             # Grating_Watchpoint: drift 33.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Grating_Watchpoint_L,
             ))
             pp.append(v.op_Grating_Watchpoint_pp)
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
-    return srwlib.SRWLOptC(el, pp)
+    return srwpy.srwlib.SRWLOptC(el, pp)
 
 
 
@@ -1103,7 +1103,7 @@ def epilogue():
 
 
 def main():
-    v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     names = ['Lens','Lens_CRL','CRL','CRL_Zone_Plate','Zone_Plate','Zone_Plate_Fiber','Fiber','Fiber_Aperture','Aperture','Aperture_Obstacle','Obstacle','Obstacle_Mask','Mask','Mask_Sample','Sample','Sample_Planar','Planar','Planar_Circular_Cylinder','Circular_Cylinder','Circular_Cylinder_Circular_Cylinder2','Circular_Cylinder2','Circular_Cylinder2_Elliptical_Cylinder','Elliptical_Cylinder','Elliptical_Cylinder_Elliptical_Cylinder2','Elliptical_Cylinder2','Elliptical_Cylinder2_Toroid','Toroid','Toroid_Toroid2','Toroid2','Toroid2_Crystal','Crystal','Crystal_Crystal2','Crystal2','Crystal2_Grating','Grating','Grating_Watchpoint']
     op = set_optics(v, names, True)
     v.ws = True
@@ -1119,7 +1119,7 @@ def main():
     v.si_pl = 'xy'
     v.tr = True
     v.tr_pl = 'xz'
-    srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
+    srwpy.srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
 
