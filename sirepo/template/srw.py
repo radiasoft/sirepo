@@ -26,10 +26,10 @@ import sirepo.util
 import srwpy.srwl_bl
 import srwpy.srwlib
 import srwpy.srwlpy
+import srwpy.uti_io
+import srwpy.uti_plot_com
 import time
 import traceback
-import srwpy.uti_io
-import srwpy.srwpy.uti_plot_com
 import zipfile
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -392,7 +392,7 @@ def extract_report_data(sim_in):
         return out
     if r in ("coherenceXAnimation", "coherenceYAnimation", "multiElectronAnimation"):
         out.filename = _best_data_file(out.filename)
-    # TODO(pjm): remove fixup after dcx/dcy files can be read by srwpy.srwpy.uti_plot_com
+    # TODO(pjm): remove fixup after dcx/dcy files can be read by srwpy.uti_plot_com
     if r in ("coherenceXAnimation", "coherenceYAnimation"):
         _fix_file_header(out.filename)
     if r == "coherentModesAnimation":
@@ -416,7 +416,7 @@ def extract_report_data(sim_in):
         out.units[1] = "[m]"
     else:
         out.units[1] = "({})".format(out.units[1])
-    data, _, allrange, _, _ = srwpy.srwpy.uti_plot_com.file_load(out.filename)
+    data, _, allrange, _, _ = srwpy.uti_plot_com.file_load(out.filename)
     res = PKDict(
         title=out.title,
         subtitle=out.get("subtitle", ""),
@@ -1467,7 +1467,9 @@ def _compute_crystal_init(model):
             xrh = crystal_parameters["xrh"]
             xih = crystal_parameters["xih"]
         elif re.search("(SRW)", material_raw):
-            dc = srwpy.srwl_uti_cryst.srwpy.srwl_uti_cryst_pl_sp(millerIndices, material)
+            dc = srwpy.srwl_uti_cryst.srwpy.srwl_uti_cryst_pl_sp(
+                millerIndices, material
+            )
             xr0, xi0, xrh, xih = srwpy.srwl_uti_cryst.srwpy.srwl_uti_cryst_pol_f(
                 energy, millerIndices, material
             )
@@ -1490,7 +1492,7 @@ def _compute_crystal_init(model):
             model.orientation = "y"
     except Exception:
         pkdlog(
-            "{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwpy.srwlib.py}: error: {}",
+            "{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py}: error: {}",
             material_raw,
         )
         for key in parms_list:
@@ -1623,7 +1625,9 @@ def _extend_plot(
 
 def _extract_beamline_orientation(filename):
     cols = np.array(
-        srwpy.uti_io.read_ascii_data_cols(filename, "\t", _i_col_start=1, _n_line_skip=1)
+        srwpy.uti_io.read_ascii_data_cols(
+            filename, "\t", _i_col_start=1, _n_line_skip=1
+        )
     )
     rows = list(reversed(np.rot90(cols).tolist()))
     rows = np.reshape(rows, (len(rows), 4, 3))
@@ -1649,7 +1653,7 @@ def _extract_beamline_orientation(filename):
 
 
 def _extract_brilliance_report(model, filename):
-    data, _, _, _, _ = srwpy.srwpy.uti_plot_com.file_load(filename, multicolumn_data=True)
+    data, _, _, _, _ = srwpy.uti_plot_com.file_load(filename, multicolumn_data=True)
     label = _enum_text("BrillianceReportType", model, "reportType")
     if model.reportType in ("3", "4"):
         label += " [rad]"
@@ -1691,7 +1695,7 @@ def _extract_brilliance_report(model, filename):
 
 
 def _extract_trajectory_report(model, filename):
-    data, _, _, _, _ = srwpy.srwpy.uti_plot_com.file_load(filename, multicolumn_data=True)
+    data, _, _, _, _ = srwpy.uti_plot_com.file_load(filename, multicolumn_data=True)
     available_axes = PKDict()
     for s in SCHEMA.enum.TrajectoryPlotAxis:
         available_axes[s[0]] = s[1]
@@ -2049,7 +2053,9 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 content.append("v.ws_fnep = '{}'".format(prev_wavefront))
                 content.append("op = set_optics(v, names, {})".format(is_last_watch))
                 if not is_last_watch:
-                    content.append("srwpy.srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)")
+                    content.append(
+                        "srwpy.srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)"
+                    )
                     content.append(
                         f"sirepo.template.import_module('srw').process_watch(wid={prev_watch})"
                     )
