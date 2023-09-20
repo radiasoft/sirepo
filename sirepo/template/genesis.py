@@ -63,6 +63,8 @@ _LATTICE_RE = re.compile(r"\bpower\b[\s\w]+\n(.*?)(\n\n|$)", flags=re.DOTALL)
 _OUTPUT_FILENAME = "genesis.out"
 _FIELD_DISTRIBUTION_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".fld"
 _PARTICLE_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".par"
+_DFL_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".dfl"
+_DPA_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".dpa"
 
 _RUN_ERROR_RE = re.compile(r"(?:^\*\*\* )(.*error.*$)", flags=re.MULTILINE)
 
@@ -211,85 +213,30 @@ def sim_frame_parameterAnimation(frame_args):
     )
 
 
-def sim_frame_dpaAnimation(frame_args):
-    d = numpy.fromfile(
-        str(frame_args.run_dir.join("genesis.out.dpa")), dtype=numpy.float64
-    )
-    pkdp("\n\n\n dpa shape before={}", d.shape)
-    return PKDict()
-
-
 def sim_frame_dflAnimation(frame_args):
-    def _get_col(col_key):
-        # POSIT: ParticleColumn keys are in same order as columns in output
-        for i, c in enumerate(SCHEMA.enum.ParticleColumn):
-            if c[0] == col_key:
-                return i, c[1]
-        raise AssertionError(
-            f"No column={SCHEMA.enum.ParticleColumn} with key={col_key}",
-        )
+    nx = int(frame_args.sim_in.models.mesh.ncar)
+    d = numpy.fromfile(str(frame_args.run_dir.join(_DFL_OUTPUT_FILENAME)), dtype=complex).astype(numpy.float64)
+    ny = nx
+    nz = int(d.shape[0] / ny / nx)
+    assert nz == 1, f"Confused shape {nx} {ny} {nz}"
+    d = d.reshape(nz, ny, nx)
+    d = numpy.moveaxis(d, [0, 1, 2], [2, 1, 0])[:, :, -1]
+    return PKDict(
+        title="",
+        x_range=[0, nx, len(d)],
+        y_range=[0, nx, len(d)],
+        x_label="",
+        y_label="",
+        z_matrix=d.tolist(),
+    )
 
-    n = frame_args.sim_in.models.electronBeam.npart
-    d = numpy.fromfile(
-        str(frame_args.run_dir.join("genesis.out.dfl")), dtype=numpy.float64
-    )
-    pkdp("\n\n dfl shape before={}", d.shape)
-    b = d.reshape(
-        int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
-        len(SCHEMA.enum.ParticleColumn),
-        n,
-    )
-    x = _get_col(frame_args.x)
-    y = _get_col(frame_args.y)
-    return template_common.heatmap(
-        [
-            b[int(frame_args.frameIndex), x[0], :].tolist(),
-            b[int(frame_args.frameIndex), y[0], :].tolist(),
-        ],
-        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args),
-        PKDict(
-            title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ippart),
-            x_label=x[1],
-            y_label=y[1],
-        ),
-    )
+
+def sim_frame_dpaAnimation(frame_args):
+    return _particle_plot(frame_args, _DPA_OUTPUT_FILENAME)
 
 
 def sim_frame_particleAnimation(frame_args):
-    def _get_col(col_key):
-        # POSIT: ParticleColumn keys are in same order as columns in output
-        for i, c in enumerate(SCHEMA.enum.ParticleColumn):
-            if c[0] == col_key:
-                return i, c[1]
-        raise AssertionError(
-            f"No column={SCHEMA.enum.ParticleColumn} with key={col_key}",
-        )
-
-    n = frame_args.sim_in.models.electronBeam.npart
-    d = numpy.fromfile(
-        str(frame_args.run_dir.join(_PARTICLE_OUTPUT_FILENAME)), dtype=numpy.float64
-    )
-    pkdp("\n\n\n particles={}, shape before={}", d, d.shape)
-    b = d.reshape(
-        int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
-        len(SCHEMA.enum.ParticleColumn),
-        n,
-    )
-    pkdp("\n\n\n shape after reshape={}", b.shape)
-    x = _get_col(frame_args.x)
-    y = _get_col(frame_args.y)
-    return template_common.heatmap(
-        [
-            b[int(frame_args.frameIndex), x[0], :].tolist(),
-            b[int(frame_args.frameIndex), y[0], :].tolist(),
-        ],
-        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args),
-        PKDict(
-            title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ippart),
-            x_label=x[1],
-            y_label=y[1],
-        ),
-    )
+    return _particle_plot(frame_args, _PARTICLE_OUTPUT_FILENAME)
 
 
 def validate_file(file_type, path):
@@ -308,6 +255,15 @@ def write_parameters(data, run_dir, is_parallel):
         _generate_parameters_file(data),
     )
 
+
+def _get_col(col_key):
+    # POSIT: ParticleColumn keys are in same order as columns in output
+    for i, c in enumerate(SCHEMA.enum.ParticleColumn):
+        if c[0] == col_key:
+            return i, c[1]
+    raise AssertionError(
+        f"No column={SCHEMA.enum.ParticleColumn} with key={col_key}",
+    )
 
 def _generate_parameters_file(data):
     io = data.models.io
@@ -474,6 +430,32 @@ def _parse_namelist(data, text, req):
         )
     dm.scan.iscan = "0"
     return data
+
+
+def _particle_plot(frame_args, filename):
+    n = frame_args.sim_in.models.electronBeam.npart
+    d = numpy.fromfile(
+        str(frame_args.run_dir.join(filename)), dtype=numpy.float64
+    )
+    b = d.reshape(
+        int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
+        len(SCHEMA.enum.ParticleColumn),
+        n,
+    )
+    x = _get_col(frame_args.x)
+    y = _get_col(frame_args.y)
+    return template_common.heatmap(
+        [
+            b[int(frame_args.frameIndex), x[0], :].tolist(),
+            b[int(frame_args.frameIndex), y[0], :].tolist(),
+        ],
+        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args),
+        PKDict(
+            title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ippart),
+            x_label=x[1],
+            y_label=y[1],
+        ),
+    )
 
 
 def _z_title_at_frame(frame_args, nth):

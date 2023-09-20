@@ -93,7 +93,7 @@
         "fieldDistributionAnimation": ["fieldPlot"],
         "parameterAnimation": ["y1", "y2", "y3"],
         "particleAnimation": ["x", "y", "histogramBins"],
-        "dpaAnimation": [],
+        "dpaAnimation": ["x", "y", "histogramBins"],
         "dflAnimation": []
     },
     "localRoutes": {
@@ -1286,7 +1286,7 @@
             ]
         },
         "dpaAnimation": {
-            "title": "dpa Distribution",
+            "title": "Dump Particle Distribution",
             "advanced": [
                 [
                     ["Horizontal", [
@@ -1304,7 +1304,7 @@
             ]
         },
         "dflAnimation": {
-            "title": "dfl Distribution",
+            "title": "Dump Field Distribution",
             "advanced": [
                 [
                     ["Horizontal", [
