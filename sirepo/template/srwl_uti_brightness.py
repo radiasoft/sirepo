@@ -41,8 +41,8 @@ sizecorrectionarray = np.loadtxt(
         )
     )
 )
-# srwlib.srwl_uti_read_data_cols
-# np.array(srwlib.srwl_uti_read_data_cols('gwSrwBrilUndHarmUnivFlux.txt', '\t'))
+# srwpy.srwlib.srwl_uti_read_data_cols
+# np.array(srwpy.srwlib.srwl_uti_read_data_cols('gwSrwBrilUndHarmUnivFlux.txt', '\t'))
 # srwl_uti_interp_2d(_x, _y, _x_min, _x_step, _nx, _y_min, _y_step, _ny, _ar_f, _ord=3, _ix_per=1, _ix_ofst=0)
 
 
