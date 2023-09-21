@@ -6,7 +6,7 @@ from pykern.pkdebug import pkdp
 import base64
 import copy
 import importlib
-import sirepo.raydata.scan_monitor
+import sirepo.raydata.databroker
 import uuid
 
 _ANALYSIS_DRIVERS = PKDict()
@@ -15,6 +15,7 @@ _ANALYSIS_DRIVERS = PKDict()
 class AnalysisDriverBase(PKDict):
     def __init__(self, catalog_name, uid, *args, **kwargs):
         super().__init__(catalog_name=catalog_name, uid=uid, *args, **kwargs)
+        self._scan_metadata = sirepo.raydata.databroker.get_metadata(uid, catalog_name)
 
     def get_analysis_pdf_paths(self):
         return pkio.walk_tree(self.get_output_dir(), r".*\.pdf$")
@@ -51,12 +52,12 @@ class AnalysisDriverBase(PKDict):
     def get_output_dir(self):
         raise NotImplementedError("children must implement this method")
 
-    def get_papermill_args(self, scan_metadata):
+    def get_papermill_args(self):
         res = []
         for n, v in [
             ["uid", self.uid],
             ["scan", self.uid],
-            *self._get_papermill_args(scan_metadata),
+            *self._get_papermill_args(),
         ]:
             res.extend(["-p", n, str(v)])
         res.append("--report-mode")

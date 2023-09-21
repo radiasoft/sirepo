@@ -99,7 +99,11 @@ class _Analysis(_DbBase):
 
     @classmethod
     def have_analyzed_scan(cls, scan_metadata):
-        return bool(cls.search_by(uid=scan_metadata.uid, catalog_name=s.catalog_name))
+        return bool(
+            cls.search_by(
+                uid=scan_metadata.uid, catalog_name=scan_metadata.catalog_name
+            )
+        )
 
     @classmethod
     def init(cls, db_file):
@@ -348,15 +352,12 @@ async def _init_analysis_processors():
                     "run.log", mode="w"
                 ) as l:
                     try:
-                        m = sirepo.raydata.databroker.get_metadata(
-                            d.uid, d.catalog_name
-                        )
-                        for n in d.get_notebooks(scan_metadata=m):
+                        for n in d.get_notebooks():
                             p = await asyncio.create_subprocess_exec(
                                 "papermill",
                                 str(n.input_f),
                                 str(n.output_f),
-                                *d.get_papermill_args(m),
+                                *d.get_papermill_args(),
                                 stderr=asyncio.subprocess.STDOUT,
                                 stdout=l,
                             )
