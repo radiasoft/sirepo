@@ -7,32 +7,32 @@ except:
     pass
 
 
-import srwl_bl
-import srwlib
-import srwlpy
+import srwpy.srwl_bl
+import srwpy.srwlib
+import srwpy.srwlpy
 
 
 def set_optics(v=None):
     el = []
-    el.append(srwlib.SRWLOptA("r", "a", 0.0002, 0.001, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(6.9))
+    el.append(srwpy.srwlib.SRWLOptA("r", "a", 0.0002, 0.001, 0.0, 0.0))
+    el.append(srwpy.srwlib.SRWLOptD(6.9))
     ifnMirror1 = "mirror_1d.dat"
     if ifnMirror1:
-        hProfDataMirror1 = srwlib.srwl_uti_read_data_cols(ifnMirror1, "\t", 0, 1)
-        el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataMirror1, _dim="x", _ang=0.0031415926, _amp_coef=1.0, _size_x=0.00094, _size_y=0.001))
-    el.append(srwlib.SRWLOptD(2.5))
-    el.append(srwlib.SRWLOptA("r", "a", 0.0002, 0.001, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(4.4))
-    el.append(srwlib.SRWLOptA("r", "a", 5e-05, 0.001, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(1.1))
-    el.append(srwlib.srwl_opt_setup_CRL(2, 4.20756805e-06, 0.00731294, 1, 0.001, 0.0024, 0.0015, 1, 8e-05, 0, 0))
-    el.append(srwlib.srwl_opt_setup_CRL(2, 4.20756805e-06, 0.00731294, 1, 0.001, 0.0014, 0.0005, 6, 8e-05, 0, 0))
-    el.append(srwlib.SRWLOptD(9.1))
-    el.append(srwlib.SRWLOptA("r", "a", 0.0014, 0.0002, 0.0, 0.0))
-    el.append(srwlib.SRWLOptL(3.24479, 1e+23, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(3.5))
-    el.append(srwlib.SRWLOptA("r", "a", 1e-05, 1e-05, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(0.7))
+        hProfDataMirror1 = srwpy.srwlib.srwl_uti_read_data_cols(ifnMirror1, "\t", 0, 1)
+        el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(hProfDataMirror1, _dim="x", _ang=0.0031415926, _amp_coef=1.0, _size_x=0.00094, _size_y=0.001))
+    el.append(srwpy.srwlib.SRWLOptD(2.5))
+    el.append(srwpy.srwlib.SRWLOptA("r", "a", 0.0002, 0.001, 0.0, 0.0))
+    el.append(srwpy.srwlib.SRWLOptD(4.4))
+    el.append(srwpy.srwlib.SRWLOptA("r", "a", 5e-05, 0.001, 0.0, 0.0))
+    el.append(srwpy.srwlib.SRWLOptD(1.1))
+    el.append(srwpy.srwlib.srwl_opt_setup_CRL(2, 4.20756805e-06, 0.00731294, 1, 0.001, 0.0024, 0.0015, 1, 8e-05, 0, 0))
+    el.append(srwpy.srwlib.srwl_opt_setup_CRL(2, 4.20756805e-06, 0.00731294, 1, 0.001, 0.0014, 0.0005, 6, 8e-05, 0, 0))
+    el.append(srwpy.srwlib.SRWLOptD(9.1))
+    el.append(srwpy.srwlib.SRWLOptA("r", "a", 0.0014, 0.0002, 0.0, 0.0))
+    el.append(srwpy.srwlib.SRWLOptL(3.24479, 1e+23, 0.0, 0.0))
+    el.append(srwpy.srwlib.SRWLOptD(3.5))
+    el.append(srwpy.srwlib.SRWLOptA("r", "a", 1e-05, 1e-05, 0.0, 0.0))
+    el.append(srwpy.srwlib.SRWLOptD(0.7))
 
     pp = []
     pp.append([0, 0, 1.0, 0, 0, 2.5, 5.0, 1.5, 2.5])
@@ -64,10 +64,10 @@ def set_optics(v=None):
 
     pp.append([0, 0, 1.0, 0, 0, 0.3, 2.0, 0.5, 1.0])
 
-    return srwlib.SRWLOptC(el, pp)
+    return srwpy.srwlib.SRWLOptC(el, pp)
 
 
-varParam = srwl_bl.srwl_uti_ext_options([
+varParam = srwpy.srwl_bl.srwl_uti_ext_options([
     ['name', 's', 'NSLS-II CHX beamline', 'simulation name'],
 
 #---Data Folder
@@ -236,10 +236,10 @@ varParam = srwl_bl.srwl_uti_ext_options([
 ])
 
 if __name__ == '__main__':
-    v = srwl_bl.srwl_uti_parse_options(varParam)
-    source_type, mag = srwl_bl.setup_source(v)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(varParam)
+    source_type, mag = srwpy.srwl_bl.setup_source(v)
     op = None
     op = set_optics()
     v.ws = True
     v.ws_pl = 'xy'
-    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
+    srwpy.srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)

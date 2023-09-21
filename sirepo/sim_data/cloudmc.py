@@ -65,3 +65,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         return [
             cls.dagmc_filename(data),
         ] + cls.source_filenames(data)
+
+    @classmethod
+    def _sim_file_basenames(cls, data):
+        res = []
+        if data.report == "openmcAnimation":
+            for v in data.models.volumes:
+                res.append(PKDict(basename=f"{data.models.volumes[v].volId}.ply"))
+        return res
