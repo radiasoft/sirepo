@@ -572,10 +572,6 @@ SIREPO.app.directive('scansTable', function() {
                 );
             };
 
-            $scope.formatJsonFile = (contents) => {
-                return JSON.stringify(contents, undefined, 2);
-            };
-
             $scope.getHeader = function() {
                 return cols.length > 0 ? ['select'].concat(cols) : [];
             };
@@ -827,7 +823,7 @@ SIREPO.app.directive('analysisModal', function() {
                               <div class="panel panel-info">
                                 <div class="panel-heading"><span class="sr-panel-heading">{{ j.filename }}</span></div>
                                 <div class="panel-body">
-                                  <pre style="overflow: scroll; height: 150px">{{ formatJsonFile(j.data }}</pre>
+                                  <pre style="overflow: scroll; height: 150px">{{ formatJsonFile(j.data) }}</pre>
                                 </div>
                               </div>
                             </div>
@@ -878,6 +874,10 @@ SIREPO.app.directive('analysisModal', function() {
                     }
                 );
             }
+
+            $scope.formatJsonFile = (contents) => {
+                return JSON.stringify(contents, undefined, 2);
+            };
 
             $scope.$watch('scanId', () => {
                 if ($scope.scanId !== null) {
