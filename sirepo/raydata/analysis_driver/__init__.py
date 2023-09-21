@@ -49,7 +49,7 @@ class AnalysisDriverBase(PKDict):
         return res
 
     def get_output_dir(self):
-        return sirepo.raydata.scan_monitor.cfg.db_dir.join(self.uid)
+        raise NotImplementedError("children must implement this method")
 
     def get_papermill_args(self, scan_metadata):
         res = []

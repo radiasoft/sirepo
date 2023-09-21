@@ -15,6 +15,7 @@ import requests
 import sirepo.feature_config
 import sirepo.raydata
 import sirepo.raydata.analysis_driver
+import sirepo.raydata.metadata
 import sirepo.srdb
 import sirepo.srtime
 import sqlalchemy
@@ -166,39 +167,6 @@ class _Analysis(_DbBase):
 class _JsonPostRequestHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
-
-
-class _Metadata:
-    def __init__(self, scan):
-        self.scan = scan
-        self._metadata = self.scan.metadata
-
-    def get_start_field(self, name, unchecked=False):
-        if unchecked:
-            return self._metadata["start"].get(name)
-        return self._metadata["start"][name]
-
-    def get_start_fields(self):
-        return list(self._metadata["start"].keys())
-
-    def is_scan_plan_executing(self):
-        return "stop" not in self._metadata
-
-    def start(self):
-        return self._metadata["start"]["time"]
-
-    def stop(self):
-        # TODO(e-carlin): Catalogs unpacked with mongo_normalized don't have a stop time.
-        #  Just include all of them for now.
-        if not isinstance(self._metadata["stop"], dict):
-            return 0
-        return self._metadata["stop"]["time"] if "stop" in self._metadata else "N/A"
-
-    def suid(self):
-        return self.uid().split("-")[0]
-
-    def uid(self):
-        return self._metadata["start"]["uid"]
 
 
 class _RequestHandler(_JsonPostRequestHandler):
@@ -383,12 +351,11 @@ async def _init_analysis_processors():
                 ) as l:
                     try:
                         m = _Metadata(_catalog(d.catalog_name)[d.uid])
-                        # TODO(e-carlin): this should return the input notebook and the matching output notebook
                         for n in d.get_notebooks(scan_metadata=m):
                             p = await asyncio.create_subprocess_exec(
                                 "papermill",
-                                str(n),
-                                f"{n}-out.ipynb",
+                                str(n.input_f),
+                                str(n.output_f),
                                 *d.get_papermill_args(m),
                                 stderr=asyncio.subprocess.STDOUT,
                                 stdout=l,
