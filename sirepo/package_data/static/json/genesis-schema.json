@@ -93,8 +93,8 @@
         "fieldDistributionAnimation": ["fieldPlot"],
         "parameterAnimation": ["y1", "y2", "y3"],
         "particleAnimation": ["x", "y", "histogramBins"],
-        "dpaAnimation": ["x", "y", "histogramBins"],
-        "dflAnimation": []
+        "finalParticleAnimation": ["x", "y", "histogramBins"],
+        "finalFieldAnimation": []
     },
     "localRoutes": {
         "source": {
@@ -362,14 +362,14 @@
             ],
             "idmpfld": [
                 "Dump field distribution",
-                "Boolean",
-                "0",
+                "Integer",
+                1,
                 "IDMPFLD: Similar to IDUMP but only for the field distribution. "
             ],
             "idmppar": [
                 "Dump particle distribution",
-                "Boolean",
-                "0",
+                "Integer",
+                1,
                 "IDMPPAR: Similar to IDUMP but only for the particle distribution. "
             ],
             "idril": [
@@ -696,7 +696,7 @@
             "x": ["Horizontal Value to Plot", "ParticleColumn", "x"],
             "y": ["Vertical Value to Plot", "ParticleColumn", "pxmc"]
         },
-        "dpaAnimation": {
+        "finalParticleAnimation": {
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
@@ -705,7 +705,7 @@
             "x": ["Horizontal Value to Plot", "ParticleColumn", "x"],
             "y": ["Vertical Value to Plot", "ParticleColumn", "pxmc"]
         },
-        "dflAnimation": {
+        "finalFieldAnimation": {
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
@@ -1168,7 +1168,7 @@
             ]
         },
         "fieldDistributionAnimation": {
-            "title": "Field Distribution",
+            "title": "Field Distribution over Time",
             "advanced": [
                 "fieldPlot",
                 "framesPerSecond",
@@ -1219,9 +1219,7 @@
                 ["Main", [
                     "iotail",
                     "ndcut",
-                    "ffspec",
-                    "idmppar",
-                    "idmpfld"
+                    "ffspec"
                 ]],
                 ["Field", [
                     "fieldfile",
@@ -1266,7 +1264,7 @@
             ]
         },
         "particleAnimation": {
-            "title": "Particle Distribution",
+            "title": "Particle Distribution over Time",
             "advanced": [
                 [
                     ["Horizontal", [
@@ -1283,8 +1281,8 @@
                 "notes"
             ]
         },
-        "dpaAnimation": {
-            "title": "Dump Particle Distribution",
+        "finalParticleAnimation": {
+            "title": "Final Particle Distribution",
             "advanced": [
                 [
                     ["Horizontal", [
@@ -1301,8 +1299,8 @@
                 "notes"
             ]
         },
-        "dflAnimation": {
-            "title": "Dump Field Distribution",
+        "finalFieldAnimation": {
+            "title": "Final Field Distribution",
             "advanced": [
                 "framesPerSecond",
                 "histogramBins",

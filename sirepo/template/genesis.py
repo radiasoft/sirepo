@@ -63,8 +63,8 @@ _LATTICE_RE = re.compile(r"\bpower\b[\s\w]+\n(.*?)(\n\n|$)", flags=re.DOTALL)
 _OUTPUT_FILENAME = "genesis.out"
 _FIELD_DISTRIBUTION_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".fld"
 _PARTICLE_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".par"
-_DFL_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".dfl"
-_DPA_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".dpa"
+_FINAL_FIELD_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".dfl"
+_FINAL_PARTICLE_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".dpa"
 
 _RUN_ERROR_RE = re.compile(r"(?:^\*\*\* )(.*error.*$)", flags=re.MULTILINE)
 
@@ -213,10 +213,10 @@ def sim_frame_parameterAnimation(frame_args):
     )
 
 
-def sim_frame_dflAnimation(frame_args):
+def sim_frame_finalFieldAnimation(frame_args):
     nx = int(frame_args.sim_in.models.mesh.ncar)
     d = numpy.fromfile(
-        str(frame_args.run_dir.join(_DFL_OUTPUT_FILENAME)), dtype=complex
+        str(frame_args.run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME)), dtype=complex
     ).astype(numpy.float64)
     ny = nx
     nz = int(d.shape[0] / ny / nx)
@@ -233,8 +233,8 @@ def sim_frame_dflAnimation(frame_args):
     )
 
 
-def sim_frame_dpaAnimation(frame_args):
-    return _particle_plot(frame_args, _DPA_OUTPUT_FILENAME)
+def sim_frame_finalParticleAnimation(frame_args):
+    return _particle_plot(frame_args, _FINAL_PARTICLE_OUTPUT_FILENAME)
 
 
 def sim_frame_particleAnimation(frame_args):
@@ -273,6 +273,8 @@ def _generate_parameters_file(data):
     io.outputfile = _OUTPUT_FILENAME
     io.iphsty = 1
     io.ishsty = 1
+    io.idmppar = "1"
+    io.idmpfld = "1"
     if data.models.timeDependence.itdp == "1":
         io.ippart = 0
         io.ipradi = 0
