@@ -6,16 +6,14 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdformat
 import aenum
 import asyncio
-import databroker
 import databroker.queries
 import io
 import math
 import pymongo
 import requests
 import sirepo.feature_config
-import sirepo.raydata
 import sirepo.raydata.analysis_driver
-import sirepo.raydata.metadata
+import sirepo.raydata.databroker
 import sirepo.srdb
 import sirepo.srtime
 import sqlalchemy
@@ -100,8 +98,8 @@ class _Analysis(_DbBase):
         return r
 
     @classmethod
-    def have_analyzed_scan(cls, uid, catalog_name):
-        return True if cls.search_by(uid=uid, catalog_name=catalog_name) else False
+    def have_analyzed_scan(cls, scan_metadata):
+        return bool(cls.search_by(uid=scan_metadata.uid, catalog_name=s.catalog_name))
 
     @classmethod
     def init(cls, db_file):
@@ -176,7 +174,7 @@ class _RequestHandler(_JsonPostRequestHandler):
     async def post(self):
         self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
 
-    def _databroker_search(self, catalog, req_data):
+    def _databroker_search(self, req_data):
         def _search_params(req_data):
             q = databroker.queries.TimeRange(
                 since=req_data.searchStartTime, until=req_data.searchStopTime
@@ -207,9 +205,10 @@ class _RequestHandler(_JsonPostRequestHandler):
                 )
             return s
 
+        c = sirepo.raydata.databroker.catalog(req_data.catalogName)
         pc = math.ceil(
             len(
-                catalog.search(
+                c.search(
                     _search_params(req_data),
                     sort=_sort_params(req_data),
                 )
@@ -218,7 +217,7 @@ class _RequestHandler(_JsonPostRequestHandler):
         )
         l = [
             PKDict(uid=u)
-            for u in catalog.search(
+            for u in c.search(
                 _search_params(req_data),
                 sort=_sort_params(req_data),
                 limit=req_data.pageSize,
@@ -251,7 +250,7 @@ class _RequestHandler(_JsonPostRequestHandler):
     def _request_catalog_names(self, _):
         return PKDict(
             data=PKDict(
-                catalogs=[str(s) for s in databroker.catalog.keys()],
+                catalogs=sirepo.raydata.databroker.catalogs(),
             )
         )
 
@@ -279,10 +278,9 @@ class _RequestHandler(_JsonPostRequestHandler):
             return PKDict()
 
     def _request_get_scans(self, req_data):
-        c = _catalog(req_data.catalogName)
         s = 1
         if req_data.analysisStatus == "allStatuses":
-            l, s = self._databroker_search(c, req_data)
+            l, s = self._databroker_search(req_data)
         elif req_data.analysisStatus == "executed":
             assert req_data.searchStartTime and req_data.searchStopTime, pkdformat(
                 "must have both searchStartTime and searchStopTime req_data={}",
@@ -294,7 +292,7 @@ class _RequestHandler(_JsonPostRequestHandler):
             for s in _Analysis.scans_with_status(
                 req_data.catalogName, _AnalysisStatus.EXECUTED
             ):
-                m = _Metadata(c[s.uid])
+                m = sirepo.raydata.databroker.get_metadata(s.uid, req_data.catalogName)
                 if (
                     m.start() >= req_data.searchStartTime
                     and m.stop() <= req_data.searchStopTime
@@ -321,17 +319,17 @@ class _RequestHandler(_JsonPostRequestHandler):
         return _scan_info_result(l, s, req_data)
 
     def _request_run_analysis(self, req_data):
-        _queue_for_analysis(req_data.uid, req_data.catalogName)
+        _queue_for_analysis(
+            sirepo.raydata.databroker.get_metadata(req_data.uid, req_data.catalogName)
+        )
         return PKDict(data="ok")
 
     def _request_scan_fields(self, req_data):
         return PKDict(
-            columns=_Metadata(_catalog(req_data.catalogName)[-1]).get_start_fields(),
+            columns=sirepo.raydata.databroker.get_metadata_for_most_recent_scan(
+                req_data.catalogName
+            ).get_start_fields(),
         )
-
-
-def _catalog(name):
-    return databroker.catalog[name]
 
 
 async def _init_analysis_processors():
@@ -350,7 +348,9 @@ async def _init_analysis_processors():
                     "run.log", mode="w"
                 ) as l:
                     try:
-                        m = _Metadata(_catalog(d.catalog_name)[d.uid])
+                        m = sirepo.raydata.databroker.get_metadata(
+                            d.uid, d.catalog_name
+                        )
                         for n in d.get_notebooks(scan_metadata=m):
                             p = await asyncio.create_subprocess_exec(
                                 "papermill",
@@ -401,49 +401,51 @@ async def _init_catalog_monitors():
 # new documents are available.
 # But, for now it is easiest to just poll
 async def _poll_catalog_for_scans(catalog_name):
-    def _collect_new_scans_and_queue(last_known):
-        l = last_known
-        m = _Metadata(last_known)
+    # TODO(e-carlin): need to test polling feature
+    def _collect_new_scans_and_queue(last_known_scan_metadata):
         r = [
-            scan
-            for uid, scan in databroker.catalog[catalog_name]
-            .search(databroker.queries.TimeRange(since=m.start()))
+            sirepo.raydata.databroker.get_metadata(s, catalog_name)
+            for u, s in sirepo.raydata.databroker.catalog(catalog_name)
+            .search(
+                databroker.queries.TimeRange(since=last_known_scan_metadata.start())
+            )
             .items()
-            if uid != m.uid()
+            if u != last_known_scan_metadata.uid
         ]
-        r.sort(key=lambda x: _Metadata(x).start())
+        l = last_known_scan_metadata
+        r.sort(key=lambda x: x.start())
         for s in r:
-            if _Metadata(s).is_scan_plan_executing():
+            if s.is_scan_plan_executing():
                 return l
-            _queue_for_analysis(s, catalog_name)
+            _queue_for_analysis(s)
             l = s
         return l
 
-    async def _poll_for_new_scans(most_recent):
+    async def _poll_for_new_scans(most_recent_scan_metadata):
+        m = most_recent_scan_metadata
         while True:
-            most_recent = _collect_new_scans_and_queue(most_recent)
+            m = _collect_new_scans_and_queue(m)
             await pkasyncio.sleep(2)
 
     pkdlog("catalog_name={}", catalog_name)
     c = None
     while not c:
         try:
-            c = databroker.catalog[catalog_name]
+            c = sirepo.raydata.databroker.catalog(catalog_name)
         except KeyError:
             pkdlog(f"no catalog_name={catalog_name}. Retrying...")
             await pkasyncio.sleep(15)
-    s = c[-1]
-    if not _Analysis.have_analyzed_scan(_Metadata(s).uid(), catalog_name):
-        _queue_for_analysis(s, catalog_name)
+    s = sirepo.raydata.databroker.get_metadata_for_most_recent_scan(catalog_name)
+    if not _Analysis.have_analyzed_scan(s):
+        _queue_for_analysis(s)
     await _poll_for_new_scans(s)
     raise AssertionError("should never get here")
 
 
-def _queue_for_analysis(scan, catalog_name):
+def _queue_for_analysis(scan_metadata):
     s = PKDict(
-        # TODO(e-carlin): fix _Metadata(scan), it is weird to have two types in here
-        uid=scan if isinstance(scan, str) else _Metadata(scan).uid(),
-        catalog_name=catalog_name,
+        uid=scan_metadata.uid,
+        catalog_name=scan_metadata.catalog_name,
     )
     pkdlog("scan={}", s)
     if s not in _SCANS_AWAITING_ANALYSIS:
@@ -453,7 +455,7 @@ def _queue_for_analysis(scan, catalog_name):
 
 
 def _scan_info(uid, status, req_data):
-    m = _Metadata(_catalog(req_data.catalogName)[uid])
+    m = sirepo.raydata.databroker.get_metadata(uid, req_data.catalogName)
     d = PKDict(
         uid=uid,
         status=status,
