@@ -35,14 +35,6 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             }
         }
     };
-    self.showDPAAnimation = () => {
-        srdbg('dmppar', appState.models.io.idmppar == 1)
-        return frameCache.hasFrames('dpaAnimation') && (appState.models.io.idmppar == 1);
-    };
-    self.showDFLAnimation = () => {
-        srdbg('dmpfld', appState.models.io.idmpfld == 1)
-        return frameCache.hasFrames('dflAnimation') && (appState.models.io.idmpfld == 1);
-    };
     self.simState = persistentSimulation.initSimulationState(self);
     return self;
 });
