@@ -505,12 +505,6 @@ def start():
                 pkio.py_path,
                 "root directory for db",
             ),
-            notebook_dir_chx=pkconfig.Required(
-                pkio.py_path, "base directory for CHX analysis notebooks"
-            ),
-            notebook_dir_csx=pkconfig.Required(
-                pkio.py_path, "directory for CSX analysis notebooks"
-            ),
         )
         sirepo.srtime.init_module()
         pkio.mkdir_parent(cfg.db_dir)

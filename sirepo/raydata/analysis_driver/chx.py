@@ -1,24 +1,31 @@
+"""Analysis specific to CHX
+
+:copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+from pykern import pkconfig
+from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import sirepo.raydata.analysis_driver
-import sirepo.raydata.scan_monitor
+
+_cfg = None
 
 
 class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
     def get_notebooks(self):
         return [
             PKDict(
-                # TODO(e-carlin): this cfg should live in here
-                input_f=sirepo.raydata.scan_monitor.cfg.notebook_dir_chx.join(
+                input_f=_cfg.base_dir.join(
                     self._scan_metadata.get_start_field("cycle"),
                     "AutoRuns",
                     self._scan_metadata.get_start_field("user"),
                     f"{self._scan_metadata.get_start_field('auto_pipeline')}.ipynb",
                 ),
-                output_f=sirepo.raydata.scan_monitor.cfg.notebook_dir_chx.join(
+                output_f=_cfg.base_dir.join(
                     self._scan_metadata.get_start_field("cycle"),
                     self._scan_metadata.get_start_field("user"),
-                    "ResPipelines"
+                    "ResPipelines",
                     f"{self._scan_metadata.get_start_field('auto_pipeline')}_{self.uid}.ipynb",
                 ),
             )
@@ -32,9 +39,16 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
         ]
 
     def get_output_dir(self):
-        return sirepo.raydata.scan_monitor.cfg.notebook_dir_chx.join(
+        return _cfg.base_dir.join(
             self._scan_metadata.get_start_field("cycle"),
             self._scan_metadata.get_start_field("user"),
             "Results",
             self.uid,
         )
+
+
+_cfg = pkconfig.init(
+    base_dir=pkconfig.Required(
+        pkio.py_path, "base directory for notebooks and outputs"
+    ),
+)
