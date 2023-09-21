@@ -17,6 +17,7 @@ import sirepo.mpi
 import sirepo.sim_data
 
 
+_OUTLINES_FILE = "outlines.json"
 _VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -107,14 +108,25 @@ def get_data_file(run_dir, model, frame, options):
     if model == "openmcAnimation":
         if options.suffix == "log":
             return template_common.text_data_file(template_common.RUN_LOG, run_dir)
+        if options.suffix == "json":
+            return run_dir.join(_OUTLINES_FILE)
         return _statepoint_filename(
             simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         )
     raise AssertionError("no data file for model={model} and options={options}")
 
 
-def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
+def post_execution_processing(
+    compute_model, sim_id, success_exit, is_parallel, run_dir, **kwargs
+):
     if success_exit:
+        sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
+        if compute_model == "dagmcAnimation":
+            for f in ply_files:
+                _SIM_DATA.put_sim_file(sim_id, f, f.basename)
+        if compute_model == "openmcAnimation":
+            _write_volume_outlines(sim_in.models.settings.tallies, ply_files)
         return None
     return _parse_run_log(run_dir)
 
@@ -334,8 +346,6 @@ def _generate_materials(data):
 
 def _generate_parameters_file(data, run_dir=None):
     report = data.get("report", "")
-    for f in [b.basename for b in _SIM_DATA.sim_file_basenames(data)]:
-        pkio.unchecked_remove(f)
     if report == "dagmcAnimation":
         return _dagmc_animation_python(_SIM_DATA.dagmc_filename(data))
     if report == "tallyReport":
@@ -507,3 +517,67 @@ def _parse_run_log(run_dir):
 
 def _statepoint_filename(data):
     return f"statepoint.{data.models.settings.batches}.h5"
+
+
+def _write_volume_outlines(tallies, ply_files):
+    import trimesh
+    import dagmc_geometry_slice_plotter
+
+    def _center_range(mesh, dim):
+        f = (
+            0.5
+            * abs(mesh.upper_right[dim] - mesh.lower_left[dim])
+            / mesh.dimension[dim]
+        )
+        return numpy.linspace(
+            mesh.lower_left[dim] + f,
+            mesh.upper_right[dim] - f,
+            mesh.dimension[dim],
+        )
+
+    def _get_mesh(tallies):
+        for t in tallies:
+            for f in [x for x in t if x.startswith("filter")]:
+                if t[f]._type == "meshFilter":
+                    return t[f]
+        return None
+
+    tally_mesh = _get_mesh(tallies)
+    if tally_mesh is None:
+        return
+    tally_ranges = [_center_range(tally_mesh, i) for i in range(3)]
+    outlines = PKDict()
+    basis_vects = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    rots = [
+        numpy.array([[1, 0], [0, 1]]),
+        numpy.array([[0, -1], [1, 0]]),
+        numpy.array([[0, 1], [-1, 0]]),
+    ]
+    for mf in ply_files:
+        vol_id = mf.purebasename
+        vol_mesh = None
+        outlines[vol_id] = PKDict(x=[], y=[], z=[])
+        with open(mf, "rb") as f:
+            vol_mesh = trimesh.Trimesh(**trimesh.exchange.ply.load_ply(f))
+        for i, dim in enumerate(outlines[vol_id].keys()):
+            n = basis_vects[i]
+            r = rots[i]
+            for pos in tally_ranges[i]:
+                coords = []
+                try:
+                    coords = dagmc_geometry_slice_plotter.get_slice_coordinates(
+                        dagmc_file_or_trimesh_object=vol_mesh,
+                        plane_origin=pos * n,
+                        plane_normal=n,
+                    )
+                    # get_slice_coordinates returns a list of "TrackedArrays",
+                    # arranged for use in matplotlib
+                    ct = []
+                    for c in [(SCHEMA.constants.geometryScale * x.T) for x in coords]:
+                        ct.append([numpy.dot(r, x).tolist() for x in c])
+                    coords = ct
+                except ValueError:
+                    # no intersection at this plane position
+                    pass
+                outlines[vol_id][dim].append(coords)
+    simulation_db.write_json(_OUTLINES_FILE, outlines)

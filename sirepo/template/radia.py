@@ -143,18 +143,6 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
-def create_archive(sim, qcall):
-    if sim.filename.endswith("dat"):
-        return qcall.reply_attachment(
-            simulation_db.simulation_dir(SIM_TYPE, sid=sim.id, qcall=qcall).join(
-                _DMP_FILE
-            ),
-            content_type="application/octet-stream",
-            filename=sim.filename,
-        )
-    return False
-
-
 def extract_report_data(run_dir, sim_in):
     assert sim_in.report in _REPORTS, "report={}: unknown report".format(sim_in.report)
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
@@ -268,6 +256,11 @@ def get_data_file(run_dir, model, frame, options):
                 pkio.py_path(f),
             )
         return f
+    if model == "geometryReport":
+        return PKDict(
+            uri=f"{name}.{sfx}",
+            filename=pkio.py_path(_DMP_FILE),
+        )
 
 
 async def import_file(req, tmp_dir=None, **kwargs):
