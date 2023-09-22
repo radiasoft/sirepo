@@ -404,7 +404,7 @@ class VTKScene {
      * @param {string} resetSide - the dimension to display facing the user when the scene is reset
      * @param {number} resetDirection -1|1 - the direction facing the user when the scene is reset
      */
-    constructor(container, resetSide, resetDirection=1, initHidden=false) {
+    constructor(container, resetSide, resetDirection=1) {
         this.fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
             background: [1, 1, 1, 1],
             container: container,
@@ -414,18 +414,8 @@ class VTKScene {
         this.container = this.fsRenderer.getContainer();
         this.renderer = this.fsRenderer.getRenderer();
         this.renderWindow = this.fsRenderer.getRenderWindow();
-
-        this.offscreen = vtk.Rendering.OpenGL.vtkRenderWindow.newInstance({
-            useOffScreen: true,
-        });
-        this.offscreenRW = vtk.Rendering.Core.vtkRenderWindow.newInstance();
-        this.offscreenRenderer = vtk.Rendering.Core.vtkRenderer.newInstance();
-        this.offscreenRW.addRenderer(this.offscreenRenderer);
-        this.offscreen.setContainer(this.container);
-        this.offscreen.setSize(256, 256);
-        this.offscreenRW.addView(this.offscreen);
         
-        this.cam = this.currentRenderer().get().activeCamera;
+        this.cam = this.renderer.get().activeCamera;
         this.camProperties = VTKScene.CAM_DEFAULTS();
         this.resetSide = resetSide;
         this.resetDirection = resetDirection;
@@ -435,7 +425,6 @@ class VTKScene {
 
         this.viewSide = this.resetSide;
         this.viewDirection = this.resetDirection;
-        this.isHidden = initHidden;
     }
 
     /**
@@ -462,7 +451,7 @@ class VTKScene {
      * @param {vtk.Rendering.Core.vtkActor} actor
      */
     addActor(actor) {
-        this.currentRenderer().addActor(actor);
+        this.renderer.addActor(actor);
     }
 
     /**
@@ -470,20 +459,8 @@ class VTKScene {
      * @returns {[number]}
      */
     bounds() {
-        this.currentRenderer().resetCamera();
-        return this.currentRenderer().computeVisiblePropBounds();
-    }
-
-    /**
-     * Gets the current renderer
-     * @returns {renderer}
-     */
-    currentRenderer() {
-        return this.isHidden ? this.offscreenRenderer : this.renderer;
-    }
-
-    currentRenderWindow() {
-        return this.isHidden ? this.offscreen : this.renderWindow;
+        this.renderer.resetCamera();
+        return this.renderer.computeVisiblePropBounds();
     }
 
     /**
@@ -524,7 +501,7 @@ class VTKScene {
         if (! actor ) {
             return;
         }
-        this.currentRenderer().removeActor(actor);
+        this.renderer.removeActor(actor);
     }
 
     /**
@@ -533,7 +510,7 @@ class VTKScene {
      */
     removeActors(actors) {
         if (! actors) {
-            this.currentRenderer().removeAllActors();
+            this.renderer.removeAllActors();
             return;
         }
         for (const a of actors) {
@@ -546,7 +523,7 @@ class VTKScene {
      * Convenience method for triggering a render in the render window
      */
     render() {
-        this.currentRenderWindow().render();
+        this.renderWindow.render();
     }
 
     /**
@@ -572,7 +549,7 @@ class VTKScene {
      */
     sceneBoundingBox(padPct = 0.0) {
         // must reset the camera before computing the bounds
-        this.currentRenderer().resetCamera();
+        this.renderer.resetCamera();
         return VTKUtils.buildBoundingBox(this.bounds(), padPct);
     }
 
@@ -581,7 +558,7 @@ class VTKScene {
      * @param {string|[number]} color
      */
     setBgColor(color) {
-        this.currentRenderer().setBackground(VTKUtils.colorToFloat(color));
+        this.renderer.setBackground(VTKUtils.colorToFloat(color));
         this.render();
     }
 
@@ -594,7 +571,7 @@ class VTKScene {
         this.cam.setPosition(...position);
         this.cam.setFocalPoint(0, 0, 0);
         this.cam.setViewUp(...viewUp);
-        this.currentRenderer().resetCamera();
+        this.renderer.resetCamera();
         this.cam.yaw(0.6);
         if (this.marker) {
             this.marker.updateMarkerOrientation();
@@ -617,18 +594,6 @@ class VTKScene {
      */
     setResizeListen(doListen) {
         if (doListen) {
-            if (this.isHidden) {
-                this.currentRenderWindow().makeCurrent();
-                //const sz = this.currentRenderWindow().getFramebufferSize();
-                //const actors = this.currentRenderer().getActors();
-                this.isHidden = false;
-                //this.offscreenRenderer.delete();
-                //window.addEventListener('resize', this.fsRenderer.resize);
-                //$(this.container).width(sz[0]).height(sz[1]);
-                //for (const a of actors) {
-                //    this.addActor(a);
-                //}
-            }
             window.addEventListener('resize', this.fsRenderer.resize);
         }
         else {
@@ -3118,7 +3083,7 @@ SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSende
 });
 
 // General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $document, $timeout, $window) {
+SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $document, $window) {
 
     return {
         restrict: 'A',
@@ -3211,12 +3176,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
                     };
                 }
 
-                $scope.vtkScene = new VTKScene(
-                    rw,
-                    $scope.resetSide,
-                    $scope.resetDirection,
-                    panelState.isHidden($scope.modelName)
-                );
+                $scope.vtkScene = new VTKScene(rw, $scope.resetSide, $scope.resetDirection);
 
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
