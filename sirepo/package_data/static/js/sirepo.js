@@ -1656,6 +1656,14 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
     };
 
+    self.doRender = modelKey => {
+        if (! self.isHidden(modelKey)) {
+            return true;
+        }
+        const v = appState.viewInfo(modelKey);
+        return ! (v.hasOwnProperty('_super') && v._super[2] === 'vtk');
+    };
+
     self.enableField = function(model, field, isEnabled) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
         var fc = fieldClass(model, field);

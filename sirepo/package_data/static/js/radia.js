@@ -2019,7 +2019,7 @@ SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache,
             <div class="col-md-6">
                 <div class="panel panel-info" id="sr-magnetDisplay-basicEditor">
                   <div class="panel-heading clearfix" data-panel-heading="Magnet Viewer" data-view-name="magnetDisplay" data-is-report="true" data-model-key="modelKey" data-report-id="reportId"></div>
-                    <div class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
+                    <div class="panel-body" data-ng-if="panelState.doRender(modelKey)" data-ng-hide="panelState.isHidden(modelKey)">
                       <div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="true" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
                       <div data-ng-transclude="">
                         <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-report-id="reportId" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
