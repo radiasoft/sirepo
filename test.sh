@@ -24,7 +24,7 @@ test_main() {
     export SIREPO_SRUNIT_CPU_DIV=$(
         python <<-'EOF'
 import timeit;
-print(round(100 * timeit.timeit("str().join(str(i) for i in range(1000000))", number=1)))
+print(round(100 * timeit.timeit("str().join(str(i) for i in range(1000000))", number=2)))
 EOF
     )
     SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=1 pykern test
