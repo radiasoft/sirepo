@@ -3118,7 +3118,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
             let isPointerUp = true;
 
             const canvasHolder = $($element).find('.vtk-canvas-holder').eq(0);
-            const offscreen = new OffscreenCanvas(256, 256);
 
             // supplement or override these event handlers
             let eventHandlers = {
@@ -3204,13 +3203,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
                         n.toLowerCase(),
                         $scope.vtkScene.fsRenderer.getInteractor()[`handle${n}`],
                     );
-                }
-                const c = $($scope.vtkScene.container).find('canvas').eq(0);
-                srdbg(c);
-                if (! c.is(':visible')) {
-                    srdbg('CANVAS HIDDEN');
-                    let ctx = offscreen.getContext('webgl');
-                    //c[0].transferControlToOffscreen();
                 }
                 $scope.$emit('vtk-init', $scope.vtkScene);
                 resize();
