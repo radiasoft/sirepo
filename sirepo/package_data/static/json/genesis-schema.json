@@ -94,7 +94,7 @@
         "parameterAnimation": ["y1", "y2", "y3"],
         "particleAnimation": ["x", "y", "histogramBins"],
         "finalParticleAnimation": ["x", "y", "histogramBins"],
-        "finalFieldAnimation": []
+        "finalFieldAnimation": ["fieldPlot"]
     },
     "localRoutes": {
         "source": {
@@ -362,14 +362,14 @@
             ],
             "idmpfld": [
                 "Dump field distribution",
-                "Integer",
-                1,
+                "Boolean",
+                "0",
                 "IDMPFLD: Similar to IDUMP but only for the field distribution. "
             ],
             "idmppar": [
                 "Dump particle distribution",
-                "Integer",
-                1,
+                "Boolean",
+                "0",
                 "IDMPPAR: Similar to IDUMP but only for the particle distribution. "
             ],
             "idril": [
@@ -700,16 +700,15 @@
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "notes": ["Notes", "Text", ""],
             "x": ["Horizontal Value to Plot", "ParticleColumn", "x"],
             "y": ["Vertical Value to Plot", "ParticleColumn", "pxmc"]
         },
         "finalFieldAnimation": {
+            "fieldPlot": ["Value to Plot", "FieldPlot", "fieldDistributionPlot"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "notes": ["Notes", "Text", ""]
         },
         "particleLoading": {
@@ -1292,7 +1291,6 @@
                         "y"
                     ]]
                 ],
-                "framesPerSecond",
                 "histogramBins",
                 "aspectRatio",
                 "colorMap",
@@ -1302,7 +1300,7 @@
         "finalFieldAnimation": {
             "title": "Final Field Distribution",
             "advanced": [
-                "framesPerSecond",
+                "fieldPlot",
                 "histogramBins",
                 "aspectRatio",
                 "colorMap",

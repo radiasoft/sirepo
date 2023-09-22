@@ -95,6 +95,14 @@ def background_percent_complete(report, run_dir, is_running):
                 frameCount=c.field,
             ),
             PKDict(
+                modelName="finalParticleAnimation",
+                frameCount=c.dpa,
+            ),
+            PKDict(
+                modelName="finalFieldAnimation",
+                frameCount=c.dfl,
+            ),
+            PKDict(
                 modelName="parameterAnimation",
                 frameCount=c.parameter,
             ),
@@ -115,12 +123,11 @@ def genesis_success_exit(run_dir):
         and _LATTICE_RE.search(pkio.read_text(run_dir.join(_OUTPUT_FILENAME)))
         and (
             dm.timeDependence.itdp == "1"
-            or dm.io.ippart == 0
             or (
-                run_dir.join(_PARTICLE_OUTPUT_FILENAME).exists()
-                and run_dir.join(_PARTICLE_OUTPUT_FILENAME).size() > 0
+                run_dir.join(_FINAL_PARTICLE_OUTPUT_FILENAME).exists()
+                and run_dir.join(_FINAL_PARTICLE_OUTPUT_FILENAME).size() > 0
                 and not numpy.isnan(
-                    numpy.fromfile(_PARTICLE_OUTPUT_FILENAME, dtype=numpy.float64)
+                    numpy.fromfile(_FINAL_PARTICLE_OUTPUT_FILENAME, dtype=numpy.float64)
                 ).any()
             )
         )
@@ -134,6 +141,10 @@ def get_data_file(run_dir, model, frame, options):
         return _FIELD_DISTRIBUTION_OUTPUT_FILENAME
     if model == "parameterAnimation":
         return _OUTPUT_FILENAME
+    if model == "finalParticleAnimation":
+        return _FINAL_PARTICLE_OUTPUT_FILENAME
+    if model == "finalFieldAnimation":
+        return _FINAL_FIELD_OUTPUT_FILENAME
     raise AssertionError("unknown model={}".format(model))
 
 
@@ -169,18 +180,19 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def sim_frame_fieldDistributionAnimation(frame_args):
-    d = _get_field_distribution(frame_args.run_dir, frame_args.sim_in)
-    if frame_args.fieldPlot == "phasePlot":
-        d = numpy.arctan(d.imag / d.real)
-    d = numpy.abs(d[int(frame_args.frameIndex), 0, :, :])
-    s = d.shape[0]
-    return PKDict(
-        title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ipradi),
-        x_label="",
-        x_range=[0, s, s],
-        y_label="",
-        y_range=[0, s, s],
-        z_matrix=d.tolist(),
+    n = frame_args.sim_in.models.mesh.ncar
+    d = numpy.fromfile(
+        str(frame_args.run_dir.join(_FIELD_DISTRIBUTION_OUTPUT_FILENAME)),
+        dtype=numpy.float64,
+    )
+    # Divide by 2 to combine real and imaginary parts which are written separately
+    s = int(d.shape[0] / (n * n) / 2)
+    d = d.reshape(s, 2, n, n)
+    # recombine as a complex number
+    d = d[:, 0, :, :] + 1.0j * d[:, 1, :, :]
+    return _field_plot(
+        frame_args,
+        d[int(frame_args.frameIndex), :, :],
     )
 
 
@@ -214,22 +226,12 @@ def sim_frame_parameterAnimation(frame_args):
 
 
 def sim_frame_finalFieldAnimation(frame_args):
-    nx = int(frame_args.sim_in.models.mesh.ncar)
-    d = numpy.fromfile(
-        str(frame_args.run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME)), dtype=complex
-    ).astype(numpy.float64)
-    ny = nx
-    nz = int(d.shape[0] / ny / nx)
-    assert nz == 1, f"Confused shape {nx} {ny} {nz}"
-    d = d.reshape(nz, ny, nx)
-    d = numpy.moveaxis(d, [0, 1, 2], [2, 1, 0])[:, :, -1]
-    return PKDict(
-        title="",
-        x_range=[0, nx, len(d)],
-        y_range=[0, nx, len(d)],
-        x_label="",
-        y_label="",
-        z_matrix=d.tolist(),
+    n = frame_args.sim_in.models.mesh.ncar
+    return _field_plot(
+        frame_args,
+        numpy.fromfile(
+            str(frame_args.run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME)), dtype=complex
+        ).reshape(n, n),
     )
 
 
@@ -258,6 +260,21 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
+def _field_plot(frame_args, d):
+    if frame_args.fieldPlot == "phasePlot":
+        d = numpy.arctan(d.imag / d.real)
+    d = numpy.abs(d)
+    s = d.shape[0]
+    return PKDict(
+        title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ipradi),
+        x_label="",
+        x_range=[0, s, s],
+        y_label="",
+        y_range=[0, s, s],
+        z_matrix=d.tolist(),
+    )
+
+
 def _get_col(col_key):
     # POSIT: ParticleColumn keys are in same order as columns in output
     for i, c in enumerate(SCHEMA.enum.ParticleColumn):
@@ -273,11 +290,12 @@ def _generate_parameters_file(data):
     io.outputfile = _OUTPUT_FILENAME
     io.iphsty = 1
     io.ishsty = 1
-    io.idmppar = "1"
-    io.idmpfld = "1"
     if data.models.timeDependence.itdp == "1":
         io.ippart = 0
         io.ipradi = 0
+    else:
+        io.idmppar = "1"
+        io.idmpfld = "1"
     r = ""
     fmap = PKDict(
         wcoefz1="WCOEFZ(1)",
@@ -305,19 +323,6 @@ def _generate_parameters_file(data):
         SIM_TYPE,
         PKDict(input_filename=_INPUT_FILENAME, variables=r),
     )
-
-
-def _get_field_distribution(run_dir, data):
-    n = 1  # TODO(e-carlin): Will be different for time dependent
-    p = data.models.mesh.ncar
-    d = numpy.fromfile(
-        str(run_dir.join(_FIELD_DISTRIBUTION_OUTPUT_FILENAME)), dtype=numpy.float64
-    )
-    # Divide by 2 to combine real and imaginary parts which are written separately
-    s = int(d.shape[0] / (n * p * p) / 2)
-    d = d.reshape(s, n, 2, p, p)
-    # recombine as a complex number
-    return d[:, :, 0, :, :] + 1.0j * d[:, :, 1, :, :]
 
 
 def _get_lattice_and_slice_data(run_dir, lattice_index):
@@ -356,6 +361,8 @@ def _get_frame_counts(run_dir):
         particle=0,
         field=0,
         parameter=dm.timeDependence.nslice if dm.timeDependence.itdp == "1" else 1,
+        dpa=1 if run_dir.join(_FINAL_PARTICLE_OUTPUT_FILENAME).exists() else 0,
+        dfl=1 if run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME).exists() else 0,
     )
     with pkio.open_text(run_dir.join(_OUTPUT_FILENAME)) as f:
         for line in f:
@@ -463,6 +470,12 @@ def _particle_plot(frame_args, filename):
 
 def _z_title_at_frame(frame_args, nth):
     s = _get_lattice_and_slice_data(frame_args.run_dir, 0)[1]
-    step = frame_args.frameIndex * nth
+    if frame_args.frameReport in ("finalFieldAnimation", "finalParticleAnimation"):
+        step = -1
+    else:
+        step = frame_args.frameIndex * nth
     z = s[:, 0][step]
-    return f"z: {z:.6f} [m] step: {step + 1}"
+    title = f"z: {z:.6f} [m]"
+    if step >= 0:
+        return f"{title} step: {step + 1}"
+    return title
