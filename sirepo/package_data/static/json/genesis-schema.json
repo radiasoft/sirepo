@@ -92,7 +92,9 @@
     "frameIdFields": {
         "fieldDistributionAnimation": ["fieldPlot"],
         "parameterAnimation": ["y1", "y2", "y3"],
-        "particleAnimation": ["x", "y", "histogramBins"]
+        "particleAnimation": ["x", "y", "histogramBins"],
+        "finalParticleAnimation": ["x", "y", "histogramBins"],
+        "finalFieldAnimation": ["fieldPlot"]
     },
     "localRoutes": {
         "source": {
@@ -694,6 +696,21 @@
             "x": ["Horizontal Value to Plot", "ParticleColumn", "x"],
             "y": ["Vertical Value to Plot", "ParticleColumn", "pxmc"]
         },
+        "finalParticleAnimation": {
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "notes": ["Notes", "Text", ""],
+            "x": ["Horizontal Value to Plot", "ParticleColumn", "x"],
+            "y": ["Vertical Value to Plot", "ParticleColumn", "pxmc"]
+        },
+        "finalFieldAnimation": {
+            "fieldPlot": ["Value to Plot", "FieldPlot", "fieldDistributionPlot"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "notes": ["Notes", "Text", ""]
+        },
         "particleLoading": {
             "iall": [
                 "Slices start with the same sequence element",
@@ -1150,7 +1167,7 @@
             ]
         },
         "fieldDistributionAnimation": {
-            "title": "Field Distribution",
+            "title": "Field Distribution over Time",
             "advanced": [
                 "fieldPlot",
                 "framesPerSecond",
@@ -1246,7 +1263,7 @@
             ]
         },
         "particleAnimation": {
-            "title": "Particle Distribution",
+            "title": "Particle Distribution over Time",
             "advanced": [
                 [
                     ["Horizontal", [
@@ -1257,6 +1274,33 @@
                     ]]
                 ],
                 "framesPerSecond",
+                "histogramBins",
+                "aspectRatio",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "finalParticleAnimation": {
+            "title": "Final Particle Distribution",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "aspectRatio",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "finalFieldAnimation": {
+            "title": "Final Field Distribution",
+            "advanced": [
+                "fieldPlot",
                 "histogramBins",
                 "aspectRatio",
                 "colorMap",
