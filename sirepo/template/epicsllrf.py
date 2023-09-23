@@ -30,9 +30,9 @@ class EpicsDisconnectError(Exception):
 def analysis_job_read_epics_values(data, run_dir, **kwargs):
     p = run_dir.join("prev-status.json")
     e = run_dir.join(_STATUS_FILE)
-    if not data.args.get("noCache") and pkio.compare_file_stats(e, p):
+    if not data.args.get("noCache") and pkio.compare_files(e, p):
         return PKDict()
-    e.copy(p)
+    e.copy(p, stat=True)
     return PKDict(
         epicsData=_read_epics_data(run_dir),
     )
