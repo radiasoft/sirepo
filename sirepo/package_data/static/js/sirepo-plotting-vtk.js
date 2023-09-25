@@ -621,6 +621,18 @@ class VTKScene {
     }
 
     /**
+     * Sets whether the renderer responds to resize events
+     */
+    setResizeListen(doListen) {
+        if (doListen) {
+            window.addEventListener('resize', this.fsRenderer.resize);
+        }
+        else {
+            window.removeEventListener('resize', this.fsRenderer.resize);
+        }
+    }
+
+    /**
      * Cleans up vtk items
      */
     teardown() {
@@ -3224,6 +3236,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
             };
 
             $scope.$on('$destroy', function() {
+                panelState.deleteRenderedPanel($scope.modelName);
                 $element.off();
                 $($window).off('resize', resize);
                 $scope.vtkScene.teardown();
@@ -3249,13 +3262,14 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
                 $($element).find('.vtk-load-indicator img').css('display', 'none');
             });
             $scope.$on(`panel.${$scope.modelName}.hidden`, (e, v) => {
+                $scope.vtkScene.setResizeListen(! v);
                 if (! v) {
                     panelState.waitForUI(refresh);
                 }
             });
             $scope.init();
 
-
+            panelState.addRenderedPanel($scope.modelName);
             $($window).resize(resize);
         },
     };

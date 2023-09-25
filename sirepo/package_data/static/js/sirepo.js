@@ -1481,6 +1481,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     var panels = {};
     var pendingRequests = {};
     var queueItems = {};
+    const renderedPanels = {};
     var waitForUICallbacks = null;
     var windowResize = utilities.debounce(function() {
         $rootScope.$broadcast('sr-window-resize');
@@ -1656,12 +1657,19 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
     };
 
+    self.addRenderedPanel = modelKey => {
+        renderedPanels[modelKey] = false;
+    };
+
+    self.deleteRenderedPanel = modelKey => {
+        delete renderedPanels[modelKey];
+    };
+
     self.doRender = modelKey => {
         if (! self.isHidden(modelKey)) {
-            return true;
+            renderedPanels[modelKey] = true;
         }
-        const v = appState.viewInfo(modelKey);
-        return ! (v.hasOwnProperty('_super') && v._super[2] === 'vtk');
+        return renderedPanels[modelKey];
     };
 
     self.enableField = function(model, field, isEnabled) {

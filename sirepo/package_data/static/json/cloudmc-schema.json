@@ -1097,7 +1097,6 @@
             "advanced": []
         },
         "geometry3DReport": {
-            "_super": ["_", "view", "vtk"],
             "title": "DAGMC Geometry",
             "advanced": [
                 "opacity",
@@ -1172,7 +1171,6 @@
             ]
         },
         "openmcAnimation": {
-            "_super": ["_", "view", "vtk"],
             "title": "Tally Results",
             "advanced": [
                 "tally",

@@ -1398,7 +1398,6 @@
             ]
         },
         "magnetDisplay": {
-            "_super": ["_", "view", "vtk"],
             "title": "Magnet Viewer",
             "hasDataFile": false,
             "basic": [
