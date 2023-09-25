@@ -567,7 +567,7 @@ SIREPO.viewLogic('thermalTransportCrystalView', function(appState, panelState, s
     });
 });
 
-SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plotToPNG, utilities) {
+SIREPO.app.directive('crystal3d', function(appState, panelState, plotting, silasService, plotToPNG, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -777,11 +777,18 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plo
 
             $scope.resize = refresh;
 
+            $scope.$on(`panel.${$scope.modelName}.hidden`, (e, v) => {
+                SIREPO.VTK.VTKScene.setResizeListen(fsRenderer, ! v);
+            });
+
             $scope.$on('$destroy', function() {
+                panelState.deleteRenderedPanel($scope.modelName);
                 if (orientationMarker) {
                     orientationMarker.setEnabled(false);
                 }
             });
+
+            panelState.addRenderedPanel($scope.modelName);
         },
         link: function link(scope, element) {
             plotting.vtkPlot(scope, element);
