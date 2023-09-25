@@ -24,12 +24,15 @@ try:
 except:
     pass
 
-import srwl_bl
-import srwlib
-import srwlpy
+{% if in_server %}
+import sirepo.template
+{% endif %}
+import srwpy.srwl_bl
+import srwpy.srwlib
+import srwpy.srwlpy
 {% if beamlineOpticsParameters %}
 import math
-import srwl_uti_smp
+import srwpy.srwl_uti_smp
 {% endif %}
 
 {% if beamlineOptics %}
@@ -352,9 +355,9 @@ def _get_beamline_param(vp, srw_prefix, sirepo_name):
 
 
 def _read_srw_file(filename):
-    import uti_plot_com
+    import srwpy.uti_plot_com
     """ This function takes in an srw file and returns the beam data. This was adapted from srwl_uti_dataProcess.py file"""
-    data, mode, ranges, labels, units = uti_plot_com.file_load(filename)
+    data, mode, ranges, labels, units = srwpy.uti_plot_com.file_load(filename)
     data = numpy.array(data).reshape((ranges[8], ranges[5]), order='C')
     '''
     return {'data': data,
@@ -431,7 +434,6 @@ def _rsopt_set_params({{ rsOptFuctionSignature() }}):
 
 def epilogue():
     {% if in_server %}
-    import sirepo.template
     sirepo.template.run_epilogue('srw')
     {% else %}
     pass

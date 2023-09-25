@@ -8,11 +8,11 @@ try:
 except:
     pass
 
-import srwl_bl
-import srwlib
-import srwlpy
+import srwpy.srwl_bl
+import srwpy.srwlib
+import srwpy.srwlpy
 import math
-import srwl_uti_smp
+import srwpy.srwl_uti_smp
 
 def set_optics(v, names=None, want_final_propagation=True):
     el = []
@@ -22,7 +22,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     for el_name in names:
         if el_name == 'S1':
             # S1: aperture 26.62m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_S1_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_S1_Dx,
@@ -33,13 +33,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_S1_pp)
         elif el_name == 'S1_HCM':
             # S1_HCM: drift 26.62m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_S1_HCM_L,
             ))
             pp.append(v.op_S1_HCM_pp)
         elif el_name == 'HCM':
             # HCM: sphericalMirror 28.35m
-            el.append(srwlib.SRWLOptMirSph(
+            el.append(srwpy.srwlib.SRWLOptMirSph(
                 _r=v.op_HCM_r,
                 _size_tang=v.op_HCM_size_tang,
                 _size_sag=v.op_HCM_size_sag,
@@ -55,13 +55,13 @@ def set_optics(v, names=None, want_final_propagation=True):
 
         elif el_name == 'HCM_DCM_C1':
             # HCM_DCM_C1: drift 28.35m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_HCM_DCM_C1_L,
             ))
             pp.append(v.op_HCM_DCM_C1_pp)
         elif el_name == 'DCM_C1':
             # DCM_C1: crystal 30.42m
-            crystal = srwlib.SRWLOptCryst(
+            crystal = srwpy.srwlib.SRWLOptCryst(
                 _d_sp=v.op_DCM_C1_d_sp,
                 _psi0r=v.op_DCM_C1_psi0r,
                 _psi0i=v.op_DCM_C1_psi0i,
@@ -85,7 +85,7 @@ def set_optics(v, names=None, want_final_propagation=True):
 
         elif el_name == 'DCM_C2':
             # DCM_C2: crystal 30.42m
-            crystal = srwlib.SRWLOptCryst(
+            crystal = srwpy.srwlib.SRWLOptCryst(
                 _d_sp=v.op_DCM_C2_d_sp,
                 _psi0r=v.op_DCM_C2_psi0r,
                 _psi0i=v.op_DCM_C2_psi0i,
@@ -109,13 +109,13 @@ def set_optics(v, names=None, want_final_propagation=True):
 
         elif el_name == 'DCM_C2_HFM':
             # DCM_C2_HFM: drift 30.42m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_DCM_C2_HFM_L,
             ))
             pp.append(v.op_DCM_C2_HFM_pp)
         elif el_name == 'HFM':
             # HFM: sphericalMirror 32.64m
-            el.append(srwlib.SRWLOptMirSph(
+            el.append(srwpy.srwlib.SRWLOptMirSph(
                 _r=v.op_HFM_r,
                 _size_tang=v.op_HFM_size_tang,
                 _size_sag=v.op_HFM_size_sag,
@@ -131,13 +131,13 @@ def set_optics(v, names=None, want_final_propagation=True):
 
         elif el_name == 'After_HFM_CRL1':
             # After_HFM_CRL1: drift 32.64m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_After_HFM_CRL1_L,
             ))
             pp.append(v.op_After_HFM_CRL1_pp)
         elif el_name == 'CRL1':
             # CRL1: crl 34.15m
-            el.append(srwlib.srwl_opt_setup_CRL(
+            el.append(srwpy.srwlib.srwl_opt_setup_CRL(
                 _foc_plane=v.op_CRL1_foc_plane,
                 _delta=v.op_CRL1_delta,
                 _atten_len=v.op_CRL1_atten_len,
@@ -153,7 +153,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_CRL1_pp)
         elif el_name == 'CRL2':
             # CRL2: crl 34.15m
-            el.append(srwlib.srwl_opt_setup_CRL(
+            el.append(srwpy.srwlib.srwl_opt_setup_CRL(
                 _foc_plane=v.op_CRL2_foc_plane,
                 _delta=v.op_CRL2_delta,
                 _atten_len=v.op_CRL2_atten_len,
@@ -169,13 +169,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_CRL2_pp)
         elif el_name == 'CRL2_Before_SSA':
             # CRL2_Before_SSA: drift 34.15m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_CRL2_Before_SSA_L,
             ))
             pp.append(v.op_CRL2_Before_SSA_pp)
         elif el_name == 'SSA':
             # SSA: aperture 61.75m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_SSA_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_SSA_Dx,
@@ -186,13 +186,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_SSA_pp)
         elif el_name == 'SSA_Before_FFO':
             # SSA_Before_FFO: drift 61.75m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_SSA_Before_FFO_L,
             ))
             pp.append(v.op_SSA_Before_FFO_pp)
         elif el_name == 'AFFO':
             # AFFO: aperture 109.0m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_AFFO_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_AFFO_Dx,
@@ -203,7 +203,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_AFFO_pp)
         elif el_name == 'FFO':
             # FFO: lens 109.0m
-            el.append(srwlib.SRWLOptL(
+            el.append(srwpy.srwlib.SRWLOptL(
                 _Fx=v.op_FFO_Fx,
                 _Fy=v.op_FFO_Fy,
                 _x=v.op_FFO_x,
@@ -212,14 +212,14 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_FFO_pp)
         elif el_name == 'FFO_At_Sample':
             # FFO_At_Sample: drift 109.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_FFO_At_Sample_L,
             ))
             pp.append(v.op_FFO_At_Sample_pp)
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
-    return srwlib.SRWLOptC(el, pp)
+    return srwpy.srwlib.SRWLOptC(el, pp)
 
 
 
@@ -636,7 +636,7 @@ def epilogue():
 
 
 def main():
-    v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     setup_magnetic_measurement_files(v.fdir + "magn_meas_u20_hxn.zip", v)
     names = ['S1','S1_HCM','HCM','HCM_DCM_C1','DCM_C1','DCM_C2','DCM_C2_HFM','HFM','After_HFM_CRL1','CRL1','CRL2','CRL2_Before_SSA','SSA','SSA_Before_FFO','AFFO','FFO','FFO_At_Sample']
     op = set_optics(v, names, True)
@@ -653,7 +653,7 @@ def main():
     v.si_pl = 'xy'
     v.tr = True
     v.tr_pl = 'xz'
-    srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
+    srwpy.srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
 
