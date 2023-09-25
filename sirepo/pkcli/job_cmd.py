@@ -161,37 +161,6 @@ def _do_analysis_job(msg, template):
 
 def _do_download_data_file(msg, template):
     return _do_download_run_file(msg, template)
-    try:
-        r = template.get_data_file(
-            msg.runDir,
-            msg.analysisModel,
-            msg.frame,
-            options=PKDict(suffix=msg.suffix),
-        )
-        if not isinstance(r, PKDict):
-            if isinstance(r, str):
-                r = msg.runDir.join(r, abs=1)
-            r = PKDict(filename=r)
-        u = r.get("uri")
-        if u is None:
-            u = r.filename.basename
-        c = r.get("content")
-        if e := _error_if_response_too_large(c if c else r.filename):
-            return e
-        if c is None:
-            c = (
-                pkcompat.to_bytes(pkio.read_text(r.filename))
-                if u.endswith((".py", ".txt", ".csv"))
-                else r.filename.read_binary()
-            )
-        requests.put(
-            msg.dataFileUri + u,
-            data=c,
-            verify=job.cfg().verify_tls,
-        ).raise_for_status()
-        return PKDict()
-    except Exception as e:
-        return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
 def _do_download_run_file(msg, template):
