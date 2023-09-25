@@ -447,6 +447,21 @@ class VTKScene {
     }
 
     /**
+     * Sets whether the renderer responds to resize events. Should be turned off if the container
+     * is being resized while hidden
+     * @param renderer {vtk.Rendering.Core.vtkRenderer} - the renderer to resize
+     * @param doListen {boolean} - if true, add the renderer's resize method to the listener. Otherwise remove it 
+     */
+    static setResizeListen(renderer, doListen) {
+        if (doListen) {
+            window.addEventListener('resize', renderer.resize);
+        }
+        else {
+            window.removeEventListener('resize', renderer.resize);
+        }
+    }
+
+    /**
      * Convenience method for adding an actor to the renderer
      * @param {vtk.Rendering.Core.vtkActor} actor
      */
@@ -621,15 +636,12 @@ class VTKScene {
     }
 
     /**
-     * Sets whether the renderer responds to resize events
+     * Sets whether the renderer responds to resize events. Should be turned off if the container
+     * is being resized while hidden
+     * @param doListen {boolean} - if true, add this renderer's resize method to the listener. Otherwise remove it
      */
     setResizeListen(doListen) {
-        if (doListen) {
-            window.addEventListener('resize', this.fsRenderer.resize);
-        }
-        else {
-            window.removeEventListener('resize', this.fsRenderer.resize);
-        }
+        VTKScene.setResizeListen(this.fsRenderer, doListen);
     }
 
     /**
@@ -3325,5 +3337,6 @@ SIREPO.VTK = {
     RacetrackViews: RacetrackViews,
     SphereBundle: SphereBundle,
     ViewPortBox: ViewPortBox,
+    VTKScene: VTKScene,
     VTKUtils: VTKUtils,
 };

@@ -2747,7 +2747,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
     };
 });
 
-SIREPO.app.directive('beamline3d', function(appState, plotting, plotToPNG, srwService) {
+SIREPO.app.directive('beamline3d', function(appState, panelState, plotting, plotToPNG, srwService) {
     return {
         restrict: 'A',
         scope: {
@@ -3295,11 +3295,18 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, plotToPNG, srwSe
                 fsRenderer.getRenderWindow().render();
             };
 
+            $scope.$on(`panel.${$scope.modelName}.hidden`, (e, v) => {
+                SIREPO.VTK.VTKScene.setResizeListen(fsRenderer, ! v);
+            });
+
             $scope.$on('$destroy', function() {
+                panelState.deleteRenderedPanel($scope.modelName);
                 if (orientationMarker) {
                     orientationMarker.setEnabled(false);
                 }
             });
+
+            panelState.addRenderedPanel($scope.modelName);
 
         },
         link: function link(scope, element) {
