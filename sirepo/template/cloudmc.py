@@ -523,6 +523,18 @@ def _write_volume_outlines(tallies, ply_files):
     import trimesh
     import dagmc_geometry_slice_plotter
 
+    def _center_range(mesh, dim):
+        f = (
+            0.5
+            * abs(mesh.upper_right[dim] - mesh.lower_left[dim])
+            / mesh.dimension[dim]
+        )
+        return numpy.linspace(
+            mesh.lower_left[dim] + f,
+            mesh.upper_right[dim] - f,
+            mesh.dimension[dim],
+        )
+
     def _get_mesh(tallies):
         for t in tallies:
             for f in [x for x in t if x.startswith("filter")]:
@@ -533,14 +545,7 @@ def _write_volume_outlines(tallies, ply_files):
     tally_mesh = _get_mesh(tallies)
     if tally_mesh is None:
         return
-    tally_ranges = [
-        numpy.linspace(
-            tally_mesh.lower_left[i],
-            tally_mesh.upper_right[i],
-            tally_mesh.dimension[i],
-        )
-        for i in range(3)
-    ]
+    tally_ranges = [_center_range(tally_mesh, i) for i in range(3)]
     outlines = PKDict()
     basis_vects = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     rots = [

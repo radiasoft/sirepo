@@ -1480,7 +1480,8 @@
             ],
             "advanced": [
                 "notes"
-            ]
+            ],
+            "canFullScreen": false
         },
         "manualPath": {
             "title": "Manual",
