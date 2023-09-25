@@ -63,6 +63,8 @@ _LATTICE_RE = re.compile(r"\bpower\b[\s\w]+\n(.*?)(\n\n|$)", flags=re.DOTALL)
 _OUTPUT_FILENAME = "genesis.out"
 _FIELD_DISTRIBUTION_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".fld"
 _PARTICLE_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".par"
+_FINAL_FIELD_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".dfl"
+_FINAL_PARTICLE_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".dpa"
 
 _RUN_ERROR_RE = re.compile(r"(?:^\*\*\* )(.*error.*$)", flags=re.MULTILINE)
 
@@ -93,6 +95,14 @@ def background_percent_complete(report, run_dir, is_running):
                 frameCount=c.field,
             ),
             PKDict(
+                modelName="finalParticleAnimation",
+                frameCount=c.dpa,
+            ),
+            PKDict(
+                modelName="finalFieldAnimation",
+                frameCount=c.dfl,
+            ),
+            PKDict(
                 modelName="parameterAnimation",
                 frameCount=c.parameter,
             ),
@@ -113,12 +123,11 @@ def genesis_success_exit(run_dir):
         and _LATTICE_RE.search(pkio.read_text(run_dir.join(_OUTPUT_FILENAME)))
         and (
             dm.timeDependence.itdp == "1"
-            or dm.io.ippart == 0
             or (
-                run_dir.join(_PARTICLE_OUTPUT_FILENAME).exists()
-                and run_dir.join(_PARTICLE_OUTPUT_FILENAME).size() > 0
+                run_dir.join(_FINAL_PARTICLE_OUTPUT_FILENAME).exists()
+                and run_dir.join(_FINAL_PARTICLE_OUTPUT_FILENAME).size() > 0
                 and not numpy.isnan(
-                    numpy.fromfile(_PARTICLE_OUTPUT_FILENAME, dtype=numpy.float64)
+                    numpy.fromfile(_FINAL_PARTICLE_OUTPUT_FILENAME, dtype=numpy.float64)
                 ).any()
             )
         )
@@ -132,6 +141,10 @@ def get_data_file(run_dir, model, frame, options):
         return _FIELD_DISTRIBUTION_OUTPUT_FILENAME
     if model == "parameterAnimation":
         return _OUTPUT_FILENAME
+    if model == "finalParticleAnimation":
+        return _FINAL_PARTICLE_OUTPUT_FILENAME
+    if model == "finalFieldAnimation":
+        return _FINAL_FIELD_OUTPUT_FILENAME
     raise AssertionError("unknown model={}".format(model))
 
 
@@ -167,18 +180,19 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def sim_frame_fieldDistributionAnimation(frame_args):
-    d = _get_field_distribution(frame_args.run_dir, frame_args.sim_in)
-    if frame_args.fieldPlot == "phasePlot":
-        d = numpy.arctan(d.imag / d.real)
-    d = numpy.abs(d[int(frame_args.frameIndex), 0, :, :])
-    s = d.shape[0]
-    return PKDict(
-        title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ipradi),
-        x_label="",
-        x_range=[0, s, s],
-        y_label="",
-        y_range=[0, s, s],
-        z_matrix=d.tolist(),
+    n = frame_args.sim_in.models.mesh.ncar
+    d = numpy.fromfile(
+        str(frame_args.run_dir.join(_FIELD_DISTRIBUTION_OUTPUT_FILENAME)),
+        dtype=numpy.float64,
+    )
+    # Divide by 2 to combine real and imaginary parts which are written separately
+    s = int(d.shape[0] / (n * n) / 2)
+    d = d.reshape(s, 2, n, n)
+    # recombine as a complex number
+    d = d[:, 0, :, :] + 1.0j * d[:, 1, :, :]
+    return _field_plot(
+        frame_args,
+        d[int(frame_args.frameIndex), :, :],
     )
 
 
@@ -211,39 +225,22 @@ def sim_frame_parameterAnimation(frame_args):
     )
 
 
-def sim_frame_particleAnimation(frame_args):
-    def _get_col(col_key):
-        # POSIT: ParticleColumn keys are in same order as columns in output
-        for i, c in enumerate(SCHEMA.enum.ParticleColumn):
-            if c[0] == col_key:
-                return i, c[1]
-        raise AssertionError(
-            f"No column={SCHEMA.enum.ParticleColumn} with key={col_key}",
-        )
+def sim_frame_finalFieldAnimation(frame_args):
+    n = frame_args.sim_in.models.mesh.ncar
+    return _field_plot(
+        frame_args,
+        numpy.fromfile(
+            str(frame_args.run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME)), dtype=complex
+        ).reshape(n, n),
+    )
 
-    n = frame_args.sim_in.models.electronBeam.npart
-    d = numpy.fromfile(
-        str(frame_args.run_dir.join(_PARTICLE_OUTPUT_FILENAME)), dtype=numpy.float64
-    )
-    b = d.reshape(
-        int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
-        len(SCHEMA.enum.ParticleColumn),
-        n,
-    )
-    x = _get_col(frame_args.x)
-    y = _get_col(frame_args.y)
-    return template_common.heatmap(
-        [
-            b[int(frame_args.frameIndex), x[0], :].tolist(),
-            b[int(frame_args.frameIndex), y[0], :].tolist(),
-        ],
-        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args),
-        PKDict(
-            title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ippart),
-            x_label=x[1],
-            y_label=y[1],
-        ),
-    )
+
+def sim_frame_finalParticleAnimation(frame_args):
+    return _particle_plot(frame_args, _FINAL_PARTICLE_OUTPUT_FILENAME)
+
+
+def sim_frame_particleAnimation(frame_args):
+    return _particle_plot(frame_args, _PARTICLE_OUTPUT_FILENAME)
 
 
 def validate_file(file_type, path):
@@ -263,6 +260,31 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
+def _field_plot(frame_args, d):
+    if frame_args.fieldPlot == "phasePlot":
+        d = numpy.arctan(d.imag / d.real)
+    d = numpy.abs(d)
+    s = d.shape[0]
+    return PKDict(
+        title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ipradi),
+        x_label="",
+        x_range=[0, s, s],
+        y_label="",
+        y_range=[0, s, s],
+        z_matrix=d.tolist(),
+    )
+
+
+def _get_col(col_key):
+    # POSIT: ParticleColumn keys are in same order as columns in output
+    for i, c in enumerate(SCHEMA.enum.ParticleColumn):
+        if c[0] == col_key:
+            return i, c[1]
+    raise AssertionError(
+        f"No column={SCHEMA.enum.ParticleColumn} with key={col_key}",
+    )
+
+
 def _generate_parameters_file(data):
     io = data.models.io
     io.outputfile = _OUTPUT_FILENAME
@@ -271,6 +293,9 @@ def _generate_parameters_file(data):
     if data.models.timeDependence.itdp == "1":
         io.ippart = 0
         io.ipradi = 0
+    else:
+        io.idmppar = "1"
+        io.idmpfld = "1"
     r = ""
     fmap = PKDict(
         wcoefz1="WCOEFZ(1)",
@@ -298,19 +323,6 @@ def _generate_parameters_file(data):
         SIM_TYPE,
         PKDict(input_filename=_INPUT_FILENAME, variables=r),
     )
-
-
-def _get_field_distribution(run_dir, data):
-    n = 1  # TODO(e-carlin): Will be different for time dependent
-    p = data.models.mesh.ncar
-    d = numpy.fromfile(
-        str(run_dir.join(_FIELD_DISTRIBUTION_OUTPUT_FILENAME)), dtype=numpy.float64
-    )
-    # Divide by 2 to combine real and imaginary parts which are written separately
-    s = int(d.shape[0] / (n * p * p) / 2)
-    d = d.reshape(s, n, 2, p, p)
-    # recombine as a complex number
-    return d[:, :, 0, :, :] + 1.0j * d[:, :, 1, :, :]
 
 
 def _get_lattice_and_slice_data(run_dir, lattice_index):
@@ -349,6 +361,8 @@ def _get_frame_counts(run_dir):
         particle=0,
         field=0,
         parameter=dm.timeDependence.nslice if dm.timeDependence.itdp == "1" else 1,
+        dpa=1 if run_dir.join(_FINAL_PARTICLE_OUTPUT_FILENAME).exists() else 0,
+        dfl=1 if run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME).exists() else 0,
     )
     with pkio.open_text(run_dir.join(_OUTPUT_FILENAME)) as f:
         for line in f:
@@ -430,8 +444,38 @@ def _parse_namelist(data, text, req):
     return data
 
 
+def _particle_plot(frame_args, filename):
+    n = frame_args.sim_in.models.electronBeam.npart
+    d = numpy.fromfile(str(frame_args.run_dir.join(filename)), dtype=numpy.float64)
+    b = d.reshape(
+        int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
+        len(SCHEMA.enum.ParticleColumn),
+        n,
+    )
+    x = _get_col(frame_args.x)
+    y = _get_col(frame_args.y)
+    return template_common.heatmap(
+        [
+            b[int(frame_args.frameIndex), x[0], :].tolist(),
+            b[int(frame_args.frameIndex), y[0], :].tolist(),
+        ],
+        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args),
+        PKDict(
+            title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ippart),
+            x_label=x[1],
+            y_label=y[1],
+        ),
+    )
+
+
 def _z_title_at_frame(frame_args, nth):
     s = _get_lattice_and_slice_data(frame_args.run_dir, 0)[1]
-    step = frame_args.frameIndex * nth
+    if frame_args.frameReport in ("finalFieldAnimation", "finalParticleAnimation"):
+        step = -1
+    else:
+        step = frame_args.frameIndex * nth
     z = s[:, 0][step]
-    return f"z: {z:.6f} [m] step: {step + 1}"
+    title = f"z: {z:.6f} [m]"
+    if step >= 0:
+        return f"{title} step: {step + 1}"
+    return title

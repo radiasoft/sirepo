@@ -78,7 +78,7 @@ def pytest_collection_modifyitems(session, config, items):
 
     s = PKDict(
         elegant="sdds",
-        srw="srwl_bl",
+        srw="srwpy.srwl_bl",
         warp="warp",
     )
     codes = set()
