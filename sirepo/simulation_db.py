@@ -585,7 +585,11 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
             PKDict(
                 error="invalidSerial",
                 sim_type=data.simulationType,
-                simulationData=data,
+                simulationData=read_simulation_json(
+                    data.simulationType,
+                    data.models.simulation.simulationId,
+                    qcall,
+                ),
             ),
             "{}: incoming serial {} than stored serial={} sid={}, resetting client",
             incoming,
