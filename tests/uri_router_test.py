@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division, print_function
 import pytest
 
-pytest.importorskip("srwl_bl")
+pytest.importorskip("srwpy.srwl_bl")
 
 
 def test_error_for_bots(fc):
