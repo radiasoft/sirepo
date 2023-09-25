@@ -106,7 +106,6 @@ def get_data_file(run_dir, model, frame, options):
     if model == "dagmcAnimation":
         return f"{frame}.zip"
     if model == "openmcAnimation":
-        pkdp("GDF {} OPT {}", model, options)
         if options.suffix == "log":
             return template_common.text_data_file(template_common.RUN_LOG, run_dir)
         if options.suffix == "json":
