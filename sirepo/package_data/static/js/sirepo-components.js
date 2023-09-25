@@ -2251,7 +2251,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 }
 
                 var svg = $($scope.panel).find('svg.sr-plot')[0];
-                var el = $($element).closest('div[data-report-panel] > .panel')[0];
+                var el = $($element).closest('.panel')[0];
 
                 if(! utilities.isFullscreen()) {
                     // Firefox does its own thing

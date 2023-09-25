@@ -1,5 +1,5 @@
 
-import srwlib
+import srwpy.srwlib
 
 def find_height_profile_dimension(dat_file):
     with open(dat_file, 'r') as f:
@@ -12,13 +12,13 @@ def main():
     dimension = find_height_profile_dimension(dat_file)
     func_name = 'srwl_opt_setup_surf_height_{}d'.format(dimension)
     add_args = [0, 1] if dimension == 1 else []
-    element = getattr(srwlib, func_name)(
-        srwlib.srwl_uti_read_data_cols(dat_file, "\t", *add_args),
+    element = getattr(srwpy.srwlib, func_name)(
+        srwpy.srwlib.srwl_uti_read_data_cols(dat_file, "\t", *add_args),
         _dim='{{ mirrorReport_orientation }}',
         _ang={{ mirrorReport_grazingAngle }} / 1e3,
         _amp_coef={{ mirrorReport_heightAmplification }})
     transmission_data = element.get_data(3, 3)
-    srwlib.srwl_uti_save_intens_ascii(
+    srwpy.srwlib.srwl_uti_save_intens_ascii(
         transmission_data, element.mesh, '{{ mirrorOutputFilename }}', 0,
         ['', 'Horizontal Position', 'Vertical Position', 'Optical Path Difference'], _arUnits=['', 'm', 'm', ''])
 

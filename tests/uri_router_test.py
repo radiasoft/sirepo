@@ -6,7 +6,7 @@
 """
 import pytest
 
-pytest.importorskip("srwl_bl")
+pytest.importorskip("srwpy.srwl_bl")
 
 
 def test_error_user_agents(fc):

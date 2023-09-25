@@ -142,7 +142,7 @@ def test_srw_discard_example(fc):
         ),
     )
     pkok(
-        "srwl_bl.SRWLBeamline" in pkcompat.from_bytes(r.data),
+        "srwpy.srwl_bl.SRWLBeamline" in pkcompat.from_bytes(r.data),
         "incomplete python={}",
         r.data,
     )

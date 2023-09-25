@@ -5,8 +5,8 @@
         }
     },
     "constants": {
+        "geometryScale": 0.01,
         "maxFilters": 5,
-        "volumeProperties": ["color", "opacity"],
         "scoreUnits": {
             "damage-energy": "eV",
             "decay-rate": "$s^{-1}$",
@@ -17,7 +17,8 @@
             "heating-local": "eV",
             "inverse-velocity": "cm/s",
             "kappa-fission": "eV"
-        }
+        },
+        "volumeProperties": ["color", "opacity"]
     },
     "enum": {
         "Axis": [
