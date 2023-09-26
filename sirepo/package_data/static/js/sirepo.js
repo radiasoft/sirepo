@@ -2033,7 +2033,9 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     const _protocolError = (header, content, wsreq, errorMsg) => {
-        errorMsg ||= "invalid reply from server";
+        if (! errorMsg) {
+            errorMsg = "invalid reply from server";
+        }
         srlog(
             `wsreq#${wsreq && wsreq.header && wsreq.header.reqSeq} protocolError:`,
             errorMsg,
@@ -2078,7 +2080,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
                 r.data.state = "srException";
                 r.data.srException = content;
             }
-            _replyError(r)
+            _replyError(r);
             return;
         }
         if (header.kind !== SIREPO.APP_SCHEMA.websocketMsg.kind.httpReply) {
