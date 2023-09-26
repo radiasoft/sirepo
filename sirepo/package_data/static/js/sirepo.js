@@ -3320,7 +3320,7 @@ SIREPO.app.factory('errorService', function($log, $window) {
     self.logToServer = function(errorType, message, cause, stackTrace) {
         $.ajax({
             type: 'POST',
-            //url: localRoutes.errorLogging,
+            //POSIT: schema-common.json route.errorLogging,
             url: '/error-logging',
             contentType: 'application/json',
             data: angular.toJson({
