@@ -30,6 +30,7 @@ def _get_file(fc, api_name):
         "uploadFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
+            simulation_id=d.models.simulation.simulationId,
             file_type="sample",
         ),
         data=PKDict(confirm="1"),
@@ -88,7 +89,7 @@ def test_jspec_list_files(fc):
 
 
 def test_srw_delete(fc):
-    from pykern import pkunit
+    from pykern import pkunit, pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from sirepo import sim_data
@@ -149,7 +150,7 @@ def test_srw_delete(fc):
         data=PKDict(),
         redirect=False,
     )
-    pkunit.pkre("does not exist", r.error)
+    pkunit.pkre("does not exist", pkcompat.from_bytes(r.data))
 
     r = fc.sr_get_json(
         "downloadLibFile",
@@ -158,7 +159,7 @@ def test_srw_delete(fc):
             filename=u.basename,
         ),
     )
-    pkunit.pkre("not_used_name.zip.*does not exist", r.data)
+    pkunit.pkre("not_used_name.zip.*does not exist", pkcompat.from_bytes(r))
 
 
 def test_srw_upload(fc):
