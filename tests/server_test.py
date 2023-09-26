@@ -26,7 +26,7 @@ def _get_file(fc, data, api_name):
             suffix="csv",
         ),
     )
-    pkunit.pkeq(200, r.status_code)
+    r.assert_http_status(200)
     pkunit.pkre("no-cache", r.header_get("Cache-Control"))
     # 50,000 particles plus header row
     pkunit.pkeq(50001, len(list(csv.reader(six.StringIO(pkcompat.from_bytes(r.data))))))
@@ -40,7 +40,7 @@ def _get_file(fc, data, api_name):
             frame="-1",
         ),
     )
-    pkunit.pkeq(200, r.status_code)
+    r.assert_http_status(200)
     d = pkunit.work_dir()
     m = re.search(
         r'attachment; filename="([^"]+)"',
@@ -108,13 +108,8 @@ def test_srw(fc):
     r = fc.sr_get_root()
     pkre("<!DOCTYPE html", pkcompat.from_bytes(r.data))
     d = fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
-    pkeq(
-        404, fc.sr_get("/find-by-name-auth/srw/default/UndulatorRadiation").status_code
-    )
+    r = fc.sr_get("/find-by-name-auth/srw/default/UndulatorRadiation")
+    r.assert_http_status(404)
     for sep in (" ", "%20", "+"):
-        pkeq(
-            200,
-            fc.sr_get(
-                "/find-by-name-auth/srw/default/Undulator{}Radiation".format(sep)
-            ).status_code,
-        )
+        r = fc.sr_get("/find-by-name-auth/srw/default/Undulator{}Radiation".format(sep))
+        r.assert_http_status(200)

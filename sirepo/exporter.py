@@ -25,7 +25,7 @@ def create_archive(sim, qcall):
     """
     with simulation_db.tmp_dir(qcall=qcall) as d:
         return qcall.reply_attachment(
-            _create_zip(sim, out_dir=d, qcall=qcall)[0],
+            _create_zip(sim, out_dir=d, qcall=qcall),
             filename=sim.filename,
         )
 
@@ -61,7 +61,7 @@ def _create_zip(sim, out_dir, qcall):
             simulation_db.SIMULATION_DATA_FILE,
             pkjson.dump_pretty(data, pretty=True),
         )
-    return path, data
+    return path
 
 
 def _python(data, sim, qcall):

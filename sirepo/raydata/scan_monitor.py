@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""ray data scan monitor
+
+:copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from pykern import pkasyncio
 from pykern import pkconfig
 from pykern import pkio
@@ -168,7 +176,7 @@ class _Analysis(_DbBase):
 # But, for now it is easier to just make a normal http request
 class _JsonPostRequestHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
-        self.set_header("Content-Type", 'application/json; charset="utf-8"')
+        self.set_header("Content-Type", pkjson.CONTENT_TYPE)
 
 
 class _RequestHandler(_JsonPostRequestHandler):
