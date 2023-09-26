@@ -19,7 +19,6 @@ def _get_file(fc, api_name):
         api_name,
         params=PKDict(
             simulation_type=fc.sr_sim_type,
-            simulation_id=d.models.simulation.simulationId,
             filename="sample.tif",
         ),
         data=PKDict(),
@@ -31,7 +30,6 @@ def _get_file(fc, api_name):
         "uploadFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
-            simulation_id=d.models.simulation.simulationId,
             file_type="sample",
         ),
         data=PKDict(confirm="1"),
