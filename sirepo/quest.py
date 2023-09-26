@@ -159,22 +159,27 @@ class API(pykern.quest.API):
             content_type=content_type,
         ).headers_for_no_cache()
 
-    def reply_attachment(self, content_or_path, filename=None, content_type=None):
-        return self.sreply.gen_file_as_attachment(
-            content_or_path, filename=filename, content_type=content_type
+    def reply_attachment(self, content_or_path, filename=None):
+        return self.sreply.gen_attachment(
+            content_or_path=content_or_path,
+            filename=filename,
         )
 
-    def reply_file(self, path, content_type=None, filename=None):
-        return self.sreply.gen_file(path, content_type, filename)
+    def reply_dict(self, value):
+        return self.sreply.gen_dict(value)
+
+    def reply_file(self, path, filename=None):
+        return self.sreply.gen_file(path=path, filename=filename)
 
     def reply_html(self, path):
         return self.sreply.render_html(path)
 
-    def reply_json(self, value, response_kwargs=None):
-        return self.sreply.gen_json(value, response_kwargs=response_kwargs)
+    def reply_list_deprecated(self, value):
+        """Always reply_dict, not with a list"""
+        return self.sreply.gen_list_deprecated(value)
 
-    def reply_ok(self, *args, **kwargs):
-        return self.sreply.gen_json_ok(*args, **kwargs)
+    def reply_ok(self, value=None):
+        return self.sreply.gen_dict_ok(value)
 
     def reply_redirect(self, uri):
         return self.sreply.gen_redirect(uri)
@@ -198,8 +203,8 @@ class API(pykern.quest.API):
             **kwargs,
         )
 
-    def reply_static_jinja(self, base, ext, j2_ctx, cache_ok=False):
-        return self.sreply.render_static_jinja(base, ext, j2_ctx, cache_ok=cache_ok)
+    def reply_static_jinja(self, base, ext, j2_ctx):
+        return self.sreply.render_static_jinja(base, ext, j2_ctx)
 
     def sim_type_set(self, sim_type):
         """Set sim_type if there, else don't set"""

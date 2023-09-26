@@ -30,7 +30,7 @@ _MAX_FRAME_SEARCH_DEPTH = 6
 
 _MUST_HAVE_METHOD = ("api_analysisJob", "api_statefulCompute", "api_statelessCompute")
 
-_JSON_TYPE = re.compile(r"^application/json")
+_JSON_TYPE = re.compile(f"^{pkjson.MIME_TYPE}")
 
 
 class API(sirepo.quest.API):
@@ -45,7 +45,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_adm")
     async def api_admJobs(self):
         return await self._request_api(
-            _request_content=PKDict(**self._parse_post_just_data()),
+            _request_content=self._parse_post_just_data(),
         )
 
     @sirepo.quest.Spec("require_user")
@@ -62,10 +62,7 @@ class API(sirepo.quest.API):
         """
         return await self._request_api(
             _create_task=not sirepo.flask.in_request(),
-            _request_content=PKDict(
-                uid=self.auth.logged_in_user(),
-                userDir=str(sirepo.simulation_db.user_path(qcall=self)),
-            ),
+            _request_content=self._parse_post_just_data(),
         )
 
     @sirepo.quest.Spec(
@@ -160,9 +157,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user")
     async def api_ownJobs(self):
         return await self._request_api(
-            _request_content=self._parse_post_just_data().pkupdate(
-                uid=self.auth.logged_in_user(),
-            ),
+            _request_content=self._parse_post_just_data(),
         )
 
     @sirepo.quest.Spec("require_user")
@@ -172,7 +167,7 @@ class API(sirepo.quest.API):
         except Exception as e:
             pkdlog("ignoring exception={} stack={}", e, pkdexc())
         # Always true from the client's perspective
-        return self.reply_json({"state": "canceled"})
+        return self.reply_dict({"state": "canceled"})
 
     @sirepo.quest.Spec("require_user", data="RunMultiSpec")
     async def api_runMulti(self):
@@ -206,8 +201,9 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user")
     async def api_runStatus(self):
         # runStatus receives models when an animation status if first queried
-        r = self._request_content(PKDict(is_sim_data=True))
-        return await self._request_api(_request_content=r)
+        return await self._request_api(
+            _request_content=self._request_content(PKDict(is_sim_data=True))
+        )
 
     @sirepo.quest.Spec("require_user")
     async def api_sbatchLogin(self):
@@ -233,18 +229,21 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user")
     async def api_statefulCompute(self):
-        return await self._request_compute()
+        return await self._request_compute(op_key="stful")
 
     @sirepo.quest.Spec("require_user")
     async def api_statelessCompute(self):
-        return await self._request_compute()
+        return await self._request_compute(op_key="stlss")
 
-    def _parse_post_just_data(self):
+    def _parse_post_just_data(self, want_type=False):
         """Remove computed objects"""
-        r = self.parse_post()
+        r = self.parse_post(template=False, type=want_type)
         r.pkdel("qcall")
-        r.pkdel("template")
-        return r
+        r.pkdel("sim_data")
+        r.data = r.pkdel("req_data")
+        if want_type:
+            r.simulationType = r.pkdel("type")
+        return self._request_content_put_user(r)
 
     async def _request_api(self, **kwargs):
         def _api_name(value):
@@ -299,7 +298,7 @@ class API(sirepo.quest.API):
                 tornado.httpclient.HTTPRequest(
                     body=pkjson.dump_bytes(a.content),
                     connect_timeout=60,
-                    headers=PKDict({"Content-type": "application/json"}),
+                    headers=PKDict({"Content-type": pkjson.MIME_TYPE}),
                     method="POST",
                     request_timeout=0,
                     url=a.uri,
@@ -321,17 +320,62 @@ class API(sirepo.quest.API):
                 return self._reply_with_file(d)
             return j
 
-    async def _request_compute(self):
-        return await self._request_api(
+    async def _request_compute(self, op_key):
+        c = self._parse_post_just_data(want_type=True)
+        j = sirepo.job.quasi_jid(c.uid, op_key, c.data.method)
+        s = sirepo.job.split_jid(j)
+        c.pkupdate(
+            computeJid=j,
+            computeModel=s.compute_model,
+            isParallel=False,
             jobRunMode=sirepo.job.SEQUENTIAL,
-            req_data=PKDict(**self.parse_post().req_data).pkupdate(
-                computeJobHash="unused",
-                report="unused",
-            ),
+            # TODO(robnagler) not supposed to access run dir
             runDir=None,
+            simulationId=s.sid,
         )
+        self.bucket_set("sim_data", sirepo.sim_data.get_class(c.simulationType))
+        return await self._request_api(_request_content=c)
 
     def _request_content(self, kwargs):
+        def _run_mode(request_content):
+            if "models" not in request_content.data or "jobRunMode" in request_content:
+                return request_content
+            # TODO(robnagler) make sure this is set for animation sim frames
+            m = request_content.data.models.get(request_content.computeModel)
+            j = m and m.get("jobRunMode")
+            if not j:
+                request_content.jobRunMode = (
+                    sirepo.job.PARALLEL
+                    if request_content.isParallel
+                    else sirepo.job.SEQUENTIAL
+                )
+                return request_content
+            if j not in simulation_db.JOB_RUN_MODE_MAP:
+                raise sirepo.util.Error(
+                    "invalid jobRunMode",
+                    "invalid jobRunMode={} computeModel={} computeJid={}",
+                    j,
+                    request_content.computeModel,
+                    request_content.computeJid,
+                )
+            request_content.jobRunMode = j
+            return _validate_and_add_sbatch_fields(request_content, m)
+
+        def _validate_and_add_sbatch_fields(request_content, compute_model):
+            m = compute_model
+            c = request_content
+            d = simulation_db.cfg().get("sbatch_display")
+            if d and "nersc" in d.lower():
+                assert (
+                    m.sbatchQueue in sirepo.job.NERSC_QUEUES
+                ), f"sbatchQueue={m.sbatchQueue} not in NERSC_QUEUES={sirepo.job.NERSC_QUEUES}"
+                c.sbatchQueue = m.sbatchQueue
+                c.sbatchProject = m.sbatchProject
+            for f in "sbatchCores", "sbatchHours", "tasksPerNode":
+                assert m[f] > 0, f"{f}={m[f]} must be greater than 0"
+                c[f] = m[f]
+            return request_content
+
         d = kwargs.pkdel("req_data")
         if not d:
             # TODO(robnagler) need to use parsed values, ok for now, because none of
@@ -345,7 +389,7 @@ class API(sirepo.quest.API):
             ).req_data
         s = sirepo.sim_data.get_class(d)
         ##TODO(robnagler) this should be req_data
-        b = PKDict(data=d, **kwargs)
+        b = self._request_content_put_user(PKDict(data=d, **kwargs))
         # TODO(e-carlin): some of these fields are only used for some type of reqs
         b.pksetdefault(
             analysisModel=lambda: s.parse_model(d),
@@ -354,19 +398,22 @@ class API(sirepo.quest.API):
             computeJobSerial=lambda: d.get("computeJobSerial", 0),
             computeModel=lambda: s.compute_model(d),
             isParallel=lambda: s.is_parallel(d),
-            runDir=lambda: str(simulation_db.simulation_run_dir(d, qcall=self)),
             # TODO(robnagler) relative to srdb root
+            runDir=lambda: str(simulation_db.simulation_run_dir(d, qcall=self)),
             simulationId=lambda: s.parse_sid(d),
             simulationType=lambda: d.simulationType,
         ).pkupdate(
-            reqId=sirepo.job.unique_key(),
-            uid=self.auth.logged_in_user(),
-        ).pkupdate(
             computeJid=s.parse_jid(d, uid=b.uid),
-            userDir=str(sirepo.simulation_db.user_path(qcall=self)),
         )
         self.bucket_set("sim_data", s)
-        return self._run_mode(b)
+        return _run_mode(b)
+
+    def _request_content_put_user(self, content):
+        """Required request content"""
+        return content.pkupdate(
+            uid=self.auth.logged_in_user(),
+            userDir=str(sirepo.simulation_db.user_path(qcall=self)),
+        )
 
     @contextlib.contextmanager
     def _reply_maybe_file(self, content):
@@ -400,47 +447,8 @@ class API(sirepo.quest.API):
             )
         return self.reply_file(f[0])
 
-    def _run_mode(self, request_content):
-        if "models" not in request_content.data or "jobRunMode" in request_content:
-            return request_content
-        # TODO(robnagler) make sure this is set for animation sim frames
-        m = request_content.data.models.get(request_content.computeModel)
-        j = m and m.get("jobRunMode")
-        if not j:
-            request_content.jobRunMode = (
-                sirepo.job.PARALLEL
-                if request_content.isParallel
-                else sirepo.job.SEQUENTIAL
-            )
-            return request_content
-        if j not in simulation_db.JOB_RUN_MODE_MAP:
-            raise sirepo.util.Error(
-                "invalid jobRunMode",
-                "invalid jobRunMode={} computeModel={} computeJid={}",
-                j,
-                request_content.computeModel,
-                request_content.computeJid,
-            )
-        request_content.jobRunMode = j
-        return self._validate_and_add_sbatch_fields(request_content, m)
-
     def _supervisor_uri(self, path):
         return _cfg.supervisor_uri + path
-
-    def _validate_and_add_sbatch_fields(self, request_content, compute_model):
-        m = compute_model
-        c = request_content
-        d = simulation_db.cfg().get("sbatch_display")
-        if d and "nersc" in d.lower():
-            assert (
-                m.sbatchQueue in sirepo.job.NERSC_QUEUES
-            ), f"sbatchQueue={m.sbatchQueue} not in NERSC_QUEUES={sirepo.job.NERSC_QUEUES}"
-            c.sbatchQueue = m.sbatchQueue
-            c.sbatchProject = m.sbatchProject
-        for f in "sbatchCores", "sbatchHours", "tasksPerNode":
-            assert m[f] > 0, f"{f}={m[f]} must be greater than 0"
-            c[f] = m[f]
-        return request_content
 
 
 def init_apis(*args, **kwargs):

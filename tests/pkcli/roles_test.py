@@ -37,8 +37,7 @@ def test_flash_change_role_change_lib_files(auth_fc):
     r = fc.sr_post(
         "listSimulations", {"simulationType": fc.sr_sim_type}, raw_response=True
     )
-    pkunit.pkeq(403, r.status_code)
-
+    r.assert_http_status(403)
     _check_file(exists=False)
     _change_role(add=True)
     _check_file(exists=True)

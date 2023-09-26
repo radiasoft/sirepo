@@ -690,7 +690,7 @@ async def sim_frame(frame_id, op, qcall):
             e,
             pkdexc(),
         )
-    r = qcall.reply_json(x)
+    r = qcall.reply_dict(x)
     if "error" not in x and s.want_browser_frame_cache(s.frameReport):
         return qcall.headers_for_cache(r)
     return qcall.headers_for_no_cache(r)
@@ -888,6 +888,8 @@ def _plot_range(report, axis):
 def _validate_method(template, data):
     m = data.method
     assert re.search(
-        r"^\w{1,35}$", m
-    ), f"method={m} not a valid python function name or too long"
+        r"^[a-z]\w{1,34}$",
+        m,
+        flags=re.IGNORECASE,
+    ), f"method={m} invalid compute or analysis function"
     return m

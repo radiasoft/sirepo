@@ -139,24 +139,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.isEditing = false;
     self.objBounds = null;
     self.pointFieldTypes = appState.enumVals('FieldType').slice(1);
-    self.pointFieldExports = {
-        csv: {
-            contentType: 'text/csv;charset=utf-8',
-            extension: 'csv',
-            responseType: '',
-        },
-        sdds: {
-            contentType: 'application/octet-stream',
-            extension: 'sdds',
-            responseType: '',
-        },
-        SRW: {
-            contentType: 'application/zip',
-            extension: 'zip',
-            responseType: 'arraybuffer',
-        }
-    };
-    self.pointFieldExportTypes = Object.keys(self.pointFieldExports);
 
     self.selectedObject = null;
 
@@ -1209,6 +1191,149 @@ SIREPO.app.directive('bevelEdge', function(appState, panelState, radiaService, u
     };
 });
 
+SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaService, $rootScope) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            fieldName: '=',
+            itemClass: '@',
+            model: '=',
+            models: '=',
+            modelName: '=',
+        },
+        template: `
+            <div>
+              <div style="border-style: solid; border-width: 1px; border-color: #00a2c5;">
+              <table class="table table-striped table-condensed radia-table-dialog">
+                <thead></thead>
+                <tbody>
+                <tr data-ng-repeat="item in field track by $index">
+                  <td style="display: inline-flex; flex-wrap: wrap;">
+                    <div class="item-name">
+                      <span class="glyphicon glyphicon-chevron-down" data-ng-show="isExpanded(item)" data-ng-click="toggleExpand($index)"></span>
+                      <span class="glyphicon glyphicon-chevron-up" data-ng-show="! isExpanded(item)" data-ng-click="toggleExpand($index)"></span>
+                      <label>{{ title(item.type) }}</label>
+                    </div>
+                    <div data-ng-show="isExpanded(item)" data-ng-repeat="f in modelFields($index)" style="padding-left: 6px; min-width: {{ fieldMinWidth(item.type, f) }}">
+                      <div data-field-editor="f" data-label-size="12" data-field-size="fieldSize(item.type, f)" data-model-name="item.type" data-model="item"></div>
+                    </div>
+                    <div data-ng-show="! isExpanded(item)">...</div>
+                    </td>
+                    <td>
+                      <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar">
+                          <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                        </div>
+                      </div>
+                    </td>
+                </tr>
+                <tr>
+                  <td colspan="100%">
+                    <select class="form-control" data-ng-model="selectedItem" data-ng-options="title(m) for m in models" data-ng-change="addItem()">
+                      <option value="" disabled selected>add</option>
+                    </select>
+                  </td>
+               </tr>
+               </tbody>
+              </table>
+            </div>
+            </div>
+        `,
+        controller: function($scope, $element) {
+            const doSaveGeom = appState.superClasses($scope.modelName).includes('radiaObject');
+            let expanded = {};
+            for (const i in $scope.field) {
+                expanded[i] = false;
+            }
+
+            let watchedModels = [$scope.modelName].concat($scope.models);
+
+            $scope.selectedItem = null;
+
+            function itemIndex(data) {
+                return $scope.field.indexOf(data);
+            }
+
+            function info(modelName, field) {
+                return appState.modelInfo(modelName)[field];
+            }
+
+            $scope.addItem = () => {
+                if (! $scope.selectedItem) {
+                    return;
+                }
+                const m = appState.setModelDefaults({}, $scope.selectedItem);
+                $scope.field.push(m);
+                expanded[$scope.field.length - 1] = true;
+                $scope.selectedItem = null;
+            };
+
+            $scope.deleteItem = index => {
+                $scope.field.splice(index, 1);
+                delete expanded[index];
+                if (doSaveGeom) {
+                   radiaService.saveGeometry(true);
+                }
+            };
+
+            $scope.fieldLabel = (modelName, field) => info(modelName, field)[SIREPO.INFO_INDEX_LABEL];
+
+            $scope.fieldMinWidth = (modelName, field) => {
+                return info(modelName, field)[SIREPO.INFO_INDEX_TYPE] === 'ModelArrayTable' ? '900px' : '0';
+            };
+
+            $scope.fieldSize = (modelName, field) => {
+                return info(modelName, field)[SIREPO.INFO_INDEX_TYPE] === 'String' ? 8 : null;
+            };
+
+            $scope.isExpanded = item => expanded[itemIndex(item)];
+
+            $scope.modelFields = index => {
+                return SIREPO.APP_SCHEMA.view[$scope.field[index].type].advanced;
+            };
+
+            $scope.moveItem = (direction, item) => {
+                const d = direction === 0 ? 0 : (direction > 0 ? 1 : -1);
+                const currentIndex = itemIndex(item);
+                const newIndex = currentIndex + d;
+                if (newIndex >= 0 && newIndex < $scope.field.length) {
+                    const tmp = $scope.field[newIndex];
+                    $scope.field[newIndex] = item;
+                    $scope.field[currentIndex] = tmp;
+                }
+            };
+
+            $scope.title = modelName => SIREPO.APP_SCHEMA.view[modelName].title;
+
+            $scope.toggleExpand = index => {
+                expanded[index] = ! expanded[index];
+            };
+
+            $scope.$on('modelChanged', (e, modelName) => {
+                if (! watchedModels.includes(modelName)) {
+                    return;
+                }
+                $scope.selectedItem = null;
+                if (doSaveGeom) {
+                    radiaService.saveGeometry(true, false);
+                }
+            });
+
+            $scope.$on('cancelChanges', (e, name) => {
+                if (name === 'geometryReport') {
+                    return;
+                }
+                if (! watchedModels.includes(name)) {
+                    return;
+                }
+                appState.cancelChanges('geometryReport');
+            });
+
+        },
+    };
+});
+
 SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUpload, requestSender) {
 
     const RADIA_IMPORT_FORMATS = ['.dat',];
@@ -1627,7 +1752,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                     $scope.integrals = data;
                 }, true);
             }
-            
+
             $scope.$on('fieldPaths.saved', updateTable);
 
             updateTable();
@@ -2015,7 +2140,7 @@ SIREPO.app.directive('pointsTable', function() {
                       <span title="click to collapse" class="glyphicon glyphicon-chevron-down" data-ng-click="toggleExpand()"></span>
                     </th>
                     <th scope="col" data-ng-hide="isExpanded">
-                      <span title="click to expand" class="glyphicon glyphicon-chevron-up" data-ng-click="toggleExpand()"></span> 
+                      <span title="click to expand" class="glyphicon glyphicon-chevron-up" data-ng-click="toggleExpand()"></span>
                     </th>
                   </tr>
                   <tr data-ng-show="isExpanded">

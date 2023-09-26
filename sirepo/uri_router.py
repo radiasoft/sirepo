@@ -259,7 +259,7 @@ def start_tornado(ip, port, debug):
             r = self.request
             self.__headers = PKDict(r.headers)
             self.remote_addr = r.remote_ip
-            self.http_server_uri = f"{r.protocol}://{r.host}"
+            self.http_server_uri = f"{r.protocol}://{r.host}/"
             self.msg_count = 0
             ws_count += 1
             self.ws_id = ws_count
@@ -430,7 +430,7 @@ async def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_o
             elif kwargs is None:
                 kwargs = PKDict()
             _check_route(qcall, qcall.uri_route)
-            r = qcall.sreply.from_api(
+            r = qcall.sreply.uri_router_process_api_call(
                 await getattr(qcall, qcall.uri_route.func_name)(**kwargs)
             )
             c = True

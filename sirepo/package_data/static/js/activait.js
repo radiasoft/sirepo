@@ -569,13 +569,13 @@ SIREPO.app.directive('analysisActions', function(appState, panelState, activaitS
                             placement: 'bottom',
                             container: 'body',
                             title: 'Cluster: ' + (clusterIndex + 1),
-                            content: '<div><button class="btn btn-default webcon-popover">Open in New Plot</button></div>',
+                            content: '<div><button class="btn btn-default activait-popover">Open in New Plot</button></div>',
                         }).on('hide.bs.popover', () => {
                             $(document).off('click', buttonHandler);
                         });
                         $('.scatter-point').not($(this)).popover('hide');
                         $(this).popover('toggle');
-                        $(document).on('click', '.webcon-popover', buttonHandler);
+                        $(document).on('click', '.activait-popover', buttonHandler);
                     });
                 }
             }
