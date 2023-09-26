@@ -1,6 +1,7 @@
 'use strict';
 SIREPO.srlog = console.log.bind(console);
 SIREPO.srdbg = console.log.bind(console);
+SIREPO.traceWS = true;
 
 // No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
 SIREPO.http_timeout = 0;
@@ -2031,24 +2032,40 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         return url.startsWith("/auth-");
     };
 
-    const _reject = (wsreq, errorMsg) => {
-        wsreq.deferred.reject({
-            data: {state: "error", error: errorMsg || "invalid reply from server"},
-            status: 500,
-        });
+    const _protocolError = (header, content, wsreq, errorMsg) => {
+        errorMsg ||= "invalid reply from server";
+        srlog(
+            `wsreq#${wsreq && wsreq.header && wsreq.header.reqSeq} protocolError:`,
+            errorMsg,
+            header,
+            content
+        );
+        if (wsreq) {
+            wsreq.deferred.reject({
+                data: {state: "error", error: errorMsg},
+                status: 500,
+            });
+        }
     };
 
     const _reply = (blob) => {
         let [header, content] = msgpack.decodeMulti(blob);
         const wsreq = needReply[header.reqSeq];
+        const _replyError = (reply) => {
+            if (SIREPO.traceWS) {
+                srlog(`wsreq#${wsreq.header.reqSeq} replyError:`, reply);
+            }
+            wsreq.deferred.reject(reply);
+        };
         if (! wsreq) {
             srlog("wsreq not found reqSeq=", header.reqSeq, " header=", header);
+            _protocolError(header, content, null);
             return;
         }
         delete needReply[header.reqSeq];
         if (header.version !== SIREPO.APP_SCHEMA.websocketMsg.version) {
             srlog("WebSocket msg invalid version in header=", header, " req=", wsreq);
-            _reject(wsreq);
+            _protocolError(header, content, wsreq);
             return;
         }
         if (header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.srException) {
@@ -2061,31 +2078,34 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
                 r.data.state = "srException";
                 r.data.srException = content;
             }
-            wsreq.deferred.reject(r);
+            _replyError(r)
             return;
         }
         if (header.kind !== SIREPO.APP_SCHEMA.websocketMsg.kind.httpReply) {
             srlog("WebSocket msg invalid kind in header=", header, " req=", wsreq);
-            _reject(wsreq);
+            _protocolError(header, content, wsreq);
             return;
         }
         const b = wsreq.responseType === "blob";
         if (content instanceof Uint8Array) {
             if (! b) {
                 srlog("WebSocket not expecting blob header=", header, " wsreq=", wsreq);
-                _reject(wsreq);
+                _protocolError(header, content, wsreq);
                 return;
             }
             content = new Blob([content]);
         }
         else if (b) {
             if (content.error) {
-                wsreq.deferred.reject({data: content});
+                _replyError({data: content});
                 return;
             }
             srlog("WebSocket expecting blob header=", header, " wsreq=", wsreq, " content=", content);
-            _reject(wsreq);
+            _protocolError(header, content, wsreq);
             return;
+        }
+        if (SIREPO.traceWS) {
+            srlog(`wsreq#${wsreq.header.reqSeq} reply:`, content);
         }
         wsreq.deferred.resolve({
             data: content,
@@ -2184,7 +2204,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             return;
         }
         delete needReply[wsreq.reqSeq];
-        _reject(wsreq, "request timed out");
+        _protocolError(null, null, wsreq, "request timed out");
     };
 
     self.send = (url, data, httpConfig) => {
@@ -2221,6 +2241,9 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             toSend.push(wsreq);
             _send();
         };
+        if (SIREPO.traceWS) {
+            srlog(`wsreq#${wsreq.header.reqSeq} send:`, wsreq.header.uri, data);
+        }
         if (data === null) {
             c();
         }
