@@ -146,7 +146,6 @@ def test_srw_delete(fc):
         "downloadFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
-            simulation_id=d.models.simulation.simulationId,
             filename=u.basename,
         ),
         data=PKDict(),
@@ -158,7 +157,6 @@ def test_srw_delete(fc):
         "downloadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
-            simulation_id=d.models.simulation.simulationId,
             filename=u.basename,
         ),
         data=PKDict(),

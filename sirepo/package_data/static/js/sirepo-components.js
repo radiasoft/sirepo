@@ -1030,7 +1030,6 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
             $scope.downloadFileUrl = function() {
                 if ($scope.model) {
                     return requestSender.formatUrl('downloadLibFile', {
-                        '<simulation_id>': 'unused',
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<filename>': SIREPO.APP_NAME == 'srw'
                             ? $scope.model[$scope.fileField]
