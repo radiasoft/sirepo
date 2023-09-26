@@ -22,7 +22,7 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
 def stateless_compute_analysis_output(data, **kwargs):
-    return _request_scan_monitor(PKDict(method="analysis_output", uid=data.args.uid))
+    return _request_scan_monitor(PKDict(method="analysis_output", data=data))
 
 
 def stateless_compute_analysis_run_log(data, **kwargs):
@@ -36,7 +36,7 @@ def stateless_compute_analysis_run_log(data, **kwargs):
             ),
         )
 
-    r = _request_scan_monitor(PKDict(method="analysis_run_log", uid=data.args.uid))
+    r = _request_scan_monitor(PKDict(method="analysis_run_log", data=data))
     r.run_log = _log_to_html(r.run_log)
     return r
 
@@ -46,7 +46,7 @@ def stateless_compute_begin_replay(data, **kwargs):
 
 
 def stateless_compute_catalog_names(data, **kwargs):
-    return _request_scan_monitor(PKDict(method="catalog_names"))
+    return _request_scan_monitor(PKDict(method="catalog_names", data=data))
 
 
 def stateless_compute_download_analysis_pdfs(data, data_file_uri=None, **kwargs):
