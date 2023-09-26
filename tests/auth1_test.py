@@ -14,7 +14,7 @@ def test_login():
     from sirepo import srunit
 
     with srunit.quest_start() as qcall:
-        from pykern import pkunit, pkcompat
+        from pykern import pkunit, pkcompat, pkdebug
         from pykern.pkunit import pkeq, pkok, pkre, pkfail, pkexcept
         from sirepo import util
         from sirepo.auth import guest
@@ -33,7 +33,9 @@ def test_login():
             pkfail("expecting sirepo.util.SReplyExc")
         except util.SReplyExc as e:
             r = e.sr_args.sreply
-        pkre(r'LoggedIn":\s*true.*Registration":\s*false', r.content_as_str())
+        a = r.content_as_object().authState
+        pkeq(True, a.isLoggedIn)
+        pkeq(False, a.needCompleteRegistration)
         u = qcall.auth.logged_in_user()
         pkok(u, "user should exist")
         # guests do not require completeRegistration

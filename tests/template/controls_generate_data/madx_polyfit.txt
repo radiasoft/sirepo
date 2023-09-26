@@ -85,7 +85,7 @@ with open('summary.csv', 'w') as f:
 
 lattice_file = """
 option,echo=false,info=false;
-title, "webcon_fodo with ending monitor and instruments";
+title, "fodo with ending monitor and instruments";
 
 REAL sr_alpha_x = 1;
 REAL sr_alpha_y = 1;

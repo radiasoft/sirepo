@@ -87,7 +87,7 @@ def validate_login(qcall):
     if is_login_expired(qcall, msg):
         raise sirepo.util.SRException(
             "loginFail",
-            PKDict({":method": "guest", ":reason": "guest-expired"}),
+            PKDict(method="guest", reason="guest-expired"),
             "expired uid={uid}, expiry={expiry} now={now}",
             **msg
         )

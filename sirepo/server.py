@@ -101,7 +101,7 @@ class API(sirepo.quest.API):
         req = self.parse_post(filename=True, file_type=True)
         e = _simulations_using_file(req)
         if len(e):
-            return self.reply_json(
+            return self.reply_dict(
                 {
                     "error": "File is in use in other simulations.",
                     "fileList": e,
@@ -125,14 +125,10 @@ class API(sirepo.quest.API):
     async def api_downloadFile(self, simulation_type, simulation_id, filename):
         # TODO(pjm): simulation_id is an unused argument
         req = self.parse_params(type=simulation_type, filename=filename)
-        n = req.sim_data.lib_file_name_without_type(req.filename)
-        p = req.sim_data.lib_file_abspath(req.filename, qcall=self)
-        try:
-            return self.reply_attachment(p, filename=n)
-        except Exception as e:
-            if pkio.exception_is_not_found(e):
-                raise sirepo.util.NotFound("lib_file={} not found", p)
-            raise
+        return self.reply_attachment(
+            req.sim_data.lib_file_abspath(req.filename, qcall=self),
+            filename=req.sim_data.lib_file_name_without_type(req.filename),
+        )
 
     @sirepo.quest.Spec("allow_visitor", spec="ErrorLoggingSpec")
     async def api_errorLogging(self):
@@ -169,19 +165,13 @@ class API(sirepo.quest.API):
     async def api_favicon(self):
         """Routes to favicon.ico file."""
         # SECURITY: We control the path of the file so using send_file is ok.
-        return self.reply_file(
-            sirepo.resource.static("img", "favicon.ico"),
-            content_type="image/vnd.microsoft.icon",
-        )
+        return self.reply_file(sirepo.resource.static("img", "favicon.ico"))
 
     @sirepo.quest.Spec("allow_visitor")
     async def api_faviconPng(self):
         """Routes to favicon.png file."""
         # SECURITY: We control the path of the file so using send_file is ok.
-        return self.reply_file(
-            sirepo.resource.static("img", "favicon.png"),
-            content_type="image/png",
-        )
+        return self.reply_file(sirepo.resource.static("img", "favicon.png"))
 
     @sirepo.quest.Spec("allow_visitor")
     async def api_forbidden(self):
@@ -193,7 +183,7 @@ class API(sirepo.quest.API):
     )
     async def api_listFiles(self):
         req = self.parse_post(file_type=True)
-        return self.reply_json(
+        return self.reply_list_deprecated(
             req.sim_data.lib_file_names_for_type(req.file_type, qcall=self),
         )
 
@@ -217,6 +207,10 @@ class API(sirepo.quest.API):
     async def api_findByNameWithAuth(
         self, simulation_type, application_mode, simulation_name
     ):
+        """Find `simulation_name` in library
+
+        POSIT: sirepo.status assumes this returns a redirect
+        """
         req = self.parse_params(type=simulation_type)
         # TODO(pjm): need to unquote when redirecting from saved cookie redirect?
         simulation_name = urllib.parse.unquote(simulation_name)
@@ -320,7 +314,7 @@ class API(sirepo.quest.API):
                         srw_save_sim=_save_sim,
                     )
                 if "error" in data:
-                    return self.reply_json(data)
+                    return self.reply_dict(data)
             return _save_sim(data)
         except sirepo.util.ReplyExc:
             raise
@@ -334,7 +328,7 @@ class API(sirepo.quest.API):
                     error = str(e.args)
             else:
                 error = str(e)
-        return self.reply_json(
+        return self.reply_dict(
             {
                 "error": error if error else "An unknown error occurred",
             }
@@ -344,72 +338,6 @@ class API(sirepo.quest.API):
     async def api_homePage(self, path_info=None):
         return await self.call_api(
             "staticFile", kwargs=PKDict(path_info="en/" + (path_info or "landing.html"))
-        )
-
-    @sirepo.quest.Spec(
-        "require_user",
-        simulation_id="SimId",
-        model="Model optional",
-        title="DownloadNamePostfix optional",
-    )
-    async def api_exportJupyterNotebook(
-        self, simulation_type, simulation_id, model=None, title=None
-    ):
-        def _filename(req):
-            res = d.models.simulation.name
-            if req.title:
-                res += "-" + sirepo.srschema.parse_name(title)
-            return res + ".ipynb"
-
-        def _data(req):
-            f = getattr(req.template, "export_jupyter_notebook", None)
-            if not f:
-                raise sirepo.util.NotFound(f"API not supported for tempate={req.type}")
-            return f(
-                simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self),
-                qcall=self,
-            )
-
-        req = self.parse_params(type=simulation_type, id=simulation_id, template=True)
-        return self.reply_attachment(
-            _data(req),
-            filename=_filename(req),
-            content_type="application/json",
-        )
-
-    @sirepo.quest.Spec(
-        "require_user",
-        simulation_id="SimId",
-        model="Model optional",
-        title="DownloadNamePostfix optional",
-    )
-    async def api_exportJupyterNotebook2(self, simulation_type):
-        def _filename(req):
-            res = d.models.simulation.name
-            if req.title:
-                res += "-" + sirepo.srschema.parse_name(req.title)
-            return res + ".ipynb"
-
-        def _data(req):
-            f = getattr(req.template, "export_jupyter_notebook", None)
-            if not f:
-                raise sirepo.util.NotFound(f"API not supported for tempate={req.type}")
-            return f(
-                simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self),
-                qcall=self,
-            )
-
-        req = self.parse_post(
-            type=simulation_type,
-            id=True,
-            template=True,
-            compute_model=PKDict(optional=True, name="model"),
-            title=PKDict(optional=True, name="title"),
-        )
-        return self.reply_attachment(
-            _data(req),
-            filename=_filename(req),
-            content_type="application/json",
         )
 
     @sirepo.quest.Spec("require_user", folder="FolderName", name="SimName")
@@ -473,7 +401,7 @@ class API(sirepo.quest.API):
         suffix = simulation_db.get_schema(req.type).constants.simulationSourceExtension
         return self.reply_attachment(
             req.template.python_source_for_model(d, model=m, qcall=self),
-            "{}.{}".format(
+            filename="{}.{}".format(
                 d.models.simulation.name + ("-" + req.title if "title" in req else ""),
                 "madx" if m == "madx" else suffix,
             ),
@@ -539,7 +467,7 @@ class API(sirepo.quest.API):
                 raise sirepo.util.NotFound(
                     "stype={} sid={} global simulation not found", req.type, req.id
                 )
-            return self.headers_for_no_cache(self.reply_json(_redirect(req)))
+            return self.headers_for_no_cache(self.reply_dict(_redirect(req)))
 
         def _redirect(req):
             return PKDict(
@@ -567,7 +495,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", search="SearchSpec")
     async def api_listSimulations(self):
         req = self.parse_post()
-        return self.reply_json(
+        return self.reply_list_deprecated(
             sorted(
                 simulation_db.iterate_simulation_datafiles(
                     req.type,
@@ -590,7 +518,7 @@ class API(sirepo.quest.API):
     # visitor rather than user because error pages are rendered by the application
     @sirepo.quest.Spec("allow_visitor")
     async def api_simulationSchema(self):
-        return self.reply_json(
+        return self.reply_dict(
             simulation_db.get_schema(
                 self.parse_params(
                     type=self.sreq.form_get("simulationType", "simulationType-missing"),
@@ -687,7 +615,7 @@ class API(sirepo.quest.API):
                 if in_use:
                     e = "File is in use in other simulations. Please confirm you would like to replace the file for all simulations."
             if e:
-                return self.reply_json(
+                return self.reply_dict(
                     {
                         "error": e,
                         "filename": req.filename,
@@ -697,7 +625,7 @@ class API(sirepo.quest.API):
                     }
                 )
             t.rename(_lib_file_write_path(req))
-        return self.reply_json(
+        return self.reply_dict(
             {
                 "filename": req.filename,
                 "fileType": req.file_type,
@@ -750,7 +678,7 @@ class API(sirepo.quest.API):
                 static_files=simulation_db.static_libs(),
             )
         )
-        return self.reply_static_jinja(page, "html", values, cache_ok=True)
+        return self.reply_static_jinja(page, "html", values)
 
     def _save_new_and_reply(self, req, data):
         return self._simulation_data_reply(
@@ -763,7 +691,7 @@ class API(sirepo.quest.API):
             d = req.template.prepare_for_client(data, qcall=self)
         if sirepo.feature_config.is_react_sim_type(req.type):
             req.sim_data.react_format_data(data)
-        return self.headers_for_no_cache(self.reply_json(data))
+        return self.headers_for_no_cache(self.reply_dict(data))
 
 
 def init_apis(*args, **kwargs):

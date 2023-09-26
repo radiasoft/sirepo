@@ -16,7 +16,6 @@ import copy
 import pykern.pkio
 import sirepo.const
 import sirepo.quest
-import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.srdb
 import sirepo.srtime
@@ -574,7 +573,8 @@ class _ComputeJob(_Supervisor):
     @classmethod
     def __db_file(cls, computeJid):
         return _DB_DIR.join(
-            computeJid + sirepo.const.JSON_SUFFIX,
+            sirepo.simulation_db.assert_sim_db_file_path(computeJid)
+            + sirepo.const.JSON_SUFFIX,
         )
 
     def __db_init(self, req, prev_db=None):
@@ -588,7 +588,7 @@ class _ComputeJob(_Supervisor):
             queueState="queued",
             canceledAfterSecs=None,
             computeJid=data.computeJid,
-            computeJobHash=data.computeJobHash,
+            computeJobHash=data.get("computeJobHash"),
             computeJobQueued=0,
             computeJobSerial=0,
             computeJobStart=0,

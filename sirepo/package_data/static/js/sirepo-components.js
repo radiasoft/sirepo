@@ -2820,7 +2820,6 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     <li><a href data-ng-if="nav.modeIsDefault() && canShowDocumentationUrl()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>
                     <li><a href data-ng-if="::canExportArchive()" data-ng-href="{{ exportArchiveUrl('zip') }}"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>
                     <li data-ng-if="::canDownloadInputFile()"><a data-ng-href="{{ pythonSourceUrl() }}"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> {{ ::stringsService.formatKey('simulationSource') }}</a></li>
-                    <li data-ng-if="::canExportJupyter()"><a data-ng-href="{{ exportJupyterNotebookUrl() }}"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as Jupyter Notebook</a></li>
                     <li data-ng-if="::canExportMadx()" ><a data-ng-href="{{ pythonSourceUrl('madx') }}"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>
                     <li data-ng-if="canCopy()"><a href data-ng-click="copyItem()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>
                     <li data-ng-if="isExample()"><a href data-target="#reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>
@@ -2867,16 +2866,8 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 return SIREPO.APP_SCHEMA.constants.hasMadxExport;
             };
 
-            $scope.canExportJupyter = function() {
-                return SIREPO.APP_SCHEMA.constants.hasJupyterExport;
-            };
-
             $scope.exportArchiveUrl = extension => {
                 return panelState.exportArchiveUrl($scope.simulationId(), `${$scope.nav.simulationName()}.${extension}`);
-            };
-
-            $scope.exportJupyterNotebookUrl = function(modelName) {
-                return panelState.exportJupyterNotebookUrl($scope.simulationId(), modelName);
             };
 
             $scope.copyFolder = fileManager.defaultCreationFolderPath();
@@ -4325,20 +4316,21 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 el.modal('hide');
             }
 
-            $scope.$on('showSbatchLoginModal', function(e, data) {
+            $scope.$on('showSbatchLoginModal', function(e, broadcastArg) {
                 // When a user enters invalid login creds 'showSbatchLoginModal' is
                 // broadcast again. onHidden keeps a references to the
                 // errorCallback of only the first broadcast's errorCallback
+                const p = broadcastArg.srExceptionParams;
                 if (onHidden === null) {
-                    onHidden = data.errorCallback;
+                    onHidden = broadcastArg.errorCallback;
                 }
                 sbatchLoginStatusService.loggedIn = false;
                 $scope.otp = '';
                 $scope.password = '';
                 awaitingSendResponse = false;
-                $scope.host = data.host;
-                $scope.showOtp = data.host.indexOf('nersc') >= 0;
-                $scope.showWarning = data.reason === 'invalid-creds';
+                $scope.host = p.host;
+                $scope.showOtp = p.host.indexOf('nersc') >= 0;
+                $scope.showWarning = p.reason === 'invalid-creds';
                 $scope.warningText = 'Your credentials were invalid. Please try again.';
                 $scope.submit = function() {
                     awaitingSendResponse = true;
@@ -4348,9 +4340,9 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                         {
                             otp: $scope.otp,
                             password: $scope.password,
-                            computeModel: data.computeModel,
-                            simulationId: data.simulationId,
-                            simulationType: data.simulationType,
+                            computeModel: p.computeModel,
+                            simulationId: p.simulationId,
+                            simulationType: SIREPO.APP_SCHEMA.simulationType,
                             username: $scope.username,
                         },
                         handleResponse
