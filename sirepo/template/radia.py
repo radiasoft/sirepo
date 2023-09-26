@@ -1454,6 +1454,13 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
 
 
 def _rsopt_percent_complete(run_dir, res):
+    def _scan_stats(search_re):
+        for line in pkio.read_text("libE_stats.txt").split("\n"):
+            m = re.match(search_re, line, re.IGNORECASE)
+            if m:
+                return m
+        return None
+
     res.frameCount = 0
     res.percentComplete = 0
     out_files = pkio.walk_tree(run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT)
@@ -1463,22 +1470,21 @@ def _rsopt_percent_complete(run_dir, res):
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
     res.frameCount = count
     p = count / dm.optimizer.maxIterations
+    # errors that allow completion
     if pkio.sorted_glob("H_*.npy"):
-        prefix = r"Worker\s*(\d+):\s+"
         p = 1
-        for line in pkio.read_text("libE_stats.txt").split("\n"):
-            m = re.match(fr"{prefix}sim_id\s*(\d+).*Status:\s*Task Failed", line, re.IGNORECASE)
-            if m:
-                p = 0
-                res.state = "error"
-                res.error = f"Error during optimization: worker {m.group(1)} sim id {m.group(2)}"
-                break
-            m = re.match(fr"{prefix}Gen no\s*(\d+).*Status:\s*Exception occurred", line, re.IGNORECASE)
-            if m:
-                p = 0
-                res.state = "error"
-                res.error = f"Error during optimization: worker {m.group(1)} gen no {m.group(2)}"
-                break
+        m = _scan_stats(r"Worker\s*(\d+):\s+sim_id\s*(\d+).*Status:\s*Task Failed")
+        if m:
+            p = 0
+            res.state = "error"
+            res.error = f"Error during optimization: worker {m.group(1)} sim id {m.group(2)}"
+    # errors that interrupt
+    else:
+        m = _scan_stats(r"Worker\s*(\d+):\s+Gen no\s*(\d+).*Status:\s*Exception occurred")
+        if m:
+            p = 0
+            res.state = "error"
+            res.error = f"Error during optimization: worker {m.group(1)} gen no {m.group(2)}"
     res.percentComplete = 100 * p
     return res
 

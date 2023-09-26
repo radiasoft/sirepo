@@ -1026,7 +1026,6 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
     self.summaryData = {};
 
     self.simHandleStatus = data => {
-        srdbg(data);
         self.errorMessage = data.error;
         if ('frameCount' in data && ! data.error) {
             frameCache.setFrameCount(data.frameCount > 1 ? data.frameCount : 0);
