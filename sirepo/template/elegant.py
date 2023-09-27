@@ -920,10 +920,6 @@ def validate_file(file_type, path):
     return err
 
 
-def webcon_generate_lattice(data, qcall):
-    return _Generate(data, validate=False, qcall=qcall).lattice_only()
-
-
 def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 

@@ -1,6 +1,7 @@
 'use strict';
 SIREPO.srlog = console.log.bind(console);
 SIREPO.srdbg = console.log.bind(console);
+SIREPO.traceWS = false;
 
 // No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
 SIREPO.http_timeout = 0;
@@ -139,7 +140,7 @@ angular.element(document).ready(function() {
             if (! SIREPO.APP_SCHEMA) {
                 srlog("schema load failed: ", err);
                 if (err.toString().match(/forbidden/i)) {
-                    window.location.href = "/forbidden";
+                    window.location.href = "/http-forbidden";
                     return;
                 }
             }
@@ -414,34 +415,23 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
                 return {
                     urlOrParams: 'saveSimulationData',
                     successCallback: function (resp) {
-                        if (resp.error && resp.error == 'invalidSerial') {
-                            srlog(
-                                resp.simulationData.models.simulation.simulationId,
-                                ': update collision newSerial=',
-                                resp.simulationData.models.simulation.simulationSerial,
-                                '; refreshing'
-                            );
-                            refreshSimulationData(resp.simulationData);
-                            errorService.alertText(
-                                "Another browser updated this simulation."
-                                + " This window's state has been refreshed."
-                                + " Please retry your action."
-                            );
+                        if (resp.error) {
+                            if ($.isFunction(errorCallback)) {
+                                errorCallback(resp);
+                            }
+                            return;
                         }
-                        else {
-                            lastAutoSaveData = self.clone(resp);
-                            ['simulationSerial', 'name', 'lastModified'].forEach(f => {
-                                savedModelValues.simulation[f] =
-                                    self.models.simulation[f] = lastAutoSaveData.models.simulation[f];
-                            });
-                        }
+                        lastAutoSaveData = self.clone(resp);
+                        ['simulationSerial', 'name', 'lastModified'].forEach(f => {
+                            savedModelValues.simulation[f] =
+                                self.models.simulation[f] = lastAutoSaveData.models.simulation[f];
+                        });
                         if ($.isFunction(callback)) {
                             callback(resp);
                         }
                     },
                     errorCallback: function (resp) {
                         if ($.isFunction(errorCallback)) {
-                            //TODO(robnagler) this should be errorCallback
                             errorCallback(resp);
                         }
                     },
@@ -1680,17 +1670,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         });
     };
 
-    self.exportJupyterNotebookUrl = (simulationId, modelName, reportTitle) => {
-        const args = {};
-        if (modelName) {
-            args['<model>'] = modelName;
-        }
-        if (reportTitle) {
-            args['<title>'] = reportTitle;
-        }
-        return urlForExport(simulationId, 'exportJupyterNotebook', args);
-    };
-
     // lazy creation/storage of field delegates
     self.fieldDelegates = {};
 
@@ -2053,49 +2032,86 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         return url.startsWith("/auth-");
     };
 
-    const _remove = (wsreq) => {
-        const i = toSend.indexOf(wsreq);
-        if (i >= 0) {
-            toSend.splice(i, 1);
-            return;
+    const _protocolError = (header, content, wsreq, errorMsg) => {
+        if (! errorMsg) {
+            errorMsg = "invalid reply from server";
         }
-        delete needReply[wsreq.reqSeq];
+        srlog(
+            `wsreq#${wsreq && wsreq.header && wsreq.header.reqSeq} protocolError:`,
+            errorMsg,
+            header,
+            content
+        );
+        if (wsreq) {
+            wsreq.deferred.reject({
+                data: {state: "error", error: errorMsg},
+                status: 500,
+            });
+        }
     };
 
     const _reply = (blob) => {
         let [header, content] = msgpack.decodeMulti(blob);
         const wsreq = needReply[header.reqSeq];
+        const _replyError = (reply) => {
+            if (SIREPO.traceWS) {
+                srlog(`wsreq#${wsreq.header.reqSeq} replyError:`, reply);
+            }
+            wsreq.deferred.reject(reply);
+        };
         if (! wsreq) {
             srlog("wsreq not found reqSeq=", header.reqSeq, " header=", header);
+            _protocolError(header, content, null);
             return;
         }
         delete needReply[header.reqSeq];
-        if (
-            header.version !== SIREPO.APP_SCHEMA.websocketMsg.version
-            || header.kind !== SIREPO.APP_SCHEMA.websocketMsg.kind.httpReply
-        ) {
-            srlog("WebSocket msg invalid header=", header, " req=", wsreq);
-            wsreq.deferred.reject("invalid reply from server");
+        if (header.version !== SIREPO.APP_SCHEMA.websocketMsg.version) {
+            srlog("WebSocket msg invalid version in header=", header, " req=", wsreq);
+            _protocolError(header, content, wsreq);
             return;
         }
-        //TODO(robnagler) if response in error, ok to not be blob, so defer
+        if (header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.srException) {
+            const n = content.routeName;
+            const r = {data: {}};
+            if (n === "httpException") {
+                r.status = content.status;
+            }
+            else {
+                r.data.state = "srException";
+                r.data.srException = content;
+            }
+            _replyError(r);
+            return;
+        }
+        if (header.kind !== SIREPO.APP_SCHEMA.websocketMsg.kind.httpReply) {
+            srlog("WebSocket msg invalid kind in header=", header, " req=", wsreq);
+            _protocolError(header, content, wsreq);
+            return;
+        }
         const b = wsreq.responseType === "blob";
         if (content instanceof Uint8Array) {
             if (! b) {
                 srlog("WebSocket not expecting blob header=", header, " wsreq=", wsreq);
-                wsreq.deferred.reject("invalid reply from server");
+                _protocolError(header, content, wsreq);
                 return;
             }
             content = new Blob([content]);
         }
         else if (b) {
-            srlog("WebSocket expecting blob header=", header, " wsreq=", wsreq);
-            wsreq.deferred.reject("invalid reply from server");
+            if (content.error) {
+                _replyError({data: content});
+                return;
+            }
+            srlog("WebSocket expecting blob header=", header, " wsreq=", wsreq, " content=", content);
+            _protocolError(header, content, wsreq);
             return;
         }
+        if (SIREPO.traceWS) {
+            srlog(`wsreq#${wsreq.header.reqSeq} reply:`, content);
+        }
         wsreq.deferred.resolve({
-            data: header.contentType == "application/json" ? JSON.parse(content) : content,
-            status: header.httpStatus
+            data: content,
+            status: 200
         });
     };
 
@@ -2183,6 +2199,16 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         socket = s;
     };
 
+    const _timeout = (wsreq) => {
+        const i = toSend.indexOf(wsreq);
+        if (i >= 0) {
+            toSend.splice(i, 1);
+            return;
+        }
+        delete needReply[wsreq.reqSeq];
+        _protocolError(null, null, wsreq, "request timed out");
+    };
+
     self.send = (url, data, httpConfig) => {
         if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url)) {
             // Might be auto logged out so close socket so can re-authenticate
@@ -2205,7 +2231,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         };
         wsreq.msg = msgpack.encode(wsreq.header);
         if (wsreq.timeout) {
-            wsreq.timeout.then(() => {_remove(wsreq);});
+            wsreq.timeout.then(() => {_timeout(wsreq);});
         }
         const c = (buffers) => {
             if (buffers) {
@@ -2217,6 +2243,9 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             toSend.push(wsreq);
             _send();
         };
+        if (SIREPO.traceWS) {
+            srlog(`wsreq#${wsreq.header.reqSeq} send:`, wsreq.header.uri, data);
+        }
         if (data === null) {
             c();
         }
@@ -2322,19 +2351,19 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         }
     }
 
-    function isFirefox() {
-        // https://stackoverflow.com/a/9851769
-        return typeof InstallTrigger !== 'undefined';
-    }
-
-    function logError(data, status) {
-        var err = SIREPO.APP_SCHEMA.customErrors[status];
+    function defaultErrorCallback(data, status) {
+        const err = SIREPO.APP_SCHEMA.customErrors[status];
         if (err && err.route) {
             self.localRedirect(err.route);
         }
         else {
             errorService.alertText('Request failed: ' + data.error);
         }
+    }
+
+    function isFirefox() {
+        // https://stackoverflow.com/a/9851769
+        return typeof InstallTrigger !== 'undefined';
     }
 
     function formatUrl(map, routeOrParams, params) {
@@ -2483,17 +2512,27 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     };
 
     self.handleSRException = function(srException, errorCallback) {
-        var e = srException;
-        var u = $location.url();
+        const e = srException;
+        if (e.routeName == "httpRedirect") {
+            self.globalRedirect(e.params.uri, undefined);
+            return;
+        }
+        const u = $location.url();
         if (e.routeName == LOGIN_ROUTE_NAME && u != LOGIN_URI) {
             saveCookieRedirect(u);
         }
         if (e.params && e.params.isModal && e.routeName.includes('sbatch')) {
             e.params.errorCallback = errorCallback;
-            $rootScope.$broadcast('showSbatchLoginModal', e.params);
+            $rootScope.$broadcast(
+                'showSbatchLoginModal',
+                {
+                    errorCallback: errorCallback,
+                    srExceptionParams: e.params,
+                },
+            );
             return;
         }
-        if (e.routeName == 'login') {
+        if (e.routeName == LOGIN_ROUTE_NAME) {
             // if redirecting to login, but the app thinks it is already logged in,
             // then force a logout to avoid a login loop
             if (SIREPO.authState.isLoggedIn) {
@@ -2541,7 +2580,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         msgRouter.send(
             self.formatUrl('listFiles'),
             params,
-            {},
+            {}
         ).then(
             function(response) {
                 var data = response.data;
@@ -2581,7 +2620,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             // These two content-types are what the server might return with a 200.
             const r = new RegExp('^(application/json|text/html)$');
             let d = response.data;
-            if (response.status === 200 && ! r.test(d.type)) {
+            if (d instanceof Blob) {
                 successCallback(d);
                 return;
             }
@@ -2594,7 +2633,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             });
         };
         if (! errorCallback) {
-            errorCallback = logError;
+            errorCallback = defaultErrorCallback;
         }
         if (! successCallback) {
             successCallback = function () {};
@@ -2639,7 +2678,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                 msg = 'Server unavailable';
             }
             else if (SIREPO.APP_SCHEMA.customErrors[status]) {
-                msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
+                msg = SIREPO.APP_SCHEMA.customErrors[status].title;
             }
             if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
                 // Try to parse javascript-redirect.html
@@ -2659,7 +2698,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                     }
                     srlog('javascriptRedirectDocument: staying on page', m[1]);
                     // set explicitly so we don't log below
-                    data = {state: 'error', error: 'server error'};
+                    data = {error: 'server error'};
                 }
                 else {
                     // HTML document with error msg in title
@@ -2705,6 +2744,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                     return;
                 }
                 var data = response.data;
+                // POSIT: isObject returns true for []
                 if (! angular.isObject(data) || data.state === 'srException') {
                     thisErrorCallback(response);
                     return;
@@ -2761,9 +2801,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     };
 
     $rootScope.$on('$routeChangeStart', checkCookieRedirect);
-
     LOGIN_URI = self.formatUrlLocal(LOGIN_ROUTE_NAME).slice(1);
-
     return self;
 });
 
@@ -3307,7 +3345,7 @@ SIREPO.app.factory('errorService', function($log, $window) {
     self.logToServer = function(errorType, message, cause, stackTrace) {
         $.ajax({
             type: 'POST',
-            //url: localRoutes.errorLogging,
+            //POSIT: schema-common.json route.errorLogging,
             url: '/error-logging',
             contentType: 'application/json',
             data: angular.toJson({

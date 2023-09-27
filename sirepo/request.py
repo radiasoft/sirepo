@@ -165,10 +165,11 @@ class _SRequest(sirepo.quest.Attr):
     def body_as_content(self):
         if "_body_as_content" in self:
             return self.get("_body_as_content")
-        if not self._content_type_eq("application/json"):
+        if not self._content_type_eq(pykern.pkjson.MIME_TYPE):
             raise sirepo.util.BadRequest(
-                "Content-Type={} must be application/json",
+                "Content-Type={} must be {}",
                 self.header_uget("Content-Type"),
+                pykern.pkjson.MIME_TYPE,
             )
         return pykern.pkjson.load_any(self.body_as_bytes())
 
@@ -194,9 +195,6 @@ class _SRequest(sirepo.quest.Attr):
             # The package robot_detection does see it, but we don't want to introduce another dependency.
             return True
         return user_agents.parse(a).is_bot
-
-    def is_websocket(self):
-        return self._kind == _TORNADO_WEBSOCKET
 
     def method_is_post(self):
         return self.http_method == "POST"

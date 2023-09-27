@@ -68,6 +68,9 @@
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
         },
+        "metadataColumns": {
+            "selected": ["", "Array"]
+        },
         "queuedScans": {
             "scans": ["", "QueuedScansTable", ""]
         },
@@ -80,6 +83,8 @@
             "presetTimePicker": ["", "PresetTimePicker", ""],
             "searchStartTime":["Start", "DateTimePicker", null],
             "searchStopTime":["Stop", "DateTimePicker", null],
+            "searchText": ["Search Text", "OptionalString", ""],
+            "pageSize": ["Page Size", "Integer", 15],
             "scans": ["", "RunAnalysisTable", ""]
         },
         "simulationStatus": {
@@ -140,9 +145,12 @@
                 "catalog.catalogName",
                 "searchStartTime",
                 "searchStopTime",
-                "presetTimePicker"
+                "presetTimePicker",
+                "searchText"
             ],
-            "advanced": []
+            "advanced": [
+                "pageSize"
+            ]
         },
         "simulationStatus": {
             "title": "Poll For New Scans",

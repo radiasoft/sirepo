@@ -38,8 +38,9 @@ PORT_DEFAULTS = PKDict(
 SCHEMA_COMMON = PKDict(
     websocketMsg=PKDict(
         kind=PKDict(
-            httpReply=2,
             httpRequest=1,
+            httpReply=2,
+            srException=3,
         ),
         version=1,
     ),

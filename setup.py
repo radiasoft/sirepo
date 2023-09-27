@@ -13,7 +13,6 @@ install_requires = [
     "aenum",
     "asyncssh",
     "cryptography>=2.8",
-    "futures",
     "matplotlib",
     "msgpack",
     "numconv",

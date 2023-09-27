@@ -32,7 +32,7 @@ class API(sirepo.quest.API):
             role=sirepo.auth_role.for_sim_type(_SIM_TYPE),
             expiration=datetime.datetime.fromtimestamp(PKDict(o.token).expires_at),
         )
-        raise sirepo.util.Redirect(_SIM_TYPE)
+        raise sirepo.util.Redirect(self.uri_for_app_root(_SIM_TYPE))
 
 
 def init_apis(*args, **kwargs):

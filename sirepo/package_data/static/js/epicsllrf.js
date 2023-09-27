@@ -161,7 +161,7 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
                     return;
                 }
                 inRequest = true;
-                requestSender.sendStatelessCompute(
+                requestSender.sendAnalysisJob(
                     appState,
                     function (data) {
                         inRequest = false;
@@ -175,9 +175,10 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
                     },
                     {
                         method: 'read_epics_values',
-                        simulationId: appState.models.simulation.simulationId,
-                        report: 'animation',
-                        noCache: noCache,
+                        modelName: 'animation',
+                        args: {
+                            noCache: noCache,
+                        },
                     }
                 );
             },
@@ -205,9 +206,11 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
                     },
                     {
                         method: 'update_epics_value',
-                        fields: d,
-                        model: modelName,
-                        serverAddress: appState.applicationState().epicsServer.serverAddress,
+                        args: {
+                            fields: d,
+                            model: modelName,
+                            serverAddress: appState.applicationState().epicsServer.serverAddress,
+                        },
                     }
                 );
             }

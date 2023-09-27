@@ -120,10 +120,7 @@ def create_user(qcall, github_handle=None, check_dir=False):
                 )
                 or not _user_dir(qcall, user_name=github_handle).exists()
             ):
-                raise sirepo.util.SRException(
-                    "jupyterNameConflict",
-                    PKDict(sim_type=_SIM_TYPE),
-                )
+                raise sirepo.util.SRException("jupyterNameConflict", None)
             return github_handle
         n = __handle_or_name_sanitized()
         if qcall.auth_db.model("JupyterhubUser").unchecked_search_by(user_name=n):
@@ -229,7 +226,7 @@ def _event_github_authorized(qcall, kwargs):
     # User may not have been a user originally so need to create their dir.
     # If it exists (they were a user) it is a no-op.
     pkio.mkdir_parent(_user_dir(qcall))
-    raise sirepo.util.Redirect("jupyter")
+    raise sirepo.util.Redirect(qcall.uri_for_app_root("jupyter"))
 
 
 def _unchecked_hub_user(qcall, uid):
