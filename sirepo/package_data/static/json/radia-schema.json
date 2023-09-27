@@ -965,7 +965,7 @@
                 "rsoptName": "dfols",
                 "type": "optimizationSoftwareDFOLS"
             }],
-            "tolerance": ["Tolerance", "Float", 0.0001]
+            "tolerance": ["Relative Tolerance", "Float", 0.0001]
         },
         "optimizerAnimation": {
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
@@ -1576,6 +1576,7 @@
                     "optimizer.software.type",
                     "optimizer.software.method",
                     "optimizationSoftwareDFOLS.components",
+                    "tolerance",
                     "maxIterations"
                 ]],
                 ["Objective Function", [
@@ -1591,13 +1592,7 @@
                     "parameters"
                 ]]
             ],
-            "advanced": [
-                "tolerance",
-                "timeLimit",
-                "continuousFieldSteps",
-                "initialSteps",
-                "optimizerSteps"
-            ]
+            "advanced": []
         },
         "optimizerAnimation": {
             "title": "Optimization Path",
