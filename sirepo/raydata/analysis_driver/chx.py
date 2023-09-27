@@ -25,7 +25,7 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
                 output_f=_cfg.base_dir.join(
                     self._scan_metadata.get_start_field("cycle"),
                     self._scan_metadata.get_start_field("user"),
-                    "ResPipelines",
+                    "RResPipelines",
                     f"{self._scan_metadata.get_start_field('auto_pipeline')}_{self.uid}.ipynb",
                 ),
             )
@@ -42,7 +42,7 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
         return _cfg.base_dir.join(
             self._scan_metadata.get_start_field("cycle"),
             self._scan_metadata.get_start_field("user"),
-            "Results",
+            "RResults",
             self.uid,
         )
 
