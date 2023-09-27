@@ -1180,6 +1180,7 @@
         },
         "beamline3DReport": {
             "title": "Beamline",
+            "is3d": true,
             "advanced": [
                 "projection",
                 "showLabels",

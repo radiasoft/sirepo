@@ -1740,14 +1740,14 @@ SIREPO.app.directive('safePath', function() {
     };
 });
 
-SIREPO.app.directive('showLoadingAndError', function(panelState) {
+SIREPO.app.directive('showLoadingAndError', function(appState, panelState) {
     return {
         transclude: true,
         scope: {
             modelKey: '@',
         },
         template: `
-            <div data-ng-class="{'sr-panel-loading': panelState.isLoading(modelKey), 'sr-panel-error': panelState.getError(modelKey), 'sr-panel-running': panelState.isRunning(modelKey), 'sr-panel-waiting': panelState.isWaiting(modelKey), 'has-transclude': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
+            <div data-ng-class="{'sr-panel-loading': panelState.isLoading(modelKey), 'sr-panel-error': panelState.getError(modelKey), 'sr-panel-running': panelState.isRunning(modelKey), 'sr-panel-waiting': panelState.isWaiting(modelKey), 'has-transclude': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)" data-ng-if="preserveMinimized || ! panelState.isHidden(modelKey)">
               <div data-ng-show="panelState.isWaiting(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Waiting for Data</div>
               <div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> {{ panelState.getStatusText(modelKey) }}</div>
               <div data-ng-show="panelState.getError(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>
@@ -1755,6 +1755,8 @@ SIREPO.app.directive('showLoadingAndError', function(panelState) {
             </div>
         `,
         controller: function($scope, $element) {
+            const v = appState.viewInfo($scope.modelKey);
+            $scope.preserveMinimized = v && v.is3d ? false: true;
             $scope.panelState = panelState;
             $scope.hasTransclude = function() {
                 var el = $($element).find('div[data-ng-transclude] > div[data-ng-transclude]:not(:empty)');
