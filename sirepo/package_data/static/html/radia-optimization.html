@@ -8,7 +8,7 @@
         <div data-sim-status-panel="opt.simState" data-start-function="startSimulation()"></div>
         <div class="row">
           <div class="col-md-8 col-md-offset-2">
-          <table data-ng-show="opt.simState.isStateCompleted()" class="table">
+          <table data-ng-show="opt.simState.hasFrames()" class="table">
             <caption style="text-align: center; font-weight: bold;">Optimization results <a href="" data-ng-click="opt.newSimFromResults()"><span title="Open new simulation with these results"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span></span></a></caption>
             <thead>
               <tr>

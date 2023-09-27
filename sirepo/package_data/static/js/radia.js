@@ -1025,12 +1025,7 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
     self.simAnalysisModel = 'optimizerAnimation';
     self.summaryData = {};
 
-    self.simHandleStatus = data => {
-        self.errorMessage = data.error;
-        if ('frameCount' in data && ! data.error) {
-            frameCache.setFrameCount(data.frameCount > 1 ? data.frameCount : 0);
-        }
-    };
+    self.computeModel = m => m;
 
     self.hasOptFields = () => {
         if (! appState.isLoaded()) {
@@ -1085,6 +1080,20 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
 
     self.simState.runningMessage = () => {
         return 'Completed run: ' + self.simState.getFrameCount();
+    };
+
+    self.simHandleStatus = data => {
+        self.errorMessage = data.error;
+        if ('frameCount' in data && ! data.error) {
+            // single step means the optimizer never actually ran but is returning the initial
+            // parameter values
+            if (data.frameCount === 1) {
+                self.errorMessage = 'Optimizer failed to run';
+                frameCache.setFrameCount(0);
+                return;
+            }
+            frameCache.setFrameCount(data.frameCount);       
+        }
     };
 
     $scope.startSimulation = () => {
