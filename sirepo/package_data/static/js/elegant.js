@@ -230,7 +230,7 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
             : ((cmd.emit_z !== 0 || cmd.beta_z !== 0)
                ? 3 // emit z, beta z, alpha z
                : 2); // sigma s, sigma dp, alpha z
-        updateTwissFromBunch(bunch);
+        updateTwissFromBunch(cmd, bunch);
     }
 
     function updateCommandFromBunch(cmd, bunch) {
@@ -255,10 +255,13 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
             cmd.sigma_s = 0;
             cmd.dp_s_coupling = 0;
         }
-        updateTwissFromBunch(bunch);
+        updateTwissFromBunch(cmd, bunch);
     }
 
-    function updateTwissFromBunch(bunch) {
+    function updateTwissFromBunch(bunchedBeam, bunch) {
+        if (bunchedBeam.use_twiss_command_values == '1') {
+            return;
+        }
         var cmd = self.findFirstCommand('twiss_output');
         if (cmd) {
             ['beta', 'alpha', 'eta', 'etap'].forEach(function(prefix) {
