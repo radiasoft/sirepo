@@ -11,6 +11,37 @@ import six
 import time
 
 
+def test_elegant_data_file(fc):
+    _get_file(fc, _run_elegant(fc), "downloadDataFile")
+
+
+def test_elegant_run_file(fc):
+    _get_file(fc, _run_elegant(fc), "downloadRunFile")
+
+
+def test_myapp_basic(fc):
+    from pykern import pkunit, pkcompat
+    from pykern.pkunit import pkok, pkeq
+
+    r = fc.sr_get("/robots.txt")
+    pkunit.pkre("elegant.*myapp.*srw", pkcompat.from_bytes(r.data))
+
+
+def test_srw(fc):
+    from pykern import pkio, pkcompat
+    from pykern.pkdebug import pkdpretty
+    from pykern.pkunit import pkeq, pkre
+    import json
+
+    r = fc.sr_get_root()
+    pkre("<!DOCTYPE html", pkcompat.from_bytes(r.data))
+    d = fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
+    r = fc.sr_get("/find-by-name-auth/srw/default/UndulatorRadiation")
+    r.assert_http_status(404)
+    for sep in (" ", "%20", "+"):
+        r = fc.sr_get("/find-by-name-auth/srw/default/Undulator{}Radiation".format(sep))
+        r.assert_http_status(200)
+
 def _get_file(fc, data, api_name):
     import sdds
     from pykern import pkunit, pkcompat
@@ -81,35 +112,3 @@ def _run_elegant(fc):
         if run.state != "completed":
             pkunit.pkfail("runStatus: failed to complete: {}", run)
     return data
-
-
-def test_elegant_data_file(fc):
-    _get_file(fc, _run_elegant(fc), "downloadDataFile")
-
-
-def test_elegant_run_file(fc):
-    _get_file(fc, _run_elegant(fc), "downloadRunFile")
-
-
-def test_myapp_basic(fc):
-    from pykern import pkunit, pkcompat
-    from pykern.pkunit import pkok, pkeq
-
-    r = fc.sr_get("/robots.txt")
-    pkunit.pkre("elegant.*myapp.*srw", pkcompat.from_bytes(r.data))
-
-
-def test_srw(fc):
-    from pykern import pkio, pkcompat
-    from pykern.pkdebug import pkdpretty
-    from pykern.pkunit import pkeq, pkre
-    import json
-
-    r = fc.sr_get_root()
-    pkre("<!DOCTYPE html", pkcompat.from_bytes(r.data))
-    d = fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
-    r = fc.sr_get("/find-by-name-auth/srw/default/UndulatorRadiation")
-    r.assert_http_status(404)
-    for sep in (" ", "%20", "+"):
-        r = fc.sr_get("/find-by-name-auth/srw/default/Undulator{}Radiation".format(sep))
-        r.assert_http_status(200)
