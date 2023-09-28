@@ -42,6 +42,7 @@ def test_srw(fc):
         r = fc.sr_get("/find-by-name-auth/srw/default/Undulator{}Radiation".format(sep))
         r.assert_http_status(200)
 
+
 def _get_file(fc, data, api_name):
     import sdds
     from pykern import pkunit, pkcompat

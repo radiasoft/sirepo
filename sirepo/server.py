@@ -119,15 +119,11 @@ class API(sirepo.quest.API):
         simulation_db.delete_simulation(req.type, req.id, qcall=self)
         return self.reply_ok()
 
-    @sirepo.quest.Spec(
-        "require_user", filename="SimFileName"
-    )
+    @sirepo.quest.Spec("require_user", filename="SimFileName")
     async def api_downloadFile(self, simulation_type, filename):
         return await self.api_downloadLibFile(simulation_type, filename)
 
-    @sirepo.quest.Spec(
-        "require_user", filename="SimFileName"
-    )
+    @sirepo.quest.Spec("require_user", filename="SimFileName")
     async def api_downloadLibFile(self, simulation_type, filename):
         # TODO(pjm): simulation_id is an unused argument
         req = self.parse_params(type=simulation_type, filename=filename)
