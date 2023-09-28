@@ -176,7 +176,10 @@ def _apply_material(g_id, **kwargs):
         d = PKDict(kwargs)
         if d.material == "custom":
             return radia.MatSatIsoTab(
-                [[_MU_0 * d.h_m_curve[i][0], d.h_m_curve[i][1]] for i in range(len(d.h_m_curve))]
+                [
+                    [_MU_0 * d.h_m_curve[i][0], d.h_m_curve[i][1]]
+                    for i in range(len(d.h_m_curve))
+                ]
             )
         if d.material == "nonlinear":
             f = d.materialFormula
@@ -367,7 +370,6 @@ def _geom_bounds(g_id):
         center=[bnds[2 * i] + (bnds[2 * i + 1] - bnds[2 * i]) / 2 for i in range(3)],
         size=[abs(bnds[2 * i + 1] - bnds[2 * i]) for i in range(3)],
     )
-
 
 
 def apply_color(g_id, color):
