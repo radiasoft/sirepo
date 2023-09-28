@@ -89,16 +89,7 @@ def _run_elegant(fc):
     from pykern.pkcollections import PKDict
 
     data = fc.sr_sim_data("bunchComp - fourDipoleCSR")
-    run = fc.sr_post(
-        "runSimulation",
-        PKDict(
-            forceRun=False,
-            models=data.models,
-            report="bunchReport1",
-            simulationId=data.models.simulation.simulationId,
-            simulationType=data.simulationType,
-        ),
-    )
+    run = fc.sr_run_sim(data, "bunchReport1")
     # another test may have run the simulation
     if run.state == "completed":
         return data
