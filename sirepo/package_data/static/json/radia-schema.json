@@ -814,7 +814,7 @@
             "modifications": ["", "ModelArrayTable", [], "", ["objectCut", "objectBevel", "objectFillet"]],
             "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B Curve from File", "HBFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns (H, B in Tesla)"],
-            "materialFormula": ["Nonlinear Isotropic Formula", "FloatArray", [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "", ["ms1", "ksi1", "ms2", "ksi2", "ms3", "ksi3"]],
+            "materialFormula": ["Nonlinear Isotropic Formula", "FloatArray", [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "", ["$\\mu_1$", "$\\chi_1$", "$\\mu_2$", "$\\chi_2$", "$\\mu_3$", "$\\chi_3$"]],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "segmentation": ["Segmentation Type", "SegmentationType", "pln"],
             "segmentationCylAxis": ["Segment Axis", "BeamAxis", "z"],
