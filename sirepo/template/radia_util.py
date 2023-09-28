@@ -184,7 +184,7 @@ def _apply_material(g_id, **kwargs):
         if d.material == "nonlinear":
             f = d.materialFormula
             return radia.MatSatIsoFrm(f[0:2], f[2:4], f[4:6])
-        return radia.MatStd(d.material, d.magnetization_magnitude)
+        return radia.MatStd(d.material, d.remanentMag)
 
     radia.MatApl(g_id, _radia_material(**kwargs))
 
