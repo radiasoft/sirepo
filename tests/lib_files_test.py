@@ -118,14 +118,14 @@ def test_srw_delete(fc):
     )
     pkunit.pkre("does not exist", pkcompat.from_bytes(r.data))
 
-    r = fc.sr_get_json(
+    r = fc.sr_get(
         "downloadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             filename=u.basename,
         ),
     )
-    pkunit.pkre("not_used_name.zip.*does not exist", pkcompat.from_bytes(r))
+    pkunit.pkre("not_used_name.zip.*does not exist", pkcompat.from_bytes(r.data))
 
 
 def test_srw_upload(fc):
