@@ -24,7 +24,7 @@ SIREPO.app.config(function() {
           <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
         </div>
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
-            <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float" data-custom-label="POOP"></div>
+            <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
         </div>
         <div data-ng-switch-when="Group" class="col-sm-12">
             <div data-group-editor="" data-field="model[field]" data-model="model"></div>
@@ -3185,10 +3185,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     const builtinExtruded = ['cee', 'ell', 'jay'];
     const ctl = angular.element($('div[data-ng-controller]').eq(0)).controller('ngController');
     let editedModels = [];
-    const materialFields = [
-        'geomObject.magnetization',
-        'geomObject.material'
-    ];
+    const materialFields = ['geomObject.magnetization', 'geomObject.material'];
     const parent = $scope.$parent;
 
     $scope.watchFields = [
