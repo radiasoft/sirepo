@@ -3185,7 +3185,10 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     const builtinExtruded = ['cee', 'ell', 'jay'];
     const ctl = angular.element($('div[data-ng-controller]').eq(0)).controller('ngController');
     let editedModels = [];
-    const materialFields = ['geomObject.magnetization', 'geomObject.material'];
+    const materialFields = [
+        'geomObject.magnetization',
+        'geomObject.material'
+    ];
     const parent = $scope.$parent;
 
     $scope.watchFields = [
@@ -3330,6 +3333,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         });
 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
+        panelState.showField('geomObject', 'materialFormula', o.material === 'nonlinear');
         panelState.enableField('geomObject', 'size', true);
         panelState.showField('geomObject', 'segments', editedModels.includes('cylinder') || ! editedModels.includes('extrudedObject'));
 
@@ -3389,6 +3393,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     appState.watchModelFields($scope, materialFields, () => {
+        updateEditor();
         radiaService.validateMagnetization($scope.modelData.magnetization, $scope.modelData.material);
     }, true);
 

@@ -172,8 +172,18 @@ def _apply_fillet(g_id, **kwargs):
 
 
 def _apply_material(g_id, **kwargs):
-    d = PKDict(kwargs)
-    radia.MatApl(g_id, _radia_material(d.material, d.remanentMag, d.h_m_curve))
+    def _radia_material(**kwargs):
+        d = PKDict(kwargs)
+        if d.material == "custom":
+            return radia.MatSatIsoTab(
+                [[_MU_0 * d.h_m_curve[i][0], d.h_m_curve[i][1]] for i in range(len(d.h_m_curve))]
+            )
+        if d.material == "nonlinear":
+            f = d.materialFormula
+            return radia.MatSatIsoFrm(f[0:2], f[2:4], f[4:6])
+        return radia.MatStd(d.material, d.magnetization_magnitude)
+
+    radia.MatApl(g_id, _radia_material(**kwargs))
 
 
 def _apply_modification(g_id, **kwargs):
@@ -358,13 +368,6 @@ def _geom_bounds(g_id):
         size=[abs(bnds[2 * i + 1] - bnds[2 * i]) for i in range(3)],
     )
 
-
-def _radia_material(material_type, magnetization_magnitude, h_m_curve):
-    if material_type == "custom":
-        return radia.MatSatIsoTab(
-            [[_MU_0 * h_m_curve[i][0], h_m_curve[i][1]] for i in range(len(h_m_curve))]
-        )
-    return radia.MatStd(material_type, magnetization_magnitude)
 
 
 def apply_color(g_id, color):
