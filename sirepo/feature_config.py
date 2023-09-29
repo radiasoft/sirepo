@@ -51,6 +51,9 @@ _NON_PROD_FOSS_CODES = frozenset(
 #: All possible open source codes
 FOSS_CODES = PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
 
+#: To globally disable react in dev by default
+REACT_IN_DEV = False
+
 #: Configuration
 _cfg = None
 
@@ -185,7 +188,7 @@ def _init():
         ),
         react_sim_types=(
             ("jspec", "genesis", "warppba", "myapp", "shadow", "madx")
-            if pkconfig.channel_in("dev")
+            if REACT_IN_DEV and pkconfig.channel_in("dev")
             else (),
             set,
             "React apps",
