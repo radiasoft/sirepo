@@ -3,19 +3,22 @@
 set -eou pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+declare _mail_d=~/mail
+
 _env_common() {
     export PYKERN_PKDEBUG_WANT_PID_TIME=1
 }
 
-_env_email_common() {
-    # default is fine
-    unset SIREPO_FROM_EMAIL
-    unset SIREPO_FROM_NAME
-    export SIREPO_AUTH_METHODS='email:guest'
+_env_mail_common() {
+    export SIREPO_SMTP_FROM_NAME=$USER+support@localhost.localdomain
+    export SIREPO_SMTP_FROM_EMAIL=DevSupport
+    if [[ ! ${SIREPO_AUTH_METHODS:-} =~ email ]]; then
+        export SIREPO_AUTH_METHODS=email:guest
+    fi
 }
 
-_env_email_smtp() {
-    _env_email_common
+_env_mail_smtp() {
+    _env_mail_common
     export SIREPO_SMTP_FROM_EMAIL=$USER+support@localhost.localdomainn
     export SIREPO_SMTP_SEND_DIRECTLY=1
     export SIREPO_SMTP_SERVER=localhost
@@ -26,9 +29,14 @@ _err() {
     return 1
 }
 
+_exec_all() {
+    _env_common
+    exec sirepo service http
+}
+
 _main() {
     declare mode=${1:-missing-arg}
-    shift
+    shift || true
     declare f=_op_$mode
     if [[ $(type -t "$f") != 'function' ]]; then
         _err "invalid mode=$mode
@@ -43,47 +51,124 @@ _msg() {
     echo "$@" 1>&2
 }
 
+_op_ldap() {
+    if ! systemctl is-active slapd &> /dev/null; then
+       _msg "setting up ldap/slapd"
+       cd "$(dirname "$0")"
+       bash setup-ldap.sh
+       cd -
+    fi
+    export SIREPO_AUTH_METHODS=guest:ldap
+    _msg 'To test:
+
+Login as vagrant@radiasoft.net/vagrant
+'
+    _exec_all
+}
+
+
+_op_mail() {
+    _setup_smtp
+    _exec_all
+}
+
 _op_moderate() {
+    _setup_smtp
     export SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES=srw
-    export SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL=$SIREPO_FROM_EMAIL
+    export SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL=$USER+moderator@localhost.localdomain
     _msg "Moderated sym_type=$SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES"
-    _setup_smtp
     _exec_all
 }
 
-_op_email() {
-    _setup_smtp
-    _exec_all
-}
-
-_op_no_smtp_email() {
+_op_no_smtp_mail() {
     # POSIT: same as sirepo.smtp.DEV_SMTP_SERVER
     export SIREPO_SMTP_SERVER=dev
-    _env_email_common
+    _env_mail_common
     _exec_all
 }
 
-_exec_all() {
-    _env_common
-    exec sirepo service http
+_op_react() {
+    export SIREPO_FEATURE_CONFIG_UI_REACT=1
+    # Only one auth method allowed
+    export SIREPO_AUTH_METHODS=email
+    # Websockets don't work
+    export SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=0
+    _op_mail
+}
+
+_op_react_build() {
+    if [[ ! ${run_react_build_no_compile:-} ]]; then
+        cd "$(dirname "$0")"/../react
+        rm -rf build
+        npm run-script build
+        (
+            # These aren't likely to fail so run in subshell
+            cd ..
+            rm -f sirepo/package_data/static/react
+            ln -s ../../../react/build sirepo/package_data/static/react
+        )
+    fi
+    export SIREPO_PKCLI_SERVICE_REACT_PORT=
+    export SIREPO_SERVER_REACT_SERVER=build
+    _op_react
+}
+
+_op_server_status() {
+    declare u=$(cd "$(dirname "$0")"/../run/user && ls -d ???????? 2>/dev/null | head -1)
+    if [[ ! $u ]]; then
+        _err 'Start the server first to create a user and then server_status can work'
+    fi
+    export SIREPO_AUTH_BASIC_PASSWORD=password
+    export SIREPO_AUTH_BASIC_UID=$u
+    export SIREPO_AUTH_METHODS=guest:basic
+    export SIREPO_FEATURE_CONFIG_API_MODULES=status
+    _msg "To test:
+
+curl -u '$u:$SIREPO_AUTH_BASIC_PASSWORD' http://localhost:8000/server-status
+"
+    _exec_all
+}
+
+_op_test_mail() {
+    _msg 'Testing local mail delivery'
+    echo xyzzy | sendmail "$USER"@localhost.localdomain
+    declare i
+    for i in $(seq 4); do
+        sleep 1
+        if grep -s xyzzy "$_mail_d"/1 &>/dev/null; then
+            rm "$_mail_d"/1
+            return
+        fi
+    done
+    _err mail delivery test failed
 }
 
 _setup_smtp() {
-    _env_smtp_email
-    if [[ -d ~/mail ]]; then
-        return
+    _env_mail_smtp
+    if [[ ! -d $_mail_d ]]; then
+        install -m 700 -d "$_mail_d"
     fi
-    echo 'Setting up SMTP (one time, takes a few minutes)' 1>&2
-    install -m 700 -d ~/mail
-    install -m 600 /dev/stdin ~/.procmailrc <<'END'
+    if [[ ! -r ~/.procmailrc ]]; then
+        install -m 600 /dev/stdin ~/.procmailrc <<'END'
 UMASK=077
 :0
 mail/.
 END
-    sudo su - <<'END'
-        dnf install -y postfix procmail
-        # Necessary or on docker on Ubuntu tries to open ipv6
-        sed -i '/^::1\s/d' /etc/hosts
+    fi
+    declare f
+    for f in postfix procmail; do
+        if ! rpm -q "$f" &> /dev/null; then
+            _msg "installing $f"
+            sudo dnf install -y -q postfix procmail
+        fi
+    done
+    # Necessary for docker on Ubuntu tries to open ipv6
+    if ! grep ^::1 /etc/hosts &> /dev/null; then
+        sudo sed -i '/^::1\s/d' /etc/hosts
+    fi
+    if [[ ! $(postconf -n recipient_delimiter) ]]; then
+        _msg 'configuring postfix'
+        sudo su - <<'END'
         postconf -e \
             'mydestination=$myhostname, localhost.$mydomain, localhost, localhost.localdomain' \
             mailbox_command=/usr/bin/procmail \
@@ -91,13 +176,8 @@ END
         systemctl enable postfix
         systemctl restart postfix
 END
-    _msg 'Testing local mail delivery'
-    echo xyzzy | sendmail vagrant@localhost.localdomain
-    sleep 4
-    if ! grep -s xyzzy ~/mail/1; then
-        _err mail delivery test failed
+        _op_test_mail
     fi
-    rm ~/mail/1
 }
 
 _main "$@"
