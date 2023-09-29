@@ -24,6 +24,15 @@ _env_mail_smtp() {
     export SIREPO_SMTP_SERVER=localhost
 }
 
+_env_moderate() {
+    declare sim_type=$1
+    export SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES=$sim_type
+    export SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL=$USER+moderator@localhost.localdomain
+    _msg "Moderated sym_type=$sim_type"
+    _setup_smtp
+    _env_common
+}
+
 _err() {
     _msg "$@"
     return 1
@@ -51,6 +60,60 @@ _msg() {
     echo "$@" 1>&2
 }
 
+_op_bluesky() {
+    export SIREPO_AUTH_BLUESKY_SECRET=bluesky-secret
+    export SIREPO_AUTH_METHODS=email:bluesky
+    _msg "To test, you need a sim, but this is the structure:
+
+curl -H 'Content-Type: application/json' -D - -X POST http://localhost:8000/auth-bluesky-login -d '{\"simulationId\": \"kRfyDC2q\", \"simulationType\": \"srw\"}'
+"
+    _op_mail
+}
+
+_op_flash() {
+    export SIREPO_FEATURE_CONFIG_PROPRIETARY_OAUTH_SIM_TYPES=flash
+    export SIREPO_SIM_OAUTH_FLASH_INFO_VALID_USER=G
+    if [[ ! ${SIREPO_SIM_OAUTH_FLASH_KEY:-} || ! ${SIREPO_SIM_OAUTH_FLASH_SECRET:-} ]]; then
+        echo 'You must set $SIREPO_SIM_OAUTH_FLASH_KEY and $SIREPO_SIM_OAUTH_FLASH_SECRET' 1>&2
+        exit 1
+    fi
+    _exec_all
+}
+
+_op_jupyterhub() {
+    # POSIT: versions same in container-beamsim-jupyter/build.sh
+    # Order is important: jupyterlab-server should be last so it isn't
+    # overwritten with a newer version.
+    declare p=$(pip freeze)
+    declare -a i=()
+    declare f
+    for f in \
+        jupyterhub==1.4.2 \
+        jupyterlab==3.1.14  \
+        notebook==6.5.4 \
+        jupyterlab_server==2.8.2\
+        ; do
+        if ! [[ $p =~ $f ]]; then
+            i+=( $f )
+        fi
+    done
+    if (( ${#i[@]} > 0 )); then
+        pip install "${i[@]}"
+    fi
+    if ! type configurable-http-proxy &> /dev/null; then
+        npm install --global configurable-http-proxy
+    fi
+    _env_moderate jupyterhublogin
+    sirepo service tornado &
+    sirepo service nginx-proxy &
+    sirepo job_supervisor &
+    sirepo service jupyterhub &
+    declare -a x=( $(jobs -p) )
+    # this doesn't kill uwsgi for some reason; TERM is better than KILL
+    trap "kill ${x[*]}" EXIT
+    wait -n
+}
+
 _op_ldap() {
     if ! systemctl is-active slapd &> /dev/null; then
        _msg "setting up ldap/slapd"
@@ -73,10 +136,7 @@ _op_mail() {
 }
 
 _op_moderate() {
-    _setup_smtp
-    export SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES=srw
-    export SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL=$USER+moderator@localhost.localdomain
-    _msg "Moderated sym_type=$SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES"
+    _env_moderate srw
     _exec_all
 }
 
