@@ -267,7 +267,7 @@ def _cfg():
             ),
             react_port=(
                 sirepo.const.PORT_DEFAULTS.react
-                if sirepo.feature_config.REACT_IN_DEV and pkconfig.in_dev_mode()
+                if sirepo.feature_config.cfg().ui_react and pkconfig.in_dev_mode()
                 else None,
                 _cfg_port,
                 "port on which react listens",

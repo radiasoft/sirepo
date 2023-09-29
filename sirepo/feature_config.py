@@ -51,9 +51,6 @@ _NON_PROD_FOSS_CODES = frozenset(
 #: All possible open source codes
 FOSS_CODES = PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
 
-#: To globally disable react in dev by default
-REACT_IN_DEV = False
-
 #: Configuration
 _cfg = None
 
@@ -101,7 +98,7 @@ def for_sim_type(sim_type):
 
 
 def is_react_sim_type(sim_type):
-    return sim_type in cfg().react_sim_types
+    return cfg().ui_react and sim_type in cfg().react_sim_types
 
 
 def proprietary_sim_types():
@@ -188,7 +185,7 @@ def _init():
         ),
         react_sim_types=(
             ("jspec", "genesis", "warppba", "myapp", "shadow", "madx")
-            if REACT_IN_DEV and pkconfig.channel_in("dev")
+            if pkconfig.channel_in("dev")
             else (),
             set,
             "React apps",
@@ -214,6 +211,7 @@ def _init():
             bool,
             "Trust Bash env to run Python and agents",
         ),
+        ui_react=(False, bool, "global control for React UI"),
         ui_websocket=(
             pkconfig.in_dev_mode(),
             bool,
