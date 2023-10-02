@@ -596,6 +596,37 @@ SIREPO.app.directive('randomSeed', function() {
     };
 });
 
+SIREPO.app.directive('listSearch', function() {
+    const searchClass = 'list-search-autocomplete';
+
+    return {
+        restrict: 'A',
+        scope: {
+            'list': '=listSearch',
+            'placeholderText': '@',
+        },
+        template: `
+            <span class="glyphicon glyphicon-search"></span>
+            <input class="${searchClass}" data-ng-enable="listSearch.length" placeholder="{{ placeholderText }}">
+        `,
+        controller: function($scope) {
+
+            function buildSearch(list) {
+                const sel = $(`.${searchClass}`);
+                sel.autocomplete({
+                    source: list,
+                });
+                return sel;
+            }
+
+            $scope.$watch('listSearch', (o, n) => {
+                buildSearch($scope.listSearch);
+            });
+        },
+    };
+});
+
+
 SIREPO.app.directive('srTooltip', function(appState, mathRendering, utilities) {
     return {
         restrict: 'A',

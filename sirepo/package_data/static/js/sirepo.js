@@ -3633,6 +3633,10 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         return self.fileTree;
     };
 
+    self.getSimItem = simId => {
+        return findSimInTree(simId);
+    }
+
     self.getSimList = function () {
         return simList;
     };
@@ -4282,6 +4286,19 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         }
         return 'Simulation';
     };
+
+    self.simList = () => {
+        //const ll = [];
+        const l = fileManager.getSimList();
+        const ll = l.map(simId => fileManager.getSimItem(simId).name);
+        //for (const simId of l) {
+        //    const item = fileManager.getSimItem(simId);
+        //    srdbg(simId, item.name);
+        //    ll.push(item.name);
+        //}
+        srdbg(ll);
+        return l;  //l.map(simId => fileManager.getSimItem(simId).name);
+    }
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
