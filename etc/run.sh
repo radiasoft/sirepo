@@ -1,5 +1,4 @@
 #!/bin/bash
-#source ~/.bashrc
 set -eou pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
@@ -28,7 +27,7 @@ _env_moderate() {
     declare sim_type=$1
     export SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES=$sim_type
     export SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL=$USER+moderator@localhost.localdomain
-    _msg "Moderated sym_type=$sim_type"
+    _msg "Moderated sim_type=$sim_type"
     _setup_smtp
     _env_common
 }
