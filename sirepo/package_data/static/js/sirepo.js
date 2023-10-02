@@ -1274,7 +1274,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     };
 
     self.getFrame = function(modelName, index, isPlaying, callback) {
-        srdbg("CALLING GET FRAME ON modelname=", modelName);
         if (! appState.isLoaded()) {
             return;
         }
