@@ -771,23 +771,26 @@ def static_libs():
 
 
 @contextlib.contextmanager
-def tmp_dir(chdir=False, qcall=None):
+def tmp_dir(chdir=False, qcall=None, dirname=None):
     """Generates new, temporary directory
-
-    `uid` or `qcall` must be supplied.
 
     Args:
         chdir (bool): if true, will save_chdir
-        uid (str): user id
         qcall (sirepo.quest.API): request state
+        dirname: explicit dir name to use in the temp area (for caching)
     Returns:
         py.path: directory to use for temporary work
     """
     d = None
     try:
         p = user_path(qcall=qcall, check=True)
-        d = _cfg.tmp_dir or _random_id(p.join(_TMP_DIR))["path"]
-        pkio.unchecked_remove(d)
+        d = (
+            _cfg.tmp_dir
+            or (dirname and p.join(_TMP_DIR).join(dirname))
+            or _random_id(p.join(_TMP_DIR))["path"]
+        )
+        if not dirname:
+            pkio.unchecked_remove(d)
         pkio.mkdir_parent(d)
         if chdir:
             with pkio.save_chdir(d):
@@ -795,7 +798,7 @@ def tmp_dir(chdir=False, qcall=None):
         else:
             yield d
     finally:
-        if d:
+        if d and not dirname:
             pkio.unchecked_remove(d)
 
 
