@@ -1,6 +1,7 @@
 'use strict';
 SIREPO.srlog = console.log.bind(console);
 SIREPO.srdbg = console.log.bind(console);
+SIREPO.traceWS = false;
 
 // No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
 SIREPO.http_timeout = 0;
@@ -395,7 +396,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return false;
     };
 
-    self.autoSave = function(callback, errorCallback) {
+    self.autoSave = function(callback) {
         if (! self.isLoaded() ||
             lastAutoSaveData && deepEqualsNoSimulationStatus(
                 lastAutoSaveData.models, savedModelValues)
@@ -415,9 +416,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
                     urlOrParams: 'saveSimulationData',
                     successCallback: function (resp) {
                         if (resp.error) {
-                            if ($.isFunction(errorCallback)) {
-                                errorCallback(resp);
-                            }
+                            errorService.alertText(resp.error);
                             return;
                         }
                         lastAutoSaveData = self.clone(resp);
@@ -427,11 +426,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
                         });
                         if ($.isFunction(callback)) {
                             callback(resp);
-                        }
-                    },
-                    errorCallback: function (resp) {
-                        if ($.isFunction(errorCallback)) {
-                            errorCallback(resp);
                         }
                     },
                     data: lastAutoSaveData
@@ -2037,24 +2031,42 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         return url.startsWith("/auth-");
     };
 
-    const _reject = (wsreq, errorMsg) => {
-        wsreq.deferred.reject({
-            data: {state: "error", error: errorMsg || "invalid reply from server"},
-            status: 500,
-        });
+    const _protocolError = (header, content, wsreq, errorMsg) => {
+        if (! errorMsg) {
+            errorMsg = "invalid reply from server";
+        }
+        srlog(
+            `wsreq#${wsreq && wsreq.header && wsreq.header.reqSeq} protocolError:`,
+            errorMsg,
+            header,
+            content
+        );
+        if (wsreq) {
+            wsreq.deferred.reject({
+                data: {state: "error", error: errorMsg},
+                status: 500,
+            });
+        }
     };
 
     const _reply = (blob) => {
         let [header, content] = msgpack.decodeMulti(blob);
         const wsreq = needReply[header.reqSeq];
+        const _replyError = (reply) => {
+            if (SIREPO.traceWS) {
+                srlog(`wsreq#${wsreq.header.reqSeq} replyError:`, reply);
+            }
+            wsreq.deferred.reject(reply);
+        };
         if (! wsreq) {
             srlog("wsreq not found reqSeq=", header.reqSeq, " header=", header);
+            _protocolError(header, content, null);
             return;
         }
         delete needReply[header.reqSeq];
         if (header.version !== SIREPO.APP_SCHEMA.websocketMsg.version) {
             srlog("WebSocket msg invalid version in header=", header, " req=", wsreq);
-            _reject(wsreq);
+            _protocolError(header, content, wsreq);
             return;
         }
         if (header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.srException) {
@@ -2067,31 +2079,34 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
                 r.data.state = "srException";
                 r.data.srException = content;
             }
-            wsreq.deferred.reject(r);
+            _replyError(r);
             return;
         }
         if (header.kind !== SIREPO.APP_SCHEMA.websocketMsg.kind.httpReply) {
             srlog("WebSocket msg invalid kind in header=", header, " req=", wsreq);
-            _reject(wsreq);
+            _protocolError(header, content, wsreq);
             return;
         }
         const b = wsreq.responseType === "blob";
         if (content instanceof Uint8Array) {
             if (! b) {
                 srlog("WebSocket not expecting blob header=", header, " wsreq=", wsreq);
-                _reject(wsreq);
+                _protocolError(header, content, wsreq);
                 return;
             }
             content = new Blob([content]);
         }
         else if (b) {
             if (content.error) {
-                wsreq.deferred.reject({data: content});
+                _replyError({data: content});
                 return;
             }
             srlog("WebSocket expecting blob header=", header, " wsreq=", wsreq, " content=", content);
-            _reject(wsreq);
+            _protocolError(header, content, wsreq);
             return;
+        }
+        if (SIREPO.traceWS) {
+            srlog(`wsreq#${wsreq.header.reqSeq} reply:`, content);
         }
         wsreq.deferred.resolve({
             data: content,
@@ -2190,7 +2205,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             return;
         }
         delete needReply[wsreq.reqSeq];
-        _reject(wsreq, "request timed out");
+        _protocolError(null, null, wsreq, "request timed out");
     };
 
     self.send = (url, data, httpConfig) => {
@@ -2227,6 +2242,9 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             toSend.push(wsreq);
             _send();
         };
+        if (SIREPO.traceWS) {
+            srlog(`wsreq#${wsreq.header.reqSeq} send:`, wsreq.header.uri, data);
+        }
         if (data === null) {
             c();
         }
@@ -3698,6 +3716,11 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         }
     };
 
+    self.updateSim = sim => {
+        self.removeSimFromTree(sim.simulationId);
+        self.addToTree(sim);
+    };
+    
     return self;
 });
 
@@ -4105,13 +4128,18 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             });
     }
 
-    function updateSelectedItem(op, errorCallback) {
+    function updateSelectedItem(op) {
         appState.loadModels(
             self.selectedItem.simulationId,
             function() {
                 op();
                 appState.saveQuietly('simulation');
-                appState.autoSave(clearModels, errorCallback);
+                appState.autoSave(data => {
+                    if (data.models) {
+                        fileManager.updateSim(data.models.simulation);
+                    }
+                    clearModels();
+                });
                 self.selectedItem = null;
             });
     }
@@ -4233,9 +4261,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
 
     self.renameItem = function(item) {
         self.selectedItem = item;
-        self.itemToUpdate = item;
         self.renameName = item.name;
-        self.originalName = item.name;
         $('#sr-rename-confirmation').modal('show');
     };
 
@@ -4252,9 +4278,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             updateSelectedItem(function() {
                 appState.models.simulation.name = self.renameName;
                 renameSelectedItem();
-            }, function (resp) {
-                self.itemToUpdate.name = self.originalName;
-                errorService.alertText('Invalid Name: \'' + self.renameName + '\' already in use');
             });
         }
     };
