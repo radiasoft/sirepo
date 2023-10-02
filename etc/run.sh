@@ -91,7 +91,7 @@ _op_jupyterhub() {
         jupyterhub==1.4.2 \
         jupyterlab==3.1.14  \
         notebook==6.5.4 \
-        jupyterlab_server==2.8.2\
+        jupyterlab-server==2.8.2\
         ; do
         if ! [[ $p =~ $f ]]; then
             i+=( $f )
@@ -191,6 +191,7 @@ curl -u '$u:$SIREPO_AUTH_BASIC_PASSWORD' http://localhost:8000/server-status
 
 _op_test_mail() {
     _msg 'Testing local mail delivery'
+    rm -f "$_mail_d"/[0-9]*
     echo xyzzy | sendmail "$USER"@localhost.localdomain
     declare i
     for i in $(seq 4); do
