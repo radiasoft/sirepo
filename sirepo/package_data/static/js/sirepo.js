@@ -1235,7 +1235,7 @@ SIREPO.app.service('validationService', function(utilities) {
 });
 
 
-SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $interval, $rootScope) {
+SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $interval, $rootScope, $timeout) {
     var self = {};
     var frameCountByModelKey = {};
     var masterFrameCount = 0;
@@ -1274,6 +1274,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     };
 
     self.getFrame = function(modelName, index, isPlaying, callback) {
+        srdbg("CALLING GET FRAME ON modelname=", modelName);
         if (! appState.isLoaded()) {
             return;
         }
@@ -1300,24 +1301,25 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 
         const requestFunction = function() {
             const i = appState.models.simulation.simulationId;
-            setTimeout(() => {
+            $timeout(() => {
                 if (! waitTimeHasElapsed) {
                     panelState.setLoading(modelName, true);
                 }
-            }, 1000);
+            }, 5000);
             requestSender.sendRequest(
                 {
                     'routeName': 'simulationFrame',
                     '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
-                    const c = appState.models.simulation.simulationId;
-                    if (! appState.isLoaded()) {
-                        if (! c || c !== i) {
-                            return;
-                        }
-                    }
                     waitTimeHasElapsed = true;
+                    if (! appState.isLoaded()) {
+                        return;
+                    }
+                    const c = appState.models.simulation.simulationId;
+                    if (! c || c !== i) {
+                        return;
+                    }
                     panelState.setLoading(modelName, false);
                     if ('state' in data && data.state === 'missing') {
                         onError();
@@ -3714,7 +3716,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         self.removeSimFromTree(sim.simulationId);
         self.addToTree(sim);
     };
-    
+
     return self;
 });
 
