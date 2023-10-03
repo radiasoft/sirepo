@@ -596,7 +596,7 @@ SIREPO.app.directive('randomSeed', function() {
     };
 });
 
-SIREPO.app.directive('listSearch', function() {
+SIREPO.app.directive('listSearch', function(appState, fileManager) {
     const searchClass = 'list-search-autocomplete';
 
     return {
@@ -606,27 +606,25 @@ SIREPO.app.directive('listSearch', function() {
             'placeholderText': '@',
         },
         template: `
+            <input class="${searchClass}" data-ng-enable="list.length" placeholder="{{ placeholderText }}">
             <span class="glyphicon glyphicon-search"></span>
-            <input class="${searchClass}" data-ng-enable="listSearch.length" placeholder="{{ placeholderText }}">
         `,
         controller: function($scope) {
 
             let sel = null;
 
             function buildSearch() {
-                sel = $(`.${searchClass}`);
-                sel.autocomplete();
-                return sel;
+                const s = $(`.${searchClass}`);
+                s.autocomplete();
+                return s;
             }
 
             function updateSearch() {
-                sel.autocomplete( "option", "source", ['a', 'b']);
+                sel.autocomplete( "option", "source", $scope.list);
             }
 
-            $scope.$watch('listSearch', () => {
-                updateSearch();
-                //buildSearch($scope.listSearch);
-            });
+            $scope.$watch('list', updateSearch);
+
 
             sel = buildSearch();
         },

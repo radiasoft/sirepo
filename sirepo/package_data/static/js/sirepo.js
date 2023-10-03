@@ -3386,6 +3386,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     ];
     var flatTree = [];
     var simList = [];
+    let simPaths = [];
     var fList = [];
 
     function compoundPathToPath(compoundPath) {
@@ -3633,13 +3634,14 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         return self.fileTree;
     };
 
-    self.getSimItem = simId => {
-        return findSimInTree(simId);
+    self.getSimPaths = () => {
+        return simPaths;
     }
 
     self.getSimList = function () {
         return simList;
     };
+
     function getSimListFromTree() {
         return flatTree.filter(function(item) {
             return ! item.isFolder;
@@ -3647,6 +3649,16 @@ SIREPO.app.factory('fileManager', function(requestSender) {
             return item.simulationId;
         });
     }
+
+    function getSimPathsFromTree() {
+        return flatTree
+            .filter(item => ! item.isFolder)
+            .map(item => {
+                const f = self.pathName(item.parent);
+                return `${f === '/' ? '' : f + '/'}${item.name}`;
+            });
+    }
+
     function getFolderListFromTree() {
         return flatTree.filter(function(item) {
            return item.isFolder;
@@ -3671,6 +3683,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     self.updateFlatTree = function() {
         flatTree = self.flattenTree();
         simList = getSimListFromTree();
+        simPaths = getSimPathsFromTree();
         fList = getFolderListFromTree();
     };
 
@@ -4288,15 +4301,10 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     };
 
     self.simList = () => {
-        //const ll = [];
-        const l = fileManager.getSimList();
-        const ll = l.map(simId => fileManager.getSimItem(simId));
-        //for (const simId of l) {
-        //    const item = fileManager.getSimItem(simId);
-        //    srdbg(simId, item.name);
-        //    ll.push(item.name);
-        //}
-        //srdbg(ll);
+        let ll = [];
+        const l = fileManager.getSimPaths();
+        //const ll = l.map(fileManager.getSimItem);
+        //srdbg(l);
         return l;  //l.map(simId => fileManager.getSimItem(simId).name);
     }
 
