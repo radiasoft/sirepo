@@ -607,12 +607,15 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
             'placeholderText': '@',
         },
         template: `
-            <input class="${searchClass}" data-ng-enable="list.length" placeholder="{{ placeholderText }}">
+            <input class="${searchClass}" list="list-to-search" data-ng-enable="list.length" placeholder="{{ placeholderText }}">
+            <datalist id="list-to-search">
+                <option data-ng-repeat="item in list">{{ item.label }}</option>
+            </datalist>
             <span class="glyphicon glyphicon-search"></span>
         `,
         controller: function($scope) {
             let sel = null;
-
+            //<input class="${searchClass}" data-ng-enable="list.length" placeholder="{{ placeholderText }}">
             function buildSearch() {
                 const s = $(`.${searchClass}`);
                 s.autocomplete({
@@ -634,8 +637,8 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
                 sel.autocomplete( "option", "source", $scope.list);
             }
 
-            $scope.$watch('list', updateSearch);
-            sel = buildSearch();
+            //$scope.$watch('list', updateSearch);
+            //sel = buildSearch();
         },
     };
 });
