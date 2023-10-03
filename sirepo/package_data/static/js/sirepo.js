@@ -3386,7 +3386,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     ];
     var flatTree = [];
     var simList = [];
-    let simPaths = [];
+    let simPaths = {};
     var fList = [];
 
     function compoundPathToPath(compoundPath) {
@@ -3655,7 +3655,10 @@ SIREPO.app.factory('fileManager', function(requestSender) {
             .filter(item => ! item.isFolder)
             .map(item => {
                 const f = self.pathName(item.parent);
-                return `${f === '/' ? '' : f + '/'}${item.name}`;
+                return {
+                    label: `${f === '/' ? '' : f + '/'}${item.name}`,
+                    value: item,
+                };
             });
     }
 
@@ -4244,7 +4247,9 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     };
 
     self.openItem = function(item) {
+        srdbg('OPEN', item);
         if (item.isFolder) {
+            srdbg('FLDR');
             item.isOpen = true;
             setActiveFolder(item);
             var current = item;
@@ -4254,9 +4259,16 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             }
         }
         else {
+            srdbg('SIM');
             requestSender.localRedirectHome(item.simulationId, item.appMode);
         }
     };
+
+    self.openSearched = item => {
+        srdbg('go to', item);
+        self.openItem(item);
+    };
+
 
     self.pathName = function(folder) {
         return fileManager.pathName(folder);
@@ -4300,13 +4312,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         return 'Simulation';
     };
 
-    self.simList = () => {
-        let ll = [];
-        const l = fileManager.getSimPaths();
-        //const ll = l.map(fileManager.getSimItem);
-        //srdbg(l);
-        return l;  //l.map(simId => fileManager.getSimItem(simId).name);
-    }
+    self.getSimPaths = fileManager.getSimPaths;
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
