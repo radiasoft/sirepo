@@ -4290,13 +4290,13 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     self.simList = () => {
         //const ll = [];
         const l = fileManager.getSimList();
-        const ll = l.map(simId => fileManager.getSimItem(simId).name);
+        const ll = l.map(simId => fileManager.getSimItem(simId));
         //for (const simId of l) {
         //    const item = fileManager.getSimItem(simId);
         //    srdbg(simId, item.name);
         //    ll.push(item.name);
         //}
-        srdbg(ll);
+        //srdbg(ll);
         return l;  //l.map(simId => fileManager.getSimItem(simId).name);
     }
 

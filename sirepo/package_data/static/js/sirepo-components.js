@@ -611,17 +611,24 @@ SIREPO.app.directive('listSearch', function() {
         `,
         controller: function($scope) {
 
-            function buildSearch(list) {
-                const sel = $(`.${searchClass}`);
-                sel.autocomplete({
-                    source: list,
-                });
+            let sel = null;
+
+            function buildSearch() {
+                sel = $(`.${searchClass}`);
+                sel.autocomplete();
                 return sel;
             }
 
-            $scope.$watch('listSearch', (o, n) => {
-                buildSearch($scope.listSearch);
+            function updateSearch() {
+                sel.autocomplete( "option", "source", ['a', 'b']);
+            }
+
+            $scope.$watch('listSearch', () => {
+                updateSearch();
+                //buildSearch($scope.listSearch);
             });
+
+            sel = buildSearch();
         },
     };
 });
