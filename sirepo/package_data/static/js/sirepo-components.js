@@ -1032,7 +1032,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                     return requestSender.formatUrl('downloadFile', {
                         simulation_id: 'unused',
                         simulation_type: SIREPO.APP_SCHEMA.simulationType,
-                        filename: SIREPO.APP_NAME == 'srw'
+                        filename: SIREPO.APP_NAME === 'srw'
                             ? $scope.model[$scope.fileField]
                             : $scope.fileType + '.' + $scope.model[$scope.fileField],
                     });
