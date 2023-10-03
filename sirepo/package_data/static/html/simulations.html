@@ -22,7 +22,7 @@
         </div>
         <div class="col-sm-12" data-sr-notify="" data-notification-name="'getStarted'" data-notification-class="'alert-info'"></div>
         <div class="sr-icon-view-toggle"><a href data-ng-click="simulations.toggleIconView()"><span class="glyphicon" data-ng-class="{'glyphicon-th-list': simulations.isIconView, 'glyphicon-th-large': ! simulations.isIconView }"></span> View as {{ simulations.isIconView ? 'List' : 'Icons' }}</a></div>
-        <div data-list-search="simulations.getSimPaths()" data-on-select="simulations.openSearched" data-placeholder-text="simulation name"></div>
+        <div data-list-search="simulations.getSimPaths()" data-on-select="simulations.openItem" data-placeholder-text="simulation name"></div>
         <div class="clearfix"></div>
 
         <div style="margin-left: 2em; margin-top: 1ex;" class="lead" data-ng-show="simulations.isWaitingForList"><img src="/static/img/sirepo_animated.gif" /> Building simulation list, please wait.</div>

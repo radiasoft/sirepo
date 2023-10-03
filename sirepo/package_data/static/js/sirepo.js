@@ -4247,9 +4247,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     };
 
     self.openItem = function(item) {
-        srdbg('OPEN', item);
         if (item.isFolder) {
-            srdbg('FLDR');
             item.isOpen = true;
             setActiveFolder(item);
             var current = item;
@@ -4259,16 +4257,9 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             }
         }
         else {
-            srdbg('SIM');
             requestSender.localRedirectHome(item.simulationId, item.appMode);
         }
     };
-
-    self.openSearched = item => {
-        srdbg('go to', item);
-        self.openItem(item);
-    };
-
 
     self.pathName = function(folder) {
         return fileManager.pathName(folder);

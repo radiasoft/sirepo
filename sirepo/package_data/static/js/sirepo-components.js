@@ -618,11 +618,13 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
                 s.autocomplete({
                     delay: 0,
                     select: (e, ui) => {
-                        // the jqueryui autocomplete wants to display the value instead of the
-                        // label when a select happens. This keeps the label in place
-                        e.preventDefault();
-                        s.val(ui.item.label);
-                        $scope.onSelect()(ui.item.value);
+                        $scope.$apply(() => {
+                            // the jqueryui autocomplete wants to display the value instead of the
+                            // label when a select happens. This keeps the label in place
+                            e.preventDefault();
+                            s.val(ui.item.label);
+                            $scope.onSelect()(ui.item.value);
+                        })
                     },
                 });
                 return s;
