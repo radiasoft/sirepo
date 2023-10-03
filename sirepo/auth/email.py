@@ -72,7 +72,6 @@ class API(sirepo.quest.API):
         req = self.parse_params(type=simulation_type)
         m = self.auth_db.model(UserModel)
         u = m.unchecked_search_by(token=token)
-        pkdp(u)
         if u and u.expires >= sirepo.srtime.utc_now():
             n = _verify_confirm(req.type, u)
             m.delete_changed_email(user=u)
