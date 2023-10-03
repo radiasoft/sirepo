@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import pytest
 
 
 def test_import_json(fc):

@@ -9,6 +9,7 @@ from pykern import pkcompat
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
+import asyncio
 import base64
 import hashlib
 import importlib
@@ -486,6 +487,15 @@ def write_zip(path):
         mode="w",
         compression=zipfile.ZIP_DEFLATED,
     )
+
+
+def yield_to_event_loop():
+    """Documents and wraps ``asyncio.sleep(0)``
+
+    If a server (api, supervisor, agent) is doing a lot of work, call
+    this routine to release the processor to the event loop.
+    """
+    asyncio.sleep(0)
 
 
 _cfg = pkconfig.init(
