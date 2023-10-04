@@ -2548,9 +2548,9 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 <div class="col-sm-12" data-simulation-status-timer="simState"></div>
                 <div data-ng-if="simState.showJobSettings()">
                   <div class="form-group form-group-sm">
-                    <div class="col-sm-12" data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
-                    <div data-sbatch-options="simState"></div>
+                    <div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
                   </div>
+                  <div data-sbatch-options="simState"></div>
                 </div>
                 <div class="col-sm-6 pull-right">
                   <button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel() }}</button>
