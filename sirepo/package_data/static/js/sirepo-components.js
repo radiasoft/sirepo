@@ -624,7 +624,7 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
                             e.preventDefault();
                             s.val(ui.item.label);
                             $scope.onSelect()(ui.item.value);
-                        })
+                        });
                     },
                 });
                 return s;
