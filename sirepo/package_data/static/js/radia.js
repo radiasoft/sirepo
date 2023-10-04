@@ -3260,10 +3260,10 @@ SIREPO.app.directive('scriptable', function(appState, panelState, plotting, radi
             whitelist: '=',
         },
         template: `
-            
+            <div data-list-search="simulations.getSimPaths()" data-on-select="simulations.openItem" data-placeholder-text="search"></div>
         `,
         controller: function($scope) {
-
+            
         },
     };
 });
