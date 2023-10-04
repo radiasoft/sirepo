@@ -917,7 +917,13 @@
             "showMarker": ["Show axis marker", "Boolean", "1"],
             "tally": ["Tally", "TallyList"],
             "threshold": ["Threshold", "Float", 0.0, "Tally cells with a value below this will not be displayed"],
-            "score": ["Score", "ScoreList"]
+            "score": ["Score", "ScoreList"],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
+            "sbatchCores": ["Cores", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchProject": ["Project", "OptionalString", ""]
         },
         "particle": {
             "value": ["Particle", "FilterParticle"]

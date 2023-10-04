@@ -269,12 +269,6 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
     self.simState.runningMessage = () => {
         return `Completed batch: ${self.simState.getFrameCount()}`;
     };
-    self.simCompletionState = () => {
-        if (self.simState.isStateError()) {
-            return '';
-        }
-        return `${frameCache.getFrameCount()} batches`;
-    };
     self.startSimulation = function() {
         tallyService.clearMesh();
         delete appState.models.openmcAnimation.tallies;
@@ -337,7 +331,7 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSender, $rootScope) {
+SIREPO.app.factory('tallyService', function(appState, cloudmcService, frameCache, requestSender, $rootScope) {
     const self = {
         mesh: null,
         fieldData: null,
@@ -396,6 +390,10 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
             data => {
                 self.outlines = data;
                 $rootScope.$broadcast('outlines.loaded');
+            },
+            err => {
+                // no outlines file, result directory has been cleared
+                frameCache.setFrameCount(0);
             },
         );
     };
@@ -1138,7 +1136,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             }
 
             function setGlobalProperties() {
-                if (! vtkScene.renderer) {
+                if (! vtkScene || ! vtkScene.renderer) {
                     return;
                 }
                 vtkScene.setBgColor(model().bgColor);
