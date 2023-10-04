@@ -9,8 +9,8 @@ _env_common() {
 }
 
 _env_mail_common() {
-    export SIREPO_SMTP_FROM_NAME=$USER+support@localhost.localdomain
-    export SIREPO_SMTP_FROM_EMAIL=DevSupport
+    export SIREPO_SMTP_FROM_NAME=DevSupport
+    export SIREPO_SMTP_FROM_EMAIL=$USER+support@localhost.localdomain
     if [[ ! ${SIREPO_AUTH_METHODS:-} =~ email ]]; then
         export SIREPO_AUTH_METHODS=email:guest
     fi
