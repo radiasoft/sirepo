@@ -829,9 +829,8 @@ class _WebSocket:
             pkdlog("uri={} enabled={}", uri, self._enabled)
             return None
         assert uri[0] == "/", f"uri={uri} must begin with '/'"
-        pkdp(uri)
         m = self._ANCHOR_RE.search(uri)
-        return self._send(_combine_req(pkdp(m.group(1)) if m else uri))
+        return self._send(_combine_req(m.group(1) if m else uri))
 
     def _send(self, msg):
         from websockets.sync import client
