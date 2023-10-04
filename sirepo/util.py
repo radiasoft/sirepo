@@ -489,13 +489,13 @@ def write_zip(path):
     )
 
 
-def yield_to_event_loop():
+async def yield_to_event_loop():
     """Documents and wraps ``asyncio.sleep(0)``
 
     If a server (api, supervisor, agent) is doing a lot of work, call
     this routine to release the processor to the event loop.
     """
-    asyncio.sleep(0)
+    await asyncio.sleep(0)
 
 
 _cfg = pkconfig.init(

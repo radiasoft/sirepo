@@ -32,6 +32,9 @@ def test_import_zip(fc):
         return json
 
     _do(fc, "zip", _parse)
+    import time
+
+    time.sleep(5)
 
 
 def _do(fc, file_ext, parse):
@@ -50,12 +53,14 @@ def _do(fc, file_ext, parse):
             sim_type = re.search(r"^([a-z]+)_", f.basename).group(1)
             fc.sr_get_root(sim_type)
             is_dev = "deviance" in f.basename
+            pkdp("here")
             res = fc.sr_post_form(
                 "importFile",
                 PKDict(folder="/importer_test"),
                 PKDict(simulation_type=sim_type),
                 file=f,
             )
+            pkdp("here")
             if is_dev:
                 m = re.search(r"Error: (.+)", json)
                 if m:
@@ -66,5 +71,5 @@ def _do(fc, file_ext, parse):
                 sim_name = f.purebasename
             else:
                 sim_name = pkcollections.json_load_any(json).models.simulation.name
-            assert "models" in res, f"file={f} res={res}"
+            pkok("models" in res, "no models file={} res={}", f, res)
             pkeq(sim_name + suffix, res.models.simulation.name)

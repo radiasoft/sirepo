@@ -617,6 +617,9 @@ class _TestClient:
             k.json = json
         if file_handle is not None:
             k.files = PKDict(file=file_handle)
+        from pykern.pkdebug import pkdp
+
+        pkdp(uri)
         return self._requests_op("post", uri, k)
 
     def _requests_op(self, op, uri, kwargs):
@@ -826,8 +829,9 @@ class _WebSocket:
             pkdlog("uri={} enabled={}", uri, self._enabled)
             return None
         assert uri[0] == "/", f"uri={uri} must begin with '/'"
+        pkdp(uri)
         m = self._ANCHOR_RE.search(uri)
-        return self._send(_combine_req(m.group(1) if m else uri))
+        return self._send(_combine_req(pkdp(m.group(1)) if m else uri))
 
     def _send(self, msg):
         from websockets.sync import client
@@ -852,6 +856,7 @@ class _WebSocket:
         self._connection.send(_WebSocketRequest(msg).buf)
         return _WebSocketResponse(
             self._connection.recv(timeout=self._test_client.timeout_secs()),
+            self.req_seq,
         )
 
     def start(self):
@@ -883,7 +888,7 @@ class _WebSocketRequest:
 
 
 class _WebSocketResponse(_Response):
-    def __init__(self, msg):
+    def __init__(self, msg, req_seq):
         from pykern.pkdebug import pkdp
         from sirepo import const
         import msgpack
@@ -894,6 +899,7 @@ class _WebSocketResponse(_Response):
         assert (
             const.SCHEMA_COMMON.websocketMsg.version == h.version
         ), f"invalid msg.version={h.version}"
+        assert req_seq == h.reqSeq, f"invalid msg.reqSeq={h.reqSeq} expect={req_seq}"
         self._headers = PKDict()
         self.data = u.unpack() if u.tell() < len(msg) else None
         self.mimetype = "application/octet"
@@ -965,7 +971,7 @@ def _cfg():
     from pykern import pkconfig
 
     __cfg = pkconfig.init(
-        # 25 is based on the speed of a MacBook Pro 2019.
+        # 100 is slower than a 2ghz cpu so should be reasonable default
         cpu_div=(25, int, "cpu speed divisor to compute timeouts"),
     )
     return __cfg

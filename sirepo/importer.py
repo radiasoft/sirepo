@@ -8,30 +8,11 @@ from pykern import pkcompat
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo import simulation_db
-import base64
+import io
 import pykern.pkio
 import sirepo.sim_data
 import sirepo.util
-import six
 import zipfile
-
-
-def do_form(form, qcall):
-    """Self-extracting archive post
-
-    Args:
-        form (flask.request.Form): what to import
-
-    Returns:
-        dict: data
-    """
-
-    if not "zip" in form:
-        raise sirepo.util.NotFound("missing zip in form")
-    data = read_zip(base64.decodebytes(pkcompat.to_bytes(form["zip"])), qcall)
-    data.models.simulation.folder = "/Import"
-    data.models.simulation.isExample = False
-    return simulation_db.save_new_simulation(data, qcall=qcall)
 
 
 def read_json(text, qcall, sim_type=None):
@@ -62,7 +43,7 @@ def read_json(text, qcall, sim_type=None):
     return d
 
 
-def read_zip(zip_bytes, qcall, sim_type=None):
+async def read_zip(zip_bytes, qcall, sim_type=None):
     """Read zip file and store contents
 
     Args:
@@ -75,9 +56,9 @@ def read_zip(zip_bytes, qcall, sim_type=None):
     with simulation_db.tmp_dir(qcall=qcall) as tmp:
         data = None
         zipped = PKDict()
-        with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
+        with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as z:
             for i in z.infolist():
-                sirepo.util.yield_to_event_loop()
+                await sirepo.util.yield_to_event_loop()
                 b = pykern.pkio.py_path(i.filename).basename
                 c = z.read(i)
                 if b.lower() == simulation_db.SIMULATION_DATA_FILE:
@@ -97,7 +78,7 @@ def read_zip(zip_bytes, qcall, sim_type=None):
         s = sirepo.sim_data.get_class(data.simulationType)
         u = qcall.auth.logged_in_user()
         for n in s.lib_file_basenames(data):
-            sirepo.util.yield_to_event_loop()
+            await sirepo.util.yield_to_event_loop()
             # TODO(robnagler) this does not allow overwrites of lib files,
             # but it needs to be modularized
             if s.lib_file_exists(n, qcall=qcall):
@@ -106,7 +87,7 @@ def read_zip(zip_bytes, qcall, sim_type=None):
             assert n in zipped, "auxiliary file={} missing in archive".format(n)
             needed.add(n)
         for b, src in zipped.items():
-            sirepo.util.yield_to_event_loop()
+            await sirepo.util.yield_to_event_loop()
             if b in needed:
                 src.copy(s.lib_file_write_path(b, qcall=qcall))
         return data

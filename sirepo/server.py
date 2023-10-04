@@ -294,7 +294,7 @@ class API(sirepo.quest.API):
             # TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
             # (dicom input is normally a zip file)
             elif pkio.has_file_extension(req.filename, "zip"):
-                data = importer.read_zip(
+                data = await importer.read_zip(
                     req.form_file.as_bytes(), self, sim_type=req.type
                 )
             else:
