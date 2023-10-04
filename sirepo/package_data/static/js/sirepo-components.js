@@ -608,7 +608,7 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
         },
         template: `
             <span class="glyphicon glyphicon-search"></span>
-            <input class="${searchClass}" data-ng-enable="list.length" placeholder="{{ placeholderText }}">
+            <input class="${searchClass}" placeholder="{{ placeholderText }}">
         `,
         controller: function($scope) {
             let sel = null;
@@ -632,6 +632,7 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
 
             function updateSearch() {
                 sel.autocomplete( "option", "source", $scope.list);
+                sel.autocomplete( "option", "disabled", ! $scope.list.length);
             }
 
             $scope.$watch('list', updateSearch);
