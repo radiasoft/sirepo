@@ -3611,13 +3611,14 @@ SIREPO.app.factory('fileManager', function(requestSender) {
 
             newItem = {
                 appMode: item.appMode,
-                parent: currentFolder,
-                name: item.name,
-                simulationId: item.simulationId,
-                lastModified: item.lastModified,
-                isExample: item.isExample,
-                notes: item.notes,
                 canExport: SIREPO.APP_SCHEMA.constants.canExportArchive,
+                isExample: item.isExample,
+                lastModified: item.lastModified,
+                name: item.name,
+                notes: item.notes,
+                path: `${item.folder === '/' ? '' : item.folder + '/'}${item.name}`,
+                parent: currentFolder,
+                simulationId: item.simulationId,
             };
             currentFolder.children.push(newItem);
         }
@@ -3634,9 +3635,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         return self.fileTree;
     };
 
-    self.getSimPaths = () => {
-        return simPaths;
-    }
+    self.getSimPaths = () => simPaths;
 
     self.getSimList = function () {
         return simList;
@@ -3654,9 +3653,8 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         return flatTree
             .filter(item => ! item.isFolder)
             .map(item => {
-                const f = self.pathName(item.parent);
                 return {
-                    label: `${f === '/' ? '' : f + '/'}${item.name}`,
+                    label: item.path,
                     value: item,
                 };
             });
