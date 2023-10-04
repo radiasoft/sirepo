@@ -607,8 +607,8 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
             'placeholderText': '@',
         },
         template: `
-            <input class="${searchClass}" data-ng-enable="list.length" placeholder="{{ placeholderText }}">
             <span class="glyphicon glyphicon-search"></span>
+            <input class="${searchClass}" data-ng-enable="list.length" placeholder="{{ placeholderText }}">
         `,
         controller: function($scope) {
             let sel = null;
