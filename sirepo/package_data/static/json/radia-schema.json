@@ -834,7 +834,6 @@
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "modifications": ["", "MultipleModelArray", [], "", ["objectCut", "objectBevel", "objectFillet"]],
-            "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B Curve from File", "HBFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns (H, B in Tesla)"],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],

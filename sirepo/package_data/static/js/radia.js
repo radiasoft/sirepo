@@ -55,9 +55,11 @@ SIREPO.app.config(function() {
         </div>
         <div data-ng-switch-when="Scriptable" class="col-sm-7">
           <div data-scriptable="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
+          <div class="sr-input-warning"></div>
         </div>
         <div data-ng-switch-when="ScriptableArray" class="col-sm-7">
           <div data-scriptable-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
+          <div class="sr-input-warning"></div>
         </div>
         <div data-ng-switch-when="TerminationTable" class="col-sm-12">
           <div data-termination-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
@@ -3255,9 +3257,10 @@ SIREPO.app.directive('scriptable', function(appState, panelState, plotting, radi
             field: '=',
             fieldName: '=',
             info: '=',
+            whitelist: '=',
         },
         template: `
-
+            
         `,
         controller: function($scope) {
 
