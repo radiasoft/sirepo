@@ -12,6 +12,10 @@ SIREPO.app.config(() => {
           <div data-sim-array="" data-model="model" data-field="field" data-sub-model-name="coupledSim"></div>
         </div>
     `;
+
+    SIREPO.appDownloadLinks = `
+        <li>mytest</li>
+    `;
 });
 
 SIREPO.app.factory('omegaService', function(appState) {
