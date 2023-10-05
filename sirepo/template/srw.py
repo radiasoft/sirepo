@@ -12,6 +12,7 @@ from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
 import array
+import asyncio
 import copy
 import glob
 import math
@@ -534,7 +535,7 @@ def sim_frame(frame_args):
             except Exception:
                 # sleep and retry to work-around concurrent file read/write
                 pkdlog("sleep and retry simulation frame read: {} {}", i, r)
-                time.sleep(2)
+                asyncio.sleep(2)
     return extract_report_data(frame_args.sim_in)
 
 
@@ -590,7 +591,7 @@ async def import_file(req, tmp_dir, qcall, **kwargs):
                     PARSED_DATA_ATTR,
                     x,
                 )
-            time.sleep(x.nextRequestSeconds)
+            await asyncio.sleep(x.nextRequestSeconds)
             r = await qcall.call_api("runStatus", data=x.nextRequest)
         else:
             raise sirepo.util.UserAlert(
