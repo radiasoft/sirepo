@@ -617,9 +617,6 @@ class _TestClient:
             k.json = json
         if file_handle is not None:
             k.files = PKDict(file=file_handle)
-        from pykern.pkdebug import pkdp
-
-        pkdp(uri)
         return self._requests_op("post", uri, k)
 
     def _requests_op(self, op, uri, kwargs):
@@ -898,6 +895,7 @@ class _WebSocketResponse(_Response):
         assert (
             const.SCHEMA_COMMON.websocketMsg.version == h.version
         ), f"invalid msg.version={h.version}"
+        # Good enough for now, since _send() is synchronous
         assert req_seq == h.reqSeq, f"invalid msg.reqSeq={h.reqSeq} expect={req_seq}"
         self._headers = PKDict()
         self.data = u.unpack() if u.tell() < len(msg) else None
@@ -971,6 +969,6 @@ def _cfg():
 
     __cfg = pkconfig.init(
         # 100 is slower than a 2ghz cpu so should be reasonable default
-        cpu_div=(25, int, "cpu speed divisor to compute timeouts"),
+        cpu_div=(100, int, "cpu speed divisor to compute timeouts"),
     )
     return __cfg
