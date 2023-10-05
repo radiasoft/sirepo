@@ -231,6 +231,29 @@ def start_tornado(ip, port, debug):
 
     class _WebSocket(websocket.WebSocketHandler):
         async def on_message(self, msg):
+            import asyncio
+
+            # WebSocketHandler only allows one on_message at a time.
+            asyncio.ensure_future(self.__on_message(msg))
+
+        def open(self):
+            nonlocal ws_count
+
+            # self.get_compression_options
+            self.set_nodelay(True)
+            r = self.request
+            self.__headers = PKDict(r.headers)
+            self.remote_addr = r.remote_ip
+            self.http_server_uri = f"{r.protocol}://{r.host}/"
+            self.msg_count = 0
+            ws_count += 1
+            self.ws_id = ws_count
+
+        def sr_get_log_user(self):
+            """Needed for initial websocket creation call"""
+            return None
+
+        async def __on_message(self, msg):
             w = _WebSocketRequest(handler=self, headers=self.__headers)
             try:
                 w.parse_msg(msg)
@@ -250,23 +273,6 @@ def start_tornado(ip, port, debug):
                     w.get("uri"),
                     w.get("log_user"),
                 )
-
-        def open(self):
-            nonlocal ws_count
-
-            # self.get_compression_options
-            self.set_nodelay(True)
-            r = self.request
-            self.__headers = PKDict(r.headers)
-            self.remote_addr = r.remote_ip
-            self.http_server_uri = f"{r.protocol}://{r.host}/"
-            self.msg_count = 0
-            ws_count += 1
-            self.ws_id = ws_count
-
-        def sr_get_log_user(self):
-            """Needed for initial websocket creation call"""
-            return None
 
     class _WebSocketRequest(PKDict):
         def parse_msg(self, msg):
