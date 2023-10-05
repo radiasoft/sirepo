@@ -292,7 +292,6 @@ class API(sirepo.quest.API):
 
         a = _args(kwargs)
         with self._reply_maybe_file(a.content) as d:
-            pkdp("create r")
             r = tornado.httpclient.AsyncHTTPClient(
                 max_buffer_size=sirepo.job.cfg().max_message_bytes,
             ).fetch(
@@ -309,9 +308,7 @@ class API(sirepo.quest.API):
             if a.create_task:
                 asyncio.create_task(_wrap_future(r))
                 return self.reply_ok()
-            pkdp("before await")
             r = await r
-            pkdp("after await")
             if not _JSON_TYPE.search(r.headers["content-type"]):
                 raise AssertionError(
                     f"expected json content-type={r.headers['content-type']}"
