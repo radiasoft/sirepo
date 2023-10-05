@@ -673,7 +673,6 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
             'placeholderText': '@',
         },
         template: `
-            <span class="glyphicon glyphicon-search"></span>
             <input class="${searchClass}" placeholder="{{ placeholderText }}">
         `,
         controller: function($scope) {
@@ -683,13 +682,18 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
                 const s = $(`.${searchClass}`);
                 s.autocomplete({
                     delay: 0,
+                    search: (e, ui) => {
+                        srdbg(e, ui);
+                    },
                     select: (e, ui) => {
                         $scope.$apply(() => {
                             // the jqueryui autocomplete wants to display the value instead of the
                             // label when a select happens. This keeps the label in place
                             e.preventDefault();
                             s.val(ui.item.label);
-                            $scope.onSelect()(ui.item.value);
+                            if (onSelect) {
+                                $scope.onSelect()(ui.item.value);
+                            }
                         });
                     },
                 });
@@ -697,7 +701,8 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
             }
 
             function updateSearch() {
-                sel.autocomplete( "option", "source", $scope.list);
+                srdbg('upd');
+                //sel.autocomplete( "option", "source", $scope.list);
                 sel.autocomplete( "option", "disabled", ! $scope.list.length);
             }
 

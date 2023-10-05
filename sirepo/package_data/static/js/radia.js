@@ -3249,7 +3249,7 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
     return self;
 });
 
-SIREPO.app.directive('scriptable', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
+SIREPO.app.directive('scriptable', function(appState, panelState, plotting, radiaOptimizationService, radiaService, requestSender, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -3257,13 +3257,29 @@ SIREPO.app.directive('scriptable', function(appState, panelState, plotting, radi
             field: '=',
             fieldName: '=',
             info: '=',
-            whitelist: '=',
         },
         template: `
-            <div data-list-search="simulations.getSimPaths()" data-on-select="simulations.openItem" data-placeholder-text="search"></div>
+            <div data-list-search="completionObjs" data-on-select=""></div>
         `,
         controller: function($scope) {
+
+            $scope.completionObjs = [];
+            const objs = radiaOptimizationService.optimizableObjects();
+            for (const name in objs) {
+                $scope.completionObjs.push({
+                    label: name,
+                    value: objs[name],
+                })
+            }
             
+            srdbg($scope.completionObjs);
+
+            function tokenize(eq)  {
+                return (eq || '')
+                    .split(/[-+*/^|%().0-9\s]/)
+                    .filter(t => t.length > 0 && SIREPO.APP_SCHEMA.constants.allowedEquationOps.includes(t));
+            };
+        
         },
     };
 });

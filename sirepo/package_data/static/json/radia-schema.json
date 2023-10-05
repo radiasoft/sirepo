@@ -36,6 +36,9 @@
                 "type": "alignBottom"
             }
         ],
+        "allowedEquationOps": [
+            "abs", "cos", "cot", "csc", "exp", "log", "pi", "sec", "sin", "tan", "sqrt"
+        ],
         "anisotropicMaterials": ["NdFeB", "SmCo5", "Sm2Co17", "Ferrite"],
         "dataDownloads": {
             "_default": [
@@ -446,7 +449,7 @@
         "cylinder": {
             "_super": ["_", "model", "extrudedObject"],
             "numSides": ["Number of Sides", "Integer", 10, "A cylinder is approximated by a regular polyhedron of this number of sides", 6],
-            "radius": ["Radius", "Float", 5.0, "", 1e-06],
+            "radius": ["Radius", "Scriptable", 5.0, "", 1e-06],
             "segmentation": ["Segmentation Type", "SegmentationType", "cyl"],
             "type": ["_", "ObjectType", "cylinder"]
         },
