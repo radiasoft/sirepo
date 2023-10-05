@@ -350,7 +350,6 @@ class SimDataBase(object):
         p = cls._lib_file_abspath(basename, data=data, qcall=qcall)
         if p:
             return p
-        from sirepo import auth
 
         raise sirepo.util.UserAlert(
             'Simulation library file "{}" does not exist'.format(basename),
