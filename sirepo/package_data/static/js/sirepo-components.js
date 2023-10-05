@@ -1076,9 +1076,9 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
             $scope.downloadFileUrl = function() {
                 if ($scope.model) {
                     return requestSender.formatUrl('downloadFile', {
-                        '<simulation_id>': 'unused',
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<filename>': SIREPO.APP_NAME == 'srw'
+                        simulation_id: 'unused',
+                        simulation_type: SIREPO.APP_SCHEMA.simulationType,
+                        filename: SIREPO.APP_NAME === 'srw'
                             ? $scope.model[$scope.fileField]
                             : $scope.fileType + '.' + $scope.model[$scope.fileField],
                     });
@@ -1321,9 +1321,9 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                     requestSender.formatUrl(
                         'uploadFile',
                         {
-                            '<simulation_id>': appState.models.simulation.simulationId,
-                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                            '<file_type>': $scope.fileType,
+                            simulation_id: appState.models.simulation.simulationId,
+                            simulation_type: SIREPO.APP_SCHEMA.simulationType,
+                            file_type: $scope.fileType,
                         }),
                     function(data) {
                         $scope.isUploading = false;
@@ -2238,16 +2238,16 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             $scope.dataFileURL = function(suffix) {
                 if (appState.isLoaded()) {
                     var params = {
-                        '<simulation_id>': appState.models.simulation.simulationId,
-                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        '<model>': $scope.modelKey,
-                        '<frame>': appState.isAnimationModelName($scope.modelKey)
+                        simulation_id: appState.models.simulation.simulationId,
+                        simulation_type: SIREPO.APP_SCHEMA.simulationType,
+                        model: $scope.modelKey,
+                        frame: appState.isAnimationModelName($scope.modelKey)
                             ? frameCache.getCurrentFrame($scope.modelKey)
                             // any value is fine (ignored)
                             : -1,
                     };
                     if (suffix) {
-                        params['<suffix>'] = suffix;
+                        params.suffix = suffix;
                     }
                     return requestSender.formatUrl('downloadDataFile', params);
                 }
@@ -2782,9 +2782,9 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
                             'uploadFile',
                             {
                                 // dummy id because no simulation id is available or required
-                                '<simulation_id>': '11111111',
-                                '<simulation_type>': simType,
-                                '<file_type>': info.file_type,
+                                simulation_id: SIREPO.nonSimulationId,
+                                simulation_type: simType,
+                                file_type: info.file_type,
                             }),
                         function(data) {
                             parentScope.isUploading = false;
@@ -3056,7 +3056,7 @@ SIREPO.app.directive('deleteSimulationModal', function(appState, $location) {
     };
 });
 
-SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, requestSender) {
+SIREPO.app.directive('resetSimulationModal', function(appDataService, appState) {
     return {
         restrict: 'A',
         scope: {
@@ -3081,7 +3081,7 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
     };
 });
 
-SIREPO.app.directive('completeRegistration', function(requestSender, errorService) {
+SIREPO.app.directive('completeRegistration', function() {
     return {
         restrict: 'A',
         template: `
@@ -3186,7 +3186,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
     };
 });
 
-SIREPO.app.directive('emailLoginConfirm', function(requestSender, $route) {
+SIREPO.app.directive('emailLoginConfirm', function() {
     return {
         restrict: 'A',
         template: `
@@ -3203,7 +3203,7 @@ SIREPO.app.directive('emailLoginConfirm', function(requestSender, $route) {
     };
 });
 
-SIREPO.app.directive('ldapLogin', function (requestSender, errorService) {
+SIREPO.app.directive('ldapLogin', function (requestSender) {
     return {
         restrict: 'A',
         scope: {
