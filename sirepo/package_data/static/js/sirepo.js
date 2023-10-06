@@ -3428,6 +3428,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     ];
     var flatTree = [];
     var simList = [];
+    let simPaths = {};
     var fList = [];
 
     function compoundPathToPath(compoundPath) {
@@ -3652,13 +3653,14 @@ SIREPO.app.factory('fileManager', function(requestSender) {
 
             newItem = {
                 appMode: item.appMode,
-                parent: currentFolder,
-                name: item.name,
-                simulationId: item.simulationId,
-                lastModified: item.lastModified,
-                isExample: item.isExample,
-                notes: item.notes,
                 canExport: SIREPO.APP_SCHEMA.constants.canExportArchive,
+                isExample: item.isExample,
+                lastModified: item.lastModified,
+                name: item.name,
+                notes: item.notes,
+                path: `${item.folder === '/' ? '' : item.folder + '/'}${item.name}`,
+                parent: currentFolder,
+                simulationId: item.simulationId,
             };
             currentFolder.children.push(newItem);
         }
@@ -3675,9 +3677,12 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         return self.fileTree;
     };
 
+    self.getSimPaths = () => simPaths;
+
     self.getSimList = function () {
         return simList;
     };
+
     function getSimListFromTree() {
         return flatTree.filter(function(item) {
             return ! item.isFolder;
@@ -3685,6 +3690,18 @@ SIREPO.app.factory('fileManager', function(requestSender) {
             return item.simulationId;
         });
     }
+
+    function getSimPathsFromTree() {
+        return flatTree
+            .filter(item => ! item.isFolder)
+            .map(item => {
+                return {
+                    label: item.path,
+                    value: item,
+                };
+            });
+    }
+
     function getFolderListFromTree() {
         return flatTree.filter(function(item) {
            return item.isFolder;
@@ -3709,6 +3726,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     self.updateFlatTree = function() {
         flatTree = self.flattenTree();
         simList = getSimListFromTree();
+        simPaths = getSimPathsFromTree();
         fList = getFolderListFromTree();
     };
 
@@ -4324,6 +4342,8 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         }
         return 'Simulation';
     };
+
+    self.getSimPaths = fileManager.getSimPaths;
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
