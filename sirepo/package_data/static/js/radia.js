@@ -996,7 +996,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
                     '<frame>': SIREPO.nonDataFileFrame,
                     '<model>': 'geometryReport',
                     '<suffix>': '.dat'
-                });  
+                });
             };
 
             $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;
@@ -1987,40 +1987,53 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
     };
 });
 
-SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, requestSender, utilities, vtkPlotting, vtkUtils, $interval, $rootScope) {
+SIREPO.app.directive('radiaViewer', function(panelState, utilities) {
+    return {
+        restrict: 'A',
+        transclude: true,
+        scope: {
+            modelName: '@',
+            viz: '<',
+        },
+        template: `
+            <div class="col-md-6">
+                <div class="panel panel-info" id="sr-magnetDisplay-basicEditor">
+                    <div class="panel-heading clearfix" data-panel-heading="Magnet Viewer" data-view-name="{{ modelName }}" data-is-report="true" data-model-key="modelName" data-report-id="reportId"></div>
+                    <div class="panel-body" data-ng-if="! panelState.isHidden(modelName)">
+                        <div data-radia-viewer-content="" data-model-name="{{ modelName }}" data-viz="viz" data-report-id="{{ reportId }}"></div>
+                    </div>
+                </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.panelState = panelState;
+            $scope.reportId = utilities.reportId();
+        },
+    };
+});
+
+SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, utilities, vtkUtils, $rootScope) {
 
     return {
         restrict: 'A',
         transclude: true,
         scope: {
             modelName: '@',
-            viewName: '@',
-            viz: '<',
+            reportId: '@',
         },
         template: `
-            <div class="col-md-6">
-                <div class="panel panel-info" id="sr-magnetDisplay-basicEditor">
-                  <div class="panel-heading clearfix" data-panel-heading="Magnet Viewer" data-view-name="magnetDisplay" data-is-report="true" data-model-key="modelKey" data-report-id="reportId"></div>
-                    <div class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
-                      <div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="true" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
-                      <div data-ng-transclude="">
-                        <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-report-id="reportId" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
-                        <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
-                            <div class="colorbar"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+            <div data-advanced-editor-pane="" data-view-name="modelName" data-want-buttons="true" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
+            <div data-ng-transclude="">
+                <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-report-id="reportId" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
+                <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
+                    <div class="colorbar"></div>
                 </div>
             </div>
         `,
         controller: function($scope, $element) {
-            $scope.reportId = utilities.reportId();
             $scope.axisObj = null;
             $scope.defaultColor = "#ff0000";
             $scope.mode = null;
-            $scope.modelKey = 'magnetDisplay';
-            $scope.panelState = panelState;
 
             $scope.isViewTypeFields = () =>
                 (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeFields;

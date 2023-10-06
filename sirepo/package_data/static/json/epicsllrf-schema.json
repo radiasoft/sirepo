@@ -96,7 +96,7 @@
             "time_step": ["Timestep", "ReadOnlyFloat", 0]
         },
         "epicsServer": {
-            "serverAddress": ["Network Address", "String", "localhost:5064", "EPICS server network address, $\\text{<host>:<port>}$"],
+            "serverAddress": ["Network Address", "String", "localhost", "EPICS server network address, $\\text{<host>:<port>}$. The port should be the UDP PVA Broadcast Port configured on the server (default is 5076)."],
             "updateFrequency": ["Update Frequency [Hz]", "UpdateFrequency", "0.5"]
         },
         "simulationStatus": {},

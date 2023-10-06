@@ -1098,6 +1098,7 @@
         },
         "geometry3DReport": {
             "title": "DAGMC Geometry",
+            "is3d": true,
             "advanced": [
                 "opacity",
                 "bgColor",
@@ -1172,6 +1173,7 @@
         },
         "openmcAnimation": {
             "title": "Tally Results",
+            "is3d": true,
             "advanced": [
                 "tally",
                 "threshold",
