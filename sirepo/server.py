@@ -269,6 +269,38 @@ class API(sirepo.quest.API):
         """
         from sirepo import importer
 
+        async def _import_file(req):
+            if not hasattr(req.template, "import_file"):
+                raise sirepo.util.Error(
+                    "Only zip files are supported",
+                    "no import_file in template req={}",
+                    req,
+                )
+            with simulation_db.tmp_dir(qcall=self) as d:
+                return await req.template.import_file(
+                    req,
+                    tmp_dir=d,
+                    qcall=self,
+                    # SRW needs a simulation created to be able to start
+                    # a background import.
+                    srw_save_sim=lambda data: _save_sim(req, data),
+                )
+
+        def _save_sim(req, data):
+            data.models.simulation.folder = req.folder
+            data.models.simulation.isExample = False
+            return self._save_new_and_reply(req, data)
+
+        def _stateful_compute(req):
+            PKDict(
+                method="import_file",
+                params=PKDict(
+                    arguments=req.import_file_arguments,
+                    python=req.form_file.as_str(),
+                    userFilename=req.filename,
+                ),
+            )
+
         error = None
         f = None
 
@@ -284,11 +316,6 @@ class API(sirepo.quest.API):
             req.form_file = f
             req.import_file_arguments = self.sreq.form_get("arguments", "")
 
-            def _save_sim(data):
-                data.models.simulation.folder = req.folder
-                data.models.simulation.isExample = False
-                return self._save_new_and_reply(req, data)
-
             if pkio.has_file_extension(req.filename, "json"):
                 data = importer.read_json(req.form_file.as_bytes(), self, req.type)
             # TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
@@ -297,25 +324,13 @@ class API(sirepo.quest.API):
                 data = await importer.read_zip(
                     req.form_file.as_bytes(), self, sim_type=req.type
                 )
+            elif hasattr(req.template, "stateful_compute_import_file"):
+                data = await _stateful_compute(req)
             else:
-                if not hasattr(req.template, "import_file"):
-                    raise sirepo.util.Error(
-                        "Only zip files are supported",
-                        "no import_file in template req={}",
-                        req,
-                    )
-                with simulation_db.tmp_dir(qcall=self) as d:
-                    data = await req.template.import_file(
-                        req,
-                        tmp_dir=d,
-                        qcall=self,
-                        # SRW needs a simulation created to be able to start
-                        # a background import.
-                        srw_save_sim=_save_sim,
-                    )
-                if "error" in data:
-                    return self.reply_dict(data)
-            return _save_sim(data)
+                data = await _import_file(req)
+            if "error" in data:
+                return self.reply_dict(data)
+            return _save_sim(req, data)
         except sirepo.util.ReplyExc:
             raise
         except Exception as e:
