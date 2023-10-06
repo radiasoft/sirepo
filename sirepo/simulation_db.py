@@ -115,10 +115,8 @@ def assert_sim_db_file_path(basename):
 
 
 def cache_dir(dirname, qcall=None):
-    """Returns a named directory within the user's temporary file-space"""
-    d = user_path(qcall=qcall, check=True).join(_TMP_DIR).join(dirname)
-    pkio.mkdir_parent(d)
-    return d
+    """Returns a named directory within the user's temporary filespace"""
+    return pkio.mkdir_parent(user_path(qcall=qcall, check=True).join(_TMP_DIR, dirname))
 
 
 def cfg():
