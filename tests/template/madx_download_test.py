@@ -25,5 +25,4 @@ def test_madx_log_download(fc):
             frame="-1",
         ),
     )
-    pkunit.pkeq(200, r.status_code)
     pkunit.pkre('title, "FODO PTC"', pkcompat.from_bytes(r.data))

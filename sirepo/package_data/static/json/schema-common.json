@@ -84,10 +84,6 @@
             "longName": "Warp VND",
             "shortName": "Warp VND"
         },
-        "webcon": {
-            "longName": "Webcon",
-            "shortName": "Webcon"
-        },
         "zgoubi": {
             "longName": "ZGOUBI",
             "shortName": "ZGOUBI"
@@ -131,15 +127,14 @@
         "deleteSimulation": "/delete-simulation",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
+        "error": "/error",
         "errorLogging": "/error-logging",
+        "forbidden": "/forbidden",
         "exportArchive": "/export-archive/<simulation_type>/<simulation_id>/<filename>",
-        "exportJupyterNotebook": "/export-jupyter-notebook/<simulation_type>/<simulation_id>/?<model>/?<title>",
-        "exportJupyterNotebook2": "/export-jupyter-notebook2/<simulation_type>",
         "favicon": "/favicon.ico",
         "faviconPng": "/favicon.png",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
-        "forbidden": "/forbidden",
         "notFound": "/not-found",
         "getModerationRequestRows": "/get-moderation-request-rows",
         "homePage": "/en/*<path_info>",
@@ -152,6 +147,7 @@
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "ownJobs": "/own-jobs",
+        "proxyError": "/proxy-error",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "pythonSource2": "/python-source2/<simulation_type>",
         "redirectJupyterHub": "/redirect-jupyterhub",
@@ -171,6 +167,7 @@
         "simulationRedirect": "/simulation-redirect/<simulation_type>/<local_route>/<simulation_id>",
         "simulationSchema": "/simulation-schema",
         "srwLight": "/light",
+        "srUnitCase": "/srUnitCase",
         "statefulCompute": "/stateful-compute",
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
@@ -209,9 +206,9 @@
             "maxSimCopies": 100,
             "oneDayMillis": 86400000,
             "paymentPlans": {
-                "basic": "Sirepo Basic",
+                "basic": "Sirepo Community",
                 "enterprise": "Sirepo Enterprise",
-                "premium": "Sirepo Premium"
+                "premium": "Sirepo Professional"
             },
             "plansUrl": "/en/plans.html",
             "simulationSourceExtension": "py"
@@ -346,16 +343,22 @@
                   "templateUrl": "/static/html/complete-registration.html"
                 }
             },
+            "contentTooLarge": {
+                "route": "/content-too-large",
+                "config": {
+                  "templateUrl": "/static/html/http-content-too-large.html"
+                }
+            },
             "error": {
                 "route": "/error",
                 "config": {
-                    "templateUrl": "/static/html/server-error.html"
+                    "templateUrl": "/static/html/http-server-error.html"
                 }
             },
             "forbidden": {
                 "route": "/forbidden",
                 "config": {
-                  "templateUrl": "/static/html/forbidden.html"
+                  "templateUrl": "/static/html/http-forbidden.html"
                 }
             },
             "findByName": {
@@ -364,6 +367,15 @@
                     "controller": "FindByNameController as findByName",
                     "templateUrl": "/static/html/find-by-name.html"
                 }
+            },
+            "httpException": {
+                "route": "/http-exception/:srExceptionOnly"
+            },
+            "httpRedirect": {
+                "route": "/http-redirect/:srExceptionOnly"
+            },
+            "invalidSimulationSerial": {
+                "route": "/invalid-simulation-serial/:srExceptionOnly"
             },
             "login": {
                 "route": "/login",
@@ -414,7 +426,7 @@
             "notFound": {
                 "route": "/not-found",
                 "config": {
-                  "templateUrl": "/static/html/not-found.html"
+                  "templateUrl": "/static/html/http-not-found.html"
                 }
             },
             "notFoundCopy": {
@@ -424,15 +436,17 @@
                   "templateUrl": "/static/html/copy-session.html"
                 }
             },
-            "sbatchLogin": {
-                "route": "/sbatch-login/:isModal/:reason/:simulationType/:simulationId/:report/:host",
+            "proxyError": {
+                "route": "/proxy-error",
                 "config": {
-                  "controller": "SbatchLoginController as sbatchLogin",
-                  "templateUrl": "/static/html/sbatch-login.html"
+                    "templateUrl": "/static/html/http-proxy-error.html"
                 }
             },
+            "sbatchLogin": {
+                "route": "/sbatch-login/:srExceptionOnly"
+            },
             "serverUpgraded": {
-                "route": "/server-upgraded",
+                "route": "/server-upgraded/:reason?",
                 "config": {
                   "controller": "ServerUpgradedController as serverUpgraded",
                   "templateUrl": "/static/html/server-upgraded.html"
@@ -542,34 +556,29 @@
     },
     "customErrors": {
         "403": {
-            "url": "forbidden.html",
+            "url": "http-forbidden.html",
             "msg": "Forbidden",
             "route": "forbidden"
         },
         "404": {
-            "url": "not-found.html",
+            "url": "http-not-found.html",
             "msg": "File Not Found",
             "route": "notFound"
         },
         "413": {
-            "url": "content-too-large.html",
+            "url": "http-content-too-large.html",
             "msg": "Content Too Large",
             "route": "contentTooLarge"
         },
-        "422": {
-            "url": "srw-magnet-file-error.html",
-            "msg": "Invalid Magnet File",
-            "route": "error"
-        },
         "500": {
-            "url": "server-error.html",
+            "url": "http-server-error.html",
             "msg": "Server Error",
             "route": "error"
         },
         "502": {
-            "url": "server-error.html",
+            "url": "http-proxy-error.html",
             "msg": "Proxy Error",
-            "route": "error"
+            "route": "proxy-error"
         }
     }
 }

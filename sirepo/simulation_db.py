@@ -28,6 +28,7 @@ import random
 import re
 import sirepo.const
 import sirepo.file_lock
+import sirepo.job
 import sirepo.mpi
 import sirepo.resource
 import sirepo.srdb
@@ -103,8 +104,14 @@ def app_version():
 
 
 def assert_sid(sid):
-    assert _ID_RE.search(sid), "invalid sid={}".format(sid)
-    return sid
+    if _ID_RE.search(sid) or sirepo.job.QUASI_SID_RE.search(sid):
+        return sid
+    raise AssertionError(f"invalid sid={sid}")
+
+
+def assert_sim_db_file_path(basename):
+    assert _SIM_DB_FILE_PATH_RE.search(basename), f"basename={basename} is invalid"
+    return basename
 
 
 def cfg():
@@ -581,17 +588,17 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
     def _serial_validate(incoming, on_disk):
         if incoming == _SERIAL_INITIALIZE or incoming == on_disk:
             return on_disk
-        raise util.Error(
+        raise util.SRException(
+            "serverUpgraded",
             PKDict(
-                error="invalidSerial",
-                sim_type=data.simulationType,
-                simulationData=data,
+                reason="invalidSimulationSerial",
+                simulationType=data.get("simulationType"),
             ),
             "{}: incoming serial {} than stored serial={} sid={}, resetting client",
             incoming,
             "newer" if incoming > on_disk else "older",
             on_disk,
-            data.models.simulation.simulationId,
+            data.pkunchecked_nested_get("models.simulation.simulationId"),
         )
 
     def _version_validate(data):
@@ -600,7 +607,7 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
         if data.get("version", SCHEMA_COMMON.version) != SCHEMA_COMMON.version:
             raise util.SRException(
                 "serverUpgraded",
-                None,
+                PKDict(reason="newRelease", simulationType=data.get("simulationType")),
                 "data={} != server={}",
                 data.get("version"),
                 SCHEMA_COMMON.version,
@@ -684,7 +691,7 @@ def sim_db_file_uri(simulation_type, sid, basename):
         [
             sirepo.template.assert_sim_type(simulation_type),
             assert_sid(sid),
-            _assert_sim_db_file_path(basename),
+            assert_sim_db_file_path(basename),
         ]
     )
 
@@ -695,7 +702,7 @@ def sim_db_file_uri_to_path(path, expect_uid):
     assert p[0] == expect_uid, f"uid={p[0]} is not expect_uid={expect_uid}"
     sirepo.template.assert_sim_type(p[1]),
     assert_sid(p[2]),
-    _assert_sim_db_file_path(p[3]),
+    assert_sim_db_file_path(p[3]),
     return user_path_root().join(*p)
 
 
@@ -895,11 +902,6 @@ def write_json(filename, data):
         filename (py.path or str): will append sirepo.const.JSON_SUFFIX if necessary
     """
     util.json_dump(data, path=json_filename(filename), pretty=True)
-
-
-def _assert_sim_db_file_path(basename):
-    assert _SIM_DB_FILE_PATH_RE.search(basename), f"basename={basename} is invalid"
-    return basename
 
 
 def _create_lib_and_examples(user_dir, sim_type, qcall=None):

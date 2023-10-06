@@ -84,4 +84,4 @@ def test_myapp_analysis(fc):
             suffix="sr_long_analysis",
         ),
     )
-    pkunit.pkeq(413, r.status_code)
+    r.assert_http_status(413)

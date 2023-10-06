@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import pytest
 import re
 
@@ -45,7 +44,7 @@ def test_follow_email_auth_link_twice(auth_fc):
     fc = auth_fc
 
     from pykern import pkconfig, pkunit, pkio, pkcompat
-    from pykern.pkunit import pkok, pkre
+    from pykern.pkunit import pkok, pkre, pkexcept
     from pykern.pkdebug import pkdp
     import json
 
@@ -55,14 +54,14 @@ def test_follow_email_auth_link_twice(auth_fc):
     )
     # The link comes back in dev mode so we don't have to check email
     s = fc.sr_auth_state(isLoggedIn=False)
-    fc.get(r.uri)
-    # get the url twice - should still be logged in
-    d = fc.sr_get(r.uri)
-    assert not re.search(r"login-fail", pkcompat.from_bytes(d.data))
     fc.sr_email_confirm(r)
+    # post to the url twice - should still be logged in, but not found
+    fc.sr_get(r.uri, redirect=False).assert_http_redirect("/myapp#/simulations")
     fc.sr_logout()
     # now logged out, should see login fail for bad link
-    pkre("login-fail", pkcompat.from_bytes(fc.get(r.uri).data))
+    fc.sr_get(r.uri, redirect=False).assert_http_redirect(
+        "/login-fail/email/email-token"
+    )
 
 
 def test_force_login(auth_fc):
@@ -78,7 +77,7 @@ def test_force_login(auth_fc):
     r = fc.sr_post(
         "authEmailLogin", {"email": "force@b.c", "simulationType": fc.sr_sim_type}
     )
-    fc.get(r.uri)
+    fc.sr_email_confirm(r)
     fc.sr_logout()
     with pkexcept("SRException.*routeName.*login"):
         fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
