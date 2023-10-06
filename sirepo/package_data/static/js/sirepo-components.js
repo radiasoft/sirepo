@@ -596,6 +596,54 @@ SIREPO.app.directive('randomSeed', function() {
     };
 });
 
+SIREPO.app.directive('listSearch', function(appState, fileManager) {
+    const searchClass = 'list-search-autocomplete';
+
+    return {
+        restrict: 'A',
+        scope: {
+            list: '=listSearch',
+            onSelect: '&',
+            placeholderText: '@',
+        },
+        template: `
+            <div class="input-group input-group-sm">
+              <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+              <input class="${searchClass} form-control" placeholder="{{ placeholderText }}" />
+            </div>
+       `,
+        controller: function($scope) {
+            let sel = null;
+
+            function buildSearch() {
+                const s = $(`.${searchClass}`);
+                s.autocomplete({
+                    delay: 0,
+                    select: (e, ui) => {
+                        $scope.$apply(() => {
+                            // the jqueryui autocomplete wants to display the value instead of the
+                            // label when a select happens. This keeps the label in place
+                            e.preventDefault();
+                            s.val(ui.item.label);
+                            $scope.onSelect()(ui.item.value);
+                        });
+                    },
+                });
+                return s;
+            }
+
+            function updateSearch() {
+                sel.autocomplete('option', 'source', $scope.list);
+                sel.autocomplete('option', 'disabled', ! $scope.list.length);
+            }
+
+            $scope.$watch('list', updateSearch);
+            sel = buildSearch();
+        },
+    };
+});
+
+
 SIREPO.app.directive('srTooltip', function(appState, mathRendering, utilities) {
     return {
         restrict: 'A',
