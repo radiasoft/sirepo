@@ -281,13 +281,13 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         self.simState.saveAndRunSimulation('openmcAnimation');
     };
     self.simState.logFileURL = function() {
-        return requestSender.formatUrl('downloadDataFile', {
-            '<simulation_id>': appState.models.simulation.simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': self.simState.model,
-            '<frame>': SIREPO.nonDataFileFrame,
-            '<suffix>': 'log',
-        });
+        return requestSender.downloadDataFileUrl(
+            appState,
+            {
+                model: self.simState.model,
+                suffix: 'log',
+            },
+        );
     };
     self.tallyTitle = () => {
         const a = appState.models.openmcAnimation;
@@ -387,26 +387,16 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
 
     self.loadOutlines = () => {
         self.outlines = {};
-        const url = requestSender.formatUrl(
-            'downloadDataFile',
+        requestSender.sendDownloadDataFile(
+            appState,
             {
-                '<simulation_id>': appState.models.simulation.simulationId,
-                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                '<model>': 'openmcAnimation',
-                '<frame>': SIREPO.nonDataFileFrame,
-                '<suffix>': '.json',
-            }
-        );
-        requestSender.sendRequest(
-            url,
+                model: 'openmcAnimation',
+                suffix: 'json',
+            },
             data => {
                 self.outlines = data;
                 $rootScope.$broadcast('outlines.loaded');
             },
-            false,
-            res => {
-                throw new Error(res.error);
-            }
         );
     };
 
@@ -464,14 +454,13 @@ SIREPO.app.factory('volumeLoadingService', function(appState, requestSender, $ro
     }
 
     function volumeURL(volId) {
-        return requestSender.formatUrl(
-            'downloadDataFile',
+        return requestSender.downloadDataFileUrl(
+            appState,
             {
-                '<simulation_id>': appState.models.simulation.simulationId,
-                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                '<model>': 'dagmcAnimation',
-                '<frame>': volId,
-            });
+                model: 'dagmcAnimation',
+                frame: volId,
+            }
+        );
     }
 
     self.loadVolumes = (volIds, initCallback, loadedCallback) => {
