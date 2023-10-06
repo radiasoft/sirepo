@@ -11,7 +11,7 @@ def test_happy_path():
     from pykern import pkunit
 
     r, u = _call_login("vagrant@radiasoft.net", "vagrant")
-    pkunit.pkeq("/myapp/complete-registration", r.content_as_redirect().uri)
+    pkunit.pkeq("/myapp#/complete-registration", r.content_as_redirect().uri)
     pkunit.pkne(None, u)
 
 
