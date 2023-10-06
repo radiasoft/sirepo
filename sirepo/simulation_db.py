@@ -114,6 +114,13 @@ def assert_sim_db_file_path(basename):
     return basename
 
 
+def cache_dir(dirname, qcall=None):
+    """Returns a named directory within the user's temporary file-space"""
+    d = user_path(qcall=qcall, check=True).join(_TMP_DIR).join(dirname)
+    pkio.mkdir_parent(d)
+    return d
+
+
 def cfg():
     return _cfg
 
@@ -771,26 +778,20 @@ def static_libs():
 
 
 @contextlib.contextmanager
-def tmp_dir(chdir=False, qcall=None, dirname=None):
+def tmp_dir(chdir=False, qcall=None):
     """Generates new, temporary directory
 
     Args:
         chdir (bool): if true, will save_chdir
         qcall (sirepo.quest.API): request state
-        dirname: explicit dir name to use in the temp area (for caching)
     Returns:
         py.path: directory to use for temporary work
     """
     d = None
     try:
         p = user_path(qcall=qcall, check=True)
-        d = (
-            _cfg.tmp_dir
-            or (dirname and p.join(_TMP_DIR).join(dirname))
-            or _random_id(p.join(_TMP_DIR))["path"]
-        )
-        if not dirname:
-            pkio.unchecked_remove(d)
+        d = _cfg.tmp_dir or _random_id(p.join(_TMP_DIR))["path"]
+        pkio.unchecked_remove(d)
         pkio.mkdir_parent(d)
         if chdir:
             with pkio.save_chdir(d):
@@ -798,7 +799,7 @@ def tmp_dir(chdir=False, qcall=None, dirname=None):
         else:
             yield d
     finally:
-        if d and not dirname:
+        if d:
             pkio.unchecked_remove(d)
 
 
