@@ -602,14 +602,16 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
     return {
         restrict: 'A',
         scope: {
-            'list': '=listSearch',
-            'onSelect': '&',
-            'placeholderText': '@',
+            list: '=listSearch',
+            onSelect: '&',
+            placeholderText: '@',
         },
         template: `
-            <span class="glyphicon glyphicon-search"></span>
-            <input class="${searchClass}" placeholder="{{ placeholderText }}">
-        `,
+            <div class="input-group input-group-sm">
+              <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+              <input class="${searchClass} form-control" placeholder="{{ placeholderText }}" />
+            </div>
+       `,
         controller: function($scope) {
             let sel = null;
 
@@ -631,8 +633,8 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
             }
 
             function updateSearch() {
-                sel.autocomplete( "option", "source", $scope.list);
-                sel.autocomplete( "option", "disabled", ! $scope.list.length);
+                sel.autocomplete('option', 'source', $scope.list);
+                sel.autocomplete('option', 'disabled', ! $scope.list.length);
             }
 
             $scope.$watch('list', updateSearch);
