@@ -596,6 +596,54 @@ SIREPO.app.directive('randomSeed', function() {
     };
 });
 
+SIREPO.app.directive('listSearch', function(appState, fileManager) {
+    const searchClass = 'list-search-autocomplete';
+
+    return {
+        restrict: 'A',
+        scope: {
+            list: '=listSearch',
+            onSelect: '&',
+            placeholderText: '@',
+        },
+        template: `
+            <div class="input-group input-group-sm">
+              <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+              <input class="${searchClass} form-control" placeholder="{{ placeholderText }}" />
+            </div>
+       `,
+        controller: function($scope) {
+            let sel = null;
+
+            function buildSearch() {
+                const s = $(`.${searchClass}`);
+                s.autocomplete({
+                    delay: 0,
+                    select: (e, ui) => {
+                        $scope.$apply(() => {
+                            // the jqueryui autocomplete wants to display the value instead of the
+                            // label when a select happens. This keeps the label in place
+                            e.preventDefault();
+                            s.val(ui.item.label);
+                            $scope.onSelect()(ui.item.value);
+                        });
+                    },
+                });
+                return s;
+            }
+
+            function updateSearch() {
+                sel.autocomplete('option', 'source', $scope.list);
+                sel.autocomplete('option', 'disabled', ! $scope.list.length);
+            }
+
+            $scope.$watch('list', updateSearch);
+            sel = buildSearch();
+        },
+    };
+});
+
+
 SIREPO.app.directive('srTooltip', function(appState, mathRendering, utilities) {
     return {
         restrict: 'A',
@@ -1740,14 +1788,14 @@ SIREPO.app.directive('safePath', function() {
     };
 });
 
-SIREPO.app.directive('showLoadingAndError', function(panelState) {
+SIREPO.app.directive('showLoadingAndError', function(appState, panelState) {
     return {
         transclude: true,
         scope: {
             modelKey: '@',
         },
         template: `
-            <div data-ng-class="{'sr-panel-loading': panelState.isLoading(modelKey), 'sr-panel-error': panelState.getError(modelKey), 'sr-panel-running': panelState.isRunning(modelKey), 'sr-panel-waiting': panelState.isWaiting(modelKey), 'has-transclude': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
+            <div data-ng-class="{'sr-panel-loading': panelState.isLoading(modelKey), 'sr-panel-error': panelState.getError(modelKey), 'sr-panel-running': panelState.isRunning(modelKey), 'sr-panel-waiting': panelState.isWaiting(modelKey), 'has-transclude': hasTransclude()}" class="panel-body" data-ng-hide="panelState.isHidden(modelKey)" data-ng-if="preserveMinimized || ! panelState.isHidden(modelKey)">
               <div data-ng-show="panelState.isWaiting(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> Waiting for Data</div>
               <div data-ng-show="panelState.isLoading(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-hourglass"></span> {{ panelState.getStatusText(modelKey) }}</div>
               <div data-ng-show="panelState.getError(modelKey)" class="lead sr-panel-wait"><span class="glyphicon glyphicon-exclamation-sign"></span> {{ panelState.getError(modelKey) }}</div>
@@ -1755,6 +1803,8 @@ SIREPO.app.directive('showLoadingAndError', function(panelState) {
             </div>
         `,
         controller: function($scope, $element) {
+            const v = appState.viewInfo($scope.modelKey);
+            $scope.preserveMinimized = v && v.is3d ? false: true;
             $scope.panelState = panelState;
             $scope.hasTransclude = function() {
                 var el = $($element).find('div[data-ng-transclude] > div[data-ng-transclude]:not(:empty)');

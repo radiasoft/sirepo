@@ -18,9 +18,8 @@ _STATUS_FILE = "status.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
-# This version works with the LLRFSIM from this date:
-#   git checkout `git rev-list -n 1 --before="2023-06-08 13:37" main`
-#   python -m llrfsim examples/accel_test/accel_test.yml --epics
+# run this for the epics server:
+# llrfsim --epics llrfsim/examples/two_cav/two_cav.yml
 
 
 class EpicsDisconnectError(Exception):
@@ -57,12 +56,14 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 def run_epics_cmd(cmd, server_address):
     env = os.environ.copy()
+
+    # the EPICS_PVA_ADDR_LIST can contain a hostname only,
+    # in which case it will use port 5076 for the udp broadcast address.
+    # Otherwise the host:port should specificy the udp broadcast address
+    # (configured by EPICS_PVA_BROADCAST_PORT on epics server).
+
     env["EPICS_PVA_AUTO_ADDR_LIST"] = "NO"
-    if ":" in server_address:
-        env["EPICS_PVA_ADDR_LIST"] = server_address.split(":")[0]
-        env["EPICS_PVA_SERVER_PORT"] = server_address.split(":")[1]
-    else:
-        env["EPICS_PVA_ADDR_LIST"] = server_address
+    env["EPICS_PVA_ADDR_LIST"] = server_address
     # TODO (gurhar1133): validate cmd
     return subprocess.Popen(
         cmd,
