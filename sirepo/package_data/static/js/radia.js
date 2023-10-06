@@ -54,11 +54,11 @@ SIREPO.app.config(function() {
           <div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>
         </div>
         <div data-ng-switch-when="Scriptable" class="col-sm-7">
-          <div data-scriptable="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
+          <div data-scriptable="" data-model="model" data-model-name="modelName" data-field-name="field" data-field="model[field]" data-info="info"></div>
           <div class="sr-input-warning"></div>
         </div>
         <div data-ng-switch-when="ScriptableArray" class="col-sm-7">
-          <div data-scriptable-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
+          <div data-scriptable-array="" data-model="model" data-model-name="modelName" data-field-name="field" data-field="model[field]" data-info="info"></div>
           <div class="sr-input-warning"></div>
         </div>
         <div data-ng-switch-when="TerminationTable" class="col-sm-12">
@@ -3254,12 +3254,13 @@ SIREPO.app.directive('scriptable', function(appState, panelState, plotting, radi
         restrict: 'A',
         scope: {
             model: '=',
+            modelName: '=',
             field: '=',
             fieldName: '=',
             info: '=',
         },
         template: `
-            <div data-list-search="completionObjs" data-on-select=""></div>
+            <div data-list-search="completionObjs" data-on-select="" data-field-name="fieldName" data-field="field"></div>
         `,
         controller: function($scope) {
 
@@ -3276,11 +3277,14 @@ SIREPO.app.directive('scriptable', function(appState, panelState, plotting, radi
                 }
             }
 
-            $scope.completionObjs = tokens.map(t => toSearchable(t));
+            $scope.completionObjs = [];
 
             const objs = radiaOptimizationService.optimizableObjects();
             for (const name in objs) {
-                $scope.completionObjs.push(toSearchable(name, objs[name]));
+                const o = objs[name];
+                for (const f of o.fields) {f
+                    $scope.completionObjs.push(toSearchable(`${name}.${f}`));
+                }   
             }
             
             srdbg($scope.completionObjs);
