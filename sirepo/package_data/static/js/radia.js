@@ -38,6 +38,9 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="ObjectType" class="col-sm-7">
             <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="model[field]" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
         </div>
+        <div data-ng-switch-when="MaterialFormula" data-ng-class="fieldClass">
+            <div data-material-formula="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
+        </div>
         <div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">
           <select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
             <div class="sr-input-warning">
@@ -1683,6 +1686,29 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
                 }
                 return objs;
             }
+        },
+    };
+});
+
+SIREPO.app.directive('materialFormula', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            fieldName: '=',
+            info: '=',
+        },
+        template: `
+            <div data-num-array="" data-model="model" data-field-name="fieldName" data-field="subfields" data-info="info" data-num-type="Float"></div>
+        `,
+        controller: function($scope) {
+            const f = $scope.field;
+            $scope.subfields = [
+                [f[0], f[1]],
+                [f[2], f[3]],
+                [f[4], f[5]],
+            ];
         },
     };
 });
@@ -3343,6 +3369,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         });
 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
+        panelState.showField('geomObject', 'materialFormula', o.material === 'nonlinear');
         panelState.enableField('geomObject', 'size', true);
         panelState.showField('geomObject', 'segments', editedModels.includes('cylinder') || ! editedModels.includes('extrudedObject'));
 
@@ -3402,6 +3429,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     appState.watchModelFields($scope, materialFields, () => {
+        updateEditor();
         radiaService.validateMagnetization($scope.modelData.magnetization, $scope.modelData.material);
     }, true);
 
