@@ -54,14 +54,14 @@ def test_follow_email_auth_link_twice(auth_fc):
     )
     # The link comes back in dev mode so we don't have to check email
     s = fc.sr_auth_state(isLoggedIn=False)
-    fc.sr_get(r.uri)
-    # get the url twice - should still be logged in, but not found
-    r2 = fc.sr_get(r.uri)
-    r2.assert_http_status(404)
     fc.sr_email_confirm(r)
+    # post to the url twice - should still be logged in, but not found
+    fc.sr_get(r.uri, redirect=False).assert_http_redirect("/myapp#/simulations")
     fc.sr_logout()
     # now logged out, should see login fail for bad link
-    fc.sr_get(r.uri, redirect=False).assert_http_redirect("login-fail")
+    fc.sr_get(r.uri, redirect=False).assert_http_redirect(
+        "/login-fail/email/email-token"
+    )
 
 
 def test_force_login(auth_fc):
@@ -77,7 +77,7 @@ def test_force_login(auth_fc):
     r = fc.sr_post(
         "authEmailLogin", {"email": "force@b.c", "simulationType": fc.sr_sim_type}
     )
-    fc.sr_get(r.uri)
+    fc.sr_email_confirm(r)
     fc.sr_logout()
     with pkexcept("SRException.*routeName.*login"):
         fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
