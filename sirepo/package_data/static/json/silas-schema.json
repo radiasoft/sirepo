@@ -295,6 +295,7 @@
         },
         "crystal3dAnimation": {
             "title": "Crystal 3D Mesh",
+            "is3d": true,
             "advanced": [],
             "canFullScreen": false
         },

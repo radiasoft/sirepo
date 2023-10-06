@@ -178,6 +178,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                         b["cutRemoval"] = "1"
                 if not o.get("fillets"):
                     o.fillets = []
+                if not o.get("materialFormula"):
+                    o.materialFormula = [0, 0, 0, 0, 0, 0]
                 if not o.get("modifications"):
                     o.modifications = o.bevels + o.fillets
                 for m in o.modifications:
