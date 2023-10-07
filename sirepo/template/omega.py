@@ -119,6 +119,27 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def get_data_file(run_dir, model, frame, options):
+    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
+    i = int(re.search(r"Animation(\d+)\-", model).groups(1)[0]) - 1
+    sim_type, sim_id = _sim_info(dm, i)
+    particle_file = _SUCCESS_OUTPUT_FILE[sim_type]
+    if options.suffix is None:
+        return particle_file
+    if sim_type == "elegant":
+        # convert particle_file to openpmd...
+        return h5file
+    if sim_type == "opal":
+        pass
+    if sim_type == "genesis":
+        pass
+    assert 0, f"sim_type={sim_type} sim_id={sim_id}"
+
+    assert 0, f"suffix={options.suffix}, run_dir={run_dir} model={model}"
+    if not options.suffix:
+        return
+
+
 def post_execution_processing(success_exit, run_dir, **kwargs):
     if not success_exit:
         # first check for assertion errors in main log file

@@ -14,7 +14,7 @@ SIREPO.app.config(() => {
     `;
 
     SIREPO.appDownloadLinks = `
-        <li>mytest</li>
+        <li data-ng-if="::hasDataFile"><a href data-ng-href="{{ dataFileURL(\'openpmd\') }}">OpenPMD Data File</a></li>
     `;
 });
 
