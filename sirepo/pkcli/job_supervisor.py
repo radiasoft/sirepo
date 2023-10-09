@@ -96,7 +96,8 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
             pkdlog("error={} {}", e, pkdexc())
 
     async def on_message(self, msg):
-        await _incoming(msg, self)
+        # WebSocketHandler only allows one on_message at a time.
+        asyncio.ensure_future(_incoming(msg, self))
 
     def open(self):
         pkdlog(
