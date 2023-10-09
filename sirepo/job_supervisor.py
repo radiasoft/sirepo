@@ -186,6 +186,7 @@ def init_module(**imports):
         sbatch_poll_secs=(15, int, "how often to poll squeue and parallel status"),
     )
     _DB_DIR = sirepo.srdb.supervisor_dir()
+    pykern.pkio.mkdir_parent(_DB_DIR)
     _NEXT_REQUEST_SECONDS = PKDict(
         {
             job.PARALLEL: 2,
