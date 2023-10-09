@@ -407,6 +407,7 @@ class _TestClient:
                 if r.state in ("completed", "error"):
                     cancel = None
                     break
+                # not asyncio.sleep: in a synchronous unit test
                 time.sleep(1)
             else:
                 pkunit.pkok(not expect_completed, "did not complete: runStatus={}", r)

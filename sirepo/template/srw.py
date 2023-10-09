@@ -535,7 +535,7 @@ def sim_frame(frame_args):
             except Exception:
                 # sleep and retry to work-around concurrent file read/write
                 pkdlog("sleep and retry simulation frame read: {} {}", i, r)
-                asyncio.sleep(2)
+                time.sleep(2)
     return extract_report_data(frame_args.sim_in)
 
 
