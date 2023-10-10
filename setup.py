@@ -30,7 +30,6 @@ pykern.pksetup.setup(
         "user-agents",
         # only needed for testing (srunit)
         "websockets",
-        "werkzeug==2.0.3",
         # Optional dependencies
         # required for email login and smtp
         "Authlib>=0.13",
