@@ -3279,13 +3279,13 @@ SIREPO.app.directive('scriptable', function(appState, panelState, plotting, radi
 
             $scope.completionObjs = [];
 
-            const objs = radiaOptimizationService.optimizableObjects();
-            for (const name in objs) {
-                const o = objs[name];
-                for (const f of o.fields) {f
-                    $scope.completionObjs.push(toSearchable(`${name}.${f}`));
-                }   
-            }
+            const objs = ['aaa', 'bbb', 'ccc'];  radiaOptimizationService.optimizableObjects();
+            //for (const name in objs) {
+            //    const o = objs[name];
+            //    for (const f of o.fields) {f
+            //        $scope.completionObjs.push(toSearchable(`${name}.${f}`));
+            //    }   
+            //}
             
             srdbg($scope.completionObjs);
 

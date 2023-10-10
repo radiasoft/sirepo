@@ -710,66 +710,6 @@ SIREPO.app.directive('labelWithTooltip', function(appState, mathRendering, $inte
     };
 });
 
-SIREPO.app.directive('listSearch', function(appState, fileManager) {
-    const searchClass = 'list-search-autocomplete';
-
-    return {
-        restrict: 'A',
-        scope: {
-            field: '=',
-            list: '=listSearch',
-            onSelect: '&',
-            placeholderText: '@',
-        },
-        template: `
-            <input class="${searchClass}" placeholder="{{ placeholderText }}">
-        `,
-        controller: function($scope) {
-            let sel = null;
-
-            function buildSearch() {
-                function newVal(s, ui) {
-                    return s.val() + ui.item.label;
-                }
-                const s = $(`.${searchClass}`);
-                srdbg(s.css('z-index'));
-                s.autocomplete({
-                    create: (e, ui) => {
-                        s.val($scope.field);
-                    },
-                    delay: 0,
-                    search: (e, ui) => {
-                        $scope.$apply(() => {
-                            $scope.field = s.val();
-                        })
-                        srdbg('SEARCH', e, $scope.list);
-                    },
-                    select: (e, ui) => {
-                        $scope.$apply(() => {
-                            // the jqueryui autocomplete wants to display the value instead of the
-                            // label when a select happens. This keeps the label in place
-                            e.preventDefault();
-                            s.val(s.val() + ui.item.label);
-                            if (onSelect) {
-                                $scope.onSelect()(ui.item.value);
-                            }
-                        });
-                    },
-                });
-                return s;
-            }
-
-            function updateSearch() {
-                sel.autocomplete( "option", "source", $scope.list);
-                sel.autocomplete( "option", "disabled", ! $scope.list.length);
-            }
-
-            $scope.$watch('list', updateSearch);
-            sel = buildSearch();
-        },
-    };
-});
-
 SIREPO.app.directive('loadingAndErrorPanel', function(appState, panelState) {
     return {
         restrict: 'A',
