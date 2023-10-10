@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Reply hold the response to API calls.
 
-Replies are independent of the web platform (tornado or flask). They
+Replies are independent of the web platform (tornado http or websocket). They
 are converted to the native format by the platform dispatcher at the
 time. Internal call_api returns an `_SReply` object.
 
@@ -112,67 +112,6 @@ class _SReply(sirepo.quest.Attr):
             self.__attrs.content.pkdel("handle")
         except Exception:
             pass
-
-    def flask_response(self, cls):
-        from werkzeug import utils
-        from flask import request
-
-        def _cache_control(resp):
-            if "cache" not in self.__attrs:
-                return resp
-            c = self.__attrs.cache
-            if c.cache:
-                resp.cache_control.max_age = CACHE_MAX_AGE
-                resp.headers["Cache-Control"] = "private, max-age=43200"
-                if c.mtime is not None:
-                    resp.headers["Last-Modified"] = email.utils.formatdate(
-                        c.mtime,
-                        usegmt=True,
-                    )
-            else:
-                resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-                resp.headers["Pragma"] = "no-cache"
-            return resp
-
-        def _delete_cookies(resp):
-            for n, p in self.pkdel(self._cookies_to_delete) or ():
-                resp.delete_cookie(
-                    n,
-                    path=p,
-                )
-
-        def _file():
-            # Takes over some of the work for werkzeug.send_file
-            c = self.__attrs.content
-            res = utils.send_file(
-                c.handle,
-                environ=request.environ,
-                mimetype=self.__attrs.content_type,
-                download_name=self.__attrs.download_name,
-                last_modified=c.mtime,
-            )
-            c.pkdel("handle")
-            res.headers["Content-Encoding"] = c.encoding
-            res.content_length = c.length
-            return res
-
-        a = self.__attrs
-        c = a.get("content", "")
-        if isinstance(c, _File):
-            r = _file()
-        else:
-            if isinstance(c, _Base):
-                c, a.content_type = c.http_response(self)
-            r = cls(
-                response=c,
-                mimetype=a.get("content_type"),
-                status=a.get("status"),
-            )
-        r.headers.update(a.headers)
-        if "cookie" in a and 200 <= r.status_code < 400:
-            r.set_cookie(**a.cookie)
-            _delete_cookies(r)
-        return _cache_control(r)
 
     def from_kwargs(self, **kwargs):
         """Saves reply attributes
