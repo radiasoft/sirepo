@@ -3,6 +3,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from rsbeams.rsdata import switchyard
 from sirepo.template.lattice import LatticeUtil
+import numpy
 import os
 import re
 import sirepo.pkcli.elegant
@@ -36,6 +37,31 @@ def file_name_from_sim_name(sim_type, sim_name):
     return f"{res}.{ext}"
 
 
+def genesis_to_pmd(sim):
+    import pmd_beamphysics.interfaces.genesis
+    import pmd_beamphysics.particles
+
+    g = read_sim("genesis", sim.sim_id)
+    npart = g.models.electronBeam.npart
+    curpeak = g.models.electronBeam.curpeak
+    xlamds = g.models.radiation.xlamds
+    d = numpy.fromfile(sim.outfile_path, dtype=numpy.float64)
+    d = d.reshape(int(len(d) / 6 / npart), 6, npart)
+    # phase must be > 0 to avoid wrapping
+    d[:,1,:] -= numpy.min(d[:,1,:])
+    # compute required wavelengths to hold the whole beam
+    zsep = numpy.max(d[:,1,:]) / (2 * numpy.pi)
+    v = pmd_beamphysics.particles.ParticleGroup(
+        data=pmd_beamphysics.interfaces.genesis.genesis2_dpa_to_data(
+            d, xlamds=xlamds, current=numpy.array([curpeak]),
+            zsep=zsep,
+        )
+    )
+    # center psi
+    v.t -= numpy.mean(v.t)
+    return v
+
+
 def prep_run_dir(run_dir, data):
     pkio.unchecked_remove(run_dir)
     pkio.mkdir_parent(run_dir)
@@ -56,18 +82,22 @@ def run_elegant(run_dir, elegant_id, prev_sim=None):
     if prev_sim:
         assert prev_sim.outfile_path
         filename = file_name_from_sim_name('elegant', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
-        update_elegant_sim(data, filename)
+        update_elegant_sim(data, filename, prev_sim)
+        out = pkio.py_path(sim_lib_file('elegant', 'bunchFile', 'sourceFile', filename))
         if prev_sim.sim_type == 'elegant':
-            p = pkio.py_path(prev_sim.outfile_path)
-            p.copy(sim_lib_file('elegant', 'bunchFile', 'sourceFile', filename))
-            p.copy(sim_lib_file('elegant', 'command_run_setup', 'expand_for', filename))
+            pkio.py_path(prev_sim.outfile_path).copy(out)
         elif prev_sim.sim_type == 'genesis':
-            raise NotImplementedError("genesis is only supported as a final step sim")
+            import pmd_beamphysics.interfaces.elegant
+
+            pmd_beamphysics.interfaces.elegant.write_elegant(
+                genesis_to_pmd(prev_sim),
+                str(out),
+            )
         else:
             sw = switchyard.Switchyard()
             sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
-            sw.write(sim_lib_file('elegant', 'bunchFile', 'sourceFile', filename), 'elegant')
-            sw.write(sim_lib_file('elegant', 'command_run_setup', 'expand_for', filename), 'elegant')
+            sw.write(str(out), 'elegant')
+        out.copy(sim_lib_file('elegant', 'command_run_setup', 'expand_for', filename))
     data.computeModel = 'animation'
     if 'report' in data:
         del data['report']
@@ -80,31 +110,58 @@ def run_genesis(run_dir, genesis_id, prev_sim=None):
     data = read_sim('genesis', genesis_id)
     if prev_sim:
         assert prev_sim.outfile_path
-        filename = file_name_from_sim_name('genesis', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
-        sw = switchyard.Switchyard()
-        sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
-        lib_file = sim_lib_file('genesis', 'io', 'distfile', filename)
-        sw.write(lib_file, 'genesis')
+        filename = file_name_from_sim_name(
+            "genesis", f"{_OMEGA_SIM_NAME}-{run_dir.basename}"
+        )
+        lib_file = sim_lib_file("genesis", "io", "partfile", filename)
+        if prev_sim.sim_type == "genesis":
+            # center longitudinal
+            with open(prev_sim.outfile_path, 'rb') as f:
+                d = numpy.fromfile(f, dtype=numpy.float64)
+            d = d.reshape((6, int(len(d) / 6)))
+            d[1,:] -= numpy.mean(d[1,:])
+            with open(lib_file, 'wb') as f:
+                d.tofile(f)
+        else:
+            if prev_sim.sim_type == "elegant":
+                p = switchyard.read_elegant(f"{prev_sim.outfile_path}")
+            else:
+                assert prev_sim.sim_type == "opal"
+                p = switchyard.read_opal(f"{prev_sim.outfile_path}")
+            particle_data = numpy.zeros([6, len(p.x)])
+            for i, col in enumerate(['pt', 'ct', 'x', 'y', 'ux', 'uy']):
+                particle_data[i, :] = getattr(p, col)
+            #TODO(pjm): [0] should be gamma not momentum
+            particle_data[1] *= 2 * numpy.pi / data.models.radiation.xlamds
+            particle_data[1] -= numpy.mean(particle_data[1])
+            with open(lib_file, "wb") as f:
+                particle_data.tofile(f)
         update_genesis_sim(data, filename, lib_file)
     data.computeModel = 'animation'
     if 'report' in data:
         del data['report']
     with pkio.save_chdir(prep_run_dir(run_dir, data)):
         sirepo.pkcli.genesis.run_genesis(run_dir)
-    return f'{run_dir}/genesis.dat'
+    return f"{run_dir}/genesis.out.dpa"
 
 
 def run_opal(run_dir, opal_id, prev_sim=None):
     data = read_sim('opal', opal_id)
     if prev_sim:
-        if prev_sim.sim_type == 'genesis':
-            raise NotImplementedError("genesis is only supported as a final step sim")
-        assert prev_sim.outfile_path
-        sw = switchyard.Switchyard()
-        sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
         filename = file_name_from_sim_name('opal', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
         lib_file = sim_lib_file("opal", "command_distribution", "fname", filename)
-        sw.write(lib_file, "opal")
+        if prev_sim.sim_type == 'genesis':
+            import pmd_beamphysics.interfaces.opal
+
+            pmd_beamphysics.interfaces.opal.write_opal(
+                genesis_to_pmd(prev_sim),
+                lib_file,
+            )
+        else:
+            assert prev_sim.outfile_path
+            sw = switchyard.Switchyard()
+            sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
+            sw.write(lib_file, "opal")
         update_opal_sim(data, filename, lib_file)
     data.computeModel = 'animation'
     LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
@@ -136,7 +193,7 @@ def sim_lib_file(sim_type, model, field, filename):
     )
 
 
-def update_elegant_sim(data, filename):
+def update_elegant_sim(data, filename, prev_sim):
     if data.models.bunchSource.inputSource == 'bunched_beam':
         convert_bunched_beam_to_sdds_beam(data, filename)
     assert data.models.bunchSource.inputSource == 'sdds_beam'
@@ -144,40 +201,25 @@ def update_elegant_sim(data, filename):
     cmd.input = filename
     cmd.center_arrival_time = '1'
     cmd.center_transversely = '1'
-    cmd.reverse_t_sign = '1'
+    cmd.reverse_t_sign = '1' if prev_sim.sim_type == 'genesis' else '0'
     LatticeUtil.find_first_command(data, "run_setup").expand_for = filename
     write_sim(data)
 
 
 def update_genesis_sim(data, filename, lib_file):
     io = data.models.io
-    io.distfile = filename
-    # save last frame only
-    data.models.simulationControl.zstop = 0
-    io.ippart = int(data.models.undulator.nwig * data.models.undulator.nsec / data.models.simulationControl.delz)
-    io.ipradi = io.ippart
-    # fix CHARGE value, may be "CHARGE = [-1.e-09]" for opal
-    text = ""
-    charge = None
-    n = 0
-    in_header = True
-    with pkio.open_text(lib_file) as f:
-        for line in f:
-            if in_header and not re.search(r'^\s*\?', line):
-                in_header = False
-            if not in_header:
-                n += 1
-            if charge is None:
-                g = re.match(r"^\? CHARGE = \[\-?(.*)\]", line)
-                if g:
-                    charge = g.group(1)
-                    text += f"? CHARGE = {charge}\n"
-                    continue
-            text += line
-    if charge:
-        pkio.write_text(lib_file, text)
+    io.partfile = filename
+    io.ippart = 0
+    io.ipradi = 0
+    d = numpy.fromfile(lib_file, dtype=numpy.float64)
+    n = len(d) / 6
     factor = 4 * data.models.particleLoading.nbins
     data.models.electronBeam.npart = int(n / factor) * factor
+    # clip particle count to match npart
+    d = d.reshape(6, int(n))
+    d = d[:, :data.models.electronBeam.npart]
+    with open(lib_file, 'wb') as f:
+        d.tofile(f)
     write_sim(data)
 
 
@@ -194,7 +236,7 @@ def update_opal_sim(data, filename, lib_file):
             if not n:
                 n = int(line)
                 continue
-            r = [v for v in line.split(" ")]
+            r = [v for v in re.split(r"\s+", line.strip())]
             zsum += float(r[4])
             psum += float(r[5])
     d.offsetz = -zsum / n
