@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Runs the server in uwsgi or http modes.
+"""Runs API server and job supervisor
 
 Also supports starting nginx proxy.
 
@@ -37,34 +37,6 @@ import time
 
 
 __cfg = None
-
-
-def flask():
-    from werkzeug import serving
-
-    with pkio.save_chdir(_run_dir()) as r:
-        sirepo.pkcli.setup_dev.default_command()
-        # above will throw better assertion, but just in case
-        assert pkconfig.in_dev_mode()
-        app = sirepo.modules.import_and_init("sirepo.server", want_flask=True).init_app(
-            use_reloader=_cfg().use_reloader,
-            is_server=True,
-        )
-        # avoid WARNING: Do not use the development server in a production environment.
-        app.env = "development"
-
-        serving.click = None
-        app.run(
-            exclude_patterns=[str(r.join("*"))],
-            extra_files=sirepo.util.files_to_watch_for_reload("json")
-            if _cfg().use_reloader
-            else [],
-            host=_cfg().ip,
-            port=_cfg().port,
-            reloader_type="stat",
-            threaded=True,
-            use_reloader=_cfg().use_reloader,
-        )
 
 
 def http():
@@ -169,7 +141,7 @@ def jupyterhub():
         pkjinja.render_resource(
             "jupyterhub_conf.py",
             PKDict(_cfg()).pkupdate(
-                # POSIT: Running with nginx and uwsgi
+                # POSIT: Running with nginx and server
                 sirepo_uri=f"http://{socket.getfqdn()}:{_cfg().nginx_proxy_port}",
                 jupyterhub_debug=sirepo.feature_config.cfg().debug_mode,
                 **sirepo.sim_api.jupyterhublogin.cfg(),
@@ -205,10 +177,7 @@ def nginx_proxy():
 
 
 def server():
-    if _cfg().tornado:
-        tornado()
-    else:
-        flask()
+    tornado()
 
 
 def tornado():
@@ -229,23 +198,6 @@ def tornado():
         )
 
 
-def uwsgi():
-    """Starts UWSGI server"""
-    run_dir = _run_dir()
-    with pkio.save_chdir(run_dir):
-        values = _cfg().copy()
-        values["logto"] = (
-            None if pkconfig.in_dev_mode() else str(run_dir.join("uwsgi.log"))
-        )
-        # uwsgi.py must be first, because values['uwsgi_py'] referenced by uwsgi.yml
-        for f in ("uwsgi.py", "uwsgi.yml"):
-            output = run_dir.join(f)
-            values[f.replace(".", "_")] = str(output)
-            pkjinja.render_resource(f, values, output=output)
-        cmd = ["uwsgi", "--yaml=" + values["uwsgi_yml"]]
-        pksubprocess.check_call_with_signals(cmd)
-
-
 def _cfg():
     global __cfg
     if not __cfg:
@@ -264,7 +216,7 @@ def _cfg():
             port=(
                 sirepo.const.PORT_DEFAULTS.http,
                 _cfg_port,
-                "port on which uwsgi or http listens",
+                "port on which http listens",
             ),
             react_port=(
                 sirepo.const.PORT_DEFAULTS.react
@@ -273,13 +225,7 @@ def _cfg():
                 _cfg_port,
                 "port on which react listens",
             ),
-            processes=(1, _cfg_int(1, 16), "how many uwsgi processes to start"),
             run_dir=(None, str, "where to run the program (defaults db_dir)"),
-            # uwsgi got hung up with 1024 threads on a 4 core VM with 4GB
-            # so limit to 128, which is probably more than enough with
-            # this application.
-            threads=(10, _cfg_int(1, 128), "how many uwsgi threads in each process"),
-            tornado=(pkconfig.in_dev_mode(), bool, "use tornado for server"),
             use_reloader=(pkconfig.in_dev_mode(), bool, "use the server reloader"),
         )
     return __cfg
