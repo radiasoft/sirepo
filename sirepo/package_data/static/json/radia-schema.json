@@ -317,12 +317,13 @@
             ["SmCo5", "Samarium Cobalt (SmCo5, linear anisotropic)"],
             ["Sm2Co17", "Samarium Cobalt (Sm2Co17,linear anisotropic)"],
             ["Ferrite", "Ferrite (linear anisotropic)"],
-            ["Xc06", "Industeel (nonlinnear isotropic)"],
-            ["Steel37", "Steel37 (nonlinnear isotropic)"],
-            ["Steel42", "Steel42 (nonlinnear isotropic)"],
-            ["AFK502", "Aperam 502 (nonlinnear isotropic)"],
-            ["AFK1", "Aperam 1 (nonlinnear isotropic)"],
-            ["custom", "Custom"]
+            ["Xc06", "Industeel (nonlinear isotropic)"],
+            ["Steel37", "Steel37 (nonlinear isotropic)"],
+            ["Steel42", "Steel42 (nonlinear isotropic)"],
+            ["AFK502", "Aperam 502 (nonlinear isotropic)"],
+            ["AFK1", "Aperam 1 (nonlinear isotropic)"],
+            ["custom", "Custom"],
+            ["nonlinear", "Non-Linear Formula"]
         ],
         "ObjectCutType": [
             ["objectCut", "Plane"],
@@ -839,6 +840,7 @@
             "modifications": ["", "MultipleModelArray", [], "", ["objectCut", "objectBevel", "objectFillet"]],
             "material": ["Material", "MaterialType", "Xc06"],
             "materialFile": ["Tabulated H-B Curve from File", "HBFile", "", "File must be comma-delimited .csv or .txt with no header row and no empty columns (H, B in Tesla)"],
+            "materialFormula": ["Nonlinear Isotropic Formula", "MaterialFormula", [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "$M = \\sum_{n=1}^{3}\\mu_n\\cdot\\tanh(\\frac{\\chi_n\\cdot{H}}{\\mu_n})$", ["$\\mu_1$", "$\\chi_1$", "$\\mu_2$", "$\\chi_2$", "$\\mu_3$", "$\\chi_3$"], [0, 0, 0, 0, 0, 0, 0]],
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "segmentation": ["Segmentation Type", "SegmentationType", "pln"],
             "segmentationCylAxis": ["Segment Axis", "BeamAxis", "z"],
@@ -1423,6 +1425,7 @@
                 ["Material", [
                     "material",
                     "materialFile",
+                    "materialFormula",
                     "magnetization",
                     "remanentMag"
                 ]],
