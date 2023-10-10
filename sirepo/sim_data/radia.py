@@ -7,6 +7,7 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import copy
+import re
 import sirepo.sim_data
 
 
@@ -169,6 +170,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         def _fixup_geom_objects(objects):
             for o in objects:
+                o.name = re.sub(r"\s", "_", o.name)
                 if o.get("points") is not None and not o.get("triangulationLevel"):
                     o.triangulationLevel = 0.5
                 if not o.get("bevels"):

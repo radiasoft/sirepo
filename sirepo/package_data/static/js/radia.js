@@ -938,7 +938,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function newObjectName(o) {
-        return appState.uniqueName(appState.models.geometryReport.objects, 'name', o.name + ' {}');
+        return appState.uniqueName(appState.models.geometryReport.objects, 'name', o.name + '_{}');
     }
 
     function shapesBounds(shapes) {
