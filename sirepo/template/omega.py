@@ -339,6 +339,7 @@ def _plot_field_dist(sim_type, frame_args):
     import sirepo.template.genesis
 
     frame_args.frameIndex = 0
+    frame_args.frameReport = "finalFieldAnimation"
     return sirepo.template.genesis.sim_frame_finalFieldAnimation(frame_args)
 
 
