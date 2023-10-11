@@ -61,14 +61,6 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="ShapeButton" class="col-sm-7">
           <div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>
         </div>
-        <div data-ng-switch-when="Scriptable" class="col-sm-7">
-          <div data-scriptable="" data-model="model" data-model-name="modelName" data-field-name="field" data-field="model[field]" data-info="info"></div>
-          <div class="sr-input-warning"></div>
-        </div>
-        <div data-ng-switch-when="ScriptableArray" class="col-sm-7">
-          <div data-scriptable-array="" data-model="model" data-model-name="modelName" data-field-name="field" data-field="model[field]" data-info="info"></div>
-          <div class="sr-input-warning"></div>
-        </div>
         <div data-ng-switch-when="TerminationTable" class="col-sm-12">
           <div data-termination-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
         </div>
@@ -3148,56 +3140,6 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
     };
 
     return self;
-});
-
-SIREPO.app.directive('scriptable', function(appState, panelState, plotting, radiaOptimizationService, radiaService, requestSender, utilities) {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            modelName: '=',
-            field: '=',
-            fieldName: '=',
-            info: '=',
-        },
-        template: `
-            <div data-list-search="completionObjs" data-on-select="" data-field-name="fieldName" data-field="field"></div>
-        `,
-        controller: function($scope) {
-
-            const tokens = [
-                $scope.field,
-                '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-                '.', '+', '-', '+', '*', '/',
-                ' '
-            ];
-            function toSearchable(label, val=null) {
-                return {
-                    label: label,
-                    value: val === null ? label : val,
-                }
-            }
-
-            $scope.completionObjs = [];
-
-            const objs = ['aaa', 'bbb', 'ccc'];  radiaOptimizationService.optimizableObjects();
-            //for (const name in objs) {
-            //    const o = objs[name];
-            //    for (const f of o.fields) {f
-            //        $scope.completionObjs.push(toSearchable(`${name}.${f}`));
-            //    }   
-            //}
-            
-            srdbg($scope.completionObjs);
-
-            function tokenize(eq)  {
-                return (eq || '')
-                    .split(/[-+*/^|%().0-9\s]/)
-                    .filter(t => t.length > 0 && SIREPO.APP_SCHEMA.constants.allowedEquationOps.includes(t));
-            };
-        
-        },
-    };
 });
 
 SIREPO.app.directive('shapeButton', function(appState, geometry, panelState, plotting, radiaService, utilities) {
