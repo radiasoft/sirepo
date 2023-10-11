@@ -776,7 +776,11 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 <div class="sr-input-warning"></div>
               </div>
               <div data-ng-switch-when="Float" data-ng-class="fieldClass">
-                <input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
+                <input data-ng-if="! appState.isScriptable(modelName, field)" data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
+                <div data-ng-if="appState.isScriptable(modelName, field)" class="input-group input-group-sm">
+                    <input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
+                    <span title="scriptable field" class="input-group-addon"><span class="glyphicon glyphicon-list-alt"></span></span>
+                </div>
                 <div class="sr-input-warning"></div>
               </div>
               <div data-ng-switch-when="OptionalString" data-ng-class="fieldClass">
@@ -3552,7 +3556,7 @@ SIREPO.app.directive('stringToNumber', function(appState) {
                 return undefined;
             });
             ngModel.$formatters.push(function(value) {
-                if (ngModel.$isEmpty(value)) {
+                if (ngModel.$isEmpty(value) || scope.isScriptable) {
                     return value;
                 }
                 if (scope.numberType != 'integer') {

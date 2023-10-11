@@ -357,6 +357,17 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return res;
     }
 
+    self.propertiesField = (modelName, fieldName) =>
+        self.models[modelName][propertiesFieldName(fieldName)];
+
+   function propertiesFieldName(fieldName) {
+        return `${fieldName}$properties`;
+    }
+
+    function propertiesFieldValue(modelName, fieldName, property) {
+        return (self.propertiesField(modelName, fieldName) || [])[property];
+    } 
+    
     function propertyToIndexForm(key) {
         return key.split('.').map(function (x) {
             return "['" + x + "']";
@@ -626,6 +637,9 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return  name.indexOf('Report') >= 0 || self.isAnimationModelName(name) || name.indexOf('Status') >= 0;
     };
 
+    self.isScriptable = (modelName, fieldName) =>
+        self.propertiesField(modelName, fieldName, 'isScriptable') != null;
+
     self.isSubclass = function(model1, model2) {
         return this.superClasses(model1).includes(model2);
     };
@@ -719,7 +733,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             return [match[1], match[2]];
         }
         return null;
-    };
+    };  
 
     self.removeModel = function(name) {
         delete self.models[name];
