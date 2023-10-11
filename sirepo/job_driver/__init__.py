@@ -70,7 +70,7 @@ def assign_instance_op(op):
 class DriverBase(PKDict):
     __instances = PKDict()
 
-    _AGENT_STARTING_SECS_DEFAULT = 5
+    _AGENT_STARTING_SECS_DEFAULT = 15
 
     def __init__(self, op):
         super().__init__(

@@ -1002,6 +1002,8 @@ class _ComputeJob(_Supervisor):
             for i in range(_MAX_RETRIES):
                 try:
                     await o.prepare_send()
+                    if kwargs.get("jobCmd") == "stateful_compute":
+                        o.make_lib_dir_symlink()
                     o.send()
                     r = await o.reply_get()
                     # POSIT: any api_* that could run into runDirNotFound

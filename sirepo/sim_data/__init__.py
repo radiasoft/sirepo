@@ -729,8 +729,6 @@ class SimDataBase(object):
 
     @classmethod
     def _lib_file_abspath(cls, basename, data=None, qcall=None):
-        import sirepo.simulation_db
-
         if _cfg.lib_file_uri:
             # In agent
             if basename in _cfg.lib_file_list:
@@ -741,8 +739,10 @@ class SimDataBase(object):
                 p.write_binary(r.content)
                 return p
         elif not _cfg.lib_file_resource_only:
+            from sirepo import simulation_db
+
             # Command line utility or server
-            f = sirepo.simulation_db.simulation_lib_dir(
+            f = simulation_db.simulation_lib_dir(
                 cls.sim_type(),
                 qcall=qcall,
             ).join(basename)
@@ -765,7 +765,6 @@ class SimDataBase(object):
         Only works locally.
         """
         cls._assert_server_side()
-        from sirepo import simulation_db
 
         res = PKDict(
             (
@@ -779,6 +778,8 @@ class SimDataBase(object):
             )
         )
         if want_user_lib_dir:
+            from sirepo import simulation_db
+
             # lib_dir overwrites resource_dir
             res.update(
                 (f.basename, f)

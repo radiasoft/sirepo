@@ -33,6 +33,10 @@ class SRWParser:
         qcall=None,
     ):
         self.qcall = qcall
+        from pykern.pkdebug import pkdp
+
+        pkdp(script)
+        pkdp("{}", pkio.read_text(script))
         m = pkrunpy.run_path_as_module(script)
         if arguments:
             import shlex
@@ -111,7 +115,7 @@ class Struct(object):
         self.__dict__.update(entries)
 
 
-def import_python(code, tmp_dir, user_filename=None, arguments=None, qcall=None):
+def import_python(code, user_filename=None, arguments=None, qcall=None):
     """Converts script_text into json and stores as new simulation.
 
     Avoids too much data back to the user in the event of an error.
@@ -134,19 +138,17 @@ def import_python(code, tmp_dir, user_filename=None, arguments=None, qcall=None)
     code = _patch_mirror_profile(code, qcall=qcall)
 
     try:
-        with pkio.save_chdir(tmp_dir):
-            # This string won't show up anywhere
-            script = pkio.write_text(
-                "in.py",
-                re.sub(r"^main\(", "#", code, flags=re.MULTILINE),
-            )
-            o = SRWParser(
-                script,
-                user_filename=user_filename,
-                arguments=arguments,
-                qcall=qcall,
-            )
-            return o.data
+        # This string won't show up anywhere
+        script = pkio.write_text(
+            "in.py",
+            re.sub(r"^main\(", "#", code, flags=re.MULTILINE),
+        )
+        return SRWParser(
+            script,
+            user_filename=user_filename,
+            arguments=arguments,
+            qcall=qcall,
+        ).data
     except Exception as e:
         lineno = script and _find_line_in_trace(script)
         if hasattr(e, "args"):

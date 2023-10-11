@@ -4,9 +4,10 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import srw_common
@@ -600,6 +601,7 @@ async def import_file(req, tmp_dir, qcall, **kwargs):
                 r,
             )
         x = x.get(PARSED_DATA_ATTR)
+        pkdp(pkdpretty(x))
         x.models.simulation.simulationId = i
         x.models.simulation.simulationSerial = serial
         x = simulation_db.save_simulation_json(
@@ -733,6 +735,7 @@ def prepare_for_save(data, qcall):
             user_model_list = _load_user_model_list(model_name, qcall=qcall)
             models_by_id = _user_model_map(user_model_list, "id")
 
+            pkdp("{} {}", model_name, model)
             if model.id not in models_by_id:
                 pkdc("adding new model: {}", model.name)
                 user_model_list.append(_create_user_model(data, model_name))
@@ -857,6 +860,58 @@ def run_epilogue():
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
 
+def stateful_compute_create_shadow_simulation(data, **kwargs):
+    from sirepo.template.srw_shadow import Convert
+
+    return Convert().to_shadow(data)
+
+
+def stateful_compute_delete_user_models(data, **kwargs):
+    """Remove the beam and undulator user model list files"""
+    electron_beam = data.args.electron_beam
+    tabulated_undulator = data.args.tabulated_undulator
+    for model_name in _USER_MODEL_LIST_FILENAME.keys():
+        model = electron_beam if model_name == "electronBeam" else tabulated_undulator
+        if not model or "id" not in model:
+            continue
+        user_model_list = _load_user_model_list(model_name, qcall=qcall)
+        for i, m in enumerate(user_model_list):
+            if m.id == model.id:
+                del user_model_list[i]
+                _save_user_model_list(model_name, user_model_list, qcall=qcall)
+                break
+    return PKDict()
+
+
+def stateful_compute_import_file(data, **kwargs):
+    from sirepo.template import srw_importer
+
+    with simulation_db.tmp_dir():
+        return PKDict(
+            imported_data=srw_importer.import_python(
+                code=data.args.file_as_str,
+                user_filename=data.args.basename,
+                arguments=data.args.import_file_arguments,
+            ),
+        )
+
+
+def stateful_compute_model_list(data, **kwargs):
+    res = []
+    model_name = data.args["model_name"]
+    if model_name == "electronBeam":
+        res.extend(get_predefined_beams())
+    res.extend(_load_user_model_list(model_name))
+    if model_name == "electronBeam":
+        for beam in res:
+            srw_common.process_beam_parameters(beam)
+    return PKDict(modelList=res)
+
+
+def stateless_compute_PGM_value(data, **kwargs):
+    return _compute_PGM_value(data.optical_element)
+
+
 def stateful_compute_sample_preview(data, **kwargs):
     """Process image and return
 
@@ -939,45 +994,6 @@ def stateful_compute_sample_preview(data, **kwargs):
 
 def stateful_compute_undulator_length(data, **kwargs):
     return compute_undulator_length(data.args["tabulated_undulator"])
-
-
-def stateful_compute_create_shadow_simulation(data, **kwargs):
-    from sirepo.template.srw_shadow import Convert
-
-    return Convert().to_shadow(data)
-
-
-def stateful_compute_delete_user_models(data, **kwargs):
-    """Remove the beam and undulator user model list files"""
-    electron_beam = data.args.electron_beam
-    tabulated_undulator = data.args.tabulated_undulator
-    for model_name in _USER_MODEL_LIST_FILENAME.keys():
-        model = electron_beam if model_name == "electronBeam" else tabulated_undulator
-        if not model or "id" not in model:
-            continue
-        user_model_list = _load_user_model_list(model_name, qcall=qcall)
-        for i, m in enumerate(user_model_list):
-            if m.id == model.id:
-                del user_model_list[i]
-                _save_user_model_list(model_name, user_model_list, qcall=qcall)
-                break
-    return PKDict()
-
-
-def stateful_compute_model_list(data, **kwargs):
-    res = []
-    model_name = data.args["model_name"]
-    if model_name == "electronBeam":
-        res.extend(get_predefined_beams())
-    res.extend(_load_user_model_list(model_name))
-    if model_name == "electronBeam":
-        for beam in res:
-            srw_common.process_beam_parameters(beam)
-    return PKDict(modelList=res)
-
-
-def stateless_compute_PGM_value(data, **kwargs):
-    return _compute_PGM_value(data.optical_element)
 
 
 def stateless_compute_crl_characteristics(data, **kwargs):

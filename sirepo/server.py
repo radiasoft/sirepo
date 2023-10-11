@@ -8,8 +8,9 @@ from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import simulation_db
+import os.path
 import re
 import sirepo.const
 import sirepo.feature_config
@@ -291,19 +292,29 @@ class API(sirepo.quest.API):
             data.models.simulation.isExample = False
             return self._save_new_and_reply(req, data)
 
-        def _stateful_compute(req):
-            PKDict(
-                method="import_file",
-                params=PKDict(
-                    arguments=req.import_file_arguments,
-                    python=req.form_file.as_str(),
-                    userFilename=req.filename,
+        async def _stateful_compute(req):
+            r = await self.call_api(
+                "statefulCompute",
+                data=PKDict(
+                    method="import_file",
+                    args=PKDict(
+                        basename=os.path.basename(req.filename),
+                        file_as_str=req.form_file.as_str(),
+                        import_file_arguments=req.import_file_arguments,
+                    ),
+                    simulationType=req.type,
                 ),
             )
+            try:
+                res = r.content_as_object().imported_data
+                pkdp(pkdpretty(res))
+                r.destroy()
+                return res
+            except Exception:
+                raise sirepo.util.SReplyExc(r)
 
         error = None
         f = None
-
         try:
             f = self.sreq.form_file_get()
             req = self.parse_params(
@@ -315,7 +326,6 @@ class API(sirepo.quest.API):
             )
             req.form_file = f
             req.import_file_arguments = self.sreq.form_get("arguments", "")
-
             if pkio.has_file_extension(req.filename, "json"):
                 data = importer.read_json(req.form_file.as_bytes(), self, req.type)
             # TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
@@ -324,7 +334,7 @@ class API(sirepo.quest.API):
                 data = await importer.read_zip(
                     req.form_file.as_bytes(), self, sim_type=req.type
                 )
-            elif hasattr(req.template, "stateful_compute_import_file"):
+            elif hasattr(req.template, "xstateful_compute_import_file"):
                 data = await _stateful_compute(req)
             else:
                 data = await _import_file(req)
