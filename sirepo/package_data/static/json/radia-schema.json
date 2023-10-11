@@ -239,7 +239,7 @@
         },
         "sirepoLibs": {
             "css": ["radia.css", "vtk.css"],
-            "js": ["radia.js"]
+            "js": ["sirepo-lattice.js", "radia.js"]
         }
     },
     "enum": {
@@ -1022,6 +1022,11 @@
             "name": ["Name", "String", "Rotate"],
             "type": ["_", "TransformTypes", "rotate"],
             "useObjectCenter": ["use clone center as origin", "Boolean", "1"]
+        },
+        "rpnCache": {},
+        "rpnVariable": {
+            "name": ["Name", "String"],
+            "value": ["Value", "RPNValue"]
         },
         "simulation": {
             "appMode": ["", "ApplicationMode", "default"],

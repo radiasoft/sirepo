@@ -17,6 +17,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
 from sirepo import simulation_db
+from sirepo.template import code_variable
 from sirepo.template import radia_util
 from sirepo.template import template_common
 import copy
@@ -145,6 +146,11 @@ def background_percent_complete(report, run_dir, is_running):
     if report == "solverAnimation":
         res.solution = _read_solution()
     return res
+
+
+def code_var(variables):
+    pkdp("CIDE VATS {}", variables)
+    return code_variable.CodeVar(variables, code_variable.PurePythonEval())
 
 
 def extract_report_data(run_dir, sim_in):

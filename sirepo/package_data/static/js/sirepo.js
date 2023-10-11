@@ -363,10 +363,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
    function propertiesFieldName(fieldName) {
         return `${fieldName}$properties`;
     }
-
-    function propertiesFieldValue(modelName, fieldName, property) {
-        return (self.propertiesField(modelName, fieldName) || [])[property];
-    } 
     
     function propertyToIndexForm(key) {
         return key.split('.').map(function (x) {
