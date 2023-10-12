@@ -1,5 +1,0 @@
-#!/bin/bash
-cd '{{ run_dir }}'
-. ~/.bashrc
-exec timeout --kill-after={{ kill_secs }} --signal=TERM --preserve-status {{ run_secs }} \
-    {{ sh_cmd }} >& '{{ run_log }}'
