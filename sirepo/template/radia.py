@@ -149,8 +149,17 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def code_var(variables):
-    pkdp("CIDE VATS {}", variables)
-    return code_variable.CodeVar(variables, code_variable.PurePythonEval())
+    class _C(code_variable.CodeVar):
+        def eval_var(self, expr):
+            return super().eval_var(
+                re.sub(
+                    fr"({'|'.join(list(self.variables.keys()))})\s*\[\s*(\d+)\s*\]",
+                    lambda m: str(self.variables[m.group(1)][int(m.group(2))]),
+                    expr
+                )
+            )
+
+    return _C(variables, code_variable.PurePythonEval())
 
 
 def extract_report_data(run_dir, sim_in):
