@@ -75,7 +75,7 @@ def run_epics_cmd(cmd, server_address):
 
 def stateless_compute_get_epics_config(data, **kwargs):
     return PKDict(
-        epicsConfig=simulation_db.read_json(
+        simSchema=simulation_db.read_json(
             _SIM_DATA.lib_file_abspath(
                 _SIM_DATA.lib_file_name_with_model_field(
                     "epicsConfig",

@@ -31,18 +31,18 @@ SIREPO.app.config(function() {
 
 SIREPO.app.factory('epicsllrfService', function(appState, requestSender, $rootScope) {
     const self = {};
-    let epicsData, epicsSchema;
+    let epicsData, simSchema;
     self.computeModel = () => 'animation';
 
     function deleteSchema() {
-        if (epicsSchema) {
+        if (simSchema) {
             const schema = SIREPO.APP_SCHEMA;
-            for (const k in epicsSchema) {
-                for (const f in epicsSchema[k]) {
+            for (const k in simSchema) {
+                for (const f in simSchema[k]) {
                     delete schema[k][f];
                 }
             }
-            epicsSchema = null;
+            simSchema = null;
         }
     }
 
@@ -52,7 +52,7 @@ SIREPO.app.factory('epicsllrfService', function(appState, requestSender, $rootSc
             requestSender.sendStatelessCompute(
                 appState,
                 data => {
-                    const s = data.epicsConfig;
+                    const s = data.simSchema;
                     const schema = SIREPO.APP_SCHEMA;
                     for (const k in s) {
                         for (const f in s[k]) {
@@ -68,7 +68,7 @@ SIREPO.app.factory('epicsllrfService', function(appState, requestSender, $rootSc
                     appState.models.epicsConfig.epicsModelPrefix = s.constants.epicsModelPrefix;
                     appState.saveQuietly('epicsConfig');
                     appState.saveChanges('simulation', () => {
-                        epicsSchema = s;
+                        simSchema = s;
                         callback();
                     });
                 },
@@ -89,7 +89,7 @@ SIREPO.app.factory('epicsllrfService', function(appState, requestSender, $rootSc
         return null;
     };
 
-    self.hasEpicsSchema = () => epicsSchema ? true : false;
+    self.hasEpicsSchema = () => simSchema ? true : false;
 
     self.isEpicsModel = modelName => {
         return modelName.startsWith(SIREPO.APP_SCHEMA.constants.epicsModelPrefix);
