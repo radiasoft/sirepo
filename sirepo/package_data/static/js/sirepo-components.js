@@ -776,15 +776,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 <div class="sr-input-warning"></div>
               </div>
               <div data-ng-switch-when="Float" data-ng-class="fieldClass">
-                <input data-ng-if="! appState.isScriptable(modelName, field)" data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
-                <div data-ng-if="appState.isScriptable(modelName, field)">
-                <div class="input-group input-group-sm">
-                    <!--<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />-->
-                    <input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
-                    <span title="scriptable field" class="input-group-addon"><span class="glyphicon glyphicon-list-alt"></span></span>
-                </div>
-                <!--<span data-rpn-static="" data-model="model" data-field="field" data-is-busy="isBusy" data-is-error="isError" style="display: inline-block;"></span>-->
-                </div>
+                <input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
                 <div class="sr-input-warning"></div>
               </div>
               <div data-ng-switch-when="OptionalString" data-ng-class="fieldClass">
@@ -3560,7 +3552,7 @@ SIREPO.app.directive('stringToNumber', function(appState) {
                 return undefined;
             });
             ngModel.$formatters.push(function(value) {
-                if (ngModel.$isEmpty(value) || scope.isScriptable) {
+                if (ngModel.$isEmpty(value)) {
                     return value;
                 }
                 if (scope.numberType != 'integer') {
