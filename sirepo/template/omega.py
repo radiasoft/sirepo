@@ -9,8 +9,11 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+import h5py
+import pmd_beamphysics
 import re
 import sirepo.sim_data
+
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _PHASE_PLOT_COUNT = 4
@@ -120,39 +123,33 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_data_file(run_dir, model, frame, options):
-    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
     i = int(re.search(r"Animation(\d+)\-", model).groups(1)[0])
-    sim_type, sim_id = _sim_info(dm, i - 1)
-    particle_file = _SUCCESS_OUTPUT_FILE[sim_type]
-    pkdp(f"attempting to get {particle_file} from run{i}")
-    particle_file = pkio.py_path(f"run{i}").join(particle_file)
-    pkdp(f"new path is {particle_file}")
+    sim_type, sim_id = _sim_info(
+        simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models,
+        i - 1,
+    )
+    particle_file = pkio.py_path(f"run{i}").join(_SUCCESS_OUTPUT_FILE[sim_type])
     if options.suffix is None:
         return particle_file
     assert options.suffix == "openpmd", f"unknown data type={options.suffix} requested"
-    import pmd_beamphysics
-    import h5py
-
+    n = f"{sim_type}_openpmd.h5"
+    d = None
     # TODO(rorour) add pmd_beamphysics to download
     if sim_type == "elegant":
-        pkdp("converting elegant file to openpmd")
-        outfile_name = "mynewopenpmd.h5"
-        data = pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file)
-        pkdp(f"data={data}")
-        data["n_particle"] = data.get("x").size
-        data["charge"] = 1e-8
-        with h5py.File(outfile_name, "w") as o:
-            pmd_beamphysics.writers.write_pmd_bunch(
-                o,
-                data,
-            )
-        return outfile_name
-        return particle_file
+        d = PKDict(
+            pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file),
+        )
+        d.pkupdate(n_particle=d.get("x").size, charge=1e-8)
     if sim_type == "opal":
         pass
     if sim_type == "genesis":
         pass
-    assert 0, "shouldn't get here"
+    with h5py.File(n, "w") as h:
+        pmd_beamphysics.writers.write_pmd_bunch(
+            h,
+            d,
+        )
+    return n
 
 
 def post_execution_processing(success_exit, run_dir, **kwargs):
