@@ -111,7 +111,6 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
     let prevEpicsData;
     let noCache = true;
     let inRequest = false;
-    self.hasEpicsData = false;
     self.simScope = $scope;
 
     function fieldType(modelName, field) {
