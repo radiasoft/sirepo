@@ -73,14 +73,15 @@ SIREPO.app.factory('radiaOptimizationService', function(appState, radiaService) 
     //TODO(mvk): other types such as FloatArray
     const OPTIMIZABLE_TYPES = ['Float'];
 
-    self.optimizableObjects = () => {
+    self.optimizableObjects = (types=OPTIMIZABLE_TYPES) => {
+        return radiaService.addressableObjects(OPTIMIZABLE_TYPES);
 
         function optFieldsOfModelAndSupers(modelName) {
 
             function optFieldsOfModel(modelName) {
                 const info = appState.modelInfo(modelName);
                 return Object.keys(info).filter(
-                    x => OPTIMIZABLE_TYPES.includes(info[x][SIREPO.INFO_INDEX_TYPE])
+                    x => types.includes(info[x][SIREPO.INFO_INDEX_TYPE])
                 );
             }
     
@@ -130,7 +131,6 @@ SIREPO.app.factory('radiaOptimizationService', function(appState, radiaService) 
         return objs;
     }
 
-
     return self;
 });
 
@@ -150,6 +150,64 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     self.selectedObject = null;
 
+    self.addressableObjects = (types) => {
+
+        function optFieldsOfModelAndSupers(modelName) {
+
+            function optFieldsOfModel(modelName) {
+                const info = appState.modelInfo(modelName);
+                return Object.keys(info).filter(
+                    x => types.includes(info[x][SIREPO.INFO_INDEX_TYPE])
+                );
+            }
+    
+            const s = new Set();
+            for (const m of [modelName, ...appState.superClasses(modelName)]) {
+                for (const f of optFieldsOfModel(m)) {
+                    s.add(f);
+                }
+            }
+            return s;
+        }
+
+        function objectOptFields(o) {
+            if (! o.type) {
+                return {};
+            }
+            const obj = {};
+            obj[o.name] = {
+                name: o.name,
+                id: o.id,
+                fields: [],
+                type: o.type,
+            };
+            for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(o.type).has(x))) {
+                obj[o.name].fields.push(f);
+            }
+            return obj;
+        }
+
+        let objs = {};
+        for (const o of self.getObjects()) {
+            const name = o.name;
+            objs = {...objs, ...objectOptFields(o, name)};
+            if (! objs[name]) {
+                continue;
+            }
+
+            for (const mod of (o.modifications || [])) {
+                if (! objs[name].modifications) {
+                    objs[name].modifications = [];
+                }
+                objs[name].modifications.push(objectOptFields(mod, mod.type));
+            }
+            if (! objs[name].fields.length) {
+                delete objs[name];
+            }
+        }
+        return objs;
+    };
+    
     self.alphaDelegate = function() {
         const m = 'magnetDisplay';
         const f = 'alpha';
@@ -955,11 +1013,47 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return SIREPO.GEOMETRY.GeometryUtils.boundsRadius(b);
     }
 
+    function updateRPNVars() {
+        // easiest to replace
+        const rpns = appState.models.rpnVariables || [];
+        const rpnNames = rpns.map(x => x.name);
+        const objs = radiaService.addressableObjects(['Float', 'FloatArray']);
+        const oNames = [];
+        let doSave = false;
+        // add
+        for (const name in objs) {
+            const o = objs[name];
+            for (const f of o.fields) {
+                const vName = `${o.name}.${f}`;
+                if (rpnNames.includes(vName)) {
+                    continue;
+                }
+                rpns.push({
+                    name: vName,
+                    value: radiaService.getObject(o.id)[f],
+                });
+                oNames.push(vName);
+                doSave = true;
+            }
+        }
+        // remove
+        rpns.reverse().forEach((rpn, idx) => {
+            if (! oNames.includes(rpn.name)) {
+                rpns.splice(idx, 1);
+                doSave = true;
+            }
+        });
+        if (doSave) {
+            appState.saveChanges('rpnVariables');
+        }
+    }
+
     // initial setup
     if (! appState.models.geometryReport.objects) {
         appState.models.geometryReport.objects = [];
     }
     loadObjectViews();
+    updateRPNVars();
 
     $scope.$on('cancelChanges', function(e, name) {
         if (name === 'geometryReport') {
