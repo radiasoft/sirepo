@@ -29,10 +29,58 @@ SIREPO.app.config(function() {
     `;
 });
 
-SIREPO.app.factory('epicsllrfService', function(appState) {
+SIREPO.app.factory('epicsllrfService', function(appState, requestSender, $rootScope) {
     const self = {};
-    let epicsData;
+    let epicsData, epicsSchema;
     self.computeModel = () => 'animation';
+
+    function deleteSchema() {
+        if (epicsSchema) {
+            const schema = SIREPO.APP_SCHEMA;
+            for (const k in epicsSchema) {
+                for (const f in epicsSchema[k]) {
+                    delete schema[k][f];
+                }
+            }
+            epicsSchema = null;
+        }
+    }
+
+    self.initSchema = (callback) => {
+        const c = appState.applicationState().epicsConfig.epicsSchema;
+        if (c) {
+            requestSender.sendStatelessCompute(
+                appState,
+                data => {
+                    const s = data.epicsConfig;
+                    const schema = SIREPO.APP_SCHEMA;
+                    for (const k in s) {
+                        for (const f in s[k]) {
+                            schema[k][f] = s[k][f];
+                        }
+                    }
+                    for (const name in s.model) {
+                        if (! appState.models[name]) {
+                            appState.models[name] = appState.setModelDefaults({}, name);
+                            appState.saveQuietly(name);
+                        }
+                    }
+                    appState.models.epicsConfig.epicsModelPrefix = s.constants.epicsModelPrefix;
+                    appState.saveQuietly('epicsConfig');
+                    appState.saveChanges('simulation', () => {
+                        epicsSchema = s;
+                        callback();
+                    });
+                },
+                {
+                    method: 'get_epics_config',
+                    args: {
+                        epicsSchema: c,
+                    },
+                },
+            );
+        }
+    };
 
     self.getEpicsValue = (modelName, field) => {
         if (epicsData) {
@@ -41,6 +89,8 @@ SIREPO.app.factory('epicsllrfService', function(appState) {
         return null;
     };
 
+    self.hasEpicsSchema = () => epicsSchema ? true : false;
+
     self.isEpicsModel = modelName => {
         return modelName.startsWith(SIREPO.APP_SCHEMA.constants.epicsModelPrefix);
     };
@@ -48,6 +98,8 @@ SIREPO.app.factory('epicsllrfService', function(appState) {
     self.setEpicsData = epics => {
         epicsData = epics;
     };
+
+    $rootScope.$on('modelsUnloaded', deleteSchema);
 
     appState.setAppService(self);
     return self;
@@ -59,6 +111,7 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
     let prevEpicsData;
     let noCache = true;
     let inRequest = false;
+    self.hasEpicsData = false;
     self.simScope = $scope;
 
     function fieldType(modelName, field) {
@@ -168,7 +221,7 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
         // per 2000ms, ex 2 Hz --> delay 500, repeat 4
         $interval(
             () => {
-                if (inRequest) {
+                if (inRequest || ! appState.isLoaded()) {
                     return;
                 }
                 inRequest = true;
@@ -197,6 +250,8 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
             2000 / d,
         );
     }
+
+    self.hasEpicsSchema = epicsllrfService.hasEpicsSchema;
 
     self.simHandleStatus = data => {
         if (self.simState.isStateRunning() && data.hasEpicsData) {
@@ -241,8 +296,17 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
         }
     });
 
+    function initSchema() {
+        if (appState.applicationState().epicsConfig.epicsSchema) {
+            self.loadingSchemaMessage = "Loading EPICS definition";
+        }
+        epicsllrfService.initSchema(initReportNames);
+    }
+
+    $scope.$on('epicsConfig.changed', initSchema);
+
     self.simState = persistentSimulation.initSimulationState(self);
-    initReportNames();
+    initSchema();
 });
 
 
