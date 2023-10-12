@@ -121,23 +121,38 @@ def background_percent_complete(report, run_dir, is_running):
 
 def get_data_file(run_dir, model, frame, options):
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
-    i = int(re.search(r"Animation(\d+)\-", model).groups(1)[0]) - 1
-    sim_type, sim_id = _sim_info(dm, i)
+    i = int(re.search(r"Animation(\d+)\-", model).groups(1)[0])
+    sim_type, sim_id = _sim_info(dm, i - 1)
     particle_file = _SUCCESS_OUTPUT_FILE[sim_type]
+    pkdp(f"attempting to get {particle_file} from run{i}")
+    particle_file = pkio.py_path(f"run{i}").join(particle_file)
+    pkdp(f"new path is {particle_file}")
     if options.suffix is None:
         return particle_file
+    assert options.suffix == "openpmd", f"unknown data type={options.suffix} requested"
+    import pmd_beamphysics
+    import h5py
+
+    # TODO(rorour) add pmd_beamphysics to download
     if sim_type == "elegant":
-        # convert particle_file to openpmd...
-        return h5file
+        pkdp("converting elegant file to openpmd")
+        outfile_name = "mynewopenpmd.h5"
+        data = pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file)
+        pkdp(f"data={data}")
+        data["n_particle"] = data.get("x").size
+        data["charge"] = 1e-8
+        with h5py.File(outfile_name, "w") as o:
+            pmd_beamphysics.writers.write_pmd_bunch(
+                o,
+                data,
+            )
+        return outfile_name
+        return particle_file
     if sim_type == "opal":
         pass
     if sim_type == "genesis":
         pass
-    assert 0, f"sim_type={sim_type} sim_id={sim_id}"
-
-    assert 0, f"suffix={options.suffix}, run_dir={run_dir} model={model}"
-    if not options.suffix:
-        return
+    assert 0, "shouldn't get here"
 
 
 def post_execution_processing(success_exit, run_dir, **kwargs):
