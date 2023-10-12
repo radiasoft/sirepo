@@ -2,6 +2,7 @@
     "constants": {
         "inProgressText": "Reading",
         "epicsModelPrefix": "LLRFSim",
+        "editorViewName": "LLRFSim_Gen",
         "epicsPlots": {
             "waveformAReport": {
                 "x": "LLRFSim_Pulse:time_step",

@@ -83,6 +83,17 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
         return d;
     }
 
+    function initReportNames() {
+        self.editorViewName = SIREPO.APP_SCHEMA.constants.editorViewName;
+        self.reportNames = [];
+        for (const k in SIREPO.APP_SCHEMA.constants.epicsPlots) {
+            if (appState.isReportModelName(k)) {
+                self.reportNames.push(k);
+            }
+        }
+        self.reportNames.sort((a, b) => a.localeCompare(b));
+    }
+
     function isEditable(modelName, field) {
         const t = fieldType(modelName, field);
         return t && ! t.startsWith('ReadOnly');
@@ -231,6 +242,7 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
     });
 
     self.simState = persistentSimulation.initSimulationState(self);
+    initReportNames();
 });
 
 
