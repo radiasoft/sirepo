@@ -24,7 +24,9 @@ SIREPO.app.config(function() {
           <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
         </div>
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
-            <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
+            <div data-ng-if="! appState.isScriptable(modelName, field)" data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
+            <div data-ng-if="appState.isScriptable(modelName, field)" data-rpn-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
+            <div class="sr-input-warning"></div>
         </div>
         <div data-ng-switch-when="Group" class="col-sm-12">
             <div data-group-editor="" data-field="model[field]" data-model="model"></div>
@@ -1014,8 +1016,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     }
 
     function updateRPNVars() {
-        // easiest to replace
-        const rpns = appState.models.rpnVariables || [];
+        if (! appState.models.rpnVariables) {
+            appState.models.rpnVariables = [];
+        }
+        const rpns = appState.models.rpnVariables;
         const rpnNames = rpns.map(x => x.name);
         const objs = radiaService.addressableObjects(['Float', 'FloatArray']);
         const oNames = [];
@@ -3113,6 +3117,31 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
     };
 });
 
+SIREPO.app.directive('rpnArray', function(appState, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            fieldName: '=',
+            info: '=',
+            model: '=',
+        },
+        template: `
+            <div class="input-group input-group-sm">
+                <div data-ng-repeat="v in model[fieldName] track by $index" style="display: inline-block;">
+                    <label data-text-with-math="info[4][$index]" data-is-dynamic="isDynamic(info[4][$index])" style="margin-right: 1ex"></label>
+                    <input data-rpn-value="" data-ng-model="v" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
+                </div>
+                <span title="scriptable field" class="input-group-addon"><span class="glyphicon glyphicon-list-alt"></span></span>
+            </div>
+            <span data-rpn-static="" data-model="model" data-field="field" data-is-busy="isBusy" data-is-error="isError" style="display: inline-block;"></span>
+        `,
+        controller: $scope => {
+            $scope.appState = appState;
+            $scope.isDynamic = label => ! ! label.match(/{{\s*.+\s*}}/);
+        },
+    };
+});
 SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 
     const self = {};

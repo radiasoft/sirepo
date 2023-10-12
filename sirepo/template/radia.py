@@ -149,6 +149,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def code_var(variables):
+    pkdp("CODE VAR {}", variables)
     class _C(code_variable.CodeVar):
         def eval_var(self, expr):
             return super().eval_var(
