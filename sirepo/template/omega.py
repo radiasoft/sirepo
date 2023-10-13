@@ -134,16 +134,22 @@ def get_data_file(run_dir, model, frame, options):
     assert options.suffix == "openpmd", f"unknown data type={options.suffix} requested"
     n = f"{sim_type}_openpmd.h5"
     d = None
-    # TODO(rorour) add pmd_beamphysics to download
     if sim_type == "elegant":
-        d = PKDict(
-            pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file),
+        d = PKDict(pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file))
+        d.pkupdate(
+            n_particle=d.get("x").size,
+            charge=1e-8,
         )
-        d.pkupdate(n_particle=d.get("x").size, charge=1e-8)
-    if sim_type == "opal":
-        pass
-    if sim_type == "genesis":
-        pass
+    elif sim_type == "opal":
+        with h5py.File(particle_file, "r") as f:
+            # TODO(rorour): opal file doesn't have the right keys?
+            d = pmd_beamphysics.interfaces.opal.opal_to_data(f)
+    elif sim_type == "genesis":
+        # TODO(rorour) latest version of pmd_beamphysics on pip doesn't have genesis4_par_to_data
+        d = pmd_beamphysics.interfaces.genesis.genesis4_par_to_data(particle_file)
+    else:
+        raise AssertionError(f"unsupported sim_type={sim_type}")
+
     with h5py.File(n, "w") as h:
         pmd_beamphysics.writers.write_pmd_bunch(
             h,
