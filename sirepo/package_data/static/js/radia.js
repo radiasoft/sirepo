@@ -210,12 +210,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     self.isGroup = o => o.members !== undefined;
 
-    self.reloadGeometry = (callback=() => {}) => {
-        const r = 'geometryReport';
-        panelState.clear(r);
-        panelState.requestData(r, callback, true);
-    };
-
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
         appState.models.geometryReport.lastModified = Date.now();
         appState.models.geometryReport.doGenerate = doGenerate ? '1': '0';
