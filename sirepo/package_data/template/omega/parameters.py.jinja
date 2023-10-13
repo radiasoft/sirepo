@@ -15,6 +15,7 @@ import sirepo.template.opal
 
 
 _OMEGA_SIM_NAME = '{{ simulation_name }}'
+_GENESIS_PARTICLE_COLUMN_COUNT = 6
 assert os.environ['SIREPO_SIMULATION_DB_LOGGED_IN_USER'], 'missing user id env var'
 
 
@@ -42,19 +43,15 @@ def genesis_to_pmd(sim):
     import pmd_beamphysics.particles
 
     g = read_sim("genesis", sim.sim_id)
-    npart = g.models.electronBeam.npart
-    curpeak = g.models.electronBeam.curpeak
-    xlamds = g.models.radiation.xlamds
     d = numpy.fromfile(sim.outfile_path, dtype=numpy.float64)
-    d = d.reshape(int(len(d) / 6 / npart), 6, npart)
+    d = d.reshape(int(len(d) / _GENESIS_PARTICLE_COLUMN_COUNT / g.models.electronBeam.npart), _GENESIS_PARTICLE_COLUMN_COUNT, g.models.electronBeam.npart)
     # phase must be > 0 to avoid wrapping
     d[:,1,:] -= numpy.min(d[:,1,:])
-    # compute required wavelengths to hold the whole beam
-    zsep = numpy.max(d[:,1,:]) / (2 * numpy.pi)
     v = pmd_beamphysics.particles.ParticleGroup(
         data=pmd_beamphysics.interfaces.genesis.genesis2_dpa_to_data(
-            d, xlamds=xlamds, current=numpy.array([curpeak]),
-            zsep=zsep,
+            d, xlamds=g.models.radiation.xlamds, current=numpy.array([g.models.electronBeam.curpeak]),
+            # compute required wavelengths to hold the whole beam
+            zsep=numpy.max(d[:,1,:]) / (2 * numpy.pi),
         )
     )
     # center psi
@@ -118,7 +115,7 @@ def run_genesis(run_dir, genesis_id, prev_sim=None):
             # center longitudinal
             with open(prev_sim.outfile_path, 'rb') as f:
                 d = numpy.fromfile(f, dtype=numpy.float64)
-            d = d.reshape((6, int(len(d) / 6)))
+            d = d.reshape((_GENESIS_PARTICLE_COLUMN_COUNT, int(len(d) / _GENESIS_PARTICLE_COLUMN_COUNT)))
             d[1,:] -= numpy.mean(d[1,:])
             with open(lib_file, 'wb') as f:
                 d.tofile(f)
@@ -128,7 +125,7 @@ def run_genesis(run_dir, genesis_id, prev_sim=None):
             else:
                 assert prev_sim.sim_type == "opal"
                 p = switchyard.read_opal(f"{prev_sim.outfile_path}")
-            particle_data = numpy.zeros([6, len(p.x)])
+            particle_data = numpy.zeros([_GENESIS_PARTICLE_COLUMN_COUNT, len(p.x)])
             for i, col in enumerate(['pt', 'ct', 'x', 'y', 'ux', 'uy']):
                 particle_data[i, :] = getattr(p, col)
             #TODO(pjm): [0] should be gamma not momentum
@@ -212,11 +209,11 @@ def update_genesis_sim(data, filename, lib_file):
     io.ippart = 0
     io.ipradi = 0
     d = numpy.fromfile(lib_file, dtype=numpy.float64)
-    n = len(d) / 6
+    n = len(d) / _GENESIS_PARTICLE_COLUMN_COUNT
     factor = 4 * data.models.particleLoading.nbins
     data.models.electronBeam.npart = int(n / factor) * factor
     # clip particle count to match npart
-    d = d.reshape(6, int(n))
+    d = d.reshape(_GENESIS_PARTICLE_COLUMN_COUNT, int(n))
     d = d[:, :data.models.electronBeam.npart]
     with open(lib_file, 'wb') as f:
         d.tofile(f)
