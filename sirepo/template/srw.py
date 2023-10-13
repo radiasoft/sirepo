@@ -644,10 +644,14 @@ def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
     sim.sourceType = new_simulation_data.sourceType
     if new_simulation_data.get("sourceSimType") == "radia":
         _sim_from_radia(data.models, new_simulation_data)
-    if _SIM_DATA.srw_is_dipole_source(sim):
-        data.models.intensityReport.method = "2"
-    elif _SIM_DATA.srw_is_arbitrary_source(sim):
-        data.models.sourceIntensityReport.method = "2"
+    if _SIM_DATA.srw_is_dipole_source(sim) or _SIM_DATA.srw_is_arbitrary_source(sim):
+        for m in (
+            "coherentModesAnimation",
+            "intensityReport",
+            "simulation",
+            "sourceIntensityReport",
+        ):
+            data.models[m].method = "2"
     elif _SIM_DATA.srw_is_tabulated_undulator_source(sim):
         data.models.undulator.length = compute_undulator_length(
             data.models.tabulatedUndulator,
@@ -2449,10 +2453,6 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
         beamline_info,
     ) = _generate_beamline_optics(report, data, qcall=qcall)
     v.beamlineFirstElementPosition = _get_first_element_position(report, data)
-    # 1: auto-undulator 2: auto-wiggler
-    v.energyCalculationMethod = (
-        1 if _SIM_DATA.srw_is_undulator_source(dm.simulation) else 2
-    )
     v[report] = 1
     for k in _OUTPUT_FOR_MODEL:
         v["{}Filename".format(k)] = _OUTPUT_FOR_MODEL[k].filename
@@ -2554,13 +2554,10 @@ def _update_model_fields(models):
     magnetic_field = 1
     if st == "a" or _SIM_DATA.srw_is_tabulated_undulator_with_magnetic_file(st, ut):
         magnetic_field = 2
-    models.intensityReport.magneticField = magnetic_field
-    models.sourceIntensityReport.magneticField = magnetic_field
-    models.trajectoryReport.magneticField = magnetic_field
-    models.powerDensityReport.magneticField = magnetic_field
+    models.simulation.magneticField = magnetic_field
     is_ideal_undulator = _SIM_DATA.srw_is_idealized_undulator(st, ut)
     if is_ideal_undulator:
-        models.fluxAnimation.magneticField = magnetic_field
+        models.fluxAnimation.magneticField = 1
     if _SIM_DATA.srw_is_tabulated_undulator_source(models.simulation):
         if is_ideal_undulator:
             models.tabulatedUndulator.gap = 0.0
