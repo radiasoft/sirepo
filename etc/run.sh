@@ -108,7 +108,7 @@ _op_jupyterhub() {
     sirepo job_supervisor &
     sirepo service jupyterhub &
     declare -a x=( $(jobs -p) )
-    # this doesn't kill uwsgi for some reason; TERM is better than KILL
+    # TERM is better than KILL
     trap "kill ${x[*]}" EXIT
     wait -n
 }
