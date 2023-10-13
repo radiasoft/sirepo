@@ -968,16 +968,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         return b;
     }
 
-    // indexOf does not work right...explicitly match by id here
-    function indexOfViews(v) {
-        for (let i = 0; i < self.views.length; ++i) {
-            if (self.views[i].id === v.id) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
     function loadObjectViews() {
         self.views = [];
         self.shapes = [];
@@ -1029,6 +1019,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             const o = objs[name];
             for (const f of o.fields) {
                 const vName = `${o.name}.${f}`;
+                oNames.push(vName);
                 if (rpnNames.includes(vName)) {
                     continue;
                 }
@@ -1036,7 +1027,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                     name: vName,
                     value: radiaService.getObject(o.id)[f],
                 });
-                oNames.push(vName);
                 doSave = true;
             }
         }
@@ -1050,6 +1040,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         if (doSave) {
             appState.saveChanges('rpnVariables');
         }
+        srdbg(rpns);
     }
 
     // initial setup
@@ -1072,6 +1063,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         }
         let o = self.selectedObject;
         if (o) {
+            
             if (! radiaService.getObject(o.id)) {
                 // catch unrelated saved objects
                 if (o.type === modelName || panelState.getBaseModelKey(o.type) === modelName) {
@@ -3130,7 +3122,7 @@ SIREPO.app.directive('rpnArray', function(appState, utilities) {
             <div class="input-group input-group-sm">
                 <div data-ng-repeat="v in model[fieldName] track by $index" style="display: inline-block;">
                     <label data-text-with-math="info[4][$index]" data-is-dynamic="isDynamic(info[4][$index])" style="margin-right: 1ex"></label>
-                    <input data-rpn-value="" data-ng-model="v" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
+                    <input data-rpn-value="" data-ng-model="model[fieldName][$index]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
                 </div>
                 <span title="scriptable field" class="input-group-addon"><span class="glyphicon glyphicon-list-alt"></span></span>
             </div>
@@ -3142,6 +3134,7 @@ SIREPO.app.directive('rpnArray', function(appState, utilities) {
         },
     };
 });
+
 SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 
     const self = {};
