@@ -600,7 +600,6 @@ SIREPO.viewLogic('problemFilesView', function(appState, flashService, panelState
                     setProcessing(false);
                 }
             },
-            false,
             err => {
                 setProcessing(false, err.error);
                 appState.models.problemFiles.archive = null;
