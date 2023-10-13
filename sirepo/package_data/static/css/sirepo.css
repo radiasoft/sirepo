@@ -910,8 +910,9 @@ ul.sr-nav-sidebar-root {
   text-decoration: none;
 }
 .sr-iconset .sr-icon-view-toggle {
+  padding-left: 1em;
   float: right;
-  min-width: 8em;
+  min-width: 9em;
 }
 .sr-icon-col {
   float: left;
