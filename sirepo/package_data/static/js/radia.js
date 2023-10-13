@@ -136,7 +136,7 @@ SIREPO.app.factory('radiaOptimizationService', function(appState, radiaService) 
     return self;
 });
 
-SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
+SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, rpnService, validationService) {
     let self = {};
 
     const POST_SIM_REPORTS = ['electronTrajectoryReport', 'fieldIntegralReport', 'kickMapReport',];
@@ -368,6 +368,15 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         self.syncReports();
     };
 
+    self.scriptedObject = o => {
+        const s = {};
+        const t = o.type;
+        for (const f of Object.keys(o)) {
+            s[f] = appState.isScriptable(t, f) ? rpnService.getRpnValueForField(o, f) : o[f];
+        }
+        return s;
+    }
+
     self.setWidthAxis = function() {
         const sim = appState.models.simulation;
         sim.widthAxis = self.calcWidthAxis(sim.beamAxis, sim.heightAxis);
@@ -488,7 +497,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     return self;
 });
 
-SIREPO.app.controller('RadiaSourceController', function (appState, geometry, panelState, plotting, radiaService, utilities, validationService, vtkPlotting, $rootScope, $scope) {
+SIREPO.app.controller('RadiaSourceController', function (appState, panelState, radiaService, rpnService, vtkPlotting, $rootScope, $scope) {
     //TODO(mvk): a lot of this is specific to freehand magnets and should be moved to a directive
 
     let self = this;
@@ -756,8 +765,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.viewShadow = o => self.viewsForObject(appState.setModelDefaults({}, 'cuboid'));
 
-    self.viewsForObject = o => {
+    self.viewsForObject = obj => {
+        const o = radiaService.scriptedObject(obj);
         const supers = appState.superClasses(o.type);
+        srdbg('SCRIPTED', o);
         let center = o.center;
         let size = o.size;
         const isGroup = self.isGroup(o);
@@ -767,6 +778,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             const b = groupBounds(o.members.map(id => self.getObject(id)));
             center = b.map(c => (c[0] + c[1]) / 2);
             size = b.map(c => Math.abs(c[1] - c[0]));
+            srdbg('GRP CTR', center);
         }
 
         let view;
@@ -1010,6 +1022,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             appState.models.rpnVariables = [];
         }
         const rpns = appState.models.rpnVariables;
+        const cache = appState.models.rpnCache;
         const rpnNames = rpns.map(x => x.name);
         const objs = radiaService.addressableObjects(['Float', 'FloatArray']);
         const oNames = [];
@@ -1019,28 +1032,34 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
             const o = objs[name];
             for (const f of o.fields) {
                 const vName = `${o.name}.${f}`;
+                const v = radiaService.getObject(o.id)[f];
                 oNames.push(vName);
+                //if (cache[vName] == null || cache[vName] !== v) {
+                //    cache[vName] = v;
+                //    doSave = true;
+                //}
                 if (rpnNames.includes(vName)) {
                     continue;
                 }
                 rpns.push({
                     name: vName,
-                    value: radiaService.getObject(o.id)[f],
+                    value: v,
                 });
                 doSave = true;
             }
         }
         // remove
-        rpns.reverse().forEach((rpn, idx) => {
+        for (let i = rpns.length - 1; i >= 0; --i) {
+            const rpn = rpns[i];
             if (! oNames.includes(rpn.name)) {
-                rpns.splice(idx, 1);
+                rpns.splice(i, 1);
                 doSave = true;
             }
-        });
-        if (doSave) {
-            appState.saveChanges('rpnVariables');
         }
-        srdbg(rpns);
+        if (doSave) {
+            appState.saveChanges(['rpnVariables', 'rpnCache']);
+        }
+        srdbg('RPNS', rpns);
     }
 
     // initial setup
@@ -1053,6 +1072,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     $scope.$on('cancelChanges', function(e, name) {
         if (name === 'geometryReport') {
             loadObjectViews();
+            updateRPNVars();
         }
     });
 
@@ -3122,11 +3142,12 @@ SIREPO.app.directive('rpnArray', function(appState, utilities) {
             <div class="input-group input-group-sm">
                 <div data-ng-repeat="v in model[fieldName] track by $index" style="display: inline-block;">
                     <label data-text-with-math="info[4][$index]" data-is-dynamic="isDynamic(info[4][$index])" style="margin-right: 1ex"></label>
-                    <input data-rpn-value="" data-ng-model="model[fieldName][$index]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
+                    <input data-rpn-value="" data-ng-model="field[$index]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
                 </div>
+                <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError" style="display: inline-block;"></span>
                 <span title="scriptable field" class="input-group-addon"><span class="glyphicon glyphicon-list-alt"></span></span>
             </div>
-            <span data-rpn-static="" data-model="model" data-field="field" data-is-busy="isBusy" data-is-error="isError" style="display: inline-block;"></span>
+            
         `,
         controller: $scope => {
             $scope.appState = appState;
@@ -3533,6 +3554,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     };
 
     $scope.$on('modelChanged', (e, modelName) => {
+        srdbg('MC', modelName);
         if (! editedModels.includes(modelName)) {
             return;
         }
@@ -3549,6 +3571,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         if (modelName === 'stl') {
             loadSTLSize();
         }
+        //appState.saveChanges(['rpnVariables', 'rpnCache'], () => {srdbg('CACHE NOW', appState.models.rpnCache)});
     });
 
     function buildTriangulationLevelDelegate() {

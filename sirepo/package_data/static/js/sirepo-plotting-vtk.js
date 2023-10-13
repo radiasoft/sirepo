@@ -260,6 +260,7 @@ class CylinderViews extends ExtrudedPolyViews {
         numSides=8,
         scale=1.0
     ) {
+        srdbg('CYL CTR', center);
         const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(axis);
         const pts = [];
         for (let n = 0; n < numSides; ++n) {
