@@ -372,7 +372,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         const s = {};
         const t = o.type;
         for (const f of Object.keys(o)) {
-            s[f] = appState.isScriptable(t, f) ? rpnService.getRpnValueForField(o, f) : o[f];
+            s[f] = appState.isScriptable(t, f) ? rpnService.getRpnValueForField(o, f) : window.structuredClone(o[f]);
         }
         return s;
     }
@@ -776,6 +776,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
 
         if (isGroup) {
             const b = groupBounds(o.members.map(id => self.getObject(id)));
+            srdbg('GRP B', b);
             center = b.map(c => (c[0] + c[1]) / 2);
             size = b.map(c => Math.abs(c[1] - c[0]));
             srdbg('GRP CTR', center);
@@ -966,9 +967,10 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
             [Number.MAX_VALUE, -Number.MAX_VALUE]
         ];
         b.forEach(function (c, i) {
-            (objs || appState.models.geometryReport.objects || []).forEach(o => {
+            (objs || appState.models.geometryReport.objects || []).forEach(obj => {
+                const o = radiaService.scriptedObject(obj);
                 if ((o.members || []).length) {
-                    const g = groupBounds(o.members.map(mId => self.getObject(mId)));
+                    const g = groupBounds(o.members.map(mId => radiaService.scriptedObject(self.getObject(mId))));
                     c[0] = Math.min(c[0], g[i][0]);
                     c[1] = Math.max(c[1], g[i][1]);
                     return;
