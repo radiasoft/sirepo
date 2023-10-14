@@ -366,6 +366,12 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         const s = {};
         const t = o.type;
         for (const f of Object.keys(o)) {
+            if (appState.isScriptable(t, f)) {
+                let v = rpnService.getRpnValueForField(o, f);
+                if (v == null) {
+                    rpnService.re
+                }
+            }
             s[f] = appState.isScriptable(t, f) ? rpnService.getRpnValueForField(o, f) : window.structuredClone(o[f]);
         }
         return s;
@@ -1074,6 +1080,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
 
     $scope.$on('modelChanged', function(e, modelName) {
 
+        srdbg('MCH', modelName);
         if (! watchedModels.includes(modelName)) {
             return;
         }
@@ -3567,7 +3574,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         if (modelName === 'stl') {
             loadSTLSize();
         }
-        //appState.saveChanges(['rpnVariables', 'rpnCache'], () => {srdbg('CACHE NOW', appState.models.rpnCache)});
+        appState.saveChanges(['rpnVariables', 'rpnCache'], () => {srdbg('CACHE NOW', appState.models.rpnCache)});
     });
 
     function buildTriangulationLevelDelegate() {
