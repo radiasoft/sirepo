@@ -69,69 +69,14 @@ SIREPO.app.config(function() {
     `;
 });
 
-SIREPO.app.factory('radiaOptimizationService', function(appState, radiaService) {
+SIREPO.app.factory('radiaOptimizationService', function(appState, radiaService, radiaVariableService) {
     let self = {};
 
     //TODO(mvk): other types such as FloatArray
     const OPTIMIZABLE_TYPES = ['Float'];
 
-    self.optimizableObjects = (types=OPTIMIZABLE_TYPES) => {
-        return radiaService.addressableObjects(OPTIMIZABLE_TYPES);
-
-        function optFieldsOfModelAndSupers(modelName) {
-
-            function optFieldsOfModel(modelName) {
-                const info = appState.modelInfo(modelName);
-                return Object.keys(info).filter(
-                    x => types.includes(info[x][SIREPO.INFO_INDEX_TYPE])
-                );
-            }
-    
-            const s = new Set();
-            for (const m of [modelName, ...appState.superClasses(modelName)]) {
-                for (const f of optFieldsOfModel(m)) {
-                    s.add(f);
-                }
-            }
-            return s;
-        }
-
-        function objectOptFields(o) {
-            if (! o.type) {
-                return {};
-            }
-            const obj = {};
-            obj[o.name] = {
-                name: o.name,
-                fields: [],
-                type: o.type,
-            };
-            for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(o.type).has(x))) {
-                obj[o.name].fields.push(f);
-            }
-            return obj;
-        }
-
-        let objs = {};
-        for (const o of radiaService.getObjects()) {
-            const name = o.name;
-            objs = {...objs, ...objectOptFields(o, name)};
-            if (! objs[name]) {
-                continue;
-            }
-
-            for (const mod of (o.modifications || [])) {
-                if (! objs[name].modifications) {
-                    objs[name].modifications = [];
-                }
-                objs[name].modifications.push(objectOptFields(mod, mod.type));
-            }
-            if (! objs[name].fields.length) {
-                delete objs[name];
-            }
-        }
-        return objs;
-    }
+    self.optimizableObjects = (types=OPTIMIZABLE_TYPES) =>
+        radiaVariableService.addressableObjects(OPTIMIZABLE_TYPES);
 
     return self;
 });
@@ -152,64 +97,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
 
     self.selectedObject = null;
 
-    self.addressableObjects = (types) => {
-
-        function optFieldsOfModelAndSupers(modelName) {
-
-            function optFieldsOfModel(modelName) {
-                const info = appState.modelInfo(modelName);
-                return Object.keys(info).filter(
-                    x => types.includes(info[x][SIREPO.INFO_INDEX_TYPE])
-                );
-            }
-    
-            const s = new Set();
-            for (const m of [modelName, ...appState.superClasses(modelName)]) {
-                for (const f of optFieldsOfModel(m)) {
-                    s.add(f);
-                }
-            }
-            return s;
-        }
-
-        function objectOptFields(o) {
-            if (! o.type) {
-                return {};
-            }
-            const obj = {};
-            obj[o.name] = {
-                name: o.name,
-                id: o.id,
-                fields: [],
-                type: o.type,
-            };
-            for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(o.type).has(x))) {
-                obj[o.name].fields.push(f);
-            }
-            return obj;
-        }
-
-        let objs = {};
-        for (const o of self.getObjects()) {
-            const name = o.name;
-            objs = {...objs, ...objectOptFields(o, name)};
-            if (! objs[name]) {
-                continue;
-            }
-
-            for (const mod of (o.modifications || [])) {
-                if (! objs[name].modifications) {
-                    objs[name].modifications = [];
-                }
-                objs[name].modifications.push(objectOptFields(mod, mod.type));
-            }
-            if (! objs[name].fields.length) {
-                delete objs[name];
-            }
-        }
-        return objs;
-    };
-    
     self.alphaDelegate = function() {
         const m = 'magnetDisplay';
         const f = 'alpha';
@@ -362,21 +249,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         self.syncReports();
     };
 
-    self.scriptedObject = o => {
-        const s = {};
-        const t = o.type;
-        for (const f of Object.keys(o)) {
-            if (appState.isScriptable(t, f)) {
-                let v = rpnService.getRpnValueForField(o, f);
-                if (v == null) {
-                    rpnService.re
-                }
-            }
-            s[f] = appState.isScriptable(t, f) ? rpnService.getRpnValueForField(o, f) : window.structuredClone(o[f]);
-        }
-        return s;
-    }
-
     self.setWidthAxis = function() {
         const sim = appState.models.simulation;
         sim.widthAxis = self.calcWidthAxis(sim.beamAxis, sim.heightAxis);
@@ -497,7 +369,86 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     return self;
 });
 
-SIREPO.app.controller('RadiaSourceController', function (appState, panelState, radiaService, rpnService, vtkPlotting, $rootScope, $scope) {
+SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnService) {
+    let self = {};
+
+    self.addressableObjects = (types) => {
+
+        function optFieldsOfModelAndSupers(modelName) {
+
+            function optFieldsOfModel(modelName) {
+                const info = appState.modelInfo(modelName);
+                return Object.keys(info).filter(
+                    x => types.includes(info[x][SIREPO.INFO_INDEX_TYPE])
+                );
+            }
+    
+            const s = new Set();
+            for (const m of [modelName, ...appState.superClasses(modelName)]) {
+                for (const f of optFieldsOfModel(m)) {
+                    s.add(f);
+                }
+            }
+            return s;
+        }
+
+        function objectOptFields(o) {
+            if (! o.type) {
+                return {};
+            }
+            const obj = {};
+            obj[o.name] = {
+                name: o.name,
+                id: o.id,
+                fields: [],
+                type: o.type,
+            };
+            for (const f of Object.keys(o).filter(x => optFieldsOfModelAndSupers(o.type).has(x))) {
+                obj[o.name].fields.push(f);
+            }
+            return obj;
+        }
+
+        let objs = {};
+        for (const o of radiaService.getObjects()) {
+            const name = o.name;
+            objs = {...objs, ...objectOptFields(o, name)};
+            if (! objs[name]) {
+                continue;
+            }
+
+            for (const mod of (o.modifications || [])) {
+                if (! objs[name].modifications) {
+                    objs[name].modifications = [];
+                }
+                objs[name].modifications.push(objectOptFields(mod, mod.type));
+            }
+            if (! objs[name].fields.length) {
+                delete objs[name];
+            }
+        }
+        return objs;
+    };
+
+    self.scriptedObject = o => {
+        const s = {};
+        const t = o.type;
+        for (const f of Object.keys(o)) {
+            if (appState.isScriptable(t, f)) {
+                let v = rpnService.getRpnValueForField(o, f);
+                if (v == null) {
+                    rpnService.re
+                }
+            }
+            s[f] = appState.isScriptable(t, f) ? rpnService.getRpnValueForField(o, f) : window.structuredClone(o[f]);
+        }
+        return s;
+    };
+
+    return self;
+});
+
+SIREPO.app.controller('RadiaSourceController', function (appState, panelState, radiaService, radiaVariableService, rpnService, vtkPlotting, $rootScope, $scope) {
     //TODO(mvk): a lot of this is specific to freehand magnets and should be moved to a directive
 
     let self = this;
@@ -766,7 +717,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     self.viewShadow = o => self.viewsForObject(appState.setModelDefaults({}, 'cuboid'));
 
     self.viewsForObject = obj => {
-        const o = radiaService.scriptedObject(obj);
+        const o = radiaVariableService.scriptedObject(obj);
         const supers = appState.superClasses(o.type);
         srdbg('SCRIPTED', o);
         let center = o.center;
@@ -968,9 +919,9 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         ];
         b.forEach(function (c, i) {
             (objs || appState.models.geometryReport.objects || []).forEach(obj => {
-                const o = radiaService.scriptedObject(obj);
+                const o = radiaVariableService.scriptedObject(obj);
                 if ((o.members || []).length) {
-                    const g = groupBounds(o.members.map(mId => radiaService.scriptedObject(self.getObject(mId))));
+                    const g = groupBounds(o.members.map(mId => radiaVariableService.scriptedObject(self.getObject(mId))));
                     c[0] = Math.min(c[0], g[i][0]);
                     c[1] = Math.max(c[1], g[i][1]);
                     return;
@@ -1024,9 +975,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
             appState.models.rpnVariables = [];
         }
         const rpns = appState.models.rpnVariables;
-        const cache = appState.models.rpnCache;
         const rpnNames = rpns.map(x => x.name);
-        const objs = radiaService.addressableObjects(['Float', 'FloatArray']);
+        const objs = radiaVariableService.addressableObjects(['Float', 'FloatArray']);
         const oNames = [];
         let doSave = false;
         // add
@@ -1036,10 +986,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
                 const vName = `${o.name}.${f}`;
                 const v = radiaService.getObject(o.id)[f];
                 oNames.push(vName);
-                //if (cache[vName] == null || cache[vName] !== v) {
-                //    cache[vName] = v;
-                //    doSave = true;
-                //}
                 if (rpnNames.includes(vName)) {
                     continue;
                 }
@@ -1079,8 +1025,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     });
 
     $scope.$on('modelChanged', function(e, modelName) {
-
-        srdbg('MCH', modelName);
         if (! watchedModels.includes(modelName)) {
             return;
         }
@@ -3557,7 +3501,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     };
 
     $scope.$on('modelChanged', (e, modelName) => {
-        srdbg('MC', modelName);
         if (! editedModels.includes(modelName)) {
             return;
         }
@@ -3574,6 +3517,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         if (modelName === 'stl') {
             loadSTLSize();
         }
+        
         appState.saveChanges(['rpnVariables', 'rpnCache'], () => {srdbg('CACHE NOW', appState.models.rpnCache)});
     });
 
