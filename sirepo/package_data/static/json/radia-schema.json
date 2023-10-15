@@ -1029,8 +1029,9 @@
             "value": ["Value", "RPNValue"]
         },
         "simulation": {
+            "allowScripting": ["Allow Object Scripting", "Bool", true],
             "appMode": ["", "ApplicationMode", "default"],
-            "areObjectsUnlockable": ["_", "Boool", true],
+            "areObjectsUnlockable": ["_", "Bool", true],
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
             "coordinateSystem": ["Coordinate System", "CoordinateSystem" , "standard", "Ordering of spatial variables. Use Standard for [x, y, z] or Beam for [width, height, length]"],
             "dipoleType": ["Dipole Type", "DipoleType", "dipoleBasic"],
@@ -1693,6 +1694,7 @@
             "advanced": [
                 "name",
                 "folder",
+                "allowScripting",
                 "magnetType",
                 "dipoleType",
                 "undulatorType",
