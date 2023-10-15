@@ -445,6 +445,51 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
         return s;
     };
 
+    self.updateRpnVals = objs => {
+        for (const o of objs) {
+            
+        }
+    };
+
+    self.updateRPNVars = () => {
+        if (! appState.models.rpnVariables) {
+            appState.models.rpnVariables = [];
+        }
+        const rpns = appState.models.rpnVariables;
+        const rpnNames = rpns.map(x => x.name);
+        const objs = self.addressableObjects(['Float', 'FloatArray']);
+        const oNames = [];
+        let doSave = false;
+        // add
+        for (const name in objs) {
+            const o = objs[name];
+            for (const f of o.fields) {
+                const vName = `${o.name}.${f}`;
+                const v = radiaService.getObject(o.id)[f];
+                oNames.push(vName);
+                if (rpnNames.includes(vName)) {
+                    continue;
+                }
+                rpns.push({
+                    name: vName,
+                    value: v,
+                });
+                doSave = true;
+            }
+        }
+        // remove
+        for (let i = rpns.length - 1; i >= 0; --i) {
+            const rpn = rpns[i];
+            if (! oNames.includes(rpn.name)) {
+                rpns.splice(i, 1);
+                doSave = true;
+            }
+        }
+        if (doSave) {
+            appState.saveChanges(['rpnVariables', 'rpnCache']);
+        }
+    };
+
     return self;
 });
 
@@ -727,10 +772,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
 
         if (isGroup) {
             const b = groupBounds(o.members.map(id => self.getObject(id)));
-            srdbg('GRP B', b);
             center = b.map(c => (c[0] + c[1]) / 2);
             size = b.map(c => Math.abs(c[1] - c[0]));
-            srdbg('GRP CTR', center);
         }
 
         let view;
@@ -970,57 +1013,18 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         return SIREPO.GEOMETRY.GeometryUtils.boundsRadius(b);
     }
 
-    function updateRPNVars() {
-        if (! appState.models.rpnVariables) {
-            appState.models.rpnVariables = [];
-        }
-        const rpns = appState.models.rpnVariables;
-        const rpnNames = rpns.map(x => x.name);
-        const objs = radiaVariableService.addressableObjects(['Float', 'FloatArray']);
-        const oNames = [];
-        let doSave = false;
-        // add
-        for (const name in objs) {
-            const o = objs[name];
-            for (const f of o.fields) {
-                const vName = `${o.name}.${f}`;
-                const v = radiaService.getObject(o.id)[f];
-                oNames.push(vName);
-                if (rpnNames.includes(vName)) {
-                    continue;
-                }
-                rpns.push({
-                    name: vName,
-                    value: v,
-                });
-                doSave = true;
-            }
-        }
-        // remove
-        for (let i = rpns.length - 1; i >= 0; --i) {
-            const rpn = rpns[i];
-            if (! oNames.includes(rpn.name)) {
-                rpns.splice(i, 1);
-                doSave = true;
-            }
-        }
-        if (doSave) {
-            appState.saveChanges(['rpnVariables', 'rpnCache']);
-        }
-        srdbg('RPNS', rpns);
-    }
-
     // initial setup
     if (! appState.models.geometryReport.objects) {
         appState.models.geometryReport.objects = [];
     }
+    radiaVariableService.updateRPNVars();  // ??
     loadObjectViews();
-    updateRPNVars();
+    
 
     $scope.$on('cancelChanges', function(e, name) {
         if (name === 'geometryReport') {
+            radiaVariableService.updateRPNVars();
             loadObjectViews();
-            updateRPNVars();
         }
     });
 
