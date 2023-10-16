@@ -74,6 +74,7 @@ class FileLock:
             except (IOError, OSError, FileNotFoundError):
                 pass
             _unchecked_close(f)
+            # Not asyncio.sleep: not in coroutine, probably should to be (simulation_db.user_lock)
             time.sleep(_LOOP_SLEEP)
         raise RuntimeError(f"fail to flock path={self._path} timeout={_cfg.timeout}")
 
