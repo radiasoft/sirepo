@@ -449,7 +449,6 @@
         },
         "cylinder": {
             "_super": ["_", "model", "extrudedObject"],
-            "center$properties": ["", "Object", {"isScriptable": true}],
             "numSides": ["Number of Sides", "Integer", 10, "A cylinder is approximated by a regular polyhedron of this number of sides", 6],
             "radius": ["Radius", "Float", 5.0, "", 1e-06],
             "segmentation": ["Segmentation Type", "SegmentationType", "cyl"],

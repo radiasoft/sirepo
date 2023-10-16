@@ -24,8 +24,8 @@ SIREPO.app.config(function() {
           <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
         </div>
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
-            <div data-ng-if="! appState.isScriptable(modelName, field)" data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
-            <div data-ng-if="appState.isScriptable(modelName, field)" data-rpn-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
+            <div data-ng-if="! appState.models.simulation.allowScripting" data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
+            <div data-ng-if="appState.models.simulation.allowScripting" data-rpn-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
             <div class="sr-input-warning"></div>
         </div>
         <div data-ng-switch-when="Group" class="col-sm-12">
@@ -59,6 +59,15 @@ SIREPO.app.config(function() {
         </div>
         <div data-ng-switch-when="Points" data-ng-class="fieldClass">
           <div data-points-table="" data-field="model[field]" data-model="model"></div>
+        </div>
+        <div data-ng-switch-when="Scriptable" class="col-sm-7">
+            <input data-ng-if="! appState.models.simulation.allowScripting" data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
+            <div data-ng-if="appState.models.simulation.allowScripting" class="input-group input-group-sm">
+                <input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
+                <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError" style="display: inline-block;"></span>
+                <span title="scriptable field" class="input-group-addon"><span class="glyphicon glyphicon-list-alt"></span></span>
+            </div>
+            <div class="sr-input-warning"></div>
         </div>
         <div data-ng-switch-when="ShapeButton" class="col-sm-7">
           <div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>
@@ -3098,7 +3107,6 @@ SIREPO.app.directive('rpnArray', function(appState, utilities) {
                 <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError" style="display: inline-block;"></span>
                 <span title="scriptable field" class="input-group-addon"><span class="glyphicon glyphicon-list-alt"></span></span>
             </div>
-            
         `,
         controller: $scope => {
             $scope.appState = appState;
