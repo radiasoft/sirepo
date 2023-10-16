@@ -78,9 +78,6 @@ _SCHEMA_CACHE = PKDict()
 #: Special field to direct pseudo-subclassing of schema objects
 _SCHEMA_SUPERCLASS_FIELD = "_super"
 
-#: created under dir
-_TMP_DIR = "tmp"
-
 #: configuration
 _cfg = None
 
@@ -112,11 +109,6 @@ def assert_sid(sid):
 def assert_sim_db_file_path(basename):
     assert _SIM_DB_FILE_PATH_RE.search(basename), f"basename={basename} is invalid"
     return basename
-
-
-def cache_dir(dirname, qcall=None):
-    """Returns a named directory within the user's temporary filespace"""
-    return pkio.mkdir_parent(user_path(qcall=qcall, check=True).join(_TMP_DIR, dirname))
 
 
 def cfg():
@@ -540,6 +532,33 @@ def read_simulation_json(sim_type, sid, qcall):
     return d
 
 
+def random_id(parent_dir, simulation_type=None):
+    """Create a random id in parent_dir
+
+    Args:
+        parent_dir (py.path): where id should be unique
+    Returns:
+        dict: id (str) and path (py.path)
+    """
+    pkio.mkdir_parent(parent_dir)
+    r = random.SystemRandom()
+    # Generate cryptographically secure random string
+    for _ in range(5):
+        i = "".join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
+        if simulation_type:
+            if find_global_simulation(simulation_type, i):
+                continue
+        d = parent_dir.join(i)
+        try:
+            os.mkdir(str(d))
+            return PKDict(id=i, path=d)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            raise
+    raise RuntimeError("{}: failed to create unique directory".format(parent_dir))
+
+
 def save_new_example(data, qcall=None):
     data.models.simulation.isExample = True
     return save_new_simulation(
@@ -551,7 +570,7 @@ def save_new_example(data, qcall=None):
 
 def save_new_simulation(data, do_validate=True, qcall=None):
     d = simulation_dir(data.simulationType, qcall=qcall)
-    sid = _random_id(d, data.simulationType).id
+    sid = random_id(d, data.simulationType).id
     data.models.simulation.simulationId = sid
     data.models.simulation.simulationSerial = _SERIAL_INITIALIZE
     data.pkdel("version")
@@ -775,32 +794,6 @@ def static_libs():
     return _files_in_schema(SCHEMA_COMMON.common.staticFiles)
 
 
-@contextlib.contextmanager
-def tmp_dir(chdir=False, qcall=None):
-    """Generates new, temporary directory
-
-    Args:
-        chdir (bool): if true, will save_chdir
-        qcall (sirepo.quest.API): request state
-    Returns:
-        py.path: directory to use for temporary work
-    """
-    d = None
-    try:
-        p = user_path(qcall=qcall, check=True)
-        d = _cfg.tmp_dir or _random_id(p.join(_TMP_DIR))["path"]
-        pkio.unchecked_remove(d)
-        pkio.mkdir_parent(d)
-        if chdir:
-            with pkio.save_chdir(d):
-                yield d
-        else:
-            yield d
-    finally:
-        if d:
-            pkio.unchecked_remove(d)
-
-
 def uid_from_dir_name(dir_name):
     """Extract user id from user_path
 
@@ -839,7 +832,7 @@ def user_create():
     Returns:
         str: New user id
     """
-    return _random_id(user_path_root())["id"]
+    return random_id(user_path_root())["id"]
 
 
 @contextlib.contextmanager
@@ -950,7 +943,6 @@ def _init():
         ),
         logged_in_user=(None, str, "Used in agents"),
         sbatch_display=(None, str, "how to display sbatch cluster to user"),
-        tmp_dir=(None, pkio.py_path, "Used by utilities (not regular config)"),
     )
     _init_schemas()
     JOB_RUN_MODE_MAP = PKDict(
@@ -1075,33 +1067,6 @@ def _merge_subclasses(schema, item, extend_arrays=True):
 
 def _now_as_version():
     return srtime.utc_now().strftime("%Y%m%d.%H%M%S")
-
-
-def _random_id(parent_dir, simulation_type=None):
-    """Create a random id in parent_dir
-
-    Args:
-        parent_dir (py.path): where id should be unique
-    Returns:
-        dict: id (str) and path (py.path)
-    """
-    pkio.mkdir_parent(parent_dir)
-    r = random.SystemRandom()
-    # Generate cryptographically secure random string
-    for _ in range(5):
-        i = "".join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
-        if simulation_type:
-            if find_global_simulation(simulation_type, i):
-                continue
-        d = parent_dir.join(i)
-        try:
-            os.mkdir(str(d))
-            return PKDict(id=i, path=d)
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                pass
-            raise
-    raise RuntimeError("{}: failed to create unique directory".format(parent_dir))
 
 
 def _search_data(data, search):

@@ -18,6 +18,7 @@ import re
 import requests
 import signal
 import sirepo.sim_data
+import sirepo.sim_run
 import sirepo.template
 import sirepo.util
 import subprocess
@@ -105,7 +106,7 @@ def _dispatch_compute(msg, template):
             template.SIM_TYPE,
         ).does_api_reply_with_file(msg.api, msg.data.method)
         if x:
-            with simulation_db.tmp_dir(chdir=True) as d:
+            with sirepo.sim_run.tmp_dir(chdir=True) as d:
                 return _op(expect_file=x)
         else:
             return _op(expect_file=x)

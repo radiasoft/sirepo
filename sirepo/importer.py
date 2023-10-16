@@ -73,8 +73,9 @@ def read_zip(zip_bytes, qcall, sim_type=None):
     """
     from sirepo import simulation_db
     import sirepo.sim_data
+    import sirepo.sim_run
 
-    with simulation_db.tmp_dir(qcall=qcall) as tmp:
+    with sirepo.sim_run.tmp_dir(qcall=qcall) as tmp:
         data = None
         zipped = PKDict()
         with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
