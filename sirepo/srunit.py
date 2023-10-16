@@ -679,7 +679,14 @@ class _Response:
     def assert_http_status(self, expect):
         from pykern import pkunit
 
-        pkunit.pkeq(expect, self.status_code)
+        pkunit.pkeq(
+            expect,
+            self.status_code,
+            "expect={} status={} data={}",
+            expect,
+            self.status_code,
+            self.data,
+        )
 
     def assert_success(self):
         from sirepo import util
@@ -823,7 +830,7 @@ class _WebSocket:
             return True
 
         if _must_be_http(uri):
-            pkdlog("uri={} enabled={}", uri, self._enabled)
+            pkdlog("uri={} websocket enabled={}", uri, self._enabled)
             return None
         assert uri[0] == "/", f"uri={uri} must begin with '/'"
         m = self._ANCHOR_RE.search(uri)

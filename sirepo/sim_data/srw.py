@@ -148,6 +148,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.sourceIntensityReport.method = "2"
             else:
                 dm.sourceIntensityReport.method = "0"
+        if "method" not in dm.simulation:
+            dm.simulation.method = dm.sourceIntensityReport.method
         cls.update_model_defaults(dm.multiElectronAnimation, "multiElectronAnimation")
         cls.__fixup_old_data_beamline(data, qcall)
         cls.__fixup_old_data_by_template(data, qcall)

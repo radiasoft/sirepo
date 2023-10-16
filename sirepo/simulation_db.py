@@ -83,8 +83,9 @@ _cfg = None
 
 _SIM_DB_FILE_PATH_RE = re.compile(r"^[a-zA-Z0-9-_\.]{1,128}$")
 
-# TODO(robnagler) while flask is in use, we make this a thread local in init_module
-_USER_LOCK = None
+#: For re-entrant `user_lock`
+_USER_LOCK = PKDict(paths=set())
+
 
 _SERIAL_INITIALIZE = -1
 
@@ -297,18 +298,8 @@ def generate_json(data, pretty=False):
     return util.json_dump(data, pretty=pretty)
 
 
-def init_module(want_flask):
-    global _USER_LOCK
-
-    if _USER_LOCK is not None:
-        return
-    # see also _init()
-    if want_flask:
-        import threading
-
-        _USER_LOCK = threading.local()
-    else:
-        _USER_LOCK = PKDict()
+def init_module():
+    pass
 
 
 def iterate_simulation_datafiles(simulation_type, op, search=None, qcall=None):
@@ -847,9 +838,6 @@ def user_lock(uid=None, qcall=None):
     """
     assert qcall
     p = user_path(uid=uid, qcall=qcall, check=True)
-    if getattr(_USER_LOCK, "paths", None) is None:
-        # TODO(robnagler) only needs to be here for flask. when flask goes, put in init_module
-        _USER_LOCK.paths = set()
     if p in _USER_LOCK.paths:
         # re-enter, already locked path
         yield p

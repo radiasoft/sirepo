@@ -130,6 +130,7 @@ def _do_compute(msg, template):
         )
     while True:
         for j in range(20):
+            # Not asyncio.sleep: not in coroutine
             time.sleep(0.1)
             r = p.poll()
             i = r is None
@@ -277,6 +278,7 @@ def _do_sbatch_status(msg, template):
             pkio.unchecked_remove(s)
             return PKDict(state=job.COMPLETED)
         _write_parallel_status(msg, template, True)
+        # Not asyncio.sleep: not in coroutine
         time.sleep(msg.nextRequestSeconds)
     # DOES NOT RETURN
 
