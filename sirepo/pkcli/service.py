@@ -266,7 +266,7 @@ def _cfg():
                 "port on which uwsgi or http listens",
             ),
             react_port=(
-                sirepo.const.PORT_DEFAULTS.react if pkconfig.in_dev_mode() else None,
+                None,
                 _cfg_port,
                 "port on which react listens",
             ),
