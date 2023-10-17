@@ -354,6 +354,33 @@ def lib_dir_from_sim_dir(sim_dir):
     return _sim_from_path(sim_dir)[1].join(_REL_LIB_DIR)
 
 
+def mkdir_random(parent_dir, simulation_type=None):
+    """Create a random id in parent_dir
+
+    Args:
+        parent_dir (py.path): where id should be unique
+    Returns:
+        dict: id (str) and path (py.path)
+    """
+    pkio.mkdir_parent(parent_dir)
+    r = random.SystemRandom()
+    # Generate cryptographically secure random string
+    for _ in range(5):
+        i = "".join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
+        if simulation_type:
+            if find_global_simulation(simulation_type, i):
+                continue
+        d = parent_dir.join(i)
+        try:
+            os.mkdir(str(d))
+            return PKDict(id=i, path=d)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            raise
+    raise RuntimeError("{}: failed to create unique directory".format(parent_dir))
+
+
 def migrate_guest_to_persistent_user(guest_uid, to_uid, qcall):
     """Moves all non-example simulations `guest_uid` into `to_uid`.
 
@@ -523,33 +550,6 @@ def read_simulation_json(sim_type, sid, qcall):
     return d
 
 
-def random_id(parent_dir, simulation_type=None):
-    """Create a random id in parent_dir
-
-    Args:
-        parent_dir (py.path): where id should be unique
-    Returns:
-        dict: id (str) and path (py.path)
-    """
-    pkio.mkdir_parent(parent_dir)
-    r = random.SystemRandom()
-    # Generate cryptographically secure random string
-    for _ in range(5):
-        i = "".join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
-        if simulation_type:
-            if find_global_simulation(simulation_type, i):
-                continue
-        d = parent_dir.join(i)
-        try:
-            os.mkdir(str(d))
-            return PKDict(id=i, path=d)
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                pass
-            raise
-    raise RuntimeError("{}: failed to create unique directory".format(parent_dir))
-
-
 def save_new_example(data, qcall=None):
     data.models.simulation.isExample = True
     return save_new_simulation(
@@ -561,7 +561,7 @@ def save_new_example(data, qcall=None):
 
 def save_new_simulation(data, do_validate=True, qcall=None):
     d = simulation_dir(data.simulationType, qcall=qcall)
-    sid = random_id(d, data.simulationType).id
+    sid = mkdir_random(d, data.simulationType).id
     data.models.simulation.simulationId = sid
     data.models.simulation.simulationSerial = _SERIAL_INITIALIZE
     data.pkdel("version")
@@ -823,7 +823,7 @@ def user_create():
     Returns:
         str: New user id
     """
-    return random_id(user_path_root())["id"]
+    return mkdir_random(user_path_root())["id"]
 
 
 @contextlib.contextmanager

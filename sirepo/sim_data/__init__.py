@@ -65,12 +65,11 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
       force (bool): Overwrite existing lib files with the same name as new ones
       sim_types (set): Set of sim_types to audit (proprietary_sim_types if None)
     """
-    from sirepo import simulation_db
-    import sirepo.sim_run
+    from sirepo import simulation_db, sim_run
 
     def _add(proprietary_code_dir, sim_type, cls):
         p = proprietary_code_dir.join(cls.proprietary_code_tarball())
-        with sirepo.sim_run.tmp_dir(chdir=True, qcall=qcall) as t:
+        with sim_run.tmp_dir(chdir=True, qcall=qcall) as t:
             d = t.join(p.basename)
             d.mksymlinkto(p, absolute=False)
             subprocess.check_output(

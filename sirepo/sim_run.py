@@ -40,7 +40,7 @@ def tmp_dir(chdir=False, qcall=None):
     """
     d = None
     try:
-        d = sirepo.simulation_db.random_id(
+        d = sirepo.simulation_db.mkdir_random(
             sirepo.simulation_db.user_path(qcall=qcall, check=True).join(_TMP_DIR)
         )["path"]
         pkio.unchecked_remove(d)
