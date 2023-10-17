@@ -450,7 +450,7 @@
         "cylinder": {
             "_super": ["_", "model", "extrudedObject"],
             "numSides": ["Number of Sides", "Integer", 10, "A cylinder is approximated by a regular polyhedron of this number of sides", 6],
-            "radius": ["Radius", "Float", 5.0, "", 1e-06],
+            "radius": ["Radius", "Scriptable", 5.0, "", 1e-06],
             "segmentation": ["Segmentation Type", "SegmentationType", "cyl"],
             "type": ["_", "ObjectType", "cylinder"]
         },
@@ -483,7 +483,7 @@
         "dipoleBasic": {
             "_super": ["_", "model", "radiaObject"],
             "dipoleType": ["_", "DipoleType", "dipoleBasic"],
-            "gap": ["Gap [mm]", "Float", 1.0, "", 0.0],
+            "gap": ["Gap [mm]", "Scriptable", 1.0, "", 0.0],
             "pole": ["Pole", "model.geomObject", {
                 "center": [0.0, 0.0, 1.0],
                 "color": "#ff00ff",
@@ -673,8 +673,8 @@
             "magnetCoilGroup": ["_", "model.geomGroup", {
                 "name": "magnet + coil"
             }],
-            "poleWidth": ["Width ({{ appState.models.simulation.widthAxis }})", "Float", 50.0, "", 0.0],
-            "gap": ["Gap", "Float", 10.0, "", 0.0],
+            "poleWidth": ["Width ({{ appState.models.simulation.widthAxis }})", "Scriptable", 50.0, "", 0.0],
+            "gap": ["Gap", "Scriptable", 10.0, "", 0.0],
             "dipoleType": ["_", "DipoleType", "dipoleC"]
         },
         "dipoleH": {
@@ -739,9 +739,9 @@
                 "transforms": [],
                 "type": "cuboid"
             }],
-            "magnetSize": ["Size [mm]", "FloatArray", [10.0, 16.0, 7.5], "", ["Length ({{ appState.models.simulation.beamAxis }})", "Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0, 0]],
-            "poleWidth": ["Width ({{ appState.models.simulation.widthAxis }})", "Float", 10.0, "", 0.0],
-            "gap": ["Gap", "Float", 1.5, "", 0.0],
+            "magnetSize": ["Size [mm]", "ScriptableArray", [10.0, 16.0, 7.5], "", ["Length ({{ appState.models.simulation.beamAxis }})", "Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0, 0]],
+            "poleWidth": ["Width ({{ appState.models.simulation.widthAxis }})", "Scriptable", 10.0, "", 0.0],
+            "gap": ["Gap", "Scriptable", 1.5, "", 0.0],
             "dipoleType": ["_", "DipoleType", "dipoleH"]
         },
         "electronTrajectoryReport": {
@@ -833,7 +833,7 @@
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
-            "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "center": ["Center [mm]", "ScriptableArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
@@ -844,19 +844,19 @@
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "segmentation": ["Segmentation Type", "SegmentationType", "pln"],
             "segmentationCylAxis": ["Segment Axis", "BeamAxis", "z"],
-            "segmentationCylPoint": ["Segment Origin", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
+            "segmentationCylPoint": ["Segment Origin", "ScriptableArray", [0, 0, 0], "", ["x", "y", "z"]],
             "segmentationCylRadius": ["Segment Radial Width [mm]", "Float", 5.0],
             "segmentationCylRatio": ["Segment Axis Ratio", "Float", 1.0, "Ratio of {{ appState.models.geomObject.segmentationCylAxisMajor }} to {{ appState.models.geomObject.segmentationCylAxisMinor }} axes of base (1.0 = circular)", 0.0],
             "segmentationCylUseObjectCenter": ["Use object center as origin", "Boolean", "1"],
             "segments": ["Segments", "IntArray", [1, 1, 1], "", ["N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{rad}' : '{x}' }}$", "N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{az}' : '{y}' }}$", "N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{ax}' : '{z}' }}$"], [1, 1, 1]],
             "shapeButton": ["Shape", "ShapeButton", {}],
-            "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]],
+            "size": ["Size [mm]", "ScriptableArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]],
             "type": ["Shape Type", "ObjectType", "cuboid"]
         },
         "jay": {
             "_super": ["_", "model", "stemmed"],
-            "hookHeight": ["Hook Height [mm]", "Float", 1.0],
-            "hookWidth": ["Hook Width [mm]", "Float", 1.0],
+            "hookHeight": ["Hook Height [mm]", "Scriptable", 1.0],
+            "hookWidth": ["Hook Width [mm]", "Scriptable", 1.0],
             "type": ["_", "ObjectType", "jay"]
         },
         "kickMapReport": {
@@ -909,8 +909,8 @@
         },
         "objectBevel": {
             "_super": ["_", "model", "objectCut"],
-            "amountVert": ["Vertical Cut [mm]", "Float", 1.0],
-            "amountHoriz": ["Horizontal Cut [mm]", "Float", 1.0],
+            "amountVert": ["Vertical Cut [mm]", "Scriptable", 1.0],
+            "amountHoriz": ["Horizontal Cut [mm]", "Scriptable", 1.0],
             "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "cutDir": ["", "Array", [0, 0, 1]],
             "cutRemoval": ["Removal Side", "CutRemoval", "1", "Determines which side of the cut plane to remove"],
@@ -929,7 +929,7 @@
             "cutAxis": ["Cut Axis", "BeamAxis", "z", "Direction perpendicular to cross-section of interest"],
             "edge": ["Filleted Edge", "BevelEdge", "0", "Index of base shape edge to fillet, relative to the view axis"],
             "numSides": ["Number of Sides", "Integer", 10, "Resolution of the curved surface", 6],
-            "radius": ["Radius", "Float", 1.0],
+            "radius": ["Radius", "Scriptable", 1.0],
             "type": ["_", "ObjectCutType", "objectFillet"]
         },
         "objectiveFunction": {
@@ -987,16 +987,16 @@
         "racetrack": {
             "_super": ["_", "model", "radiaObject"],
             "axis": ["Axis", "BeamAxis", "y"],
-            "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "currentDensity": ["Current Density [A/$mm^2$]", "Float", -0.5],
+            "center": ["Center [mm]", "ScriptableArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "currentDensity": ["Current Density [A/$mm^2$]", "Scriptable", -0.5],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
-            "height": ["Height ({{ appState.models.racetrack.axis }}) [mm]", "Float", 105.0, "Measured along axis"],
+            "height": ["Height ({{ appState.models.racetrack.axis }}) [mm]", "Scriptable", 105.0, "Measured along axis"],
             "numSegments": ["Number of Corner Segments", "Integer", 3, "", 0],
             "planeAxis1": ["_", "BeamAxis", "z"],
             "planeAxis2": ["_", "BeamAxis", "x"],
-            "radii": ["Radii [mm]", "FloatArray", [5.0, 40.0], "", ["Inner", "Outer"], [0, 0]],
-            "sides": ["Straight Sides [mm]", "FloatArray", [50.0, 62.5], "", ["Length ({{ appState.models.racetrack.planeAxis1 }})", "Width ({{ appState.models.racetrack.planeAxis2 }})"], [0, 0]],
-            "size": ["Size", "FloatArray", [1.0, 1.0, 1.0], "", ["x", "y", "z"], [0, 0, 0]],
+            "radii": ["Radii [mm]", "ScriptableArray", [5.0, 40.0], "", ["Inner", "Outer"], [0, 0]],
+            "sides": ["Straight Sides [mm]", "ScriptableArray", [50.0, 62.5], "", ["Length ({{ appState.models.racetrack.planeAxis1 }})", "Width ({{ appState.models.racetrack.planeAxis2 }})"], [0, 0]],
+            "size": ["Size", "ScriptableArray", [1.0, 1.0, 1.0], "", ["x", "y", "z"], [0, 0, 0]],
             "type": ["_", "ObjectType", "racetrack"]
         },
         "radiaObject": {
@@ -1066,9 +1066,9 @@
         },
         "stemmed": {
             "_super": ["_", "model", "extrudedPoly"],
-            "armHeight": ["Arm Height [mm]", "Float", 1.0],
+            "armHeight": ["Arm Height [mm]", "Scriptable", 1.0],
             "armPosition": ["Arm Position", "ArmPosition", "1", "Position of the arm"],
-            "stemWidth": ["Post Width [mm]", "Float", 1.0],
+            "stemWidth": ["Post Width [mm]", "Scriptable", 1.0],
             "stemPosition": ["Post Position", "StemPosition", "0", "Position of the post"]
         },
         "symmetryTransform": {
@@ -1084,8 +1084,8 @@
             "type": ["_", "ObjectType", "tee"]
         },
         "termination": {
-            "airGap": ["Air Gap [mm]", "Float", 0.0, "Distance from previous object"],
-            "gapOffset": ["Gap Offset [mm]", "Float", 0.0, "Additional offset away from the beam along the height axis"],
+            "airGap": ["Air Gap [mm]", "Scriptable", 0.0, "Distance from previous object"],
+            "gapOffset": ["Gap Offset [mm]", "Scriptable", 0.0, "Additional offset away from the beam along the height axis"],
             "object": ["Object", "model.geomObject", {}]
         },
         "transform": {
@@ -1106,9 +1106,9 @@
         },
         "undulatorBasic": {
             "_super": ["_", "model", "radiaObject"],
-            "airGap": ["Air Gap [mm]", "Float", 0.0, "Distance between magnets"],
+            "airGap": ["Air Gap [mm]", "Scriptable", 0.0, "Distance between magnets"],
             "enableKickMaps": ["Enable Kick Maps", "Boolean", "1"],
-            "gap": ["Gap [mm]", "Float", 20.0, "", 0.0, "Measured along the height axis"],
+            "gap": ["Gap [mm]", "Scriptable", 20.0, "", 0.0, "Measured along the height axis"],
             "magnet": ["Magnet Block", "model.geomObject", {
                 "color": "#00ffff",
                 "magnetization": [0.0, 0.0, -1.0],
@@ -1123,7 +1123,7 @@
             "octantGroup": ["_", "model.geomGroup", {
                 "name": "octant"
             }],
-            "periodLength": ["Period Length [mm]", "Float", 46.0],
+            "periodLength": ["Period Length [mm]", "Scriptable", 46.0],
             "phaseCount": ["Phase per Period", "Integer", 2, "The magnetization of each successive magnet is rotated by 2π/n about the beam direction", 2],
             "undulatorType": ["_", "UndulatorType", "undulatorBasic"]
         },
@@ -1142,8 +1142,8 @@
                 "segments": [1, 1, 3],
                 "size": [65.0, 18.0, 45.0]
             }],
-            "magnetCrossSection": ["Cross Section [mm]", "FloatArray", [65.0, 45.0], "", ["Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0]],
-            "magnetLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Float", 18.0],
+            "magnetCrossSection": ["Cross Section [mm]", "ScriptableArray", [65.0, 45.0], "", ["Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0]],
+            "magnetLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Scriptable", 18.0],
             "pole": ["Pole", "model.geomObject", {
                 "color": "#ff00ff",
                 "segments": [2, 5, 2],
@@ -1156,8 +1156,8 @@
                 "type": "cuboid",
                 "size": [45.0, 5.0, 25.0]
             }],
-            "poleCrossSection": ["Cross Section [mm]", "FloatArray", [45.0, 25.0], "", ["Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0]],
-            "poleLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Float", 5.0],
+            "poleCrossSection": ["Cross Section [mm]", "ScriptableArray", [45.0, 25.0], "", ["Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0]],
+            "poleLength": ["Length ({{ appState.models.simulation.beamAxis }}) [mm]", "Scriptable", 5.0],
             "terminationGroup": ["_", "model.geomGroup", {
                 "name": "terminations"
             }],
@@ -1182,7 +1182,7 @@
             "corePoleGroup": ["_", "model.geomGroup", {
                 "name": "core + pole"
             }],
-            "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the height axis"],
+            "gapOffset": ["Gap Offset [mm]", "Scriptable", 1.0, "Additional offset of magnets away from the beam along the height axis"],
             "undulatorType": ["_", "UndulatorType", "undulatorHybrid"]
         }
     },
