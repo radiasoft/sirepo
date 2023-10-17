@@ -43,6 +43,7 @@ def _main():
     params = pykern.pkyaml.load_file(input_yaml)
 
     if params["name"] == "srunit_long_run":
+        # Not asyncio.sleep: not in coroutine (job_cmd)
         time.sleep(100)
     elif params["name"] == "srunit_error_run":
         raise AssertionError("a big ugly error")

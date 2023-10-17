@@ -120,6 +120,7 @@ def http():
                 e.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"
             _start(("service", "server"), extra_environ=e)
             # Avoid race condition on creating auth db
+            # Not asyncio.sleep: at server startup
             time.sleep(0.3)
             _start(
                 ("job_supervisor",),

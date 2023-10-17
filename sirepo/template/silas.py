@@ -572,6 +572,7 @@ class _LaserPulsePlot(PKDict):
                         z_matrix=z,
                     )
             except BlockingIOError as e:
+                # Not asyncio.sleep: not in coroutine (job_cmd)
                 time.sleep(3)
         raise AssertionError("Report is unavailable")
 

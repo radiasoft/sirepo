@@ -83,6 +83,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "poleObjType",
                 "type",
             ):
+                if not hasattr(dm[m], "get"):
+                    continue
                 cls._fixup_box_to_cuboid(dm[m], f)
         for m in (
             "axisPath",
