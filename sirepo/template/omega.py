@@ -102,7 +102,7 @@ _ELEGANT_BEAM_PARAMETER_FILE = PKDict(
 _SUCCESS_OUTPUT_FILE = PKDict(
     elegant="run_setup.output.sdds",
     opal="opal.h5",
-    genesis="genesis.out.par",
+    genesis="genesis.out.dpa",
 )
 
 
@@ -338,8 +338,9 @@ def _plot_beam(sim_type, frame_args):
 def _plot_field_dist(sim_type, frame_args):
     import sirepo.template.genesis
 
-    frame_args.frameIndex = 1
-    return sirepo.template.genesis.sim_frame_fieldDistributionAnimation(frame_args)
+    frame_args.frameIndex = 0
+    frame_args.frameReport = "finalFieldAnimation"
+    return sirepo.template.genesis.sim_frame_finalFieldAnimation(frame_args)
 
 
 def _plot_phase(sim_type, frame_args):
@@ -369,8 +370,10 @@ def _plot_phase(sim_type, frame_args):
     if sim_type == "genesis":
         import sirepo.template.genesis
 
-        frame_args.frameIndex = 1
-        return sirepo.template.genesis.sim_frame_particleAnimation(frame_args).pkupdate(
+        frame_args.frameIndex = 0
+        return sirepo.template.genesis.sim_frame_finalParticleAnimation(
+            frame_args
+        ).pkupdate(
             title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
         )
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
