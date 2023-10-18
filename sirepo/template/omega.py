@@ -150,14 +150,13 @@ def get_data_file(run_dir, model, frame, options):
         with h5py.File(particle_file, "r") as f:
             p = ParticleGroup(
                 data=pmd_beamphysics.interfaces.opal.opal_to_data(f[f"/Step#{step}"]),
-            )
-            p.write(n)
+            ).write(n)
     elif sim_type == "genesis":
-        pkdp(f"bbb {sirepo.template.template_common.INPUT_BASE_NAME}")
-        infilename = pkio.py_path(f"run{i}").join(
-            sirepo.template.template_common.INPUT_BASE_NAME + ".json"
-        )
-        dm = sirepo.simulation_db.read_json(infilename).models
+        dm = sirepo.simulation_db.read_json(
+            pkio.py_path(f"run{i}").join(
+                sirepo.template.template_common.INPUT_BASE_NAME + ".json"
+            )
+        ).models
         v = numpy.fromfile(
             particle_file.dirpath().join(particle_file.purebasename + ".dpa"),
             dtype=numpy.float64,
@@ -173,8 +172,7 @@ def get_data_file(run_dir, model, frame, options):
                 xlamds=dm.radiation.xlamds,
                 current=numpy.array([dm.electronBeam.curpeak]),
             )
-        )
-        p.write(n)
+        ).write(n)
     else:
         raise AssertionError(f"unsupported sim_type={sim_type}")
     return n
