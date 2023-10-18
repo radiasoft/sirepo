@@ -135,26 +135,61 @@ def get_data_file(run_dir, model, frame, options):
     n = f"{sim_type}_openpmd.h5"
     d = None
     if sim_type == "elegant":
-        d = PKDict(pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file))
-        d.pkupdate(
-            n_particle=d.get("x").size,
-            charge=1e-8,
-        )
+        from pmd_beamphysics import ParticleGroup
+        import pmd_beamphysics.interfaces.elegant
+
+        p = ParticleGroup(
+            data=pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file),
+        ).write(n)
     elif sim_type == "opal":
+        from pmd_beamphysics import ParticleGroup
+        import pmd_beamphysics.interfaces.opal
+        import sirepo.template.opal
+        import pykern.pkio
+
+        step = sirepo.template.opal.read_frame_count(pykern.pkio.py_path("."))
+        #        assert step > 0
+        #        step -= 1
+
         with h5py.File(particle_file, "r") as f:
-            # TODO(rorour): opal file doesn't have the right keys?
-            d = pmd_beamphysics.interfaces.opal.opal_to_data(f)
+            p = ParticleGroup(
+                data=pmd_beamphysics.interfaces.opal.opal_to_data(f[f"/Step#{step}"]),
+            )
+            p.write(n)
     elif sim_type == "genesis":
-        # TODO(rorour) latest version of pmd_beamphysics on pip doesn't have genesis4_par_to_data
-        d = pmd_beamphysics.interfaces.genesis.genesis4_par_to_data(particle_file)
+        from pmd_beamphysics import ParticleGroup
+        import pmd_beamphysics.interfaces.genesis
+        import numpy
+        import sirepo.simulation_db
+        import sirepo.template.template_common
+
+        # read in.json from simulation run_dir to get genesis model params
+        dm = sirepo.simulation_db.read_json(
+            sirepo.template.template_common.INPUT_BASE_NAME
+        ).models
+        v = numpy.fromfile("genesis.out.dpa", dtype=numpy.float64)
+        v = v.reshape(
+            int(len(v) / 6 / dm.electronBeam.npart),
+            6,
+            dm.electronBeam.npart,
+        )
+
+        p = ParticleGroup(
+            data=pmd_beamphysics.interfaces.genesis.genesis2_dpa_to_data(
+                v,
+                xlamds=dm.radiation.xlamds,
+                current=numpy.array([dm.electronBeam.curpeak]),
+            )
+        )
+        p.write("test3.h5")
     else:
         raise AssertionError(f"unsupported sim_type={sim_type}")
 
-    with h5py.File(n, "w") as h:
-        pmd_beamphysics.writers.write_pmd_bunch(
-            h,
-            d,
-        )
+    # with h5py.File(n, "w") as h:
+    #     pmd_beamphysics.writers.write_pmd_bunch(
+    #         h,
+    #         d,
+    #     )
     return n
 
 
