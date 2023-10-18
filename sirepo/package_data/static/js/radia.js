@@ -26,10 +26,6 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
         </div>
-        <div data-ng-switch-when="ScriptableArray" class="col-sm-7">
-            <div data-rpn-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
-            <div class="sr-input-warning"></div>
-        </div>
         <div data-ng-switch-when="Group" class="col-sm-12">
             <div data-group-editor="" data-field="model[field]" data-model="model"></div>
         </div>
@@ -62,13 +58,18 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="Points" data-ng-class="fieldClass">
           <div data-points-table="" data-field="model[field]" data-model="model"></div>
         </div>
-        <div data-ng-switch-when="Scriptable" class="col-sm-7">
-            <input data-ng-if="! appState.models.simulation.allowScripting" data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
-            <div data-ng-if="appState.models.simulation.allowScripting" class="input-group input-group-sm">
-                <input data-rpn-value="" data-ng-model="model[field]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
-                <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError" style="display: inline-block;"></span>
+        <div data-ng-switch-when="Scriptable" class="col-sm-3">
+            <div class="input-group input-group-sm">
+                <input data-rpn-value="" data-is-error="isError" data-ng-model="model[field]" class="form-control sr-number-list" style="text-align: right" data-lpignore="true" data-ng-required="true" />
                 <span title="scriptable field" class="input-group-addon"><span class="glyphicon glyphicon-list-alt"></span></span>
             </div>
+            <div class="col-sm-2">
+              <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError" style="display: inline-block;"></span>
+            </div>
+            <div class="sr-input-warning"></div>
+        </div>
+        <div data-ng-switch-when="ScriptableArray" class="col-sm-7">
+            <div data-rpn-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
             <div class="sr-input-warning"></div>
         </div>
         <div data-ng-switch-when="ShapeButton" class="col-sm-7">
@@ -775,7 +776,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     self.viewsForObject = obj => {
         const o = radiaVariableService.scriptedObject(obj);
         const supers = appState.superClasses(o.type);
-        srdbg('SCRIPTED', o);
+        //srdbg('SCRIPTED', o);
         let center = o.center;
         let size = o.size;
         const isGroup = self.isGroup(o);
@@ -3101,18 +3102,24 @@ SIREPO.app.directive('rpnArray', function(appState, utilities) {
             model: '=',
         },
         template: `
-            <div class="input-group input-group-sm">
+            <div>
                 <div data-ng-repeat="v in model[fieldName] track by $index" style="display: inline-block;">
                     <label data-text-with-math="info[4][$index]" data-is-dynamic="isDynamic(info[4][$index])" style="margin-right: 1ex"></label>
-                    <input data-rpn-value="" data-ng-model="field[$index]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
+                    <input data-rpn-value="" data-ng-model="field[$index]" class="form-control sr-number-list"  style="text-align: right" data-lpignore="true" data-ng-required="true" />
                 </div>
+                <span class="input-group input-group-sm"><span></span><span class="input-group-addon" title="scriptable field"><span class="glyphicon glyphicon-list-alt"></span></span></span>
                 <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError" style="display: inline-block;"></span>
-                <span title="scriptable field" class="input-group-addon"><span class="glyphicon glyphicon-list-alt"></span></span>
             </div>
         `,
         controller: $scope => {
             $scope.appState = appState;
             $scope.isDynamic = label => ! ! label.match(/{{\s*.+\s*}}/);
+
+            $scope.inputClass = index => {
+                return {
+                    'display': index < $scope.field.length ? 'inline-block;' : 'table-cell;',
+                };
+            }
         },
     };
 });
