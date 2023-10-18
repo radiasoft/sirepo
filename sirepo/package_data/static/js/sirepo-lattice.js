@@ -537,6 +537,9 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
         if (angular.isUndefined(v) || v === null) {
             return v;
         }
+        if (Array.isArray(v)) {
+            return v.map(self.getRpnValue);
+        }
         if (self.isCaseInsensitive) {
             v = v.toLowerCase ? v.toLowerCase() : v;
         }

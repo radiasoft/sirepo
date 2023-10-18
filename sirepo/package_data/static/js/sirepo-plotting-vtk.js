@@ -3241,11 +3241,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
                 $scope.vtkScene.setBgColor(appState.models[$scope.modelName].bgColor || '#ffffff');
                 $($element).find('.vtk-load-indicator img').css('display', 'none');
             });
-            $scope.$on(`panel.${$scope.modelName}.hidden`, (e, v) => {
-                if (! v) {
-                    panelState.waitForUI(refresh);
-                }
-            });
             $scope.init();
 
 

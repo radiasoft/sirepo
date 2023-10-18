@@ -1,0 +1,16 @@
+{
+    "models": {
+        "epicsConfig": {
+            "epicsSchema": "two_cav.json"
+        },
+        "epicsServer": {
+            "serverAddress": "localhost",
+            "updateFrequency": "0.5"
+        },
+        "simulation": {
+            "folder": "/Examples",
+            "name": "LLRFSim Two Cavities"
+        }
+    },
+    "simulationType": "epicsllrf"
+}
