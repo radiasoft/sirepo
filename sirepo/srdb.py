@@ -60,19 +60,4 @@ def _init_root():
         return _root
     assert pkconfig.in_dev_mode(), "SIREPO_SRDB_ROOT must be configured except in dev"
     _root = pykern.util.init_db_dir(_init_root)
-    assert 0, ""
     return _root
-    # r = (
-    #     pkio.py_path(
-    #         sys.modules[pkinspect.root_package(_init_root)].__file__,
-    #     )
-    #     .dirpath()
-    #     .dirpath()
-    # )
-    # # Check to see if we are in our dev directory. This is a hack,
-    # # but should be reliable.
-    # if not r.join("requirements.txt").check():
-    #     # Don't run from an install directory
-    #     r = pkio.py_path(".")
-    # _root = pkio.mkdir_parent(r.join(_DEFAULT_ROOT))
-    # return _root
