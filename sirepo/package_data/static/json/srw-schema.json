@@ -532,8 +532,6 @@
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "mpiGroupCount": ["Number of independent groups of MPI processes", "Integer", 2, "", 2],
-            "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
-            "finalPosition": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization", "6"],
             "precision": ["Relative Precision", "Float", 0.01],
@@ -980,7 +978,9 @@
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
+            "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
+            "precision": ["Relative Precision", "Float", 0.01],
             "sampleFactor": ["Sampling Factor", "Float"],
             "samplingMethod": ["Sampling Method", "SamplingMethod"],
             "sourceType": ["Source Type", "SourceType"],
@@ -999,8 +999,6 @@
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
-            "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
-            "finalPosition": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "precision": ["Relative Precision", "Float", 0.01],
@@ -1180,6 +1178,7 @@
         },
         "beamline3DReport": {
             "title": "Beamline",
+            "is3d": true,
             "advanced": [
                 "projection",
                 "showLabels",
@@ -1268,9 +1267,7 @@
                 ]],
                 ["Accuracy", [
                     "method",
-                    "precision",
-                    "initialPosition",
-                    "finalPosition"
+                    "precision"
                 ]]
             ]
         },
@@ -1980,23 +1977,29 @@
             "model": "simulation",
             "title": "Initial Wavefront Simulation Grid",
             "advanced": [
-                "photonEnergy",
-                "distanceFromSource",
-                "samplingMethod",
-                "sampleFactor",
-                "fieldUnits",
-                [
-                    ["Horizontal", [
-                        "horizontalPosition",
-                        "horizontalRange",
-                        "horizontalPointCount"
-                    ]],
-                    ["Vertical", [
-                        "verticalPosition",
-                        "verticalRange",
-                        "verticalPointCount"
-                    ]]
-                ]
+                ["Main", [
+                    "photonEnergy",
+                    "distanceFromSource",
+                    "samplingMethod",
+                    "sampleFactor",
+                    "fieldUnits",
+                    [
+                        ["Horizontal", [
+                            "horizontalPosition",
+                            "horizontalRange",
+                            "horizontalPointCount"
+                        ]],
+                        ["Vertical", [
+                            "verticalPosition",
+                            "verticalRange",
+                            "verticalPointCount"
+                        ]]
+                    ]
+                ]],
+                ["Accuracy", [
+                    "method",
+                    "precision"
+                ]]
             ]
         },
         "simulationStatus": {
@@ -2032,9 +2035,7 @@
                 ]],
                 ["Accuracy", [
                     "method",
-                    "precision",
-                    "initialPosition",
-                    "finalPosition"
+                    "precision"
                 ]]
             ]
         },

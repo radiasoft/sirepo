@@ -27,6 +27,7 @@ OUTPUT_NAME = "hundli.csv"
 
 def get_data_file(run_dir, model, frame, options):
     if options.suffix == "sr_long_analysis":
+        # Not asyncio.sleep: not in coroutine (job_cmd)
         time.sleep(100)
     return OUTPUT_NAME
 
