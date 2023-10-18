@@ -4,16 +4,22 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics import ParticleGroup
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
 import h5py
-import pmd_beamphysics
+import numpy
+import pmd_beamphysics.interfaces.genesis
+import pmd_beamphysics.interfaces.opal
 import re
 import sirepo.sim_data
-
+import sirepo.simulation_db
+import sirepo.template.opal
+import sirepo.template.template_common
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _PHASE_PLOT_COUNT = 4
@@ -142,26 +148,13 @@ def get_data_file(run_dir, model, frame, options):
             data=pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file),
         ).write(n)
     elif sim_type == "opal":
-        from pmd_beamphysics import ParticleGroup
-        import pmd_beamphysics.interfaces.opal
-        import sirepo.template.opal
-        import pykern.pkio
-
-        step = sirepo.template.opal.read_frame_count(pykern.pkio.py_path("."))
-        #        assert step > 0
-        #        step -= 1
-
+        step = sirepo.template.opal.read_frame_count(pkio.py_path("."))
         with h5py.File(particle_file, "r") as f:
             p = ParticleGroup(
                 data=pmd_beamphysics.interfaces.opal.opal_to_data(f[f"/Step#{step}"]),
             )
             p.write(n)
     elif sim_type == "genesis":
-        from pmd_beamphysics import ParticleGroup
-        import pmd_beamphysics.interfaces.genesis
-        import numpy
-        import sirepo.simulation_db
-        import sirepo.template.template_common
 
         dm = sirepo.simulation_db.read_json(
             sirepo.template.template_common.INPUT_BASE_NAME
@@ -186,12 +179,6 @@ def get_data_file(run_dir, model, frame, options):
         p.write(n)
     else:
         raise AssertionError(f"unsupported sim_type={sim_type}")
-
-    # with h5py.File(n, "w") as h:
-    #     pmd_beamphysics.writers.write_pmd_bunch(
-    #         h,
-    #         d,
-    #     )
     return n
 
 
