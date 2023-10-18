@@ -163,11 +163,13 @@ def get_data_file(run_dir, model, frame, options):
         import sirepo.simulation_db
         import sirepo.template.template_common
 
-        # read in.json from simulation run_dir to get genesis model params
         dm = sirepo.simulation_db.read_json(
             sirepo.template.template_common.INPUT_BASE_NAME
         ).models
-        v = numpy.fromfile("genesis.out.dpa", dtype=numpy.float64)
+        v = numpy.fromfile(
+            particle_file.dirpath().join(particle_file.purebasename + ".dpa"),
+            dtype=numpy.float64,
+        )
         v = v.reshape(
             int(len(v) / 6 / dm.electronBeam.npart),
             6,
@@ -181,7 +183,7 @@ def get_data_file(run_dir, model, frame, options):
                 current=numpy.array([dm.electronBeam.curpeak]),
             )
         )
-        p.write("test3.h5")
+        p.write(n)
     else:
         raise AssertionError(f"unsupported sim_type={sim_type}")
 
