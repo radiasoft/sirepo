@@ -153,9 +153,11 @@ def get_data_file(run_dir, model, frame, options):
             )
             p.write(n)
     elif sim_type == "genesis":
-        dm = sirepo.simulation_db.read_json(
-            sirepo.template.template_common.INPUT_BASE_NAME
-        ).models
+        pkdp(f"bbb {sirepo.template.template_common.INPUT_BASE_NAME}")
+        infilename = pkio.py_path(f"run{i}").join(
+            sirepo.template.template_common.INPUT_BASE_NAME + ".json"
+        )
+        dm = sirepo.simulation_db.read_json(infilename).models
         v = numpy.fromfile(
             particle_file.dirpath().join(particle_file.purebasename + ".dpa"),
             dtype=numpy.float64,
