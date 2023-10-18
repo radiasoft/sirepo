@@ -887,6 +887,7 @@
         "meshFilter": {
             "_super": ["_", "model", "filter"],
             "dimension": ["Mesh cell count", "Point3D", [10, 10, 10]],
+            "energy_range": ["Sum over energies", "DualRange", [0, 1]],
             "lower_left": ["Mesh lower left [cm]", "Point3D", [-5.0, -5.0, -5.0]],
             "upper_right": ["Mesh upper right [cm]", "Point3D", [5.0, 5.0, 5.0]]
         },
@@ -1145,7 +1146,8 @@
             "advanced": [
                 "dimension",
                 "lower_left",
-                "upper_right"
+                "upper_right",
+                "energy_range"
             ]
         },
         "monodirectional": {

@@ -2170,6 +2170,92 @@ SIREPO.app.directive('materialList', function(appState, cloudmcService) {
     };
 });
 
+SIREPO.app.directive('dualRangeSlider', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            fieldlName: '<',
+            modelName: '<',
+            range: '<',
+            title: '@',
+        },
+        template: `
+            <div data-ng-show="hasSteps()">
+                <div data-label-with-tooltip="" data-label="{{ title }}"></div>
+                <div data-ng-class="sliderClass"></div>
+                <div style="display:flex; justify-content:space-between;">
+                     <span>{{ range.min }}</span>
+                     <span>{{ range.max }}</span>
+                </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.appState = appState;
+            $scope.sliderClass = `${modelName}-${fieldName}-slider`;
+
+            let hasSteps = false;
+            let slider = null;
+            
+            function buildSlider() {
+                hasSteps = $scope.range.min !== $scope.range.max;
+                if (! hasSteps) {
+                    return;
+                }
+                const sel = $(`.${$scope.sliderClass}`);
+                const val = appState.models[$scope.modelName][$scope.fieldName];
+                const isMulti = Array.isArray(val);
+                if (isMulti) {
+                    if (val[0] < $scope.range.min) {
+                        val[0] = $scope.range.min;
+                    }
+                    if (val[1] > $scope.range.max) {
+                        val[1] = $scope.range.max;
+                    }
+                }
+                sel.slider({
+                    min: $scope.range.min,
+                    max: $scope.range.max,
+                    range: isMulti,
+                    slide: (e, ui) => {
+                        $scope.$apply(() => {
+                            if (isMulti) {
+                                appState.models[$scope.modelName][$scope.fieldName][ui.handleIndex] = ui.value;
+                            }
+                            else {
+                                appState.models[$scope.modelName][$scope.fieldName] = ui.value;
+                            }
+                        });
+                    },
+                    step: range.step,
+                });
+                // jqueryui sometimes decrements the max by the step value due to floating-point
+                // shenanigans. Reset it here
+                sel.slider('instance').max = $scope.range.max;
+                sel.slider('option', isMulti ? 'values' : 'value', val);
+                sel.slider('option', 'disabled', $scope.range.min === $scope.range.max);
+                return sel;
+            }
+
+            function updateSlider() {
+                const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
+                slider = buildSlider();
+            }
+
+            $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
+            $scope.hasSteps = () => hasSteps;
+
+            updateSlider();
+
+            $scope.$on('$destroy', () => {
+                if (slider) {
+                    slider.slider('destroy');
+                    slider = null;
+                }
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('planePositionSlider', function(appState, tallyService) {
     return {
         restrict: 'A',
