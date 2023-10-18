@@ -1193,6 +1193,7 @@
         },
         "beamline3dAnimation": {
             "title": "3D Beamline",
+            "is3d": true,
             "advanced": [],
             "canFullScreen": false
         },

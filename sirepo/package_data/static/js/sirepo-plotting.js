@@ -437,13 +437,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
     function initPlot(scope) {
         var interval = null;
-        var requestData = function(forceRunCount) {
-            //TODO(pjm): see #1155
-            // Don't request data if saving sim (data will be requested again when the save is complete)
-            // var qi = requestQueue.getCurrentQI('requestQueue');
-            // if (qi && qi.params && qi.params.urlOrParams === 'saveSimulationData') {
-            //     return;
-            // }
+        var requestData = function() {
             var priority = getCurrentPriority();
             interval = $interval(function() {
                 if (interval) {
@@ -457,7 +451,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     if (! scope.element) {
                         return;
                     }
-                    forceRunCount = forceRunCount || 0;
                     if (data.x_range) {
                         scope.clearData();
                         scope.load(data);
@@ -465,16 +458,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                             broadcastSummaryData(scope.modelName, data.summaryData);
                         }
                     }
-                    else if (forceRunCount++ <= 2) {
-                        // try again, probably bad data
-                        panelState.clear(scope.modelName);
-                        requestData(forceRunCount);
-                    }
                     else {
-                        panelState.setError(scope.modelName, 'server error: incomplete result');
-                        srlog('incomplete response: ', data);
+                        panelState.setError(scope.modelName, 'Invalid results received from server');
                     }
-                }, forceRunCount ? true : false);
+                });
             }, 50 + priority * 10, 1);
         };
 

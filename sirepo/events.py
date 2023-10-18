@@ -14,8 +14,7 @@ cookies so the user is logged out of jupyterhub too).
 The events:
 - 'auth_logout' emitted when a user logs out, before the cookie is cleared.
   kwargs contains uid.
-- 'end_api_call' emitted at the end of of an http request to the flask server.
-  kwargs contains resp, the Flask response object.
+- 'end_api_call' emitted at the end of call_api. kwargs contains response object.
 - 'github_authorized' emitted once the authorized github user is retrieved and
   confirmed valid but before that user is logged in or the github db is updated.
   kwargs contains user_name, the github handle.

@@ -1,0 +1,16 @@
+{
+    "models": {
+        "epicsConfig": {
+            "epicsSchema": "simple.json"
+        },
+        "epicsServer": {
+            "serverAddress": "localhost",
+            "updateFrequency": "0.5"
+        },
+        "simulation": {
+            "folder": "/Examples",
+            "name": "LLRFSim Simple"
+        }
+    },
+    "simulationType": "epicsllrf"
+}
