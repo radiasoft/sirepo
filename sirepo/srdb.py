@@ -53,7 +53,11 @@ def _init_root():
     global _cfg, _root
 
     _cfg = pkconfig.init(
-        root=(None, pykern.util.cfg_db_dir("SIREPO_SRDB_ROOT"), "where database resides"),
+        root=(
+            None,
+            pykern.util.cfg_db_dir("SIREPO_SRDB_ROOT"),
+            "where database resides",
+        ),
     )
     _root = _cfg.root
     if _root:
