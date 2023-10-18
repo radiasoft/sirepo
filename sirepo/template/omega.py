@@ -165,7 +165,6 @@ def get_data_file(run_dir, model, frame, options):
             6,
             dm.electronBeam.npart,
         )
-
         p = ParticleGroup(
             data=pmd_beamphysics.interfaces.genesis.genesis2_dpa_to_data(
                 v,
