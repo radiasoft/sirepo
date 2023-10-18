@@ -13,6 +13,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import h5py
 import numpy
+import pmd_beamphysics.interfaces.elegant
 import pmd_beamphysics.interfaces.genesis
 import pmd_beamphysics.interfaces.opal
 import re
@@ -141,9 +142,6 @@ def get_data_file(run_dir, model, frame, options):
     n = f"{sim_type}_openpmd.h5"
     d = None
     if sim_type == "elegant":
-        from pmd_beamphysics import ParticleGroup
-        import pmd_beamphysics.interfaces.elegant
-
         p = ParticleGroup(
             data=pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file),
         ).write(n)
@@ -155,7 +153,6 @@ def get_data_file(run_dir, model, frame, options):
             )
             p.write(n)
     elif sim_type == "genesis":
-
         dm = sirepo.simulation_db.read_json(
             sirepo.template.template_common.INPUT_BASE_NAME
         ).models
