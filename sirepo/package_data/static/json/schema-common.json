@@ -128,7 +128,7 @@
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
         "downloadLibFile": "/download-lib-file/<simulation_type>/<filename>",
         "downloadRunFile": "/download-run-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
-        "downloadFile": "/download-file/<simulation_type>/<filename>",
+        "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
         "error": "/error",
         "errorLogging": "/error-logging",
         "forbidden": "/forbidden",
