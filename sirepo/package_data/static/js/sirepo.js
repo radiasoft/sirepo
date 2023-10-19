@@ -1842,10 +1842,14 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (optionIndex < 0) {
             throw new Error('no enum value found for ' + model + '.' + field + ' = ' + value);
         }
-        var opt = $(fieldClass(model, field)).find('option')[optionIndex];
+        const sel = $(fieldClass(model, field));
+
+        // handles cases where we have multiple instances of the field
+        const f = i => i % eType.length === optionIndex;
+        const opt = sel.find('option').filter(f);
         if (! opt) {
             // handle case where enum is displayed as a button group rather than a select
-            opt = $(fieldClass(model, field)).find('button')[optionIndex];
+            opt = sel.find('button').filter(f);
         }
         showValue($(opt), isShown);
         // this is required for MSIE 11 and Safari which can't hide select options
