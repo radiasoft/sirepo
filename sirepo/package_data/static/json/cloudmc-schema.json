@@ -282,7 +282,8 @@
             "space": ["Space", "BinSpace", "linear"],
             "start": ["Start", "Float", 0],
             "stop": ["Stop", "Float", 1],
-            "num": ["Number of samples", "Integer", 50]
+            "num": ["Number of samples", "Integer", 50],
+            "energyRangeSum": ["Sum over energies", "JRange", [0, 1]]
         },
         "energyoutFilter": {
             "_super": ["_", "model", "filter"],
@@ -887,7 +888,6 @@
         "meshFilter": {
             "_super": ["_", "model", "filter"],
             "dimension": ["Mesh cell count", "Point3D", [10, 10, 10]],
-            "energy_range": ["Sum over energies", "DualRange", [0, 1]],
             "lower_left": ["Mesh lower left [cm]", "Point3D", [-5.0, -5.0, -5.0]],
             "upper_right": ["Mesh upper right [cm]", "Point3D", [5.0, 5.0, 5.0]]
         },
@@ -1147,7 +1147,7 @@
                 "dimension",
                 "lower_left",
                 "upper_right",
-                "energy_range"
+                "energyFilter.energyRangeSum"
             ]
         },
         "monodirectional": {

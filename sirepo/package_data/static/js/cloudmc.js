@@ -79,6 +79,9 @@ SIREPO.app.config(() => {
             <select class="form-control" data-ng-model="model[field]" data-ng-options="t.name as t.name for t in model.tallies"></select>
           </div>
         </div>
+        <div data-ng-switch-when="JRange">
+          <div data-j-range-slider="field" data-model-name="modelName" data-model="model" data-field="model[field]"></div>
+        </div>
         <div data-ng-switch-when="ScoreList" data-ng-class="fieldClass">
           <div class="input-group">
             <select class="form-control" data-ng-model="model[field]" data-ng-options="s.score as s.score for s in (model.tallies | filter:{name:model.tally})[0].scores"></select>
@@ -1690,7 +1693,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
             <div data-ng-repeat="v in viewFields track by v.track">
               <div class="form-group">
                 <div class="col-sm-11 col-sm-offset-1">
-                  <div data-field-editor="v.field" data-model-name="model[field]._type"
+                  <div data-field-editor="v.field" data-model-name="v.modelName"
                     data-label-size="5"
                     data-model="model[field]"></div>
                 </div>
@@ -1699,14 +1702,21 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
           </div>
         `,
         controller: function($scope) {
+            srdbg($scope.model[$scope.field]);
+            $scope.modelField = f => {
+                const mf = f.split('.');
+                return mf.length === 1 ? [type(), f] : mf;
+            };
 
             function setView() {
                 if (type() && type() !== 'None') {
                     $scope.viewFields = SIREPO.APP_SCHEMA.view[type()].advanced
                         .map(f => {
+                            const mf = $scope.modelField(f);
                             return {
-                                field: f,
-                                track: type() + f,
+                                modelName: mf[0],
+                                field: mf[1],
+                                track: `${mf[0]}.${mf[1]}`,
                             };
                         });
                 }
@@ -1719,6 +1729,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                 return $scope.model[$scope.field]._type;
             }
 
+            srdbg('MLE', $scope);
             $scope.$watch('model[field]._type', (newValue, oldValue) => {
                 if (! $scope.model) {
                     return;
@@ -2170,18 +2181,17 @@ SIREPO.app.directive('materialList', function(appState, cloudmcService) {
     };
 });
 
-SIREPO.app.directive('dualRangeSlider', function(appState) {
+SIREPO.app.directive('jRangeSlider', function(appState) {
     return {
         restrict: 'A',
         scope: {
-            fieldlName: '<',
+            fieldlName: '=jRangeSlider',
+            model: '=',
             modelName: '<',
-            range: '<',
-            title: '@',
         },
         template: `
             <div data-ng-show="hasSteps()">
-                <div data-label-with-tooltip="" data-label="{{ title }}"></div>
+                <div data-label-with-tooltip="" data-label="tmp"></div>
                 <div data-ng-class="sliderClass"></div>
                 <div style="display:flex; justify-content:space-between;">
                      <span>{{ range.min }}</span>
@@ -2190,7 +2200,19 @@ SIREPO.app.directive('dualRangeSlider', function(appState) {
             </div>
         `,
         controller: function($scope) {
+            function range() {
+                const r = {
+                    min: f.min || f.start,
+                    max: f.max || f.stop,
+                };
+                r.step = f.step || Math.abs((r.max - r.min)) / f.num;
+                return r;
+            }
+
+            srdbg('JSL', $scope);
+            const f = $scope.field;
             $scope.appState = appState;
+            $scope.range = range();
             $scope.sliderClass = `${modelName}-${fieldName}-slider`;
 
             let hasSteps = false;
