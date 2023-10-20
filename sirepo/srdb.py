@@ -55,13 +55,12 @@ def _init_root():
     _cfg = pkconfig.init(
         root=(
             None,
-            pykern.util.cfg_db_dir("SIREPO_SRDB_ROOT"),
+            pykern.util.cfg_db_dir_parser,
             "where database resides",
         ),
     )
     _root = _cfg.root
     if _root:
         return _root
-    assert pkconfig.in_dev_mode(), "SIREPO_SRDB_ROOT must be configured except in dev"
     _root = pykern.util.init_db_dir(_init_root)
     return _root
