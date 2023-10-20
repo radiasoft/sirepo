@@ -1,0 +1,7 @@
+#!/bin/bash
+if [[ {{ catalog_name }} == "chx"  ]]; then
+    export CONDA_PREFIX={{ conda_prefix }}
+    eval "$($CONDA_PREFIX/bin/conda "shell.bash" "hook" 2> /dev/null)"
+    conda activate '{{ chx_conda_env }}'
+fi
+papermill {{ input_f }}  {{ output_f }}  {{ papermill_args }}

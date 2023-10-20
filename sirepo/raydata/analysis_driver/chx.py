@@ -31,13 +31,6 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
             )
         ]
 
-    def _get_papermill_args(self, *args, **kwargs):
-        return [
-            ["run_two_time", True],
-            ["run_dose", False],
-            ["username", self._scan_metadata.get_start_field("user")],
-        ]
-
     def get_output_dir(self):
         return _cfg.base_dir.join(
             self._scan_metadata.get_start_field("cycle"),
@@ -45,6 +38,13 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
             "RResults",
             self.uid,
         )
+
+    def _get_papermill_args(self, *args, **kwargs):
+        return [
+            ["run_two_time", True],
+            ["run_dose", False],
+            ["username", self._scan_metadata.get_start_field("user")],
+        ]
 
 
 _cfg = pkconfig.init(
