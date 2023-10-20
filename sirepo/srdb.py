@@ -62,5 +62,5 @@ def _init_root():
     _root = _cfg.root
     if _root:
         return _root
-    _root = pykern.util.init_db_dir(_init_root)
+    _root = pykern.util.dev_run_dir(_init_root)
     return _root
