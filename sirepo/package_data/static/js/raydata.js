@@ -517,13 +517,8 @@ SIREPO.app.directive('scansTable', function() {
                 // Send once and then will happen on $interval
                 doRequest();
                 scanRequestInterval = $interval(
-                    () => {
-                        // only refresh list if on 1st page of scans
-                        if (currentPageIndex === 0) {
-                            doRequest();
-                        }
-                    },
-                    5000
+                    doRequest,
+                    5000,
                 );
             }
 
