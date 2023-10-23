@@ -1752,7 +1752,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                                 $scope.model[$scope.field],
                                 type(),
                             );
-                        }                            
+                        }
                     }
                 }
                 updateEditor();
