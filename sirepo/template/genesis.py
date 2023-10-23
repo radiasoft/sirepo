@@ -227,11 +227,17 @@ def sim_frame_parameterAnimation(frame_args):
 
 def sim_frame_finalFieldAnimation(frame_args):
     n = frame_args.sim_in.models.mesh.ncar
+    v = numpy.fromfile(
+        str(frame_args.run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME)), dtype=complex
+    )
+    v = v.reshape(
+        int(len(v) / n / n),
+        n,
+        n,
+    )
     return _field_plot(
         frame_args,
-        numpy.fromfile(
-            str(frame_args.run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME)), dtype=complex
-        ).reshape(n, n),
+        v[frame_args.frameIndex],
     )
 
 
@@ -357,12 +363,13 @@ def _get_frame_counts(run_dir):
     dm = sirepo.simulation_db.read_json(
         run_dir.join(template_common.INPUT_BASE_NAME)
     ).models
+    n = dm.timeDependence.nslice if dm.timeDependence.itdp == "1" else 1
     res = PKDict(
         particle=0,
         field=0,
-        parameter=dm.timeDependence.nslice if dm.timeDependence.itdp == "1" else 1,
-        dpa=1 if run_dir.join(_FINAL_PARTICLE_OUTPUT_FILENAME).exists() else 0,
-        dfl=1 if run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME).exists() else 0,
+        parameter=n,
+        dpa=n if run_dir.join(_FINAL_PARTICLE_OUTPUT_FILENAME).exists() else 0,
+        dfl=n if run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME).exists() else 0,
     )
     with pkio.open_text(run_dir.join(_OUTPUT_FILENAME)) as f:
         for line in f:
@@ -478,4 +485,6 @@ def _z_title_at_frame(frame_args, nth):
     title = f"z: {z:.6f} [m]"
     if step >= 0:
         return f"{title} step: {step + 1}"
+    if frame_args.sim_in.models.timeDependence.itdp == "1":
+        title = f"Slice {frame_args.frameIndex + 1}, {title}"
     return title
