@@ -1719,7 +1719,8 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
             }
 
             function type(index) {
-                return index == null ? $scope.model[$scope.field]._type : $scope.model[`filter${index}`]._type;
+                const f = index == null ? $scope.field : `filter${index}`;
+                return $scope.model[f]._type;
             }
 
             function updateEditor() {
@@ -1727,6 +1728,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                     return;
                 }
                 const inds = SIREPO.UTILS.SirepoUtils.indexArray(5, 1);
+                // can always select 'None'
                 const assignedTypes = inds.map(i => type(i)).filter(x => x !== NONE_TYPE);
                 // remove assigned types
                 ALL_TYPES.forEach(x => {
