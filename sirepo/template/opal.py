@@ -422,10 +422,10 @@ def background_percent_complete(report, run_dir, is_running):
     if is_running:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         # TODO(pjm): determine total frame count and set percentComplete
-        res.frameCount = _read_frame_count(run_dir) - 1
+        res.frameCount = read_frame_count(run_dir) - 1
         return res
     if run_dir.join("{}.json".format(template_common.INPUT_BASE_NAME)).exists():
-        res.frameCount = _read_frame_count(run_dir)
+        res.frameCount = read_frame_count(run_dir)
         if res.frameCount > 0:
             res.percentComplete = 100
             res.outputInfo = _output_info(run_dir)
@@ -523,6 +523,18 @@ async def import_file(req, unit_test_mode=False, **kwargs):
 
 def new_simulation(data, new_simulation_data, qcall, **kwargs):
     data.models.simulation.elementPosition = new_simulation_data.elementPosition
+
+
+def read_frame_count(run_dir):
+    def _walk_file(h5file, key, step, res):
+        if key:
+            res[0] = step + 1
+
+    try:
+        return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, [0])[0]
+    except IOError:
+        pass
+    return 0
 
 
 def parse_opal_log(run_dir):
@@ -1117,18 +1129,6 @@ def _read_data_file(path):
                 line = re.sub(r"(\.\d{3})(\d+\.)", r"\1 \2", line)
                 rows.append(re.split(r"\s+", line))
     return col_names, rows
-
-
-def _read_frame_count(run_dir):
-    def _walk_file(h5file, key, step, res):
-        if key:
-            res[0] = step + 1
-
-    try:
-        return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, [0])[0]
-    except IOError:
-        pass
-    return 0
 
 
 def _units_from_hdf5(h5file, field):
