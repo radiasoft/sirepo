@@ -1727,7 +1727,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                 if ($scope.modelName !== 'filter') {
                     return;
                 }
-                const inds = SIREPO.UTILS.SirepoUtils.indexArray(5, 1);
+                const inds = [1, 2, 3, 4, 5];
                 // can always select 'None'
                 const assignedTypes = inds.map(i => type(i)).filter(x => x !== NONE_TYPE);
                 // remove assigned types
