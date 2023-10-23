@@ -1699,9 +1699,12 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
           </div>
         `,
         controller: function($scope) {
+            const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
+                .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
+            const NONE_TYPE = 'None';
 
             function setView() {
-                if (type() && type() !== 'None') {
+                if (type() && type() !== NONE_TYPE) {
                     $scope.viewFields = SIREPO.APP_SCHEMA.view[type()].advanced
                         .map(f => {
                             return {
@@ -1715,8 +1718,24 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                 }
             }
 
-            function type() {
-                return $scope.model[$scope.field]._type;
+            function type(index) {
+                return index == null ? $scope.model[$scope.field]._type : $scope.model[`filter${index}`]._type;
+            }
+
+            function updateEditor() {
+                if ($scope.modelName !== 'filter') {
+                    return;
+                }
+                const inds = SIREPO.UTILS.SirepoUtils.indexArray(5, 1);
+                const assignedTypes = inds.map(i => type(i)).filter(x => x !== NONE_TYPE);
+                // remove assigned types
+                ALL_TYPES.forEach(x => {
+                    panelState.showEnum('filter', '_type', x, ! assignedTypes.includes(x));
+                });
+                // replace the type for this "instance"
+                inds.forEach(i => {
+                    panelState.showEnum('filter', '_type', type(i), true, i - 1);
+                });
             }
 
             $scope.$watch('model[field]._type', (newValue, oldValue) => {
@@ -1728,16 +1747,19 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                         $scope.model[$scope.field] = {
                             _type: type(),
                         };
-                        if (newValue !== 'None') {
+                        if (newValue !== NONE_TYPE) {
                             appState.setModelDefaults(
                                 $scope.model[$scope.field],
                                 type(),
                             );
-                        }
+                        }                            
                     }
                 }
+                updateEditor();
                 setView();
             });
+
+            panelState.waitForUI(updateEditor);
         },
     };
 });

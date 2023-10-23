@@ -1831,7 +1831,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         setPanelValue(name, 'waiting', isWaiting);
     };
 
-    self.showEnum = function(model, field, value, isShown) {
+    self.showEnum = function(model, field, value, isShown, instance=null) {
         var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo(model)[field][SIREPO.INFO_INDEX_TYPE]];
         var optionIndex = -1;
         eType.forEach(function(row, index) {
@@ -1842,11 +1842,14 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (optionIndex < 0) {
             throw new Error('no enum value found for ' + model + '.' + field + ' = ' + value);
         }
-        const sel = $(fieldClass(model, field));
+        let sel = $(fieldClass(model, field));
+        if (instance != null) {
+            sel = sel.eq(instance);
+        }
 
         // handles cases where we have multiple instances of the field
         const f = i => i % eType.length === optionIndex;
-        const opt = sel.find('option').filter(f);
+        let opt = sel.find('option').filter(f);
         if (! opt) {
             // handle case where enum is displayed as a button group rather than a select
             opt = sel.find('button').filter(f);
