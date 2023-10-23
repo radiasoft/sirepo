@@ -11,6 +11,7 @@ from pykern.pkdebug import pkdp
 from sirepo import sim_data
 from sirepo import simulation_db
 from sirepo import template
+import sirepo.sim_run
 import sirepo.util
 
 
@@ -23,7 +24,7 @@ def create_archive(sim, qcall):
     Returns:
         py.path.Local: zip file name
     """
-    with simulation_db.tmp_dir(qcall=qcall) as d:
+    with sirepo.sim_run.tmp_dir(qcall=qcall) as d:
         return qcall.reply_attachment(
             _create_zip(sim, out_dir=d, qcall=qcall),
             filename=sim.filename,
