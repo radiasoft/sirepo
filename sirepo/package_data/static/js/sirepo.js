@@ -1842,14 +1842,15 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         if (optionIndex < 0) {
             throw new Error('no enum value found for ' + model + '.' + field + ' = ' + value);
         }
+
+        // handles cases where we have multiple instances of the field
         let sel = $(fieldClass(model, field));
         if (instance != null) {
             sel = sel.eq(instance);
         }
-
-        // handles cases where we have multiple instances of the field
         const f = i => i % eType.length === optionIndex;
         let opt = sel.find('option').filter(f);
+        
         if (! opt) {
             // handle case where enum is displayed as a button group rather than a select
             opt = sel.find('button').filter(f);
