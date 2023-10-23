@@ -55,7 +55,7 @@ def _init_root():
     _cfg = pkconfig.init(
         root=(
             None,
-            pykern.util.cfg_db_dir_parser,
+            pykern.util.cfg_absolute_dir,
             "where database resides",
         ),
     )
