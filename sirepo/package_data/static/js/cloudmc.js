@@ -1705,6 +1705,8 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
             const TYPE_ENERGY = 'energyFilter';
             const TYPE_MESH = 'meshFilter';
             const TYPE_NONE = 'None';
+
+            const FIELDS_ENERGY = Object.keys(SIREPO.APP_SCHEMA.model[TYPE_ENERGY]);
             const inds = [1, 2, 3, 4, 5];
 
             function getFilter(type) {
@@ -1766,9 +1768,17 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                         }
                     }
                 }
-                updateEditor();
+                //updateEditor();
                 setView();
             });
+
+            $scope.$watchGroup(FIELDS_ENERGY.map(x => `model[field].${x}`), () => {
+                if (! $scope.model) {
+                    return;
+                }
+                updateEditor();
+            });
+
 
             panelState.waitForUI(updateEditor);
         },
@@ -2223,7 +2233,6 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
         controller: function($scope) {
             $scope.appState = appState;
             $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`;
-            srdbg($scope.sliderClass);
 
             let hasSteps = false;
             let slider = null;
@@ -2234,7 +2243,6 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     return;
                 }
                 const sel = $(`.${$scope.sliderClass}`);
-                srdbg(sel);
                 const val = range.val;
                 const isMulti = Array.isArray(val);
                 if (isMulti) {
