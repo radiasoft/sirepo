@@ -271,9 +271,9 @@ varParam = [
     ['mag_gn', 'f', 0., 'gradient of normal magnetic field quadrupole [T/m]'],
     ['mag_gs', 'f', 0., 'gradient of skew magnetic field quadrupole [T/m]'],
     ['mag_len', 'f', {{multipole_length}}, 'magnetic length [m]'],
-    ['mag_led', 'f', 0., 'magnetic edge length bw 10% and 90% of peak field [m]; G/(1 + ((z-zc)/d)^2)^2 field dependence is assumed'],
+    ['mag_led', 'f', {{multipole_edge}}, 'magnetic edge length bw 10% and 90% of peak field [m]; G/(1 + ((z-zc)/d)^2)^2 field dependence is assumed'],
     ['mag_r', 'f', 0., 'radius of curvature of central trajectory [m] (for simulating e.g. quadrupole component integrated to a bending magnet; effective if > 0)'],
-    ['mag_zc', 'f', 0., 'center longitudinal position [m]'],
+    ['mag_zc', 'f', {{multipole_longitudinalPosition}}, 'center longitudinal position [m]'],
 {% endif %}
 
     {% if beamlineOpticsParameters %}

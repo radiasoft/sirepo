@@ -52,13 +52,6 @@ SIREPO.app.factory('raydataService', function(appState, panelState, timeService)
         return $('#' + panelState.modalId('columnPicker'));
     };
 
-    self.getScanField = function(scan, field) {
-        if (['start', 'stop'].includes(field)) {
-            return timeService.unixTimeToDateString(scan[field]);
-        }
-        return scan[field];
-    };
-
     self.canViewOutput = scan => {
         return ! [self.ANALYSIS_STATUS_NONE, self.ANALYSIS_STATUS_PENDING].includes(scan.status);
     };
@@ -388,22 +381,22 @@ SIREPO.app.directive('scansTable', function() {
                   <thead>
                     <tr>
                       <th style="width: 20px; height: 40px; white-space: nowrap" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-checked="pdfSelectAllScans" data-ng-click="togglePdfSelectAll()"/> <span style="vertical-align: top">PDF</span></th>
-                      <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" data-ng-click="sortCol(column)" style="width: 100px; height: 40px; white-space: nowrap">
+                      <th data-ng-repeat="column in columnHeaders track by $index" data-ng-mouseover="hoverChange($index, true)" data-ng-mouseleave="hoverChange($index, false)" style="width: 100px; height: 40px; white-space: nowrap">
                         <span style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
-                        <span style="cursor: pointer">{{ column }}</span>
+                        <span style="cursor: pointer" data-ng-click="sortCol(column)">{{ column }}</span>
                         <button type="submit" class="btn btn-info btn-xs" data-ng-style="{visibility: showDeleteButton($index) ? 'visible' : 'hidden'}" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
                       </th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr ng-repeat="s in scans">
+                    <tr ng-repeat="s in scans track by $index">
                       <td style="width: 1%" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans[s.uid]" data-ng-click="togglePdfSelectScan(s.uid)"/></td>
                       <td width="1%"><span data-header-tooltip="s.status"></span></td>
-                      <td data-ng-repeat="c in columnHeaders.slice(1)">{{ getScanField(s, c) }}</td>
+                      <td data-ng-repeat="c in columnHeaders.slice(1)"><div data-scan-cell-value="s[c]", data-column-name="c"></div></td>
                       <td style="white-space: nowrap" width="1%">
                         <button data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="runAnalysis(s)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button>
-                        <button class="btn btn-info btn-xs" data-ng-if="raydataService.canViewOutput(s)" data-ng-click="setAnalysisScan(s)">View Output</button>
+                        <button class="btn btn-info btn-xs" data-ng-disabled="! raydataService.canViewOutput(s)" data-ng-click="setAnalysisScan(s)">View Output</button>
                         <button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s)">View Log</button>
                       </td>
                     </tr>
@@ -576,8 +569,6 @@ SIREPO.app.directive('scansTable', function() {
                 return cols.length > 0 ? ['select'].concat(cols) : [];
             };
 
-            $scope.getScanField = raydataService.getScanField;
-
             $scope.hoverChange = (index, hovered) => {
                 if (! hovered) {
                     hoveredIndex = null;
@@ -730,6 +721,55 @@ SIREPO.app.directive('scansTable', function() {
                     scanRequestInterval = null;
                 }
             });
+        },
+    };
+});
+
+SIREPO.app.directive('scanCellValue', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            scanCellValue: '=',
+            columnName: '=',
+        },
+        template: `
+            <div class="pull-right" data-ng-show="canExpand">
+              <button class="btn btn-default btn-xs" data-ng-click="toggleExpand()">
+                <span class="glyphicon"
+                  data-ng-class="{'glyphicon-chevron-down': ! isExpanded, 'glyphicon-chevron-up': isExpanded}">
+                </span>
+              </button>
+            </div>
+            <div style="white-space: pre-wrap">{{ getScanFieldText() }}<span data-ng-show="canExpand && !isExpanded">...</span></div>
+        `,
+        controller: function(timeService, utilities, $scope) {
+
+            $scope.canExpand = false;
+            $scope.isExpanded = false;
+
+            function objectToText(value) {
+                const r = utilities.objectToText(value);
+                if ($scope.isExpanded) {
+                    return r;
+                }
+                const t = utilities.trimText(r, 5, 300);
+                $scope.canExpand = t != r;
+                return t;
+            }
+
+            $scope.getScanFieldText = () => {
+                if (['start', 'stop'].includes($scope.columnName)) {
+                    return timeService.unixTimeToDateString($scope.scanCellValue);
+                }
+                if (angular.isObject($scope.scanCellValue)) {
+                    return objectToText($scope.scanCellValue);
+                }
+                return $scope.scanCellValue;
+            };
+
+            $scope.toggleExpand = () => {
+                $scope.isExpanded = ! $scope.isExpanded;
+            };
         },
     };
 });
