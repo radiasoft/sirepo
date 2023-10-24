@@ -17,6 +17,7 @@ import functools
 import io
 import math
 import pymongo
+import re
 import requests
 import sirepo.raydata.analysis_driver
 import sirepo.raydata.databroker
@@ -193,7 +194,9 @@ class _RequestHandler(_JsonPostRequestHandler):
                 q = {
                     "$and": [
                         q.query,
-                        databroker.queries.TextQuery(req_data.searchText).query,
+                        databroker.queries.TextQuery(
+                            _text_query(req_data.searchText)
+                        ).query,
                     ],
                 }
             return q
@@ -214,6 +217,12 @@ class _RequestHandler(_JsonPostRequestHandler):
                     )
                 )
             return s
+
+        def _text_query(search_text):
+            r = []
+            for t in re.split(r"\s+", search_text.strip()):
+                r.append(t if '"' in t or t.startswith("-") else f'"{t}"')
+            return " ".join(r)
 
         c = sirepo.raydata.databroker.catalog(req_data.catalogName)
         pc = math.ceil(
@@ -490,7 +499,7 @@ def _scan_info_result(scans, page_count, req_data):
         if v2 is None:
             return 1
         if isinstance(v1, (int, float)) and isinstance(v2, (int, float)):
-            return v2 - v1
+            return v1 - v2
         if not isinstance(v1, str):
             v1 = pkjson.dump_pretty(v1)
         if not isinstance(v2, str):
@@ -504,7 +513,7 @@ def _scan_info_result(scans, page_count, req_data):
         s = sorted(
             s,
             key=functools.cmp_to_key(_compare_values),
-            reverse=req_data.sortOrder,
+            reverse=not req_data.sortOrder,
         )
     return PKDict(
         data=PKDict(
