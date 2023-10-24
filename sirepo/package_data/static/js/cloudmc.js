@@ -80,7 +80,7 @@ SIREPO.app.config(() => {
           </div>
         </div>
         <div data-ng-switch-when="JRange">
-          <div data-j-range-slider="field" data-model-name="modelName" data-model="model" data-field="model[field]"></div>
+          <div data-j-range-slider="" data-model-name="modelName" data-field-name="field" data-model="model" data-field="model[field]"></div>
         </div>
         <div data-ng-switch-when="ScoreList" data-ng-class="fieldClass">
           <div class="input-group">
@@ -1693,7 +1693,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
             <div data-ng-repeat="v in viewFields track by v.track">
               <div class="form-group">
                 <div class="col-sm-11 col-sm-offset-1">
-                  <div data-field-editor="v.field" data-model-name="v.modelName"
+                  <div data-field-editor="v.field" data-model-name="model[field]._type"
                     data-label-size="5"
                     data-model="model[field]"></div>
                 </div>
@@ -1702,21 +1702,18 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
           </div>
         `,
         controller: function($scope) {
-            srdbg($scope.model[$scope.field]);
-            $scope.modelField = f => {
-                const mf = f.split('.');
-                return mf.length === 1 ? [type(), f] : mf;
-            };
+            const TYPE_ENERGY = 'energyFilter';
+            const TYPE_MESH = 'meshFilter';
+            const TYPE_NONE = 'None';
+            const inds = [1, 2, 3, 4, 5];
 
             function setView() {
-                if (type() && type() !== 'None') {
+                if (type() && type() !== TYPE_NONE) {
                     $scope.viewFields = SIREPO.APP_SCHEMA.view[type()].advanced
                         .map(f => {
-                            const mf = $scope.modelField(f);
                             return {
-                                modelName: mf[0],
-                                field: mf[1],
-                                track: `${mf[0]}.${mf[1]}`,
+                                field: f,
+                                track: type() + f,
                             };
                         });
                 }
@@ -1725,11 +1722,29 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                 }
             }
 
-            function type() {
-                return $scope.model[$scope.field]._type;
+            function type(index) {
+                const f = index == null ? $scope.field : `filter${index}`;
+                return $scope.model[f]._type;
             }
 
-            srdbg('MLE', $scope);
+            function updateEditor() {
+                if ($scope.modelName !== 'filter') {
+                    return;
+                }
+                const e = inds
+                    .map(i => $scope.model[`filter${i}`])
+                    .filter(x => x._type === TYPE_ENERGY)[0];
+                srdbg('EF?', hasEnergyFilter, 'SHOW?', ! ! e);
+                //panelState.showField('meshFilter', 'energyRangeSum', ! ! e);
+                if (! e) {
+                    return;
+                }
+                $scope.model[$scope.field].energyRangeSum = [e.start, e.stop];
+                //const hasEnergyFilter = inds.some(i => type(i) === TYPE_ENERGY);
+                
+                //panelState.showField('meshFilter', 'energyRangeSum', ! ! e);
+            }
+            
             $scope.$watch('model[field]._type', (newValue, oldValue) => {
                 if (! $scope.model) {
                     return;
@@ -1747,8 +1762,11 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                         }
                     }
                 }
+                updateEditor();
                 setView();
             });
+
+            panelState.waitForUI(updateEditor);
         },
     };
 });
@@ -2185,21 +2203,28 @@ SIREPO.app.directive('jRangeSlider', function(appState) {
     return {
         restrict: 'A',
         scope: {
-            fieldlName: '=jRangeSlider',
+            field: '<',
+            fieldName: '<',
             model: '=',
             modelName: '<',
         },
         template: `
-            <div data-ng-show="hasSteps()">
                 <div data-label-with-tooltip="" data-label="tmp"></div>
                 <div data-ng-class="sliderClass"></div>
                 <div style="display:flex; justify-content:space-between;">
                      <span>{{ range.min }}</span>
                      <span>{{ range.max }}</span>
                 </div>
-            </div>
         `,
         controller: function($scope) {
+            function canonicalize(range) {
+                const r = {
+                    min: 0,
+                    max: 1,
+                };
+
+            }
+
             function range() {
                 const r = {
                     min: f.min || f.start,
@@ -2208,12 +2233,11 @@ SIREPO.app.directive('jRangeSlider', function(appState) {
                 r.step = f.step || Math.abs((r.max - r.min)) / f.num;
                 return r;
             }
-
-            srdbg('JSL', $scope);
             const f = $scope.field;
+            srdbg('JSL', $scope, f);
             $scope.appState = appState;
             $scope.range = range();
-            $scope.sliderClass = `${modelName}-${fieldName}-slider`;
+            $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`;
 
             let hasSteps = false;
             let slider = null;
@@ -2266,7 +2290,7 @@ SIREPO.app.directive('jRangeSlider', function(appState) {
             $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
             $scope.hasSteps = () => hasSteps;
 
-            updateSlider();
+            //updateSlider();
 
             $scope.$on('$destroy', () => {
                 if (slider) {

@@ -49,6 +49,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.volumes[v].material.standardType = "None"
         if "tally" in dm:
             del dm["tally"]
+        for t in dm.settings.tallies:
+            for i in range(1, 6):
+                f = t[f"filter{i}"]
+                y = f._type
+                if y != "None":
+                    cls.update_model_defaults(f, y)
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
