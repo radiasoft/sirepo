@@ -79,7 +79,7 @@ SIREPO.app.config(() => {
             <select class="form-control" data-ng-model="model[field]" data-ng-options="t.name as t.name for t in model.tallies"></select>
           </div>
         </div>
-        <div data-ng-switch-when="JRange">
+        <div data-ng-switch-when="JRange" class="col-sm-5">
           <div data-j-range-slider="" data-model-name="modelName" data-field-name="field" data-model="model" data-field="model[field]"></div>
         </div>
         <div data-ng-switch-when="ScoreList" data-ng-class="fieldClass">
@@ -2226,8 +2226,9 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 <div data-label-with-tooltip="" data-label=""></div>
                 <div class="{{ sliderClass }}"></div>
                 <div style="display:flex; justify-content:space-between;">
-                     <span>{{ field.min }}</span>
-                     <span>{{ field.max }}</span>
+                     <span>{{ formatFloat(field.min) }}</span>
+                     <span>{{ field.val }}</span>
+                     <span>{{ formatFloat(field.max) }}</span>
                 </div>
         `,
         controller: function($scope) {
