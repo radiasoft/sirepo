@@ -1707,6 +1707,12 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
             const TYPE_NONE = 'None';
             const inds = [1, 2, 3, 4, 5];
 
+            function getFilter(type) {
+                return inds
+                    .map(i => $scope.model[`filter${i}`])
+                    .filter(x => x._type === type)[0];
+            }
+
             function setView() {
                 if (type() && type() !== TYPE_NONE) {
                     $scope.viewFields = SIREPO.APP_SCHEMA.view[type()].advanced
@@ -1731,18 +1737,16 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                 if ($scope.modelName !== 'filter') {
                     return;
                 }
-                const e = inds
-                    .map(i => $scope.model[`filter${i}`])
-                    .filter(x => x._type === TYPE_ENERGY)[0];
-                srdbg('EF?', hasEnergyFilter, 'SHOW?', ! ! e);
-                //panelState.showField('meshFilter', 'energyRangeSum', ! ! e);
-                if (! e) {
+                const e = getFilter(TYPE_ENERGY);
+                const m = getFilter(TYPE_MESH);
+                panelState.showField('meshFilter', 'energyRangeSum', ! ! e);
+                if (! e || ! m) {
                     return;
                 }
-                $scope.model[$scope.field].energyRangeSum = [e.start, e.stop];
-                //const hasEnergyFilter = inds.some(i => type(i) === TYPE_ENERGY);
-                
-                //panelState.showField('meshFilter', 'energyRangeSum', ! ! e);
+                const s = m.energyRangeSum;
+                s.min = e.start;
+                s.max = e.stop;
+                s.step = Math.abs(e.stop - e.start) / e.num;
             }
             
             $scope.$watch('model[field]._type', (newValue, oldValue) => {
@@ -2199,7 +2203,7 @@ SIREPO.app.directive('materialList', function(appState, cloudmcService) {
     };
 });
 
-SIREPO.app.directive('jRangeSlider', function(appState) {
+SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -2209,66 +2213,49 @@ SIREPO.app.directive('jRangeSlider', function(appState) {
             modelName: '<',
         },
         template: `
-                <div data-label-with-tooltip="" data-label="tmp"></div>
-                <div data-ng-class="sliderClass"></div>
+                <div data-label-with-tooltip="" data-label=""></div>
+                <div class="{{ sliderClass }}"></div>
                 <div style="display:flex; justify-content:space-between;">
-                     <span>{{ range.min }}</span>
-                     <span>{{ range.max }}</span>
+                     <span>{{ field.min }}</span>
+                     <span>{{ field.max }}</span>
                 </div>
         `,
         controller: function($scope) {
-            function canonicalize(range) {
-                const r = {
-                    min: 0,
-                    max: 1,
-                };
-
-            }
-
-            function range() {
-                const r = {
-                    min: f.min || f.start,
-                    max: f.max || f.stop,
-                };
-                r.step = f.step || Math.abs((r.max - r.min)) / f.num;
-                return r;
-            }
-            const f = $scope.field;
-            srdbg('JSL', $scope, f);
             $scope.appState = appState;
-            $scope.range = range();
             $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`;
+            srdbg($scope.sliderClass);
 
             let hasSteps = false;
             let slider = null;
             
-            function buildSlider() {
-                hasSteps = $scope.range.min !== $scope.range.max;
+            function buildSlider(range) {
+                hasSteps = range.min !== range.max;
                 if (! hasSteps) {
                     return;
                 }
                 const sel = $(`.${$scope.sliderClass}`);
-                const val = appState.models[$scope.modelName][$scope.fieldName];
+                srdbg(sel);
+                const val = range.val;
                 const isMulti = Array.isArray(val);
                 if (isMulti) {
-                    if (val[0] < $scope.range.min) {
-                        val[0] = $scope.range.min;
+                    if (val[0] < range.min) {
+                        val[0] = range.min;
                     }
-                    if (val[1] > $scope.range.max) {
-                        val[1] = $scope.range.max;
+                    if (val[1] > range.max) {
+                        val[1] = range.max;
                     }
                 }
                 sel.slider({
-                    min: $scope.range.min,
-                    max: $scope.range.max,
+                    min: range.min,
+                    max: range.max,
                     range: isMulti,
                     slide: (e, ui) => {
                         $scope.$apply(() => {
                             if (isMulti) {
-                                appState.models[$scope.modelName][$scope.fieldName][ui.handleIndex] = ui.value;
+                                range.val[ui.handleIndex] = ui.value;
                             }
                             else {
-                                appState.models[$scope.modelName][$scope.fieldName] = ui.value;
+                                range.val = ui.value;
                             }
                         });
                     },
@@ -2276,21 +2263,22 @@ SIREPO.app.directive('jRangeSlider', function(appState) {
                 });
                 // jqueryui sometimes decrements the max by the step value due to floating-point
                 // shenanigans. Reset it here
-                sel.slider('instance').max = $scope.range.max;
+                sel.slider('instance').max = range.max;
                 sel.slider('option', isMulti ? 'values' : 'value', val);
-                sel.slider('option', 'disabled', $scope.range.min === $scope.range.max);
+                sel.slider('option', 'disabled', range.min === range.max);
                 return sel;
             }
 
             function updateSlider() {
-                const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
-                slider = buildSlider();
+                slider = buildSlider($scope.field);
             }
 
             $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
             $scope.hasSteps = () => hasSteps;
 
-            //updateSlider();
+            panelState.waitForUI(updateSlider);
+
+            appState.watchModelFields($scope, [`${$scope.modelName}.${$scope.fieldName}`], updateSlider, true);
 
             $scope.$on('$destroy', () => {
                 if (slider) {
