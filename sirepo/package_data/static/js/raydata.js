@@ -9,7 +9,7 @@ SIREPO.app.config(() => {
           <div data-date-time-picker="" data-model="model" data-field="field"></div>
         </div>
         <div data-ng-switch-when="PresetTimePicker" data-ng-class="fieldClass">
-          <div data-preset-time-picker="" data-model="model" data-model-name="modelName"></div>
+          <div class="text-right" data-preset-time-picker="" data-model="model" data-model-name="modelName"></div>
         </div>
         <div data-ng-switch-when="ExecutedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="executed"></div>
