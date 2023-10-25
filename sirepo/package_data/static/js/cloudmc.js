@@ -2220,13 +2220,13 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             modelName: '<',
         },
         template: `
-                <div data-label-with-tooltip="" data-label=""></div>
-                <div class="{{ sliderClass }}"></div>
-                <div style="display:flex; justify-content:space-between;">
-                     <span>{{ formatFloat(field.min) }}</span>
-                     <span>{{ field.val }}</span>
-                     <span>{{ formatFloat(field.max) }}</span>
-                </div>
+            <div data-label-with-tooltip="" data-label=""></div>
+            <div class="{{ sliderClass }}"></div>
+            <div style="display:flex; justify-content:space-between;">
+                    <span>{{ formatFloat(field.min) }}</span>
+                    <span>{{ field.val }}</span>
+                    <span>{{ formatFloat(field.max) }}</span>
+            </div>
         `,
         controller: function($scope) {
             $scope.appState = appState;
@@ -2234,8 +2234,12 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
 
             let hasSteps = false;
             let slider = null;
+            const watchFields = ['min', 'max', 'step'].map(x => `model[fieldName].${x}`);
             
             function adjustToRange(val, range) {
+                if (! isValid(range)) {
+                    return val;
+                }
                 if (val < range.min) {
                     return range.min;
                 }
@@ -2254,22 +2258,14 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 }
                 const sel = $(`.${$scope.sliderClass}`);
                 const val = range.val;
-                srdbg('VAL WAS', val.slice());
                 const isMulti = Array.isArray(val);
                 if (isMulti) {
                     val[0] = adjustToRange(val[0], range);
                     val[1] = adjustToRange(val[1], range);
-                    //if (val[0] < range.min) {
-                    //    val[0] = range.min;
-                    //}
-                    //if (val[1] > range.max) {
-                    //    val[1] = range.max;
-                    //}
                 }
                 else {
                     val = adjustToRange(val, range);
                 }
-                srdbg('VAL IS', val.slice());
                 sel.slider({
                     min: range.min,
                     max: range.max,
@@ -2290,7 +2286,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 // shenanigans. Reset it here
                 sel.slider('instance').max = range.max;
                 sel.slider('option', isMulti ? 'values' : 'value', val);
-                sel.slider('option', 'disabled', range.min === range.max);
+                sel.slider('option', 'disabled', ! isValid(range));
                 return sel;
             }
 
@@ -2298,12 +2294,24 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 slider = buildSlider($scope.field);
             }
 
+            function isValid(range) {
+                return [range.min, range.max, range.step].every(x => x != null) &&
+                    range.min !== range.max;
+            }
+
             $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
             $scope.hasSteps = () => hasSteps;
 
             panelState.waitForUI(updateSlider);
 
-            appState.watchModelFields($scope, [`${$scope.modelName}.${$scope.fieldName}`], () => {srdbg('WMF'); updateSlider(); }, true);
+            $scope.$watchGroup(
+                watchFields,
+                (newValues, oldValues) => {
+                    if (newValues.some((x, i) => x !== oldValues[i])) {
+                        updateSlider();
+                    }
+                }
+            );
 
             $scope.$on('$destroy', () => {
                 if (slider) {
