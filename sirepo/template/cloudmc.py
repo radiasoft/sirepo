@@ -151,17 +151,35 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
 def sim_frame(frame_args):
     import openmc
 
+    def _get_filter(tally, type):
+        for i in range(1, 6):
+            f = tally[f"filter{i}"]
+            if f._type == type:
+                return f
+        return None
+
+    def _get_tally(tallies, name):
+        f = [x for x in tallies if x.name == name]
+        return f[0] if len(f) else None
+
     t = openmc.StatePoint(
         frame_args.run_dir.join(_statepoint_filename(frame_args.sim_in))
     ).get_tally(name=frame_args.tally)
     try:
         # openmc doesn't have a has_filter() api
-        t.find_filter(openmc.MeshFilter)
+        mf = t.find_filter(openmc.MeshFilter)
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
+    all_tallies = frame_args.sim_in.models.settings.tallies
+    args_tally = _get_tally(all_tallies, frame_args.tally)
+    s = _get_filter(args_tally, "meshFilter").energyRangeSum
+    r = numpy.array(s.val)
+    bins = ((r - s.min) / s.step).astype(int)
+    sh = mf.mesh.volumes.shape
     v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
+    pkdp("T {} BINS {} SHAPPE {} V SH {}", args_tally, bins, sh, v.shape)
     # volume normalize copied from openmc.UnstructuredMesh.write_data_to_vtk()
-    v /= t.find_filter(openmc.MeshFilter).mesh.volumes.ravel()
+    v /= mf.mesh.volumes.ravel()
     return PKDict(
         field_data=v.tolist(),
         min_field=v.min(),

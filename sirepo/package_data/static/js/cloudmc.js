@@ -1735,7 +1735,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                 return $scope.model[f]._type;
             }
 
-            function updateEditor() {
+            function updateEnergyRange() {
                 if ($scope.modelName !== 'filter') {
                     return;
                 }
@@ -1768,7 +1768,6 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                         }
                     }
                 }
-                //updateEditor();
                 setView();
             });
 
@@ -1776,11 +1775,11 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                 if (! $scope.model) {
                     return;
                 }
-                updateEditor();
+                updateEnergyRange();
             });
 
 
-            panelState.waitForUI(updateEditor);
+            panelState.waitForUI(updateEnergyRange);
         },
     };
 });
@@ -2238,6 +2237,18 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             let hasSteps = false;
             let slider = null;
             
+            function adjustToRange(val, range) {
+                if (val < range.min) {
+                    return range.min;
+                }
+                else if (val > range.max) {
+                    return range.max;
+                }
+                else {
+                    return range.min + range.step * Math.round((val - range.min) / range.step);
+                }
+            }
+
             function buildSlider(range) {
                 hasSteps = range.min !== range.max;
                 if (! hasSteps) {
@@ -2245,15 +2256,22 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 }
                 const sel = $(`.${$scope.sliderClass}`);
                 const val = range.val;
+                srdbg('VAL WAS', val.slice());
                 const isMulti = Array.isArray(val);
                 if (isMulti) {
-                    if (val[0] < range.min) {
-                        val[0] = range.min;
-                    }
-                    if (val[1] > range.max) {
-                        val[1] = range.max;
-                    }
+                    val[0] = adjustToRange(val[0], range);
+                    val[1] = adjustToRange(val[1], range);
+                    //if (val[0] < range.min) {
+                    //    val[0] = range.min;
+                    //}
+                    //if (val[1] > range.max) {
+                    //    val[1] = range.max;
+                    //}
                 }
+                else {
+                    val = adjustToRange(val, range);
+                }
+                srdbg('VAL IS', val.slice());
                 sel.slider({
                     min: range.min,
                     max: range.max,
