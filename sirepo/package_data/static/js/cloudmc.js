@@ -2056,10 +2056,8 @@ SIREPO.viewLogic('tallyView', function(appState, panelState, $scope) {
     const inds = SIREPO.UTILS.indexArray(SIREPO.APP_SCHEMA.constants.maxFilters, 1);
     const TYPE_NONE = 'None';
 
-    $scope.modelData = appState.models[$scope.modelName];
-
     function type(index) {
-        return $scope.modelData[`filter${index}`]._type;
+        return appState.models[$scope.modelName][`filter${index}`]._type;
     }
 
     function updateEditor() {
