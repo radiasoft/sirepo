@@ -1852,7 +1852,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         const f = i => i % eType.length === optionIndex;
         let opt = sel.find('option').filter(f);
 
-        if (! opt) {
+        if (! opt || ! opt.length) {
             // handle case where enum is displayed as a button group rather than a select
             opt = sel.find('button').filter(f);
         }
