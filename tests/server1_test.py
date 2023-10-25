@@ -4,8 +4,6 @@
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import pytest
-
 
 #: Used for a sanity check on serial numbers
 _MIN_SERIAL = 10000000

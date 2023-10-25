@@ -82,6 +82,7 @@ def start():
     pkdlog("{}", _cfg)
     if pkconfig.channel_in_internal_test() and _cfg.start_delay:
         pkdlog("start_delay={}", _cfg.start_delay)
+        # Not asyncio.sleep: delay to startup tornado for testing
         time.sleep(_cfg.start_delay)
     i = tornado.ioloop.IOLoop.current()
     d = _Dispatcher()

@@ -9,10 +9,9 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import importlib
 
 
-def import_and_init(name, want_flask=False):
+def import_and_init(name):
     values = PKDict(
         want_apis=name != "sirepo.job_supervisor",
-        want_flask=want_flask,
     )
 
     def _base(qual):
@@ -28,13 +27,12 @@ def import_and_init(name, want_flask=False):
     # Modules must protect themselves from duplicate initialization
     # TODO(robnagler) eliminate this by storing global state in modules that is read by _i()
     _i("sirepo.srtime", [])
-    _i("sirepo.flask", ["want_flask"])
     _i("sirepo.job", [])
     # Not a real initialization, but needed in values, and actually makes sense to do
-    _i("sirepo.simulation_db", ["want_flask"])
+    _i("sirepo.simulation_db", [])
     if name != "sirepo.pkcli.job_agent":
         _i("sirepo.auth_db", [])
-        _i("sirepo.spa_session", ["want_flask"])
+        _i("sirepo.spa_session", [])
         _i("sirepo.cookie", [])
     _i("sirepo.auth", ["simulation_db"])
     if name in "sirepo.pkcli.job_agent":

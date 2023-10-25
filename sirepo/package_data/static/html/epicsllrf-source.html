@@ -1,6 +1,9 @@
 <div class="container-fluid">
     <div class="row">
-        <div class="col-md-4">
+        <div data-ng-if="! source.hasEpicsSchema()" class="col-md-6">
+          <div data-basic-editor-panel="" data-view-name="epicsConfig">{{ source.loadingSchemaMessage }}</div>
+        </div>
+        <div data-ng-if="source.hasEpicsSchema()" class="col-md-4">
             <div class="row">
                 <div class="col-sm-12">
                     <div data-simple-panel="simulationStatus">
@@ -8,31 +11,15 @@
                     </div>
                 </div>
                 <div class="col-sm-12">
-                    <div data-basic-editor-panel="" data-view-name="LLRFSim_Gen"></div>
+                    <div data-basic-editor-panel="" data-view-name="{{ source.editorViewName }}"></div>
                 </div>
             </div>
         </div>
-        <div class="col-md-8">
+        <div data-ng-if="source.hasEpicsSchema()" class="col-md-8">
             <div class="row">
-                <div class="col-sm-6">
-                    <div data-waveform-loader="" data-model-name="waveformAReport">
-                        <div data-report-panel="parameter" data-model-name="waveformAReport"></div>
-                    </div>
-                </div>
-                <div class="col-sm-6">
-                    <div data-waveform-loader="" data-model-name="waveformBReport">
-                        <div data-report-panel="parameter" data-model-name="waveformBReport"></div>
-                    </div>
-                </div>
-                <div class="clearfix"></div>
-                <div class="col-sm-6">
-                    <div data-waveform-loader="" data-model-name="waveformCReport">
-                        <div data-report-panel="parameter" data-model-name="waveformCReport"></div>
-                    </div>
-                </div>
-                <div class="col-sm-6">
-                    <div data-waveform-loader="" data-model-name="waveformDReport">
-                        <div data-report-panel="parameter" data-model-name="waveformDReport"></div>
+                <div data-ng-repeat="name in source.reportNames track by name" class="col-sm-6">
+                    <div data-waveform-loader="" data-model-name="{{ name }}">
+                        <div data-report-panel="parameter" data-model-name="{{ name }}"></div>
                     </div>
                 </div>
             </div>

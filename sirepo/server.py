@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Flask server interface
+"""Primary sirepo.quest.API's
 
-:copyright: Copyright (c) 2015-2019 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2015-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkconfig
@@ -13,10 +13,10 @@ from sirepo import simulation_db
 import re
 import sirepo.const
 import sirepo.feature_config
-import sirepo.flask
 import sirepo.quest
 import sirepo.resource
 import sirepo.sim_data
+import sirepo.sim_run
 import sirepo.srschema
 import sirepo.uri
 import sirepo.util
@@ -304,7 +304,7 @@ class API(sirepo.quest.API):
                         "no import_file in template req={}",
                         req,
                     )
-                with simulation_db.tmp_dir(qcall=self) as d:
+                with sirepo.sim_run.tmp_dir(qcall=self) as d:
                     data = await req.template.import_file(
                         req,
                         tmp_dir=d,
@@ -600,7 +600,7 @@ class API(sirepo.quest.API):
         )
         e = None
         in_use = None
-        with simulation_db.tmp_dir(qcall=self) as d:
+        with sirepo.sim_run.tmp_dir(qcall=self) as d:
             t = d.join(req.filename)
             t.write_binary(f.as_bytes())
             if hasattr(req.template, "validate_file"):
@@ -698,41 +698,13 @@ def init_apis(*args, **kwargs):
     pass
 
 
-def init_tornado(uwsgi=None, use_reloader=False, is_server=False):
+def init_tornado(use_reloader=False, is_server=False):
     """Initialize globals and create/upgrade db"""
     _init_proxy_react()
     from sirepo import auth_db
 
     with sirepo.quest.start() as qcall:
         qcall.auth_db.create_or_upgrade()
-
-
-def init_app(uwsgi=None, use_reloader=False, is_server=False):
-    """Initialize globals and populate simulation dir"""
-    import flask
-
-    global _app
-
-    if _app:
-        return
-    #: Flask app instance, must be bound globally
-    _app = flask.Flask(
-        __name__,
-        static_folder=None,
-    )
-    _app.sirepo_uwsgi = uwsgi
-    _init_proxy_react()
-    sirepo.modules.import_and_init("sirepo.uri_router").init_for_flask(_app)
-    sirepo.flask.app_set(_app)
-    if is_server:
-        from sirepo import auth_db
-
-        with sirepo.quest.start() as qcall:
-            qcall.auth_db.create_or_upgrade()
-
-        # Avoid unnecessary logging
-        sirepo.flask.is_server = True
-    return _app
 
 
 def init_module(**imports):

@@ -87,9 +87,6 @@ DEFAULT_SUPERVISOR_URI_DECL = (
     "how to reach supervisor",
 )
 
-#: where runner_api writes simulation state
-RUNNER_STATUS_FILE = "status"
-
 #: status values
 CANCELED = "canceled"
 COMPLETED = "completed"

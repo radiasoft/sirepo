@@ -16,10 +16,10 @@ import pykern.pkio
 import re
 import sirepo.auth
 import sirepo.feature_config
-import sirepo.flask
 import sirepo.job
 import sirepo.quest
 import sirepo.sim_data
+import sirepo.sim_run
 import sirepo.uri_router
 import sirepo.util
 import tornado.httpclient
@@ -61,7 +61,7 @@ class API(sirepo.quest.API):
             SReply: always OK
         """
         return await self._request_api(
-            _create_task=not sirepo.flask.in_request(),
+            _ignore_reply=True,
             _request_content=self._parse_post_just_data(),
         )
 
@@ -92,7 +92,7 @@ class API(sirepo.quest.API):
         )
         s = suffix and sirepo.srschema.parse_name(suffix)
         t = None
-        with simulation_db.tmp_dir(qcall=self) as d:
+        with sirepo.sim_run.tmp_dir(qcall=self) as d:
             # TODO(e-carlin): computeJobHash
             t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
             t.mksymlinkto(d, absolute=True)
@@ -266,7 +266,7 @@ class API(sirepo.quest.API):
             res.uri = k.pkdel("_request_uri") or self._supervisor_uri(
                 sirepo.job.SERVER_URI
             )
-            res.create_task = k.pkdel("_create_task")
+            res.ignore_reply = k.pkdel("_ignore_reply")
             res.api = _api_name(k.pkdel("api_name"))
             c = (
                 k.pkdel("_request_content")
@@ -287,9 +287,6 @@ class API(sirepo.quest.API):
             res.content = c
             return res
 
-        async def _wrap_future(value):
-            await value
-
         a = _args(kwargs)
         with self._reply_maybe_file(a.content) as d:
             r = tornado.httpclient.AsyncHTTPClient(
@@ -305,8 +302,8 @@ class API(sirepo.quest.API):
                     validate_cert=sirepo.job.cfg().verify_tls,
                 ),
             )
-            if a.create_task:
-                asyncio.create_task(_wrap_future(r))
+            if a.ignore_reply:
+                asyncio.ensure_future(r)
                 return self.reply_ok()
             r = await r
             if not _JSON_TYPE.search(r.headers["content-type"]):
@@ -428,7 +425,7 @@ class API(sirepo.quest.API):
         ):
             yield None
             return
-        with simulation_db.tmp_dir(qcall=self) as d:
+        with sirepo.sim_run.tmp_dir(qcall=self) as d:
             t = None
             try:
                 t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())

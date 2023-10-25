@@ -18,15 +18,11 @@ _DB = PKDict()
 
 _initialized = None
 
-#: Lock for operations across Sirepo (server)
-_THREAD_LOCK = None
 
-
-def init_module(want_flask):
-    global _initialized, _cfg, _THREAD_LOCK
+def init_module():
+    global _initialized, _cfg
     if _initialized:
         return
-    _THREAD_LOCK = threading.RLock() if want_flask else contextlib.nullcontext()
     _initialized = True
 
 
@@ -44,12 +40,10 @@ async def init_quest(qcall):
         if s:
             if t - s.request_time < _REFRESH_SESSION:
                 return False
-            with _THREAD_LOCK:
-                s.request_time = t
+            s.request_time = t
         else:
             s = PKDict(request_time=t)
-            with _THREAD_LOCK:
-                _DB[u] = s
+            _DB[u] = s
         return True
 
     if qcall.sreq.method_is_post() and qcall.auth.is_logged_in() and _check():

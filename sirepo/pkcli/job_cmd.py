@@ -18,6 +18,7 @@ import re
 import requests
 import signal
 import sirepo.sim_data
+import sirepo.sim_run
 import sirepo.template
 import sirepo.util
 import subprocess
@@ -105,7 +106,7 @@ def _dispatch_compute(msg, template):
             template.SIM_TYPE,
         ).does_api_reply_with_file(msg.api, msg.data.method)
         if x:
-            with simulation_db.tmp_dir(chdir=True) as d:
+            with sirepo.sim_run.tmp_dir(chdir=True) as d:
                 return _op(expect_file=x)
         else:
             return _op(expect_file=x)
@@ -129,6 +130,7 @@ def _do_compute(msg, template):
         )
     while True:
         for j in range(20):
+            # Not asyncio.sleep: not in coroutine
             time.sleep(0.1)
             r = p.poll()
             i = r is None
@@ -276,6 +278,7 @@ def _do_sbatch_status(msg, template):
             pkio.unchecked_remove(s)
             return PKDict(state=job.COMPLETED)
         _write_parallel_status(msg, template, True)
+        # Not asyncio.sleep: not in coroutine
         time.sleep(msg.nextRequestSeconds)
     # DOES NOT RETURN
 
