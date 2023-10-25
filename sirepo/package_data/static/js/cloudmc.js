@@ -1707,7 +1707,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
             const TYPE_NONE = 'None';
 
             const FIELDS_ENERGY = Object.keys(SIREPO.APP_SCHEMA.model[TYPE_ENERGY]);
-            const inds = [1, 2, 3, 4, 5];
+            const inds = SIREPO.UTILS.indexArray(5, 1);
 
             function getFilter(type) {
                 return inds
@@ -1736,6 +1736,9 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
             }
 
             function updateEnergyRange() {
+                if (! $scope.model) {
+                    return;
+                }
                 if ($scope.modelName !== 'filter') {
                     return;
                 }
@@ -1771,12 +1774,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                 setView();
             });
 
-            $scope.$watchGroup(FIELDS_ENERGY.map(x => `model[field].${x}`), () => {
-                if (! $scope.model) {
-                    return;
-                }
-                updateEnergyRange();
-            });
+            $scope.$watchGroup(FIELDS_ENERGY.map(x => `model[field].${x}`), updateEnergyRange);
 
 
             panelState.waitForUI(updateEnergyRange);
@@ -2305,7 +2303,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
 
             panelState.waitForUI(updateSlider);
 
-            appState.watchModelFields($scope, [`${$scope.modelName}.${$scope.fieldName}`], updateSlider, true);
+            appState.watchModelFields($scope, [`${$scope.modelName}.${$scope.fieldName}`], () => {srdbg('WMF'); updateSlider(); }, true);
 
             $scope.$on('$destroy', () => {
                 if (slider) {
