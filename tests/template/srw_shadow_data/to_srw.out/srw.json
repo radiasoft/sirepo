@@ -405,7 +405,9 @@
     "multipole": {
         "bx": 0,
         "by": 1.7200000000000002,
-        "length": 3
+        "edge": 0.0,
+        "length": 3,
+        "longitudinalPosition": 0
     },
     "postPropagation": [],
     "powerDensityReport": {

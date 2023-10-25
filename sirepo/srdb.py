@@ -9,6 +9,7 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+import pykern.util
 import os.path
 import sys
 
@@ -51,32 +52,15 @@ def supervisor_dir():
 def _init_root():
     global _cfg, _root
 
-    def _cfg_root(v):
-        """Config value or root package's parent or cwd with `_DEFAULT_ROOT`"""
-        if not os.path.isabs(v):
-            pkconfig.raise_error(f"{v}: SIREPO_SRDB_ROOT must be absolute")
-        if not os.path.isdir(v):
-            pkconfig.raise_error(f"{v}: SIREPO_SRDB_ROOT must be a directory and exist")
-        return pkio.py_path(v)
-
     _cfg = pkconfig.init(
-        root=(None, _cfg_root, "where database resides"),
+        root=(
+            None,
+            pykern.util.cfg_absolute_dir,
+            "where database resides",
+        ),
     )
     _root = _cfg.root
     if _root:
         return _root
-    assert pkconfig.in_dev_mode(), "SIREPO_SRDB_ROOT must be configured except in dev"
-    r = (
-        pkio.py_path(
-            sys.modules[pkinspect.root_package(_init_root)].__file__,
-        )
-        .dirpath()
-        .dirpath()
-    )
-    # Check to see if we are in our dev directory. This is a hack,
-    # but should be reliable.
-    if not r.join("requirements.txt").check():
-        # Don't run from an install directory
-        r = pkio.py_path(".")
-    _root = pkio.mkdir_parent(r.join(_DEFAULT_ROOT))
+    _root = pykern.util.dev_run_dir(_init_root)
     return _root
