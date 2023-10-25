@@ -282,7 +282,7 @@
             "space": ["Space", "BinSpace", "linear"],
             "start": ["Start", "Float", 0],
             "stop": ["Stop", "Float", 1],
-            "num": ["Number of samples", "Integer", 50]
+            "num": ["Number of samples", "Integer", 50, "", 2]
         },
         "energyoutFilter": {
             "_super": ["_", "model", "filter"],
