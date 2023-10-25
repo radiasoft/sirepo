@@ -2311,7 +2311,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             $scope.$watchGroup(
                 watchFields,
                 (newValues, oldValues) => {
-                    if (newValues.some((x, i) => x !== oldValues[i])) {
+                    if (newValues.some((x, i) => x !== oldValues[i]) && ! newValues.some(x => x == null)) {
                         updateSlider();
                     }
                 }
