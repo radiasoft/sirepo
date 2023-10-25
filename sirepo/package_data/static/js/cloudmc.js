@@ -2053,7 +2053,7 @@ SIREPO.viewLogic('tallyView', function(appState, panelState, $scope) {
 
     const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
         .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
-    const inds = SIREPO.UTILS.indexArray(5, 1);
+    const inds = SIREPO.UTILS.indexArray(SIREPO.APP_SCHEMA.constants.maxFilters, 1);
     const TYPE_NONE = 'None';
 
     $scope.modelData = appState.models[$scope.modelName];
