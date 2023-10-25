@@ -406,7 +406,7 @@ SIREPO.app.directive('scansTable', function() {
                   <div ng-show="isLoadingNewScans">Loading scans</div>
                   <div ng-show="isRefreshingScans && ! isLoadingNewScans">Checking for new scans</div>
                   <div ng-show="noScansReturned">No scans found</div>
-                  <divng-show="searchError"><span class="bg-warning">{{ searchError }}</span></div>
+                  <div ng-show="searchError"><span class="bg-warning">{{ searchError }}</span></div>
                 </div>
               </div>
             </div>
