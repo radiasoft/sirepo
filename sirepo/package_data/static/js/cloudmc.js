@@ -80,7 +80,7 @@ SIREPO.app.config(() => {
           </div>
         </div>
         <div data-ng-switch-when="JRange" class="col-sm-5">
-          <div data-j-range-slider="" data-model-name="modelName" data-field-name="field" data-model="model" data-field="model[field]"></div>
+          <div data-j-range-slider="" data-ng-model="model[field]" data-model-name="modelName" data-field-name="field" data-model="model" data-field="model[field]"></div>
         </div>
         <div data-ng-switch-when="ScoreList" data-ng-class="fieldClass">
           <div class="input-group">
@@ -1748,6 +1748,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                 if (! e || ! m) {
                     return;
                 }
+                
                 const s = m.energyRangeSum;
                 s.min = e.start;
                 s.max = e.stop;
@@ -2228,7 +2229,8 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     <span>{{ formatFloat(field.max) }}</span>
             </div>
         `,
-        controller: function($scope) {
+        controller: function($scope, $element) {
+            const form = angular.element($($element).find('form').eq(0));
             $scope.appState = appState;
             $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`;
 
@@ -2295,8 +2297,10 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             }
 
             function isValid(range) {
-                return [range.min, range.max, range.step].every(x => x != null) &&
+                const v = [range.min, range.max, range.step].every(x => x != null) &&
                     range.min !== range.max;
+                //form.$valid = form.$valid && v;
+                return v;
             }
 
             $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
