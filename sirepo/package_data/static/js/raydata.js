@@ -395,7 +395,7 @@ SIREPO.app.directive('scansTable', function() {
                       <td width="1%"><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)"><div data-scan-cell-value="s[c]", data-column-name="c"></div></td>
                       <td style="white-space: nowrap" width="1%">
-                        <button data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="runAnalysis(s)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button>
+                        <button data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="runAnalysis(s.uid)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button>
                         <button class="btn btn-info btn-xs" data-ng-disabled="! raydataService.canViewOutput(s)" data-ng-click="setAnalysisScan(s)">View Output</button>
                         <button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s)">View Log</button>
                       </td>
@@ -413,10 +413,12 @@ SIREPO.app.directive('scansTable', function() {
             <div data-column-picker="" data-title="Add Column" data-id="sr-columnPicker-editor" data-available-columns="availableColumns"></div>
             <div data-analysis-modal="" data-scan-id="analysisScanId" data-analysis-status="{{ analysisStatus }}"></div>
             <div data-log-modal="" data-scan-id="runLogScanId" data-analysis-status="{{ analysisStatus }}"></div>
+            <div data-confirm-analysis-modal="" data-scan-id="confirmScanId" data-ok-clicked="runAnalysis(confirmScanId, true)"></div>
         `,
         controller: function(appState, errorService, panelState, raydataService, requestSender, timeService, $scope, $interval) {
             $scope.analysisScanId = null;
             $scope.availableColumns = [];
+            $scope.confirmScanId = null;
             $scope.isLoadingNewScans = false;
             $scope.isRefreshingScans = false;
             $scope.noScansReturned = false;
@@ -631,19 +633,23 @@ SIREPO.app.directive('scansTable', function() {
                 }
             };
 
-            $scope.runAnalysis = scan => {
-                $scope.pendingRunAnalysis[scan.uid] = true;
+            $scope.runAnalysis = (scanId, forceRun) => {
+                if (! forceRun && appState.models.runAnalysis.confirmRunAnalysis === '0') {
+                    $scope.confirmScanId = scanId;
+                    return;
+                }
+                $scope.pendingRunAnalysis[scanId] = true;
                 requestSender.sendStatelessCompute(
                     appState,
                     json => {
-                        $scope.scans[$scope.scans.findIndex(s => s.uid === scan.uid)].status = raydataService.ANALYSIS_STATUS_PENDING;
-                        delete $scope.pendingRunAnalysis[scan.uid];
+                        $scope.scans[$scope.scans.findIndex(s => s.uid === scanId)].status = raydataService.ANALYSIS_STATUS_PENDING;
+                        delete $scope.pendingRunAnalysis[scanId];
                     },
                     {
                         method: 'run_analysis',
                         args: {
                             catalogName: appState.applicationState().catalog.catalogName,
-                            uid: scan.uid,
+                            uid: scanId,
                         }
                     },
                     {
@@ -652,8 +658,8 @@ SIREPO.app.directive('scansTable', function() {
                             if (scanRequestInterval) {
                                 $interval.cancel(scanRequestInterval);
                                 scanRequestInterval = null;
-                                $scope.scans[$scope.scans.findIndex(s => s.uid === scan.uid)].status = raydataService.ANALYSIS_STATUS_PENDING;
-                                delete $scope.pendingRunAnalysis[scan.uid];
+                                $scope.scans[$scope.scans.findIndex(s => s.uid === scanId)].status = raydataService.ANALYSIS_STATUS_PENDING;
+                                delete $scope.pendingRunAnalysis[scanId];
                             }
                             errorService.alertText(data.error);
                             panelState.setLoading($scope.modelName, false);
@@ -817,6 +823,7 @@ SIREPO.app.directive('logModal', function() {
                 el.on('hidden.bs.modal', function() {
                     $scope.scanId = null;
                     el.off();
+                    $scope.$apply();
                 });
                 $scope.logIsLoading = true;
                 el.modal('show');
@@ -914,6 +921,7 @@ SIREPO.app.directive('analysisModal', function() {
                 el.on('hidden.bs.modal', () => {
                     $scope.scanId = null;
                     el.off();
+                    $scope.$apply();
                 });
                 requestSender.sendStatelessCompute(
                     appState,
@@ -943,6 +951,38 @@ SIREPO.app.directive('analysisModal', function() {
             $scope.$watch('scanId', () => {
                 if ($scope.scanId !== null) {
                     showModal();
+                }
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('confirmAnalysisModal', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            scanId: '=',
+            okClicked: '&',
+        },
+        template: `
+           <div data-confirmation-modal="" data-id="{{ modalId }}" data-title="Run Analysis" data-ok-text="Run Analysis" data-ok-clicked="okClicked()">
+              <p>This scan has already had an analysis completed. Would you like to re-run the analysis?</p>
+              <form class="form-horizontal" autocomplete="off">
+                <div data-label-size="10" data-field-size="2" data-model-field="\'confirmRunAnalysis\'" data-model-name="\'runAnalysis\'"></div>
+              </form>
+            </div>
+        `,
+        controller: function(appState, errorService, requestSender, $scope) {
+            $scope.modalId = 'raydata-confirm-run-analysis';
+            $scope.$watch('scanId', () => {
+                if ($scope.scanId !== null) {
+                    const el = $('#' + $scope.modalId);
+                    el.on('hidden.bs.modal', function() {
+                        $scope.scanId = null;
+                        el.off();
+                        $scope.$apply();
+                    });
+                    el.modal('show');
                 }
             });
         },
