@@ -152,7 +152,7 @@ def sim_frame(frame_args):
     import openmc
 
     def _get_filter(tally, type):
-        for i in range(1, 6):
+        for i in range(1, SCHEMA.constants.maxFilters + 1):
             f = tally[f"filter{i}"]
             if f._type == type:
                 return f
@@ -162,6 +162,13 @@ def sim_frame(frame_args):
         f = [x for x in tallies if x.name == name]
         return f[0] if len(f) else None
 
+    def _sum_energy_bins(values, mesh_filter):
+        bins = mesh_filter.energyRangeSum.bins
+        vv = numpy.reshape(values, (-1, numpy.product(mesh_filter.dimension)))
+        return numpy.sum(vv[bins[0]:bins[1]], axis=0)
+        #vv = numpy.reshape(values, (numpy.product(mesh_filter.dimension), -1))
+        #return numpy.sum(vv[bins[0]:bins[1]], axis=1)
+       
     t = openmc.StatePoint(
         frame_args.run_dir.join(_statepoint_filename(frame_args.sim_in))
     ).get_tally(name=frame_args.tally)
@@ -172,40 +179,33 @@ def sim_frame(frame_args):
         return PKDict(error=f"Tally {t.name} contains no Mesh")
     
     v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
+    pkdp("INIT SH {}", v.shape)
 
     try:
         t.find_filter(openmc.EnergyFilter)
-        all_tallies = frame_args.sim_in.models.settings.tallies
-        args_tally = _get_tally(all_tallies, frame_args.tally)
-        s = _get_filter(args_tally, "meshFilter").energyRangeSum
-        r = numpy.array(s.val)
-        bins = ((r - s.min) / s.step).astype(int)
-        sh = mf.mesh.volumes.shape
-        rsh = mf.mesh.volumes.ravel().shape
-        rlen = len(mf.mesh.volumes.ravel())
-        sc = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)]
-        vv = numpy.reshape(v, (-1, rlen))
-        v = numpy.sum(vv[bins[0]:bins[1]], axis=0)
-        pkdp("T {} BINS {} SHAPPE {} SCR SH {} V SH {} R SH {}", args_tally, bins, sh, sc.shape, v.shape, rsh)
+        v = _sum_energy_bins(
+            v,
+            _get_filter(
+                _get_tally(
+                    frame_args.sim_in.models.settings.tallies,
+                    frame_args.tally
+                ),
+                "meshFilter"
+            ),
+        )
+        pkdp("NEW SH {}", v.shape)
     except ValueError:
         pass
-    
-    #v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
+
     # volume normalize copied from openmc.UnstructuredMesh.write_data_to_vtk()
     v /= mf.mesh.volumes.ravel()
-    #vv /= mf.mesh.volumes.ravel()
-    #return PKDict(
-    #    field_data=v.tolist(),
-    #    min_field=v.min(),
-    #    max_field=v.max(),
-    #    summaryData={},
-    #)
     return PKDict(
-        field_data=vv.tolist(),
-        min_field=vv.min(),
-        max_field=vv.max(),
+        field_data=v.tolist(),
+        min_field=v.min(),
+        max_field=v.max(),
         summaryData={},
     )
+
 
 
 def stateless_compute_validate_material_name(data, **kwargs):

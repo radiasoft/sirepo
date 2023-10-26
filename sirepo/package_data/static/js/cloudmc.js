@@ -2278,6 +2278,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                         }
                         $scope.$apply(() => {
                             if (isMulti) {
+                                range.bins[ui.handleIndex] = Math.floor(Math.abs(ui.value - range.min) / range.step);
                                 range.val[ui.handleIndex] = ui.value;
                             }
                             else {
