@@ -2273,6 +2273,9 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     max: range.max,
                     range: isMulti,
                     slide: (e, ui) => {
+                        if (isMulti && ui.values[0] === ui.values[1]) {
+                            return false;
+                        }
                         $scope.$apply(() => {
                             if (isMulti) {
                                 range.val[ui.handleIndex] = ui.value;
