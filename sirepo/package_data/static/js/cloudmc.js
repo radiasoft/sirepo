@@ -1702,18 +1702,6 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
           </div>
         `,
         controller: function($scope) {
-            const TYPE_ENERGY = 'energyFilter';
-            const TYPE_MESH = 'meshFilter';
-            const TYPE_NONE = 'None';
-
-            const FIELDS_ENERGY = Object.keys(SIREPO.APP_SCHEMA.model[TYPE_ENERGY]);
-            const inds = SIREPO.UTILS.indexArray(5, 1);
-
-            function getFilter(type) {
-                return inds
-                    .map(i => $scope.model[`filter${i}`])
-                    .filter(x => x._type === type)[0];
-            }
 
             function setView() {
                 if (type() && type() !== TYPE_NONE) {
@@ -1730,31 +1718,10 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                 }
             }
 
-            function type(index) {
-                const f = index == null ? $scope.field : `filter${index}`;
-                return $scope.model[f]._type;
+            function type() {
+                return $scope.model[$scope.field]._type;
             }
 
-            function updateEnergyRange() {
-                if (! $scope.model) {
-                    return;
-                }
-                if ($scope.modelName !== 'filter') {
-                    return;
-                }
-                const e = getFilter(TYPE_ENERGY);
-                const m = getFilter(TYPE_MESH);
-                panelState.showField('meshFilter', 'energyRangeSum', ! ! e);
-                if (! e || ! m) {
-                    return;
-                }
-                
-                const s = m.energyRangeSum;
-                s.min = e.start;
-                s.max = e.stop;
-                s.step = Math.abs(e.stop - e.start) / e.num;
-            }
-            
             $scope.$watch('model[field]._type', (newValue, oldValue) => {
                 if (! $scope.model) {
                     return;
@@ -1764,7 +1731,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                         $scope.model[$scope.field] = {
                             _type: type(),
                         };
-                        if (newValue !== 'None') {
+                        if (newValue !== TYPE_NONE) {
                             appState.setModelDefaults(
                                 $scope.model[$scope.field],
                                 type(),
@@ -1774,11 +1741,6 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                 }
                 setView();
             });
-
-            $scope.$watchGroup(FIELDS_ENERGY.map(x => `model[field].${x}`), updateEnergyRange);
-
-
-            panelState.waitForUI(updateEnergyRange);
         },
     };
 });
@@ -2087,6 +2049,71 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
     $scope.watchFields = [
         ['source.type'], updateEditor,
     ];
+});
+
+SIREPO.viewLogic('tallyView', function(appState, panelState, $scope) {
+
+    const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
+        .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
+    const FIELDS_ENERGY = Object.keys(SIREPO.APP_SCHEMA.model[TYPE_ENERGY]);
+    const inds = SIREPO.UTILS.indexArray(SIREPO.APP_SCHEMA.constants.maxFilters, 1);
+    const TYPE_ENERGY = 'energyFilter';
+    const TYPE_NONE = 'None';
+
+    function getFilter(type) {
+        return inds
+            .map(i => $scope.model[`filter${i}`])
+            .filter(x => x._type === type)[0];
+    }
+
+    function type(index) {
+        return appState.models[$scope.modelName][`filter${index}`]._type;
+    }
+
+    function updateEnergyRange() {
+        if (! $scope.model) {
+            return;
+        }
+        if ($scope.modelName !== 'filter') {
+            return;
+        }
+        const e = getFilter(TYPE_ENERGY);
+        const m = getFilter(TYPE_MESH);
+        panelState.showField('meshFilter', 'energyRangeSum', ! ! e);
+        if (! e || ! m) {
+            return;
+        }
+        
+        const s = m.energyRangeSum;
+        s.min = e.start;
+        s.max = e.stop;
+        s.step = Math.abs(e.stop - e.start) / e.num;
+    }
+    
+    function updateEditor() {
+        // can always select 'None'
+        const assignedTypes = inds.map(i => type(i)).filter(x => x !== TYPE_NONE);
+        // remove assigned types
+        ALL_TYPES.forEach(x => {
+            panelState.showEnum('filter', '_type', x, ! assignedTypes.includes(x));
+        });
+        // replace the type for this "instance"
+        inds.forEach(i => {
+            panelState.showEnum('filter', '_type', type(i), true, i - 1);
+        });
+    }
+
+    $scope.whenSelected = updateEditor;
+
+
+    //$scope.$watchGroup(FIELDS_ENERGY.map(x => `model[field].${x}`), updateEnergyRange);
+
+    //panelState.waitForUI(updateEnergyRange);
+
+    $scope.watchFields = [
+        inds.map(i => `${$scope.modelName}.filter${i}._type`), updateEditor,
+    ];
+
 });
 
 SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
