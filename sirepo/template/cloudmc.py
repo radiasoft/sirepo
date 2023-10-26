@@ -170,20 +170,40 @@ def sim_frame(frame_args):
         mf = t.find_filter(openmc.MeshFilter)
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
-    all_tallies = frame_args.sim_in.models.settings.tallies
-    args_tally = _get_tally(all_tallies, frame_args.tally)
-    s = _get_filter(args_tally, "meshFilter").energyRangeSum
-    r = numpy.array(s.val)
-    bins = ((r - s.min) / s.step).astype(int)
-    sh = mf.mesh.volumes.shape
+    
     v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
-    pkdp("T {} BINS {} SHAPPE {} V SH {}", args_tally, bins, sh, v.shape)
+
+    try:
+        t.find_filter(openmc.EnergyFilter)
+        all_tallies = frame_args.sim_in.models.settings.tallies
+        args_tally = _get_tally(all_tallies, frame_args.tally)
+        s = _get_filter(args_tally, "meshFilter").energyRangeSum
+        r = numpy.array(s.val)
+        bins = ((r - s.min) / s.step).astype(int)
+        sh = mf.mesh.volumes.shape
+        rsh = mf.mesh.volumes.ravel().shape
+        rlen = len(mf.mesh.volumes.ravel())
+        sc = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)]
+        vv = numpy.reshape(v, (-1, rlen))
+        v = numpy.sum(vv[bins[0]:bins[1]], axis=0)
+        pkdp("T {} BINS {} SHAPPE {} SCR SH {} V SH {} R SH {}", args_tally, bins, sh, sc.shape, v.shape, rsh)
+    except ValueError:
+        pass
+    
+    #v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
     # volume normalize copied from openmc.UnstructuredMesh.write_data_to_vtk()
     v /= mf.mesh.volumes.ravel()
+    #vv /= mf.mesh.volumes.ravel()
+    #return PKDict(
+    #    field_data=v.tolist(),
+    #    min_field=v.min(),
+    #    max_field=v.max(),
+    #    summaryData={},
+    #)
     return PKDict(
-        field_data=v.tolist(),
-        min_field=v.min(),
-        max_field=v.max(),
+        field_data=vv.tolist(),
+        min_field=vv.min(),
+        max_field=vv.max(),
         summaryData={},
     )
 
