@@ -1588,12 +1588,15 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             $scope.linePaths =  () => (($scope.model || {}).paths || []).filter($scope.isLine);
 
             function updateTable() {
+                if (! $scope.hasPaths()) {
+                    return;
+                }
                 appState.models.fieldIntegralReport.lastCalculated = Date.now();
                 appState.saveQuietly('fieldIntegralReport');
                 panelState.clear('fieldIntegralReport');
                 panelState.requestData('fieldIntegralReport', data => {
                     $scope.integrals = data;
-                }, true);
+                });
             }
 
             $scope.$on('fieldPaths.saved', updateTable);
