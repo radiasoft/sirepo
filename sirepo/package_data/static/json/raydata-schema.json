@@ -85,7 +85,8 @@
             "searchStopTime":["Stop", "DateTimePicker", null],
             "searchText": ["Search Text", "OptionalString", ""],
             "pageSize": ["Page Size", "Integer", 15],
-            "scans": ["", "RunAnalysisTable", ""]
+            "scans": ["", "RunAnalysisTable", ""],
+            "confirmRunAnalysis": ["Hide this message for this session", "Boolean", "0"]
         },
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
