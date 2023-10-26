@@ -1702,7 +1702,8 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
           </div>
         `,
         controller: function($scope) {
-
+            const TYPE_NONE = 'None';
+            
             function setView() {
                 if (type() && type() !== TYPE_NONE) {
                     $scope.viewFields = SIREPO.APP_SCHEMA.view[type()].advanced
@@ -2055,9 +2056,10 @@ SIREPO.viewLogic('tallyView', function(appState, panelState, $scope) {
 
     const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
         .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
+    const TYPE_ENERGY = 'energyFilter';
     const FIELDS_ENERGY = Object.keys(SIREPO.APP_SCHEMA.model[TYPE_ENERGY]);
     const inds = SIREPO.UTILS.indexArray(SIREPO.APP_SCHEMA.constants.maxFilters, 1);
-    const TYPE_ENERGY = 'energyFilter';
+    
     const TYPE_NONE = 'None';
 
     function getFilter(type) {
