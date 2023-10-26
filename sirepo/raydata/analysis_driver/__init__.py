@@ -64,7 +64,7 @@ class AnalysisDriverBase(PKDict):
             ["scan", self.uid],
             *self._get_papermill_args(),
         ]:
-            res.extend(["-p", n, str(v)])
+            res.extend(["-p", f"'{n}'", f"'{v}'"])
         res.append("--report-mode")
         return res
 
