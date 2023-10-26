@@ -62,6 +62,9 @@ SIREPO.app.config(function() {
           <div data-termination-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
         </div>
     `;
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="fieldIntegrals" data-field-integral-table="" data-model-name="{{ modelKey }}" class="sr-plot sr-screenshot"></div>
+    `;
 });
 
 SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, panelState, requestSender, utilities, validationService) {
@@ -1505,54 +1508,43 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
     };
 });
 
-SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
+SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
         },
         template: `
-            <div class="col-md-6">
-                <div class="panel panel-info">
-                    <div class="panel-heading">
-                        <span class="sr-panel-heading">Field Integrals (T &#x00B7; mm)</span>
-                        <div class="sr-panel-options pull-right">
-                        <a data-ng-show="hasPaths()" data-ng-click="download()" target="_blank" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
-                        </div>
-                    </div>
-                    <div class="panel-body">
-                        <table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table radia-table-hover">
-                          <colgroup>
-                            <col style="width: 20ex">
-                            <col>
-                            <col>
-                          </colgroup>
-                          <thead>
-                            <tr>
-                              <th data-ng-repeat="h in HEADING">{{ h }}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr data-ng-repeat="path in linePaths() track by $index">
-                              <td>{{ path.name }}</td>
-                              <td>[{{ path.begin }}] &#x2192; [{{ path.end }}]</td>
-                              <td>
-                                <div data-ng-repeat="t in INTEGRABLE_FIELD_TYPES"><span style="font-weight: bold">{{ t }}:</span> </span><span>{{ format(integrals[path.name][t]) }}</span></div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+            <table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table radia-table-hover">
+                <colgroup>
+                    <col style="width: 20ex">
+                    <col>
+                    <col>
+                </colgroup>
+                <thead>
+                <tr>
+                    <th data-ng-repeat="h in HEADING">{{ h }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr data-ng-repeat="path in linePaths() track by $index">
+                    <td>{{ path.name }}</td>
+                    <td>[{{ path.begin }}] &#x2192; [{{ path.end }}]</td>
+                    <td>
+                    <div data-ng-repeat="t in INTEGRABLE_FIELD_TYPES"><span style="font-weight: bold">{{ t }}:</span> </span><span>{{ format(integrals[path.name][t]) }}</span></div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
         `,
         controller: function($scope) {
+            plotting.setTextOnlyReport($scope);
 
             $scope.CSV_HEADING = ['Line', 'x0', 'y0', 'z0', 'x1', 'y1', 'z1', 'Bx', 'By', 'Bz', 'Hx', 'Hy', 'Hz'];
             $scope.HEADING = ['Line', 'Endpoints', 'Fields'];
             $scope.INTEGRABLE_FIELD_TYPES = ['B', 'H'];
             $scope.integrals = {};
-            $scope.model = appState.models[$scope.modelName];
+            $scope.model = appState.models.fieldPaths;
 
             $scope.download = () => {
                 const fileName = panelState.fileNameFromText('Field Integrals', 'csv');
@@ -1587,21 +1579,12 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
 
             $scope.linePaths =  () => (($scope.model || {}).paths || []).filter($scope.isLine);
 
-            function updateTable() {
-                if (! $scope.hasPaths()) {
-                    return;
-                }
-                appState.models.fieldIntegralReport.lastCalculated = Date.now();
-                appState.saveQuietly('fieldIntegralReport');
-                panelState.clear('fieldIntegralReport');
-                panelState.requestData('fieldIntegralReport', data => {
-                    $scope.integrals = data;
-                });
+            $scope.load = (json) => {
+                $scope.integrals = json;
             }
-
-            $scope.$on('fieldPaths.saved', updateTable);
-
-            updateTable();
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
         },
     };
 });

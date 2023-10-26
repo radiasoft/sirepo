@@ -173,6 +173,7 @@ def extract_report_data(run_dir, sim_in):
             run_dir=run_dir,
         )
     if sim_in.report == "fieldIntegralReport":
+        pkdp("GET INTS")
         template_common.write_sequential_result(
             _generate_field_integrals(
                 sim_in.models.simulation.simulationId,
@@ -802,7 +803,9 @@ def _generate_field_integrals(sim_id, g_id, f_paths):
         # return something or server.py will raise an exception
         return PKDict(warning="No paths")
     try:
-        res = PKDict()
+        res = PKDict(
+            x_range=[]
+        )
         for p in l_paths:
             res[p.name] = PKDict()
             p1 = p.begin
