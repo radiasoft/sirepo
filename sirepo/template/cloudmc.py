@@ -15,6 +15,7 @@ import re
 import sirepo.feature_config
 import sirepo.mpi
 import sirepo.sim_data
+import sirepo.sim_run
 
 _CACHE_DIR = "cloudmc-cache"
 _OUTLINES_FILE = "outlines.json"
@@ -206,6 +207,8 @@ def write_volume_outlines():
     import trimesh
     import dagmc_geometry_slice_plotter
 
+    _MIN_RES = 5
+
     def _center_range(mesh, dim):
         f = (
             0.5
@@ -218,55 +221,65 @@ def write_volume_outlines():
             mesh.dimension[dim],
         )
 
-    def _get_mesh():
+    def _get_meshes():
         tallies = simulation_db.read_json(
             template_common.INPUT_BASE_NAME
         ).models.settings.tallies
         for t in tallies:
             for f in [x for x in t if x.startswith("filter")]:
                 if t[f]._type == "meshFilter":
-                    return t[f]
-        return None
+                    yield t.name, t[f]
 
-    tally_mesh = _get_mesh()
-    if tally_mesh is None:
-        return
-    tally_ranges = [_center_range(tally_mesh, i) for i in range(3)]
-    outlines = PKDict()
-    basis_vects = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-    rots = [
-        numpy.array([[1, 0], [0, 1]]),
-        numpy.array([[0, -1], [1, 0]]),
-        numpy.array([[0, 1], [-1, 0]]),
-    ]
-    for mf in pkio.sorted_glob("*.ply"):
-        vol_id = mf.purebasename
-        vol_mesh = None
-        outlines[vol_id] = PKDict(x=[], y=[], z=[])
-        with open(mf, "rb") as f:
-            vol_mesh = trimesh.Trimesh(**trimesh.exchange.ply.load_ply(f))
-        for i, dim in enumerate(outlines[vol_id].keys()):
-            n = basis_vects[i]
-            r = rots[i]
-            for pos in tally_ranges[i]:
-                coords = []
-                try:
-                    coords = dagmc_geometry_slice_plotter.get_slice_coordinates(
-                        dagmc_file_or_trimesh_object=vol_mesh,
-                        plane_origin=pos * n,
-                        plane_normal=n,
-                    )
-                    # get_slice_coordinates returns a list of "TrackedArrays",
-                    # arranged for use in matplotlib
-                    ct = []
-                    for c in [(SCHEMA.constants.geometryScale * x.T) for x in coords]:
-                        ct.append([numpy.dot(r, x).tolist() for x in c])
-                    coords = ct
-                except ValueError:
-                    # no intersection at this plane position
-                    pass
-                outlines[vol_id][dim].append(coords)
-    simulation_db.write_json(_OUTLINES_FILE, outlines)
+    all_outlines = PKDict()
+    for tally_name, tally_mesh in _get_meshes():
+        tally_ranges = [_center_range(tally_mesh, i) for i in range(3)]
+        # don't include outlines of low resolution dimensions
+        skip_dimensions = PKDict(
+            x=len(tally_ranges[1]) < _MIN_RES or len(tally_ranges[2]) < _MIN_RES,
+            y=len(tally_ranges[0]) < _MIN_RES or len(tally_ranges[2]) < _MIN_RES,
+            z=len(tally_ranges[0]) < _MIN_RES or len(tally_ranges[1]) < _MIN_RES,
+        )
+        outlines = PKDict()
+        all_outlines[tally_name] = outlines
+        basis_vects = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        rots = [
+            numpy.array([[1, 0], [0, 1]]),
+            numpy.array([[0, -1], [1, 0]]),
+            numpy.array([[0, 1], [-1, 0]]),
+        ]
+        for mf in pkio.sorted_glob("*.ply"):
+            vol_id = mf.purebasename
+            vol_mesh = None
+            outlines[vol_id] = PKDict(x=[], y=[], z=[])
+            with open(mf, "rb") as f:
+                vol_mesh = trimesh.Trimesh(**trimesh.exchange.ply.load_ply(f))
+            for i, dim in enumerate(outlines[vol_id].keys()):
+                if skip_dimensions[dim]:
+                    outlines[vol_id][dim] = []
+                    continue
+                n = basis_vects[i]
+                r = rots[i]
+                for pos in tally_ranges[i]:
+                    coords = []
+                    try:
+                        coords = dagmc_geometry_slice_plotter.get_slice_coordinates(
+                            dagmc_file_or_trimesh_object=vol_mesh,
+                            plane_origin=pos * n,
+                            plane_normal=n,
+                        )
+                        # get_slice_coordinates returns a list of "TrackedArrays",
+                        # arranged for use in matplotlib
+                        ct = []
+                        for c in [
+                            (SCHEMA.constants.geometryScale * x.T) for x in coords
+                        ]:
+                            ct.append([numpy.dot(r, x).tolist() for x in c])
+                        coords = ct
+                    except ValueError:
+                        # no intersection at this plane position
+                        pass
+                    outlines[vol_id][dim].append(coords)
+    simulation_db.write_json(_OUTLINES_FILE, all_outlines)
 
 
 def _dagmc_animation_python(filename):
@@ -421,7 +434,7 @@ def _generate_parameters_file(data, run_dir=None):
         v.materialDirectory = "."
         v.runCommand = "openmc.run()"
     else:
-        v.materialDirectory = simulation_db.cache_dir(_CACHE_DIR)
+        v.materialDirectory = sirepo.sim_run.cache_dir(_CACHE_DIR)
         r = data.models.openmcAnimation.jobRunMode
         if r != "sbatch":
             cores = 1 if r == "sequential" else sirepo.mpi.cfg().cores
