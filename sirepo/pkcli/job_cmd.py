@@ -14,6 +14,7 @@ from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
 import contextlib
+import os
 import re
 import requests
 import signal
@@ -128,6 +129,10 @@ def _do_compute(msg, template):
             stdout=run_log,
             stderr=run_log,
         )
+
+    if os.getenv("PYKERN_PKUNIT_TEST_FILE"):
+        with msg.runDir.join(template_common.RUN_LOG).open("r") as run_log:
+            sys.stderr.write("\n".join(run_log.readlines()))
     while True:
         for j in range(20):
             # Not asyncio.sleep: not in coroutine

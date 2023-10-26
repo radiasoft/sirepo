@@ -7,6 +7,7 @@
 from pykern import pkcollections
 from pykern import pkcompat
 from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
 import base64
 import contextlib
 import copy
