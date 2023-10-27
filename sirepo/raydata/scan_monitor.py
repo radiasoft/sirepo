@@ -9,7 +9,6 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from pykern import pkasyncio
 from pykern import pkconfig
 from pykern import pkio
-from pykern import pkjinja
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdformat
@@ -49,8 +48,6 @@ _MAX_NUM_SCANS = 1000
 _NON_DISPLAY_SCAN_FIELDS = "uid"
 
 _NUM_RECENTLY_EXECUTED_SCANS = 5
-
-_PAPERMILL_SCRIPT = "raydata-execute-analysis.sh"
 
 #: scan(s) awaiting analysis to be run on them
 _SCANS_AWAITING_ANALYSIS = []
@@ -364,21 +361,13 @@ async def _init_analysis_processors():
                 ) as l:
                     try:
                         for n in d.get_notebooks():
-                            pkjinja.render_resource(
-                                _PAPERMILL_SCRIPT,
-                                PKDict(
-                                    input_f=n.input_f,
-                                    output_f=n.output_f,
-                                    papermill_args=" ".join(d.get_papermill_args()),
-                                    conda_prefix=cfg.conda_prefix,
-                                    chx_conda_env=cfg.chx_conda_env,
-                                    catalog_name=d.catalog_name,
-                                ),
-                                output=_PAPERMILL_SCRIPT,
+                            d.render_papermill_script(
+                                input_f=n.input_f,
+                                output_f=n.output_f,
                             )
                             p = await asyncio.create_subprocess_exec(
                                 "bash",
-                                d.get_output_dir().join(_PAPERMILL_SCRIPT),
+                                d.get_papermill_script_path(),
                                 stderr=asyncio.subprocess.STDOUT,
                                 stdout=l,
                             )
@@ -516,20 +505,10 @@ def start():
                 "automatically queue every incoming scan for analysis",
             ),
             catalog_names=(frozenset(), set, "list of catalog names to monitor"),
-            chx_conda_env=(
-                "analysis-2019-3.0.1-chx",
-                str,
-                "conda environment to run chx analysis in",
-            ),
             concurrent_analyses=(
                 2,
                 int,
                 "max number of analyses that can run concurrently",
-            ),
-            conda_prefix=(
-                "/home/vagrant/miniconda",
-                str,
-                "path to dir containing conda environments",
             ),
             db_dir=pkconfig.RequiredUnlessDev(
                 sirepo.srdb.root().join("raydata"),

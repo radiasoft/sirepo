@@ -13,6 +13,9 @@ _cfg = None
 
 
 class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
+    def get_conda_env(self):
+        return "analysis-2019-3.0.1-chx"
+
     def get_notebooks(self):
         return [
             PKDict(

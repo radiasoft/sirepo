@@ -5,6 +5,7 @@
 """
 from pykern import pkcompat
 from pykern import pkio
+from pykern import pkjinja
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
@@ -16,6 +17,10 @@ import uuid
 
 _ANALYSIS_DRIVERS = PKDict()
 
+_CONDA_PREFIX = "/home/vagrant/miniconda"
+
+_PAPERMILL_SCRIPT = "raydata-execute-analysis.sh"
+
 
 class AnalysisDriverBase(PKDict):
     def __init__(self, catalog_name, uid, *args, **kwargs):
@@ -24,6 +29,12 @@ class AnalysisDriverBase(PKDict):
 
     def get_analysis_pdf_paths(self):
         return pkio.walk_tree(self.get_output_dir(), r".*\.pdf$")
+
+    def get_conda_env(self):
+        return None
+
+    def get_conda_prefix(self):
+        return _CONDA_PREFIX
 
     def get_notebooks(self, *args, **kwargs):
         raise NotImplementedError("children must implement this method")
@@ -68,6 +79,9 @@ class AnalysisDriverBase(PKDict):
         res.append("--report-mode")
         return res
 
+    def get_papermill_script_path(self):
+        return self.get_output_dir().join(_PAPERMILL_SCRIPT)
+
     def get_run_log(self):
         p = self.get_output_dir().join("run.log")
         return PKDict(
@@ -77,6 +91,20 @@ class AnalysisDriverBase(PKDict):
 
     def has_analysis_pdfs(self):
         return len(self.get_analysis_pdf_paths()) > 0
+
+    def render_papermill_script(self, input_f, output_f):
+        pkjinja.render_resource(
+            _PAPERMILL_SCRIPT,
+            PKDict(
+                input_f=input_f,
+                output_f=output_f,
+                papermill_args=" ".join(self.get_papermill_args()),
+                conda_prefix=self.get_conda_prefix(),
+                conda_env=self.get_conda_env(),
+                catalog_name=self.catalog_name,
+            ),
+            output=_PAPERMILL_SCRIPT,
+        )
 
     def _get_papermill_args(self, *args, **kwargs):
         return []
