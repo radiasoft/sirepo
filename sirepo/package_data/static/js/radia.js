@@ -1579,7 +1579,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
 
             $scope.linePaths =  () => (($scope.model || {}).paths || []).filter($scope.isLine);
 
-            $scope.load = (json) => {
+            $scope.load = json => {
                 $scope.integrals = json;
             }
         },
