@@ -10,3 +10,11 @@
 body {
   overflow-y: scroll;
 }
+
+.raydata-removable-column .raydata-remove-column-button {
+  visibility: hidden;
+}
+
+.raydata-removable-column:hover .raydata-remove-column-button {
+  visibility: visible;
+}

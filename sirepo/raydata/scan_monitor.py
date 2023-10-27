@@ -4,8 +4,6 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdlog, pkdp
 from pykern import pkasyncio
 from pykern import pkconfig
 from pykern import pkio
@@ -15,11 +13,12 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdformat
 import aenum
 import asyncio
 import databroker.queries
+import functools
 import io
 import math
 import pymongo
+import re
 import requests
-import sirepo.feature_config
 import sirepo.raydata.analysis_driver
 import sirepo.raydata.databroker
 import sirepo.srdb
@@ -27,7 +26,7 @@ import sirepo.srtime
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
-import tornado.websocket
+import tornado.web
 import zipfile
 
 #: task(s) monitoring the execution of the analysis process
@@ -195,7 +194,9 @@ class _RequestHandler(_JsonPostRequestHandler):
                 q = {
                     "$and": [
                         q.query,
-                        databroker.queries.TextQuery(req_data.searchText).query,
+                        databroker.queries.TextQuery(
+                            _text_query(req_data.searchText)
+                        ).query,
                     ],
                 }
             return q
@@ -216,6 +217,12 @@ class _RequestHandler(_JsonPostRequestHandler):
                     )
                 )
             return s
+
+        def _text_query(search_text):
+            r = []
+            for t in re.split(r"\s+", search_text.strip()):
+                r.append(t if '"' in t or t.startswith("-") else f'"{t}"')
+            return " ".join(r)
 
         c = sirepo.raydata.databroker.catalog(req_data.catalogName)
         pc = math.ceil(
@@ -481,7 +488,33 @@ def _scan_info(uid, status, req_data):
 
 
 def _scan_info_result(scans, page_count, req_data):
+    def _compare_values(v1, v2):
+        # very careful compare - needs to account for missing values or mismatched types
+        v1 = v1.get(req_data.sortColumn)
+        v2 = v2.get(req_data.sortColumn)
+        if v1 is None and v2 is None:
+            return 0
+        if v1 is None:
+            return -1
+        if v2 is None:
+            return 1
+        if isinstance(v1, (int, float)) and isinstance(v2, (int, float)):
+            return v1 - v2
+        if not isinstance(v1, str):
+            v1 = pkjson.dump_pretty(v1)
+        if not isinstance(v2, str):
+            v2 = pkjson.dump_pretty(v2)
+        if v1 == v2:
+            return 0
+        return -1 if v1 < v2 else 1
+
     s = [_scan_info(x.uid, x.status, req_data) for x in scans]
+    if req_data.analysisStatus in ("recentlyExecuted", "queued"):
+        s = sorted(
+            s,
+            key=functools.cmp_to_key(_compare_values),
+            reverse=not req_data.sortOrder,
+        )
     return PKDict(
         data=PKDict(
             scans=s,
