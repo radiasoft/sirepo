@@ -639,7 +639,8 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             {
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
                 search: search,
-            });
+            }
+        );
     };
 
     self.loadModels = function(simulationId, callback, section) {
@@ -4119,12 +4120,28 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
 
     function loadList() {
         self.isWaitingForList = ! fileManager.getSimList().length;
+
+        const requestSimListByType = (simType) => {
+            requestSender.sendRequest(
+                'listSimulations',
+                () => {},
+                {
+                    simulationType: simType,
+                }
+            );
+        };
+
         appState.listSimulations(
             function(data) {
                 if (! $scope.$parent) {
                     // callback may occur after scope has been destroyed
                     // if the user has navigated off the simulations page
                     return;
+                }
+                if (SIREPO.APP_SCHEMA.relatedSimTypes) {
+                    SIREPO.APP_SCHEMA.relatedSimTypes.forEach(simType => {
+                        requestSimListByType(simType);
+                    });
                 }
                 self.isWaitingForList = false;
                 fileManager.updateTreeFromFileList(data);
