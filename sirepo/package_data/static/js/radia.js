@@ -211,6 +211,12 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     // Instead, generate an id here and map it when the Radia object is created. A random string is good enough
     self.generateId = () => SIREPO.UTILS.randomString(16);
 
+    self.hasPaths = (types=[]) => {
+        return (appState.applicationState().fieldPaths.paths || [])
+            .filter(x => types.length ? types.includes(x.type) : true)
+            .length;
+    }
+
     self.isGroup = o => o.members !== undefined;
 
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
@@ -932,12 +938,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
     });
 });
 
-SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, persistentSimulation, radiaService, requestSender, $scope) {
+SIREPO.app.controller('RadiaVisualizationController', function (appState, radiaService) {
     let self = this;
 
     self.enableKickMaps = function() {
         return appState.isLoaded() && appState.models.simulation.enableKickMaps === '1';
     };
+
+    self.hasPaths = radiaService.hasPaths;
 
     self.isSolvable = function() {
         return appState.isLoaded() && appState.models.geometryReport.isSolvable == '1';
@@ -1488,7 +1496,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
                 }
             }
 
-            $scope.hasPaths = () => (appState.models.fieldPaths.paths || []).length;
+            $scope.hasPaths = radiaService.hasPaths;
 
             $scope.showFieldLineoutPanel = () => $scope.hasPaths();
 
@@ -1508,7 +1516,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
     };
 });
 
-SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotting, utilities) {
+SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotting, radiaService, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1538,6 +1546,8 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             </table>
         `,
         controller: function($scope) {
+            const lineTypes = ['axisPath', 'linePath'];
+
             plotting.setTextOnlyReport($scope);
 
             $scope.CSV_HEADING = ['Line', 'x0', 'y0', 'z0', 'x1', 'y1', 'z1', 'Bx', 'By', 'Bz', 'Hx', 'Hy', 'Hz'];
@@ -1566,7 +1576,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
             };
 
-            $scope.hasPaths = () => $scope.linePaths().length;
+            $scope.hasPaths = () => radiaService.hasPaths(lineTypes);
 
             $scope.format = vals => {
                 if (! vals) {
@@ -1575,9 +1585,9 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 return vals.map(v => utilities.roundToPlaces(v, 4));
             };
 
-            $scope.isLine = p => p.type === 'linePath' || p.type === 'axisPath';
+            $scope.isLine = p => lineTypes.includes(p.type);
 
-            $scope.linePaths =  () => (($scope.model || {}).paths || []).filter($scope.isLine);
+            $scope.linePaths = () => (($scope.model || {}).paths || []).filter($scope.isLine);
 
             $scope.load = json => {
                 $scope.integrals = json;
