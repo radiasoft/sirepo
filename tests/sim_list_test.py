@@ -66,7 +66,7 @@ def test_illegals(fc):
     ):
         c = d.copy().pkupdate(folder="folder", name="name")
         r = fc.sr_post("newSimulation", c.pkupdate(x[0]))
-        if "error" in r:
+        if isinstance(x[1], str):
             pkre(x[1], r.error)
         else:
             pkeq(r.models.simulation.name, x[1][0])
@@ -142,7 +142,7 @@ def test_srw_discard_example(fc):
         ),
     )
     pkok(
-        "srwl_bl.SRWLBeamline" in pkcompat.from_bytes(r.data),
+        "srwpy.srwl_bl.SRWLBeamline" in pkcompat.from_bytes(r.data),
         "incomplete python={}",
         r.data,
     )

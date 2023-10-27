@@ -39,24 +39,6 @@ def init_quest(qcall, internal_req=None):
             remote_addr="0.0.0.0",
             _set_log_user=lambda u: None,
         )
-    elif "werkzeug" in str(type(internal_req)):
-        import flask
-        from sirepo import flask as sirepo_flask
-
-        sreq = _SRequest(
-            body_as_bytes=lambda: internal_req.get_data(cache=False),
-            http_authorization=internal_req.authorization,
-            http_headers=internal_req.headers,
-            http_method=internal_req.method,
-            http_request_uri=internal_req.url,
-            http_server_uri=flask.url_for("_flask_dispatch_empty", _external=True),
-            internal_req=internal_req,
-            _kind="flask",
-            remote_addr=internal_req.remote_addr,
-            _form_file_class=_FormFileFlask,
-            _form_get=internal_req.form.get,
-            _set_log_user=sirepo_flask.set_log_user,
-        )
     elif "websocket" in str(type(internal_req)).lower():
         sreq = _SRequest(
             # This is not use except in error logging, which shouldn't happen
@@ -130,14 +112,6 @@ class _FormFileBase(PKDict):
         return pykern.pkcompat.from_bytes(self.as_bytes())
 
 
-class _FormFileFlask(_FormFileBase):
-    def as_bytes(self):
-        return self._internal.stream.read()
-
-    def _get(self, internal_req):
-        return internal_req.files.get(_FORM_FILE_NAME)
-
-
 class _FormFileTornado(_FormFileBase):
     def as_bytes(self):
         return self._internal.body
@@ -165,10 +139,11 @@ class _SRequest(sirepo.quest.Attr):
     def body_as_content(self):
         if "_body_as_content" in self:
             return self.get("_body_as_content")
-        if not self._content_type_eq("application/json"):
+        if not self._content_type_eq(pykern.pkjson.MIME_TYPE):
             raise sirepo.util.BadRequest(
-                "Content-Type={} must be application/json",
+                "Content-Type={} must be {}",
                 self.header_uget("Content-Type"),
+                pykern.pkjson.MIME_TYPE,
             )
         return pykern.pkjson.load_any(self.body_as_bytes())
 
@@ -194,9 +169,6 @@ class _SRequest(sirepo.quest.Attr):
             # The package robot_detection does see it, but we don't want to introduce another dependency.
             return True
         return user_agents.parse(a).is_bot
-
-    def is_websocket(self):
-        return self._kind == _TORNADO_WEBSOCKET
 
     def method_is_post(self):
         return self.http_method == "POST"

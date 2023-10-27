@@ -303,7 +303,8 @@ class _Client(PKDict):
                     uri,
                     body=pkjson.dump_bytes(data),
                     headers=self._headers.pksetdefault(
-                        "Content-type", "application/json"
+                        "Content-type",
+                        pkjson.MIME_TYPE,
                     ),
                     method="POST",
                     **self._fetch_default_args(),

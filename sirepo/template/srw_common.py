@@ -16,8 +16,8 @@ PREDEFINED_JSON = "predefined.json"
 
 
 def process_beam_parameters(ebeam):
-    import srwlib
     import sirepo.sim_data
+    import srwpy.srwlib
 
     sim_data = sirepo.sim_data.get_class("srw")
 
@@ -68,7 +68,7 @@ def process_beam_parameters(ebeam):
         # Convert to SI units to perform SRW calculation:
         for k in model:
             model[k] = _convert_ebeam_units(k, ebeam[k])
-        beam = srwlib.SRWLPartBeam()
+        beam = srwpy.srwlib.SRWLPartBeam()
         beam.from_Twiss(
             _e=model["energy"],
             _sig_e=model["rmsSpread"],

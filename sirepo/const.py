@@ -31,15 +31,15 @@ PORT_DEFAULTS = PKDict(
     nginx_proxy=8080,
     react=3000,
     supervisor=8001,
-    uwsgi=8000,
 )
 
 #: These values will be injected into simulation_db.SCHEMA_COMMON
 SCHEMA_COMMON = PKDict(
     websocketMsg=PKDict(
         kind=PKDict(
-            httpReply=2,
             httpRequest=1,
+            httpReply=2,
+            srException=3,
         ),
         version=1,
     ),

@@ -60,8 +60,6 @@ _api_modules = []
 #: functions which implement APIs
 _api_funcs = PKDict()
 
-_init_for_flask = None
-
 
 def assert_api_name_and_auth(qcall, name, allowed):
     """Check if `name` is executable and in allowed
@@ -97,22 +95,6 @@ async def call_api(qcall, name, kwargs=None, data=None):
         kwargs=kwargs,
         data=data,
     )
-
-
-def init_for_flask(app):
-    """and adds a single flask route (`_flask_dispatch`) to dispatch based on the map."""
-    global _init_for_flask, _app
-
-    if _init_for_flask:
-        return
-    _init_for_flask = True
-    app.add_url_rule(
-        "/<path:path>", "_flask_dispatch", _flask_dispatch, methods=("GET", "POST")
-    )
-    app.add_url_rule(
-        "/", "_flask_dispatch_empty", _flask_dispatch_empty, methods=("GET", "POST")
-    )
-    _app = app
 
 
 def init_module(want_apis, **imports):
@@ -259,7 +241,7 @@ def start_tornado(ip, port, debug):
             r = self.request
             self.__headers = PKDict(r.headers)
             self.remote_addr = r.remote_ip
-            self.http_server_uri = f"{r.protocol}://{r.host}"
+            self.http_server_uri = f"{r.protocol}://{r.host}/"
             self.msg_count = 0
             ws_count += 1
             self.ws_id = ws_count
@@ -430,7 +412,7 @@ async def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_o
             elif kwargs is None:
                 kwargs = PKDict()
             _check_route(qcall, qcall.uri_route)
-            r = qcall.sreply.from_api(
+            r = qcall.sreply.uri_router_process_api_call(
                 await getattr(qcall, qcall.uri_route.func_name)(**kwargs)
             )
             c = True
@@ -472,37 +454,6 @@ def _check_route(qcall, route):
         route (_Route): API to check
     """
     sirepo.api_auth.check_api_call(qcall, route.func)
-
-
-def _flask_dispatch(path):
-    """Called by Flask and routes the base_uri with parameters
-
-    Args:
-        path (str): what to route
-
-    Returns:
-        response
-    """
-    import flask, asyncio
-
-    error, route, kwargs = _path_to_route(path)
-    if error:
-        pkdlog("path={} {}; route={} kwargs={} ", path, error, route, kwargs)
-        route = _not_found_route
-    return asyncio.run(
-        _call_api(
-            None,
-            route,
-            kwargs=kwargs,
-            internal_req=flask.request,
-            reply_op=lambda r: r.flask_response(_app.response_class),
-        )
-    )
-
-
-def _flask_dispatch_empty():
-    """Hook for '/' route"""
-    return _flask_dispatch(None)
 
 
 def _init_uris(simulation_db, sim_types):

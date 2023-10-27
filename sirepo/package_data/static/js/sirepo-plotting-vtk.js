@@ -2537,8 +2537,8 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
                         <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/lock.svg" data-ng-show="locked[o.id]" data-ng-class="{'sr-disabled-image': ! unlockable[o.id]}" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
                         <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/unlock.svg" data-ng-show="! locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
                         <span style="font-size: large; color: {{o.color || '#cccccc'}}; padding-left: 1px;">■</span>
-                          <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': expanded[o.id], 'glyphicon-chevron-up': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
-                            <span>{{ o.name }}</span>
+                        <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-up': expanded[o.id], 'glyphicon-chevron-down': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
+                        <span>{{ o.name }}</span>
                       </td>
                         <td style="text-align: right">
                           <div class="sr-button-bar-parent">
@@ -2791,7 +2791,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             var axisCfg = axisCfgDefault;
 
             var d3self = select();
-            var lastSize = [1, 1];
+            var lastSize = null;
 
             function select(selector) {
                 var e = d3.select($element[0]);
@@ -2799,7 +2799,10 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             }
 
             function refresh() {
-                const size = [$($element).width(), $($element).height()];
+                let size = [$($element).width(), $($element).height()];
+                if (! size[0] || ! size[1] && lastSize) {
+                    size = lastSize;
+                }
                 const screenRect = new SIREPO.GEOMETRY.Rect(
                     new SIREPO.GEOMETRY.Point(
                         $scope.axesMargins.x.width,
@@ -3025,7 +3028,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     rebuildAxes();
                     refresh();
                 }
-            });
+            }, true);
 
             init();
         },
@@ -3062,7 +3065,7 @@ SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSende
 });
 
 // General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting, vtkService, vtkUtils, utilities, $document, $window) {
+SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $document, $window) {
 
     return {
         restrict: 'A',
@@ -3128,7 +3131,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             }
 
             function resize() {
-                refresh(true);
+                refresh();
             }
 
             $scope.init = function() {
@@ -3199,19 +3202,19 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
             $scope.rotate = angle => {
                 $scope.vtkScene.rotate(angle);
-                refresh(true);
+                refresh();
             };
 
             $scope.showSide = side => {
                 $scope.vtkScene.showSide(side);
-                refresh(true);
+                refresh();
             };
 
             $scope.toggleOrtho = () => {
                 $scope.isOrtho = ! $scope.isOrtho;
                 $scope.vtkScene.cam.setParallelProjection($scope.isOrtho);
                 $scope.vtkScene.render();
-                refresh(true);
+                refresh();
             };
 
             $scope.$on('$destroy', function() {
@@ -3222,7 +3225,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
             function refresh() {
                 if ($scope.axisObj) {
-                    $scope.$broadcast('axes.refresh');
+                    $scope.$broadcast('axes.refresh', $scope.axisObj);
                 }
             }
 

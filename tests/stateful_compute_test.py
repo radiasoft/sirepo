@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""?
+"""Stateful compute test
 
-:copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2022-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import pytest
@@ -45,7 +45,8 @@ def test_srw_sample_preview(fc):
         raw_response=True,
     )
     p = str(pkunit.work_dir().join("x.tif"))
+    d = r.assert_success()
     with open(p, "wb") as f:
-        f.write(r.data)
+        f.write(d)
     # Validate image
     Image.open(p)

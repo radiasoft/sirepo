@@ -43,7 +43,7 @@ def test_timeout(auth_fc):
     import re
 
     r = fc.sr_get("authGuestLogin", {"simulation_type": fc.sr_sim_type}, redirect=False)
-    pkeq(200, r.status_code)
+    r.assert_http_status(200)
     d = pkjson.load_any(r.data)
     pkeq(True, d.authState.isLoggedIn)
     fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})

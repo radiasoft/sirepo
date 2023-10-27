@@ -16,7 +16,6 @@ import copy
 import pykern.pkio
 import sirepo.const
 import sirepo.quest
-import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.srdb
 import sirepo.srtime
@@ -187,6 +186,7 @@ def init_module(**imports):
         sbatch_poll_secs=(15, int, "how often to poll squeue and parallel status"),
     )
     _DB_DIR = sirepo.srdb.supervisor_dir()
+    pykern.pkio.mkdir_parent(_DB_DIR)
     _NEXT_REQUEST_SECONDS = PKDict(
         {
             job.PARALLEL: 2,
@@ -574,7 +574,8 @@ class _ComputeJob(_Supervisor):
     @classmethod
     def __db_file(cls, computeJid):
         return _DB_DIR.join(
-            computeJid + sirepo.const.JSON_SUFFIX,
+            sirepo.simulation_db.assert_sim_db_file_path(computeJid)
+            + sirepo.const.JSON_SUFFIX,
         )
 
     def __db_init(self, req, prev_db=None):
@@ -588,7 +589,7 @@ class _ComputeJob(_Supervisor):
             queueState="queued",
             canceledAfterSecs=None,
             computeJid=data.computeJid,
-            computeJobHash=data.computeJobHash,
+            computeJobHash=data.get("computeJobHash"),
             computeJobQueued=0,
             computeJobSerial=0,
             computeJobStart=0,

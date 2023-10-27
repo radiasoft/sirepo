@@ -8,10 +8,10 @@ except:
     pass
 
 
-import srwl_bl
-import srwlib
-import srwlpy
-import srwl_uti_smp
+import srwpy.srwl_bl
+import srwpy.srwlib
+import srwpy.srwlpy
+import srwpy.srwl_uti_smp
 
 
 def set_optics(v=None):
@@ -21,7 +21,7 @@ def set_optics(v=None):
     for el_name in names:
         if el_name == 'Fixed_Mask':
             # Fixed_Mask: aperture 26.2m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_Fixed_Mask_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_Fixed_Mask_Dx,
@@ -32,7 +32,7 @@ def set_optics(v=None):
             pp.append(v.op_Fixed_Mask_pp)
         elif el_name == 'Fixed_Mask_M1A':
             # Fixed_Mask_M1A: drift 26.2m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Fixed_Mask_M1A_L,
             ))
             pp.append(v.op_Fixed_Mask_M1A_pp)
@@ -41,8 +41,8 @@ def set_optics(v=None):
             mirror_file = v.op_M1A_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by M1A beamline element'.format(mirror_file)
-            el.append(srwlib.srwl_opt_setup_surf_height_1d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_M1A_dim,
                 _ang=abs(v.op_M1A_ang),
                 _amp_coef=v.op_M1A_amp_coef,
@@ -52,7 +52,7 @@ def set_optics(v=None):
             pp.append(v.op_M1A_pp)
         elif el_name == 'M1A_Watchpoint':
             # M1A_Watchpoint: drift 27.2m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_M1A_Watchpoint_L,
             ))
             pp.append(v.op_M1A_Watchpoint_pp)
@@ -64,8 +64,8 @@ def set_optics(v=None):
             mirror_file = v.op_M2A_VDM_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by M2A_VDM beamline element'.format(mirror_file)
-            el.append(srwlib.srwl_opt_setup_surf_height_1d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_M2A_VDM_dim,
                 _ang=abs(v.op_M2A_VDM_ang),
                 _amp_coef=v.op_M2A_VDM_amp_coef,
@@ -75,13 +75,13 @@ def set_optics(v=None):
             pp.append(v.op_M2A_VDM_pp)
         elif el_name == 'M2A_VDM_Grating':
             # M2A_VDM_Grating: drift 40.4m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_M2A_VDM_Grating_L,
             ))
             pp.append(v.op_M2A_VDM_Grating_pp)
         elif el_name == 'Grating':
             # Grating: grating 40.46m
-            mirror = srwlib.SRWLOptMirPl(
+            mirror = srwpy.srwlib.SRWLOptMirPl(
                 _size_tang=v.op_Grating_size_tang,
                 _size_sag=v.op_Grating_size_sag,
                 _nvx=v.op_Grating_nvx,
@@ -92,7 +92,7 @@ def set_optics(v=None):
                 _x=v.op_Grating_x,
                 _y=v.op_Grating_y,
             )
-            el.append(srwlib.SRWLOptG(
+            el.append(srwpy.srwlib.SRWLOptG(
                 _mirSub=mirror,
                 _m=v.op_Grating_m,
                 _grDen=v.op_Grating_grDen,
@@ -104,13 +104,13 @@ def set_optics(v=None):
             pp.append(v.op_Grating_pp)
         elif el_name == 'Grating_Aperture':
             # Grating_Aperture: drift 40.46m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Grating_Aperture_L,
             ))
             pp.append(v.op_Grating_Aperture_pp)
         elif el_name == 'Aperture':
             # Aperture: aperture 42.46m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_Aperture_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_Aperture_Dx,
@@ -124,7 +124,7 @@ def set_optics(v=None):
             pass
         elif el_name == 'M3A_HFM':
             # M3A_HFM: sphericalMirror 42.46m
-            el.append(srwlib.SRWLOptMirSph(
+            el.append(srwpy.srwlib.SRWLOptMirSph(
                 _r=v.op_M3A_HFM_r,
                 _size_tang=v.op_M3A_HFM_size_tang,
                 _size_sag=v.op_M3A_HFM_size_sag,
@@ -140,7 +140,7 @@ def set_optics(v=None):
 
         elif el_name == 'M3A_HFM_Watchpoint3':
             # M3A_HFM_Watchpoint3: drift 42.46m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_M3A_HFM_Watchpoint3_L,
             ))
             pp.append(v.op_M3A_HFM_Watchpoint3_pp)
@@ -149,7 +149,7 @@ def set_optics(v=None):
             pass
         elif el_name == 'Pinhole':
             # Pinhole: aperture 54.36m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_Pinhole_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_Pinhole_Dx,
@@ -163,7 +163,7 @@ def set_optics(v=None):
             pass
         elif el_name == 'Watchpoint4_Sample':
             # Watchpoint4_Sample: drift 54.36m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_Watchpoint4_Sample_L,
             ))
             pp.append(v.op_Watchpoint4_Sample_pp)
@@ -171,10 +171,10 @@ def set_optics(v=None):
             # Sample: watch 55.5m
             pass
     pp.append(v.op_fin_pp)
-    return srwlib.SRWLOptC(el, pp)
+    return srwpy.srwlib.SRWLOptC(el, pp)
 
 
-varParam = srwl_bl.srwl_uti_ext_options([
+varParam = srwpy.srwl_bl.srwl_uti_ext_options([
     ['name', 's', 'NSLS-II CSX-1 beamline', 'simulation name'],
 
 #---Data Folder
@@ -467,7 +467,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
 
 
 def main():
-    v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
     op = set_optics(v)
     v.ss = True
     v.ss_pl = 'e'
@@ -483,12 +483,12 @@ def main():
     v.ws_pl = 'xy'
     mag = None
     if v.rs_type == 'm':
-        mag = srwlib.SRWLMagFldC()
+        mag = srwpy.srwlib.SRWLMagFldC()
         mag.arXc.append(0)
         mag.arYc.append(0)
-        mag.arMagFld.append(srwlib.SRWLMagFldM(v.mp_field, v.mp_order, v.mp_distribution, v.mp_len))
+        mag.arMagFld.append(srwpy.srwlib.SRWLMagFldM(v.mp_field, v.mp_order, v.mp_distribution, v.mp_len))
         mag.arZc.append(v.mp_zc)
-    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
+    srwpy.srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
 
 
 if __name__ == '__main__':

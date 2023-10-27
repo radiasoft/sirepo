@@ -9,10 +9,8 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
-import filecmp
 import os
 import re
-import shutil
 import sirepo.sim_data
 import subprocess
 
@@ -20,8 +18,23 @@ _STATUS_FILE = "status.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
+# run this for the epics server:
+# llrfsim --epics llrfsim/examples/two_cav/two_cav.yml
+
+
 class EpicsDisconnectError(Exception):
     pass
+
+
+def analysis_job_read_epics_values(data, run_dir, **kwargs):
+    p = run_dir.join("prev-status.json")
+    e = run_dir.join(_STATUS_FILE)
+    if not data.args.get("noCache") and pkio.compare_files(e, p):
+        return PKDict()
+    e.copy(p, stat=True)
+    return PKDict(
+        epicsData=_read_epics_data(run_dir),
+    )
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -43,12 +56,14 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 def run_epics_cmd(cmd, server_address):
     env = os.environ.copy()
+
+    # the EPICS_PVA_ADDR_LIST can contain a hostname only,
+    # in which case it will use port 5076 for the udp broadcast address.
+    # Otherwise the host:port should specificy the udp broadcast address
+    # (configured by EPICS_PVA_BROADCAST_PORT on epics server).
+
     env["EPICS_PVA_AUTO_ADDR_LIST"] = "NO"
-    if ":" in server_address:
-        env["EPICS_PVA_ADDR_LIST"] = server_address.split(":")[0]
-        env["EPICS_PVA_SERVER_PORT"] = server_address.split(":")[1]
-    else:
-        env["EPICS_PVA_ADDR_LIST"] = server_address
+    env["EPICS_PVA_ADDR_LIST"] = server_address
     # TODO (gurhar1133): validate cmd
     return subprocess.Popen(
         cmd,
@@ -58,39 +73,32 @@ def run_epics_cmd(cmd, server_address):
     ).wait()
 
 
-def stateless_compute_read_epics_values(data, **kwargs):
-    _PREV_EPICS_FILE = "prev-status.json"
-    # TODO(pjm): hacked in animation directory
-    run_dir = pkio.py_path(
-        re.sub(r"/unused$", "/animation", str(simulation_db.simulation_run_dir(data)))
-    )
-    p = run_dir.join(_PREV_EPICS_FILE)
-    e = run_dir.join(_STATUS_FILE)
-    if (
-        not data.get("noCache")
-        and e.exists()
-        and p.exists()
-        and filecmp.cmp(str(e), str(p), False)
-    ):
-        return PKDict()
-    shutil.copyfile(str(e), str(p))
+def stateless_compute_get_epics_config(data, **kwargs):
     return PKDict(
-        epicsData=_read_epics_data(run_dir),
+        simSchema=simulation_db.read_json(
+            _SIM_DATA.lib_file_abspath(
+                _SIM_DATA.lib_file_name_with_model_field(
+                    "epicsConfig",
+                    "epicsSchema",
+                    data.args.epicsSchema,
+                ),
+            ),
+        ),
     )
 
 
 def stateless_compute_update_epics_value(data, **kwargs):
-    for f in data.fields:
+    for f in data.args.fields:
         if (
             run_epics_cmd(
-                f"pvput {epics_field_name(data.model, f.field)} {f.value}",
-                data.serverAddress,
+                f"pvput {epics_field_name(data.args.model, f.field)} {f.value}",
+                data.args.serverAddress,
             )
             != 0
         ):
             return PKDict(
                 success=False,
-                error=f"Unable to connect to EPICS server: {data.serverAddress}",
+                error=f"Unable to connect to EPICS server: {data.args.serverAddress}",
             )
     return PKDict(success=True)
 

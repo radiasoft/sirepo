@@ -7,9 +7,7 @@
 
 
 def test_user_alert(fc):
-    from pykern.pkunit import pkeq, pkre
-    from pykern.pkdebug import pkdp
-    from sirepo import srunit
+    from pykern.pkunit import pkeq
 
     d = fc.sr_sim_data()
     d.models.dog.breed = "user_alert=user visible text"

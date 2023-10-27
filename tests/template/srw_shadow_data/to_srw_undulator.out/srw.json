@@ -196,13 +196,11 @@
         "characteristic": "0",
         "colorMap": "grayscale",
         "distanceFromSource": 20,
-        "finalPosition": 0.0,
         "horizontalOffset": 0,
         "horizontalPointCount": 100,
         "horizontalPosition": 0,
         "horizontalRange": "0.4",
         "horizontalSize": 1,
-        "initialPosition": 0.0,
         "intensityPlotsWidth": "0",
         "jobRunMode": "parallel",
         "maxIntensityLimit": 1e+30,
@@ -433,7 +431,9 @@
     "multipole": {
         "bx": 0,
         "by": 0.4,
-        "length": 3
+        "edge": 0.0,
+        "length": 3,
+        "longitudinalPosition": 0
     },
     "postPropagation": [],
     "powerDensityReport": {
@@ -474,10 +474,12 @@
         "horizontalRange": "0.4",
         "isExample": "",
         "lastModified": "",
+        "method": "1",
         "name": "NSLS-II FMX beamline (from SRW) (from shadow)",
         "notes": "",
         "outOfSessionSimulationId": "",
         "photonEnergy": 12708.14,
+        "precision": 0.01,
         "sampleFactor": 1,
         "samplingMethod": 1,
         "simulationSerial": 0,

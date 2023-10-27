@@ -355,8 +355,6 @@
         "downloadFile": "/download-file/:simulation_type/:simulation_id/:filename",
         "errorLogging": "/error-logging",
         "exportArchive": "/export-archive/:simulation_type/:simulation_id/:filename",
-        "exportJupyterNotebook": "/export-jupyter-notebook/:simulation_type/:simulation_id/?:model/?:title",
-        "exportJupyterNotebook2": "/export-jupyter-notebook2/:simulation_type",
         "favicon": "/favicon.ico",
         "findByName": "/find-by-name/:simulation_type/:application_mode/:simulation_name",
         "findByNameWithAuth": "/find-by-name-auth/:simulation_type/:application_mode/:simulation_name",

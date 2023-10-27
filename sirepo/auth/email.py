@@ -60,10 +60,7 @@ class API(sirepo.quest.API):
             d = self.parse_json()
             if d.get("token") != token:
                 raise sirepo.util.Error(
-                    PKDict(
-                        error="unable to confirm login",
-                        sim_type=sim_type,
-                    ),
+                    "unable to confirm login",
                     "Expected token={} in data but got data.token={}",
                     token,
                     d,
@@ -106,7 +103,7 @@ class API(sirepo.quest.API):
                 self.auth.logged_in_user(),
             )
             raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
-        self.auth.login_fail_redirect(req.type, this_module, "email-token")
+        self.auth.login_fail_redirect(this_module, "email-token")
 
     @sirepo.quest.Spec("require_cookie_sentinel", email="Email")
     async def api_authEmailLogin(self):

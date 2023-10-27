@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+  <body>
+    {{ body }}
+    {% if error_detail %}
+    <p>{{ error_detail | e }}</p>
+    {% endif %}
+  </body>
+</html>

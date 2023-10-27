@@ -27,6 +27,7 @@ def check_authorized_callback(qcall, github_auth=False):
     s = qcall.cookie.unchecked_remove(_COOKIE_NONCE)
     t = qcall.cookie.unchecked_remove(_COOKIE_SIM_TYPE)
     assert t
+    qcall.sim_type_set(t)
     c = _client(qcall, t, github_auth)
     try:
         c.fetch_token(

@@ -124,7 +124,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
 class _JsonPostRequestHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
-        self.set_header("Content-Type", 'application/json; charset="utf-8"')
+        self.set_header("Content-Type", pkjson.CONTENT_TYPE)
 
 
 class _ServerPing(_JsonPostRequestHandler):

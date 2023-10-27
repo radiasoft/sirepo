@@ -5,8 +5,8 @@
         }
     },
     "constants": {
+        "geometryScale": 0.01,
         "maxFilters": 5,
-        "volumeProperties": ["color", "opacity"],
         "scoreUnits": {
             "damage-energy": "eV",
             "decay-rate": "$s^{-1}$",
@@ -17,7 +17,8 @@
             "heating-local": "eV",
             "inverse-velocity": "cm/s",
             "kappa-fission": "eV"
-        }
+        },
+        "volumeProperties": ["color", "opacity"]
     },
     "enum": {
         "Axis": [
@@ -1097,6 +1098,7 @@
         },
         "geometry3DReport": {
             "title": "DAGMC Geometry",
+            "is3d": true,
             "advanced": [
                 "opacity",
                 "bgColor",
@@ -1171,6 +1173,7 @@
         },
         "openmcAnimation": {
             "title": "Tally Results",
+            "is3d": true,
             "advanced": [
                 "tally",
                 "threshold",

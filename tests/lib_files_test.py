@@ -107,17 +107,15 @@ def test_srw_delete(fc):
         ),
     )
     pkunit.pkeq("ok", r.get("state"), "unexpected response={}", r)
-    r = fc.sr_get_json(
+    r = fc.sr_get(
         "downloadFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id=d.models.simulation.simulationId,
             filename=u.basename,
         ),
-        data=PKDict(),
-        redirect=False,
     )
-    pkunit.pkre("does not exist", r.error)
+    pkunit.pkre("not_used_name.zip.*does not exist", r.data)
 
 
 def test_srw_upload(fc):
@@ -194,7 +192,6 @@ def test_srw_validate_file(fc):
             filename="sample.tif",
         ),
         data=PKDict(),
-        redirect=False,
     )
     pkre("/tif", r.mimetype)
     f = s.lib_file_resource_path("sample.tif")

@@ -28,6 +28,7 @@ import random
 import re
 import sirepo.const
 import sirepo.file_lock
+import sirepo.job
 import sirepo.mpi
 import sirepo.resource
 import sirepo.srdb
@@ -77,16 +78,14 @@ _SCHEMA_CACHE = PKDict()
 #: Special field to direct pseudo-subclassing of schema objects
 _SCHEMA_SUPERCLASS_FIELD = "_super"
 
-#: created under dir
-_TMP_DIR = "tmp"
-
 #: configuration
 _cfg = None
 
 _SIM_DB_FILE_PATH_RE = re.compile(r"^[a-zA-Z0-9-_\.]{1,128}$")
 
-# TODO(robnagler) while flask is in use, we make this a thread local in init_module
-_USER_LOCK = None
+#: For re-entrant `user_lock`
+_USER_LOCK = PKDict(paths=set())
+
 
 _SERIAL_INITIALIZE = -1
 
@@ -103,8 +102,14 @@ def app_version():
 
 
 def assert_sid(sid):
-    assert _ID_RE.search(sid), "invalid sid={}".format(sid)
-    return sid
+    if _ID_RE.search(sid) or sirepo.job.QUASI_SID_RE.search(sid):
+        return sid
+    raise AssertionError(f"invalid sid={sid}")
+
+
+def assert_sim_db_file_path(basename):
+    assert _SIM_DB_FILE_PATH_RE.search(basename), f"basename={basename} is invalid"
+    return basename
 
 
 def cfg():
@@ -293,18 +298,8 @@ def generate_json(data, pretty=False):
     return util.json_dump(data, pretty=pretty)
 
 
-def init_module(want_flask):
-    global _USER_LOCK
-
-    if _USER_LOCK is not None:
-        return
-    # see also _init()
-    if want_flask:
-        import threading
-
-        _USER_LOCK = threading.local()
-    else:
-        _USER_LOCK = PKDict()
+def init_module():
+    pass
 
 
 def iterate_simulation_datafiles(simulation_type, op, search=None, qcall=None):
@@ -357,6 +352,33 @@ def lib_dir_from_sim_dir(sim_dir):
         py.path: directory name
     """
     return _sim_from_path(sim_dir)[1].join(_REL_LIB_DIR)
+
+
+def mkdir_random(parent_dir, simulation_type=None):
+    """Create a random id in parent_dir
+
+    Args:
+        parent_dir (py.path): where id should be unique
+    Returns:
+        dict: id (str) and path (py.path)
+    """
+    pkio.mkdir_parent(parent_dir)
+    r = random.SystemRandom()
+    # Generate cryptographically secure random string
+    for _ in range(5):
+        i = "".join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
+        if simulation_type:
+            if find_global_simulation(simulation_type, i):
+                continue
+        d = parent_dir.join(i)
+        try:
+            os.mkdir(str(d))
+            return PKDict(id=i, path=d)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            raise
+    raise RuntimeError("{}: failed to create unique directory".format(parent_dir))
 
 
 def migrate_guest_to_persistent_user(guest_uid, to_uid, qcall):
@@ -539,7 +561,7 @@ def save_new_example(data, qcall=None):
 
 def save_new_simulation(data, do_validate=True, qcall=None):
     d = simulation_dir(data.simulationType, qcall=qcall)
-    sid = _random_id(d, data.simulationType).id
+    sid = mkdir_random(d, data.simulationType).id
     data.models.simulation.simulationId = sid
     data.models.simulation.simulationSerial = _SERIAL_INITIALIZE
     data.pkdel("version")
@@ -581,17 +603,17 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
     def _serial_validate(incoming, on_disk):
         if incoming == _SERIAL_INITIALIZE or incoming == on_disk:
             return on_disk
-        raise util.Error(
+        raise util.SRException(
+            "serverUpgraded",
             PKDict(
-                error="invalidSerial",
-                sim_type=data.simulationType,
-                simulationData=data,
+                reason="invalidSimulationSerial",
+                simulationType=data.get("simulationType"),
             ),
             "{}: incoming serial {} than stored serial={} sid={}, resetting client",
             incoming,
             "newer" if incoming > on_disk else "older",
             on_disk,
-            data.models.simulation.simulationId,
+            data.pkunchecked_nested_get("models.simulation.simulationId"),
         )
 
     def _version_validate(data):
@@ -600,7 +622,7 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
         if data.get("version", SCHEMA_COMMON.version) != SCHEMA_COMMON.version:
             raise util.SRException(
                 "serverUpgraded",
-                None,
+                PKDict(reason="newRelease", simulationType=data.get("simulationType")),
                 "data={} != server={}",
                 data.get("version"),
                 SCHEMA_COMMON.version,
@@ -684,7 +706,7 @@ def sim_db_file_uri(simulation_type, sid, basename):
         [
             sirepo.template.assert_sim_type(simulation_type),
             assert_sid(sid),
-            _assert_sim_db_file_path(basename),
+            assert_sim_db_file_path(basename),
         ]
     )
 
@@ -695,7 +717,7 @@ def sim_db_file_uri_to_path(path, expect_uid):
     assert p[0] == expect_uid, f"uid={p[0]} is not expect_uid={expect_uid}"
     sirepo.template.assert_sim_type(p[1]),
     assert_sid(p[2]),
-    _assert_sim_db_file_path(p[3]),
+    assert_sim_db_file_path(p[3]),
     return user_path_root().join(*p)
 
 
@@ -763,35 +785,6 @@ def static_libs():
     return _files_in_schema(SCHEMA_COMMON.common.staticFiles)
 
 
-@contextlib.contextmanager
-def tmp_dir(chdir=False, qcall=None):
-    """Generates new, temporary directory
-
-    `uid` or `qcall` must be supplied.
-
-    Args:
-        chdir (bool): if true, will save_chdir
-        uid (str): user id
-        qcall (sirepo.quest.API): request state
-    Returns:
-        py.path: directory to use for temporary work
-    """
-    d = None
-    try:
-        p = user_path(qcall=qcall, check=True)
-        d = _cfg.tmp_dir or _random_id(p.join(_TMP_DIR))["path"]
-        pkio.unchecked_remove(d)
-        pkio.mkdir_parent(d)
-        if chdir:
-            with pkio.save_chdir(d):
-                yield d
-        else:
-            yield d
-    finally:
-        if d:
-            pkio.unchecked_remove(d)
-
-
 def uid_from_dir_name(dir_name):
     """Extract user id from user_path
 
@@ -830,7 +823,7 @@ def user_create():
     Returns:
         str: New user id
     """
-    return _random_id(user_path_root())["id"]
+    return mkdir_random(user_path_root())["id"]
 
 
 @contextlib.contextmanager
@@ -845,9 +838,6 @@ def user_lock(uid=None, qcall=None):
     """
     assert qcall
     p = user_path(uid=uid, qcall=qcall, check=True)
-    if getattr(_USER_LOCK, "paths", None) is None:
-        # TODO(robnagler) only needs to be here for flask. when flask goes, put in init_module
-        _USER_LOCK.paths = set()
     if p in _USER_LOCK.paths:
         # re-enter, already locked path
         yield p
@@ -897,11 +887,6 @@ def write_json(filename, data):
     util.json_dump(data, path=json_filename(filename), pretty=True)
 
 
-def _assert_sim_db_file_path(basename):
-    assert _SIM_DB_FILE_PATH_RE.search(basename), f"basename={basename} is invalid"
-    return basename
-
-
 def _create_lib_and_examples(user_dir, sim_type, qcall=None):
     # POSIT: simulation_lib_dir
     pkio.mkdir_parent(user_dir.join(sim_type).join(_LIB_DIR))
@@ -946,7 +931,6 @@ def _init():
         ),
         logged_in_user=(None, str, "Used in agents"),
         sbatch_display=(None, str, "how to display sbatch cluster to user"),
-        tmp_dir=(None, pkio.py_path, "Used by utilities (not regular config)"),
     )
     _init_schemas()
     JOB_RUN_MODE_MAP = PKDict(
@@ -1071,33 +1055,6 @@ def _merge_subclasses(schema, item, extend_arrays=True):
 
 def _now_as_version():
     return srtime.utc_now().strftime("%Y%m%d.%H%M%S")
-
-
-def _random_id(parent_dir, simulation_type=None):
-    """Create a random id in parent_dir
-
-    Args:
-        parent_dir (py.path): where id should be unique
-    Returns:
-        dict: id (str) and path (py.path)
-    """
-    pkio.mkdir_parent(parent_dir)
-    r = random.SystemRandom()
-    # Generate cryptographically secure random string
-    for _ in range(5):
-        i = "".join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
-        if simulation_type:
-            if find_global_simulation(simulation_type, i):
-                continue
-        d = parent_dir.join(i)
-        try:
-            os.mkdir(str(d))
-            return PKDict(id=i, path=d)
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                pass
-            raise
-    raise RuntimeError("{}: failed to create unique directory".format(parent_dir))
 
 
 def _search_data(data, search):

@@ -38,6 +38,9 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="ObjectType" class="col-sm-7">
             <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="model[field]" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
         </div>
+        <div data-ng-switch-when="MaterialFormula" data-ng-class="fieldClass">
+            <div data-material-formula="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
+        </div>
         <div data-ng-switch-when="MaterialType" data-ng-class="fieldClass">
           <select number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
             <div class="sr-input-warning">
@@ -74,24 +77,6 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.isEditing = false;
     self.objBounds = null;
     self.pointFieldTypes = appState.enumVals('FieldType').slice(1);
-    self.pointFieldExports = {
-        csv: {
-            contentType: 'text/csv;charset=utf-8',
-            extension: 'csv',
-            responseType: '',
-        },
-        sdds: {
-            contentType: 'application/octet-stream',
-            extension: 'sdds',
-            responseType: '',
-        },
-        SRW: {
-            contentType: 'application/zip',
-            extension: 'zip',
-            responseType: 'arraybuffer',
-        }
-    };
-    self.pointFieldExportTypes = Object.keys(self.pointFieldExports);
 
     self.selectedObject = null;
 
@@ -223,11 +208,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     // Instead, generate an id here and map it when the Radia object is created. A random string is good enough
     self.generateId = () => SIREPO.UTILS.randomString(16);
 
-    self.reloadGeometry = (callback=() => {}) => {
-        const r = 'geometryReport';
-        panelState.clear(r);
-        panelState.requestData(r, callback, true);
-    };
+    self.isGroup = o => o.members !== undefined;
 
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
         appState.models.geometryReport.lastModified = Date.now();
@@ -553,7 +534,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     self.isDropEnabled = () => self.dropEnabled;
 
-    self.isGroup = o => o.members !== undefined;
+    self.isGroup = radiaService.isGroup;
 
     self.loadObjectViews = loadObjectViews;
 
@@ -633,7 +614,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
         const supers = appState.superClasses(o.type);
         let center = o.center;
         let size = o.size;
-        const isGroup = o.members && o.members.length;
+        const isGroup = self.isGroup(o);
         const scale = SIREPO.APP_SCHEMA.constants.objectScale;
 
         if (isGroup) {
@@ -730,7 +711,21 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
 
     function addViewsForObject(o) {
 
-        const isGroup = (o.members || []).length;
+        function applyMatrixToGroup(g, m) {
+            for (const m_id of g.members) {
+                let v = self.getObjectView(m_id);
+                const member = self.getObject(m_id);
+                if (! v) {
+                    v = self.viewsForObject(member);
+                    self.views.push(v);
+                }
+                v.addCopyingTransform(m);
+                if (self.isGroup(member)) {
+                    applyMatrixToGroup(member, m);
+                }
+            }
+        }
+
         let baseViews = self.getObjectView(o.id);
         if (! baseViews) {
             baseViews = self.viewsForObject(o);
@@ -762,15 +757,8 @@ SIREPO.app.controller('RadiaSourceController', function (appState, geometry, pan
                 //TODO(mvk): symmetry plane shapes
                 const r = new SIREPO.GEOMETRY.ReflectionMatrix(plane);
                 baseViews.addCopyingTransform(r);
-                if (isGroup) {
-                    for (const m_id of o.members) {
-                        let mv = self.getObjectView(m_id);
-                        if (! mv) {
-                            mv = self.viewsForObject(self.getObject(m_id));
-                            self.views.push(mv);
-                        }
-                        mv.addCopyingTransform(r);
-                    }
+                if (self.isGroup(o)) {
+                    applyMatrixToGroup(o, r);
                 }
                 continue;
             }
@@ -995,9 +983,18 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
         `,
         controller: function($scope) {
 
-            $scope.exportDmpUrl = () => appState.isLoaded() ?
-                panelState.exportArchiveUrl($scope.simulationId(), `${$scope.nav.simulationName()}.dat`) :
-                null;
+            $scope.exportDmpUrl = () => {
+                if (! appState.isLoaded()) {
+                    return null;
+                }
+                return requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<frame>': SIREPO.nonDataFileFrame,
+                    '<model>': 'geometryReport',
+                    '<suffix>': '.dat'
+                });
+            };
 
             $scope.isImported = () => (appState.models.simulation || {}).dmpImportFile;
 
@@ -1068,7 +1065,7 @@ SIREPO.app.directive('modelArrayTable', function(appState, panelState, radiaServ
                       <div class="sr-button-bar-parent">
                         <div class="sr-button-bar">
                           <button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == field.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button>  <button data-ng-click="deleteItem($index)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
-                        </div>                      
+                        </div>
                       </div>
                     </td>
                 </tr>
@@ -1598,7 +1595,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                     $scope.integrals = data;
                 }, true);
             }
-            
+
             $scope.$on('fieldPaths.saved', updateTable);
 
             updateTable();
@@ -1687,6 +1684,29 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
     };
 });
 
+SIREPO.app.directive('materialFormula', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            fieldName: '=',
+            info: '=',
+        },
+        template: `
+            <div data-num-array="" data-model="model" data-field-name="fieldName" data-field="subfields" data-info="info" data-num-type="Float"></div>
+        `,
+        controller: function($scope) {
+            const f = $scope.field;
+            $scope.subfields = [
+                [f[0], f[1]],
+                [f[2], f[3]],
+                [f[4], f[5]],
+            ];
+        },
+    };
+});
+
 SIREPO.app.directive('pointsTable', function() {
     return {
         restrict: 'A',
@@ -1703,7 +1723,7 @@ SIREPO.app.directive('pointsTable', function() {
                       <span title="click to collapse" class="glyphicon glyphicon-chevron-down" data-ng-click="toggleExpand()"></span>
                     </th>
                     <th scope="col" data-ng-hide="isExpanded">
-                      <span title="click to expand" class="glyphicon glyphicon-chevron-up" data-ng-click="toggleExpand()"></span> 
+                      <span title="click to expand" class="glyphicon glyphicon-chevron-up" data-ng-click="toggleExpand()"></span>
                     </th>
                   </tr>
                   <tr data-ng-show="isExpanded">
@@ -1987,39 +2007,53 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
     };
 });
 
-SIREPO.app.directive('radiaViewer', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, requestSender, utilities, vtkPlotting, vtkUtils, $interval, $rootScope) {
+SIREPO.app.directive('radiaViewer', function(panelState, utilities) {
+    return {
+        restrict: 'A',
+        transclude: true,
+        scope: {
+            modelName: '@',
+            viz: '<',
+        },
+        template: `
+            <div class="col-md-6">
+                <div class="panel panel-info" id="sr-magnetDisplay-basicEditor">
+                    <div class="panel-heading clearfix" data-panel-heading="Magnet Viewer" data-view-name="{{ modelName }}" data-is-report="true" data-model-key="modelName" data-report-id="reportId"></div>
+                    <div class="panel-body" data-ng-if="! panelState.isHidden(modelName)">
+                        <div data-radia-viewer-content="" data-model-name="{{ modelName }}" data-viz="viz" data-report-id="{{ reportId }}"></div>
+                    </div>
+                </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.panelState = panelState;
+            $scope.reportId = utilities.reportId();
+        },
+    };
+});
+
+SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelState, plotting, plotToPNG, radiaService, radiaVtkUtils, utilities, vtkUtils, $rootScope) {
 
     return {
         restrict: 'A',
         transclude: true,
         scope: {
             modelName: '@',
-            viewName: '@',
-            viz: '<',
+            reportId: '@',
         },
         template: `
-            <div class="col-md-6">
-                <div class="panel panel-info" id="sr-magnetDisplay-basicEditor">
-                  <div class="panel-heading clearfix" data-panel-heading="Magnet Viewer" data-view-name="magnetDisplay" data-is-report="true" data-model-key="modelKey" data-report-id="reportId"></div>
-                    <div class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
-                      <div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="true" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
-                      <div data-ng-transclude="">
-                        <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-report-id="reportId" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
-                        <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
-                            <div class="colorbar"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+            <div data-advanced-editor-pane="" data-view-name="modelName" data-want-buttons="true" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
+            <div data-ng-transclude="">
+                <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-report-id="reportId" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
+                <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
+                    <div class="colorbar"></div>
                 </div>
             </div>
         `,
         controller: function($scope, $element) {
-            $scope.reportId = utilities.reportId();
             $scope.axisObj = null;
             $scope.defaultColor = "#ff0000";
             $scope.mode = null;
-            $scope.modelKey = 'magnetDisplay';
 
             $scope.isViewTypeFields = () =>
                 (appState.models.magnetDisplay || {}).viewType === SIREPO.APP_SCHEMA.constants.viewTypeFields;
@@ -3181,6 +3215,7 @@ SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService,
 
 SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, requestSender, $rootScope, $scope) {
 
+    const builtinExtruded = ['cee', 'ell', 'jay'];
     const ctl = angular.element($('div[data-ng-controller]').eq(0)).controller('ngController');
     let editedModels = [];
     const materialFields = ['geomObject.magnetization', 'geomObject.material'];
@@ -3328,6 +3363,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         });
 
         panelState.showField('geomObject', 'materialFile', o.material === 'custom');
+        panelState.showField('geomObject', 'materialFormula', o.material === 'nonlinear');
         panelState.enableField('geomObject', 'size', true);
         panelState.showField('geomObject', 'segments', editedModels.includes('cylinder') || ! editedModels.includes('extrudedObject'));
 
@@ -3364,7 +3400,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             return;
         }
 
-        if (! appState.isSubclass(modelType, 'extrudedObject')) {
+        if (! appState.isSubclass(modelType, 'extrudedObject') || builtinExtruded.includes(modelType)) {
             return;
         }
 
@@ -3387,6 +3423,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     appState.watchModelFields($scope, materialFields, () => {
+        updateEditor();
         radiaService.validateMagnetization($scope.modelData.magnetization, $scope.modelData.material);
     }, true);
 
