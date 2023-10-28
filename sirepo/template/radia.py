@@ -262,6 +262,9 @@ def get_data_file(run_dir, model, frame, options):
             uri=f"{name}.{sfx}",
             filename=pkio.py_path(_DMP_FILE),
         )
+    if model == "fieldIntegralReport":
+        _save_field_integrals_csv()
+        return f
 
 
 async def import_file(req, tmp_dir=None, **kwargs):
@@ -1413,6 +1416,30 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))
     return path
+
+
+def _save_field_integrals_csv():
+    CSV_HEADING = ['Line', 'x0', 'y0', 'z0', 'x1', 'y1', 'z1', 'Bx', 'By', 'Bz', 'Hx', 'Hy', 'Hz'];
+    HEADING = ['Line', 'Endpoints', 'Fields'];
+    INTEGRABLE_FIELD_TYPES = ['B', 'H'];
+
+    fileName = "Field Integrals"
+    #const data = [$scope.CSV_HEADING];
+    #$scope.linePaths().forEach(p => {
+    #    let row = [];
+    #    row.push(
+    #        p.name,
+    #        p.begin[0], p.begin[1], p.begin[2],
+    ##        p.end[0], p.end[1], p.end[2]
+    #    );
+    #    $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
+    #        row = row.concat(
+    ##            $scope.integrals[p.name][t]
+    #        );
+    #    });
+    #    data.push(row);
+    #});
+    return ""
 
 
 def _save_kick_map_sdds(name, path, km_data):
