@@ -785,6 +785,8 @@ class _SbatchRun(_SbatchCmd):
 exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
 """
         )
+        # TODO(pjm): need to replace --ntasks with --cpus-per-task for openmc
+        # SBATCH --cpus-per-task={self.msg.sbatchCores}
         return f
 
     async def _sbatch_status(self):
