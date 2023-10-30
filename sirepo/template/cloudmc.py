@@ -16,9 +16,11 @@ import sirepo.feature_config
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.sim_run
+import subprocess
 
 _CACHE_DIR = "cloudmc-cache"
 _OUTLINES_FILE = "outlines.json"
+_PREP_SBATCH_PREFIX = "prep-sbatch"
 _VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -195,10 +197,34 @@ def stateless_compute_validate_material_name(data, **kwargs):
 
 
 def write_parameters(data, run_dir, is_parallel):
-    pkio.write_text(
-        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, run_dir=run_dir),
-    )
+    if _is_sbatch_run_mode(data):
+        pkio.write_text(
+            run_dir.join(f"{_PREP_SBATCH_PREFIX}.py"),
+            _generate_parameters_file(data, run_dir=run_dir),
+        )
+        with pkio.open_text(run_dir.join(f"{_PREP_SBATCH_PREFIX}.log"), mode="w") as l:
+            subprocess.run(
+                ["python", f"{_PREP_SBATCH_PREFIX}.py"],
+                check=True,
+                stderr=l,
+                stdout=l,
+            )
+        pkio.write_text(
+            run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+            template_common.render_jinja(
+                SIM_TYPE,
+                PKDict(
+                    cacheDir=sirepo.sim_run.cache_dir(_CACHE_DIR),
+                    numThreads=data.models.openmcAnimation.tasksPerNode,
+                ),
+                "openmc-sbatch.py",
+            ),
+        )
+    else:
+        pkio.write_text(
+            run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+            _generate_parameters_file(data, run_dir=run_dir),
+        )
     if is_parallel:
         return template_common.get_exec_parameters_cmd()
 
@@ -436,7 +462,7 @@ def _generate_parameters_file(data, run_dir=None):
     else:
         v.materialDirectory = sirepo.sim_run.cache_dir(_CACHE_DIR)
         r = data.models.openmcAnimation.jobRunMode
-        if r != "sbatch":
+        if not _is_sbatch_run_mode(data):
             cores = 1 if r == "sequential" else sirepo.mpi.cfg().cores
             v.runCommand = f"openmc.run(threads={ cores })"
 
@@ -581,6 +607,10 @@ def _has_graveyard(data):
         if v.name and v.name.lower() == "graveyard":
             return True
     return False
+
+
+def _is_sbatch_run_mode(data):
+    return data.models.openmcAnimation.jobRunMode == "sbatch"
 
 
 def _parse_run_log(run_dir):

@@ -6,6 +6,7 @@
     },
     "constants": {
         "geometryScale": 0.01,
+        "inProgressText": "Working",
         "maxFilters": 5,
         "scoreUnits": {
             "damage-energy": "eV",

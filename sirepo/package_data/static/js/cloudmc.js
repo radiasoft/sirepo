@@ -392,8 +392,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, frameCache
                 callback();
             },
             err => {
-                // no outlines file, result directory has been cleared
-                frameCache.setFrameCount(0);
+                // no outlines file, result directory has been cleared, or not connected to nersc
             },
         );
     };
