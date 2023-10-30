@@ -215,7 +215,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         return (appState.applicationState().fieldPaths.paths || [])
             .filter(x => types.length ? types.includes(x.type) : true)
             .length;
-    }
+    };
 
     self.isGroup = o => o.members !== undefined;
 
@@ -1550,31 +1550,10 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
 
             plotting.setTextOnlyReport($scope);
 
-            $scope.CSV_HEADING = ['Line', 'x0', 'y0', 'z0', 'x1', 'y1', 'z1', 'Bx', 'By', 'Bz', 'Hx', 'Hy', 'Hz'];
             $scope.HEADING = ['Line', 'Endpoints', 'Fields'];
             $scope.INTEGRABLE_FIELD_TYPES = ['B', 'H'];
             $scope.integrals = {};
             $scope.model = appState.models.fieldPaths;
-
-            $scope.download = () => {
-                const fileName = panelState.fileNameFromText('Field Integrals', 'csv');
-                const data = [$scope.CSV_HEADING];
-                $scope.linePaths().forEach(p => {
-                    let row = [];
-                    row.push(
-                        p.name,
-                        p.begin[0], p.begin[1], p.begin[2],
-                        p.end[0], p.end[1], p.end[2]
-                    );
-                    $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
-                        row = row.concat(
-                            $scope.integrals[p.name][t]
-                        );
-                    });
-                    data.push(row);
-                });
-                saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
-            };
 
             $scope.hasPaths = () => radiaService.hasPaths(lineTypes);
 
@@ -1591,7 +1570,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
 
             $scope.load = json => {
                 $scope.integrals = json;
-            }
+            };
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
