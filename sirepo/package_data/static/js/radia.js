@@ -1535,7 +1535,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 </tr>
                 </thead>
                 <tbody>
-                <tr data-ng-repeat="path in linePaths() track by $index">
+                <tr data-ng-repeat="path in linePaths() track by path.id">
                     <td>{{ path.name }}</td>
                     <td>[{{ path.begin }}] &#x2192; [{{ path.end }}]</td>
                     <td>
@@ -1566,11 +1566,17 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
 
             $scope.isLine = p => lineTypes.includes(p.type);
 
-            $scope.linePaths = () => (($scope.model || {}).paths || []).filter($scope.isLine);
+            $scope.linePaths = () => ((appState.applicationState().fieldPaths || {}).paths || []).filter($scope.isLine);
 
             $scope.load = json => {
                 $scope.integrals = json;
             };
+
+            $scope.$on('fieldPaths.saved', () => {
+                srdbg('FP CH');
+                //panelState.clear($scope.modelName);
+                //panelState.requestData($scope.modelName, data => {srdbg('FI', data)}, err => {srdbg('OOPS', err)});
+            });
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -3060,22 +3066,22 @@ SIREPO.viewLogic('fieldPathsView', function(activeSection, appState, panelState,
 
     $scope.watchFields = [];
 
-    $scope.whenSelected = () => {
-        $scope.modelData = appState.models[$scope.modelName];
-    };
-
-    $scope.$on(`${$scope.modelName}.changed`, () => {
-        for (const p of $scope.modelData.paths) {
-            if (p.type === 'axisPath') {
-                if (! p.name) {
-                    p.name = `${p.axis.toUpperCase()}-Axis`;
-                }
-                p.begin = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[p.axis].map(x => p.start * x);
-                p.end = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[p.axis].map(x => p.stop * x);
-                appState.saveQuietly($scope.modelName);
+    appState.watchModelFields(
+        $scope,
+        ['fieldPaths.paths'],
+        () => {
+            for (const p of appState.models[$scope.modelName].paths) {
+                updateAxisPath(p);
             }
-        }
-    });
+        }, true
+    );
+
+    function updateAxisPath(path) {
+        path.name = `${path.axis.toUpperCase()}-Axis`;
+        const v = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[path.axis];
+        path.begin = v.map(x => path.start * x);
+        path.end = v.map(x => path.stop * x);
+    }
 });
 
 SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, requestSender, utilities, $element, $scope) {
