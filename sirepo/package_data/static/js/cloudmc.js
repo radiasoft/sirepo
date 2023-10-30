@@ -324,7 +324,7 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.factory('tallyService', function(appState, cloudmcService, frameCache, requestSender, $rootScope) {
+SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSender, $rootScope) {
     const self = {
         mesh: null,
         fieldData: null,
