@@ -1537,7 +1537,7 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 <tbody>
                 <tr data-ng-repeat="path in linePaths() track by path.id">
                     <td>{{ path.name }}</td>
-                    <td>[{{ path.begin }}] &#x2192; [{{ path.end }}]</td>
+                    <td>{{ path.begin }} &#x2192; {{ path.end }}</td>
                     <td>
                     <div data-ng-repeat="t in INTEGRABLE_FIELD_TYPES"><span style="font-weight: bold">{{ t }}:</span> </span><span>{{ format(integrals[path.name][t]) }}</span></div>
                     </td>
@@ -1573,7 +1573,6 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             };
 
             $scope.$on('fieldPaths.saved', () => {
-                srdbg('FP CH');
                 //panelState.clear($scope.modelName);
                 //panelState.requestData($scope.modelName, data => {srdbg('FI', data)}, err => {srdbg('OOPS', err)});
             });
@@ -3063,24 +3062,27 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
 });
 
 SIREPO.viewLogic('fieldPathsView', function(activeSection, appState, panelState, radiaService, $scope) {
-
+    
     $scope.watchFields = [];
-
+    
     appState.watchModelFields(
         $scope,
         ['fieldPaths.paths'],
-        () => {
-            for (const p of appState.models[$scope.modelName].paths) {
-                updateAxisPath(p);
-            }
-        }, true
+        updateAxisPaths,
+        true
     );
-
+    
     function updateAxisPath(path) {
         path.name = `${path.axis.toUpperCase()}-Axis`;
         const v = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[path.axis];
         path.begin = v.map(x => path.start * x);
         path.end = v.map(x => path.stop * x);
+    }
+
+    function updateAxisPaths() {
+        for (const p of appState.models[$scope.modelName].paths.filter(x => x.type === 'axisPath')) {
+            updateAxisPath(p);
+         }
     }
 });
 

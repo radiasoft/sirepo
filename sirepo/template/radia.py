@@ -266,7 +266,7 @@ def get_data_file(run_dir, model, frame, options):
         _save_field_integrals_csv(
             data.models.fieldPaths.paths,
             simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME)),
-            f
+            f,
         )
         return f
 
@@ -810,9 +810,7 @@ def _generate_field_integrals(sim_id, g_id, f_paths):
         # return something or server.py will raise an exception
         return PKDict(warning="No paths")
     try:
-        res = PKDict(
-            x_range=[]
-        )
+        res = PKDict(x_range=[])
         for p in l_paths:
             res[p.name] = PKDict()
             p1 = p.begin
@@ -1425,7 +1423,23 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
 def _save_field_integrals_csv(integral_paths, integrals, file_path):
     with open(file_path, "w") as f:
         out = csv.writer(f)
-        out.writerow(["Path", "x0", "y0", "z0", "x1", "y1", "z1", "Bx", "By", "Bz", "Hx", "Hy", "Hz"])
+        out.writerow(
+            [
+                "Path",
+                "x0",
+                "y0",
+                "z0",
+                "x1",
+                "y1",
+                "z1",
+                "Bx",
+                "By",
+                "Bz",
+                "Hx",
+                "Hy",
+                "Hz",
+            ]
+        )
         for p in [x for x in integral_paths if x.type in ("axisPath", "linePath")]:
             row = [p.name, *p.begin, *p.end]
             for t in ("B", "H"):
