@@ -2,7 +2,7 @@
 # No set -eou pipefail before activating the conda env because the
 # activation scripts have unbound variables and other errors that can
 # be ignored.
-if [[ -z "{{ conda_env }}" ]]; then
+if [[ -n "{{ conda_env }}" ]]; then
     export CONDA_PREFIX={{ conda_prefix }}
     eval "$($CONDA_PREFIX/bin/conda "shell.bash" "hook" 2> /dev/null)"
     conda activate '{{ conda_env }}'

@@ -14,7 +14,7 @@ _cfg = None
 
 class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
     def get_conda_env(self):
-        return "analysis-2019-3.0.1-chx"
+        return _cfg.conda_env
 
     def get_notebooks(self):
         return [
@@ -53,5 +53,8 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
 _cfg = pkconfig.init(
     base_dir=pkconfig.Required(
         pkio.py_path, "base directory for notebooks and outputs"
+    ),
+    conda_env=pkconfig.RequiredUnlessDev(
+        "analysis-2019-3.0.1-chx", str, "conda environment name"
     ),
 )

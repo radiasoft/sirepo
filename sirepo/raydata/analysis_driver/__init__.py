@@ -4,6 +4,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkcompat
+from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pkjson
@@ -17,8 +18,6 @@ import uuid
 
 _ANALYSIS_DRIVERS = PKDict()
 
-_CONDA_PREFIX = "/home/vagrant/miniconda"
-
 _PAPERMILL_SCRIPT = "raydata-execute-analysis.sh"
 
 
@@ -31,10 +30,7 @@ class AnalysisDriverBase(PKDict):
         return pkio.walk_tree(self.get_output_dir(), r".*\.pdf$")
 
     def get_conda_env(self):
-        return None
-
-    def get_conda_prefix(self):
-        return _CONDA_PREFIX
+        return ""
 
     def get_notebooks(self, *args, **kwargs):
         raise NotImplementedError("children must implement this method")
@@ -99,12 +95,14 @@ class AnalysisDriverBase(PKDict):
                 input_f=input_f,
                 output_f=output_f,
                 papermill_args=" ".join(self.get_papermill_args()),
-                conda_prefix=self.get_conda_prefix(),
+                conda_prefix=_cfg.conda_prefix,
                 conda_env=self.get_conda_env(),
                 catalog_name=self.catalog_name,
             ),
-            output=_PAPERMILL_SCRIPT,
+            output=self.get_papermill_script_path(),
         )
+
+        return self.get_papermill_script_path()
 
     def _get_papermill_args(self, *args, **kwargs):
         return []
@@ -133,3 +131,10 @@ def init(catalog_names):
             importlib.import_module(f"sirepo.raydata.analysis_driver.{n}"),
             n.upper(),
         )
+
+
+_cfg = pkconfig.init(
+    conda_prefix=pkconfig.RequiredUnlessDev(
+        "/home/vagrant/miniconda", pkio.py_path, "base directory for conda environments"
+    ),
+)
