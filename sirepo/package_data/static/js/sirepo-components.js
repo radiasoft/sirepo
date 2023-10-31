@@ -806,8 +806,8 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               <div data-ng-switch-when="Bool" class="col-sm-7">
                   <input type="checkbox" data-ng-model="model[field]">
               </div>
-               <div data-ng-switch-when="Boolean" class="col-sm-7">
-                  <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
+               <div data-ng-switch-when="Boolean" class="fieldClass">
+                 <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
                </div>
               <div data-ng-switch-when="ColorMap" class="col-sm-7">
                 <div data-color-map-menu="" class="dropdown"></div>
@@ -5183,12 +5183,37 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         });
     };
 
+    // Returns a minimal formatted json-like value
+    this.objectToText = function(obj) {
+        return JSON
+            .stringify(obj, undefined, 2)
+            .replace(/^(\{|\[)\s*\n/g, '')
+            .replace(/\:\s*(\{|\[)\s*$/gm, ':')
+            .replace(/^\s*(\}|\]|\[),?\s*\n/gm, '')
+            .replace(/\n\s*(\}|\])\s*/g, '')
+            .replace(/,$/gm, '')
+            .replace(/\"/g, '');
+    };
+
     this.roundToPlaces = function(val, p) {
         if (p < 0) {
             return val;
         }
         var r = Math.pow(10, p);
         return Math.round(val * r) / r;
+    };
+
+    this.trimText = function(text, maxLines, maxLength) {
+        const m = text.match(new RegExp(`^(.*\n+){${maxLines}}`));
+        if (m) {
+            if (m[0].length < maxLength) {
+                return m[0].replace(/\n$/, '');
+            }
+        }
+        if (text.length > maxLength) {
+            return text.substring(0, maxLength);
+        }
+        return text;
     };
 
     // returns an array containing the unique elements of the input,
