@@ -1787,7 +1787,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             return;
         }
         var data = getPanelValue(name, 'data');
-        srdbg('REQ', name, data);
         if (data) {
             callback(data);
             return;
@@ -1798,15 +1797,12 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             callback(data);
         };
         if (queueItems[name]) {
-            srdbg('CANCEL', name);
             simulationQueue.cancelItem(queueItems[name]);
         }
         self.addPendingRequest(name, function() {
-            srdbg('ADD PENDING', name);
             queueItems[name] = sendRequest(name, wrappedCallback, errorCallback);
         });
         if (! self.isHidden(name)) {
-            srdbg('Q', name);
             queueItems[name] = sendRequest(name, wrappedCallback, errorCallback);
         }
     };

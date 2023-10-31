@@ -1557,21 +1557,20 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
 
             $scope.hasPaths = () => radiaService.hasPaths(lineTypes);
 
-            $scope.format = vals => {
-                if (! vals) {
-                    return [];
-                }
-                return vals.map(v => utilities.roundToPlaces(v, 4));
-            };
+            $scope.format = vals => (vals || []).map(v => utilities.roundToPlaces(v, 4));
 
             $scope.isLine = p => lineTypes.includes(p.type);
 
             $scope.linePaths = () => ((appState.applicationState().fieldPaths || {}).paths || []).filter($scope.isLine);
 
             $scope.load = json => {
-                srdbg('JSON', json);
                 $scope.integrals = json;
             };
+
+            $scope.$on('fieldPaths.changed', () => {
+                appState.models[$scope.modelName].lastModified = Date.now();
+                appState.saveChanges($scope.modelName);
+            });
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -3078,8 +3077,6 @@ SIREPO.viewLogic('fieldPathsView', function(appState, $scope) {
             updateAxisPath(p);
          }
     }
-
-    $scope.$on('')
 });
 
 SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, requestSender, utilities, $element, $scope) {
