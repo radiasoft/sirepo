@@ -1699,9 +1699,10 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
           </div>
         `,
         controller: function($scope) {
+            const TYPE_NONE = 'None';
 
             function setView() {
-                if (type() && type() !== 'None') {
+                if (type() && type() !== TYPE_NONE) {
                     $scope.viewFields = SIREPO.APP_SCHEMA.view[type()].advanced
                         .map(f => {
                             return {
@@ -1728,7 +1729,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                         $scope.model[$scope.field] = {
                             _type: type(),
                         };
-                        if (newValue !== 'None') {
+                        if (newValue !== TYPE_NONE) {
                             appState.setModelDefaults(
                                 $scope.model[$scope.field],
                                 type(),
@@ -2046,6 +2047,38 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
     $scope.watchFields = [
         ['source.type'], updateEditor,
     ];
+});
+
+SIREPO.viewLogic('tallyView', function(appState, panelState, $scope) {
+
+    const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
+        .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
+    const inds = SIREPO.UTILS.indexArray(SIREPO.APP_SCHEMA.constants.maxFilters, 1);
+    const TYPE_NONE = 'None';
+
+    function type(index) {
+        return appState.models[$scope.modelName][`filter${index}`]._type;
+    }
+
+    function updateEditor() {
+        // can always select 'None'
+        const assignedTypes = inds.map(i => type(i)).filter(x => x !== TYPE_NONE);
+        // remove assigned types
+        ALL_TYPES.forEach(x => {
+            panelState.showEnum('filter', '_type', x, ! assignedTypes.includes(x));
+        });
+        // replace the type for this "instance"
+        inds.forEach(i => {
+            panelState.showEnum('filter', '_type', type(i), true, i - 1);
+        });
+    }
+
+    $scope.whenSelected = updateEditor;
+
+    $scope.watchFields = [
+        inds.map(i => `${$scope.modelName}.filter${i}._type`), updateEditor,
+    ];
+
 });
 
 SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
