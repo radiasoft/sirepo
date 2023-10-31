@@ -245,8 +245,11 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.syncReports = () => {
+        const now = Date.now();
+        const t0 = appState.models.geometryReport.lastModified;
+        const t = now > t0 ? now : t0;
         POST_SIM_REPORTS.forEach(r => {
-            appState.models[r].lastModified = appState.models.geometryReport.lastModified;
+            appState.models[r].lastModified = t;
         });
         appState.saveChanges(POST_SIM_REPORTS);
     };
@@ -1568,10 +1571,8 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             };
 
             $scope.$on('fieldPaths.changed', setLastModified);
-            $scope.$on('solve.complete', setLastModified);
 
             function setLastModified() {
-                srdbg('SET LAST MOD');
                 appState.models[$scope.modelName].lastModified = Date.now();
                 appState.saveChanges($scope.modelName);
             }
@@ -1948,7 +1949,6 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                     if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
                         $scope.solution = solutionValidForGeom() ? formatSolution(data.solution) : null;
                         if (solving) {
-                            srdbg('SLVE COMPLETE');
                             $rootScope.$broadcast('solve.complete');
                             radiaService.syncReports();
                         }
