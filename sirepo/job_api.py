@@ -193,7 +193,6 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user")
     async def api_runSimulation(self):
-        pkdp("RUN SIM")
         r = self._request_content(PKDict(is_sim_data=True))
         if r.isParallel:
             r.isPremiumUser = self.auth.is_premium_user()

@@ -28,7 +28,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         res = cls._non_analysis_fields(data, r) + []
-        pkdp("COMP JOB F {}", res)
         return res
 
     @classmethod

@@ -1567,10 +1567,14 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
                 $scope.integrals = json;
             };
 
-            $scope.$on('fieldPaths.changed', () => {
+            $scope.$on('fieldPaths.changed', setLastModified);
+            $scope.$on('solve.complete', setLastModified);
+
+            function setLastModified() {
+                srdbg('SET LAST MOD');
                 appState.models[$scope.modelName].lastModified = Date.now();
                 appState.saveChanges($scope.modelName);
-            });
+            }
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -1944,6 +1948,7 @@ SIREPO.app.directive('radiaSolver', function(appState, errorService, frameCache,
                     if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
                         $scope.solution = solutionValidForGeom() ? formatSolution(data.solution) : null;
                         if (solving) {
+                            srdbg('SLVE COMPLETE');
                             $rootScope.$broadcast('solve.complete');
                             radiaService.syncReports();
                         }
