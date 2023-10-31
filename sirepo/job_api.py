@@ -19,6 +19,7 @@ import sirepo.feature_config
 import sirepo.job
 import sirepo.quest
 import sirepo.sim_data
+import sirepo.sim_run
 import sirepo.uri_router
 import sirepo.util
 import tornado.httpclient
@@ -91,7 +92,7 @@ class API(sirepo.quest.API):
         )
         s = suffix and sirepo.srschema.parse_name(suffix)
         t = None
-        with simulation_db.tmp_dir(qcall=self) as d:
+        with sirepo.sim_run.tmp_dir(qcall=self) as d:
             # TODO(e-carlin): computeJobHash
             t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
             t.mksymlinkto(d, absolute=True)
@@ -424,7 +425,7 @@ class API(sirepo.quest.API):
         ):
             yield None
             return
-        with simulation_db.tmp_dir(qcall=self) as d:
+        with sirepo.sim_run.tmp_dir(qcall=self) as d:
             t = None
             try:
                 t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())

@@ -57,14 +57,13 @@ def init_quest(qcall, internal_req=None):
         )
     elif "tornado" in str(type(internal_req)):
         r = internal_req.request
-        u = f"{r.protocol}://{r.host}"
         sreq = _SRequest(
             body_as_bytes=lambda: internal_req.request.body,
             http_authorization=_parse_authorization(r.headers.get("Authorization")),
             http_headers=r.headers,
             http_method=r.method,
-            http_request_uri=u + r.path,
-            http_server_uri=u + "/",
+            http_request_uri=r.full_url(),
+            http_server_uri=f"{r.protocol}://{r.host}/",
             internal_req=internal_req,
             _kind="tornado_http",
             remote_addr=r.remote_ip,
