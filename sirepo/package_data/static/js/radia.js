@@ -1569,13 +1569,9 @@ SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotti
             $scope.linePaths = () => ((appState.applicationState().fieldPaths || {}).paths || []).filter($scope.isLine);
 
             $scope.load = json => {
+                srdbg('JSON', json);
                 $scope.integrals = json;
             };
-
-            $scope.$on('fieldPaths.saved', () => {
-                //panelState.clear($scope.modelName);
-                //panelState.requestData($scope.modelName, data => {srdbg('FI', data)}, err => {srdbg('OOPS', err)});
-            });
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -3061,9 +3057,7 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
     };
 });
 
-SIREPO.viewLogic('fieldPathsView', function(activeSection, appState, panelState, radiaService, $scope) {
-    
-    $scope.watchFields = [];
+SIREPO.viewLogic('fieldPathsView', function(appState, $scope) {
     
     appState.watchModelFields(
         $scope,
@@ -3084,6 +3078,8 @@ SIREPO.viewLogic('fieldPathsView', function(activeSection, appState, panelState,
             updateAxisPath(p);
          }
     }
+
+    $scope.$on('')
 });
 
 SIREPO.viewLogic('objectShapeView', function(appState, panelState, radiaService, requestSender, utilities, $element, $scope) {
