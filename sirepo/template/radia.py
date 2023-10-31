@@ -146,7 +146,6 @@ def background_percent_complete(report, run_dir, is_running):
 def extract_report_data(run_dir, sim_in):
     assert sim_in.report in _REPORTS, "report={}: unknown report".format(sim_in.report)
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
-    pkdp("EXTR {}", sim_in.report)
     if sim_in.report == "reset":
         template_common.write_sequential_result({}, run_dir=run_dir)
     if sim_in.report == "geometryReport":
