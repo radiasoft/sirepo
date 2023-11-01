@@ -2057,14 +2057,18 @@ SIREPO.viewLogic('tallyView', function(appState, panelState, $scope) {
     const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
         .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
     const TYPE_ENERGY = 'energyFilter';
-    const FIELDS_ENERGY = Object.keys(SIREPO.APP_SCHEMA.model[TYPE_ENERGY]);
+    const TYPE_MESH = 'meshFilter';
+    const FIELDS_ENERGY = ['num', 'space', 'start', 'stop'];
     const inds = SIREPO.UTILS.indexArray(SIREPO.APP_SCHEMA.constants.maxFilters, 1);
     
     const TYPE_NONE = 'None';
 
+    let watchFields = inds.map(i => `${$scope.modelName}.filter${i}._type`);
+    watchFields = watchFields.concat(FIELDS_ENERGY.map(x => `${TYPE_ENERGY}.${x}`));
+
     function getFilter(type) {
         return inds
-            .map(i => $scope.model[`filter${i}`])
+            .map(i => appState.models[$scope.modelName][`filter${i}`])
             .filter(x => x._type === type)[0];
     }
 
@@ -2073,14 +2077,9 @@ SIREPO.viewLogic('tallyView', function(appState, panelState, $scope) {
     }
 
     function updateEnergyRange() {
-        if (! $scope.model) {
-            return;
-        }
-        if ($scope.modelName !== 'filter') {
-            return;
-        }
         const e = getFilter(TYPE_ENERGY);
         const m = getFilter(TYPE_MESH);
+        $scope.energyFilter = e;
         panelState.showField('meshFilter', 'energyRangeSum', ! ! e);
         if (! e || ! m) {
             return;
@@ -2093,6 +2092,11 @@ SIREPO.viewLogic('tallyView', function(appState, panelState, $scope) {
     }
     
     function updateEditor() {
+        updateAvailableFilters();
+        updateEnergyRange();
+    }
+
+    function updateAvailableFilters() {
         // can always select 'None'
         const assignedTypes = inds.map(i => type(i)).filter(x => x !== TYPE_NONE);
         // remove assigned types
@@ -2107,10 +2111,7 @@ SIREPO.viewLogic('tallyView', function(appState, panelState, $scope) {
 
     $scope.whenSelected = updateEditor;
 
-
-    //$scope.$watchGroup(FIELDS_ENERGY.map(x => `model[field].${x}`), updateEnergyRange);
-
-    //panelState.waitForUI(updateEnergyRange);
+    $scope.$watchGroup(FIELDS_ENERGY.map(x => `energyFilter.${x}`), updateEnergyRange);
 
     $scope.watchFields = [
         inds.map(i => `${$scope.modelName}.filter${i}._type`), updateEditor,
