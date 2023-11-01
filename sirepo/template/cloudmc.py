@@ -111,8 +111,6 @@ def get_data_file(run_dir, model, frame, options):
     if model == "openmcAnimation":
         if options.suffix == "log":
             return template_common.text_data_file(template_common.RUN_LOG, run_dir)
-        if options.suffix == "json":
-            return run_dir.join(_OUTLINES_FILE)
         return _statepoint_filename(
             simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         )
@@ -166,7 +164,12 @@ def sim_frame(frame_args):
         field_data=v.tolist(),
         min_field=v.min(),
         max_field=v.max(),
-        summaryData={},
+        summaryData=PKDict(
+            tally=frame_args.tally,
+            outlines=simulation_db.read_json(frame_args.run_dir.join(_OUTLINES_FILE))[
+                frame_args.tally
+            ],
+        ),
     )
 
 
@@ -215,7 +218,7 @@ def write_parameters(data, run_dir, is_parallel):
                 SIM_TYPE,
                 PKDict(
                     cacheDir=sirepo.sim_run.cache_dir(_CACHE_DIR),
-                    numThreads=data.models.openmcAnimation.tasksPerNode,
+                    numThreads=data.models.openmcAnimation.ompThreads,
                 ),
                 "openmc-sbatch.py",
             ),
@@ -256,14 +259,17 @@ def write_volume_outlines():
                 if t[f]._type == "meshFilter":
                     yield t.name, t[f]
 
+    def _is_skip_dimension(tally_range, dim1, dim2):
+        return len(tally_ranges[dim1]) < _MIN_RES or len(tally_ranges[dim2]) < _MIN_RES
+
     all_outlines = PKDict()
     for tally_name, tally_mesh in _get_meshes():
         tally_ranges = [_center_range(tally_mesh, i) for i in range(3)]
         # don't include outlines of low resolution dimensions
         skip_dimensions = PKDict(
-            x=len(tally_ranges[1]) < _MIN_RES or len(tally_ranges[2]) < _MIN_RES,
-            y=len(tally_ranges[0]) < _MIN_RES or len(tally_ranges[2]) < _MIN_RES,
-            z=len(tally_ranges[0]) < _MIN_RES or len(tally_ranges[1]) < _MIN_RES,
+            x=_is_skip_dimension(tally_ranges, 1, 2),
+            y=_is_skip_dimension(tally_ranges, 0, 2),
+            z=_is_skip_dimension(tally_ranges, 0, 1),
         )
         outlines = PKDict()
         all_outlines[tally_name] = outlines

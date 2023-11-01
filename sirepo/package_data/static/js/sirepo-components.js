@@ -4427,9 +4427,9 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
             $scope.sbatchFields = getSbatchFields();
 
             function getSbatchFields() {
-                const f = ['sbatchHours', 'sbatchCores', 'tasksPerNode'];
+                const f = [...SIREPO.APP_SCHEMA.constants.sbatch.fields];
                 if (isNersc()) {
-                    f.push('sbatchQueue', 'sbatchProject');
+                    f.push(...SIREPO.APP_SCHEMA.constants.sbatch.nersc);
                 }
                 // group fields in pairs
                 const g = [];
@@ -4470,7 +4470,7 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 var s = 'connected to ' +
                     authState.jobRunModeMap[appState.models[$scope.simState.model].jobRunMode];
                 if (sbatchLoginStatusService.loggedIn) {
-                    s += `. To start press "${stringsService.startButtonLabel()}"`;
+                    s += `. To start, press "${stringsService.startButtonLabel()}"`;
                 }
                 else {
                     s = 'not ' + s;

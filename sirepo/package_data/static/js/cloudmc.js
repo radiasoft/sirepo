@@ -95,14 +95,14 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState) {
     appState.setAppService(self);
 
     function findScore(score) {
-        return findTally().scores.filter(v => v.score == score).length
+        return findTally().scores.filter(v => v.score === score).length
             ? score
             : null;
     }
 
     function findTally() {
         const a = appState.models.openmcAnimation;
-        return a.tallies.filter(v => v.name == a.tally)[0];
+        return a.tallies.filter(v => v.name === a.tally)[0];
     }
 
     // volumes are measured in centimeters
@@ -324,7 +324,7 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSender, $rootScope) {
+SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope) {
     const self = {
         mesh: null,
         fieldData: null,
@@ -354,10 +354,10 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
     };
 
     self.getOutlines = (volId, dim, index) => {
-        if (! self.outlines || $.isEmptyObject(self.outlines)) {
+        if (! self.outlines) {
             return [];
         }
-        const t = self.outlines[appState.models.openmcAnimation.tally];
+        const t = self.outlines[appState.applicationState().openmcAnimation.tally];
         if (t) {
             const o = t[`${volId}`][dim];
             if (o.length) {
@@ -379,28 +379,18 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
         self.mesh = null;
     };
 
-    self.loadOutlines = callback => {
-        self.outlines = {};
-        requestSender.sendDownloadDataFile(
-            appState,
-            {
-                model: 'openmcAnimation',
-                suffix: 'json',
-            },
-            data => {
-                self.outlines = data;
-                callback();
-            },
-            err => {
-                // no outlines file, result directory has been cleared, or not connected to nersc
-            },
-        );
-    };
-
     self.setFieldData = (fieldData, min, max) => {
         self.fieldData = fieldData;
         self.minField = min;
         self.maxField = max;
+    };
+
+    self.setOutlines = (tally, outlines) => {
+        if (appState.applicationState().openmcAnimation.tally == tally) {
+            self.outlines = {
+                [tally]: outlines,
+            };
+        }
     };
 
     self.tallyRange = (dim, useBinCenter=false) => {
@@ -613,6 +603,13 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
                 appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
                 appState.saveQuietly('tallyReport');
             });
+
+            $scope.$on('openmcAnimation.summaryData', (e, summaryData) => {
+                if (summaryData.tally) {
+                    tallyService.setOutlines(summaryData.tally, summaryData.outlines);
+                }
+            });
+            
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -753,13 +750,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             }
 
             function updateDisplayRange() {
-                if (! tallyService.outlines) {
-                    tallyService.loadOutlines(() => {
-                        if (tallyService.fieldData) {
-                            buildTallyReport();
-                        }
-                    });
-                }
                 tallyService.initMesh();
                 if (! tallyService.mesh) {
                     return;
