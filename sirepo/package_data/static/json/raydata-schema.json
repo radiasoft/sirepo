@@ -153,6 +153,12 @@
                 "pageSize"
             ]
         },
+        "simulation": {
+            "title": "Source",
+            "advanced": [
+                "catalog.catalogName"
+            ]
+        },
         "simulationStatus": {
             "title": "Poll For New Scans",
             "basic": [],
