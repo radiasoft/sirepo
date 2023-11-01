@@ -8,6 +8,10 @@
         "geometryScale": 0.01,
         "inProgressText": "Working",
         "maxFilters": 5,
+        "sbatch": {
+            "fields": ["sbatchHours", "sbatchNodes"],
+            "nersc": ["sbatchQueue", "sbatchProject"]
+        },
         "scoreUnits": {
             "damage-energy": "eV",
             "decay-rate": "$s^{-1}$",
@@ -920,11 +924,13 @@
             "threshold": ["Threshold", "Float", 0.0, "Tally cells with a value below this will not be displayed"],
             "score": ["Score", "ScoreList"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "tasksPerNode": ["Processes per node", "Integer", 128],
-            "sbatchCores": ["Cores", "Integer", 128],
+            "tasksPerNode": ["Tasks per node", "Integer", 8, "", 1],
             "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchNodes": ["Nodes", "Integer", 32, "", 1],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
-            "sbatchProject": ["Project", "OptionalString", ""]
+            "sbatchCores": ["CPUs per task", "Integer", 16, "", 1],
+            "sbatchProject": ["Project", "OptionalString", ""],
+            "ompThreads": ["OMP threads", "Integer", 16, "", 1]
         },
         "particle": {
             "value": ["Particle", "FilterParticle"]

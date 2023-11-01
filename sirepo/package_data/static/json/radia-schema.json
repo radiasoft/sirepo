@@ -151,6 +151,10 @@
             "item": ":"
         },
         "objectScale": 0.001,
+        "sbatch": {
+            "fields": ["sbatchHours", "sbatchCores"],
+            "nersc": ["tasksPerNode", "sbatchQueue", "sbatchProject"]
+        },
         "toolbarItems": [
             {
                 "canDrag": true,

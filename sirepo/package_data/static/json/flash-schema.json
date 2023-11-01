@@ -9,7 +9,11 @@
         "flashAppName": "flashApp",
         "setupLogFrameId": -1,
         "compileLogFrameId": -2,
-        "flashLogFrameId": -3
+        "flashLogFrameId": -3,
+        "sbatch": {
+            "fields": ["sbatchHours", "sbatchCores"],
+            "nersc": ["tasksPerNode", "sbatchQueue", "sbatchProject"]
+        }
     },
     "enum": {
         "Axis": [
