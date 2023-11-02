@@ -9,6 +9,9 @@ _cfg = None
 
 
 class CSX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
+    def get_conda_env(self):
+        return _cfg.conda_env
+
     def get_notebooks(self, **kwargs):
         with zipfile.ZipFile(
             _cfg.base_dir.join(f"{self.catalog_name}.zip"),
@@ -30,4 +33,5 @@ _cfg = pkconfig.init(
     base_dir=pkconfig.Required(
         pkio.py_path, "base directory for notebooks and outputs"
     ),
+    conda_env=("2023-1.2-py39", str, "conda environment name"),
 )

@@ -369,10 +369,11 @@ async def _init_analysis_processors():
                     try:
                         for n in d.get_notebooks():
                             p = await asyncio.create_subprocess_exec(
-                                "papermill",
-                                str(n.input_f),
-                                str(n.output_f),
-                                *d.get_papermill_args(),
+                                "bash",
+                                d.render_papermill_script(
+                                    input_f=n.input_f,
+                                    output_f=n.output_f,
+                                ),
                                 stderr=asyncio.subprocess.STDOUT,
                                 stdout=l,
                             )
