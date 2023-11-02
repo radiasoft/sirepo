@@ -386,7 +386,6 @@ SIREPO.app.directive('scansTable', function() {
             modelName: '=',
         },
         template: `
-            <div><b>Catalog </b>{{ appState.applicationState().catalog.catalogName }}</div>
             <div class="row" data-show-loading-and-error="" data-model-key="scans">
               <div>
                 <div class="pull-right" data-ng-if="pageLocationText">
