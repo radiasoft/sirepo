@@ -3228,7 +3228,7 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
                 </div>
                 <label class="col-sm-2 control-label">Password</label>
                 <div class="col-sm-10">
-                  <input type="text" value='' maxlength="256" class="form-control" data-ng-model="password"/>
+                  <input type="password" value='' maxlength="256" class="form-control" data-ng-model="password"/>
                 </div>
               </div>
               <div class="form-group">
