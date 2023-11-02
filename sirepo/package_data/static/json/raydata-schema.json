@@ -88,6 +88,9 @@
             "scans": ["", "RunAnalysisTable", ""],
             "confirmRunAnalysis": ["Hide this message for this session", "Boolean", "0"]
         },
+        "simulation": {
+            "catalogName": ["Catalog Name", "CatalogName", ""]
+        },
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
         }
@@ -156,7 +159,7 @@
         "simulation": {
             "title": "Source",
             "advanced": [
-                "catalog.catalogName"
+                "catalogName"
             ]
         },
         "simulationStatus": {

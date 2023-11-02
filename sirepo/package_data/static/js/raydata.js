@@ -131,7 +131,7 @@ SIREPO.app.directive('catalogPicker', function() {
         },
         template: `
             <div data-ng-hide="!awaitingCatalogNames">Loading...</div>
-            <select class="form-control" data-ng-hide="awaitingCatalogNames" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames"></select>
+            <select class="form-control" data-ng-hide="awaitingCatalogNames" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames" required></select>
         `,
         controller: function($scope, appState, errorService, requestSender) {
             $scope.catalogNames = [];

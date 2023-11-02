@@ -21,6 +21,10 @@ import sirepo.util
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
+def new_simulation(data, new_simulation_data, qcall, **kwargs):
+    data.models.catalog.catalogName = new_simulation_data.catalogName
+
+
 def stateless_compute_analysis_output(data, **kwargs):
     return _request_scan_monitor(PKDict(method="analysis_output", data=data))
 
