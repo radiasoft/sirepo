@@ -170,7 +170,6 @@ def sim_frame(frame_args):
             for j in range(len(vv[i])):
                 for k in range(len(vv[i][j])):
                     z[i][j][k][0] = numpy.sum(vv[i][j][k][bins[0]:bins[1]])
-        pkdp("DIMS {} BINS {} VV {}, Z {}", mesh_filter.dimension, bins, vv.shape, z.shape)
         return z.ravel()
        
     t = openmc.StatePoint(
@@ -406,7 +405,8 @@ def _generate_parameters_file(data, run_dir=None):
 
 
 def _generate_range(filter):
-    return "numpy.{}({}, {}, {})".format(
+    return "{} * numpy.{}({}, {}, {})".format(
+        filter.scale,
         "linspace" if filter.space == "linear" else "logspace",
         filter.start,
         filter.stop,
