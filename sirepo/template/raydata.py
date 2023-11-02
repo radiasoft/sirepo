@@ -22,7 +22,7 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
 def new_simulation(data, new_simulation_data, qcall, **kwargs):
-    data.models.catalog.catalogName = new_simulation_data.catalogName
+    data.models.catalog.catalogName = new_simulation_data.catalogNamePicker
 
 
 def stateless_compute_analysis_output(data, **kwargs):

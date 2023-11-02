@@ -23,8 +23,11 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="QueuedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="queued"></div>
         </div>
-        <div data-ng-switch-when="CatalogName" data-ng-class="fieldClass">
+        <div data-ng-switch-when="CatalogNamePicker" data-ng-class="fieldClass">
           <div data-catalog-picker="" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="CatalogNameDisplay" data-ng-class="fieldClass">
+          <div data-catalog-name-display="" data-model="model" data-field="field"></div>
         </div>
     `;
     SIREPO.appReportTypes  = `
@@ -121,6 +124,21 @@ SIREPO.app.directive('appHeader', function(appState) {
         `,
     };
 });
+
+
+SIREPO.app.directive('catalogNameDisplay', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: `
+            {{ model[field] }}
+        `,
+    }
+});
+
 
 SIREPO.app.directive('catalogPicker', function() {
     return {
@@ -368,6 +386,7 @@ SIREPO.app.directive('scansTable', function() {
             modelName: '=',
         },
         template: `
+            <div><b>Catalog </b>{{ appState.applicationState().catalog.catalogName }}</div>
             <div class="row" data-show-loading-and-error="" data-model-key="scans">
               <div>
                 <div class="pull-right" data-ng-if="pageLocationText">
