@@ -12,6 +12,10 @@ SIREPO.app.config(() => {
           <div data-sim-array="" data-model="model" data-field="field" data-sub-model-name="coupledSim"></div>
         </div>
     `;
+
+    SIREPO.appDownloadLinks = `
+        <li data-ng-if="::hasDataFile"><a href data-ng-href="{{ dataFileURL(\'openpmd\') }}">OpenPMD Data File</a></li>
+    `;
 });
 
 SIREPO.app.factory('omegaService', function(appState) {

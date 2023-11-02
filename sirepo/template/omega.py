@@ -4,13 +4,20 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pmd_beamphysics import ParticleGroup
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+import h5py
+import numpy
+import pmd_beamphysics.interfaces.elegant
+import pmd_beamphysics.interfaces.genesis
+import pmd_beamphysics.interfaces.opal
 import re
 import sirepo.sim_data
+import sirepo.template
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _PHASE_PLOT_COUNT = 4
@@ -119,6 +126,53 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def get_data_file(run_dir, model, frame, options):
+    i = int(re.search(r"Animation(\d+)\-", model).groups(1)[0])
+    sim_type, sim_id = _sim_info(
+        simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models,
+        i - 1,
+    )
+    particle_file = pkio.py_path(f"run{i}").join(_SUCCESS_OUTPUT_FILE[sim_type])
+    if options.suffix is None:
+        return particle_file
+    assert options.suffix == "openpmd", f"unknown data type={options.suffix} requested"
+    n = f"{sim_type}_openpmd.h5"
+    d = None
+    if sim_type == "elegant":
+        p = ParticleGroup(
+            data=pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file),
+        ).write(n)
+    elif sim_type == "opal":
+        step = _template_for_sim_type(sim_type).read_frame_count(pkio.py_path("."))
+        with h5py.File(particle_file, "r") as f:
+            p = ParticleGroup(
+                data=pmd_beamphysics.interfaces.opal.opal_to_data(f[f"/Step#{step}"]),
+            ).write(n)
+    elif sim_type == "genesis":
+        dm = simulation_db.read_json(
+            pkio.py_path(f"run{i}").join(template_common.INPUT_BASE_NAME + ".json")
+        ).models
+        v = numpy.fromfile(
+            particle_file.dirpath().join(particle_file.purebasename + ".dpa"),
+            dtype=numpy.float64,
+        )
+        v = v.reshape(
+            int(len(v) / 6 / dm.electronBeam.npart),
+            6,
+            dm.electronBeam.npart,
+        )
+        p = ParticleGroup(
+            data=pmd_beamphysics.interfaces.genesis.genesis2_dpa_to_data(
+                v,
+                xlamds=dm.radiation.xlamds,
+                current=numpy.array([dm.electronBeam.curpeak]),
+            )
+        ).write(n)
+    else:
+        raise AssertionError(f"unsupported sim_type={sim_type}")
+    return n
+
+
 def post_execution_processing(success_exit, run_dir, **kwargs):
     if not success_exit:
         # first check for assertion errors in main log file
@@ -134,7 +188,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
         if not sim_type or not sim_id:
             continue
         sim_dir = _sim_dir(run_dir, idx + 1)
-        sim_template = sirepo.template.import_module(sim_type)
+        sim_template = _template_for_sim_type(sim_type)
         res = f"{sim_type.upper()} failed\n"
         if success_exit:
             # no error
@@ -197,8 +251,6 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _extract_elegant_beam_plot(frame_args):
     # this is tricky because the data could come from 2 different elegant output files
-    import sirepo.template.elegant
-
     files = PKDict()
     frame_args.x = "s"
     for f in ("y1", "y2", "y3"):
@@ -219,7 +271,7 @@ def _extract_elegant_beam_plot(frame_args):
                 frame_args[f"y{i}"] = files[fn][i - 1]
             else:
                 frame_args[f"y{i}"] = "none"
-        r = sirepo.template.elegant.extract_report_data(
+        r = _template_for_sim_type("elegant").extract_report_data(
             str(frame_args.run_dir.join(fn)),
             frame_args,
         )
@@ -318,38 +370,30 @@ def _plot_beam(sim_type, frame_args):
     for f in ("y1", "y2", "y3"):
         frame_args[f] = _BEAM_PARAMETERS[sim_type][frame_args[f]]
     if sim_type == "opal":
-        import sirepo.template.opal
-
         frame_args.x = "s"
-        return sirepo.template.opal.sim_frame_plot2Animation(frame_args)
+        return _template_for_sim_type(sim_type).sim_frame_plot2Animation(frame_args)
     if sim_type == "elegant":
         return _extract_elegant_beam_plot(frame_args)
     if sim_type == "genesis":
-        import sirepo.template.genesis
-
         frame_args.sim_in = simulation_db.read_json(
             frame_args.run_dir.join(template_common.INPUT_BASE_NAME)
         )
-        return sirepo.template.genesis.sim_frame_parameterAnimation(frame_args)
+        return _template_for_sim_type(sim_type).sim_frame_parameterAnimation(frame_args)
 
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
 
 
 def _plot_field_dist(sim_type, frame_args):
-    import sirepo.template.genesis
-
     frame_args.frameIndex = 0
     frame_args.frameReport = "finalFieldAnimation"
-    return sirepo.template.genesis.sim_frame_finalFieldAnimation(frame_args)
+    return _template_for_sim_type("genesis").sim_frame_finalFieldAnimation(frame_args)
 
 
 def _plot_phase(sim_type, frame_args):
     _phase_plot_args(sim_type, frame_args)
 
     if sim_type == "opal":
-        import sirepo.template.opal
-
-        r = sirepo.template.opal.bunch_plot(
+        r = _template_for_sim_type(sim_type).bunch_plot(
             frame_args,
             frame_args.run_dir,
             frame_args.frameIndex,
@@ -361,20 +405,18 @@ def _plot_phase(sim_type, frame_args):
             ),
         )
     if sim_type == "elegant":
-        import sirepo.template.elegant
-
-        return sirepo.template.elegant.extract_report_data(
+        return _template_for_sim_type(sim_type).extract_report_data(
             str(frame_args.run_dir.join(_SUCCESS_OUTPUT_FILE[sim_type])),
             frame_args,
         )
     if sim_type == "genesis":
-        import sirepo.template.genesis
-
         frame_args.frameIndex = 0
-        return sirepo.template.genesis.sim_frame_finalParticleAnimation(
-            frame_args
-        ).pkupdate(
-            title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
+        return (
+            _template_for_sim_type(sim_type)
+            .sim_frame_finalParticleAnimation(frame_args)
+            .pkupdate(
+                title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
+            )
         )
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
 
@@ -400,3 +442,7 @@ def _sim_list(sim_type):
             key=lambda row: row["name"],
         )
     )
+
+
+def _template_for_sim_type(sim_type):
+    return sirepo.template.import_module(sim_type)

@@ -802,7 +802,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               <div data-ng-switch-when="InputFile" class="col-sm-7">
                 <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[4]" data-empty-selection-text="No File Selected"></div>
               </div>
-               <div data-ng-switch-when="Boolean" class="col-sm-7">
+               <div data-ng-switch-when="Boolean" class="fieldClass">
                  <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
                </div>
               <div data-ng-switch-when="ColorMap" class="col-sm-7">
@@ -3228,7 +3228,7 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
                 </div>
                 <label class="col-sm-2 control-label">Password</label>
                 <div class="col-sm-10">
-                  <input type="text" value='' maxlength="256" class="form-control" data-ng-model="password"/>
+                  <input type="password" value='' maxlength="256" class="form-control" data-ng-model="password"/>
                 </div>
               </div>
               <div class="form-group">
@@ -5178,12 +5178,37 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         });
     };
 
+    // Returns a minimal formatted json-like value
+    this.objectToText = function(obj) {
+        return JSON
+            .stringify(obj, undefined, 2)
+            .replace(/^(\{|\[)\s*\n/g, '')
+            .replace(/\:\s*(\{|\[)\s*$/gm, ':')
+            .replace(/^\s*(\}|\]|\[),?\s*\n/gm, '')
+            .replace(/\n\s*(\}|\])\s*/g, '')
+            .replace(/,$/gm, '')
+            .replace(/\"/g, '');
+    };
+
     this.roundToPlaces = function(val, p) {
         if (p < 0) {
             return val;
         }
         var r = Math.pow(10, p);
         return Math.round(val * r) / r;
+    };
+
+    this.trimText = function(text, maxLines, maxLength) {
+        const m = text.match(new RegExp(`^(.*\n+){${maxLines}}`));
+        if (m) {
+            if (m[0].length < maxLength) {
+                return m[0].replace(/\n$/, '');
+            }
+        }
+        if (text.length > maxLength) {
+            return text.substring(0, maxLength);
+        }
+        return text;
     };
 
     // returns an array containing the unique elements of the input,
