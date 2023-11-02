@@ -33,7 +33,5 @@ _cfg = pkconfig.init(
     base_dir=pkconfig.Required(
         pkio.py_path, "base directory for notebooks and outputs"
     ),
-    conda_env=pkconfig.RequiredUnlessDev(
-        "2023-1.2-py39", str, "conda environment name"
-    ),
+    conda_env=("2023-1.2-py39", str, "conda environment name"),
 )

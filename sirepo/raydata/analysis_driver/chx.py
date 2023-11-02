@@ -54,7 +54,5 @@ _cfg = pkconfig.init(
     base_dir=pkconfig.Required(
         pkio.py_path, "base directory for notebooks and outputs"
     ),
-    conda_env=pkconfig.RequiredUnlessDev(
-        "analysis-2019-3.0.1-chx", str, "conda environment name"
-    ),
+    conda_env=("analysis-2019-3.0.1-chx", str, "conda environment name"),
 )

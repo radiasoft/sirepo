@@ -30,7 +30,7 @@ class AnalysisDriverBase(PKDict):
         return pkio.walk_tree(self.get_output_dir(), r".*\.pdf$")
 
     def get_conda_env(self):
-        return ""
+        raise NotImplementedError("children must implement this method")
 
     def get_notebooks(self, *args, **kwargs):
         raise NotImplementedError("children must implement this method")
@@ -75,9 +75,6 @@ class AnalysisDriverBase(PKDict):
         res.append("--report-mode")
         return res
 
-    def get_papermill_script_path(self):
-        return self.get_output_dir().join(_PAPERMILL_SCRIPT)
-
     def get_run_log(self):
         p = self.get_output_dir().join("run.log")
         return PKDict(
@@ -89,6 +86,7 @@ class AnalysisDriverBase(PKDict):
         return len(self.get_analysis_pdf_paths()) > 0
 
     def render_papermill_script(self, input_f, output_f):
+        p = self.get_output_dir().join(_PAPERMILL_SCRIPT)
         pkjinja.render_resource(
             _PAPERMILL_SCRIPT,
             PKDict(
@@ -99,10 +97,9 @@ class AnalysisDriverBase(PKDict):
                 conda_env=self.get_conda_env(),
                 catalog_name=self.catalog_name,
             ),
-            output=self.get_papermill_script_path(),
+            output=p,
         )
-
-        return self.get_papermill_script_path()
+        return p
 
     def _get_papermill_args(self, *args, **kwargs):
         return []
@@ -134,7 +131,9 @@ def init(catalog_names):
 
 
 _cfg = pkconfig.init(
-    conda_prefix=pkconfig.RequiredUnlessDev(
-        "/home/vagrant/miniconda", pkio.py_path, "base directory for conda environments"
+    conda_prefix=(
+        "~/miniconda",
+        pkio.py_path,
+        "base directory for conda environments",
     ),
 )

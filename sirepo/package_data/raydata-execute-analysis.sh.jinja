@@ -2,15 +2,13 @@
 # No set -eou pipefail before activating the conda env because the
 # activation scripts have unbound variables and other errors that can
 # be ignored.
-if [[ -n "{{ conda_env }}" ]]; then
-    export CONDA_PREFIX={{ conda_prefix }}
-    eval "$($CONDA_PREFIX/bin/conda "shell.bash" "hook" 2> /dev/null)"
-    conda activate '{{ conda_env }}'
-    # Sanity check to make sure the activation was successful.
-    if ! conda info --envs | grep -q -E '{{ conda_env }}\s+\*\s+\/' ; then
-        echo 'The active conda env is not what we expect' 2>&1
-        conda info --envs
-        exit 1
-    fi
+export CONDA_PREFIX={{ conda_prefix }}
+eval "$($CONDA_PREFIX/bin/conda "shell.bash" "hook" 2> /dev/null)"
+conda activate '{{ conda_env }}'
+# Sanity check to make sure the activation was successful.
+if ! conda info --envs | grep -q -E '{{ conda_env }}\s+\*\s+\/' ; then
+    echo 'The active conda env is not what we expect' 2>&1
+    conda info --envs
+    exit 1
 fi
 papermill '{{ input_f }}'  '{{ output_f }}'  {{ papermill_args }}
