@@ -281,15 +281,15 @@
             "_super": ["_", "model", "filter"],
             "_scale": ["", "Float", 1e6],
             "space": ["Space", "BinSpace", "linear"],
-            "start": ["Start", "Float", 0],
-            "stop": ["Stop", "Float", 1],
+            "start": ["Start [MeV]", "Float", 0],
+            "stop": ["Stop [MeV]", "Float", 1],
             "num": ["Number of samples", "Integer", 50, "", 2]
         },
         "energyoutFilter": {
             "_super": ["_", "model", "filter"],
             "space": ["Space", "BinSpace", "linear"],
-            "start": ["Start", "Float", 0],
-            "stop": ["Stop", "Float", 1],
+            "start": ["Start [MeV]", "Float", 0],
+            "stop": ["Stop [MeV]", "Float", 1],
             "num": ["Number of samples", "Integer", 50]
         },
         "filter": {

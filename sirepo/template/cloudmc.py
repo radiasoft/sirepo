@@ -406,7 +406,7 @@ def _generate_parameters_file(data, run_dir=None):
 
 def _generate_range(filter):
     return "{} * numpy.{}({}, {}, {})".format(
-        filter.scale,
+        filter._scale,
         "linspace" if filter.space == "linear" else "logspace",
         filter.start,
         filter.stop,
