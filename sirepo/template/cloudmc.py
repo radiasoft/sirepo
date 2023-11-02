@@ -164,10 +164,14 @@ def sim_frame(frame_args):
 
     def _sum_energy_bins(values, mesh_filter):
         bins = mesh_filter.energyRangeSum.bins
-        vv = numpy.reshape(values, (-1, numpy.product(mesh_filter.dimension)))
-        return numpy.sum(vv[bins[0]:bins[1]], axis=0)
-        #vv = numpy.reshape(values, (numpy.product(mesh_filter.dimension), -1))
-        #return numpy.sum(vv[bins[0]:bins[1]], axis=1)
+        vv = numpy.reshape(values, (*mesh_filter.dimension, -1))
+        z = numpy.zeros((*mesh_filter.dimension, 1))
+        for i in range(len(vv)):
+            for j in range(len(vv[i])):
+                for k in range(len(vv[i][j])):
+                    z[i][j][k][0] = numpy.sum(vv[i][j][k][bins[0]:bins[1]])
+        pkdp("DIMS {} BINS {} VV {}, Z {}", mesh_filter.dimension, bins, vv.shape, z.shape)
+        return z.ravel()
        
     t = openmc.StatePoint(
         frame_args.run_dir.join(_statepoint_filename(frame_args.sim_in))
@@ -179,7 +183,6 @@ def sim_frame(frame_args):
         return PKDict(error=f"Tally {t.name} contains no Mesh")
     
     v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
-    pkdp("INIT SH {}", v.shape)
 
     try:
         t.find_filter(openmc.EnergyFilter)
@@ -193,7 +196,6 @@ def sim_frame(frame_args):
                 "meshFilter"
             ),
         )
-        pkdp("NEW SH {}", v.shape)
     except ValueError:
         pass
 
