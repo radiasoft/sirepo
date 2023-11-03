@@ -127,6 +127,15 @@ class API(sirepo.quest.API):
                 f"frame={frame} not found sid={req.id} sim_type={req.type}",
             )
 
+    @sirepo.quest.Spec("require_user")
+    async def api_globalResources(self):
+        assert (
+            sirepo.feature_config.cfg().enable_global_resources
+        ), "global resources server api called but system not enabled"
+        return await self._request_api(
+            _request_content=self._parse_post_just_data(),
+        )
+
     @sirepo.quest.Spec("allow_visitor")
     async def api_jobSupervisorPing(self):
         e = None
