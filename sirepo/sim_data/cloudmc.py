@@ -68,6 +68,8 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
+        if data.get("report") == "tallyReport":
+            return []
         return [
             cls.dagmc_filename(data),
         ] + cls.source_filenames(data)

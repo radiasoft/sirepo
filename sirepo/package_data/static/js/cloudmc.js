@@ -110,8 +110,9 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState) {
             : null;
     }
 
-    function findTally(tallies, tally) {
-        return tallies.filter(v => v.name == tally)[0];
+    function findTally() {
+        const a = appState.models.openmcAnimation;
+        return a.tallies.filter(v => v.name === a.tally)[0];
     }
 
     // volumes are measured in centimeters
@@ -179,11 +180,11 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState) {
 
     self.validateSelectedTally = () => {
         const a = appState.models.openmcAnimation;
-        if (! a.tally || ! findTally(a.tallies, a.tally)) {
+        if (! a.tally || ! findTally()) {
             a.tally = a.tallies[0].name;
         }
-        if (! a.score || ! findScore(a.tallies, a.tally, a.score)) {
-            a.score = findTally(a.tallies, a.tally).scores[0].score;
+        if (! a.score || ! findScore(a.score)) {
+            a.score = findTally().scores[0].score;
         }
         appState.saveQuietly('openmcAnimation');
     };
@@ -280,20 +281,11 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         if (data.tallies) {
             validateSelectedTally(data.tallies);
         }
-        if (self.simState.isStateCompleted()) {
-            tallyService.loadOutlines();
-        }
     };
     self.simState = persistentSimulation.initSimulationState(self);
     self.simState.errorMessage = () => errorMessage;
     self.simState.runningMessage = () => {
         return `Completed batch: ${self.simState.getFrameCount()}`;
-    };
-    self.simCompletionState = () => {
-        if (self.simState.isStateError()) {
-            return '';
-        }
-        return `${frameCache.getFrameCount()} batches`;
     };
     self.startSimulation = function() {
         tallyService.clearMesh();
@@ -357,7 +349,7 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSender, $rootScope) {
+SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope) {
     const self = {
         mesh: null,
         fieldData: null,
@@ -387,10 +379,17 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
     };
 
     self.getOutlines = (volId, dim, index) => {
-        if (! self.outlines || $.isEmptyObject(self.outlines)) {
+        if (! self.outlines) {
             return [];
         }
-        return self.outlines[`${volId}`][dim][index];
+        const t = self.outlines[appState.applicationState().openmcAnimation.tally];
+        if (t) {
+            const o = t[`${volId}`][dim];
+            if (o.length) {
+                return o[index];
+            }
+        }
+        return [];
     };
 
     self.initMesh = () => {
@@ -405,25 +404,18 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
         self.mesh = null;
     };
 
-    self.loadOutlines = () => {
-        self.outlines = {};
-        requestSender.sendDownloadDataFile(
-            appState,
-            {
-                model: 'openmcAnimation',
-                suffix: 'json',
-            },
-            data => {
-                self.outlines = data;
-                $rootScope.$broadcast('outlines.loaded');
-            },
-        );
-    };
-
     self.setFieldData = (fieldData, min, max) => {
         self.fieldData = fieldData;
         self.minField = min;
         self.maxField = max;
+    };
+
+    self.setOutlines = (tally, outlines) => {
+        if (appState.applicationState().openmcAnimation.tally == tally) {
+            self.outlines = {
+                [tally]: outlines,
+            };
+        }
     };
 
     self.tallyRange = (dim, useBinCenter=false) => {
@@ -607,8 +599,8 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                         <a href data-ng-click="setSelectedGeometry('3D')">3D</a>
                     </li>
                 </ul>
-                <div data-ng-show="energyFilter()" class="pull-right">
-                  <span data-text-with-math="energySumFormula()"></span>
+                <div data-ng-if="energyFilter()" class="pull-right">
+                  <label>Energy &Sigma; {{ appState.models.openmcAnimation.energyRangeSum.val[0] }}-{{ appState.models.openmcAnimation.energyRangeSum.val[1] }} MeV</label>
                 </div>
                 <div data-ng-if="is3D()">
                     <div data-report-content="geometry3d" data-model-key="{{ modelName }}"></div>
@@ -621,12 +613,8 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
         controller: function($scope) {
             plotting.setTextOnlyReport($scope);
 
+            $scope.appState = appState;
             $scope.energyFilter = () => cloudmcService.findFilter('energyFilter');
-
-            $scope.energySumFormula = () => {
-                const s = appState.models.openmcAnimation.energyRangeSum.val;
-                return `Energy $\\large{\\sum ${s[0]} \\rightarrow ${s[1]}}$ MeV`;
-            };
 
             $scope.load = json => {
                 if (json.content) {
@@ -647,6 +635,13 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                 appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
                 appState.saveQuietly('tallyReport');
             });
+
+            $scope.$on('openmcAnimation.summaryData', (e, summaryData) => {
+                if (summaryData.tally) {
+                    tallyService.setOutlines(summaryData.tally, summaryData.outlines);
+                }
+            });
+            
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -654,7 +649,7 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
     };
 });
 
-SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState, tallyService) {
+SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache, panelState, tallyService) {
     return {
         restrict: 'A',
         scope: {},
@@ -834,12 +829,9 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
             $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
-            $scope.$on('outlines.loaded', () => {
-                if (tallyService.fieldData) {
-                    buildTallyReport();
-                }
-            });
-            updateDisplayRange();
+            if (frameCache.hasFrames('openmcAnimation')) {
+                updateDisplayRange();
+            }
         },
     };
 });
@@ -1169,7 +1161,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             }
 
             function setGlobalProperties() {
-                if (! vtkScene.renderer) {
+                if (! vtkScene || ! vtkScene.renderer) {
                     return;
                 }
                 vtkScene.setBgColor(model().bgColor);
