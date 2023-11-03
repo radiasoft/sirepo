@@ -153,14 +153,17 @@ class _Auth(sirepo.quest.Attr):
         self._logged_in_user = _cfg.logged_in_user
         self._logged_in_method = METHOD_GUEST if _cfg.logged_in_user else None
 
-    def check_sim_type_role(self, sim_type):
+    def check_sim_type_role(self, sim_type, force_sim_type_required_for_api=False):
         from sirepo import auth_role_moderation, oauth, uri_router
 
         t = sirepo.template.assert_sim_type(sim_type)
         self.qcall.sim_type_set(t)
         if t not in sirepo.feature_config.auth_controlled_sim_types():
             return
-        if not uri_router.maybe_sim_type_required_for_api(self.qcall):
+        if (
+            not force_sim_type_required_for_api
+            and not uri_router.maybe_sim_type_required_for_api(self.qcall)
+        ):
             return
         u = self.logged_in_user()
         r = sirepo.auth_role.for_sim_type(t)
