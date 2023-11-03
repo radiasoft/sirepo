@@ -134,7 +134,7 @@ SIREPO.app.directive('catalogNameDisplay', function() {
             field: '=',
         },
         template: `
-            {{ model[field] }}
+            <div class="form-control-static text-uppercase"><strong>{{ model[field] }}</strong></div>
         `,
     };
 });
@@ -149,7 +149,7 @@ SIREPO.app.directive('catalogPicker', function() {
         },
         template: `
             <div data-ng-hide="!awaitingCatalogNames">Loading...</div>
-            <select class="form-control" data-ng-hide="awaitingCatalogNames" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames" required></select>
+            <select class="form-control text-uppercase" data-ng-hide="awaitingCatalogNames" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames" required></select>
         `,
         controller: function($scope, appState, errorService, requestSender) {
             $scope.catalogNames = [];
