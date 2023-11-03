@@ -136,7 +136,7 @@ SIREPO.app.directive('catalogNameDisplay', function() {
         template: `
             {{ model[field] }}
         `,
-    }
+    };
 });
 
 
