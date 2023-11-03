@@ -590,7 +590,7 @@ SIREPO.app.directive('tallyVolumePicker', function(cloudmcService, volumeLoading
     };
 });
 
-SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
+SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting, tallyService) {
     return {
         restrict: 'A',
         scope: {
@@ -607,6 +607,9 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
                         <a href data-ng-click="setSelectedGeometry('3D')">3D</a>
                     </li>
                 </ul>
+                <div data-ng-show="energyFilter()" class="pull-right">
+                  <span data-text-with-math="energySumFormula()"></span>
+                </div>
                 <div data-ng-if="is3D()">
                     <div data-report-content="geometry3d" data-model-key="{{ modelName }}"></div>
                 </div>
@@ -617,6 +620,14 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
         `,
         controller: function($scope) {
             plotting.setTextOnlyReport($scope);
+
+            $scope.energyFilter = () => cloudmcService.findFilter('energyFilter');
+
+            $scope.energySumFormula = () => {
+                const s = appState.models.openmcAnimation.energyRangeSum.val;
+                return `Energy $\\large{\\sum ${s[0]} \\rightarrow ${s[1]}}$ MeV`;
+            };
+
             $scope.load = json => {
                 if (json.content) {
                     // old format, ignore
