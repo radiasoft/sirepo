@@ -783,10 +783,15 @@ class _SbatchRun(_SbatchCmd):
 {sirepo.nersc.sbatch_project_option(self.msg.sbatchProject)}"""
             s = "--cpu-bind=cores shifter --entrypoint"
         f = self.run_dir.join(self.jid + ".sbatch")
+        if "sbatchNodes" in self.msg:
+            n = f"""#SBATCH --nodes={self.msg.sbatchNodes}
+#SBATCH --cpus-per-task={self.msg.sbatchCores}"""
+        else:
+            n = f"#SBATCH --ntasks={self.msg.sbatchCores}"
         f.write(
             f"""#!/bin/bash
 #SBATCH --error={template_common.RUN_LOG}
-#SBATCH --ntasks={self.msg.sbatchCores}
+{n}
 #SBATCH --output={template_common.RUN_LOG}
 #SBATCH --time={self._sbatch_time()}
 {o}
