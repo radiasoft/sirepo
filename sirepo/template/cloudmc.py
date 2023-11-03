@@ -161,7 +161,6 @@ def sim_frame(frame_args):
         return f[0] if len(f) else None
 
     def _sum_energy_bins(values, mesh_filter, bins):
-        pkdp("NRG BINS {}", bins)
         vv = numpy.reshape(values, (*mesh_filter.dimension, -1))
         z = numpy.zeros((*mesh_filter.dimension, 1))
         for i in range(len(vv)):
@@ -183,7 +182,6 @@ def sim_frame(frame_args):
 
     try:
         t.find_filter(openmc.EnergyFilter)
-        pkdp("FRAME ARGS NRG {}", frame_args.energyRangeSum)
         v = _sum_energy_bins(
             v,
             _get_filter(

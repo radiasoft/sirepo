@@ -2463,8 +2463,6 @@ SIREPO.viewLogic('openmcAnimationView', function(appState, cloudmcService, panel
         updateEnergyRange();
     };
 
-    //$scope.$watchGroup(FIELDS_ENERGY.map(x => `energyFilter.${x}`), updateEnergyRange);
-
     $scope.watchFields = [
         ['openmcAnimation.tally'], cloudmcService.validateSelectedTally,
     ];
