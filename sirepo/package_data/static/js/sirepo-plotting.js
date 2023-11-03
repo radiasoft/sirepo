@@ -3456,11 +3456,24 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 threshold = json.threshold;
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
+                let c = false;
                 $.each(axes, function(dim, axis) {
-                    axis.values = plotting.linearlySpacedArray(json[dim + '_range'][0], json[dim + '_range'][1], json[dim + '_range'][2]);
+                    const r = axis.values && getRange(axis.values);
+                    axis.values = plotting.linearlySpacedArray(
+                        json[dim + '_range'][0],
+                        json[dim + '_range'][1],
+                        json[dim + '_range'][2],
+                    );
                     axis.updateLabel(json[dim + '_label'], select);
-                    axis.scale.domain(getRange(axis.values));
+                    if (! appState.deepEquals(r, getRange(axis.values))) {
+                        c = true;
+                    }
                 });
+                if (c) {
+                    Object.values(axes).forEach(axis => {
+                        axis.scale.domain(getRange(axis.values));
+                    });
+                }
                 cacheCanvas.width = axes.x.values.length;
                 cacheCanvas.height = axes.y.values.length;
                 imageData = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
