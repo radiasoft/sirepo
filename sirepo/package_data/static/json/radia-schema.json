@@ -757,6 +757,7 @@
             "scaling": ["Scaling", "FieldScaling", "uniform"]
         },
         "fieldIntegralReport": {
+            "inProgressText": ["_", "String", "Calculating"],
             "lastCalculated": ["_", "Integer", -1]
         },
         "fieldLineoutAnimation": {
