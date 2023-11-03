@@ -639,7 +639,8 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             {
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
                 search: search,
-            });
+            }
+        );
     };
 
     self.loadModels = function(simulationId, callback, section) {
