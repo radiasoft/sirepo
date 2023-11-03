@@ -162,16 +162,16 @@ def sim_frame(frame_args):
         f = [x for x in tallies if x.name == name]
         return f[0] if len(f) else None
 
-    def _sum_energy_bins(values, mesh_filter):
-        bins = mesh_filter.energyRangeSum.bins
+    def _sum_energy_bins(values, mesh_filter, bins):
+        pkdp("NRG BINS {}", bins)
         vv = numpy.reshape(values, (*mesh_filter.dimension, -1))
         z = numpy.zeros((*mesh_filter.dimension, 1))
         for i in range(len(vv)):
             for j in range(len(vv[i])):
                 for k in range(len(vv[i][j])):
-                    z[i][j][k][0] = numpy.sum(vv[i][j][k][bins[0]:bins[1]])
+                    z[i][j][k][0] = numpy.sum(vv[i][j][k][bins[0] : bins[1]])
         return z.ravel()
-       
+
     t = openmc.StatePoint(
         frame_args.run_dir.join(_statepoint_filename(frame_args.sim_in))
     ).get_tally(name=frame_args.tally)
@@ -180,20 +180,19 @@ def sim_frame(frame_args):
         mf = t.find_filter(openmc.MeshFilter)
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
-    
+
     v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
 
     try:
         t.find_filter(openmc.EnergyFilter)
+        pkdp("FRAME ARGS NRG {}", frame_args.energyRangeSum)
         v = _sum_energy_bins(
             v,
             _get_filter(
-                _get_tally(
-                    frame_args.sim_in.models.settings.tallies,
-                    frame_args.tally
-                ),
-                "meshFilter"
+                _get_tally(frame_args.sim_in.models.settings.tallies, frame_args.tally),
+                "meshFilter",
             ),
+            frame_args.energyRangeSum.bins,
         )
     except ValueError:
         pass
@@ -206,7 +205,6 @@ def sim_frame(frame_args):
         max_field=v.max(),
         summaryData={},
     )
-
 
 
 def stateless_compute_validate_material_name(data, **kwargs):

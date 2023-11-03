@@ -1244,6 +1244,13 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     self.modelToCurrentFrame = {};
 
     self.frameId = function(frameReport, frameIndex) {
+        function fieldToFrameParam(field) {
+            if (angular.isObject(field)) {
+                return JSON.stringify(field);
+            }
+            return `${field}`;
+        }
+
         var c = appState.appService.computeModel(frameReport);
         var s = appState.models.simulationStatus[c];
         if (! s) {
@@ -1267,7 +1274,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         }
         // POSIT: same as sirepo.sim_data._FRAME_ID_SEP
         return v.concat(
-            f.map(function (a) {return m[a];})
+            f.map(a => fieldToFrameParam(m[a]))
         ).join('*');
     };
 
