@@ -348,8 +348,12 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
     };
 
     self.getMeshRanges = () => {
-        return [0, 1, 2].map(i => [
-            cloudmcService.GEOMETRY_SCALE * self.mesh.lower_left[i], cloudmcService.GEOMETRY_SCALE * self.mesh.upper_right[i], self.mesh.dimension[i]
+        return SIREPO.GEOMETRY.GeometryUtils.BASIS().map(
+            dim => SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim),
+        ).map(i => [
+            cloudmcService.GEOMETRY_SCALE * self.mesh.lower_left[i],
+            cloudmcService.GEOMETRY_SCALE * self.mesh.upper_right[i],
+            self.mesh.dimension[i],
         ]);
     };
 
@@ -358,7 +362,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
             return [];
         }
         const t = self.outlines[appState.applicationState().openmcAnimation.tally];
-        if (t) {
+        if (t && t[`${volId}`]) {
             const o = t[`${volId}`][dim];
             if (o.length) {
                 return o[index];
@@ -373,10 +377,11 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
             const f = t[`filter${k}`];
             if (f && f._type === 'meshFilter') {
                 self.mesh = f;
-                return;
+                return true;
             }
         }
         self.mesh = null;
+        return false;
     };
 
     self.setFieldData = (fieldData, min, max) => {
@@ -750,13 +755,13 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             }
 
             function updateDisplayRange() {
-                tallyService.initMesh();
-                if (! tallyService.mesh) {
+                if (! tallyService.initMesh()) {
                     return;
                 }
-                ['x', 'y', 'z'].forEach(dim => {
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
                 });
+                updateVisibleAxes();
                 updateSliceAxis();
             }
 
@@ -781,9 +786,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 if (! tallyService.fieldData) {
                     return;
                 }
-                tallyService.initMesh();
-                if (! tallyService.mesh) {
-                    return;
+                if (! tallyService.initMesh()) {
+                    return ;
                 }
                 const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
                 appState.models.tallyReport.planePos = adjustToRange(
@@ -791,6 +795,25 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     r
                 );
                 updateSlice();
+            }
+
+            function updateVisibleAxes() {
+                const v = {};
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+                    v[dim] = true;
+                    SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim].forEach((bv, bi) => {
+                        if (! bv && tallyService.mesh.dimension[bi] < SIREPO.APP_SCHEMA.constants.minTallyResolution) {
+                            delete v[dim];
+                        }
+                    });
+                });
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+                    const s = ! Object.keys(v).length || dim in v;
+                    panelState.showEnum('tallyReport', 'axis', dim, s);
+                    if (! s && appState.models.tallyReport.axis == dim) {
+                        appState.models.tallyReport.axis = Object.keys(v)[0];
+                    }
+                });
             }
 
             $scope.$on('tallyReport.summaryData', updateSliceAxis);
@@ -900,8 +923,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     picker.deletePickList(tallyBundle.actor);
                     tallyBundle = null;
                 }
-                tallyService.initMesh();
-                if (! tallyService.mesh) {
+                if (! tallyService.initMesh()) {
                     return;
                 }
                 const [nx, ny, nz] = tallyService.mesh.dimension;
@@ -1803,7 +1825,7 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
             const childModel = $scope.field == 'sources' ? 'source' : 'tally';
             const infoFields = {
                 box: ['lower_left', 'upper_right'],
-                cartesianIndependent: ['x', 'y', 'z'],
+                cartesianIndependent: SIREPO.GEOMETRY.GeometryUtils.BASIS(),
                 cylindricalIndependent: ['r', 'phi', 'z'],
                 point: ['xyz'],
                 sphericalIndependent: ['r', 'theta', 'phi'],
