@@ -160,7 +160,17 @@ def sim_frame(frame_args):
         f = [x for x in tallies if x.name == name]
         return f[0] if len(f) else None
 
-    def _sum_energy_bins(values, mesh_filter, bins):
+    def _sum_energy_bins(values, mesh_filter, energy_filter, sum_range):
+        f = (lambda x: x) if energy_filter.space == "linear" else numpy.log10
+        bins = numpy.ceil(
+            energy_filter.num * numpy.abs(
+                f(numpy.array(sum_range.val)) - f(sum_range.min)
+            ) /
+            numpy.abs(
+                f(sum_range.max) - f(sum_range.min)
+            )
+        ).astype(int)
+
         vv = numpy.reshape(values, (*mesh_filter.dimension, -1))
         z = numpy.zeros((*mesh_filter.dimension, 1))
         for i in range(len(vv)):
@@ -182,13 +192,12 @@ def sim_frame(frame_args):
 
     try:
         t.find_filter(openmc.EnergyFilter)
+        tally = _get_tally(frame_args.sim_in.models.settings.tallies, frame_args.tally)
         v = _sum_energy_bins(
             v,
-            _get_filter(
-                _get_tally(frame_args.sim_in.models.settings.tallies, frame_args.tally),
-                "meshFilter",
-            ),
-            frame_args.energyRangeSum.bins,
+            _get_filter(tally,"meshFilter"),
+            _get_filter(tally,"energyFilter"),
+            frame_args.energyRangeSum,
         )
     except ValueError:
         pass
