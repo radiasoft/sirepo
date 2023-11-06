@@ -288,8 +288,7 @@ class _SReply(sirepo.quest.Attr):
 
     def pkdebug_str(self):
         n = self.__class__.__name__
-        a = self.__attrs
-        if not a:
+        if not (a := self.get("__attrs")):
             return n + "()"
         c = a.get("content")
         return pkdformat(

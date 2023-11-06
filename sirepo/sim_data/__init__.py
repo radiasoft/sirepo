@@ -14,6 +14,7 @@ import hashlib
 import inspect
 import re
 import requests
+import sirepo.agent_supervisor_api
 import sirepo.const
 import sirepo.feature_config
 import sirepo.job
@@ -28,9 +29,6 @@ _cfg = None
 
 #: default compute_model
 _ANIMATION_NAME = "animation"
-
-#: prefix for auth header of sim_db_file requests
-_AUTH_HEADER_PREFIX = f"{sirepo.util.AUTH_HEADER_SCHEME_BEARER} "
 
 _MODEL_RE = re.compile(r"^[\w-]+$")
 
@@ -894,17 +892,8 @@ class SimDbFileNotFound(Exception):
 
 
 def _request(method, uri, data=None):
-    r = requests.request(
-        method,
-        uri,
-        data=data,
-        verify=sirepo.job.cfg().verify_tls,
-        headers=PKDict(
-            {
-                sirepo.util.AUTH_HEADER: _AUTH_HEADER_PREFIX
-                + _cfg.supervisor_sim_db_file_token,
-            }
-        ),
+    r = sirepo.agent_supervisor_api.request(
+        method, uri, _cfg.supervisor_sim_db_file_token, data=data
     )
     if method == "GET" and r.status_code == 404:
         raise SimDbFileNotFound(f"uri={uri} not found")

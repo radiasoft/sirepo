@@ -66,6 +66,10 @@
                     "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
                 }
             }
+        },
+        "sbatch": {
+            "fields": ["sbatchHours", "sbatchCores"],
+            "nersc": ["tasksPerNode", "sbatchQueue", "sbatchProject"]
         }
     },
     "enum": {

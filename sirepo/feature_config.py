@@ -126,6 +126,7 @@ def _is_fedora_36():
 def _init():
     from pykern import pkconfig
     from pykern import pkio
+    from pykern.pkdebug import pkdp
 
     global _cfg
 
@@ -150,6 +151,11 @@ def _init():
             frozenset(),
             set,
             "codes where all users are authorized by default but that authorization can be revoked",
+        ),
+        enable_global_resources=(
+            False,
+            bool,
+            "enable the global resources allocation system",
         ),
         jspec=dict(
             derbenevskrinsky_force_formula=_test(

@@ -19,7 +19,6 @@ import pymoab.types
 import re
 import sirepo.mpi
 import sirepo.simulation_db
-import sirepo.template.cloudmc
 import sirepo.util
 import uuid
 
@@ -41,7 +40,9 @@ def extract_dagmc(dagmc_filename):
 def run(cfg_dir):
     template_common.exec_parameters()
     data = sirepo.simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    sirepo.template.cloudmc.extract_report_data(pkio.py_path(cfg_dir), data)
+    sirepo.template.import_module("cloudmc").extract_report_data(
+        pkio.py_path(cfg_dir), data
+    )
 
 
 class _MoabGroupCollector:
@@ -49,7 +50,6 @@ class _MoabGroupCollector:
         mb = pymoab.core.Core()
         mb.load_file(dagmc_filename)
         self.dagmc_filename = dagmc_filename
-        self._visited = set()
         self._id_tag = self._tag(mb, "GLOBAL_ID")
         self._name_tag = self._tag(mb, "NAME")
         self.groups = self._groups_and_volumes(mb)
@@ -69,13 +69,16 @@ class _MoabGroupCollector:
             n = self._parse_entity_name(mb, g)
             if not n:
                 continue
-            v = self._volumes(mb, n, g)
+            v = [h for h in mb.get_entities_by_handle(g)]
             if not v:
                 continue
             res.pksetdefault(n, lambda: PKDict(name=n, volumes=[]))
             res[n].volumes[0:0] = v
         for g in res.values():
             g.vol_id = self._tag_value(mb, self._id_tag, g.volumes[0])
+            if re.search(r"\_comp$", g.name):
+                g.name = re.sub(r"\_comp$", "", g.name)
+                g.is_complement = True
         return tuple(res.values())
 
     def _parse_entity_name(self, mb, group):
@@ -89,20 +92,6 @@ class _MoabGroupCollector:
 
     def _tag_value(self, mb, tag, handle):
         return str(mb.tag_get_data(tag, handle).flat[0])
-
-    def _visited_any_volume(self, volumes, name):
-        for h in volumes:
-            if h in self._visited:
-                pkdlog(f"skipping volume used in multiple groups: {h} {name}")
-                return True
-            self._visited.add(h)
-        return False
-
-    def _volumes(self, mb, name, group):
-        v = [h for h in mb.get_entities_by_handle(group)]
-        if self._visited_any_volume(v, name):
-            return None
-        return v
 
 
 class _MoabGroupExtractor:
@@ -144,6 +133,8 @@ class _MoabGroupExtractor:
     def __init__(self, collector):
         self._items = []
         for g in collector.groups:
+            if g.get("is_complement"):
+                continue
             self._items.append(
                 _MoabGroupExtractorOp(
                     dagmc_filename=collector.dagmc_filename,
