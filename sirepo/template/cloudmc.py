@@ -518,13 +518,14 @@ def _generate_parameters_file(data, run_dir=None):
 
 
 def _generate_range(filter):
-    return "{} * numpy.{}({}, {}, {})".format(
-        filter._scale,
-        "linspace" if filter.space == "linear" else "logspace",
-        filter.start,
-        filter.stop,
-        filter.num,
-    )
+    space = "linspace"
+    start = filter._scale * filter.start
+    stop = filter._scale * filter.stop
+    if filter.space == "log":
+        space = "logspace"
+        start = numpy.log10(start)
+        stop = numpy.log10(stop)
+    return "numpy.{}({}, {}, {})".format(space, start, stop, filter.num)
 
 
 def _generate_source(source):
