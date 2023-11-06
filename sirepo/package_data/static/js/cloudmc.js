@@ -624,7 +624,7 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                     SIREPO.UTILS.linearToLog(val, $scope.sumRange.min, $scope.sumRange.max, $scope.sumRange.step),
                     4
                 );
-            }
+            };
 
             $scope.energyFilter = () => cloudmcService.findFilter('energyFilter');
 
@@ -2291,7 +2291,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     return;
                 }
                 const sel = $(`.${$scope.sliderClass}`);
-                const val = range.val;
+                let val = range.val;
                 const isMulti = Array.isArray(val);
                 if (isMulti) {
                     val[0] = adjustToRange(val[0], range);
@@ -2342,10 +2342,6 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             $scope.display = (range) => {
                 function toLog(val, r) {
                     return $scope.formatFloat(SIREPO.UTILS.linearToLog(val, r.min, r.max, r.step));
-                    const bin = Math.floor(Math.abs(val - range.min) / range.step);
-                    const n = Math.abs(r.max - r.min) / r.step;
-                    const lv = (bin * Math.log10(r.max) + (n - bin) * Math.log10(r.min)) / n;
-                    return $scope.formatFloat(10**lv);
                 }
 
                 const v = range.val;
