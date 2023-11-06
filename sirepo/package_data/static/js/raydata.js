@@ -23,8 +23,11 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="QueuedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="queued"></div>
         </div>
-        <div data-ng-switch-when="CatalogName" data-ng-class="fieldClass">
+        <div data-ng-switch-when="CatalogNamePicker" data-ng-class="fieldClass">
           <div data-catalog-picker="" data-model="model" data-field="field"></div>
+        </div>
+        <div data-ng-switch-when="CatalogNameDisplay" data-ng-class="fieldClass">
+          <div data-catalog-name-display="" data-model="model" data-field="field"></div>
         </div>
     `;
     SIREPO.appReportTypes  = `
@@ -122,6 +125,21 @@ SIREPO.app.directive('appHeader', function(appState) {
     };
 });
 
+
+SIREPO.app.directive('catalogNameDisplay', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <div class="form-control-static text-uppercase"><strong>{{ model[field] }}</strong></div>
+        `,
+    };
+});
+
+
 SIREPO.app.directive('catalogPicker', function() {
     return {
         restrict: 'A',
@@ -131,7 +149,7 @@ SIREPO.app.directive('catalogPicker', function() {
         },
         template: `
             <div data-ng-hide="!awaitingCatalogNames">Loading...</div>
-            <select class="form-control" data-ng-hide="awaitingCatalogNames" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames"></select>
+            <select class="form-control text-uppercase" data-ng-hide="awaitingCatalogNames" data-ng-model="model[field]" data-ng-options="name as name for name in catalogNames" required></select>
         `,
         controller: function($scope, appState, errorService, requestSender) {
             $scope.catalogNames = [];
