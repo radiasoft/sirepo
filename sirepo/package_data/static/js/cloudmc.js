@@ -600,7 +600,7 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                     </li>
                 </ul>
                 <div data-ng-if="energyFilter()" class="pull-right">
-                  <label>Energy &Sigma; {{ appState.models.openmcAnimation.energyRangeSum.val[0] }}-{{ appState.models.openmcAnimation.energyRangeSum.val[1] }} MeV</label>
+                  <label>Energy &Sigma; {{ sumDisplay(sumRange.val[0]) }}-{{ sumDisplay(sumRange.val[1]) }} MeV</label>
                 </div>
                 <div data-ng-if="is3D()">
                     <div data-report-content="geometry3d" data-model-key="{{ modelName }}"></div>
@@ -614,6 +614,18 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
             plotting.setTextOnlyReport($scope);
 
             $scope.appState = appState;
+            $scope.sumRange = appState.models.openmcAnimation.energyRangeSum;
+
+            $scope.sumDisplay = val => {
+                if ($scope.energyFilter.space === 'linear') {
+                    return val;
+                }
+                return SIREPO.UTILS.formatFloat(
+                    SIREPO.UTILS.linearToLog(val, $scope.sumRange.min, $scope.sumRange.max, $scope.sumRange.step),
+                    4
+                );
+            }
+
             $scope.energyFilter = () => cloudmcService.findFilter('energyFilter');
 
             $scope.load = json => {
@@ -2245,7 +2257,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             <div class="{{ sliderClass }}"></div>
             <div style="display:flex; justify-content:space-between;">
                     <span>{{ formatFloat(field.min) }}</span>
-                    <span>{{ field.val }}</span>
+                    <span>{{ display(field) }}</span>
                     <span>{{ formatFloat(field.max) }}</span>
             </div>
         `,
@@ -2327,6 +2339,21 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 return v;
             }
 
+            $scope.display = (range) => {
+                function toLog(val, r) {
+                    return $scope.formatFloat(SIREPO.UTILS.linearToLog(val, r.min, r.max, r.step));
+                    const bin = Math.floor(Math.abs(val - range.min) / range.step);
+                    const n = Math.abs(r.max - r.min) / r.step;
+                    const lv = (bin * Math.log10(r.max) + (n - bin) * Math.log10(r.min)) / n;
+                    return $scope.formatFloat(10**lv);
+                }
+
+                const v = range.val;
+                if (range.space === 'linear') {
+                    return v;
+                }
+                return Array.isArray(v) ? v.map(x => toLog(x, range)) : toLog(v);
+            };
             $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
             $scope.hasSteps = () => hasSteps;
 
@@ -2453,6 +2480,7 @@ SIREPO.viewLogic('openmcAnimationView', function(appState, cloudmcService, panel
         }
         
         const s = appState.models[$scope.modelName].energyRangeSum;
+        s.space = e.space;
         s.min = e.start;
         s.max = e.stop;
         s.step = Math.abs(e.stop - e.start) / e.num;
