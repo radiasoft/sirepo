@@ -1,4 +1,10 @@
 {
+    "constants": {
+        "sbatch": {
+            "fields": ["sbatchHours", "sbatchCores"],
+            "nersc": ["tasksPerNode", "sbatchQueue", "sbatchProject"]
+        }
+    },
     "enum": {
         "BeamRadiusMethod": [
             ["a", "Absolute"],

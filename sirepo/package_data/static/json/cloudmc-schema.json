@@ -6,7 +6,12 @@
     },
     "constants": {
         "geometryScale": 0.01,
+        "inProgressText": "Working",
         "maxFilters": 5,
+        "sbatch": {
+            "fields": ["sbatchHours", "sbatchNodes"],
+            "nersc": ["sbatchQueue", "sbatchProject"]
+        },
         "scoreUnits": {
             "damage-energy": "eV",
             "decay-rate": "$s^{-1}$",
@@ -917,7 +922,15 @@
             "showMarker": ["Show axis marker", "Boolean", "1"],
             "tally": ["Tally", "TallyList"],
             "threshold": ["Threshold", "Float", 0.0, "Tally cells with a value below this will not be displayed"],
-            "score": ["Score", "ScoreList"]
+            "score": ["Score", "ScoreList"],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Tasks per node", "Integer", 8, "", 1],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchNodes": ["Nodes", "Integer", 32, "", 1],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["CPUs per task", "Integer", 16, "", 1],
+            "sbatchProject": ["Project", "OptionalString", ""],
+            "ompThreads": ["OMP threads", "Integer", 16, "", 1]
         },
         "particle": {
             "value": ["Particle", "FilterParticle"]

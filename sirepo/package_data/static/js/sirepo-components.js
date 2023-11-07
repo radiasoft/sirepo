@@ -3233,7 +3233,7 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
                 </div>
                 <label class="col-sm-2 control-label">Password</label>
                 <div class="col-sm-10">
-                  <input type="text" value='' maxlength="256" class="form-control" data-ng-model="password"/>
+                  <input type="password" value='' maxlength="256" class="form-control" data-ng-model="password"/>
                 </div>
               </div>
               <div class="form-group">
@@ -4337,7 +4337,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
               </div>
             </div>
         `,
-        controller: function(requestSender, $scope, $rootScope, sbatchLoginStatusService) {
+        controller: function(requestSender, sbatchLoginStatusService, $element, $scope, $rootScope) {
             $scope.otp = '';
             $scope.password = '';
             $scope.username = '';
@@ -4421,19 +4421,34 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
             simState: '=sbatchOptions',
         },
         template: `
-            <div class="clearfix"></div>
-            <div style="margin-top: 10px" data-ng-show="showSbatchOptions()">
-                <div data-ng-repeat="sbatchField in sbatchFields" data-model-field='sbatchField' data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
-                <div data-ng-show="showNERSCFields()">
-                    <div data-model-field="\'sbatchQueue\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"  data-ng-click="sbatchQueueFieldIsDirty = true"></div>
-                    <div data-model-field="\'sbatchProject\'" data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
-                </div>
-                <div class="col-sm-12 text-right {{textClass()}}" data-ng-show="connectionStatusMessage()">{{ connectionStatusMessage() }}</div>
+            <div data-ng-show="showSbatchOptions()">
+              <div class="form-group form-group-sm" data-ng-repeat="pair in sbatchFields track by $index">
+                <div data-ng-repeat="sbatchField in pair" data-model-field='sbatchField' data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
+              </div>
+              <div class="col-sm-12 text-right {{textClass()}}" data-ng-show="connectionStatusMessage()">{{ connectionStatusMessage() }}</div>
             </div>
         `,
         controller: function($scope, authState, sbatchLoginStatusService, stringsService) {
-            $scope.sbatchQueueFieldIsDirty = false;
-            $scope.sbatchFields = ['sbatchHours', 'sbatchCores', 'tasksPerNode'];
+            $scope.sbatchFields = getSbatchFields();
+
+            function getSbatchFields() {
+                const f = [...SIREPO.APP_SCHEMA.constants.sbatch.fields];
+                if (isNersc()) {
+                    f.push(...SIREPO.APP_SCHEMA.constants.sbatch.nersc);
+                }
+                // group fields in pairs
+                const g = [];
+                for (let i = 0; i < f.length; i += 2) {
+                    g.push(f.slice(i, i + 2));
+                }
+                return g;
+            }
+
+            function isNersc() {
+                var n = authState.jobRunModeMap.sbatch;
+                return n && n.toLowerCase().indexOf('nersc') >= 0;
+            }
+
             function trimHoursAndCores() {
                 var m = appState.models[$scope.simState.model];
                 ['Hours', 'Cores'].forEach(function(e) {
@@ -4460,19 +4475,13 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 var s = 'connected to ' +
                     authState.jobRunModeMap[appState.models[$scope.simState.model].jobRunMode];
                 if (sbatchLoginStatusService.loggedIn) {
-                    s += `. To start press "${stringsService.startButtonLabel()}"`;
+                    s += `. To start, press "${stringsService.startButtonLabel()}"`;
                 }
                 else {
                     s = 'not ' + s;
                 }
                 return s.charAt(0).toUpperCase() + s.slice(1);
             };
-
-            $scope.showNERSCFields = function() {
-                var n = authState.jobRunModeMap.sbatch;
-                return n && n.toLowerCase().indexOf('nersc') >= 0;
-            };
-
 
             $scope.showSbatchOptions = function() {
                 var m = appState.models[$scope.simState.model];
@@ -4536,8 +4545,8 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               <div data-ng-if="simState.showJobSettings()">
                 <div class="form-group form-group-sm">
                   <div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
-                  <div data-sbatch-options="simState"></div>
                 </div>
+                <div data-sbatch-options="simState"></div>
               </div>
               <div class="col-sm-6 pull-right">
                 <button class="btn btn-default" data-ng-click="start()">{{ startButtonLabel() }}</button>

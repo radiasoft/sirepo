@@ -1084,7 +1084,7 @@
             "intensityPlotsWidth": "0",
             "magneticField": 1,
             "maxIntensityLimit": 799002066944,
-            "method": "1",
+            "method": "2",
             "minIntensityLimit": 442264027136,
             "notes": "",
             "photonEnergy": 2500,

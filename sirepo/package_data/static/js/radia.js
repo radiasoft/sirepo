@@ -79,6 +79,9 @@ SIREPO.app.config(function() {
           <div data-termination-table="" data-field="model[field]" data-field-name="field" data-model="model" data-model-name="modelName"></div>
         </div>
     `;
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="fieldIntegrals" data-field-integral-table="" data-model-name="{{ modelKey }}" class="sr-plot sr-screenshot"></div>
+    `;
 });
 
 SIREPO.app.factory('radiaOptimizationService', function(appState, radiaService, radiaVariableService) {
@@ -247,6 +250,12 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     // Instead, generate an id here and map it when the Radia object is created. A random string is good enough
     self.generateId = () => SIREPO.UTILS.randomString(16);
 
+    self.hasPaths = (types=[]) => {
+        return (appState.applicationState().fieldPaths.paths || [])
+            .filter(x => types.length ? types.includes(x.type) : true)
+            .length;
+    };
+
     self.isGroup = o => o.members !== undefined;
 
     self.saveGeometry = function(doGenerate, isQuiet, callback) {
@@ -275,8 +284,11 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     };
 
     self.syncReports = () => {
+        const now = Date.now();
+        const t0 = appState.models.geometryReport.lastModified;
+        const t = now > t0 ? now : t0;
         POST_SIM_REPORTS.forEach(r => {
-            appState.models[r].lastModified = appState.models.geometryReport.lastModified;
+            appState.models[r].lastModified = t;
         });
         appState.saveChanges(POST_SIM_REPORTS);
     };
@@ -1088,12 +1100,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     });
 });
 
-SIREPO.app.controller('RadiaVisualizationController', function (appState, panelState, persistentSimulation, radiaService, requestSender, $scope) {
+SIREPO.app.controller('RadiaVisualizationController', function (appState, radiaService) {
     let self = this;
 
     self.enableKickMaps = function() {
         return appState.isLoaded() && appState.models.simulation.enableKickMaps === '1';
     };
+
+    self.hasPaths = radiaService.hasPaths;
 
     self.isSolvable = function() {
         return appState.isLoaded() && appState.models.geometryReport.isSolvable == '1';
@@ -1590,7 +1604,7 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
                 }
             }
 
-            $scope.hasPaths = () => (appState.models.fieldPaths.paths || []).length;
+            $scope.hasPaths = radiaService.hasPaths;
 
             $scope.showFieldLineoutPanel = () => $scope.hasPaths();
 
@@ -1610,98 +1624,66 @@ SIREPO.app.directive('fieldLineoutAnimation', function(appState, frameCache, per
     };
 });
 
-SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
+SIREPO.app.directive('fieldIntegralTable', function(appState, panelState, plotting, radiaService, utilities) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
         },
         template: `
-            <div class="col-md-6">
-                <div class="panel panel-info">
-                    <div class="panel-heading">
-                        <span class="sr-panel-heading">Field Integrals (T &#x00B7; mm)</span>
-                        <div class="sr-panel-options pull-right">
-                        <a data-ng-show="hasPaths()" data-ng-click="download()" target="_blank" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
-                        </div>
-                    </div>
-                    <div class="panel-body">
-                        <table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table radia-table-hover">
-                          <colgroup>
-                            <col style="width: 20ex">
-                            <col>
-                            <col>
-                          </colgroup>
-                          <thead>
-                            <tr>
-                              <th data-ng-repeat="h in HEADING">{{ h }}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr data-ng-repeat="path in linePaths() track by $index">
-                              <td>{{ path.name }}</td>
-                              <td>[{{ path.begin }}] &#x2192; [{{ path.end }}]</td>
-                              <td>
-                                <div data-ng-repeat="t in INTEGRABLE_FIELD_TYPES"><span style="font-weight: bold">{{ t }}:</span> </span><span>{{ format(integrals[path.name][t]) }}</span></div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+            <table data-ng-if="hasPaths()" style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table radia-table-hover">
+                <colgroup>
+                    <col style="width: 20ex">
+                    <col>
+                    <col>
+                </colgroup>
+                <thead>
+                <tr>
+                    <th data-ng-repeat="h in HEADING">{{ h }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr data-ng-repeat="path in linePaths() track by path.id">
+                    <td>{{ path.name }}</td>
+                    <td>{{ path.begin }} &#x2192; {{ path.end }}</td>
+                    <td>
+                    <div data-ng-repeat="t in INTEGRABLE_FIELD_TYPES"><span style="font-weight: bold">{{ t }}:</span> </span><span>{{ format(integrals[path.name][t]) }}</span></div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
         `,
         controller: function($scope) {
+            const lineTypes = ['axisPath', 'linePath'];
 
-            $scope.CSV_HEADING = ['Line', 'x0', 'y0', 'z0', 'x1', 'y1', 'z1', 'Bx', 'By', 'Bz', 'Hx', 'Hy', 'Hz'];
+            plotting.setTextOnlyReport($scope);
+
             $scope.HEADING = ['Line', 'Endpoints', 'Fields'];
             $scope.INTEGRABLE_FIELD_TYPES = ['B', 'H'];
             $scope.integrals = {};
-            $scope.model = appState.models[$scope.modelName];
+            $scope.model = appState.models.fieldPaths;
 
-            $scope.download = () => {
-                const fileName = panelState.fileNameFromText('Field Integrals', 'csv');
-                const data = [$scope.CSV_HEADING];
-                $scope.linePaths().forEach(p => {
-                    let row = [];
-                    row.push(
-                        p.name,
-                        p.begin[0], p.begin[1], p.begin[2],
-                        p.end[0], p.end[1], p.end[2]
-                    );
-                    $scope.INTEGRABLE_FIELD_TYPES.forEach(function (t) {
-                        row = row.concat(
-                            $scope.integrals[p.name][t]
-                        );
-                    });
-                    data.push(row);
-                });
-                saveAs(new Blob([d3.csv.format(data)], {type: "text/csv;charset=utf-8"}), fileName);
+            $scope.hasPaths = () => radiaService.hasPaths(lineTypes);
+
+            $scope.format = vals => (vals || []).map(v => utilities.roundToPlaces(v, 4));
+
+            $scope.isLine = p => lineTypes.includes(p.type);
+
+            $scope.linePaths = () => ((appState.applicationState().fieldPaths || {}).paths || []).filter($scope.isLine);
+
+            $scope.load = json => {
+                $scope.integrals = json;
             };
 
-            $scope.hasPaths = () => $scope.linePaths().length;
+            $scope.$on('fieldPaths.changed', setLastModified);
 
-            $scope.format = vals => {
-                if (! vals) {
-                    return [];
-                }
-                return vals.map(v => utilities.roundToPlaces(v, 4));
-            };
-
-            $scope.linePaths =  () => (($scope.model || {}).paths || []).filter(radiaService.isLinearPath);
-
-            function updateTable() {
-                appState.models.fieldIntegralReport.lastCalculated = Date.now();
-                appState.saveQuietly('fieldIntegralReport');
-                panelState.clear('fieldIntegralReport');
-                panelState.requestData('fieldIntegralReport', data => {
-                    $scope.integrals = data;
-                }, true);
+            function setLastModified() {
+                appState.models[$scope.modelName].lastModified = Date.now();
+                appState.saveChanges($scope.modelName);
             }
-
-            $scope.$on('fieldPaths.saved', updateTable);
-
-            updateTable();
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
         },
     };
 });
@@ -3472,26 +3454,27 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
     };
 });
 
-SIREPO.viewLogic('fieldPathsView', function(activeSection, appState, panelState, radiaService, $scope) {
+SIREPO.viewLogic('fieldPathsView', function(appState, $scope) {
+    
+    appState.watchModelFields(
+        $scope,
+        ['fieldPaths.paths'],
+        updateAxisPaths,
+        true
+    );
+    
+    function updateAxisPath(path) {
+        path.name = `${path.axis.toUpperCase()}-Axis`;
+        const v = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[path.axis];
+        path.begin = v.map(x => path.start * x);
+        path.end = v.map(x => path.stop * x);
+    }
 
-    $scope.watchFields = [];
-
-    $scope.whenSelected = () => {
-        $scope.modelData = appState.models[$scope.modelName];
-    };
-
-    $scope.$on(`${$scope.modelName}.changed`, () => {
-        for (const p of $scope.modelData.paths) {
-            if (p.type === 'axisPath') {
-                if (! p.name) {
-                    p.name = `${p.axis.toUpperCase()}-Axis`;
-                }
-                p.begin = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[p.axis].map(x => p.start * x);
-                p.end = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[p.axis].map(x => p.stop * x);
-                appState.saveQuietly($scope.modelName);
-            }
-        }
-    });
+    function updateAxisPaths() {
+        for (const p of appState.models[$scope.modelName].paths.filter(x => x.type === 'axisPath')) {
+            updateAxisPath(p);
+         }
+    }
 });
 
 SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, requestSender, $rootScope, $scope) {
