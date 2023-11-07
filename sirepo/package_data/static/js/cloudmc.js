@@ -2084,7 +2084,7 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, $scope) {
+SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, validationService, $scope) {
 
     const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
         .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
@@ -2098,6 +2098,7 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, $sc
     
     function updateEditor() {
         updateAvailableFilters();
+        //validateFilters();
     }
 
     function updateAvailableFilters() {
@@ -2113,11 +2114,29 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, $sc
         });
     }
 
-    $scope.whenSelected = updateEditor;
+    function validateFilters() {
+        const ef = cloudmcService.findFilter('energyFilter');
+        if (! ef) {
+            return;
+        }
+        srdbg('VF');
+        const boundsValid = ef.start < ef.stop;
+        validationService.validateField(
+            'energyFilter',
+            'start',
+            'input',
+            boundsValid,
+            'Start must be less than stop'
+        );
+    }
 
+    $scope.whenSelected = updateEditor;
+    
     $scope.watchFields = [
         inds.map(i => `${$scope.modelName}.filter${i}._type`), updateEditor,
     ];
+
+    $scope.$watch($scope.modelName, validateFilters, true);
 
 });
 
