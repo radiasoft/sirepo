@@ -69,7 +69,7 @@ SIREPO.app.config(function() {
             <div class="sr-input-warning"></div>
         </div>
         <div data-ng-switch-when="ScriptableArray" class="col-sm-7">
-            <div data-rpn-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
+            <div data-rpn-array="" data-model-name="modelName" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
             <div class="sr-input-warning"></div>
         </div>
         <div data-ng-switch-when="ShapeButton" class="col-sm-7">
@@ -3082,6 +3082,7 @@ SIREPO.app.directive('rpnArray', function(appState, utilities) {
             fieldName: '=',
             info: '=',
             model: '=',
+            modelName: '=',
         },
         template: `
             <div>
@@ -3089,19 +3090,23 @@ SIREPO.app.directive('rpnArray', function(appState, utilities) {
                     <label data-text-with-math="info[4][$index]" data-is-dynamic="isDynamic(info[4][$index])" style="margin-right: 1ex"></label>
                     <input data-rpn-value="" data-ng-model="field[$index]" class="form-control sr-number-list"  style="text-align: right" data-lpignore="true" data-ng-required="true" />
                 </div>
-                <span class="input-group input-group-sm"><span></span><span class="input-group-addon" title="scriptable field"><span class="glyphicon glyphicon-list-alt"></span></span></span>
-                <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError" style="display: inline-block;"></span>
+                <div data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError"></div>
             </div>
         `,
-        controller: $scope => {
+        controller: ($scope, $element) => {
             $scope.appState = appState;
             $scope.isDynamic = label => ! ! label.match(/{{\s*.+\s*}}/);
+        },
+        link: (scope, element) => {
+            // add an icon to the label
+            $(element)
+                .closest('div[data-ng-switch]')
+                .siblings('.control-label')
+                .find('label')
+                .append('<span class="glyphicon glyphicon-list-alt" title="scriptable"></span>');
 
-            $scope.inputClass = index => {
-                return {
-                    'display': index < $scope.field.length ? 'inline-block;' : 'table-cell;',
-                };
-            }
+            // adjust the computed display to line up with the first label
+            $(element).find('div[data-rpn-static] > div').css('margin-left', 0);
         },
     };
 });
