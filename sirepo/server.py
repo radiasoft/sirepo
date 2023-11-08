@@ -7,6 +7,7 @@
 from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
@@ -75,35 +76,21 @@ class API(sirepo.quest.API):
             data.models.simulation.simulationId,
             qcall=self,
         )
-        pkdp("\n\n\n ====== copyingNonSessionSim ========")
-        pkdp("\n\n\ndata={}", data)
-        pkdp("\n\n\nreq={}", req)
-        if hasattr(req.template, 'copy_related_sims'):
-            # req.template.copy_related_sims(data, qcall=self)
-            from pykern import pkjson
-
-            pkdp("coupledSims={}", data.models.simWorkflow.coupledSims)
+        if req.type == "omega":
             for i, sim_obj in enumerate(data.models.simWorkflow.coupledSims):
                 if sim_obj.simulationType and sim_obj.simulationId:
-                    pkdp("\n\n\n sim_obj={}", sim_obj)
-                    path_related = simulation_db.find_global_simulation(
-                        sim_obj.simulationType,
-                        sim_obj.simulationId,
-                    )
-                    path_related = pkio.py_path(path_related).join("sirepo-data.json")
-                    # assert 0, f"related={path_related} type={type(path_related)}"
-                    # pkdp("\n\n\nrelated={}", path_related)
-                    # assert 0, f"related={related}"
-
-                    data2 = simulation_db.save_new_simulation(
-                        pkjson.load_any(path_related),
+                    p = pkio.py_path(
+                        simulation_db.find_global_simulation(
+                            sim_obj.simulationType,
+                            sim_obj.simulationId,
+                        )
+                    ).join("sirepo-data.json")
+                    d = simulation_db.save_new_simulation(
+                        pkjson.load_any(p),
                         qcall=self,
                     )
-                    pkdp("\n\n\ndata2={}", data2)
-                    new_id = data2.models.simulation.simulationId
-                    data.models.simWorkflow.coupledSims[i].simulationId = new_id
+                    data.models.simWorkflow.coupledSims[i].simulationId = d.models.simulation.simulationId
                     res = self._save_new_and_reply(req, data)
-
         # TODO(robnagler) does not work, supervisor needs to be notified to
         # copy the simulation state.
         # if hasattr(req.template, 'copy_related_files'):

@@ -284,6 +284,5 @@ SIREPO.viewLogic('simWorkflowView', function(appState, $scope) {
         sims.push(appState.setModelDefaults({}, 'coupledSim'));
         w.coupledSims = sims;
         appState.saveQuietly('simWorkflow');
-        srdbg("appState.models.simWorkFlow.coupledSims=", appState.models.simWorkflow.coupledSims);
     });
 });
