@@ -216,6 +216,7 @@ SIREPO.app.directive('dynamicSimList', function(appState, requestSender) {
                     return $scope.code;
                 }
             };
+            srdbg("appState.models.simWorkFlow.coupledSims=", appState.models.simWorkFlow.coupledSims);
         },
     };
 });

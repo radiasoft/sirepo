@@ -125,6 +125,9 @@ def background_percent_complete(report, run_dir, is_running):
         outputInfo=_output_info(run_dir),
     )
 
+def copy_related_sims(data, qcall=None):
+    return None
+
 
 def get_data_file(run_dir, model, frame, options):
     i = int(re.search(r"Animation(\d+)\-", model).groups(1)[0])
