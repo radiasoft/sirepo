@@ -52,7 +52,6 @@ class CodeVar:
         return cache
 
     def eval_var(self, expr):
-        pkdp("CODE VAR EVAL {}", expr)
         if not self.is_var_value(expr):
             return expr, None
         expr = self.infix_to_postfix(self.canonicalize(expr))
@@ -389,26 +388,22 @@ class PurePythonEval:
         return __strip_parens(stack[-1])
 
     def __eval_python_stack(self, expr, variables):
-        pkdp("EVAL STACK {}", expr)
         if not CodeVar.is_var_value(expr):
             return expr, None
-        
-        stack = []
-
         if isinstance(expr, list):
-            #pkdp("EXPR IS LIST")
             evs = []
             for e in expr:
-                ev = self.__eval_python_stack(e, variables)
-                print("EL {} EVAL TO {}".format(e, ev))
+                ev = self.__eval_python_stack(
+                    CodeVar.infix_to_postfix(e), variables
+                )
                 if ev[1] is not None:
                     return None, ev[1]
                 evs.append(ev[0])
             return evs, None
-            #return list(map(lambda x: self.__eval_python_stack(x, variables))), None
-            
+                    
+        stack = []
+
         values = str(expr).split(" ")
-        pkdp("STACK VALS {}", values)
         for v in values:
             if v in variables:
                 stack.append(variables[v])
