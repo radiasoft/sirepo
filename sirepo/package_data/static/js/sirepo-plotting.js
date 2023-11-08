@@ -3459,11 +3459,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 let c = false;
                 $.each(axes, function(dim, axis) {
                     const r = axis.values && getRange(axis.values);
-                    axis.values = plotting.linearlySpacedArray(
-                        json[dim + '_range'][0],
-                        json[dim + '_range'][1],
-                        json[dim + '_range'][2],
-                    );
+                    axis.values = plotting.linearlySpacedArray(...json[dim + '_range']);
                     axis.updateLabel(json[dim + '_label'], select);
                     if (! appState.deepEquals(r, getRange(axis.values))) {
                         c = true;

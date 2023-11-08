@@ -150,7 +150,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState) {
     self.findTally = findTally;
 
     self.isGraveyard = volume => {
-        return volume.name && volume.name.toLowerCase() == 'graveyard';
+        return volume.name && volume.name.toLowerCase() === 'graveyard';
     };
 
     self.validateSelectedTally = () => {
@@ -212,7 +212,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                 appState.saveChanges('volumes');
             }
         }
-        else if (data.state == 'missing' || data.state == 'canceled') {
+        else if (data.state === 'missing' || data.state === 'canceled') {
             if (self.isGeometrySelected()) {
                 processGeometry();
             }
@@ -391,7 +391,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
     };
 
     self.setOutlines = (tally, outlines) => {
-        if (appState.applicationState().openmcAnimation.tally == tally) {
+        if (appState.applicationState().openmcAnimation.tally === tally) {
             self.outlines = {
                 [tally]: outlines,
             };
@@ -810,7 +810,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
                     const s = ! Object.keys(v).length || dim in v;
                     panelState.showEnum('tallyReport', 'axis', dim, s);
-                    if (! s && appState.models.tallyReport.axis == dim) {
+                    if (! s && appState.models.tallyReport.axis === dim) {
                         appState.models.tallyReport.axis = Object.keys(v)[0];
                     }
                 });
@@ -1501,7 +1501,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
             });
 
             $scope.$on('cancelChanges', (event, name) => {
-                if (editRowKey && name == 'material') {
+                if (editRowKey && name === 'material') {
                     appState.cancelChanges('volumes');
                     unloadMaterial();
                 }
@@ -1647,7 +1647,7 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
 
             scope.isRequired = () => true;
 
-            ngModel.$parsers.push(function(value) {
+            ngModel.$parsers.push(value => {
                 if (ngModel.$isEmpty(value)) {
                     return null;
                 }
@@ -1674,7 +1674,7 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
 
                 return value;
             });
-            ngModel.$formatters.push(function(value) {
+            ngModel.$formatters.push(value => {
                 if (ngModel.$isEmpty(value)) {
                     return value;
                 }
@@ -1822,7 +1822,7 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
             </div>
         `,
         controller: function($scope) {
-            const childModel = $scope.field == 'sources' ? 'source' : 'tally';
+            const childModel = $scope.field === 'sources' ? 'source' : 'tally';
             const infoFields = {
                 box: ['lower_left', 'upper_right'],
                 cartesianIndependent: SIREPO.GEOMETRY.GeometryUtils.BASIS(),
@@ -1921,7 +1921,7 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
             };
 
             $scope.$on('modelChanged', function(event, name) {
-                if (name == childModel) {
+                if (name === childModel) {
                     const m = appState.models[childModel];
                     $scope.model[$scope.field][m._index] = m;
                     appState.removeModel(childModel);
