@@ -105,6 +105,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 cls._fixup_box_to_cuboid(o, f)
 
     @classmethod
+    def find_scriptables(cls, model):
+        m = cls.schema().model[model.type]
+        return [f for f in m if "Scriptable" in m[f] or "ScriptableArray" in m[f]]
+
+
+    @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         import sirepo.util
 
@@ -211,6 +217,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 _fixup_terminations(o)
                 _fixup_transforms(o)
                 _delete_old_fields(o)
+                if "type" in o and "_scriptableFields" in o:
+                    o._scriptableFields = cls.find_scriptables(o)
+                
+
+        def _fixup_scriptables(model):
+            pass
 
         def _fixup_segmentation(model):
             if not model.get("segments"):

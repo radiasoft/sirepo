@@ -260,7 +260,6 @@ def get_data_file(run_dir, model, frame, options):
     rpt = data.models[model]
     sfx = options.suffix or SCHEMA.constants.dataDownloads._default[0].suffix
     f = f"{model}.{sfx}"
-    pkdp("FETCH {}", f)
     if model == "electronTrajectoryReport":
         if sfx == "csv":
             return _save_trajectory_csv(
@@ -599,8 +598,10 @@ def _build_geom_obj(model_name, **kwargs):
     )
     _SIM_DATA.update_model_defaults(o, model_name)
     o.pkupdate(kwargs)
-    if not o.name:
+    if not o.get("name"):
         o.name = f"{model_name}.{o.id}"
+    if "type" in o and "_scriptableFields" in o:
+        o._scriptableFields = _SIM_DATA.find_scriptables(o)
     return o
 
 
@@ -739,6 +740,9 @@ def _electron_trajectory_plot(sim_id, **kwargs):
             summaryData=PKDict(),
         ),
     )
+
+def _evaluate_objects(objs):
+    pass
 
 
 def _export_rsopt_config(ctx, run_dir):
@@ -1019,6 +1023,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
         qcall=qcall,
     )
     v.objects = g.get("objects", [])
+    _evaluate_objects(v.objects)
     _validate_objects(v.objects)
 
     for o in v.objects:

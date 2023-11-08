@@ -1005,6 +1005,7 @@
             "type": ["_", "ObjectType", "racetrack"]
         },
         "radiaObject": {
+            "_scriptableFields": ["_", "Array", []],
             "_super": ["_", "model", "layoutObject"],
             "name": ["Name", "String", ""],
             "transforms": ["", "ModelArrayTable", [], "", ["cloneTransform" ,"rotate", "symmetryTransform"]]
