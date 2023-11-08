@@ -604,8 +604,6 @@ def _build_geom_obj(model_name, **kwargs):
     o.pkupdate(kwargs)
     if not o.get("name"):
         o.name = f"{model_name}.{o.id}"
-    if "type" in o and "_scriptableFields" in o:
-        o._scriptableFields = _SIM_DATA.find_scriptables(o)
     return o
 
 

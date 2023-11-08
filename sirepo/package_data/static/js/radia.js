@@ -488,6 +488,7 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
                 if (rpnNames.includes(vName)) {
                     const rpn = radiaService.getObjectByName(vName, rpns);
                     if (rpn.value !== v) {
+                        rpnService.recomputeCache(vName, v);
                         rpn.value = v;
                         doSave = true;
                     }
@@ -497,6 +498,7 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
                     name: vName,
                     value: v,
                 });
+                rpnService.recomputeCache(vName, v);
                 doSave = true;
             }
         }
@@ -787,7 +789,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     self.viewsForObject = obj => {
         const o = radiaVariableService.scriptedObject(obj);
         const supers = appState.superClasses(o.type);
-        //srdbg('SCRIPTED', o);
+        srdbg('SCRIPTED', o);
         let center = o.center;
         let size = o.size;
         const isGroup = self.isGroup(o);
@@ -3482,7 +3484,7 @@ SIREPO.viewLogic('fieldPathsView', function(appState, $scope) {
     }
 });
 
-SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, requestSender, $rootScope, $scope) {
+SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, radiaVariableService, requestSender, $rootScope, $scope) {
 
     const builtinExtruded = ['cee', 'ell', 'jay'];
     const ctl = angular.element($('div[data-ng-controller]').eq(0)).controller('ngController');
@@ -3527,7 +3529,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             loadSTLSize();
         }
         
-        appState.saveChanges(['rpnVariables', 'rpnCache'], () => {srdbg('CACHE NOW', appState.models.rpnCache)});
+        //appState.saveChanges(['rpnVariables', 'rpnCache'], () => {srdbg('CACHE NOW', appState.models.rpnCache)});
     });
 
     function buildTriangulationLevelDelegate() {
