@@ -150,7 +150,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState) {
     self.findTally = findTally;
 
     self.isGraveyard = volume => {
-        return volume.name && volume.name.toLowerCase() == 'graveyard';
+        return volume.name && volume.name.toLowerCase() === 'graveyard';
     };
 
     self.validateSelectedTally = () => {
@@ -212,7 +212,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                 appState.saveChanges('volumes');
             }
         }
-        else if (data.state == 'missing' || data.state == 'canceled') {
+        else if (data.state === 'missing' || data.state === 'canceled') {
             if (self.isGeometrySelected()) {
                 processGeometry();
             }
@@ -348,8 +348,12 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
     };
 
     self.getMeshRanges = () => {
-        return [0, 1, 2].map(i => [
-            cloudmcService.GEOMETRY_SCALE * self.mesh.lower_left[i], cloudmcService.GEOMETRY_SCALE * self.mesh.upper_right[i], self.mesh.dimension[i]
+        return SIREPO.GEOMETRY.GeometryUtils.BASIS().map(
+            dim => SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim),
+        ).map(i => [
+            cloudmcService.GEOMETRY_SCALE * self.mesh.lower_left[i],
+            cloudmcService.GEOMETRY_SCALE * self.mesh.upper_right[i],
+            self.mesh.dimension[i],
         ]);
     };
 
@@ -358,7 +362,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
             return [];
         }
         const t = self.outlines[appState.applicationState().openmcAnimation.tally];
-        if (t) {
+        if (t && t[`${volId}`]) {
             const o = t[`${volId}`][dim];
             if (o.length) {
                 return o[index];
@@ -373,10 +377,11 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
             const f = t[`filter${k}`];
             if (f && f._type === 'meshFilter') {
                 self.mesh = f;
-                return;
+                return true;
             }
         }
         self.mesh = null;
+        return false;
     };
 
     self.setFieldData = (fieldData, min, max) => {
@@ -386,7 +391,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
     };
 
     self.setOutlines = (tally, outlines) => {
-        if (appState.applicationState().openmcAnimation.tally == tally) {
+        if (appState.applicationState().openmcAnimation.tally === tally) {
             self.outlines = {
                 [tally]: outlines,
             };
@@ -609,7 +614,7 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
                     tallyService.setOutlines(summaryData.tally, summaryData.outlines);
                 }
             });
-            
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -750,13 +755,13 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             }
 
             function updateDisplayRange() {
-                tallyService.initMesh();
-                if (! tallyService.mesh) {
+                if (! tallyService.initMesh()) {
                     return;
                 }
-                ['x', 'y', 'z'].forEach(dim => {
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
                 });
+                updateVisibleAxes();
                 updateSliceAxis();
             }
 
@@ -781,9 +786,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 if (! tallyService.fieldData) {
                     return;
                 }
-                tallyService.initMesh();
-                if (! tallyService.mesh) {
-                    return;
+                if (! tallyService.initMesh()) {
+                    return ;
                 }
                 const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
                 appState.models.tallyReport.planePos = adjustToRange(
@@ -793,12 +797,31 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 updateSlice();
             }
 
+            function updateVisibleAxes() {
+                const v = {};
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+                    v[dim] = true;
+                    SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim].forEach((bv, bi) => {
+                        if (! bv && tallyService.mesh.dimension[bi] < SIREPO.APP_SCHEMA.constants.minTallyResolution) {
+                            delete v[dim];
+                        }
+                    });
+                });
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+                    const s = ! Object.keys(v).length || dim in v;
+                    panelState.showEnum('tallyReport', 'axis', dim, s);
+                    if (! s && appState.models.tallyReport.axis === dim) {
+                        appState.models.tallyReport.axis = Object.keys(v)[0];
+                    }
+                });
+            }
+
             $scope.$on('tallyReport.summaryData', updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
             $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
             if (frameCache.hasFrames('openmcAnimation')) {
-                updateDisplayRange();
+                panelState.waitForUI(updateDisplayRange);
             }
         },
     };
@@ -900,8 +923,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     picker.deletePickList(tallyBundle.actor);
                     tallyBundle = null;
                 }
-                tallyService.initMesh();
-                if (! tallyService.mesh) {
+                if (! tallyService.initMesh()) {
                     return;
                 }
                 const [nx, ny, nz] = tallyService.mesh.dimension;
@@ -1479,7 +1501,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
             });
 
             $scope.$on('cancelChanges', (event, name) => {
-                if (editRowKey && name == 'material') {
+                if (editRowKey && name === 'material') {
                     appState.cancelChanges('volumes');
                     unloadMaterial();
                 }
@@ -1625,7 +1647,7 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
 
             scope.isRequired = () => true;
 
-            ngModel.$parsers.push(function(value) {
+            ngModel.$parsers.push(value => {
                 if (ngModel.$isEmpty(value)) {
                     return null;
                 }
@@ -1652,7 +1674,7 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
 
                 return value;
             });
-            ngModel.$formatters.push(function(value) {
+            ngModel.$formatters.push(value => {
                 if (ngModel.$isEmpty(value)) {
                     return value;
                 }
@@ -1800,10 +1822,10 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
             </div>
         `,
         controller: function($scope) {
-            const childModel = $scope.field == 'sources' ? 'source' : 'tally';
+            const childModel = $scope.field === 'sources' ? 'source' : 'tally';
             const infoFields = {
                 box: ['lower_left', 'upper_right'],
-                cartesianIndependent: ['x', 'y', 'z'],
+                cartesianIndependent: SIREPO.GEOMETRY.GeometryUtils.BASIS(),
                 cylindricalIndependent: ['r', 'phi', 'z'],
                 point: ['xyz'],
                 sphericalIndependent: ['r', 'theta', 'phi'],
@@ -1899,7 +1921,7 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
             };
 
             $scope.$on('modelChanged', function(event, name) {
-                if (name == childModel) {
+                if (name === childModel) {
                     const m = appState.models[childModel];
                     $scope.model[$scope.field][m._index] = m;
                     appState.removeModel(childModel);
