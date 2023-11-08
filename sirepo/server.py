@@ -7,7 +7,6 @@
 from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
-from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
@@ -76,21 +75,11 @@ class API(sirepo.quest.API):
             data.models.simulation.simulationId,
             qcall=self,
         )
-        if req.type == "omega":
-            for i, sim_obj in enumerate(data.models.simWorkflow.coupledSims):
-                if sim_obj.simulationType and sim_obj.simulationId:
-                    p = pkio.py_path(
-                        simulation_db.find_global_simulation(
-                            sim_obj.simulationType,
-                            sim_obj.simulationId,
-                        )
-                    ).join("sirepo-data.json")
-                    d = simulation_db.save_new_simulation(
-                        pkjson.load_any(p),
-                        qcall=self,
-                    )
-                    data.models.simWorkflow.coupledSims[i].simulationId = d.models.simulation.simulationId
-                    res = self._save_new_and_reply(req, data)
+        if hasattr(req.template, "copy_related_sims"):
+            res = self._save_new_and_reply(
+                req,
+                req.template.copy_related_sims(data, qcall=self),
+            )
         # TODO(robnagler) does not work, supervisor needs to be notified to
         # copy the simulation state.
         # if hasattr(req.template, 'copy_related_files'):

@@ -7,6 +7,7 @@
 from pmd_beamphysics import ParticleGroup
 from pykern import pkio
 from pykern.pkcollections import PKDict
+from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -125,8 +126,25 @@ def background_percent_complete(report, run_dir, is_running):
         outputInfo=_output_info(run_dir),
     )
 
+
 def copy_related_sims(data, qcall=None):
-    return None
+    for i, sim_obj in enumerate(data.models.simWorkflow.coupledSims):
+        if sim_obj.simulationType and sim_obj.simulationId:
+            d = simulation_db.save_new_simulation(
+                pkjson.load_any(
+                    pkio.py_path(
+                        simulation_db.find_global_simulation(
+                            sim_obj.simulationType,
+                            sim_obj.simulationId,
+                        )
+                    ).join("sirepo-data.json")
+                ),
+                qcall=qcall,
+            )
+            data.models.simWorkflow.coupledSims[
+                i
+            ].simulationId = d.models.simulation.simulationId
+    return data
 
 
 def get_data_file(run_dir, model, frame, options):
