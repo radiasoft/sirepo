@@ -614,7 +614,7 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
                     tallyService.setOutlines(summaryData.tally, summaryData.outlines);
                 }
             });
-            
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -821,7 +821,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
             $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
             if (frameCache.hasFrames('openmcAnimation')) {
-                updateDisplayRange();
+                panelState.waitForUI(updateDisplayRange);
             }
         },
     };
