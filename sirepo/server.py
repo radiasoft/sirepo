@@ -101,7 +101,8 @@ class API(sirepo.quest.API):
                     )
                     pkdp("\n\n\ndata2={}", data2)
                     new_id = data2.models.simulation.simulationId
-                    data.models.simWorkflow.coupledSims[i].sim_id = new_id
+                    data.models.simWorkflow.coupledSims[i].simulationId = new_id
+                    res = self._save_new_and_reply(req, data)
 
         # TODO(robnagler) does not work, supervisor needs to be notified to
         # copy the simulation state.
