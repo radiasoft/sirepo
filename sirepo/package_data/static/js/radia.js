@@ -469,12 +469,6 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
         return s;
     };
 
-    self.updateRpnVals = objs => {
-        for (const o of objs) {
-            
-        }
-    };
-
     self.updateRPNVars = () => {
         if (! appState.models.rpnVariables) {
             appState.models.rpnVariables = [];
@@ -492,6 +486,11 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
                 const v = radiaService.getObject(o.id)[f];
                 oNames.push(vName);
                 if (rpnNames.includes(vName)) {
+                    const rpn = radiaService.getObjectByName(vName, rpns);
+                    if (rpn.value !== v) {
+                        rpn.value = v;
+                        doSave = true;
+                    }
                     continue;
                 }
                 rpns.push({
@@ -1041,7 +1040,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     if (! appState.models.geometryReport.objects) {
         appState.models.geometryReport.objects = [];
     }
-    radiaVariableService.updateRPNVars();  // ??
+    radiaVariableService.updateRPNVars();
     loadObjectViews();
     
 
@@ -1081,6 +1080,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         }
         radiaService.saveGeometry(true, false, () => {
             if (self.selectedObject) {
+                radiaVariableService.updateRPNVars();
                 loadObjectViews();
             }
         });

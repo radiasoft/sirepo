@@ -149,7 +149,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def code_var(variables):
-    #pkdp("CODE VAR {}", variables)
     class _C(code_variable.CodeVar):
         def eval_var(self, expr):
             return super().eval_var(
@@ -345,6 +344,11 @@ def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit or not is_parallel:
         return None
     return template_common.parse_mpi_log(run_dir)
+
+
+def prepare_for_client(data, qcall, **kwargs):
+    #code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
+    return data
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -743,9 +747,11 @@ def _electron_trajectory_plot(sim_id, **kwargs):
 
 def _evaluate_objects(objs, code_variable):
     for o in objs:
-        pkdp("EVAL OBJ {}", o.name)
         for f in _SIM_DATA.find_scriptables(o):
-            pkdp("FIELD {} EVAL TO {}", f, code_variable.eval_var(f))
+            e = code_variable.eval_var(f"{o.name}.{f}")
+            if e[1] is not None:
+                raise RuntimeError("Error evaluating field: {}.{}: {}".format(o.name, f, e[1]))
+            o[f] = e[0]
 
 
 def _export_rsopt_config(ctx, run_dir):
