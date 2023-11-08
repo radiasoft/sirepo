@@ -107,7 +107,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def find_scriptables(cls, model):
         m = cls.schema().model[model.type]
-        return [f for f in m if "Scriptable" in m[f] or "ScriptableArray" in m[f]]
+        return [f"{model.name}.{f}" for f in m if "Scriptable" in m[f][1]]
 
 
     @classmethod

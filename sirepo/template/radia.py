@@ -149,7 +149,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def code_var(variables):
-    pkdp("CODE VAR {}", variables)
+    #pkdp("CODE VAR {}", variables)
     class _C(code_variable.CodeVar):
         def eval_var(self, expr):
             return super().eval_var(
@@ -741,8 +741,11 @@ def _electron_trajectory_plot(sim_id, **kwargs):
         ),
     )
 
-def _evaluate_objects(objs):
-    pass
+def _evaluate_objects(objs, code_variable):
+    for o in objs:
+        pkdp("EVAL OBJ {}", o.name)
+        for f in _SIM_DATA.find_scriptables(o):
+            pkdp("FIELD {} EVAL TO {}", f, code_variable.eval_var(f))
 
 
 def _export_rsopt_config(ctx, run_dir):
@@ -1023,7 +1026,8 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
         qcall=qcall,
     )
     v.objects = g.get("objects", [])
-    _evaluate_objects(v.objects)
+    if data.models.rpnVariables:
+        _evaluate_objects(v.objects, code_var(data.models.rpnVariables))
     _validate_objects(v.objects)
 
     for o in v.objects:
