@@ -35,6 +35,11 @@
             "histogramBins"
         ]
     },
+    "relatedSimTypes": [
+        "opal",
+        "elegant",
+        "genesis"
+    ],
     "localRoutes": {
         "source": {
             "config": {

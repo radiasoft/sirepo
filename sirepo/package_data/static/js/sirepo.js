@@ -639,7 +639,8 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             {
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
                 search: search,
-            });
+            }
+        );
     };
 
     self.loadModels = function(simulationId, callback, section) {
@@ -2649,6 +2650,9 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         );
     };
 
+    self.sendGlobalResources = function(appState, callback, data, errorCb) {
+        sendWithSimulationFields('globalResources', appState, callback, data, errorCb);
+    };
 
     self.sendRequest = function(urlOrParams, successCallback, requestData, errorCallback) {
         const blobResponse = (response, successCallback, thisErrorCallback) => {
