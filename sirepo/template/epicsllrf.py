@@ -34,7 +34,7 @@ def analysis_job_read_epics_values(data, run_dir, **kwargs):
         return PKDict()
     e.copy(p, stat=True)
     return PKDict(
-        epicsData=_read_epics_data(run_dir, data.args.computedValues),
+        epicsData=_read_epics_data(run_dir, data.args.get("computedValues")),
     )
 
 
