@@ -9,6 +9,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import numpy
 import os
 import re
 import sirepo.sim_data
@@ -33,7 +34,7 @@ def analysis_job_read_epics_values(data, run_dir, **kwargs):
         return PKDict()
     e.copy(p, stat=True)
     return PKDict(
-        epicsData=_read_epics_data(run_dir),
+        epicsData=_read_epics_data(run_dir, data.args.computedValues),
     )
 
 
@@ -46,8 +47,13 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def epics_field_name(model_name, field):
-    return model_name.replace("_", ":") + ":" + field
+def epics_field_name(epics_prefix, model_name, field):
+    return (
+        epics_prefix
+        + model_name.replace(epics_prefix, "").replace("_", ":")
+        + ":"
+        + field
+    )
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -91,7 +97,7 @@ def stateless_compute_update_epics_value(data, **kwargs):
     for f in data.args.fields:
         if (
             run_epics_cmd(
-                f"pvput {epics_field_name(data.args.model, f.field)} {f.value}",
+                f"pvput {epics_field_name(data.args.epicsModelPrefix, data.args.model, f.field)} {f.value}",
                 data.args.serverAddress,
             )
             != 0
@@ -120,7 +126,24 @@ def _generate_parameters_file(data):
     )
 
 
-def _read_epics_data(run_dir):
+def _calculate_computed_values(d, computed_values):
+    for f in computed_values:
+        fd = computed_values[f]
+        if fd.method == "magnitude":
+            d[f] = numpy.abs(
+                numpy.array(d[fd.args[0]]) + 1j * numpy.array(d[fd.args[1]]),
+            ).tolist()
+        elif fd.method == "phase":
+            d[f] = numpy.angle(
+                numpy.array(d[fd.args[0]]) + 1j * numpy.array(d[fd.args[1]]),
+                deg=True,
+            ).tolist()
+        else:
+            raise AssertionError(f"unknown computedValue method: {fd.method}")
+    return d
+
+
+def _read_epics_data(run_dir, computed_values):
     s = run_dir.join(_STATUS_FILE)
     if s.exists():
         d = simulation_db.json_load(s)
@@ -134,6 +157,8 @@ def _read_epics_data(run_dir):
             else:
                 v = float(v)
             d[f] = v
+        if computed_values:
+            _calculate_computed_values(d, computed_values)
         return d
     return PKDict()
 
@@ -148,3 +173,18 @@ def _parse_epics_log(run_dir):
             if m:
                 return m.group(1)
     return res
+
+
+# TODO(pjm): add this from Matt
+# def set_signal(ctxt, queue, pulse_width = 200, pulse_amp = 32000, pulse_delay = 200):
+#     # Put the DAC Waveform Playback I Values
+#     # https://github.com/slaclab/axi-soc-ultra-plus-core/blob/main/python/axi_soc_ultra_plus_core/rfsoc_utility/_SigGen.py#L136
+#     I = np.zeros(shape=4096, dtype=np.int32, order='C')
+#     I[pulse_delay:(pulse_delay + pulse_width)] = pulse_amp
+#     ctxt.put( 'rfsoc_ioc:Root:XilinxRFSoC:Application:DacSigGen:DacI', I)
+
+#     # Put the DAC Waveform Playback Q Values
+#     # https://github.com/slaclab/axi-soc-ultra-plus-core/blob/main/python/axi_soc_ultra_plus_core/rfsoc_utility/_SigGen.py#L136
+#     Q = np.zeros(shape=4096, dtype=np.int32, order='C')
+#     Q[pulse_delay:(pulse_delay + pulse_width)] = pulse_amp
+#     ctxt.put( 'rfsoc_ioc:Root:XilinxRFSoC:Application:DacSigGen:DacQ', Q)

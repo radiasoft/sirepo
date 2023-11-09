@@ -34,6 +34,20 @@ SIREPO.app.factory('epicsllrfService', function(appState, requestSender, $rootSc
     let epicsData, simSchema;
     self.computeModel = () => 'animation';
 
+    self.lineColors = {
+        y1: "#1f77b4",
+        y2: "#ff7f0e",
+        y3: "#2ca02c",
+        y4: "#d62728",
+        y5: "#9467bd",
+        y6: "#8c564b",
+        y7: "#e377c2",
+        y8: "#7f7f7f",
+        y9: "#bcbd22",
+    };
+
+    self.yFields = Object.keys(self.lineColors);
+
     function deleteSchema() {
         if (simSchema) {
             const schema = SIREPO.APP_SCHEMA;
@@ -46,7 +60,7 @@ SIREPO.app.factory('epicsllrfService', function(appState, requestSender, $rootSc
         }
     }
 
-    self.initSchema = (callback) => {
+    self.initSchema = callback => {
         const c = appState.applicationState().epicsConfig.epicsSchema;
         if (c) {
             requestSender.sendStatelessCompute(
@@ -60,10 +74,8 @@ SIREPO.app.factory('epicsllrfService', function(appState, requestSender, $rootSc
                         }
                     }
                     for (const name in s.model) {
-                        if (! appState.models[name]) {
-                            appState.models[name] = appState.setModelDefaults({}, name);
-                            appState.saveQuietly(name);
-                        }
+                        appState.models[name] = appState.setModelDefaults(appState.models[name] || {}, name);
+                        appState.saveQuietly(name);
                     }
                     appState.models.epicsConfig.epicsModelPrefix = s.constants.epicsModelPrefix;
                     appState.saveQuietly('epicsConfig');
@@ -163,7 +175,7 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
             const changed = [];
             for (const f in epicsData) {
                 const [modelName, field] = f.split(':');
-                if (fieldType(modelName, field) == 'ReadOnlyFloatArray') {
+                if (angular.isArray(epicsData[f]) || fieldType(modelName, field) === 'ReadOnlyFloatArray') {
                     if (
                         (
                             prevEpicsData
@@ -182,31 +194,25 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
                         continue;
                     }
                     for (const [dim, field] of Object.entries(v)) {
-                        if (field == f) {
-                            for (const dim of ['x', 'y1', 'y2']) {
-                                if (dim === 'x' && typeof epicsData[v.x] == 'number') {
-                                    // x may be a step value, convert to an array
-                                    if (epicsData[v.y1]) {
-                                        epicsData[v.x] = SIREPO.UTILS.linearlySpacedArray(
-                                            0, epicsData[v.x] * epicsData[v.y1].length,
-                                            epicsData[v.y1].length,
-                                        );
-                                    }
-                                }
-                                if (! angular.isArray(epicsData[v[dim]])) {
-                                    //TODO(pjm): invalid epics data recieved
-                                    prevEpicsData = null;
-                                    return;
-                                }
+                        if (field === f) {
+                            if (typeof epicsData[v.x] === 'number') {
+                                // x may be a step value, convert to an array
+                                epicsData[v.x] = SIREPO.UTILS.linearlySpacedArray(
+                                    0, epicsData[v.x] * epicsData[v.y1].length,
+                                    epicsData[v.y1].length,
+                                );
                             }
                             visited[r] = true;
-                            $scope.$broadcast('sr-epicsllrf-waveform', [
-                                r,
-                                epicsData[v.x].slice(1),
-                                epicsData[v.y1].slice(1),
-                                epicsData[v.y2].slice(1),
-                                epicsData[v.y3].slice(1),
-                            ]);
+                            const plotData = {
+                                report: r,
+                                x: epicsData[v.x].slice(1),
+                            };
+                            for (const f of epicsllrfService.yFields) {
+                                if (v[f]) {
+                                    plotData[f] = epicsData[v[f]].slice(1);
+                                }
+                            }
+                            $scope.$broadcast('sr-epicsllrf-waveform', plotData);
                         }
                     }
                 }
@@ -241,6 +247,7 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
                         modelName: 'animation',
                         args: {
                             noCache: noCache,
+                            computedValues: SIREPO.APP_SCHEMA.constants.computedValues,
                         },
                     }
                 );
@@ -273,6 +280,7 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
                         method: 'update_epics_value',
                         args: {
                             fields: d,
+                            epicsModelPrefix: appState.applicationState().epicsConfig.epicsModelPrefix,
                             model: modelName,
                             serverAddress: appState.applicationState().epicsServer.serverAddress,
                         },
@@ -358,8 +366,8 @@ SIREPO.app.directive('epicsValue', function(appState, epicsllrfService) {
         `,
         controller: function($scope) {
             $scope.epicsllrfService = epicsllrfService;
-            $scope.fmtExp = (value) => {
-                return value == null ? "" : appState.formatExponential(value);
+            $scope.fmtExp = value => {
+                return value === null ? "" : appState.formatExponential(value);
             };
         },
     };
@@ -393,7 +401,7 @@ SIREPO.app.directive('epicsInput', function(appState, epicsllrfService) {
     };
 });
 
-SIREPO.app.directive('waveformLoader', function(appState, panelState) {
+SIREPO.app.directive('waveformLoader', function(appState, epicsllrfService, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -408,46 +416,32 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
         controller: function($scope, $rootScope) {
             let plotData, plotScope;
             function updatePlot() {
-                const x = plotData[1];
-                const y1 = plotData[2];
-                const y2 = plotData[3];
-                const y3 = plotData[4];
                 const e = SIREPO.APP_SCHEMA.constants.epicsPlots;
                 const l = e.plotLabels;
-                plotData = null;
                 if (plotScope) {
-                    plotScope.clearData();
+                    const plots = [];
+                    for (const [f, c] of Object.entries(epicsllrfService.lineColors)) {
+                        if (plotData[f]) {
+                            plots.push({
+                                color: c,
+                                points: plotData[f],
+                                label: l[e[$scope.modelName][f]],
+                            });
+                        }
+                    }
                     plotScope.load({
                         x_range: [
-                            Math.min(...x),
-                            Math.max(...x),
+                            Math.min(...plotData.x),
+                            Math.max(...plotData.x),
                         ],
                         y_label: "",
                         x_label: l[e[$scope.modelName].x],
-                        x_points: x,
-                        plots: [
-                            {
-                                color: '#1f77b4',
-                                points: y1,
-                                label: l[e[$scope.modelName].y1],
-                            },
-                            {
-                                color: '#ff7f0e',
-                                points: y2,
-                                label: l[e[$scope.modelName].y2],
-                            },
-                            {
-                                color: '#000000',
-                                points: y3,
-                                label: l[e[$scope.modelName].y3],
-                            },
-                        ],
-                        y_range: [
-                            Math.min(Math.min(...y1), Math.min(...y2)),
-                            Math.max(Math.max(...y1), Math.max(...y2)),
-                        ],
+                        x_points: plotData.x,
+                        plots: plots,
+                        y_range: [0, 1],
                     });
                 }
+                plotData = null;
             }
 
             $scope.$on('sr-plotLinked', event => {
@@ -458,7 +452,7 @@ SIREPO.app.directive('waveformLoader', function(appState, panelState) {
                 }
             });
             $scope.$on('sr-epicsllrf-waveform', (event, data) => {
-                if (data[0] == $scope.modelName) {
+                if (data.report === $scope.modelName) {
                     plotData = data;
                     if (plotScope) {
                         updatePlot();
