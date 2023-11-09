@@ -476,7 +476,7 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
         }
         const rpns = appState.models.rpnVariables;
         const rpnNames = rpns.map(x => x.name);
-        const objs = self.addressableObjects(['Float', 'FloatArray', 'Scriptable', 'ScriptableArray']);
+        const objs = self.scriptableObjects();
         const oNames = [];
         let doSave = false;
         // add
