@@ -357,9 +357,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return res;
     }
 
-    self.propertiesField = (modelName, fieldName) =>
-        self.models[modelName][propertiesFieldName(fieldName)];
-
    function propertiesFieldName(fieldName) {
         return `${fieldName}$properties`;
     }
@@ -632,9 +629,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         //TODO(pjm): need better name for this, a model which doesn't affect other models
         return  name.indexOf('Report') >= 0 || self.isAnimationModelName(name) || name.indexOf('Status') >= 0;
     };
-
-    self.isScriptable = (modelName, fieldName) =>
-        self.propertiesField(modelName, fieldName, 'isScriptable') != null;
 
     self.isSubclass = function(model1, model2) {
         return this.superClasses(model1).includes(model2);

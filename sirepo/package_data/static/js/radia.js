@@ -454,17 +454,18 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
         return objs;
     };
 
+    self.isScriptable = (o, f) => {
+        const objs = self.scriptableObjects();
+        return Object.keys(objs).includes(o.name) && objs[o.name].fields.includes(f);
+    }
+
+    self.scriptableObjects = () => self.addressableObjects(['Float', 'FloatArray', 'Scriptable', 'ScriptableArray']);
+
     self.scriptedObject = o => {
         const s = {};
         const t = o.type;
         for (const f of Object.keys(o)) {
-            if (appState.isScriptable(t, f)) {
-                let v = rpnService.getRpnValueForField(o, f);
-                if (v == null) {
-                    rpnService.re
-                }
-            }
-            s[f] = appState.isScriptable(t, f) ? rpnService.getRpnValueForField(o, f) : window.structuredClone(o[f]);
+            s[f] = self.isScriptable(o, f) ? rpnService.getRpnValueForField(o, f) : window.structuredClone(o[f]);
         }
         return s;
     };
