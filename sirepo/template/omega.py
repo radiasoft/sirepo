@@ -130,20 +130,27 @@ def background_percent_complete(report, run_dir, is_running):
 def copy_related_sims(data, qcall=None):
     for i, sim_obj in enumerate(data.models.simWorkflow.coupledSims):
         if sim_obj.simulationType and sim_obj.simulationId:
-            d = simulation_db.save_new_simulation(
-                pkjson.load_any(
-                    pkio.py_path(
-                        simulation_db.find_global_simulation(
-                            sim_obj.simulationType,
-                            sim_obj.simulationId,
-                        )
-                    ).join("sirepo-data.json")
-                ),
+
+            related_sim_path = pkio.py_path(
+                simulation_db.find_global_simulation(
+                    sim_obj.simulationType,
+                    sim_obj.simulationId,
+                )
+            ).join("sirepo-data.json")
+
+            copy_data = pkjson.load_any(related_sim_path)
+
+            copy_data.models.simulation.isExample = False
+            copy_data.models.simulation.folder = "/Omega"
+
+            saved_copy = simulation_db.save_new_simulation(
+                copy_data,
                 qcall=qcall,
             )
+
             data.models.simWorkflow.coupledSims[
                 i
-            ].simulationId = d.models.simulation.simulationId
+            ].simulationId = saved_copy.models.simulation.simulationId
     return data
 
 
