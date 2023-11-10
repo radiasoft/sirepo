@@ -151,6 +151,7 @@ def background_percent_complete(report, run_dir, is_running):
 def code_var(variables):
     class _C(code_variable.CodeVar):
         def eval_var(self, expr):
+            # finds all instances of <variable>[<digits>] and replaces them with the value
             return super().eval_var(
                 re.sub(
                     fr"({'|'.join(list(self.variables.keys()))})\s*\[\s*(\d+)\s*\]",
@@ -743,7 +744,7 @@ def _electron_trajectory_plot(sim_id, **kwargs):
         ),
     )
 
-def _evaluate_objects(objs, code_variable):
+def _evaluate_objects(objs, vars, code_variable):
     for o in objs:
         for f in _SIM_DATA.find_scriptables(o):
             e = code_variable.eval_var(f"{o.name}.{f}")
@@ -1031,7 +1032,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     )
     v.objects = g.get("objects", [])
     if data.models.rpnVariables:
-        _evaluate_objects(v.objects, code_var(data.models.rpnVariables))
+        _evaluate_objects(v.objects, data.models.rpnVariables, code_var(data.models.rpnVariables))
     _validate_objects(v.objects)
 
     for o in v.objects:
