@@ -107,6 +107,7 @@ _ELEGANT_BEAM_PARAMETER_FILE = PKDict(
     Cx="run_setup.centroid.sdds",
     Cy="run_setup.centroid.sdds",
 )
+_RELATED_SIMS_FOLDER = "/Omega"
 _SUCCESS_OUTPUT_FILE = PKDict(
     elegant="run_setup.output.sdds",
     opal="opal.h5",
@@ -128,29 +129,29 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def copy_related_sims(data, qcall=None):
-    for i, sim_obj in enumerate(data.models.simWorkflow.coupledSims):
+    for index, sim_obj in enumerate(data.models.simWorkflow.coupledSims):
         if sim_obj.simulationType and sim_obj.simulationId:
-
-            related_sim_path = pkio.py_path(
+            p = pkio.py_path(
                 simulation_db.find_global_simulation(
                     sim_obj.simulationType,
                     sim_obj.simulationId,
                 )
             ).join("sirepo-data.json")
-
-            copy_data = pkjson.load_any(related_sim_path)
-
-            copy_data.models.simulation.isExample = False
-            copy_data.models.simulation.folder = "/Omega"
-
-            saved_copy = simulation_db.save_new_simulation(
-                copy_data,
+            c = pkjson.load_any(p)
+            c.models.simulation.isExample = False
+            c.models.simulation.folder = _RELATED_SIMS_FOLDER
+            s = simulation_db.save_new_simulation(
+                c,
                 qcall=qcall,
             )
-
+            sirepo.sim_data.get_class(sim_obj.simulationType).lib_files_from_other_user(
+                c,
+                simulation_db.lib_dir_from_sim_dir(p),
+                qcall=qcall,
+            )
             data.models.simWorkflow.coupledSims[
-                i
-            ].simulationId = saved_copy.models.simulation.simulationId
+                index
+            ].simulationId = s.models.simulation.simulationId
     return data
 
 
