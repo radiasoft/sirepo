@@ -10,6 +10,7 @@ Radia "instance" goes away and references no longer have any meaning.
 
 import inspect
 from pykern import pkcompat
+from pykern import pkconst
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjson
@@ -151,16 +152,42 @@ def background_percent_complete(report, run_dir, is_running):
 def code_var(variables):
     class _C(code_variable.CodeVar):
         def eval_var(self, expr):
+            return super().eval_var(expr)
             # finds all instances of <variable>[<digits>] and replaces them with the value
-            return super().eval_var(
-                re.sub(
-                    fr"({'|'.join(list(self.variables.keys()))})\s*\[\s*(\d+)\s*\]",
-                    lambda m: str(self.variables[m.group(1)][int(m.group(2))]),
-                    expr
-                )
-            )
+            #return super().eval_var(
+            #    re.sub(
+            #        fr"({'|'.join(list(self.variables.keys()))})\s*\[\s*(\d+)\s*\]",
+            #        lambda m: str(self.variables[m.group(1)][int(m.group(2))]),
+            #        expr
+            #    )
+            #)
 
-    return _C(variables, code_variable.PurePythonEval())
+    class _P(code_variable.PurePythonEval):
+        def eval_indexed_variable(self, expr, variables):
+            pkdp("CHECK INDEXED? {}", expr)
+            if isinstance(expr, list):
+                return [self.eval_indexed_variable(e, variables) for e in expr]
+            r = fr"(.*)({'|'.join(list(variables.keys()))})\s*\[\s*(\d+)\s*\]"
+            if not re.match(r, str(expr)):
+                p = code_variable.CodeVar.infix_to_postfix(expr)
+                pkdp("POST {}", p)
+                return p
+            s = self.eval_indexed_variable(
+                re.sub(
+                    r,
+                    lambda m: m.group(1) + str(variables[m.group(2)][int(m.group(3))]),
+                    expr
+                ),
+                variables
+            )
+            pkdp("SUBBED {}", s)
+            return s
+        
+        def eval_var(self, expr, depends, variables):
+            return super().eval_var(self.eval_indexed_variable(expr, variables), depends, variables)
+
+
+    return code_variable.CodeVar(variables, _P())
 
 
 def extract_report_data(run_dir, sim_in):
