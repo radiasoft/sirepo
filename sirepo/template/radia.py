@@ -154,30 +154,30 @@ def code_var(variables):
         def eval_var(self, expr):
             return super().eval_var(expr)
             # finds all instances of <variable>[<digits>] and replaces them with the value
-            #return super().eval_var(
+            # return super().eval_var(
             #    re.sub(
             #        fr"({'|'.join(list(self.variables.keys()))})\s*\[\s*(\d+)\s*\]",
             #        lambda m: str(self.variables[m.group(1)][int(m.group(2))]),
             #        expr
             #    )
-            #)
+            # )
 
     class _P(code_variable.PurePythonEval):
         def eval_indexed_variable(self, expr, variables):
             if isinstance(expr, list):
                 return [self.eval_indexed_variable(e, variables) for e in expr]
-            r = fr"(.*)({'|'.join(list(variables.keys()))})\s*\[\s*(\d+)\s*\]"
+            r = rf"(.*)({'|'.join(list(variables.keys()))})\s*\[\s*(\d+)\s*\]"
             if not re.match(r, str(expr)):
                 return code_variable.CodeVar.infix_to_postfix(expr)
             return self.eval_indexed_variable(
                 re.sub(
                     r,
                     lambda m: m.group(1) + str(variables[m.group(2)][int(m.group(3))]),
-                    expr
+                    expr,
                 ),
-                variables
+                variables,
             )
-        
+
         def eval_var(self, expr, depends, variables):
             vv = variables.copy()
             for d in depends:
@@ -187,9 +187,8 @@ def code_var(variables):
                 vv[d] = v
             return super().eval_var(self.eval_indexed_variable(expr, vv), depends, vv)
 
-
-    #return code_variable.CodeVar(variables, _P())
-    return code_variable.CodeVar(variables,code_variable.PurePythonEval())
+    # return code_variable.CodeVar(variables, _P())
+    return code_variable.CodeVar(variables, code_variable.PurePythonEval())
 
 
 def extract_report_data(run_dir, sim_in):
@@ -377,7 +376,7 @@ def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
 
 
 def prepare_for_client(data, qcall, **kwargs):
-    #code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
+    # code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
     return data
 
 
@@ -465,7 +464,9 @@ def write_parameters(data, run_dir, is_parallel):
         _generate_parameters_file(data, is_parallel, run_dir=run_dir, qcall=None),
     )
     if is_parallel:
-        return template_common.get_exec_parameters_cmd(is_mpi=data.report not in ("optimizerAnimation",))
+        return template_common.get_exec_parameters_cmd(
+            is_mpi=data.report not in ("optimizerAnimation",)
+        )
     return None
 
 
@@ -773,12 +774,15 @@ def _electron_trajectory_plot(sim_id, **kwargs):
         ),
     )
 
+
 def _evaluate_objects(objs, vars, code_variable):
     for o in objs:
         for f in _SIM_DATA.find_scriptables(o):
             e = code_variable.eval_var(f"{o.name}.{f}")
             if e[1] is not None:
-                raise RuntimeError("Error evaluating field: {}.{}: {}".format(o.name, f, e[1]))
+                raise RuntimeError(
+                    "Error evaluating field: {}.{}: {}".format(o.name, f, e[1])
+                )
             o[f] = e[0]
 
 
@@ -806,7 +810,7 @@ def _extract_optimization_results(args):
     plots = []
     objective_vals = []
     params = PKDict()
-    summaryData=PKDict()
+    summaryData = PKDict()
     out_files = pkio.walk_tree(args.run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT)
     for f in out_files:
         with h5py.File(f, "r") as h:
@@ -843,7 +847,6 @@ def _extract_optimization_results(args):
             summaryData=summaryData,
         ),
     )
-
 
 
 def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None):
@@ -1061,7 +1064,9 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     )
     v.objects = g.get("objects", [])
     if data.models.rpnVariables:
-        _evaluate_objects(v.objects, data.models.rpnVariables, code_var(data.models.rpnVariables))
+        _evaluate_objects(
+            v.objects, data.models.rpnVariables, code_var(data.models.rpnVariables)
+        )
     _validate_objects(v.objects)
 
     for o in v.objects:
@@ -1333,7 +1338,9 @@ def _calculate_objective_def(models):
     if t == "objectiveFunctionQuality":
         q = models.objectiveFunctionQuality
         s = models.optimizationSoftwareDFOLS
-        c = c + f"""
+        c = (
+            c
+            + f"""
     import numpy
     
     f = numpy.array([])
@@ -1345,6 +1352,7 @@ def _calculate_objective_def(models):
         f = numpy.append(f, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
     return numpy.sum((f - f0)**2), (f - f0).tolist()
 """
+        )
     else:
         raise ValueError("objective_functon={}: unknown function".format(t))
     return c
@@ -1543,20 +1551,27 @@ def _rsopt_percent_complete(run_dir, res):
         if m:
             p = 0
             res.state = "error"
-            res.error = f"Error during optimization: worker {m.group(1)} sim id {m.group(2)}"
+            res.error = (
+                f"Error during optimization: worker {m.group(1)} sim id {m.group(2)}"
+            )
     # errors that interrupt
     else:
-        m = _scan_stats(r"Worker\s*(\d+):\s+Gen no\s*(\d+).*Status:\s*Exception occurred")
+        m = _scan_stats(
+            r"Worker\s*(\d+):\s+Gen no\s*(\d+).*Status:\s*Exception occurred"
+        )
         if m:
             p = 0
             res.state = "error"
-            res.error = f"Error during optimization: worker {m.group(1)} gen no {m.group(2)}"
+            res.error = (
+                f"Error during optimization: worker {m.group(1)} gen no {m.group(2)}"
+            )
     res.percentComplete = 100 * p
     return res
 
 
 def _rsopt_jinja_context(data):
     import multiprocessing
+
     res = PKDict(
         errFileName="optimize.err",
         libFiles=_SIM_DATA.lib_file_basenames(data),

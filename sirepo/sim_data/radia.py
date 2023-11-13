@@ -109,7 +109,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         m = cls.schema().model[model.type]
         return [f for f in m if "Scriptable" in m[f][1]]
 
-
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         import sirepo.util
@@ -217,7 +216,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 _fixup_terminations(o)
                 _fixup_transforms(o)
                 _delete_old_fields(o)
-
 
         def _fixup_segmentation(model):
             if not model.get("segments"):
