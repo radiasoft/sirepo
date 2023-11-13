@@ -188,7 +188,8 @@ def code_var(variables):
             return super().eval_var(self.eval_indexed_variable(expr, vv), depends, vv)
 
 
-    return code_variable.CodeVar(variables, _P())
+    #return code_variable.CodeVar(variables, _P())
+    return code_variable.CodeVar(variables,code_variable.PurePythonEval())
 
 
 def extract_report_data(run_dir, sim_in):
