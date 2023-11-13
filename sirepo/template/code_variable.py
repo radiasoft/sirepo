@@ -393,8 +393,6 @@ class PurePythonEval:
         if isinstance(expr, list):
             return [self.__eval_indexed_variable(e, variables) for e in expr]
         r = rf"(.*)({'|'.join(list(variables.keys()))})\s*\[\s*(\d+)\s*\]"
-        if not re.match(r, str(expr)):
-            return CodeVar.infix_to_postfix(expr)
         return self.__eval_indexed_variable(
             re.sub(
                 r,
@@ -402,7 +400,7 @@ class PurePythonEval:
                 expr,
             ),
             variables,
-        )
+        ) if re.match(r, str(expr)) else CodeVar.infix_to_postfix(expr)
 
     def __eval_python_stack(self, expr, variables):
         if not CodeVar.is_var_value(expr):

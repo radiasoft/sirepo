@@ -150,44 +150,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def code_var(variables):
-    class _C(code_variable.CodeVar):
-        def eval_var(self, expr):
-            return super().eval_var(expr)
-            # finds all instances of <variable>[<digits>] and replaces them with the value
-            # return super().eval_var(
-            #    re.sub(
-            #        fr"({'|'.join(list(self.variables.keys()))})\s*\[\s*(\d+)\s*\]",
-            #        lambda m: str(self.variables[m.group(1)][int(m.group(2))]),
-            #        expr
-            #    )
-            # )
-
-    class _P(code_variable.PurePythonEval):
-        def eval_indexed_variable(self, expr, variables):
-            if isinstance(expr, list):
-                return [self.eval_indexed_variable(e, variables) for e in expr]
-            r = rf"(.*)({'|'.join(list(variables.keys()))})\s*\[\s*(\d+)\s*\]"
-            if not re.match(r, str(expr)):
-                return code_variable.CodeVar.infix_to_postfix(expr)
-            return self.eval_indexed_variable(
-                re.sub(
-                    r,
-                    lambda m: m.group(1) + str(variables[m.group(2)][int(m.group(3))]),
-                    expr,
-                ),
-                variables,
-            )
-
-        def eval_var(self, expr, depends, variables):
-            vv = variables.copy()
-            for d in depends:
-                v, err = self.eval_var(self.eval_indexed_variable(vv[d], vv), {}, vv)
-                if err:
-                    return None, err
-                vv[d] = v
-            return super().eval_var(self.eval_indexed_variable(expr, vv), depends, vv)
-
-    # return code_variable.CodeVar(variables, _P())
     return code_variable.CodeVar(variables, code_variable.PurePythonEval())
 
 
