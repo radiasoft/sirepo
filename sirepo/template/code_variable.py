@@ -181,7 +181,7 @@ class CodeVar:
 
     @classmethod
     def is_var_value(cls, value):
-        if value == 0 or value:
+        if value:
             # is it a single value in numeric format?
             if template_common.NUMERIC_RE.search(str(value)):
                 return False
