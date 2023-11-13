@@ -173,6 +173,8 @@ class CodeVar:
                 expr = re.sub(r"\^", "**", expr)
                 rpn = cls.__parse_expr_infix(expr)
                 expr = rpn
+            else:
+                expr = float(expr)
         except Exception as e:
             pass
         return expr
@@ -343,15 +345,15 @@ class PurePythonEval:
     def eval_var(self, expr, depends, variables):
         variables = variables.copy()
         for d in depends:
-            v, err = PurePythonEval.__eval_python_stack(
-                self,
-                variables[d],
-                variables,
+            v, err = self.eval_var(
+                self.__eval_indexed_variable(variables[d], variables), {}, variables
             )
             if err:
                 return None, err
             variables[d] = v
-        return self.__eval_python_stack(expr, variables)
+        return self.__eval_python_stack(
+            self.__eval_indexed_variable(expr, variables), variables
+        )
 
     @classmethod
     def postfix_to_infix(cls, expr):
@@ -386,6 +388,21 @@ class PurePythonEval:
             else:
                 stack.append(v)
         return __strip_parens(stack[-1])
+
+    def __eval_indexed_variable(self, expr, variables):
+        if isinstance(expr, list):
+            return [self.__eval_indexed_variable(e, variables) for e in expr]
+        r = rf"(.*)({'|'.join(list(variables.keys()))})\s*\[\s*(\d+)\s*\]"
+        if not re.match(r, str(expr)):
+            return CodeVar.infix_to_postfix(expr)
+        return self.__eval_indexed_variable(
+            re.sub(
+                r,
+                lambda m: m.group(1) + str(variables[m.group(2)][int(m.group(3))]),
+                expr,
+            ),
+            variables,
+        )
 
     def __eval_python_stack(self, expr, variables):
         if not CodeVar.is_var_value(expr):
