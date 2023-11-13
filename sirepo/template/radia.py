@@ -164,14 +164,15 @@ def code_var(variables):
 
     class _P(code_variable.PurePythonEval):
         def eval_indexed_variable(self, expr, variables):
-            pkdp("CHECK INDEXED? {}", expr)
+            pkdp("EVAL INDEXED {}", expr)
             if isinstance(expr, list):
                 return [self.eval_indexed_variable(e, variables) for e in expr]
             r = fr"(.*)({'|'.join(list(variables.keys()))})\s*\[\s*(\d+)\s*\]"
             if not re.match(r, str(expr)):
                 p = code_variable.CodeVar.infix_to_postfix(expr)
-                pkdp("POST {}", p)
+                pkdp("POSTFIX {} -> {} TYPE {}", expr, p, type(p))
                 return p
+            
             s = self.eval_indexed_variable(
                 re.sub(
                     r,
@@ -180,11 +181,17 @@ def code_var(variables):
                 ),
                 variables
             )
-            pkdp("SUBBED {}", s)
+            pkdp("SUB {} -> {}", expr, s)
             return s
         
         def eval_var(self, expr, depends, variables):
-            return super().eval_var(self.eval_indexed_variable(expr, variables), depends, variables)
+            vv = variables.copy()
+            for d in depends:
+                v, err = self.eval_var(self.eval_indexed_variable(vv[d], vv), {}, vv)
+                if err:
+                    return None, err
+                vv[d] = v
+            return super().eval_var(self.eval_indexed_variable(expr, vv), depends, vv)
 
 
     return code_variable.CodeVar(variables, _P())

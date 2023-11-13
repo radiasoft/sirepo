@@ -173,17 +173,23 @@ class CodeVar:
                 expr = re.sub(r"\^", "**", expr)
                 rpn = cls.__parse_expr_infix(expr)
                 expr = rpn
+            else:
+                expr = float(expr)
         except Exception as e:
             pass
+        pkdp("JUST RTN {}", expr)
         return expr
 
     @classmethod
     def is_var_value(cls, value):
-        if value:
+        if value == 0 or value:
             # is it a single value in numeric format?
             if template_common.NUMERIC_RE.search(str(value)):
+                pkdp("NOT VAR VAL: {}", value)
                 return False
+            pkdp("YES VAR VAL: {}", value)
             return True
+        pkdp("NOT VAR VAL BAD INPUT: {}", value)
         return False
 
     @classmethod
@@ -392,7 +398,7 @@ class PurePythonEval:
             return expr, None
         if isinstance(expr, list):
             evs = []
-
+            pkdp("ARR {}", expr)
             # loop instead of map so we can fail out on the first error
             for e in expr:
                 ev = self.__eval_python_stack(CodeVar.infix_to_postfix(e), variables)
