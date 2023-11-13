@@ -392,11 +392,11 @@ class PurePythonEval:
     def __eval_indexed_variable(self, expr, variables):
         if isinstance(expr, list):
             return [self.__eval_indexed_variable(e, variables) for e in expr]
-        r = rf"(.*)({'|'.join(list(variables.keys()))})\s*\[\s*(\d+)\s*\]"
+        r = rf"({'|'.join(list(variables.keys()))})\s*\[\s*(\d+)\s*\]"
         return self.__eval_indexed_variable(
             re.sub(
                 r,
-                lambda m: m.group(1) + str(variables[m.group(2)][int(m.group(3))]),
+                lambda m: str(variables[m.group(1)][int(m.group(2))]),
                 expr,
             ),
             variables,
