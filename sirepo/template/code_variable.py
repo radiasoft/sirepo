@@ -345,8 +345,8 @@ class PurePythonEval:
     def eval_var(self, expr, depends, variables):
         variables = variables.copy()
         for d in depends:
-            v, err = self.eval_var(
-                self.__eval_indexed_variable(variables[d], variables), {}, variables
+            v, err = PurePythonEval.eval_var(
+                self, self.__eval_indexed_variable(variables[d], variables), {}, variables
             )
             if err:
                 return None, err
