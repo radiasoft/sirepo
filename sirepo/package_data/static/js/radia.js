@@ -58,19 +58,11 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="Points" data-ng-class="fieldClass">
           <div data-points-table="" data-field="model[field]" data-model="model"></div>
         </div>
-        <div data-ng-switch-when="Scriptable" class="col-sm-3">
-            <div class="input-group input-group-sm">
-                <input data-rpn-value="" data-is-error="isError" data-ng-model="model[field]" class="form-control sr-number-list" style="text-align: right" data-lpignore="true" data-ng-required="true" />
-                <span title="scriptable field" class="input-group-addon"><span class="glyphicon glyphicon-list-alt"></span></span>
-            </div>
-            <div class="col-sm-2">
-              <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError" style="display: inline-block;"></span>
-            </div>
-            <div class="sr-input-warning"></div>
+        <div data-ng-switch-when="Scriptable">
+            <div data-scriptable-field="" data-model-name="modelName" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
         </div>
         <div data-ng-switch-when="ScriptableArray" class="col-sm-7">
-            <div data-rpn-array="" data-model-name="modelName" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
-            <div class="sr-input-warning"></div>
+            <div data-scriptable-array="" data-model-name="modelName" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
         </div>
         <div data-ng-switch-when="ShapeButton" class="col-sm-7">
           <div data-shape-button="" data-model-name="modelName" data-field-class="fieldClass"></div>
@@ -790,7 +782,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     self.viewsForObject = obj => {
         const o = radiaVariableService.scriptedObject(obj);
         const supers = appState.superClasses(o.type);
-        srdbg('SCRIPTED', o);
+        //srdbg('SCRIPTED', o);
         let center = o.center;
         let size = o.size;
         const isGroup = self.isGroup(o);
@@ -3077,7 +3069,7 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
     };
 });
 
-SIREPO.app.directive('rpnArray', function(appState, utilities) {
+SIREPO.app.directive('scriptableArray', function(appState, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -3110,6 +3102,41 @@ SIREPO.app.directive('rpnArray', function(appState, utilities) {
 
             // adjust the computed display to line up with the first label
             $(element).find('div[data-rpn-static] > div').css('margin-left', 0);
+        },
+    };
+});
+
+SIREPO.app.directive('scriptableField', function(appState, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            fieldName: '=',
+            info: '=',
+            model: '=',
+            modelName: '=',
+        },
+        template: `
+            <div class="col-sm-3">
+                <input data-rpn-value="" data-is-error="isError" data-ng-model="model[fieldName]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
+            </div>
+            <div class="col-sm-2">
+                <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError"></span>
+            </div>
+        `,
+        controller: ($scope, $element) => {
+            $scope.appState = appState;
+            $scope.isDynamic = label => ! ! label.match(/{{\s*.+\s*}}/);
+            $scope.isBusy = false;
+            $scope.isError = false;
+        },
+        link: (scope, element) => {
+            // add an icon to the label
+            $(element)
+                .closest('div[data-ng-switch]')
+                .siblings('.control-label')
+                .find('label')
+                .append('<span class="glyphicon glyphicon-list-alt" title="scriptable"></span>');
         },
     };
 });

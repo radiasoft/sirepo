@@ -992,7 +992,7 @@
         "racetrack": {
             "_super": ["_", "model", "radiaObject"],
             "axis": ["Axis", "BeamAxis", "y"],
-            "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "center": ["Center [mm]", "ScriptableArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "currentDensity": ["Current Density [A/$mm^2$]", "Float", -0.5],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
             "height": ["Height ({{ appState.models.racetrack.axis }}) [mm]", "Float", 105.0, "Measured along axis"],
