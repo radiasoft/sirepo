@@ -24,6 +24,7 @@ import pykern.pkjson
 import re
 import sirepo.mpi
 import sirepo.sim_data
+import sirepo.sim_run
 import sirepo.util
 import srwpy.srwl_bl
 import srwpy.srwlib
@@ -891,7 +892,7 @@ def stateful_compute_delete_user_models(data, **kwargs):
 def stateful_compute_import_file(data, **kwargs):
     from sirepo.template import srw_importer
 
-    with simulation_db.tmp_dir():
+    with sirepo.sim_run.tmp_dir():
         return PKDict(
             imported_data=srw_importer.import_python(
                 code=data.args.file_as_str,

@@ -277,7 +277,7 @@ class API(sirepo.quest.API):
                     "no import_file in template req={}",
                     req,
                 )
-            with simulation_db.tmp_dir(qcall=self) as d:
+            with sirepo.sim_run.tmp_dir(qcall=self) as d:
                 return await req.template.import_file(
                     req,
                     tmp_dir=d,
