@@ -53,7 +53,9 @@ async def read_zip(zip_bytes, qcall, sim_type=None):
     Returns:
         PKDict: data
     """
-    with simulation_db.tmp_dir(qcall=qcall) as tmp:
+    from sirepo import sim_data, sim_run
+
+    with sim_run.tmp_dir(qcall=qcall) as tmp:
         data = None
         zipped = PKDict()
         with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as z:
@@ -75,7 +77,7 @@ async def read_zip(zip_bytes, qcall, sim_type=None):
                 zipped[b].write(c, "wb")
         assert data, "missing {} in archive".format(simulation_db.SIMULATION_DATA_FILE)
         needed = set()
-        s = sirepo.sim_data.get_class(data.simulationType)
+        s = sim_data.get_class(data.simulationType)
         u = qcall.auth.logged_in_user()
         for n in s.lib_file_basenames(data):
             await sirepo.util.yield_to_event_loop()

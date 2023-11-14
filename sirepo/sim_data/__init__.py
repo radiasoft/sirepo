@@ -14,6 +14,7 @@ import hashlib
 import inspect
 import re
 import requests
+import sirepo.agent_supervisor_api
 import sirepo.const
 import sirepo.feature_config
 import sirepo.job
@@ -28,9 +29,6 @@ _cfg = None
 
 #: default compute_model
 _ANIMATION_NAME = "animation"
-
-#: prefix for auth header of sim_db_file requests
-_AUTH_HEADER_PREFIX = f"{sirepo.util.AUTH_HEADER_SCHEME_BEARER} "
 
 _MODEL_RE = re.compile(r"^[\w-]+$")
 
@@ -65,11 +63,11 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
       force (bool): Overwrite existing lib files with the same name as new ones
       sim_types (set): Set of sim_types to audit (proprietary_sim_types if None)
     """
-    from sirepo import simulation_db
+    from sirepo import simulation_db, sim_run
 
     def _add(proprietary_code_dir, sim_type, cls):
         p = proprietary_code_dir.join(cls.proprietary_code_tarball())
-        with simulation_db.tmp_dir(chdir=True, qcall=qcall) as t:
+        with sim_run.tmp_dir(chdir=True, qcall=qcall) as t:
             d = t.join(p.basename)
             d.mksymlinkto(p, absolute=False)
             subprocess.check_output(
@@ -895,17 +893,8 @@ class SimDbFileNotFound(Exception):
 
 
 def _request(method, uri, data=None):
-    r = requests.request(
-        method,
-        uri,
-        data=data,
-        verify=sirepo.job.cfg().verify_tls,
-        headers=PKDict(
-            {
-                sirepo.util.AUTH_HEADER: _AUTH_HEADER_PREFIX
-                + _cfg.supervisor_sim_db_file_token,
-            }
-        ),
+    r = sirepo.agent_supervisor_api.request(
+        method, uri, _cfg.supervisor_sim_db_file_token, data=data
     )
     if method == "GET" and r.status_code == 404:
         raise SimDbFileNotFound(f"uri={uri} not found")

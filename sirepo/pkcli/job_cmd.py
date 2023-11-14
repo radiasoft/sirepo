@@ -5,19 +5,23 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkcompat
+from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
 from pykern import pkjson
+from pykern import pkunit
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
 import contextlib
+import os
 import re
 import requests
 import signal
 import sirepo.sim_data
+import sirepo.sim_run
 import sirepo.template
 import sirepo.util
 import subprocess
@@ -105,7 +109,7 @@ def _dispatch_compute(msg, template):
             template.SIM_TYPE,
         ).does_api_reply_with_file(msg.api, msg.data.method)
         if x:
-            with simulation_db.tmp_dir(chdir=True) as d:
+            with sirepo.sim_run.tmp_dir(chdir=True) as d:
                 return _op(expect_file=x)
         else:
             return _op(expect_file=x)
@@ -127,8 +131,12 @@ def _do_compute(msg, template):
             stdout=run_log,
             stderr=run_log,
         )
+
+    if pkconfig.in_dev_mode() and pkunit.is_test_run():
+        sys.stderr.write(pkio.read_text(msg.runDir.join(template_common.RUN_LOG)))
     while True:
         for j in range(20):
+            # Not asyncio.sleep: not in coroutine
             time.sleep(0.1)
             r = p.poll()
             i = r is None
@@ -276,6 +284,7 @@ def _do_sbatch_status(msg, template):
             pkio.unchecked_remove(s)
             return PKDict(state=job.COMPLETED)
         _write_parallel_status(msg, template, True)
+        # Not asyncio.sleep: not in coroutine
         time.sleep(msg.nextRequestSeconds)
     # DOES NOT RETURN
 
