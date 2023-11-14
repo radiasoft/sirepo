@@ -435,7 +435,8 @@ def dump_bin(g_id):
 
 # only i (?), m, h
 def field_integral(g_id, f_type, p1, p2):
-    return radia.FldInt(g_id, "inf", f_type, p1, p2)
+    pkdp("INT TYPE {}", f_type)
+    return radia.FldInt(g_id, "inf", f"i{f_type}", p1, p2)
 
 
 def free_symmetries(g_id):

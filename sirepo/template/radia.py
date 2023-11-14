@@ -1310,8 +1310,10 @@ def _calculate_objective_def(models):
     p2 = {q.end}
     c = 'B{q.component}'
     f0 = radia_util.field_integral(g_id, c, p1, p2)
+    print('F0 {{}}'.format(f0))
     for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {s.components}):
         f = numpy.append(f, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
+    print('OBJ RES {{}} VAL {{}}'.format((f - f0).tolist(), numpy.sum((f - f0)**2)))
     return numpy.sum((f - f0)**2), (f - f0).tolist()
 """
         )
