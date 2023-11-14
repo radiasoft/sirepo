@@ -615,6 +615,14 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         self.editObject(copy);
     };
 
+    self.decorateLabelWithIcon = (element, iconName, title) => {
+        $(element)
+        .closest('div[data-ng-switch]')
+        .siblings('.control-label')
+        .find('label')
+        .append(`<span class="glyphicon glyphicon-${iconName}" title="${title}"></span>`);
+    };
+
     self.editTool = tool => {
         if (tool.isInactive) {
             return;
@@ -3094,11 +3102,8 @@ SIREPO.app.directive('scriptableArray', function(appState, utilities) {
         },
         link: (scope, element) => {
             // add an icon to the label
-            $(element)
-                .closest('div[data-ng-switch]')
-                .siblings('.control-label')
-                .find('label')
-                .append('<span class="glyphicon glyphicon-list-alt" title="scriptable"></span>');
+            const ctl = angular.element($('div[data-ng-controller]').eq(0)).controller('ngController');
+            ctl.decorateLabelWithIcon(element, 'list-alt', 'scriptable');
 
             // adjust the computed display to line up with the first label
             $(element).find('div[data-rpn-static] > div').css('margin-left', 0);
@@ -3132,11 +3137,8 @@ SIREPO.app.directive('scriptableField', function(appState, utilities) {
         },
         link: (scope, element) => {
             // add an icon to the label
-            $(element)
-                .closest('div[data-ng-switch]')
-                .siblings('.control-label')
-                .find('label')
-                .append('<span class="glyphicon glyphicon-list-alt" title="scriptable"></span>');
+            const ctl = angular.element($('div[data-ng-controller]').eq(0)).controller('ngController');
+            ctl.decorateLabelWithIcon(element, 'list-alt', 'scriptable');
         },
     };
 });
