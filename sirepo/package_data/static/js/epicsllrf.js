@@ -153,7 +153,7 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
     }
 
     function initReportNames() {
-        self.editorViewName = SIREPO.APP_SCHEMA.constants.editorViewName;
+        self.editorModelName = SIREPO.APP_SCHEMA.constants.editorModelName;
         self.reportNames = [];
         for (const k in SIREPO.APP_SCHEMA.constants.epicsPlots) {
             if (appState.isReportModelName(k)) {

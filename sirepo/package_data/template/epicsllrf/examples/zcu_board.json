@@ -1,0 +1,20 @@
+{
+    "models": {
+        "epicsConfig": {
+            "epicsSchema": "board.json"
+        },
+        "epicsServer": {
+            "serverAddress": "localhost",
+            "updateFrequency": "0.5"
+        },
+        "simulation": {
+            "folder": "/Examples",
+            "name": "ZCU Board"
+        },
+        "waveformAReport": {},
+        "waveformBReport": {},
+        "waveformCReport": {},
+        "waveformDReport": {}
+    },
+    "simulationType": "epicsllrf"
+}
