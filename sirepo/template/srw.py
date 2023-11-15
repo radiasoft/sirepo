@@ -603,7 +603,6 @@ async def import_file(req, tmp_dir, qcall, **kwargs):
                 r,
             )
         x = x.get(PARSED_DATA_ATTR)
-        pkdp(pkdpretty(x))
         x.models.simulation.simulationId = i
         x.models.simulation.simulationSerial = serial
         x = simulation_db.save_simulation_json(
@@ -741,7 +740,6 @@ def prepare_for_save(data, qcall):
             user_model_list = _load_user_model_list(model_name, qcall=qcall)
             models_by_id = _user_model_map(user_model_list, "id")
 
-            pkdp("{} {}", model_name, model)
             if model.id not in models_by_id:
                 pkdc("adding new model: {}", model.name)
                 user_model_list.append(_create_user_model(data, model_name))

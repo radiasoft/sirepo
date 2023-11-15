@@ -33,10 +33,6 @@ class SRWParser:
         qcall=None,
     ):
         self.qcall = qcall
-        from pykern.pkdebug import pkdp
-
-        pkdp(script)
-        pkdp("{}", pkio.read_text(script))
         m = pkrunpy.run_path_as_module(script)
         if arguments:
             import shlex

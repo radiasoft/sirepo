@@ -307,7 +307,6 @@ class API(sirepo.quest.API):
             )
             try:
                 res = r.content_as_object().imported_data
-                pkdp(pkdpretty(res))
                 r.destroy()
                 return res
             except Exception:
@@ -334,7 +333,7 @@ class API(sirepo.quest.API):
                 data = await importer.read_zip(
                     req.form_file.as_bytes(), self, sim_type=req.type
                 )
-            elif hasattr(req.template, "xstateful_compute_import_file"):
+            elif hasattr(req.template, "stateful_compute_import_file"):
                 data = await _stateful_compute(req)
             else:
                 data = await _import_file(req)
