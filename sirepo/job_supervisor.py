@@ -884,13 +884,17 @@ class _ComputeJob(_Supervisor):
         req.simulationType = self.db.simulationType
         # run mode can change between runs so use req.content.jobRunMode
         # not self.db.jobRunMode
-        r = req.content.get("jobRunMode", self.db.jobRunMode)
+        r = req.content.jobRunMode
         if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
             # happens only when config changes, and only when sbatch is missing
             raise sirepo.util.NotFound("invalid jobRunMode={} req={}", r, req)
         k = (
             job.PARALLEL
-            if self.db.isParallel and opName != job.OP_ANALYSIS
+            # use req.content.isParallel not self.db.isParallel. The db
+            # is for the computeJob which may have been parallel. But, things
+            # like the analysis of the compute are not parallel. req.content.isParallel
+            # was set by job_api which should do the right thing.
+            if req.content.isParallel
             else job.SEQUENTIAL
         )
         o = (

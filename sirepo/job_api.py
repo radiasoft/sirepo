@@ -6,6 +6,7 @@
 from pykern import pkcompat, pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty, pkdformat
+from requests import request
 from sirepo import simulation_db
 from sirepo.template import template_common
 import asyncio
@@ -343,9 +344,26 @@ class API(sirepo.quest.API):
         return await self._request_api(_request_content=c)
 
     def _request_content(self, kwargs):
-        def _run_mode(request_content):
+        def _is_parallel_and_run_mode(request_content):
+            def _is_parallel_from_job_run_mode(job_run_mode):
+                return job_run_mode != sirepo.job.SEQUENTIAL
+
             if "models" not in request_content.data or "jobRunMode" in request_content:
-                return request_content
+                # If we don't have models then the API must set
+                # jobRunMode otherwise we have no way to decide it.
+                # If jobRunMode was set then one of the APIs
+                # explicitly set it so the API must know what it is
+                # doing.
+                return request_content.pksetdefault(
+                    isParallel=_is_parallel_from_job_run_mode(
+                        request_content.jobRunMode
+                    )
+                )
+
+            # TODO(e-carlin): need to finish writing the rest of this method. For example, in the "if not j" case
+            # we need to look at models to decide jobRunMode and then set isParallel based on it. This method now sets
+            # isParallel instead of it coming in on request_content.
+
             # TODO(robnagler) make sure this is set for animation sim frames
             m = request_content.data.models.get(request_content.computeModel)
             j = m and m.get("jobRunMode")
@@ -366,6 +384,9 @@ class API(sirepo.quest.API):
                 )
             request_content.jobRunMode = j
             return _validate_and_add_sbatch_fields(request_content, m)
+
+        # TODO(e-carlin):
+        # isParallel=lambda: s.is_parallel(d)
 
         def _validate_and_add_sbatch_fields(request_content, compute_model):
             m = compute_model
@@ -405,7 +426,6 @@ class API(sirepo.quest.API):
             or s.compute_job_hash(d, qcall=self),
             computeJobSerial=lambda: d.get("computeJobSerial", 0),
             computeModel=lambda: s.compute_model(d),
-            isParallel=lambda: s.is_parallel(d),
             # TODO(robnagler) relative to srdb root
             runDir=lambda: str(simulation_db.simulation_run_dir(d, qcall=self)),
             simulationId=lambda: s.parse_sid(d),
@@ -414,7 +434,7 @@ class API(sirepo.quest.API):
             computeJid=s.parse_jid(d, uid=b.uid),
         )
         self.bucket_set("sim_data", s)
-        return _run_mode(b)
+        return _is_parallel_and_run_mode(b)
 
     def _request_content_put_user(self, content):
         """Required request content"""
