@@ -66,6 +66,11 @@ SIREPO.app.factory('epicsllrfService', function(appState, requestSender, $rootSc
             requestSender.sendStatelessCompute(
                 appState,
                 data => {
+                    if (data.state === 'canceled') {
+                        // often related to an "timeout waiting for agent to start" error
+                        // on an overloaded server
+                        throw new Error('EPICS configuration failed to load, check server logs');
+                    }
                     const s = data.simSchema;
                     const schema = SIREPO.APP_SCHEMA;
                     for (const k in s) {
