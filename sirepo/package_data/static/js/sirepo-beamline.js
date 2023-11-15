@@ -857,9 +857,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelSt
           </div>
           <div class="col-sm-5 col-md-4 col-lg-3" style="margin-top: 1ex">
             <div data-pending-link-to-simulations="" data-sim-state="simState"></div>
-            <div data-ng-show="simState.isStateRunning()">
-              <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState" data-default-class="progress-bar-striped active"></div>
-            </div>
+            <div data-ng-show="simState.isStateRunning()" data-sim-state-progress-bar="" data-sim-state="simState" data-default-class="progress-bar-striped active"></div>
             <div data-ng-show="simState.isStateError()">{{ simState.errorMessage() }}</div>
           </div>
           <div style="margin-bottom: 1em" class="clearfix"></div>

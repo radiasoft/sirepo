@@ -1892,7 +1892,7 @@ SIREPO.app.directive('simStateProgressBar', function(appState) {
                 if ($scope.defaultClass) {
                     return $scope.defaultClass;
                 }
-                if ($scope.simSate.isInitializing()) {
+                if ($scope.simState.isInitializing()) {
                     return 'progress-bar-striped active';
                 }
                 return '';
