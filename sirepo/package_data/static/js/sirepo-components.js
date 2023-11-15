@@ -1847,7 +1847,6 @@ SIREPO.app.directive('simStateProgressBar', function(appState) {
         restrict: 'A',
         scope: {
             simState: '<',
-            // percentComplete: '@',
             defaultClass: '@',
         },
         template: `--
@@ -1856,35 +1855,15 @@ SIREPO.app.directive('simStateProgressBar', function(appState) {
         </div>
 
         <!--
-        <div class="progress">
-          <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>
-        </div>
+            // from activate ng-switch-when="URL"
+            <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
+            </div>
 
-        <div class="progress">
-          <div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>
-        </div>
-
-        <div class="progress">
-          <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
-        </div>
-
-        <div class="progress">
-          <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
-        </div>
-
-        <div class="progress">
-          <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
-        </div>
-
-        // from activate ng-switch-when="URL"
-        <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
-          <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
-        </div>
-
-        // from elegant viz html
-        <div class="progress">
-          <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': visualization.simState.isInitializing() }" role="progressbar" aria-valuenow="{{ visualization.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ visualization.simState.getPercentComplete() }}%">
-        </div>
+            // from elegant viz html
+            <div class="progress">
+            <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': visualization.simState.isInitializing() }" role="progressbar" aria-valuenow="{{ visualization.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ visualization.simState.getPercentComplete() }}%">
+            </div>
         -->
         `,
         controller: function($scope) {
@@ -3474,9 +3453,8 @@ SIREPO.app.directive('downloadStatus', function() {
                       <div class="row">
                         <div class="col-sm-12">
                           <div>{{ label }}{{ simState.dots }}</div>
-                          <div class="progress">
-                            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
-                          </div>
+                          00
+                          <div data-sim-state-progress-bar="" data-sim-state="simState" data-default-class="progress-bar-striped active"></div>
                         </div>
                       </div>
                       <div class="row">
@@ -4580,10 +4558,8 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 <div class="col-sm-12">
                   <div data-ng-show="simState.isInitializing()">{{ initMessage() }} {{ simState.dots }}</div>
                   <div data-ng-show="simState.getFrameCount() > 0">{{ runningMessage(); }}</div>
-                  <div class="progress">
-                    <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%">
-                    </div>
-                  </div>
+                  11
+                  <div data-sim-state-progress-bar="" data-sim-state="simState" data-default-class="progress-bar-striped active"></div>
                 </div>
               </div>
               <div class="col-sm-6 pull-right">
