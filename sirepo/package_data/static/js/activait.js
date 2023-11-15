@@ -42,9 +42,7 @@ SIREPO.app.config(() => {
           <input type="text" data-ng-model="model[field]" class="form-control" data-lpignore="true" />
           <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ UTILS.formatToThousands(model.bytesLoaded, 1, true) || 0 }} of {{ UTILS.formatToThousands(model.contentLength, 1, true) || 0 }} {{ UTILS.orderOfMagnitude(model.contentLength, true).suffix }}B</span>
           <div class="sr-input-warning"></div>
-          <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
-            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
-          </div>
+          <div data-ng-show="model.contentLength && ! model.bytesLoaded" data-sim-state-progress-bar="" data-default-class="progress-bar-striped active"></div>
         </div>
         <div data-ng-switch-when="XColumn" data-field-class="fieldClass">
           <div data-x-column="" data-model-name="modelName" data-model="model" data-field="field"></div>

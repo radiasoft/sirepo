@@ -1849,22 +1849,10 @@ SIREPO.app.directive('simStateProgressBar', function(appState) {
             simState: '<',
             defaultClass: '@',
         },
-        template: `--
-        <div class="progress">
-          <div class="progress-bar {{ class() }}" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
-        </div>
-
-        <!--
-            // from activate ng-switch-when="URL"
-            <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
-            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
-            </div>
-
-            // from elegant viz html
+        template: `
             <div class="progress">
-            <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': visualization.simState.isInitializing() }" role="progressbar" aria-valuenow="{{ visualization.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ visualization.simState.getPercentComplete() }}%">
+              <div class="progress-bar {{ class() }}" role="progressbar" aria-valuenow="{{ percentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ percentComplete() || 100 }}%"></div>
             </div>
-        -->
         `,
         controller: function($scope) {
             $scope.class = () => {
@@ -1875,6 +1863,13 @@ SIREPO.app.directive('simStateProgressBar', function(appState) {
                     return 'progress-bar-striped active';
                 }
                 return '';
+            }
+
+            $scope.percentComplete = () => {
+                if ($scope.simState && $scope.simState.getPercentComplete) {
+                    return $scope.simState.getPercentComplete();
+                }
+                return '100';
             }
         },
     };
@@ -3453,7 +3448,6 @@ SIREPO.app.directive('downloadStatus', function() {
                       <div class="row">
                         <div class="col-sm-12">
                           <div>{{ label }}{{ simState.dots }}</div>
-                          00
                           <div data-sim-state-progress-bar="" data-sim-state="simState" data-default-class="progress-bar-striped active"></div>
                         </div>
                       </div>
@@ -4558,7 +4552,6 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 <div class="col-sm-12">
                   <div data-ng-show="simState.isInitializing()">{{ initMessage() }} {{ simState.dots }}</div>
                   <div data-ng-show="simState.getFrameCount() > 0">{{ runningMessage(); }}</div>
-                  11
                   <div data-sim-state-progress-bar="" data-sim-state="simState" data-default-class="progress-bar-striped active"></div>
                 </div>
               </div>
