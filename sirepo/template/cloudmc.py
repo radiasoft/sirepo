@@ -200,16 +200,15 @@ def sim_frame(frame_args):
         pass
 
     # volume normalize copied from openmc.UnstructuredMesh.write_data_to_vtk()
-    v /= mf.mesh.volumes.ravel()
+    v /= t.find_filter(openmc.MeshFilter).mesh.volumes.ravel()
+    o = simulation_db.read_json(frame_args.run_dir.join(_OUTLINES_FILE))
     return PKDict(
         field_data=v.tolist(),
         min_field=v.min(),
         max_field=v.max(),
         summaryData=PKDict(
             tally=frame_args.tally,
-            outlines=simulation_db.read_json(frame_args.run_dir.join(_OUTLINES_FILE))[
-                frame_args.tally
-            ],
+            outlines=o[frame_args.tally] if frame_args.tally in o else {},
         ),
     )
 
@@ -277,7 +276,7 @@ def write_volume_outlines():
     import trimesh
     import dagmc_geometry_slice_plotter
 
-    _MIN_RES = 5
+    _MIN_RES = SCHEMA.constants.minTallyResolution
 
     def _center_range(mesh, dim):
         f = (
