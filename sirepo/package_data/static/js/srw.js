@@ -2518,7 +2518,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
            </div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <div data-canceled-due-to-timeout-alert="simState"></div>
-              <div data-ng-if="simState.isProcessing()" data-sim-state-progress-bar="" data-sim-state="simState" data-default-class="progress-bar-striped active"></div>
+              <div data-ng-if="simState.isProcessing()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
               <div data-ng-if="simState.isProcessing()">
                 <div class="col-sm-6">
                   <div data-pending-link-to-simulations="" data-sim-state="simState"></div>

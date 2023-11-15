@@ -1863,14 +1863,14 @@ SIREPO.app.directive('simStateProgressBar', function(appState) {
                     return 'progress-bar-striped active';
                 }
                 return '';
-            }
+            };
 
             $scope.percentComplete = () => {
                 if ($scope.simState && $scope.simState.getPercentComplete) {
                     return $scope.simState.getPercentComplete();
                 }
                 return '100';
-            }
+            };
         },
     };
 });
