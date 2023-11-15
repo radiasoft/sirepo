@@ -327,8 +327,6 @@ class API(sirepo.quest.API):
             req.import_file_arguments = self.sreq.form_get("arguments", "")
             if pkio.has_file_extension(req.filename, "json"):
                 data = importer.read_json(req.form_file.as_bytes(), self, req.type)
-            # TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
-            # (dicom input is normally a zip file)
             elif pkio.has_file_extension(req.filename, "zip"):
                 data = await importer.read_zip(
                     req.form_file.as_bytes(), self, sim_type=req.type

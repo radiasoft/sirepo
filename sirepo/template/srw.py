@@ -727,34 +727,6 @@ def prepare_for_client(data, qcall, **kwargs):
     return data
 
 
-def prepare_for_save(data, qcall):
-    for model_name in _USER_MODEL_LIST_FILENAME.keys():
-        if (
-            model_name == "tabulatedUndulator"
-            and not _SIM_DATA.srw_is_tabulated_undulator_source(data.models.simulation)
-        ):
-            # don't add a named undulator if tabulated is not the current source type
-            continue
-        model = data.models[model_name]
-        if _SIM_DATA.srw_is_user_defined_model(model):
-            user_model_list = _load_user_model_list(model_name, qcall=qcall)
-            models_by_id = _user_model_map(user_model_list, "id")
-
-            if model.id not in models_by_id:
-                pkdc("adding new model: {}", model.name)
-                user_model_list.append(_create_user_model(data, model_name))
-                _save_user_model_list(model_name, user_model_list, qcall=qcall)
-            elif models_by_id[model.id] != model:
-                pkdc("replacing beam: {}: {}", model.id, model.name)
-                for i, m in enumerate(user_model_list):
-                    if m.id == model.id:
-                        pkdc("found replace beam, id: {}, i: {}", m.id, i)
-                        user_model_list[i] = _create_user_model(data, model_name)
-                        _save_user_model_list(model_name, user_model_list, qcall=qcall)
-                        break
-    return data
-
-
 def prepare_sequential_output_file(run_dir, sim_in):
     m = sim_in.report
     if m in ("brillianceReport", "mirrorReport"):

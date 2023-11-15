@@ -714,6 +714,7 @@ def stateful_compute_dispatch(data, **kwargs):
     t = sirepo.template.import_module(data.simulationType)
     m = _validate_method(t, data)
     k = PKDict(data=data)
+    # TODO(robnagler) polymorphism needed; templates should be classes
     if re.search(r"(?:^rpn|_rpn)_", m):
         k.schema = getattr(t, "SCHEMA")
         t = getattr(t, "code_var")(data.variables)
