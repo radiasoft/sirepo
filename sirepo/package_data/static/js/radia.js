@@ -80,7 +80,7 @@ SIREPO.app.factory('radiaOptimizationService', function(appState, radiaService, 
     let self = {};
 
     //TODO(mvk): other types such as FloatArray
-    const OPTIMIZABLE_TYPES = ['Float'];
+    const OPTIMIZABLE_TYPES = ['Float', 'Scriptable'];
 
     self.optimizableObjects = (types=OPTIMIZABLE_TYPES) =>
         radiaVariableService.addressableObjects(OPTIMIZABLE_TYPES);
