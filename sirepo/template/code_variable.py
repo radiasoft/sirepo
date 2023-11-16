@@ -390,6 +390,16 @@ class PurePythonEval:
     def __eval_python_stack(self, expr, variables):
         if not CodeVar.is_var_value(expr):
             return expr, None
+        if isinstance(expr, list):
+            evs = []
+            # loop instead of map so we can fail out on the first error
+            for e in expr:
+                ev = self.__eval_python_stack(CodeVar.infix_to_postfix(e), variables)
+                if ev[1] is not None:
+                    return None, ev[1]
+                evs.append(ev[0])
+            return evs, None
+
         values = str(expr).split(" ")
         stack = []
         for v in values:

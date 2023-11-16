@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""raydata scan module
+
+:copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 import bluesky
 import bluesky.plans
 import databroker
@@ -23,4 +31,5 @@ def create(num_scans, catalog_name, delay=True):
             )
         )
         if delay:
+            # Not asyncio.sleep: not in coroutine (pkcli.raydata)
             time.sleep(2)

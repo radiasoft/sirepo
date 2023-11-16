@@ -55,7 +55,7 @@
     },
     "model": {
         "catalog": {
-            "catalogName": ["Catalog Name", "CatalogName", ""]
+            "catalogName": ["Catalog Name", "CatalogNameDisplay", ""]
         },
         "executedScans": {
             "searchStartTime":["Start", "DateTimePicker", null],
@@ -69,14 +69,14 @@
             "mask": ["Mask ZIP", "InputFile"]
         },
         "metadataColumns": {
-            "selected": ["", "Array"]
+            "selected": ["", "Array", []]
         },
         "queuedScans": {
             "scans": ["", "QueuedScansTable", ""]
         },
         "replay": {
-            "sourceCatalogName": ["Source Catalog", "CatalogName", ""],
-            "destinationCatalogName": ["Destination Catalog", "CatalogName", ""],
+            "sourceCatalogName": ["Source Catalog", "CatalogNamePicker", ""],
+            "destinationCatalogName": ["Destination Catalog", "CatalogNamePicker", ""],
             "numScans": ["Number of Scans", "Integer", null]
         },
         "runAnalysis": {
@@ -85,7 +85,11 @@
             "searchStopTime":["Stop", "DateTimePicker", null],
             "searchText": ["Search Text", "OptionalString", ""],
             "pageSize": ["Page Size", "Integer", 15],
-            "scans": ["", "RunAnalysisTable", ""]
+            "scans": ["", "RunAnalysisTable", ""],
+            "confirmRunAnalysis": ["Hide this message for this session", "Boolean", "0"]
+        },
+        "simulation": {
+            "catalogNamePicker": ["Catalog Name", "CatalogNamePicker", ""]
         },
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
@@ -101,7 +105,6 @@
         "analysisQueue": {
             "title": "Analysis Queue",
             "basic": [
-                "catalog.catalogName",
                 "queuedScans.scans"
             ],
             "advanced": []
@@ -109,7 +112,6 @@
         "executedScans": {
             "title": "Executed Scans",
             "basic": [
-                "catalog.catalogName",
                 "searchStartTime",
                 "searchStopTime",
                 "scans"
@@ -150,6 +152,12 @@
             ],
             "advanced": [
                 "pageSize"
+            ]
+        },
+        "simulation": {
+            "title": "Source",
+            "advanced": [
+                "catalogNamePicker"
             ]
         },
         "simulationStatus": {

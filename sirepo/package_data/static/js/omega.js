@@ -12,6 +12,10 @@ SIREPO.app.config(() => {
           <div data-sim-array="" data-model="model" data-field="field" data-sub-model-name="coupledSim"></div>
         </div>
     `;
+
+    SIREPO.appDownloadLinks = `
+        <li data-ng-if="::hasDataFile"><a href data-ng-href="{{ dataFileURL(\'openpmd\') }}">OpenPMD Data File</a></li>
+    `;
 });
 
 SIREPO.app.factory('omegaService', function(appState) {
@@ -179,7 +183,7 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
     };
 });
 
-SIREPO.app.directive('dynamicSimList', function(appState) {
+SIREPO.app.directive('dynamicSimList', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -192,6 +196,20 @@ SIREPO.app.directive('dynamicSimList', function(appState) {
           </div>
         `,
         controller: function($scope) {
+            const requestSimListByType = (simType) => {
+                requestSender.sendRequest(
+                    'listSimulations',
+                    () => {},
+                    {
+                        simulationType: simType,
+                    }
+                );
+            };
+            if (SIREPO.APP_SCHEMA.relatedSimTypes) {
+                SIREPO.APP_SCHEMA.relatedSimTypes.forEach(simType => {
+                    requestSimListByType(simType);
+                });
+            }
             $scope.selectedCode = () => {
                 if ($scope.model) {
                     $scope.code = $scope.model.simulationType;

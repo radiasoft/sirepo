@@ -49,7 +49,7 @@ def create_materials():
     materials.export_to_xml()
     materials.download_cross_section_data(
         libraries=['{{ settings_materialLibrary }}'],
-        destination='../../lib',
+        destination='{{ materialDirectory }}',
     )
 
 
@@ -82,4 +82,10 @@ create_geometry()
 create_materials()
 create_settings()
 create_tallies()
-openmc.run(threads={{ mpiCores }})
+{% if not isPythonSource %}
+import sirepo.template
+sirepo.template.import_module('cloudmc').write_volume_outlines()
+{% endif %}
+{% if runCommand %}
+{{ runCommand }}
+{% endif %}

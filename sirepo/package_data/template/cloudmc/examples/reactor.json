@@ -328,7 +328,8 @@
         "simFolder": {},
         "simulation": {
             "folder": "/Examples",
-            "name": "Tokamak Reactor"
+            "name": "Tokamak Reactor",
+            "notes": "From https://github.com/fusion-energy/magnetic_fusion_openmc_dagmc_paramak_example"
         },
         "volumes": {
             "blanket": {

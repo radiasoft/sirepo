@@ -66,6 +66,10 @@
                     "fieldNames": ["normalVectorX", "normalVectorY", "normalVectorZ"]
                 }
             }
+        },
+        "sbatch": {
+            "fields": ["sbatchHours", "sbatchCores"],
+            "nersc": ["tasksPerNode", "sbatchQueue", "sbatchProject"]
         }
     },
     "enum": {
@@ -872,7 +876,9 @@
         "multipole": {
             "bx": ["Horizontal Magnetic Field [T]", "Float", 0.0],
             "by": ["Vertical Magnetic Field [T]", "Float", 0.4],
-            "length": ["Effective Length [m]", "Float"]
+            "length": ["Effective Length [m]", "Float"],
+            "edge": ["Edge Length [m]", "Float", 0.0, "\"Soft\" edge length for field variation from 10% to 90% [m]; $G/(1 + ((z-zc)/d)^2)^2$ fringe field dependence is assumed"],
+            "longitudinalPosition": ["Longitudinal Central Position [m]", "Float", 0]
         },
         "obstacle": {
             "title": ["Element Name", "String", "Obstacle"],
@@ -1798,7 +1804,9 @@
             "advanced": [
                 "bx",
                 "by",
-                "length"
+                "length",
+                "edge",
+                "longitudinalPosition"
             ]
         },
         "multiElectronAnimation": {

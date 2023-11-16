@@ -151,6 +151,10 @@
             "item": ":"
         },
         "objectScale": 0.001,
+        "sbatch": {
+            "fields": ["sbatchHours", "sbatchCores"],
+            "nersc": ["tasksPerNode", "sbatchQueue", "sbatchProject"]
+        },
         "toolbarItems": [
             {
                 "canDrag": true,
@@ -757,6 +761,7 @@
             "scaling": ["Scaling", "FieldScaling", "uniform"]
         },
         "fieldIntegralReport": {
+            "inProgressText": ["_", "String", "Calculating"],
             "lastCalculated": ["_", "Integer", -1]
         },
         "fieldLineoutAnimation": {

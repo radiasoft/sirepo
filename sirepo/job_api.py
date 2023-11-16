@@ -19,6 +19,7 @@ import sirepo.feature_config
 import sirepo.job
 import sirepo.quest
 import sirepo.sim_data
+import sirepo.sim_run
 import sirepo.uri_router
 import sirepo.util
 import tornado.httpclient
@@ -91,7 +92,7 @@ class API(sirepo.quest.API):
         )
         s = suffix and sirepo.srschema.parse_name(suffix)
         t = None
-        with simulation_db.tmp_dir(qcall=self) as d:
+        with sirepo.sim_run.tmp_dir(qcall=self) as d:
             # TODO(e-carlin): computeJobHash
             t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
             t.mksymlinkto(d, absolute=True)
@@ -125,6 +126,15 @@ class API(sirepo.quest.API):
             raise sirepo.util.NotFound(
                 f"frame={frame} not found sid={req.id} sim_type={req.type}",
             )
+
+    @sirepo.quest.Spec("require_user")
+    async def api_globalResources(self):
+        assert (
+            sirepo.feature_config.cfg().enable_global_resources
+        ), "global resources server api called but system not enabled"
+        return await self._request_api(
+            _request_content=self._parse_post_just_data(),
+        )
 
     @sirepo.quest.Spec("allow_visitor")
     async def api_jobSupervisorPing(self):
@@ -370,6 +380,8 @@ class API(sirepo.quest.API):
             for f in "sbatchCores", "sbatchHours", "tasksPerNode":
                 assert m[f] > 0, f"{f}={m[f]} must be greater than 0"
                 c[f] = m[f]
+            if "sbatchNodes" in m:
+                c.sbatchNodes = m.sbatchNodes
             return request_content
 
         d = kwargs.pkdel("req_data")
@@ -424,7 +436,7 @@ class API(sirepo.quest.API):
         ):
             yield None
             return
-        with simulation_db.tmp_dir(qcall=self) as d:
+        with sirepo.sim_run.tmp_dir(qcall=self) as d:
             t = None
             try:
                 t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
