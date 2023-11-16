@@ -582,7 +582,7 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
         fixup (bool): whether to run fixup_old_data
         uid (str): user id [None]
         do_validate (bool): call srschema.validate_name [True]
-        modified (bool): update lastModified [False]
+        modified (bool): call prepare_for_save and update lastModified [False]
     """
 
     def _serial(incoming, on_disk):
@@ -631,6 +631,10 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
     _version_validate(data)
     if fixup:
         data = fixup_old_data(data, qcall=qcall)[0]
+        if modified:
+            t = sirepo.template.import_module(data.simulationType)
+            if hasattr(t, "prepare_for_save"):
+                data = t.prepare_for_save(data, qcall=qcall)
     # old implementation value
     data.pkdel("computeJobHash")
     s = data.models.simulation
