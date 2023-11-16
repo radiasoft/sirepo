@@ -1847,7 +1847,6 @@ SIREPO.app.directive('simStateProgressBar', function(appState) {
         restrict: 'A',
         scope: {
             simState: '<',
-            defaultClass: '@',
         },
         template: `
             <div class="progress">
@@ -1856,8 +1855,8 @@ SIREPO.app.directive('simStateProgressBar', function(appState) {
         `,
         controller: function($scope) {
             $scope.class = () => {
-                if ($scope.defaultClass) {
-                    return $scope.defaultClass;
+                if (! ($scope.simState && $scope.simState.isInitializing)) {
+                    return 'progress-bar-striped active';
                 }
                 if ($scope.simState.isInitializing()) {
                     return 'progress-bar-striped active';
@@ -3448,7 +3447,7 @@ SIREPO.app.directive('downloadStatus', function() {
                       <div class="row">
                         <div class="col-sm-12">
                           <div>{{ label }}{{ simState.dots }}</div>
-                          <div data-sim-state-progress-bar="" data-sim-state="simState" data-default-class="progress-bar-striped active"></div>
+                          <div data-sim-state-progress-bar="" data-sim-state="simState"></div>
                         </div>
                       </div>
                       <div class="row">
@@ -4552,7 +4551,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 <div class="col-sm-12">
                   <div data-ng-show="simState.isInitializing()">{{ initMessage() }} {{ simState.dots }}</div>
                   <div data-ng-show="simState.getFrameCount() > 0">{{ runningMessage(); }}</div>
-                  <div data-sim-state-progress-bar="" data-sim-state="simState" data-default-class="progress-bar-striped active"></div>
+                  <div data-sim-state-progress-bar="" data-sim-state="simState"></div>
                 </div>
               </div>
               <div class="col-sm-6 pull-right">

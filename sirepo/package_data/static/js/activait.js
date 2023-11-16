@@ -42,7 +42,7 @@ SIREPO.app.config(() => {
           <input type="text" data-ng-model="model[field]" class="form-control" data-lpignore="true" />
           <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ UTILS.formatToThousands(model.bytesLoaded, 1, true) || 0 }} of {{ UTILS.formatToThousands(model.contentLength, 1, true) || 0 }} {{ UTILS.orderOfMagnitude(model.contentLength, true).suffix }}B</span>
           <div class="sr-input-warning"></div>
-          <div data-ng-show="model.contentLength && ! model.bytesLoaded" data-sim-state-progress-bar="" data-default-class="progress-bar-striped active"></div>
+          <div data-ng-show="model.contentLength && ! model.bytesLoaded" data-sim-state-progress-bar=""></div>
         </div>
         <div data-ng-switch-when="XColumn" data-field-class="fieldClass">
           <div data-x-column="" data-model-name="modelName" data-model="model" data-field="field"></div>
@@ -1098,7 +1098,7 @@ SIREPO.app.directive('diceCoeffViewer', function(requestSender) {
         template: `
         <div>
           <img class="img-responsive dice-plot" />
-          <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState" data-default-class="progress-bar-striped active"></div>
+          <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
           <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
         </div>
         `,
@@ -1155,7 +1155,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
         template: `
         <div>
           <img class="img-responsive {{ imageClass }}" />
-          <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState" data-default-class="progress-bar-striped active"></div>
+          <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
           <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
           <div data-ng-if="! isLoading() && multiPage">
             <div class="pull-left">
