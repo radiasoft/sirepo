@@ -476,6 +476,7 @@ class SetupParameterParser:
         for name, values in PKDict(
             DiffuseBoundaryType=["dirichlet", "neumann", "outflow", "zero-gradient"],
             GridBoundaryType=[
+                "nocurrent",
                 "reflect",
                 "axisymmetric",
                 "eqtsymmetric",
@@ -545,7 +546,10 @@ class SetupParameterParser:
                 assert "valid_values" not in field, f"duplicate valid value def: {text}"
                 field.valid_values = m.group(1)
                 return
-            if re.search(r'^"', text):
+
+            if re.search(r'^"', text) or (
+                field.get("valid_values") and field.valid_values.count('"') % 2 == 1
+            ):
                 assert (
                     "valid_values" in field
                 ), f"expected previous valid values def: {text}"
