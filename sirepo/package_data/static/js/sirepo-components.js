@@ -1855,7 +1855,7 @@ SIREPO.app.directive('simStateProgressBar', function(appState) {
         `,
         controller: function($scope) {
             $scope.class = () => {
-                if (! ($scope.simState && $scope.simState.isInitializing)) {
+                if (! $scope.simState) {
                     return 'progress-bar-striped active';
                 }
                 if ($scope.simState.isInitializing()) {
@@ -1865,7 +1865,7 @@ SIREPO.app.directive('simStateProgressBar', function(appState) {
             };
 
             $scope.percentComplete = () => {
-                if ($scope.simState && $scope.simState.getPercentComplete) {
+                if ($scope.simState) {
                     return $scope.simState.getPercentComplete();
                 }
                 return '100';
@@ -3435,7 +3435,7 @@ SIREPO.app.directive('downloadStatus', function() {
             title: '@',
         },
         template: `
-            <div class="modal fade" id="sr-download-status" tabindex="-1" role="dialog">
+            <div data-ng-if="angular.equals(simState, {})" class="modal fade" id="sr-download-status" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-sm">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
