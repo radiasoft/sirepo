@@ -16,6 +16,7 @@ import sirepo.feature_config
 import sirepo.quest
 import sirepo.resource
 import sirepo.sim_data
+import sirepo.sim_run
 import sirepo.srschema
 import sirepo.uri
 import sirepo.util
@@ -306,7 +307,7 @@ class API(sirepo.quest.API):
                         "no import_file in template req={}",
                         req,
                     )
-                with simulation_db.tmp_dir(qcall=self) as d:
+                with sirepo.sim_run.tmp_dir(qcall=self) as d:
                     data = await req.template.import_file(
                         req,
                         tmp_dir=d,
@@ -602,7 +603,7 @@ class API(sirepo.quest.API):
         )
         e = None
         in_use = None
-        with simulation_db.tmp_dir(qcall=self) as d:
+        with sirepo.sim_run.tmp_dir(qcall=self) as d:
             t = d.join(req.filename)
             t.write_binary(f.as_bytes())
             if hasattr(req.template, "validate_file"):

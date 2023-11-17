@@ -9,12 +9,14 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc, pkdformat
 from sirepo import job
 import importlib
-import pykern.pkio
 import os
+import pykern.pkio
 import re
 import sirepo.auth
 import sirepo.const
 import sirepo.events
+import sirepo.feature_config
+import sirepo.global_resources
 import sirepo.sim_db_file
 import sirepo.simulation_db
 import sirepo.tornado
@@ -89,7 +91,13 @@ class DriverBase(PKDict):
             _websocket=None,
             _websocket_ready=sirepo.tornado.Event(),
         )
-        self._sim_db_file_token = sirepo.sim_db_file.token_for_user(self.uid)
+        self._sim_db_file_token = sirepo.sim_db_file.FileReq.token_for_user(self.uid)
+        self._global_resources_token = (
+            sirepo.global_resources.api.Req.token_for_user(self.uid)
+            # TODO(e-carlin): we need a more grangular system to decide when to add this information
+            if sirepo.feature_config.cfg().enable_global_resources
+            else None
+        )
         # Drivers persist for the life of the program so they are never removed
         self.__instances[self._agentId] = self
         pkdlog("{}", self)
@@ -220,6 +228,8 @@ class DriverBase(PKDict):
                     "SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS",
                     str(pkconfig.in_dev_mode()),
                 ),
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_GLOBAL_RESOURCES_TOKEN=self._global_resources_token,
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_GLOBAL_RESOURCES_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
                 SIREPO_PKCLI_JOB_AGENT_START_DELAY=self.get("_agent_start_delay", "0"),
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_URI=job.supervisor_file_uri(

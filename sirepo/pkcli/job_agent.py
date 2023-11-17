@@ -66,6 +66,14 @@ def start():
             "directory of fastcfgi socket, must be less than 50 chars",
         ),
         start_delay=(0, pkconfig.parse_seconds, "delay startup in internal_test mode"),
+        supervisor_global_resources_token=pkconfig.Required(
+            str,
+            "token for supervisor global resources access",
+        ),
+        supervisor_global_resources_uri=pkconfig.Required(
+            str,
+            "uri for accessing global resources api in supervisor",
+        ),
         supervisor_sim_db_file_token=pkconfig.Required(
             str,
             "token for supervisor simulation db file access",
@@ -470,11 +478,13 @@ class _Cmd(PKDict):
     def job_cmd_env(self, env=None):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
+                SIREPO_GLOBAL_RESOURCES_SUPERVISOR_TOKEN=_cfg.supervisor_global_resources_token,
+                SIREPO_GLOBAL_RESOURCES_SUPERVISOR_URI=_cfg.supervisor_global_resources_uri,
                 SIREPO_MPI_CORES=self.msg.get("mpiCores", 1),
-                SIREPO_SIM_DATA_LIB_FILE_URI=self._lib_file_uri,
                 SIREPO_SIM_DATA_LIB_FILE_LIST=self._lib_file_list_f,
-                SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_URI=_cfg.supervisor_sim_db_file_uri,
+                SIREPO_SIM_DATA_LIB_FILE_URI=self._lib_file_uri,
                 SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_TOKEN=_cfg.supervisor_sim_db_file_token,
+                SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_URI=_cfg.supervisor_sim_db_file_uri,
             ),
             uid=self._uid,
         )
@@ -773,10 +783,15 @@ class _SbatchRun(_SbatchCmd):
 {sirepo.nersc.sbatch_project_option(self.msg.sbatchProject)}"""
             s = "--cpu-bind=cores shifter --entrypoint"
         f = self.run_dir.join(self.jid + ".sbatch")
+        if "sbatchNodes" in self.msg:
+            n = f"""#SBATCH --nodes={self.msg.sbatchNodes}
+#SBATCH --cpus-per-task={self.msg.sbatchCores}"""
+        else:
+            n = f"#SBATCH --ntasks={self.msg.sbatchCores}"
         f.write(
             f"""#!/bin/bash
 #SBATCH --error={template_common.RUN_LOG}
-#SBATCH --ntasks={self.msg.sbatchCores}
+{n}
 #SBATCH --output={template_common.RUN_LOG}
 #SBATCH --time={self._sbatch_time()}
 {o}

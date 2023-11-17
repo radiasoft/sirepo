@@ -116,9 +116,7 @@ _op_jupyterhub() {
 _op_ldap() {
     if ! systemctl is-active slapd &> /dev/null; then
        _msg "setting up ldap/slapd"
-       cd "$(dirname "$0")"
        bash setup-ldap.sh
-       cd -
     fi
     export SIREPO_AUTH_METHODS=guest:ldap
     _msg 'To test:

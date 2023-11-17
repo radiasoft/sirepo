@@ -139,6 +139,7 @@
         "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
         "notFound": "/not-found",
         "getModerationRequestRows": "/get-moderation-request-rows",
+        "globalResources": "/global-resources",
         "homePage": "/en/*<path_info>",
         "importFile": "/import-file/<simulation_type>",
         "jobSupervisorPing": "/job-supervisor-ping",
