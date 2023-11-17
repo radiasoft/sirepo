@@ -275,12 +275,11 @@ class SimData(sirepo.sim_data.SimDataBase):
             .items()
         ):
             p = make_dir.join(c)
-            # TODO(pjm): this call broke the LaserSlab example
-            #            files were possibly being deleted after the put occurred
-            # cls.delete_sim_file(
-            #     data.models.simulation.simulationId,
-            #     b.split(cls._FLASH_FILE_NAME_SEP)[0],
-            # )
+            if b.startswith(cls._FLASH_EXE_PREFIX):
+                cls.delete_sim_file(
+                    data.models.simulation.simulationId,
+                    b.split(cls._FLASH_FILE_NAME_SEP)[0],
+                )
             cls.put_sim_file(data.models.simulation.simulationId, p, b)
             if p.check(link=1):
                 p.copy(run_dir.join(b))
