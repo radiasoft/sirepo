@@ -333,8 +333,18 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         const s = [0, 0, 0];
         const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.axis);
         s[i] = o.height;
+        const d = 2.0 * o.radii[1];
         for (const j of [0, 1]) {
-            s[(i + j + 1) % 3] = o.sides[j] + (typeof o.sides[j] === 'string' ? ` + 2.0 * ${o.name}.radii[1]` : 2.0 * o.sides[j]);
+            const k = (i + j + 1) % 3;
+            const side = o.sides[j];
+            
+            // handle scripted sides - note do not use parseFloat!
+            if (isNaN(Number(side))) {
+                s[k] = side + ` + ${d}`;
+            }
+            else {
+                s[k] = side + 2.0 * d;
+            }
         }
         o.size = s;
     };
