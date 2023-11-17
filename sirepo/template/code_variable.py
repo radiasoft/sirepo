@@ -345,8 +345,12 @@ class PurePythonEval:
     def eval_var(self, expr, depends, variables):
         variables = variables.copy()
         for d in depends:
+            # recurse eval_var, but with empty dependencies
             v, err = PurePythonEval.eval_var(
-                self, self.__eval_indexed_variable(variables[d], variables), {}, variables
+                self,
+                self.__eval_indexed_variable(variables[d], variables),
+                {},
+                variables,
             )
             if err:
                 return None, err
