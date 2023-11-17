@@ -90,6 +90,7 @@ class AnalysisDriverBase(PKDict):
         pkjinja.render_resource(
             _PAPERMILL_SCRIPT,
             PKDict(
+                dev_mode=pkconfig.in_dev_mode(),
                 input_f=input_f,
                 output_f=output_f,
                 papermill_args=" ".join(self.get_papermill_args()),
