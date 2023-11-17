@@ -11,4 +11,9 @@ if ! conda info --envs | grep -q -E '{{ conda_env }}\s+\*\s+\/' ; then
     conda info --envs
     exit 1
 fi
+{% if dev_mode -%}
+# Papermill expects the output path to exist.
+# On prod we expect the dir exists.
+mkdir -p "$(dirname '{{ output_f }}')"
+{% endif -%}
 papermill '{{ input_f }}'  '{{ output_f }}'  {{ papermill_args }}
