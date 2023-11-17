@@ -5,15 +5,18 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkcompat
+from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
 from pykern import pkjson
+from pykern import pkunit
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
 import contextlib
+import os
 import re
 import requests
 import signal
@@ -128,6 +131,9 @@ def _do_compute(msg, template):
             stdout=run_log,
             stderr=run_log,
         )
+
+    if pkconfig.in_dev_mode() and pkunit.is_test_run():
+        sys.stderr.write(pkio.read_text(msg.runDir.join(template_common.RUN_LOG)))
     while True:
         for j in range(20):
             # Not asyncio.sleep: not in coroutine

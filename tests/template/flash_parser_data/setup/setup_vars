@@ -1,0 +1,14 @@
+Name: CHAM
+Location: Multispecies/MultispeciesMain
+Type: Species
+Description:
+
+Name: depo
+Location: physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser
+Type: Variable
+Description:
+    The DEPO variable stores the laser energy deposition in each cell if
+    ed_depoVarName is set to "depo" (which should be the default below). If the
+    variable is declared with TYPE: PER_VOLUME, the deposited energy is stored
+    as an energy density; otherwise the deposited energy stored is stored as a
+    specific energy (per mass unit).

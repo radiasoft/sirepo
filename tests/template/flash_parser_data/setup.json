@@ -1,0 +1,1201 @@
+{
+    "enum": {
+        "DiffuseBoundaryType": [
+            [
+                "dirichlet",
+                "dirichlet"
+            ],
+            [
+                "neumann",
+                "neumann"
+            ],
+            [
+                "outflow",
+                "outflow"
+            ],
+            [
+                "zero-gradient",
+                "zero-gradient"
+            ]
+        ],
+        "GravityBoundaryType": [
+            [
+                "dirichlet",
+                "dirichlet"
+            ],
+            [
+                "isolated",
+                "isolated"
+            ],
+            [
+                "periodic",
+                "periodic"
+            ]
+        ],
+        "GravityDirection": [
+            [
+                "x",
+                "x"
+            ],
+            [
+                "y",
+                "y"
+            ],
+            [
+                "z",
+                "z"
+            ]
+        ],
+        "GridBoundaryType": [
+            [
+                "nocurrent",
+                "nocurrent"
+            ],
+            [
+                "reflect",
+                "reflect"
+            ],
+            [
+                "axisymmetric",
+                "axisymmetric"
+            ],
+            [
+                "eqtsymmetric",
+                "eqtsymmetric"
+            ],
+            [
+                "outflow",
+                "outflow"
+            ],
+            [
+                "diode",
+                "diode"
+            ],
+            [
+                "extrapolate",
+                "extrapolate"
+            ],
+            [
+                "neumann_ins",
+                "neumann_ins"
+            ],
+            [
+                "dirichlet",
+                "dirichlet"
+            ],
+            [
+                "hydrostatic-f2+nvout",
+                "hydrostatic-f2+nvout"
+            ],
+            [
+                "hydrostatic-f2+nvdiode",
+                "hydrostatic-f2+nvdiode"
+            ],
+            [
+                "hydrostatic-f2+nvrefl",
+                "hydrostatic-f2+nvrefl"
+            ],
+            [
+                "hydrostatic+nvout",
+                "hydrostatic+nvout"
+            ],
+            [
+                "hydrostatic+nvdiode",
+                "hydrostatic+nvdiode"
+            ],
+            [
+                "hydrostatic+nvrefl",
+                "hydrostatic+nvrefl"
+            ],
+            [
+                "periodic",
+                "periodic"
+            ],
+            [
+                "user",
+                "user"
+            ]
+        ],
+        "LaserCrossSectionOptional": [
+            [
+                "none",
+                "none"
+            ],
+            [
+                "gaussian1D",
+                "gaussian1D"
+            ],
+            [
+                "gaussian2D",
+                "gaussian2D"
+            ],
+            [
+                "uniform",
+                "uniform"
+            ]
+        ],
+        "Multispecies_MultispeciesMaineos_chamEosType": [
+            [
+                "-none-",
+                "-none-"
+            ],
+            [
+                "eos_gam",
+                "eos_gam"
+            ],
+            [
+                "eos_tab",
+                "eos_tab"
+            ]
+        ],
+        "Multispecies_MultispeciesMaineos_chamSubType": [
+            [
+                "-none-",
+                "-none-"
+            ],
+            [
+                "ionmix",
+                "ionmix"
+            ],
+            [
+                "ionmix4",
+                "ionmix4"
+            ],
+            [
+                "ionmix6",
+                "ionmix6"
+            ],
+            [
+                "propaceos",
+                "propaceos"
+            ],
+            [
+                "opacplot",
+                "opacplot"
+            ],
+            [
+                "sesame",
+                "sesame"
+            ]
+        ],
+        "Multispecies_MultispeciesMaineos_targEosType": [
+            [
+                "-none-",
+                "-none-"
+            ],
+            [
+                "eos_gam",
+                "eos_gam"
+            ],
+            [
+                "eos_tab",
+                "eos_tab"
+            ]
+        ],
+        "Multispecies_MultispeciesMaineos_targSubType": [
+            [
+                "-none-",
+                "-none-"
+            ],
+            [
+                "ionmix",
+                "ionmix"
+            ],
+            [
+                "ionmix4",
+                "ionmix4"
+            ],
+            [
+                "ionmix6",
+                "ionmix6"
+            ],
+            [
+                "propaceos",
+                "propaceos"
+            ],
+            [
+                "opacplot",
+                "opacplot"
+            ],
+            [
+                "sesame",
+                "sesame"
+            ]
+        ],
+        "RadTransMGDBoundaryType": [
+            [
+                "dirichlet",
+                "dirichlet"
+            ],
+            [
+                "neumann",
+                "neumann"
+            ],
+            [
+                "outflow",
+                "outflow"
+            ],
+            [
+                "outstream",
+                "outstream"
+            ],
+            [
+                "reflecting",
+                "reflecting"
+            ],
+            [
+                "vacuum",
+                "vacuum"
+            ]
+        ],
+        "RiemannSolver": [
+            [
+                "Roe",
+                "Roe"
+            ],
+            [
+                "HLL",
+                "HLL"
+            ],
+            [
+                "HLLC",
+                "HLLC"
+            ],
+            [
+                "Marquina",
+                "Marquina"
+            ],
+            [
+                "MarquinaModified",
+                "MarquinaModified"
+            ],
+            [
+                "Hybrid",
+                "Hybrid"
+            ],
+            [
+                "HLLD",
+                "HLLD"
+            ]
+        ],
+        "SetupDatafiles": [
+            [
+                "al-imx-003.cn4",
+                "al-imx-003.cn4"
+            ],
+            [
+                "he-imx-005.cn4",
+                "he-imx-005.cn4"
+            ],
+            [
+                "al-imx-003.ses",
+                "al-imx-003.ses"
+            ],
+            [
+                "he-imx-005.ses",
+                "he-imx-005.ses"
+            ],
+            [
+                "amr_runtime_parameters.tpl",
+                "amr_runtime_parameters.tpl"
+            ]
+        ],
+        "SetupDatafilesOptional": [
+            [
+                "none",
+                "none"
+            ],
+            [
+                "al-imx-003.cn4",
+                "al-imx-003.cn4"
+            ],
+            [
+                "al-imx-003.ses",
+                "al-imx-003.ses"
+            ],
+            [
+                "amr_runtime_parameters.tpl",
+                "amr_runtime_parameters.tpl"
+            ],
+            [
+                "he-imx-005.cn4",
+                "he-imx-005.cn4"
+            ],
+            [
+                "he-imx-005.ses",
+                "he-imx-005.ses"
+            ]
+        ],
+        "Simulation_SimulationMain_flashAppsim_eosCham": [
+            [
+                "eos_tab",
+                "eos_tab"
+            ],
+            [
+                "eos_gam",
+                "eos_gam"
+            ]
+        ],
+        "Simulation_SimulationMain_flashAppsim_eosTarg": [
+            [
+                "eos_tab",
+                "eos_tab"
+            ],
+            [
+                "eos_gam",
+                "eos_gam"
+            ]
+        ],
+        "VariableName": [
+            [
+                "CHAM",
+                "CHAM"
+            ],
+            [
+                "depo",
+                "depo"
+            ]
+        ],
+        "VariableNameOptional": [
+            [
+                "none",
+                "none"
+            ],
+            [
+                "CHAM",
+                "CHAM"
+            ],
+            [
+                "depo",
+                "depo"
+            ]
+        ],
+        "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_chamAbsorb": [
+            [
+                "op_undefined",
+                "op_undefined"
+            ],
+            [
+                "op_constant",
+                "op_constant"
+            ],
+            [
+                "op_constcm2g",
+                "op_constcm2g"
+            ],
+            [
+                "op_tabpa",
+                "op_tabpa"
+            ],
+            [
+                "op_tabpe",
+                "op_tabpe"
+            ],
+            [
+                "op_tabro",
+                "op_tabro"
+            ]
+        ],
+        "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_chamEmiss": [
+            [
+                "op_undefined",
+                "op_undefined"
+            ],
+            [
+                "op_constant",
+                "op_constant"
+            ],
+            [
+                "op_constcm2g",
+                "op_constcm2g"
+            ],
+            [
+                "op_tabpa",
+                "op_tabpa"
+            ],
+            [
+                "op_tabpe",
+                "op_tabpe"
+            ],
+            [
+                "op_tabro",
+                "op_tabro"
+            ]
+        ],
+        "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_chamFileType": [
+            [
+                "tops",
+                "tops"
+            ],
+            [
+                "ionmix",
+                "ionmix"
+            ],
+            [
+                "ionmix4",
+                "ionmix4"
+            ],
+            [
+                "propaceos",
+                "propaceos"
+            ],
+            [
+                "opacplot",
+                "opacplot"
+            ],
+            [
+                "NOT SPECIFIED",
+                "NOT SPECIFIED"
+            ]
+        ],
+        "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_chamTrans": [
+            [
+                "op_undefined",
+                "op_undefined"
+            ],
+            [
+                "op_constant",
+                "op_constant"
+            ],
+            [
+                "op_constcm2g",
+                "op_constcm2g"
+            ],
+            [
+                "op_tabpa",
+                "op_tabpa"
+            ],
+            [
+                "op_tabpe",
+                "op_tabpe"
+            ],
+            [
+                "op_tabro",
+                "op_tabro"
+            ]
+        ],
+        "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_targAbsorb": [
+            [
+                "op_undefined",
+                "op_undefined"
+            ],
+            [
+                "op_constant",
+                "op_constant"
+            ],
+            [
+                "op_constcm2g",
+                "op_constcm2g"
+            ],
+            [
+                "op_tabpa",
+                "op_tabpa"
+            ],
+            [
+                "op_tabpe",
+                "op_tabpe"
+            ],
+            [
+                "op_tabro",
+                "op_tabro"
+            ]
+        ],
+        "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_targEmiss": [
+            [
+                "op_undefined",
+                "op_undefined"
+            ],
+            [
+                "op_constant",
+                "op_constant"
+            ],
+            [
+                "op_constcm2g",
+                "op_constcm2g"
+            ],
+            [
+                "op_tabpa",
+                "op_tabpa"
+            ],
+            [
+                "op_tabpe",
+                "op_tabpe"
+            ],
+            [
+                "op_tabro",
+                "op_tabro"
+            ]
+        ],
+        "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_targFileType": [
+            [
+                "tops",
+                "tops"
+            ],
+            [
+                "ionmix",
+                "ionmix"
+            ],
+            [
+                "ionmix4",
+                "ionmix4"
+            ],
+            [
+                "propaceos",
+                "propaceos"
+            ],
+            [
+                "opacplot",
+                "opacplot"
+            ],
+            [
+                "NOT SPECIFIED",
+                "NOT SPECIFIED"
+            ]
+        ],
+        "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_targTrans": [
+            [
+                "op_undefined",
+                "op_undefined"
+            ],
+            [
+                "op_constant",
+                "op_constant"
+            ],
+            [
+                "op_constcm2g",
+                "op_constcm2g"
+            ],
+            [
+                "op_tabpa",
+                "op_tabpa"
+            ],
+            [
+                "op_tabpe",
+                "op_tabpe"
+            ],
+            [
+                "op_tabro",
+                "op_tabro"
+            ]
+        ]
+    },
+    "model": {
+        "Multispecies_MultispeciesMain": {
+            "eos_chamEosType": [
+                "Cham EOS type to use for MTMMMT EOS",
+                "Multispecies_MultispeciesMaineos_chamEosType",
+                "-none-",
+                "eos_chamEosType"
+            ],
+            "eos_chamGroupName": [
+                "eos_chamGroupName",
+                "String",
+                "-none-"
+            ],
+            "eos_chamSesDblFmt": [
+                "eos_chamSesDblFmt",
+                "String",
+                "E22.15"
+            ],
+            "eos_chamSubType": [
+                "Cham EOS subtype to use for MTMMMT EOS",
+                "Multispecies_MultispeciesMaineos_chamSubType",
+                "-none-",
+                "eos_chamSubType"
+            ],
+            "eos_chamTableFile": [
+                "Cham Tabulated EOS file name",
+                "SetupDatafilesOptional",
+                "none",
+                "eos_chamTableFile"
+            ],
+            "eos_targEosType": [
+                "Targ EOS type to use for MTMMMT EOS",
+                "Multispecies_MultispeciesMaineos_targEosType",
+                "-none-",
+                "eos_targEosType"
+            ],
+            "eos_targGroupName": [
+                "eos_targGroupName",
+                "String",
+                "-none-"
+            ],
+            "eos_targSesDblFmt": [
+                "eos_targSesDblFmt",
+                "String",
+                "E22.15"
+            ],
+            "eos_targSubType": [
+                "Targ EOS subtype to use for MTMMMT EOS",
+                "Multispecies_MultispeciesMaineos_targSubType",
+                "-none-",
+                "eos_targSubType"
+            ],
+            "eos_targTableFile": [
+                "Targ Tabulated EOS file name",
+                "SetupDatafilesOptional",
+                "none",
+                "eos_targTableFile"
+            ],
+            "ms_chamA": [
+                "Cham Number of protons and neutrons in nucleus",
+                "Float",
+                -999.0,
+                "ms_chamA"
+            ],
+            "ms_chamAElems_1": [
+                "ms_chamAElems_1",
+                "Float",
+                -999.0
+            ],
+            "ms_chamAElems_2": [
+                "ms_chamAElems_2",
+                "Float",
+                -999.0
+            ],
+            "ms_chamAElems_3": [
+                "ms_chamAElems_3",
+                "Float",
+                -999.0
+            ],
+            "ms_chamAElems_4": [
+                "ms_chamAElems_4",
+                "Float",
+                -999.0
+            ],
+            "ms_chamAElems_5": [
+                "ms_chamAElems_5",
+                "Float",
+                -999.0
+            ],
+            "ms_chamAElems_6": [
+                "ms_chamAElems_6",
+                "Float",
+                -999.0
+            ],
+            "ms_chamBindEnergy": [
+                "ms_chamBindEnergy",
+                "Float",
+                -999.0
+            ],
+            "ms_chamFractions_1": [
+                "ms_chamFractions_1",
+                "Float",
+                -999.0
+            ],
+            "ms_chamFractions_2": [
+                "ms_chamFractions_2",
+                "Float",
+                -999.0
+            ],
+            "ms_chamFractions_3": [
+                "ms_chamFractions_3",
+                "Float",
+                -999.0
+            ],
+            "ms_chamFractions_4": [
+                "ms_chamFractions_4",
+                "Float",
+                -999.0
+            ],
+            "ms_chamFractions_5": [
+                "ms_chamFractions_5",
+                "Float",
+                -999.0
+            ],
+            "ms_chamFractions_6": [
+                "ms_chamFractions_6",
+                "Float",
+                -999.0
+            ],
+            "ms_chamGamma": [
+                "Cham Ratio of heat capacities",
+                "Float",
+                1.6666666666666667,
+                "ms_chamGamma"
+            ],
+            "ms_chamNegative": [
+                "ms_chamNegative",
+                "Float",
+                -999.0
+            ],
+            "ms_chamNeutral": [
+                "ms_chamNeutral",
+                "Float",
+                -999.0
+            ],
+            "ms_chamNumElems": [
+                "ms_chamNumElems",
+                "Integer",
+                0,
+                "",
+                null,
+                6
+            ],
+            "ms_chamZ": [
+                "Cham Atomic number",
+                "Float",
+                -999.0,
+                "ms_chamZ"
+            ],
+            "ms_chamZElems_1": [
+                "ms_chamZElems_1",
+                "Integer",
+                -999
+            ],
+            "ms_chamZElems_2": [
+                "ms_chamZElems_2",
+                "Integer",
+                -999
+            ],
+            "ms_chamZElems_3": [
+                "ms_chamZElems_3",
+                "Integer",
+                -999
+            ],
+            "ms_chamZElems_4": [
+                "ms_chamZElems_4",
+                "Integer",
+                -999
+            ],
+            "ms_chamZElems_5": [
+                "ms_chamZElems_5",
+                "Integer",
+                -999
+            ],
+            "ms_chamZElems_6": [
+                "ms_chamZElems_6",
+                "Integer",
+                -999
+            ],
+            "ms_chamZMin": [
+                "Cham Minimum allowed average ionization",
+                "Float",
+                -998.0,
+                "ms_chamZMin"
+            ],
+            "ms_targA": [
+                "Targ Number of protons and neutrons in nucleus",
+                "Float",
+                -999.0,
+                "ms_targA"
+            ],
+            "ms_targAElems_1": [
+                "ms_targAElems_1",
+                "Float",
+                -999.0
+            ],
+            "ms_targAElems_2": [
+                "ms_targAElems_2",
+                "Float",
+                -999.0
+            ],
+            "ms_targAElems_3": [
+                "ms_targAElems_3",
+                "Float",
+                -999.0
+            ],
+            "ms_targAElems_4": [
+                "ms_targAElems_4",
+                "Float",
+                -999.0
+            ],
+            "ms_targAElems_5": [
+                "ms_targAElems_5",
+                "Float",
+                -999.0
+            ],
+            "ms_targAElems_6": [
+                "ms_targAElems_6",
+                "Float",
+                -999.0
+            ],
+            "ms_targBindEnergy": [
+                "ms_targBindEnergy",
+                "Float",
+                -999.0
+            ],
+            "ms_targFractions_1": [
+                "ms_targFractions_1",
+                "Float",
+                -999.0
+            ],
+            "ms_targFractions_2": [
+                "ms_targFractions_2",
+                "Float",
+                -999.0
+            ],
+            "ms_targFractions_3": [
+                "ms_targFractions_3",
+                "Float",
+                -999.0
+            ],
+            "ms_targFractions_4": [
+                "ms_targFractions_4",
+                "Float",
+                -999.0
+            ],
+            "ms_targFractions_5": [
+                "ms_targFractions_5",
+                "Float",
+                -999.0
+            ],
+            "ms_targFractions_6": [
+                "ms_targFractions_6",
+                "Float",
+                -999.0
+            ],
+            "ms_targGamma": [
+                "Targ Ratio of heat capacities",
+                "Float",
+                1.6666666666666667,
+                "ms_targGamma"
+            ],
+            "ms_targNegative": [
+                "ms_targNegative",
+                "Float",
+                -999.0
+            ],
+            "ms_targNeutral": [
+                "ms_targNeutral",
+                "Float",
+                -999.0
+            ],
+            "ms_targNumElems": [
+                "ms_targNumElems",
+                "Integer",
+                0,
+                "",
+                null,
+                6
+            ],
+            "ms_targZ": [
+                "Targ Atomic number",
+                "Float",
+                -999.0,
+                "ms_targZ"
+            ],
+            "ms_targZElems_1": [
+                "ms_targZElems_1",
+                "Integer",
+                -999
+            ],
+            "ms_targZElems_2": [
+                "ms_targZElems_2",
+                "Integer",
+                -999
+            ],
+            "ms_targZElems_3": [
+                "ms_targZElems_3",
+                "Integer",
+                -999
+            ],
+            "ms_targZElems_4": [
+                "ms_targZElems_4",
+                "Integer",
+                -999
+            ],
+            "ms_targZElems_5": [
+                "ms_targZElems_5",
+                "Integer",
+                -999
+            ],
+            "ms_targZElems_6": [
+                "ms_targZElems_6",
+                "Integer",
+                -999
+            ],
+            "ms_targZMin": [
+                "Targ Minimum allowed average ionization",
+                "Float",
+                -998.0,
+                "ms_targZMin"
+            ],
+            "op_chamLowTemp": [
+                "op_chamLowTemp",
+                "Float",
+                0.0
+            ],
+            "op_targLowTemp": [
+                "op_targLowTemp",
+                "Float",
+                0.0
+            ]
+        },
+        "Simulation_SimulationMain_flashApp": {
+            "sim_eosCham": [
+                "chamber EOS type",
+                "Simulation_SimulationMain_flashAppsim_eosCham",
+                "eos_gam",
+                "sim_eosCham"
+            ],
+            "sim_eosTarg": [
+                "chamber EOS type",
+                "Simulation_SimulationMain_flashAppsim_eosTarg",
+                "eos_tab",
+                "sim_eosTarg"
+            ]
+        },
+        "physics_materialProperties_Opacity_OpacityMain_Multispecies": {
+            "op_chamAbsorb": [
+                "Cham Absorption",
+                "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_chamAbsorb",
+                "op_undefined",
+                "op_chamAbsorb"
+            ],
+            "op_chamAbsorbConstant": [
+                "op_chamAbsorbConstant",
+                "Float",
+                -1.0
+            ],
+            "op_chamEmiss": [
+                "Cham Emission",
+                "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_chamEmiss",
+                "op_undefined",
+                "op_chamEmiss"
+            ],
+            "op_chamEmissConstant": [
+                "op_chamEmissConstant",
+                "Float",
+                -1.0
+            ],
+            "op_chamFileName": [
+                "op_chamFileName",
+                "SetupDatafilesOptional",
+                "none"
+            ],
+            "op_chamFileType": [
+                "op_chamFileType",
+                "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_chamFileType",
+                "NOT SPECIFIED"
+            ],
+            "op_chamTrans": [
+                "Cham Transport",
+                "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_chamTrans",
+                "op_undefined",
+                "op_chamTrans"
+            ],
+            "op_chamTransConstant": [
+                "op_chamTransConstant",
+                "Float",
+                -1.0
+            ],
+            "op_targAbsorb": [
+                "Targ Absorption",
+                "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_targAbsorb",
+                "op_undefined",
+                "op_targAbsorb"
+            ],
+            "op_targAbsorbConstant": [
+                "op_targAbsorbConstant",
+                "Float",
+                -1.0
+            ],
+            "op_targEmiss": [
+                "Targ Emission",
+                "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_targEmiss",
+                "op_undefined",
+                "op_targEmiss"
+            ],
+            "op_targEmissConstant": [
+                "op_targEmissConstant",
+                "Float",
+                -1.0
+            ],
+            "op_targFileName": [
+                "op_targFileName",
+                "SetupDatafilesOptional",
+                "none"
+            ],
+            "op_targFileType": [
+                "op_targFileType",
+                "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_targFileType",
+                "NOT SPECIFIED"
+            ],
+            "op_targTrans": [
+                "Targ Transport",
+                "physics_materialProperties_Opacity_OpacityMain_Multispeciesop_targTrans",
+                "op_undefined",
+                "op_targTrans"
+            ],
+            "op_targTransConstant": [
+                "op_targTransConstant",
+                "Float",
+                -1.0
+            ],
+            "opacity_ceiling": [
+                "opacity_ceiling",
+                "Float",
+                1000000.0,
+                "ceiling for the opacity values when reading from TOPS tables. Below the plasma cut-off frequency TOPS sets the ceiling to 1.e10, which is too high for FLASH"
+            ],
+            "opacity_ignoreLowTemp": [
+                "opacity_ignoreLowTemp",
+                "Boolean",
+                "1",
+                "control parameter indicating if the low temperature capability should be ignored"
+            ],
+            "opacity_writeOpacityInfo": [
+                "opacity_writeOpacityInfo",
+                "Boolean",
+                "0",
+                "control parameter indicating if detailed info of the opacity unit should be written out"
+            ]
+        }
+    },
+    "view": {
+        "Multispecies_MultispeciesMain": {
+            "advanced": [
+                "eos_chamEosType",
+                "eos_chamGroupName",
+                "eos_chamSesDblFmt",
+                "eos_chamSubType",
+                "eos_chamTableFile",
+                "eos_targEosType",
+                "eos_targGroupName",
+                "eos_targSesDblFmt",
+                "eos_targSubType",
+                "eos_targTableFile",
+                "ms_chamA",
+                "ms_chamAElems_1",
+                "ms_chamAElems_2",
+                "ms_chamAElems_3",
+                "ms_chamAElems_4",
+                "ms_chamAElems_5",
+                "ms_chamAElems_6",
+                "ms_chamBindEnergy",
+                "ms_chamFractions_1",
+                "ms_chamFractions_2",
+                "ms_chamFractions_3",
+                "ms_chamFractions_4",
+                "ms_chamFractions_5",
+                "ms_chamFractions_6",
+                "ms_chamGamma",
+                "ms_chamNegative",
+                "ms_chamNeutral",
+                "ms_chamNumElems",
+                "ms_chamZ",
+                "ms_chamZElems_1",
+                "ms_chamZElems_2",
+                "ms_chamZElems_3",
+                "ms_chamZElems_4",
+                "ms_chamZElems_5",
+                "ms_chamZElems_6",
+                "ms_chamZMin",
+                "ms_targA",
+                "ms_targAElems_1",
+                "ms_targAElems_2",
+                "ms_targAElems_3",
+                "ms_targAElems_4",
+                "ms_targAElems_5",
+                "ms_targAElems_6",
+                "ms_targBindEnergy",
+                "ms_targFractions_1",
+                "ms_targFractions_2",
+                "ms_targFractions_3",
+                "ms_targFractions_4",
+                "ms_targFractions_5",
+                "ms_targFractions_6",
+                "ms_targGamma",
+                "ms_targNegative",
+                "ms_targNeutral",
+                "ms_targNumElems",
+                "ms_targZ",
+                "ms_targZElems_1",
+                "ms_targZElems_2",
+                "ms_targZElems_3",
+                "ms_targZElems_4",
+                "ms_targZElems_5",
+                "ms_targZElems_6",
+                "ms_targZMin",
+                "op_chamLowTemp",
+                "op_targLowTemp"
+            ],
+            "basic": [
+                [
+                    [
+                        "Cham",
+                        [
+                            "ms_chamA",
+                            "ms_chamZ",
+                            "ms_chamZMin",
+                            "eos_chamEosType",
+                            "eos_chamSubType",
+                            "eos_chamTableFile"
+                        ]
+                    ],
+                    [
+                        "Targ",
+                        [
+                            "ms_targA",
+                            "ms_targZ",
+                            "ms_targZMin",
+                            "eos_targEosType",
+                            "eos_targSubType",
+                            "eos_targTableFile"
+                        ]
+                    ]
+                ]
+            ],
+            "fieldsPerTab": 8,
+            "title": "Multispecies"
+        },
+        "Simulation_SimulationMain_flashApp": {
+            "advanced": [
+                "sim_eosCham",
+                "sim_eosTarg"
+            ],
+            "basic": [
+                "sim_eosCham",
+                "sim_eosTarg"
+            ],
+            "fieldsPerTab": 8,
+            "title": "FLASH Simulation"
+        },
+        "physics_materialProperties_Opacity_OpacityMain_Multispecies": {
+            "advanced": [
+                "op_chamAbsorb",
+                "op_chamAbsorbConstant",
+                "op_chamEmiss",
+                "op_chamEmissConstant",
+                "op_chamFileName",
+                "op_chamFileType",
+                "op_chamTrans",
+                "op_chamTransConstant",
+                "op_targAbsorb",
+                "op_targAbsorbConstant",
+                "op_targEmiss",
+                "op_targEmissConstant",
+                "op_targFileName",
+                "op_targFileType",
+                "op_targTrans",
+                "op_targTransConstant",
+                "opacity_ceiling",
+                "opacity_ignoreLowTemp",
+                "opacity_writeOpacityInfo"
+            ],
+            "basic": [
+                [
+                    [
+                        "Cham",
+                        [
+                            "physics_materialProperties_Opacity_OpacityMain_Multispecies.op_chamAbsorb",
+                            "physics_materialProperties_Opacity_OpacityMain_Multispecies.op_chamEmiss",
+                            "physics_materialProperties_Opacity_OpacityMain_Multispecies.op_chamTrans"
+                        ]
+                    ],
+                    [
+                        "Targ",
+                        [
+                            "physics_materialProperties_Opacity_OpacityMain_Multispecies.op_targAbsorb",
+                            "physics_materialProperties_Opacity_OpacityMain_Multispecies.op_targEmiss",
+                            "physics_materialProperties_Opacity_OpacityMain_Multispecies.op_targTrans"
+                        ]
+                    ]
+                ]
+            ],
+            "fieldsPerTab": 8,
+            "title": "Material Properties"
+        }
+    }
+}

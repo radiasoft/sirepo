@@ -64,7 +64,6 @@ class API(sirepo.quest.API):
         data.pkdel("report")
         data.models.simulation.isExample = False
         data.models.simulation.outOfSessionSimulationId = req.id
-        res = self._save_new_and_reply(req, data)
         sirepo.sim_data.get_class(req.type).lib_files_from_other_user(
             data,
             simulation_db.lib_dir_from_sim_dir(src),
@@ -76,15 +75,11 @@ class API(sirepo.quest.API):
             qcall=self,
         )
         if hasattr(req.template, "copy_related_sims"):
-            res = self._save_new_and_reply(
+            return self._save_new_and_reply(
                 req,
                 req.template.copy_related_sims(data, qcall=self),
             )
-        # TODO(robnagler) does not work, supervisor needs to be notified to
-        # copy the simulation state.
-        # if hasattr(req.template, 'copy_related_files'):
-        #     req.template.copy_related_files(data, str(src), str(target))
-        return res
+        return self._save_new_and_reply(req, data)
 
     @sirepo.quest.Spec(
         "require_user", sid="SimId", folder="SimFolderName", name="SimName"

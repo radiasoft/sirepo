@@ -44,3 +44,14 @@ def test_import():
             pkio.write_text(outfile, actual)
             expect = pkio.read_text(pkunit.data_dir().join(outfile))
             pkeq(expect, actual)
+
+
+def test_parse_setup():
+    from pykern.pkunit import file_eq
+    from sirepo.template import flash_parser
+
+    with pkunit.save_chdir_work():
+        s = flash_parser.SetupParameterParser(
+            pkunit.data_dir().join("setup")
+        ).generate_schema()
+        file_eq(pkunit.data_dir().join("setup.json"), s)
