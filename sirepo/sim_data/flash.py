@@ -243,7 +243,21 @@ class SimData(sirepo.sim_data.SimDataBase):
         make_dir = cls.__run_setup(data, run_dir)
         s = cls.__create_schema(data, make_dir, run_dir)
         cls.__run_make(make_dir)
+        cls.__delete_flash_exe(data)
         cls.__put_sim_files(data, s.flashSchema.enum.SetupDatafiles, make_dir, run_dir)
+
+    @classmethod
+    def __delete_flash_exe(cls, data):
+        """Delete the flash executable if it exists
+
+        The executables are named like _FLASH_EXE_PREFIX_<unique-hash>.
+        They have a hash so we know when we need to recreate the executable
+        based on the user changing parameters.
+
+        sirepo.sim_db_file delete does a glob of the filename to delete. So, we
+        will delete any file that starts with _FLASH_EXE_PREFIX
+        """
+        cls.delete_sim_file(data.models.simulation.simulationId, cls._FLASH_EXE_PREFIX)
 
     @classmethod
     def __extract_problem_files_archive(cls, path):
@@ -275,11 +289,6 @@ class SimData(sirepo.sim_data.SimDataBase):
             .items()
         ):
             p = make_dir.join(c)
-            if b.startswith(cls._FLASH_EXE_PREFIX):
-                cls.delete_sim_file(
-                    data.models.simulation.simulationId,
-                    b.split(cls._FLASH_FILE_NAME_SEP)[0],
-                )
             cls.put_sim_file(data.models.simulation.simulationId, p, b)
             if p.check(link=1):
                 p.copy(run_dir.join(b))
