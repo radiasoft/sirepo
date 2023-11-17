@@ -292,6 +292,11 @@ class API(sirepo.quest.API):
             def _save_sim(data):
                 data.models.simulation.folder = req.folder
                 data.models.simulation.isExample = False
+                if hasattr(req.template, "copy_related_sims"):
+                    return self._save_new_and_reply(
+                        req,
+                        req.template.copy_related_sims(data, qcall=self),
+                    )
                 return self._save_new_and_reply(req, data)
 
             if pkio.has_file_extension(req.filename, "json"):
