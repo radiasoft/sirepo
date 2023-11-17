@@ -334,7 +334,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.axis);
         s[i] = o.height;
         for (const j of [0, 1]) {
-            s[(i + j + 1) % 3] = o.sides[j] + 2.0 * o.radii[1];
+            s[(i + j + 1) % 3] = o.sides[j] + (typeof o.sides[j] === 'string' ? ` + 2.0 * ${o.name}.radii[1]` : 2.0 * o.sides[j]);
         }
         o.size = s;
     };
