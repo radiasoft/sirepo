@@ -74,12 +74,7 @@ class API(sirepo.quest.API):
             data.models.simulation.simulationId,
             qcall=self,
         )
-        if hasattr(req.template, "copy_related_sims"):
-            return self._save_new_and_reply(
-                req,
-                req.template.copy_related_sims(data, qcall=self),
-            )
-        return self._save_new_and_reply(req, data)
+        return self._save_with_related(req, data)
 
     @sirepo.quest.Spec(
         "require_user", sid="SimId", folder="SimFolderName", name="SimName"
@@ -287,12 +282,7 @@ class API(sirepo.quest.API):
             def _save_sim(data):
                 data.models.simulation.folder = req.folder
                 data.models.simulation.isExample = False
-                if hasattr(req.template, "copy_related_sims"):
-                    return self._save_new_and_reply(
-                        req,
-                        req.template.copy_related_sims(data, qcall=self),
-                    )
-                return self._save_new_and_reply(req, data)
+                return self._save_with_related(req, data)
 
             if pkio.has_file_extension(req.filename, "json"):
                 data = importer.read_json(req.form_file.as_bytes(), self, req.type)
@@ -690,6 +680,14 @@ class API(sirepo.quest.API):
             req,
             simulation_db.save_new_simulation(data, qcall=self),
         )
+
+    def _save_with_related(self, req, data):
+        if hasattr(req.template, "copy_related_sims"):
+            return self._save_new_and_reply(
+                req,
+                req.template.copy_related_sims(data, qcall=self),
+            )
+        return self._save_new_and_reply(req, data)
 
     def _simulation_data_reply(self, req, data):
         if hasattr(req.template, "prepare_for_client"):
