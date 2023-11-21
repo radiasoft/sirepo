@@ -613,32 +613,7 @@ SIREPO.app.directive('listSearch', function(panelState, utilities) {
             </div>
        `,
         controller: function($scope, $element) {
-            let sel = null;
-
-            function buildSearch() {
-                const s = $($element).find(`.${searchClass}`);
-                s.autocomplete({
-                    delay: 0,
-                    select: (e, ui) => {
-                        $scope.$apply(() => {
-                            // the jqueryui autocomplete wants to display the value instead of the
-                            // label when a select happens. This keeps the label in place
-                            e.preventDefault();
-                            s.val(ui.item.label);
-                            $scope.onSelect()(ui.item.value);
-                        });
-                    },
-                });
-                return s;
-            }
-
-            function updateSearch() {
-                sel.autocomplete('option', 'source', $scope.list);
-                sel.autocomplete('option', 'disabled', ! $scope.list.length);
-            }
-
-            $scope.$watch('list', updateSearch);
-            sel = buildSearch();
+            const sel = utilities.buildSearch($scope, $element, searchClass);
         },
     };
 });
@@ -5152,6 +5127,42 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
             return 'MSFullscreenChange';
         }
         return 'fullscreenchange';
+    };
+
+    this.buildSearch = (scope, element, searchClass) => {
+        const s = $(element).find(`.${searchClass}`);
+        const f = s.closest('form');
+        s.autocomplete({
+            delay: 0,
+            search: (e, ui) => {
+                srdbg('SRCH IN', scope.list);
+            },
+            select: (e, ui) => {
+                scope.$apply(() => {
+                    // the jqueryui autocomplete wants to display the value instead of the
+                    // label when a select happens. This keeps the label in place
+                    e.preventDefault();
+                    s.val(ui.item.label);
+                    scope.onSelect()(ui.item.value);
+                });
+            },
+        });
+        if (f.length) {
+            //f.removeAttr('autocomplete');
+        }
+        //s.closest('form')
+        //s.removeAttr('autocomplete');
+        const search = {
+            container: s,
+            update: () => {
+                s.autocomplete('option', 'source', scope.list);
+                s.autocomplete('option', 'disabled', ! scope.list.length);
+            },
+        };
+        scope.$watch('list', () => {
+            search.update();
+        });
+        return search;
     };
 
     // Returns a function, that, as long as it continues to be invoked, will not

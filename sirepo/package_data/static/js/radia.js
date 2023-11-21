@@ -80,7 +80,7 @@ SIREPO.app.factory('radiaOptimizationService', function(appState, radiaService, 
     let self = {};
 
     //TODO(mvk): other types such as FloatArray
-    const OPTIMIZABLE_TYPES = ['Float', 'Scriptable'];
+    const OPTIMIZABLE_TYPES = ['Float', 'ScriptableField'];
 
     self.optimizableObjects = (types=OPTIMIZABLE_TYPES) =>
         radiaVariableService.addressableObjects(OPTIMIZABLE_TYPES);
@@ -461,7 +461,7 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
         return Object.keys(objs).includes(o.name) && objs[o.name].fields.includes(f);
     }
 
-    self.scriptableObjects = () => self.addressableObjects(['Float', 'FloatArray', 'Scriptable', 'ScriptableArray']);
+    self.scriptableObjects = () => self.addressableObjects(['Float', 'FloatArray', 'ScriptableField', 'ScriptableArray']);
 
     self.scriptedObject = o => {
         const s = {};
@@ -3133,7 +3133,8 @@ SIREPO.app.directive('scriptableField', function(appState, utilities) {
         },
         template: `
             <div class="col-sm-3">
-                <input data-rpn-value="" data-is-error="isError" data-ng-model="model[fieldName]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
+                <input data-rpn-value="" data-is-error="isError" data-ng-model="model[fieldName]" class="scriptable form-control" style="text-align: right"  data-ng-required="true" />
+                <!--<input class="scriptable form-control" style="text-align: right"/>-->
             </div>
             <div class="col-sm-2">
                 <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError"></span>
@@ -3144,6 +3145,19 @@ SIREPO.app.directive('scriptableField', function(appState, utilities) {
             $scope.isDynamic = label => ! ! label.match(/{{\s*.+\s*}}/);
             $scope.isBusy = false;
             $scope.isError = false;
+            
+            $scope.list = appState.models.rpnVariables.map(x => {
+                return {
+                    label: x.name,
+                    value: x.value,
+                };
+            });
+            $scope.onSelect = val => {
+                srdbg('SELECT', val);
+            }
+            
+            //$scope.list = [{label: 'a', value: 'A'}, {label: 'b', value: 'B'}, ]
+            const search = utilities.buildSearch($scope, $element, 'scriptable');
         },
         link: (scope, element) => {
             // add an icon to the label
