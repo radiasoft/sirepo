@@ -15,6 +15,33 @@ SIREPO.INFO_INDEX_MAX = 5;
 SIREPO.ENUM_INDEX_VALUE = 0;
 SIREPO.ENUM_INDEX_LABEL = 1;
 
+class ListSearch {
+    constructor(list, scope, element, searchClass) {
+        this.list = list;
+        this.scope = scope;
+        this.container = $(element).find(`.${searchClass}`);
+        this.container.autocomplete({
+            delay: 0,
+            select: (e, ui) => {
+                this.scope.$apply(() => {
+                    // the jqueryui autocomplete wants to display the value instead of the
+                    // label when a select happens. This keeps the label in place
+                    e.preventDefault();
+                    this.container.val(ui.item.label);
+                    this.scope.onSelect()(ui.item.value);
+                });
+            },
+        });
+        this.update();
+    }
+
+    update() {
+        srdbg(this.list);
+        this.container.autocomplete('option', 'source', this.list);
+        this.container.autocomplete('option', 'disabled', ! this.list.length);
+    }
+}
+
 SIREPO.app.directive('simulationDetailPage', function(appState, $compile) {
     return {
         restrict: 'A',
@@ -596,7 +623,7 @@ SIREPO.app.directive('randomSeed', function() {
     };
 });
 
-SIREPO.app.directive('listSearch', function(appState, fileManager) {
+SIREPO.app.directive('listSearch', function(panelState, utilities) {
     const searchClass = 'list-search-autocomplete';
 
     return {
@@ -612,33 +639,11 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
               <input class="${searchClass} form-control" placeholder="{{ placeholderText }}" />
             </div>
        `,
-        controller: function($scope) {
-            let sel = null;
-
-            function buildSearch() {
-                const s = $(`.${searchClass}`);
-                s.autocomplete({
-                    delay: 0,
-                    select: (e, ui) => {
-                        $scope.$apply(() => {
-                            // the jqueryui autocomplete wants to display the value instead of the
-                            // label when a select happens. This keeps the label in place
-                            e.preventDefault();
-                            s.val(ui.item.label);
-                            $scope.onSelect()(ui.item.value);
-                        });
-                    },
-                });
-                return s;
-            }
-
-            function updateSearch() {
-                sel.autocomplete('option', 'source', $scope.list);
-                sel.autocomplete('option', 'disabled', ! $scope.list.length);
-            }
-
-            $scope.$watch('list', updateSearch);
-            sel = buildSearch();
+        controller: function($scope, $element) {
+            const sel = new ListSearch($scope.list, $scope, $element, searchClass);
+            $scope.$watch('list', () => {
+                sel.update();
+            });
         },
     };
 });

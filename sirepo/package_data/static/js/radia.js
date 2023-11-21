@@ -3126,14 +3126,15 @@ SIREPO.app.directive('scriptableField', function(appState, utilities) {
         restrict: 'A',
         scope: {
             field: '=',
-            fieldName: '=',
-            info: '=',
+            fieldName: '<',
+            info: '<',
+            list: '<',
             model: '=',
-            modelName: '=',
+            modelName: '<',
         },
         template: `
             <div class="col-sm-3">
-                <input data-rpn-value="" data-is-error="isError" data-ng-model="model[fieldName]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
+                <!--<input data-rpn-value="" data-is-error="isError" data-ng-model="model[fieldName]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />-->
             </div>
             <div class="col-sm-2">
                 <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError"></span>
