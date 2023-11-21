@@ -58,7 +58,7 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="Points" data-ng-class="fieldClass">
           <div data-points-table="" data-field="model[field]" data-model="model"></div>
         </div>
-        <div data-ng-switch-when="Scriptable">
+        <div data-ng-switch-when="ScriptableField">
             <div data-scriptable-field="" data-model-name="modelName" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
         </div>
         <div data-ng-switch-when="ScriptableArray" class="col-sm-7">
@@ -3128,13 +3128,12 @@ SIREPO.app.directive('scriptableField', function(appState, utilities) {
             field: '=',
             fieldName: '<',
             info: '<',
-            list: '<',
             model: '=',
             modelName: '<',
         },
         template: `
             <div class="col-sm-3">
-                <!--<input data-rpn-value="" data-is-error="isError" data-ng-model="model[fieldName]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />-->
+                <input data-rpn-value="" data-is-error="isError" data-ng-model="model[fieldName]" class="form-control" style="text-align: right" data-lpignore="true" data-ng-required="true" />
             </div>
             <div class="col-sm-2">
                 <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError"></span>

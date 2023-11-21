@@ -454,7 +454,7 @@
         "cylinder": {
             "_super": ["_", "model", "extrudedObject"],
             "numSides": ["Number of Sides", "Integer", 10, "A cylinder is approximated by a regular polyhedron of this number of sides", 6],
-            "radius": ["Radius", "Scriptable", 5.0, "", 1e-06],
+            "radius": ["Radius", "ScriptableField", 5.0, "", 1e-06],
             "segmentation": ["Segmentation Type", "SegmentationType", "cyl"],
             "type": ["_", "ObjectType", "cylinder"]
         },
@@ -995,7 +995,7 @@
             "center": ["Center [mm]", "ScriptableArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "currentDensity": ["Current Density [A/$mm^2$]", "Float", -0.5],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
-            "height": ["Height ({{ appState.models.racetrack.axis }}) [mm]", "Scriptable", 105.0, "Measured along axis"],
+            "height": ["Height ({{ appState.models.racetrack.axis }}) [mm]", "ScriptableField", 105.0, "Measured along axis"],
             "numSegments": ["Number of Corner Segments", "Integer", 3, "", 0],
             "planeAxis1": ["_", "BeamAxis", "z"],
             "planeAxis2": ["_", "BeamAxis", "x"],
