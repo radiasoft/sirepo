@@ -59,7 +59,7 @@
             }
         },
         "epicsModelPrefix": "rfsoc_ioc",
-        "editorModelName": "Generator",
+        "editorModelName": "ZCUSignalGenerator",
         "epicsPlots": {
             "waveformAReport": {
                 "x": "rfsoc_ioc_Root_PvProcessor:Time",
@@ -96,13 +96,14 @@
                 "adc1Phase": "Reflected",
                 "adc2Phase": "Loopback"
             }
-        }
+        },
+        "isManualSignalGenerator": true
     },
     "model": {
-        "Generator": {
-            "amp": ["Amplitude [counts]", "Float", 0],
+        "ZCUSignalGenerator": {
+            "amp": ["Amplitude [counts]", "Float", 32000],
             "start": ["Start of Pulse [clock cycles]", "Float", 0],
-            "duration": ["Pulse Duration [clock cycles]", "Float", 0]
+            "duration": ["Pulse Duration [clock cycles]", "Float", 1023]
         },
         "rfsoc_ioc_Root_PvProcessor": {
             "Time": ["", "ReadOnlyFloatArray", []],
@@ -121,7 +122,7 @@
         "waveformDReport": {}
     },
     "view": {
-        "Generator": {
+        "ZCUSignalGenerator": {
             "title": "Signal Generator",
             "basic": [
                 "amp",

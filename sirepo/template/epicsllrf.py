@@ -109,20 +109,17 @@ def stateless_compute_update_epics_value(data, **kwargs):
     return PKDict(success=True)
 
 
+def stateless_compute_update_signal_generator(data, **kwargs):
+    # could have different implementations based on the modelName
+    if data.args.modelName == "ZCUSignalGenerator":
+        return _set_zcu_signal(data.args.serverAddress, data.args.model)
+    raise AssertionError("unknown signal generator modelName: {}", data.args.modelName)
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
-    )
-
-
-def _generate_parameters_file(data):
-    res, v = template_common.generate_parameters_file(data)
-    v.statusFile = _STATUS_FILE
-    return template_common.render_jinja(
-        SIM_TYPE,
-        v,
-        template_common.PARAMETERS_PYTHON_FILE,
     )
 
 
@@ -141,6 +138,28 @@ def _calculate_computed_values(d, computed_values):
         else:
             raise AssertionError(f"unknown computedValue method: {fd.method}")
     return d
+
+
+def _generate_parameters_file(data):
+    res, v = template_common.generate_parameters_file(data)
+    v.statusFile = _STATUS_FILE
+    return template_common.render_jinja(
+        SIM_TYPE,
+        v,
+        template_common.PARAMETERS_PYTHON_FILE,
+    )
+
+
+def _parse_epics_log(run_dir):
+    res = ""
+    with pkio.open_text(run_dir.join(template_common.RUN_LOG)) as f:
+        for line in f:
+            m = re.match(
+                r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)", line
+            )
+            if m:
+                return m.group(1)
+    return res
 
 
 def _read_epics_data(run_dir, computed_values):
@@ -163,28 +182,40 @@ def _read_epics_data(run_dir, computed_values):
     return PKDict()
 
 
-def _parse_epics_log(run_dir):
-    res = ""
-    with pkio.open_text(run_dir.join(template_common.RUN_LOG)) as f:
-        for line in f:
-            m = re.match(
-                r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)", line
+def _set_zcu_signal(server_address, model):
+    # 'model': {'amp': 32000, 'duration': 1023, 'start': 0},
+    # 'serverAddress': 'localhost'
+
+    def write_nco_freq(adc=796.8, dac=186.24):
+        for v in ([0, 0], [0, 1], [1, 0], [1, 1]):
+            run_epics_cmd(
+                f"pvput rfsoc_ioc:Root:XilinxRFSoC:RfDataConverter:adcTile[{v[0]}]:adcBlock[{v[1]}]:ncoFrequency {adc}",
+                server_address,
             )
-            if m:
-                return m.group(1)
-    return res
+        run_epics_cmd(
+            f"pvput rfsoc_ioc:Root:XilinxRFSoC:RfDataConverter:dacTile[0]:dacBlock[0]:ncoFrequency {dac}",
+            server_address,
+        )
 
+    def set_signal(pulse_width=200, pulse_amp=32000, pulse_delay=200):
+        # p4p is required to set the Dac values, pvput doesn't work with union array types
+        from p4p.client.thread import Context
 
-# TODO(pjm): add this from Matt
-# def set_signal(ctxt, queue, pulse_width = 200, pulse_amp = 32000, pulse_delay = 200):
-#     # Put the DAC Waveform Playback I Values
-#     # https://github.com/slaclab/axi-soc-ultra-plus-core/blob/main/python/axi_soc_ultra_plus_core/rfsoc_utility/_SigGen.py#L136
-#     I = np.zeros(shape=4096, dtype=np.int32, order='C')
-#     I[pulse_delay:(pulse_delay + pulse_width)] = pulse_amp
-#     ctxt.put( 'rfsoc_ioc:Root:XilinxRFSoC:Application:DacSigGen:DacI', I)
+        ctx = Context(
+            "pva",
+            dict(
+                EPICS_PVA_ADDR_LIST=server_address,
+                EPICS_PVA_AUTO_ADDR_LIST="NO",
+            ),
+        )
+        I = numpy.zeros(shape=4096, dtype=numpy.int32, order="C")
+        I[pulse_delay : (pulse_delay + pulse_width)] = pulse_amp
+        ctx.put("rfsoc_ioc:Root:XilinxRFSoC:Application:DacSigGen:DacI", I)
+        Q = numpy.zeros(shape=4096, dtype=numpy.int32, order="C")
+        Q[pulse_delay : (pulse_delay + pulse_width)] = pulse_amp
+        ctx.put("rfsoc_ioc:Root:XilinxRFSoC:Application:DacSigGen:DacQ", Q)
 
-#     # Put the DAC Waveform Playback Q Values
-#     # https://github.com/slaclab/axi-soc-ultra-plus-core/blob/main/python/axi_soc_ultra_plus_core/rfsoc_utility/_SigGen.py#L136
-#     Q = np.zeros(shape=4096, dtype=np.int32, order='C')
-#     Q[pulse_delay:(pulse_delay + pulse_width)] = pulse_amp
-#     ctxt.put( 'rfsoc_ioc:Root:XilinxRFSoC:Application:DacSigGen:DacQ', Q)
+    write_nco_freq()
+    set_signal(model.duration, model.amp, model.start)
+
+    return PKDict(success=True)

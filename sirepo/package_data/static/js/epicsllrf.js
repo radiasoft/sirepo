@@ -161,6 +161,33 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
             }
         }
         self.reportNames.sort((a, b) => a.localeCompare(b));
+        if (SIREPO.APP_SCHEMA.constants.isManualSignalGenerator) {
+            $scope.$on(self.editorModelName + '.changed', () => {
+                requestSender.sendStatelessCompute(
+                    appState,
+                    data => {
+                        if (data.error) {
+                            errorService.alertText(data.error);
+                        }
+                    },
+                    {
+                        method: 'update_signal_generator',
+                        args: {
+                            model: appState.applicationState()[self.editorModelName],
+                            modelName: self.editorModelName,
+                            serverAddress: appState.applicationState().epicsServer.serverAddress,
+                        },
+                    }
+                );
+            });
+        }
+    }
+
+    function initSchema() {
+        if (appState.applicationState().epicsConfig.epicsSchema) {
+            self.loadingSchemaMessage = "Loading EPICS definition";
+        }
+        epicsllrfService.initSchema(initReportNames);
     }
 
     function isEditable(modelName, field) {
@@ -307,13 +334,6 @@ SIREPO.app.controller('epicsllrfController', function (appState, epicsllrfServic
             appState.saveChanges(modelName);
         }
     });
-
-    function initSchema() {
-        if (appState.applicationState().epicsConfig.epicsSchema) {
-            self.loadingSchemaMessage = "Loading EPICS definition";
-        }
-        epicsllrfService.initSchema(initReportNames);
-    }
 
     $scope.$on('epicsConfig.changed', initSchema);
 
