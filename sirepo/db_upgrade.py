@@ -50,7 +50,7 @@ def _20230203_drop_spa_session(qcall):
     qcall.auth_db.drop_table("spa_session_t")
 
 
-def _20230529_deploy_flash_update(qcall):
+def _20231120_deploy_flash_update(qcall):
     """Add proprietary lib files to existing FLASH users' lib dir"""
     if not sirepo.template.is_sim_type("flash"):
         return
