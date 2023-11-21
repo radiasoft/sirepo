@@ -153,7 +153,20 @@ class API(sirepo.quest.API):
             type=simulation_type,
         )
         from sirepo import exporter
-
+        src = pkio.py_path(
+            simulation_db.find_global_simulation(
+                req.type,
+                req.id,
+                checked=True,
+            ),
+        )
+        data = simulation_db.open_json_file(
+            req.type,
+            src.join(simulation_db.SIMULATION_DATA_FILE),
+        )
+        pkdp("\n\n\n\n\n filename:\n\n{}", filename)
+        pkdp("\n\n\n\n\n data:\n\n{}", data)
+        pkdp("\n\n\n\n\n data.models.simWorkflow:\n\n{}", data.models.simWorkflow)
         return exporter.create_archive(req, self)
 
     @sirepo.quest.Spec("allow_visitor")
@@ -282,7 +295,7 @@ class API(sirepo.quest.API):
             def _save_sim(data):
                 data.models.simulation.folder = req.folder
                 data.models.simulation.isExample = False
-                return self._save_with_related(req, data)
+                return self._save_with_related(req, data, from_zip=True)
 
             if pkio.has_file_extension(req.filename, "json"):
                 data = importer.read_json(req.form_file.as_bytes(), self, req.type)
@@ -681,11 +694,11 @@ class API(sirepo.quest.API):
             simulation_db.save_new_simulation(data, qcall=self),
         )
 
-    def _save_with_related(self, req, data):
+    def _save_with_related(self, req, data, from_zip=False):
         if hasattr(req.template, "copy_related_sims"):
             return self._save_new_and_reply(
                 req,
-                req.template.copy_related_sims(data, qcall=self),
+                req.template.copy_related_sims(data, from_zip, qcall=self),
             )
         return self._save_new_and_reply(req, data)
 
