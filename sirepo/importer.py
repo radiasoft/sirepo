@@ -74,11 +74,14 @@ def read_zip(zip_bytes, qcall, sim_type=None):
     from sirepo import simulation_db, sim_data, sim_run
 
     with sim_run.tmp_dir(qcall=qcall) as tmp:
+        pkdp("\n\n\ntmp={}", tmp)
         data = None
         zipped = PKDict()
         with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
+            pkdp("\n\n\n infolist={}", z.infolist())
             for i in z.infolist():
                 b = pykern.pkio.py_path(i.filename).basename
+                pkdp("\n\n\nb={}", b)
                 c = z.read(i)
                 if b.lower() == simulation_db.SIMULATION_DATA_FILE:
                     assert not data, "too many db files {} in archive".format(b)
@@ -107,4 +110,5 @@ def read_zip(zip_bytes, qcall, sim_type=None):
         for b, src in zipped.items():
             if b in needed:
                 src.copy(s.lib_file_write_path(b, qcall=qcall))
+        pkdp("\n\n\nzip_data={}", data)
         return data

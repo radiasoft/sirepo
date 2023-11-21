@@ -129,7 +129,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def copy_related_sims(data, from_zip, qcall=None):
-    def _read_zip_sim():
+    def _read_zip_sim(sim):
         # when importing from zip need to read related sims from zipfile
         pass
 

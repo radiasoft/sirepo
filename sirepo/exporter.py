@@ -69,7 +69,7 @@ def _create_zip(sim, out_dir, qcall):
                     )
                     pkdp("\n\n\n\n relsim d={}", d)
                     z.writestr(
-                        f"x{idx}.json",
+                        f"related_sim{idx}.json",
                         pkjson.dump_pretty(
                             d,
                             pretty=True

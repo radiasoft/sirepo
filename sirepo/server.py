@@ -164,9 +164,6 @@ class API(sirepo.quest.API):
             req.type,
             src.join(simulation_db.SIMULATION_DATA_FILE),
         )
-        pkdp("\n\n\n\n\n filename:\n\n{}", filename)
-        pkdp("\n\n\n\n\n data:\n\n{}", data)
-        pkdp("\n\n\n\n\n data.models.simWorkflow:\n\n{}", data.models.simWorkflow)
         return exporter.create_archive(req, self)
 
     @sirepo.quest.Spec("allow_visitor")
