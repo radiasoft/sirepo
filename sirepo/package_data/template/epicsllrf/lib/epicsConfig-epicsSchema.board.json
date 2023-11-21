@@ -85,14 +85,14 @@
                 "dacMagnitude": "Magnitude",
                 "dacPhase": "Phase (deg)",
                 "rfsoc_ioc_Root_PvProcessor:Time": "Time (ns)",
-                "rfsoc_ioc_Root_PvProcessor:DacI": "Forward",
-                "rfsoc_ioc_Root_PvProcessor:AdcI[0]": "Probe",
+                "rfsoc_ioc_Root_PvProcessor:DacI": "Source",
+                "rfsoc_ioc_Root_PvProcessor:AdcI[0]": "Forward",
                 "rfsoc_ioc_Root_PvProcessor:AdcI[1]": "Reflected",
                 "rfsoc_ioc_Root_PvProcessor:AdcI[2]": "Loopback",
-                "adc0Magnitude": "Probe",
+                "adc0Magnitude": "Forward",
                 "adc1Magnitude": "Reflected",
                 "adc2Magnitude": "Loopback",
-                "adc0Phase": "Probe",
+                "adc0Phase": "Forward",
                 "adc1Phase": "Reflected",
                 "adc2Phase": "Loopback"
             }
@@ -132,7 +132,7 @@
             "advanced": []
         },
         "waveformAReport": {
-            "title": "Forward Magnitude",
+            "title": "Source Magnitude",
             "hasDataFile": false,
             "advanced": []
         },
@@ -142,7 +142,7 @@
             "advanced": []
         },
         "waveformCReport": {
-            "title": "Forward Phase",
+            "title": "Source Phase",
             "hasDataFile": false,
             "advanced": []
         },
