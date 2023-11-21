@@ -19,26 +19,26 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
     def get_notebooks(self):
         return [
             PKDict(
-                input_f=_cfg.base_dir.join(
+                input_f=_cfg.input_base_dir.join(
                     self._scan_metadata.get_start_field("cycle"),
                     "AutoRuns",
                     self._scan_metadata.get_start_field("user"),
                     f"{self._scan_metadata.get_start_field('auto_pipeline')}.ipynb",
                 ),
-                output_f=_cfg.base_dir.join(
+                output_f=_cfg.output_base_dir.join(
                     self._scan_metadata.get_start_field("cycle"),
                     self._scan_metadata.get_start_field("user"),
-                    "RResPipelines",
+                    "ResPipelines",
                     f"{self._scan_metadata.get_start_field('auto_pipeline')}_{self.uid}.ipynb",
                 ),
             )
         ]
 
     def get_output_dir(self):
-        return _cfg.base_dir.join(
+        return _cfg.output_base_dir.join(
             self._scan_metadata.get_start_field("cycle"),
             self._scan_metadata.get_start_field("user"),
-            "RResults",
+            "Results",
             self.uid,
         )
 
@@ -51,8 +51,11 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
 
 
 _cfg = pkconfig.init(
-    base_dir=pkconfig.Required(
-        pkio.py_path, "base directory for notebooks and outputs"
+    input_base_dir=pkconfig.Required(
+        pkio.py_path, "base directory for notebooks inputs"
+    ),
+    output_base_dir=pkconfig.Required(
+        pkio.py_path, "base directory for notebooks and result outputs"
     ),
     conda_env=("analysis-2019-3.0.1-chx", str, "conda environment name"),
 )
