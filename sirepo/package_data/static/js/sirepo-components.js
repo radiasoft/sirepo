@@ -36,7 +36,6 @@ class ListSearch {
     }
 
     update() {
-        srdbg(this.list);
         this.container.autocomplete('option', 'source', this.list);
         this.container.autocomplete('option', 'disabled', ! this.list.length);
     }
