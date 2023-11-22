@@ -84,13 +84,23 @@ class UserRole(sirepo.auth_db.UserDbBase):
         return r.expiration < sirepo.srtime.utc_now()
 
     def uids_of_paid_users(self):
+        return self.uids_with_roles(sirepo.auth_role.PAID_USER_ROLES)
+
+    def uids_with_role(self, role):
+        return self.uids_with_roles((role,))
+
+    def uids_with_roles(self, roles):
+        a = sirepo.auth_role.get_all()
+        for r in roles:
+            if r not in a:
+                raise AssertionError(f"role={r} not in known roles={a}")
         cls = self.__class__
         return [
             x[0]
             for x in self.query()
             .with_entities(cls.uid)
             .filter(
-                cls.role.in_(sirepo.auth_role.PAID_USER_ROLES),
+                cls.role.in_(roles),
             )
             .distinct()
             .all()

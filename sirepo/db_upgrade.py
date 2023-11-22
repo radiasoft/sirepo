@@ -8,9 +8,9 @@ from pykern import pkinspect, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import contextlib
-import os
 import shutil
 import sirepo.auth_db
+import sirepo.auth_role
 import sirepo.job
 import sirepo.quest
 import sirepo.sim_data
@@ -54,7 +54,9 @@ def _20231120_deploy_flash_update(qcall):
     """Add proprietary lib files to existing FLASH users' lib dir"""
     if not sirepo.template.is_sim_type("flash"):
         return
-    for u in qcall.auth_db.all_uids():
+    for u in qcall.auth_db.model("UserRole").uids_with_role(
+        sirepo.auth_role.for_sim_type("flash")
+    ):
         with qcall.auth.logged_in_user_set(u):
             # Remove the existing rpm
             pkio.unchecked_remove(
