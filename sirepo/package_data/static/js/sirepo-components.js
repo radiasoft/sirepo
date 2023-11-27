@@ -5157,7 +5157,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         const search = {
             container: s,
             update: () => {
-                s.autocomplete('option', 'source', scope.list);
+                s.autocomplete('option', 'source', scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1)));
                 s.autocomplete('option', 'disabled', ! scope.list.length);
             },
         };
