@@ -79,10 +79,8 @@ def read_zip(zip_bytes, qcall, sim_type=None):
         data = None
         zipped = PKDict()
         with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
-            pkdp("\n\n\n infolist={}", z.infolist())
             for i in z.infolist():
                 b = pykern.pkio.py_path(i.filename).basename
-                pkdp("\n\n\nb={}", b)
                 c = z.read(i)
                 if b.lower() == simulation_db.SIMULATION_DATA_FILE:
                     assert not data, "too many db files {} in archive".format(b)
@@ -94,9 +92,40 @@ def read_zip(zip_bytes, qcall, sim_type=None):
                 assert not b in zipped, "{} duplicate file in archive".format(
                     i.filename
                 )
+
                 zipped[b] = tmp.join(b)
                 zipped[b].write(c, "wb")
+
+
+
         assert data, "missing {} in archive".format(simulation_db.SIMULATION_DATA_FILE)
+
+        with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
+            for i in z.infolist():
+                b = pykern.pkio.py_path(i.filename).basename
+                pkdp("\n\n\nb={}", b)
+                c = z.read(i)
+                if "related_sim" in b:
+                    index = int(b.split(".")[0][-1])
+                    d = simulation_db.json_load(c)
+                    pkdp("\n\n\n d={}, d.type={}", d, type(d))
+                    pkdp("\n\n\n idx ={}", b.split(".")[0][-1])
+                    d.models.simulation.isExample = False
+                    d.models.simulation.folder = "/Omega"
+                    s = simulation_db.save_new_simulation(
+                        d,
+                        qcall=qcall,
+                    )
+                    # TODO: get lib files
+                    # sirepo.sim_data.get_class(sim_obj.simulationType).lib_files_from_other_user(
+                    #     d,
+                    #     simulation_db.lib_dir_from_sim_dir(p),
+                    #     qcall=qcall,
+                    # )
+                    data.models.simWorkflow.coupledSims[
+                        index
+                    ].simulationId = s.models.simulation.simulationId
+
         needed = set()
         s = sim_data.get_class(data.simulationType)
         u = qcall.auth.logged_in_user()
