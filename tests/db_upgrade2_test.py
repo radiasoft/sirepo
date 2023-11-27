@@ -43,7 +43,7 @@ def test_files():
             r,
         )
         if expect_flash_rpm:
-            pkre(rf"user/{_UID_WITH_FLASH_ROLE}", str(r[0]))
+            pkre(f"user/{_UID_WITH_FLASH_ROLE}", str(r[0]))
         r = pkio.sorted_glob(srdb.root().join("user", "**", "flash"))
         pkeq(2, len(r), "expecting 2 paths found={}", r)
 
@@ -51,5 +51,4 @@ def test_files():
     _check_paths(True)
     # run db_upgrade
     with srunit.quest_start():
-        pass
-    _check_paths(False)
+        _check_paths(False)
