@@ -129,23 +129,16 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def copy_related_sims(data, from_zip, qcall=None):
-    def _read_zip_sim(sim):
-        # when importing from zip need to read related sims from zipfile
-        pass
-
     for index, sim_obj in enumerate(data.models.simWorkflow.coupledSims):
         if sim_obj.simulationType and sim_obj.simulationId:
-            if from_zip:
-                c = _read_zip_sim(sim_obj)
-            else:
-                p = pkio.py_path(
-                    simulation_db.find_global_simulation(
-                        sim_obj.simulationType,
-                        sim_obj.simulationId,
-                        checked=True,
-                    )
-                ).join("sirepo-data.json")
-                c = pkjson.load_any(p)
+            p = pkio.py_path(
+                simulation_db.find_global_simulation(
+                    sim_obj.simulationType,
+                    sim_obj.simulationId,
+                    checked=True,
+                )
+            ).join("sirepo-data.json")
+            c = pkjson.load_any(p)
             c.models.simulation.isExample = False
             c.models.simulation.folder = _RELATED_SIMS_FOLDER
             s = simulation_db.save_new_simulation(
