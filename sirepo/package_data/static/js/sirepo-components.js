@@ -5151,7 +5151,8 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         });
         const modal = s.closest('div[role="dialog"]');
         if (modal.length) {
-            s.autocomplete('widget').css('zIndex', parseInt(modal.css('zIndex') + 1));
+            // required to have the popup appear on top and scroll along with the modal content
+            s.autocomplete('option', 'appendTo', modal);
         }
         const search = {
             container: s,
