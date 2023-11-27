@@ -523,6 +523,9 @@ def _scan_info_result(scans, page_count, req_data):
             if s
             else [],
             pageCount=page_count,
+            pageNumber=req_data.pageNumber,
+            sortColumn=req_data.sortColumn,
+            sortOrder=req_data.sortOrder,
         )
     )
 
