@@ -1850,7 +1850,7 @@ SIREPO.app.directive('simStateProgressBar', function(appState) {
         },
         template: `
             <div class="progress">
-              <div class="progress-bar {{ class() }}" role="progressbar" aria-valuenow="{{ percentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ percentComplete() || 100 }}%"></div>
+              <div class="progress-bar {{ class() }}" role="progressbar" aria-valuenow="{{ percentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ percentComplete() }}%"></div>
             </div>
         `,
         controller: function($scope) {
