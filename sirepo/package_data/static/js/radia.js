@@ -3155,7 +3155,7 @@ SIREPO.app.directive('scriptableField', function(appState, panelState, utilities
             $scope.onSelect = val => {};
             let search = null;
             panelState.waitForUI(() => {
-                search = utilities.buildSearch($scope, $element, 'scriptable');
+                search = utilities.buildSearch($scope, $element, 'scriptable', true);
             });
             
         },

@@ -5133,7 +5133,13 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         return 'fullscreenchange';
     };
 
-    this.buildSearch = (scope, element, searchClass) => {
+    this.buildSearch = (scope, element, searchClass, supportsMulti) => {
+        function formattedList(searchText) {
+            return scope.list
+                .toSorted((a, b) => (a.label < b.label ? -1 : 1));
+                //.filter(x => x.label.startsWith(searchText));
+        }
+
         const s = $(element).find(`.${searchClass}`);
         s.autocomplete({
             delay: 0,
@@ -5142,11 +5148,27 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
                     // the jqueryui autocomplete wants to display the value instead of the
                     // label when a select happens. This keeps the label in place
                     e.preventDefault();
-                    s.val(ui.item.label);
+                    let val = ui.item.label;
+                    if (supportsMulti) {
+                        const tokens = s.val().split(/\s+/);
+                        tokens[tokens.length - 1] = val;
+                        val = tokens.join(' ');
+                    }
+                    s.val(val);
                     if (scope.onSelect) {
                         scope.onSelect(ui.item.value);
                     }
                 });
+            },
+            source: (req, res) => {
+                const text = req.term;
+                const l = formattedList(text);
+                if (! supportsMulti) {
+                    res(l);
+                    return;
+                }
+                const last = text.split(/\s+/).pop();
+                res(l);
             },
         });
         const modal = s.closest('div[role="dialog"]');
@@ -5157,7 +5179,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         const search = {
             container: s,
             update: () => {
-                s.autocomplete('option', 'source', scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1)));
+                //s.autocomplete('option', 'source', scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1)));
                 s.autocomplete('option', 'disabled', ! scope.list.length);
             },
         };
