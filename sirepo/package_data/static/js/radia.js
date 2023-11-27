@@ -800,7 +800,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     self.viewsForObject = obj => {
         const o = radiaVariableService.scriptedObject(obj);
         const supers = appState.superClasses(o.type);
-        //srdbg('SCRIPTED', o);
         let center = o.center;
         let size = o.size;
         const isGroup = self.isGroup(o);
@@ -3121,7 +3120,7 @@ SIREPO.app.directive('scriptableArray', function(appState, utilities) {
     };
 });
 
-SIREPO.app.directive('scriptableField', function(appState, utilities) {
+SIREPO.app.directive('scriptableField', function(appState, panelState, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -3134,7 +3133,6 @@ SIREPO.app.directive('scriptableField', function(appState, utilities) {
         template: `
             <div class="col-sm-3">
                 <input data-rpn-value="" data-is-error="isError" data-ng-model="model[fieldName]" class="scriptable form-control" style="text-align: right"  data-ng-required="true" />
-                <!--<input class="scriptable form-control" style="text-align: right"/>-->
             </div>
             <div class="col-sm-2">
                 <span data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError"></span>
@@ -3142,7 +3140,6 @@ SIREPO.app.directive('scriptableField', function(appState, utilities) {
         `,
         controller: ($scope, $element) => {
             $scope.appState = appState;
-            $scope.isDynamic = label => ! ! label.match(/{{\s*.+\s*}}/);
             $scope.isBusy = false;
             $scope.isError = false;
             
@@ -3152,12 +3149,15 @@ SIREPO.app.directive('scriptableField', function(appState, utilities) {
                     value: x.value,
                 };
             });
-            $scope.onSelect = val => {
-                srdbg('SELECT', val);
-            }
+
+            $scope.isDynamic = label => ! ! label.match(/{{\s*.+\s*}}/);
+
+            $scope.onSelect = val => {};
+            let search = null;
+            panelState.waitForUI(() => {
+                search = utilities.buildSearch($scope, $element, 'scriptable');
+            });
             
-            //$scope.list = [{label: 'a', value: 'A'}, {label: 'b', value: 'B'}, ]
-            const search = utilities.buildSearch($scope, $element, 'scriptable');
         },
         link: (scope, element) => {
             // add an icon to the label
@@ -3582,8 +3582,6 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
         if (modelName === 'stl') {
             loadSTLSize();
         }
-        
-        //appState.saveChanges(['rpnVariables', 'rpnCache'], () => {srdbg('CACHE NOW', appState.models.rpnCache)});
     });
 
     function buildTriangulationLevelDelegate() {

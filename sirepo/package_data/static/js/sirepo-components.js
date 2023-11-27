@@ -613,7 +613,11 @@ SIREPO.app.directive('listSearch', function(panelState, utilities) {
             </div>
        `,
         controller: function($scope, $element) {
-            const sel = utilities.buildSearch($scope, $element, searchClass);
+            let sel = null;
+            srdbg('LS');
+            panelState.waitForUI(() => {
+                sel = utilities.buildSearch($scope, $element, searchClass);
+            });
         },
     };
 });
@@ -5131,27 +5135,24 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
 
     this.buildSearch = (scope, element, searchClass) => {
         const s = $(element).find(`.${searchClass}`);
-        const f = s.closest('form');
         s.autocomplete({
             delay: 0,
-            search: (e, ui) => {
-                srdbg('SRCH IN', scope.list);
-            },
             select: (e, ui) => {
                 scope.$apply(() => {
                     // the jqueryui autocomplete wants to display the value instead of the
                     // label when a select happens. This keeps the label in place
                     e.preventDefault();
                     s.val(ui.item.label);
-                    scope.onSelect()(ui.item.value);
+                    if (scope.onSelect) {
+                        scope.onSelect(ui.item.value);
+                    }
                 });
             },
         });
-        if (f.length) {
-            //f.removeAttr('autocomplete');
+        const modal = s.closest('div[role="dialog"]');
+        if (modal.length) {
+            s.autocomplete('widget').css('zIndex', parseInt(modal.css('zIndex') + 1));
         }
-        //s.closest('form')
-        //s.removeAttr('autocomplete');
         const search = {
             container: s,
             update: () => {
