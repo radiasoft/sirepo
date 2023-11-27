@@ -13,6 +13,7 @@ import pykern.pkio
 import sirepo.util
 import six
 import zipfile
+import os
 
 
 def do_form(form, qcall):
@@ -111,4 +112,9 @@ def read_zip(zip_bytes, qcall, sim_type=None):
             if b in needed:
                 src.copy(s.lib_file_write_path(b, qcall=qcall))
         pkdp("\n\n\nzip_data={}", data)
+        # TODO: get the related sims saved to their respective sim dirs? or
+        # something along those lines? copy_related_sim needs to be able to
+        # find.
+        for f in os.listdir(tmp):
+            pkdp("\n\n\n\nf={}", f)
         return data
