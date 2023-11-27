@@ -54,8 +54,8 @@ def _20231120_deploy_flash_update(qcall):
     """Add proprietary lib files to existing FLASH users' lib dir"""
     if not sirepo.template.is_sim_type("flash"):
         return
-    for u in qcall.auth_db.model("UserRole").uids_with_role(
-        sirepo.auth_role.for_sim_type("flash")
+    for u in qcall.auth_db.model("UserRole").uids_with_roles(
+        (sirepo.auth_role.for_sim_type("flash"),)
     ):
         with qcall.auth.logged_in_user_set(u):
             # Remove the existing rpm

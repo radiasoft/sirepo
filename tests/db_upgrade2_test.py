@@ -5,7 +5,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-
+# uid of user in auth.db in data dir
 _UID_WITH_FLASH_ROLE = "pzHuDps6"
 
 
@@ -13,7 +13,6 @@ def setup_module(module):
     from sirepo import srunit
     import os
 
-    srunit.setup_srdb_root()
     os.environ.update(
         SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="flash",
     )
@@ -38,7 +37,7 @@ def test_files():
         pkeq(
             l,
             len(r),
-            "expect_flash_rpm={}; expecting {} paths found={}",
+            "expect_flash_rpm={}; paths expect={} actual={}",
             expect_flash_rpm,
             l,
             r,
@@ -48,7 +47,6 @@ def test_files():
         r = pkio.sorted_glob(srdb.root().join("user", "**", "flash"))
         pkeq(2, len(r), "expecting 2 paths found={}", r)
 
-    pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("db").copy(srdb.root())
     _check_paths(True)
     # run db_upgrade
