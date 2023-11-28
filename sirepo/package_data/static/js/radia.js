@@ -459,7 +459,7 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
     self.isScriptable = (o, f) => {
         const objs = self.scriptableObjects();
         return Object.keys(objs).includes(o.name) && objs[o.name].fields.includes(f);
-    }
+    };
 
     self.scriptableObjects = () => self.addressableObjects(['Float', 'FloatArray', 'ScriptableField', 'ScriptableArray']);
 
@@ -1177,7 +1177,7 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
                     err => {
                         throw new Error('Simulation creation failed: ' + err);
                     }
-                )
+                );
             },
             appState.models.simulation.name,
             appState.models.simulation.folder
@@ -1206,7 +1206,7 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
     $scope.startSimulation = () => {
         self.summaryData = {};
         self.simState.runSimulation();
-    }
+    };
 
     $scope.$on(`${self.simAnalysisModel}.summaryData`, (e, d) => {
         self.summaryData = d;
