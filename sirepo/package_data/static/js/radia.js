@@ -3152,7 +3152,6 @@ SIREPO.app.directive('scriptableField', function(appState, panelState, utilities
 
             $scope.isDynamic = label => ! ! label.match(/{{\s*.+\s*}}/);
 
-            $scope.onSelect = val => {};
             let search = null;
             panelState.waitForUI(() => {
                 search = utilities.buildSearch($scope, $element, 'scriptable', true);
