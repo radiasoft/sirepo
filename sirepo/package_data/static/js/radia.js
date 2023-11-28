@@ -3086,7 +3086,7 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
     };
 });
 
-SIREPO.app.directive('scriptableArray', function(appState, utilities) {
+SIREPO.app.directive('scriptableArray', function(appState, panelState, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -3100,7 +3100,7 @@ SIREPO.app.directive('scriptableArray', function(appState, utilities) {
             <div>
                 <div data-ng-repeat="v in model[fieldName] track by $index" style="display: inline-block;">
                     <label data-text-with-math="info[4][$index]" data-is-dynamic="isDynamic(info[4][$index])" style="margin-right: 1ex"></label>
-                    <input data-rpn-value="" data-ng-model="field[$index]" class="form-control sr-number-list"  style="text-align: right" data-lpignore="true" data-ng-required="true" />
+                    <input data-rpn-value="" data-ng-model="field[$index]" class="form-control sr-number-list scriptable-{{ $index }}"  style="text-align: right" data-lpignore="true" data-ng-required="true" />
                 </div>
                 <div data-rpn-static="" data-model="model" data-field="fieldName" data-is-busy="isBusy" data-is-error="isError"></div>
             </div>
@@ -3108,6 +3108,19 @@ SIREPO.app.directive('scriptableArray', function(appState, utilities) {
         controller: ($scope, $element) => {
             $scope.appState = appState;
             $scope.isDynamic = label => ! ! label.match(/{{\s*.+\s*}}/);
+            $scope.list = appState.models.rpnVariables.map(x => {
+                return {
+                    label: x.name,
+                    value: x.value,
+                };
+            });
+
+            let search = [];
+            panelState.waitForUI(() => {
+                $scope.field.forEach((f, i) => {
+                    search.push(utilities.buildSearch($scope, $element, `scriptable-${i}`, true));
+                });
+            });
         },
         link: (scope, element) => {
             // add an icon to the label
