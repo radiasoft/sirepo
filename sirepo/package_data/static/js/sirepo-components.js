@@ -5160,6 +5160,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
     };
 
     this.buildSearch = (scope, element, searchClass, supportsMulti) => {
+        const utilities = this;
         function findToken(text, caretPos) {
             let n = 0;
             const tokens = text.split(/\s+/);
@@ -5196,6 +5197,8 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
                     if (scope.onSelect) {
                         scope.onSelect()(ui.item.value);
                     }
+                    // send a change event to trigger parsers
+                    s[0].dispatchEvent(new Event('change'));
                 });
             },
             source: (req, res) => {
