@@ -5134,10 +5134,19 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
     };
 
     this.buildSearch = (scope, element, searchClass, supportsMulti) => {
-        function formattedList(searchText) {
-            return scope.list
-                .toSorted((a, b) => (a.label < b.label ? -1 : 1));
-                //.filter(x => x.label.startsWith(searchText));
+        function findToken(text, caretPos) {
+            let n = 0;
+            const tokens = text.split(/\s+/);
+            for (let i = 0; i < tokens.length; ++i) {
+                const t = tokens[i];
+                const j = text.indexOf(t, n);
+                const k = j + t.length;
+                if (caretPos >= j && caretPos <= k) {
+                    return {index: i, token: t};
+                }
+                n = k;
+            }
+            return null;
         }
 
         const s = $(element).find(`.${searchClass}`);
@@ -5151,24 +5160,29 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
                     let val = ui.item.label;
                     if (supportsMulti) {
                         const tokens = s.val().split(/\s+/);
-                        tokens[tokens.length - 1] = val;
+                        const t = findToken(s.val(), e.target.selectionStart);
+                        if (t) {
+                            tokens[t.index] = val;
+                        }
                         val = tokens.join(' ');
                     }
                     s.val(val);
                     if (scope.onSelect) {
-                        scope.onSelect(ui.item.value);
+                        scope.onSelect(val);
                     }
                 });
             },
             source: (req, res) => {
                 const text = req.term;
-                const l = formattedList(text);
+                const l = scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1));
                 if (! supportsMulti) {
                     res(l);
                     return;
                 }
-                const last = text.split(/\s+/).pop();
-                res(l);
+                const t = findToken(text, s.get(0).selectionStart);
+                if (t) {
+                    res(l.filter(x => x.label.includes(t.token)));
+                }
             },
         });
         const modal = s.closest('div[role="dialog"]');
@@ -5179,7 +5193,6 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         const search = {
             container: s,
             update: () => {
-                //s.autocomplete('option', 'source', scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1)));
                 s.autocomplete('option', 'disabled', ! scope.list.length);
             },
         };
