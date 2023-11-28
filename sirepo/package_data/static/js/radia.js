@@ -343,7 +343,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
                 s[k] = side + ` + ${d}`;
             }
             else {
-                s[k] = side + 2.0 * d;
+                s[k] = side + d;
             }
         }
         o.size = s;
