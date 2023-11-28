@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import h5py
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
