@@ -5194,7 +5194,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
                     }
                     s.val(val);
                     if (scope.onSelect) {
-                        scope.onSelect()(val);
+                        scope.onSelect()(ui.item.value);
                     }
                 });
             },
