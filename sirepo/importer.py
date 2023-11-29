@@ -101,6 +101,7 @@ def read_zip(zip_bytes, qcall, sim_type=None):
         assert data, "missing {} in archive".format(simulation_db.SIMULATION_DATA_FILE)
 
         with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
+            pkdp("\n\n\n z.infolist()={}", z.infolist())
             for i in z.infolist():
                 b = pykern.pkio.py_path(i.filename).basename
                 pkdp("\n\n\nb={}", b)
@@ -117,11 +118,8 @@ def read_zip(zip_bytes, qcall, sim_type=None):
                         qcall=qcall,
                     )
                     # TODO: get lib files
-                    # sirepo.sim_data.get_class(sim_obj.simulationType).lib_files_from_other_user(
-                    #     d,
-                    #     simulation_db.lib_dir_from_sim_dir(p),
-                    #     qcall=qcall,
-                    # )
+                    # for lib_file in relsim_lib_files(related_sim):
+                        # copy_to_sim_type_lib_dir(lib_file)
                     data.models.simWorkflow.coupledSims[
                         index
                     ].simulationId = s.models.simulation.simulationId
@@ -140,10 +138,8 @@ def read_zip(zip_bytes, qcall, sim_type=None):
         for b, src in zipped.items():
             if b in needed:
                 src.copy(s.lib_file_write_path(b, qcall=qcall))
-        pkdp("\n\n\nzip_data={}", data)
+        pkdp("\n\n\nls tmp={}", os.listdir(tmp))
         # TODO: get the related sims saved to their respective sim dirs? or
         # something along those lines? copy_related_sim needs to be able to
         # find.
-        for f in os.listdir(tmp):
-            pkdp("\n\n\n\nf={}", f)
         return data
