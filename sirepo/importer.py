@@ -102,6 +102,8 @@ def read_zip(zip_bytes, qcall, sim_type=None):
 
         with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
             pkdp("\n\n\n z.infolist()={}", z.infolist())
+            file_list = z.namelist()
+
             for i in z.infolist():
                 b = pykern.pkio.py_path(i.filename).basename
                 pkdp("\n\n\nb={}", b)
@@ -120,6 +122,14 @@ def read_zip(zip_bytes, qcall, sim_type=None):
                     # TODO: get lib files
                     # for lib_file in relsim_lib_files(related_sim):
                         # copy_to_sim_type_lib_dir(lib_file)
+                           # Filter files in the specified subdirectory
+                    relsim_lib_files = [file for file in file_list if file.startswith(f"related_sim_{index}_lib")]
+                    pkdp("\n\n\n relsim_lib_files={}", relsim_lib_files)
+                    for lib_file in relsim_lib_files:
+                        pykern.pkio.write_text(
+                            simulation_db.simulation_lib_dir(d.simulationType, qcall=qcall).join(lib_file.split("/")[-1]),
+                            z.read(lib_file),
+                        )
                     data.models.simWorkflow.coupledSims[
                         index
                     ].simulationId = s.models.simulation.simulationId

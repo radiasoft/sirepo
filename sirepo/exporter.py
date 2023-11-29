@@ -78,7 +78,7 @@ def _create_zip(sim, out_dir, qcall):
                     for lib_file in sim_data.get_class(sim_obj.simulationType).lib_file_basenames(d):
                         z.write(
                             sim_data.get_class(sim_obj.simulationType).lib_file_abspath(lib_file, qcall=qcall),
-                            arcname=f"lib_files_for_{sim_obj.simulationType}/squanch_" + lib_file,
+                            arcname=f"related_sim_{idx}_lib/" + lib_file,
                         )
         z.writestr(
             simulation_db.SIMULATION_DATA_FILE,
