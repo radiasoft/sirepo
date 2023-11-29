@@ -46,7 +46,6 @@ def _create_zip(sim, out_dir, qcall):
     simulation_db.update_rsmanifest(data)
     data.pkdel("report")
     files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
-    pkdp("\n\n\nsim (in _create_zip)={}", sim)
     for f in _python(data, sim, qcall):
         files.append(f)
     with sirepo.util.write_zip(str(path)) as z:
@@ -67,7 +66,6 @@ def _create_zip(sim, out_dir, qcall):
                         sid=sim_obj.simulationId,
                         qcall=qcall
                     )
-                    pkdp("\n\n\n\n relsim d={}", d)
                     z.writestr(
                         f"related_sim{idx}.json",
                         pkjson.dump_pretty(

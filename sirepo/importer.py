@@ -75,7 +75,6 @@ def read_zip(zip_bytes, qcall, sim_type=None):
     from sirepo import simulation_db, sim_data, sim_run
 
     with sim_run.tmp_dir(qcall=qcall) as tmp:
-        pkdp("\n\n\ntmp={}", tmp)
         data = None
         zipped = PKDict()
         with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
@@ -92,38 +91,24 @@ def read_zip(zip_bytes, qcall, sim_type=None):
                 assert not b in zipped, "{} duplicate file in archive".format(
                     i.filename
                 )
-
                 zipped[b] = tmp.join(b)
                 zipped[b].write(c, "wb")
-
-
-
         assert data, "missing {} in archive".format(simulation_db.SIMULATION_DATA_FILE)
-
         with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
-            pkdp("\n\n\n z.infolist()={}", z.infolist())
-            file_list = z.namelist()
-
+            # TODO (gurhar1133): ignore files like Empty_Omega_Workflow_run2.dat?
             for i in z.infolist():
                 b = pykern.pkio.py_path(i.filename).basename
-                pkdp("\n\n\nb={}", b)
                 c = z.read(i)
                 if "related_sim" in b:
                     index = int(b.split(".")[0][-1])
                     d = simulation_db.json_load(c)
-                    pkdp("\n\n\n d={}, d.type={}", d, type(d))
-                    pkdp("\n\n\n idx ={}", b.split(".")[0][-1])
                     d.models.simulation.isExample = False
                     d.models.simulation.folder = "/Omega"
                     s = simulation_db.save_new_simulation(
                         d,
                         qcall=qcall,
                     )
-                    # TODO: get lib files
-                    # for lib_file in relsim_lib_files(related_sim):
-                        # copy_to_sim_type_lib_dir(lib_file)
-                           # Filter files in the specified subdirectory
-                    relsim_lib_files = [file for file in file_list if file.startswith(f"related_sim_{index}_lib")]
+                    relsim_lib_files = [file for file in z.namelist() if file.startswith(f"related_sim_{index}_lib")]
                     pkdp("\n\n\n relsim_lib_files={}", relsim_lib_files)
                     for lib_file in relsim_lib_files:
                         pykern.pkio.write_text(
@@ -149,7 +134,4 @@ def read_zip(zip_bytes, qcall, sim_type=None):
             if b in needed:
                 src.copy(s.lib_file_write_path(b, qcall=qcall))
         pkdp("\n\n\nls tmp={}", os.listdir(tmp))
-        # TODO: get the related sims saved to their respective sim dirs? or
-        # something along those lines? copy_related_sim needs to be able to
-        # find.
         return data
