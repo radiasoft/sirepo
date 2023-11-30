@@ -368,8 +368,8 @@
             ["reset", "Reset"]
         ],
         "SymmetryType": [
-            ["perpendicular", "Parallel"],
-            ["parallel", "Perpendicular"]
+            ["perpendicular", "Perpendicular"],
+            ["parallel", "Parallel"]
         ],
         "SpatialTransform": [
             ["translate", "Translate"],
