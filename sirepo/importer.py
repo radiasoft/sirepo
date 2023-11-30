@@ -136,6 +136,7 @@ def _import_related_sims(data, zip_bytes, qcall=None):
                         simulation_db.simulation_lib_dir(
                             d.simulationType, qcall=qcall
                         ).join(pykern.pkio.py_path(lib_file).basename),
+                        # TODO: (gurhar1133): encoding of some .dat vs others?
                         z.read(lib_file),
                     )
                 data.models.simWorkflow.coupledSims[
