@@ -1305,16 +1305,29 @@ def _calculate_objective_def(models):
             + f"""
     import numpy
     
+    def _field_in_plane(g_id, p1, p2, component='z', steps=25):
+        int_field = []
+        pts = numpy.linspace(p1, p2, steps)
+        for p in pts:
+            d1 = (p1 + p).tolist()
+            d2 = (p2 + p).tolist()
+            print("INT FROM {{}} TO {{}}".format(d1, d2))
+            v = radia_util.field_integral(g_id, component, d1, d2)
+            int_field.append(v)
+        return np.array([p, int_field])
+
     f = numpy.array([])
     p1 = {q.begin}
     p2 = {q.end}
     c = 'B{q.component}'
     f0 = radia_util.field_integral(g_id, c, p1, p2)
     print('F0 {{}}'.format(f0))
-    for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {s.components}):
-        f = numpy.append(f, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
-    print('OBJ RES {{}} VAL {{}}'.format((f - f0).tolist(), numpy.sum((f - f0)**2)))
-    return numpy.sum((f - f0)**2), (f - f0).tolist()
+    field_prof = _field_in_plane(g_id, -1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), c, steps={s.components})
+    #for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {s.components}):
+    #    f = numpy.append(f, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
+    f = field_prof[1, :] - f0
+    print('OBJ RES {{}} VAL {{}}'.format((f.tolist(), numpy.sum(f**2)))
+    return numpy.sum(f**2), f.tolist()
 """
         )
     else:
