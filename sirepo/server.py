@@ -691,11 +691,11 @@ class API(sirepo.quest.API):
             simulation_db.save_new_simulation(data, qcall=self),
         )
 
-    def _save_with_related(self, req, data, from_zip=False):
+    def _save_with_related(self, req, data):
         if hasattr(req.template, "copy_related_sims"):
             return self._save_new_and_reply(
                 req,
-                req.template.copy_related_sims(data, from_zip, qcall=self),
+                req.template.copy_related_sims(data, qcall=self),
             )
         return self._save_new_and_reply(req, data)
 

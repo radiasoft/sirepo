@@ -128,7 +128,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def copy_related_sims(data, from_zip, qcall=None):
+def copy_related_sims(data, qcall=None):
     for index, sim_obj in enumerate(data.models.simWorkflow.coupledSims):
         if sim_obj.simulationType and sim_obj.simulationId:
             p = pkio.py_path(
