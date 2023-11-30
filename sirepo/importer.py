@@ -127,7 +127,9 @@ def _import_related_sims(data, zip_bytes, qcall=None):
                     d,
                     qcall=qcall,
                 )
-                for lib_file in [f for f in z.namelist() if f.startswith(f"related_sim_{index}_lib")]:
+                lib_files = [f for f in z.namelist() if f.startswith(f"related_sim_{index}_lib")]
+                pkdp("\n\n\nlib_files={}", lib_files)
+                for lib_file in lib_files:
                     pykern.pkio.write_text(
                         simulation_db.simulation_lib_dir(d.simulationType, qcall=qcall).join(lib_file.split("/")[-1]),
                         z.read(lib_file),
