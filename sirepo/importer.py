@@ -94,31 +94,7 @@ def read_zip(zip_bytes, qcall, sim_type=None):
                 zipped[b] = tmp.join(b)
                 zipped[b].write(c, "wb")
         assert data, "missing {} in archive".format(simulation_db.SIMULATION_DATA_FILE)
-        with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
-            # TODO (gurhar1133): ignore files like Empty_Omega_Workflow_run2.dat?
-            for i in z.infolist():
-                b = pykern.pkio.py_path(i.filename).basename
-                c = z.read(i)
-                if "related_sim" in b:
-                    index = int(b.split(".")[0][-1])
-                    d = simulation_db.json_load(c)
-                    d.models.simulation.isExample = False
-                    d.models.simulation.folder = "/Omega"
-                    s = simulation_db.save_new_simulation(
-                        d,
-                        qcall=qcall,
-                    )
-                    relsim_lib_files = [file for file in z.namelist() if file.startswith(f"related_sim_{index}_lib")]
-                    pkdp("\n\n\n relsim_lib_files={}", relsim_lib_files)
-                    for lib_file in relsim_lib_files:
-                        pykern.pkio.write_text(
-                            simulation_db.simulation_lib_dir(d.simulationType, qcall=qcall).join(lib_file.split("/")[-1]),
-                            z.read(lib_file),
-                        )
-                    data.models.simWorkflow.coupledSims[
-                        index
-                    ].simulationId = s.models.simulation.simulationId
-
+        _import_related_sims(data, zip_bytes, qcall=qcall)
         needed = set()
         s = sim_data.get_class(data.simulationType)
         u = qcall.auth.logged_in_user()
@@ -133,5 +109,29 @@ def read_zip(zip_bytes, qcall, sim_type=None):
         for b, src in zipped.items():
             if b in needed:
                 src.copy(s.lib_file_write_path(b, qcall=qcall))
-        pkdp("\n\n\nls tmp={}", os.listdir(tmp))
         return data
+
+
+def _import_related_sims(data, zip_bytes, qcall=None):
+    from sirepo import simulation_db, sim_data
+
+    with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
+        for i in z.infolist():
+            b = pykern.pkio.py_path(i.filename).basename
+            if "related_sim" in b:
+                index = int(b.split(".")[0][-1])
+                d = simulation_db.json_load(z.read(i))
+                d.models.simulation.isExample = False
+                d.models.simulation.folder = "/Omega"
+                s = simulation_db.save_new_simulation(
+                    d,
+                    qcall=qcall,
+                )
+                for lib_file in [f for f in z.namelist() if f.startswith(f"related_sim_{index}_lib")]:
+                    pykern.pkio.write_text(
+                        simulation_db.simulation_lib_dir(d.simulationType, qcall=qcall).join(lib_file.split("/")[-1]),
+                        z.read(lib_file),
+                    )
+                data.models.simWorkflow.coupledSims[
+                    index
+                ].simulationId = s.models.simulation.simulationId
