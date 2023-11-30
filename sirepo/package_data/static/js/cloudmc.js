@@ -90,7 +90,7 @@ SIREPO.app.config(() => {
     };
 });
 
-SIREPO.app.factory('cloudmcService', function(appState, panelState) {
+SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) {
     const self = {};
     appState.setAppService(self);
 
@@ -151,6 +151,25 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState) {
 
     self.isGraveyard = volume => {
         return volume.name && volume.name.toLowerCase() === 'graveyard';
+    };
+
+    self.toggleAllVolumes = (isVisible, visibleKey) => {
+        for (const vId of self.getNonGraveyardVolumes()) {
+            const v = self.getVolumeById(vId);
+            if (v[visibleKey] !== isVisible) {
+                self.toggleVolume(v, visibleKey, false);
+            }
+        }
+        $rootScope.$broadcast('sr-volume-visibility-toggle-all', isVisible);
+        appState.saveQuietly('volumes');
+    };
+
+    self.toggleVolume = (volume, visibleKey, doUpdate) => {
+        volume[visibleKey] = ! volume[visibleKey];
+        $rootScope.$broadcast('sr-volume-visibility-toggle', volume, volume[visibleKey], doUpdate);
+        if (doUpdate) {
+            appState.saveQuietly('volumes');
+        }
     };
 
     self.validateSelectedTally = () => {
@@ -341,7 +360,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
 
     self.colorScale = modelName => {
         return SIREPO.PLOTTING.Utils.colorScale(
-            self.minField,
+            self.getMinWithThreshold(),
             self.maxField,
             SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.applicationState()[modelName].colorMap],
         );
@@ -357,6 +376,13 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         ]);
     };
 
+    self.getMinWithThreshold = () => {
+        const t = appState.applicationState().openmcAnimation.threshold;
+        return t > self.maxField
+             ? self.minField
+             : t;
+    };
+    
     self.getOutlines = (volId, dim, index) => {
         if (! self.outlines) {
             return [];
@@ -472,10 +498,7 @@ SIREPO.app.factory('volumeLoadingService', function(appState, requestSender, $ro
 SIREPO.app.directive('tallyVolumePicker', function(cloudmcService, volumeLoadingService) {
     return {
         restrict: 'A',
-        scope: {
-            renderVolumes: '&',
-            setVolumeVisible: '&',
-        },
+        scope: {},
         template: `
             <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><div data-ng-click="toggleVolumeList()" title="{{ isVolumeListExpanded ? 'hide' : 'show' }}" style="cursor: pointer; display: inline-block">Select Volumes <span class="glyphicon" data-ng-class="isVolumeListExpanded ? 'glyphicon-chevron-up' : 'glyphicon-chevron-down'"></span></div></div>
             <div data-ng-if="! buildVolumeList()" style="padding-top: 8px; padding-bottom: 8px;">Loading Volumes<span data-header-tooltip="'loading'"></span></div>
@@ -510,7 +533,7 @@ SIREPO.app.directive('tallyVolumePicker', function(cloudmcService, volumeLoading
         `,
         controller: function($scope) {
             $scope.allVolumesVisible = false;
-            $scope.numVolumeCols = 5;
+            $scope.numVolumeCols = 2;
             $scope.isVolumeListExpanded = false;
             $scope.volumeList = null;
             const volumeIds = cloudmcService.getNonGraveyardVolumes();
@@ -536,23 +559,11 @@ SIREPO.app.directive('tallyVolumePicker', function(cloudmcService, volumeLoading
 
             $scope.toggleAllVolumes = () => {
                 $scope.allVolumesVisible = ! $scope.allVolumesVisible;
-                for (const v of getVolumes()) {
-                    if (v.isVisibleWithTallies !== $scope.allVolumesVisible) {
-                        $scope.toggleVolume(v, false);
-                    }
-                }
-                $scope.renderVolumes();
+                cloudmcService.toggleAllVolumes($scope.allVolumesVisible, 'isVisibleWithTallies');
             };
 
-            $scope.toggleVolume = (v, doRender=true) => {
-                v.isVisibleWithTallies = ! v.isVisibleWithTallies;
-                $scope.setVolumeVisible({
-                    volId: v.volId,
-                    isVisible: v.isVisibleWithTallies,
-                });
-                if (doRender) {
-                    $scope.renderVolumes();
-                }
+            $scope.toggleVolume = volume => {
+                cloudmcService.toggleVolume(volume, 'isVisibleWithTallies', true);
             };
 
             $scope.toggleVolumeList = () => {
@@ -627,14 +638,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         restrict: 'A',
         scope: {},
         template: `
-            <div class="row">
-                <div class="form-horizontal" style="margin-top: 10px">
-                     <div data-model-field="'axis'" data-model-name="modelName" data-label-size="2" data-field-size="2"></div>
-                     <div class="col-md-6">
-                       <div plane-position-slider=""></div>
-                     </div>
-                 </div>
-             </div>
              <div data-report-content="heatmap" data-model-key="{{ modelName }}"></div>
         `,
         controller: function($scope) {
@@ -662,7 +665,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 const r =  {
                     aspectRatio: ar,
                     global_max: tallyService.maxField,
-                    global_min: tallyService.minField,
+                    global_min: tallyService.getMinWithThreshold(),
                     threshold: appState.models.openmcAnimation.threshold,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
@@ -816,6 +819,14 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 });
             }
 
+            $scope.$on('sr-volume-visibility-toggle', (event, volume, isVisible, doUpdate) => {
+                if (doUpdate) {
+                    buildTallyReport();
+                }
+            });
+
+            $scope.$on('sr-volume-visibility-toggle-all', buildTallyReport);
+
             $scope.$on('tallyReport.summaryData', updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
@@ -835,9 +846,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             reportId: '<',
         },
         template: `
-            <div data-ng-if="supportsColorbar()" class="col-sm-12">
-                <div data-tally-volume-picker="" data-render-volumes="renderVolumes()" data-set-volume-visible="setVolumeVisible(volId, isVisible)"></div>
-            </div>
             <div data-vtk-display="" class="vtk-display col-sm-11"
                   data-ng-style="sizeStyle()" data-show-border="true"
                   data-report-id="reportId" data-model-name="{{ modelName }}"
@@ -1046,6 +1054,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             function buildAxes(actor) {
                 let boundsBox = null;
                 let name = null;
+                if (selectedVolume) {
+                    vtkScene.removeActor(axes.boxes[selectedVolume.name]);
+                    delete axes.boxes[selectedVolume.name];
+                    selectedVolume = null;
+                }
                 if (actor) {
                     const v = getVolumeByActor(actor);
                     name = v.name;
@@ -1104,19 +1117,13 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 picker.pick([pos.x, pos.y, 0.0], vtkScene.renderer);
                 const [actor, v] = getClosestActor(picker.getActors());
 
-                if (selectedVolume) {
-                    vtkScene.removeActor(axes.boxes[selectedVolume.name]);
-                    delete axes.boxes[selectedVolume.name];
-                }
                 if (v === selectedVolume) {
-                    selectedVolume = null;
-                    axes.boxes[axes.SCENE_BOX].getProperty().setOpacity(1);
                     buildAxes();
                 }
                 else {
                     axes.boxes[axes.SCENE_BOX].getProperty().setOpacity(0);
-                    selectedVolume = v;
                     buildAxes(actor);
+                    selectedVolume = v;
                 }
                 $scope.$apply(vtkScene.fsRenderer.resize());
             }
@@ -1140,7 +1147,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 const b = coordMapper.buildActorBundle(reader, a.actorProperties);
                 bundleByVolume[volId] = b;
                 vtkScene.addActor(b.actor);
-                $scope.setVolumeVisible(volId, v[a.visibilityKey]);
+                setVolumeVisible(volId, v[a.visibilityKey]);
                 if (! hasTallies) {
                     picker.addPickList(b.actor);
                 }
@@ -1169,6 +1176,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     );
                 }
                 vtkScene.render();
+            }
+
+            function setVolumeVisible(volId, isVisible) {
+                bundleByVolume[volId].actor.setVisibility(isVisible);
             }
 
             function updateMarker() {
@@ -1219,12 +1230,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
 
             $scope.resize = () => {
                 //TODO(pjm): reposition camera?
-            };
-
-            $scope.renderVolumes = () => {
-                appState.saveChanges('volumes');
-                buildAxes();
-                vtkScene.render();
             };
 
             $scope.sizeStyle = () => {
@@ -1287,23 +1292,20 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 plotToPNG.initVTK($element, vtkScene.renderer);
             });
 
-            $scope.setVolumeVisible = (volId, isVisible) => {
-                bundleByVolume[volId].actor.setVisibility(isVisible);
-            };
-
-            if (! hasTallies) {
-                $scope.$on('sr-volume-visibility-toggled', (event, volId, isVisible) => {
-                    $scope.setVolumeVisible(volId, isVisible);
-                    vtkScene.render();
-                });
-
-                $scope.$on('sr-volume-property.changed', (event, volId, prop, val) => {
-                    bundleByVolume[volId].setActorProperty(prop, val);
-                    vtkScene.render();
-                });
-
-                $scope.$on($scope.modelName + '.changed', setGlobalProperties);
+            function renderAxes() {
+                buildAxes();
+                vtkScene.render();
             }
+
+            $scope.$on('sr-volume-visibility-toggle', (event, volume, isVisible, doUpdate) => {
+                setVolumeVisible(volume.volId, isVisible);
+                if (doUpdate) {
+                    renderAxes();
+                }
+            });
+
+            $scope.$on('sr-volume-visibility-toggle-all', renderAxes);
+            $scope.$on($scope.modelName + '.changed', setGlobalProperties);
 
             if (hasTallies) {
                 $scope.$on('openmcAnimation.summaryData', () => {
@@ -1313,7 +1315,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     }
                 });
             }
-
+            else {
+                $scope.$on('sr-volume-property.changed', (event, volId, prop, val) => {
+                    bundleByVolume[volId].setActorProperty(prop, val);
+                    vtkScene.render();
+                });
+            }
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -1356,7 +1363,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
         template: `
             <div style="padding: 0.5ex 1ex; border-bottom: 1px solid #ddd;">
               <div style="display: inline-block; cursor: pointer"
-                data-ng-click="toggleAll()">
+                data-ng-click="toggleAllVolumes()">
                 <span class="glyphicon"
                   data-ng-class="allVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
               </div>
@@ -1368,7 +1375,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                 <div style="position: relative">
                   <div
                     style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
-                    data-ng-click="toggleSelected(row)">
+                    data-ng-click="toggleVolume(row)">
                     <span class="glyphicon"
                       data-ng-class="row.isVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
                     <b>{{ row.name }}</b>
@@ -1466,28 +1473,13 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                 };
             };
 
-            $scope.toggleAll = () => {
+            $scope.toggleAllVolumes = () => {
                 $scope.allVisible = ! $scope.allVisible;
-                Object.values(appState.models.volumes).forEach(v => {
-                    if (cloudmcService.isGraveyard(v)) {
-                        return;
-                    }
-                    if (v.isVisible !== $scope.allVisible) {
-                        $scope.toggleSelected(v, true);
-                    }
-                });
-                appState.saveChanges('volumes');
+                cloudmcService.toggleAllVolumes($scope.allVisible, 'isVisible');
             };
 
-            $scope.toggleSelected = (row, noSave) => {
-                row.isVisible = ! row.isVisible;
-                if (! noSave) {
-                    appState.saveChanges('volumes');
-                }
-                $rootScope.$broadcast(
-                    'sr-volume-visibility-toggled',
-                    row.volId,
-                    row.isVisible);
+            $scope.toggleVolume = (row) => {
+                cloudmcService.toggleVolume(row, 'isVisible', true);
             };
 
             $scope.$on('material.changed', () => {
@@ -2291,6 +2283,7 @@ SIREPO.app.directive('planePositionSlider', function(appState, tallyService) {
 
             appState.watchModelFields($scope, ['tallyReport.planePos', 'tallyReport.axis'], updateSlider, true);
             $scope.$on('tallyReport.summaryData', updateSlider);
+            $scope.$on('openmcAnimation.summaryData', updateSlider);
             updateSlider();
 
             $scope.$on('$destroy', () => {
@@ -2303,14 +2296,62 @@ SIREPO.app.directive('planePositionSlider', function(appState, tallyService) {
     };
 });
 
-SIREPO.viewLogic('openmcAnimationView', function(cloudmcService, $scope) {
-
-    $scope.whenSelected = () => {
-        cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
+SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div data-tally-volume-picker=""></div>
+            <div data-advanced-editor-pane="" data-view-name="'tallySettings'" data-want-buttons="" data-field-def="basic"></div>
+            <div data-ng-if="is2D()">
+                <div plane-position-slider=""></div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.is2D = () => {
+                return appState.models.tallyReport.selectedGeometry === '2D';
+            };
+        },
     };
+});
+
+SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, $scope) {
+
+    const autoUpdate = utilities.debounce(() => {
+        appState.saveChanges('openmcAnimation');
+    }, SIREPO.debounce_timeout);
+
+    function showFields() {
+        const is2D = appState.models.tallyReport.selectedGeometry === '2D';
+        panelState.showFields('openmcAnimation', [
+            'opacity', ! is2D,
+        ]);
+        panelState.showFields('tallyReport', [
+            'axis', is2D,
+        ]);
+    }
+
+    function validateTally() {
+        cloudmcService.validateSelectedTally();
+        appState.saveChanges('openmcAnimation');
+    }
+    
+    cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
+
+    $scope.whenSelected = showFields;
+
     $scope.watchFields = [
-        ['openmcAnimation.tally'], cloudmcService.validateSelectedTally,
+        [
+            'openmcAnimation.score',
+            'openmcAnimation.aspect',
+            'openmcAnimation.colorMap',
+            'openmcAnimation.threshold',
+            'openmcAnimation.opacity',
+        ], autoUpdate,
+        ['openmcAnimation.tally'], validateTally,
+        ['tallyReport.selectedGeometry'], showFields,
     ];
+    
 });
 
 SIREPO.viewLogic('geometry3DReportView', function(cloudmcService, $scope) {
