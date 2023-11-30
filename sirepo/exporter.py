@@ -78,7 +78,7 @@ def _create_zip(sim, out_dir, qcall):
                         # TODO (gurhar1133): if not first sim ignore run lib files with
                         # regex like:
                         #     /bunchFile-sourceFile||command_run_setup-expand_for|command_distribution-fname|io-partfile/
-                        if re.match(r"(bunchFile-sourceFile|command_run_setup-expand_for|command_distribution-fname|io-partfile)", lib_file) is None:
+                        if re.match(r"(bunchFile-sourceFile|command_run_setup-expand_for|command_distribution-fname|io-partfile)", lib_file) is None or idx == 0:
                             z.write(
                                 sim_data.get_class(sim_obj.simulationType).lib_file_abspath(lib_file, qcall=qcall),
                                 arcname=f"related_sim_{idx}_lib/" + lib_file,
