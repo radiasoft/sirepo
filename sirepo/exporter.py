@@ -15,6 +15,8 @@ import re
 import sirepo.sim_run
 import sirepo.util
 
+_RUN_FILE_PATTERN = r"(bunchFile-sourceFile|command_run_setup-expand_for|command_distribution-fname|io-partfile)"
+
 
 def create_archive(sim, qcall):
     """Zip up the json file and its dependencies
@@ -63,25 +65,21 @@ def _create_zip(sim, out_dir, qcall):
             for idx, sim_obj in enumerate(data.models.simWorkflow.coupledSims):
                 if sim_obj.simulationType and sim_obj.simulationId:
                     d = simulation_db.open_json_file(
-                        sim_obj.simulationType,
-                        sid=sim_obj.simulationId,
-                        qcall=qcall
+                        sim_obj.simulationType, sid=sim_obj.simulationId, qcall=qcall
                     )
                     z.writestr(
                         f"related_sim{idx}.json",
-                        pkjson.dump_pretty(
-                            d,
-                            pretty=True
-                        ),
+                        pkjson.dump_pretty(d, pretty=True),
                     )
-                    for lib_file in sim_data.get_class(sim_obj.simulationType).lib_file_basenames(d):
-                        # TODO (gurhar1133): if not first sim ignore run lib files with
-                        # regex like:
-                        #     /bunchFile-sourceFile||command_run_setup-expand_for|command_distribution-fname|io-partfile/
-                        if re.match(r"(bunchFile-sourceFile|command_run_setup-expand_for|command_distribution-fname|io-partfile)", lib_file) is None or idx == 0:
+                    for lib_file in sim_data.get_class(
+                        sim_obj.simulationType
+                    ).lib_file_basenames(d):
+                        if re.match(_RUN_FILE_PATTERN, lib_file) is None or idx == 0:
                             z.write(
-                                sim_data.get_class(sim_obj.simulationType).lib_file_abspath(lib_file, qcall=qcall),
-                                arcname=f"related_sim_{idx}_lib/" + lib_file,
+                                sim_data.get_class(
+                                    sim_obj.simulationType
+                                ).lib_file_abspath(lib_file, qcall=qcall),
+                                arcname=f"related_sim_{idx}_lib/{lib_file}",
                             )
         z.writestr(
             simulation_db.SIMULATION_DATA_FILE,

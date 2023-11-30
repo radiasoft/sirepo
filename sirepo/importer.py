@@ -117,23 +117,31 @@ def _import_related_sims(data, zip_bytes, qcall=None):
 
     with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
         for i in z.infolist():
-            b = pykern.pkio.py_path(i.filename).basename
+            p = pykern.pkio.py_path(i.filename)
+            b = p.basename
             if "related_sim" in b:
-                index = int(b.split(".")[0][-1])
                 d = simulation_db.json_load(z.read(i))
                 d.models.simulation.isExample = False
-                d.models.simulation.folder = "/Omega"
+                d.models.simulation.folder = f"/{d.simulationType.title()}"
                 s = simulation_db.save_new_simulation(
                     d,
                     qcall=qcall,
                 )
-                lib_files = [f for f in z.namelist() if f.startswith(f"related_sim_{index}_lib")]
-                pkdp("\n\n\nlib_files={}", lib_files)
-                for lib_file in lib_files:
+                for lib_file in [
+                    f
+                    for f in z.namelist()
+                    if f.startswith(f"related_sim_{_sim_index(p)}_lib")
+                ]:
                     pykern.pkio.write_text(
-                        simulation_db.simulation_lib_dir(d.simulationType, qcall=qcall).join(lib_file.split("/")[-1]),
+                        simulation_db.simulation_lib_dir(
+                            d.simulationType, qcall=qcall
+                        ).join(pykern.pkio.py_path(lib_file).basename),
                         z.read(lib_file),
                     )
                 data.models.simWorkflow.coupledSims[
-                    index
+                    _sim_index(p)
                 ].simulationId = s.models.simulation.simulationId
+
+
+def _sim_index(path):
+    return int(path.purebasename[-1])
