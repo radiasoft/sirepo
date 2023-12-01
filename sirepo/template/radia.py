@@ -1305,29 +1305,36 @@ def _calculate_objective_def(models):
             + f"""
     import numpy
     
-    def _field_in_plane(g_id, p1, p2, component='z', steps=25):
+    def _field_in_plane(g_id, p1, p2, d, component='z', steps=25):
+        #print("FIP FROM {{}} TO {{}} DEV {{}}".format(p1, p2, d))
         int_field = []
-        pts = numpy.linspace(p1, p2, steps)
+        pts = numpy.linspace(-1 * d, d, steps)
         for p in pts:
             d1 = (p1 + p).tolist()
             d2 = (p2 + p).tolist()
-            print("INT FROM {{}} TO {{}}".format(d1, d2))
             v = radia_util.field_integral(g_id, component, d1, d2)
+            #print("INT FROM {{}} TO {{}}: {{}}".format(d1, d2, v))
             int_field.append(v)
-        return np.array([p, int_field])
+        #return numpy.array([pts, int_field])
+        return numpy.array(int_field)
 
-    f = numpy.array([])
+    f_old = numpy.array([])
     p1 = {q.begin}
     p2 = {q.end}
+    print('INT PATH {{}} TO {{}} DEV {{}}'.format(p1, p2, {q.deviation}))
     c = 'B{q.component}'
     f0 = radia_util.field_integral(g_id, c, p1, p2)
-    print('F0 {{}}'.format(f0))
-    field_prof = _field_in_plane(g_id, -1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), c, steps={s.components})
-    #for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {s.components}):
-    #    f = numpy.append(f, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
-    f = field_prof[1, :] - f0
-    print('OBJ RES {{}} VAL {{}}'.format((f.tolist(), numpy.sum(f**2)))
-    return numpy.sum(f**2), f.tolist()
+    print('INT 0 {{}}'.format(f0))
+    #field_prof = _field_in_plane(g_id, {q.begin}, {q.end}, numpy.array({q.deviation}), c, steps={s.components})
+    for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {s.components}):
+        f_old = numpy.append(f_old, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
+    print("FLD INT {{}}".format(f_old))
+    #f = field_prof[1, :] - f0
+    #f = field_prof - f0
+    ff = f_old - f0
+    #print('OLD F {{}} VS NEW F {{}}'.format(ff, f))
+    print('OBJ RES {{}} VAL {{}}'.format(ff.tolist(), numpy.sum(ff**2)))
+    return numpy.sum(ff**2), ff.tolist()
 """
         )
     else:
