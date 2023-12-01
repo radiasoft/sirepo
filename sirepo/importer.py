@@ -132,13 +132,21 @@ def _import_related_sims(data, zip_bytes, qcall=None):
                     for f in z.namelist()
                     if f.startswith(f"related_sim_{_sim_index(p)}_lib")
                 ]:
-                    pykern.pkio.write_text(
-                        simulation_db.simulation_lib_dir(
-                            d.simulationType, qcall=qcall
-                        ).join(pykern.pkio.py_path(lib_file).basename),
-                        # TODO: (gurhar1133): encoding of some .dat vs others?
-                        z.read(lib_file),
-                    )
+                    lib_dir = simulation_db.simulation_lib_dir(
+                        d.simulationType, qcall=qcall
+                    ).join(pykern.pkio.py_path(lib_file).basename)
+                    try:
+                        f_content = pkcompat.from_bytes(z.read(lib_file))
+                        pykern.pkio.write_text(
+                            lib_dir,
+                            f_content,
+                        )
+                    except UnicodeDecodeError:
+                        # POSIT: binary file case
+                        pykern.pkio.write_binary(
+                            lib_dir,
+                            z.read(lib_file),
+                        )
                 data.models.simWorkflow.coupledSims[
                     _sim_index(p)
                 ].simulationId = s.models.simulation.simulationId
