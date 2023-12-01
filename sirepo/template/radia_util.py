@@ -355,10 +355,12 @@ def _extrude(**kwargs):
         numpy.sum(b * d.center),
         numpy.sum(b * d.size),
         d.points,
-        numpy.full((len(d.points), 2), [1, 1]).tolist(),
+        [[1, 1] for _ in range(len(d.points))],
+        #numpy.full((len(d.points), 2), [1, 1]).tolist(),
         d.extrusionAxis,
         d.magnetization,
-        f"TriAreaMax->{0.125 * d.area * (1.04 - d.triangulationLevel)}"
+        #f"TriAreaMax->{0.125 * d.area * (1.04 - d.triangulationLevel)}"
+        f"ki->Numb;TriAreaMax->{0.5};TriAngMin->{20}"
         if d.triangulationLevel > 0
         else "",
     )
