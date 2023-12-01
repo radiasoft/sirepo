@@ -9,6 +9,48 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 
+def test_arrays():
+    from pykern.pkcollections import PKDict
+    from pykern.pkunit import pkeq, pkexcept
+    from sirepo.template.code_variable import CodeVar, PurePythonEval
+
+    code_var = CodeVar(
+        [
+            PKDict(
+                name="x",
+                value=123,
+            ),
+            PKDict(
+                name="numberArray",
+                value=[1, 2, 3],
+            ),
+            PKDict(
+                name="expressionArray",
+                value=["x + 1", "x + 2", "x + 3"],
+            ),
+            PKDict(
+                name="nestedArray",
+                value=[[1, 2, 3], [4, 5], ["x + 6"]],
+            ),
+            PKDict(
+                name="arrayExpression",
+                value="numberArray[0] + 1",
+            ),
+            PKDict(
+                name="invalidExpressionArray",
+                value=["x + 1", "y + 2", "x + 3"],
+            ),
+        ],
+        PurePythonEval(),
+    )
+    pkeq([1, 2, 3], code_var.eval_var("numberArray")[0])
+    pkeq([124, 125, 126], code_var.eval_var("expressionArray")[0])
+    pkeq([[1, 2, 3], [4, 5], [129]], code_var.eval_var("nestedArray")[0])
+    # expressions containing arrays are not currently handled
+    pkeq(2, code_var.eval_var("arrayExpression")[0])
+    pkeq("unknown token: y", code_var.eval_var("invalidExpressionArray")[1])
+
+
 def test_cache():
     from pykern.pkcollections import PKDict
     from pykern.pkunit import pkeq

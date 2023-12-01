@@ -94,14 +94,15 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState) {
     const self = {};
     appState.setAppService(self);
 
-    function findScore(tallies, tally, score) {
-        return findTally(tallies, tally).scores.filter(v => v.score == score).length
+    function findScore(score) {
+        return findTally().scores.filter(v => v.score === score).length
             ? score
             : null;
     }
 
-    function findTally(tallies, tally) {
-        return tallies.filter(v => v.name == tally)[0];
+    function findTally() {
+        const a = appState.models.openmcAnimation;
+        return a.tallies.filter(v => v.name === a.tally)[0];
     }
 
     // volumes are measured in centimeters
@@ -146,24 +147,19 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState) {
         return null;
     };
 
-    self.findTally = () => {
-        return findTally(
-            appState.models.openmcAnimation.tallies,
-            appState.models.openmcAnimation.tally,
-        );
-    };
+    self.findTally = findTally;
 
     self.isGraveyard = volume => {
-        return volume.name && volume.name.toLowerCase() == 'graveyard';
+        return volume.name && volume.name.toLowerCase() === 'graveyard';
     };
 
     self.validateSelectedTally = () => {
         const a = appState.models.openmcAnimation;
-        if (! a.tally || ! findTally(a.tallies, a.tally)) {
+        if (! a.tally || ! findTally()) {
             a.tally = a.tallies[0].name;
         }
-        if (! a.score || ! findScore(a.tallies, a.tally, a.score)) {
-            a.score = findTally(a.tallies, a.tally).scores[0].score;
+        if (! a.score || ! findScore(a.score)) {
+            a.score = findTally().scores[0].score;
         }
         appState.saveQuietly('openmcAnimation');
     };
@@ -216,7 +212,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                 appState.saveChanges('volumes');
             }
         }
-        else if (data.state == 'missing' || data.state == 'canceled') {
+        else if (data.state === 'missing' || data.state === 'canceled') {
             if (self.isGeometrySelected()) {
                 processGeometry();
             }
@@ -260,20 +256,11 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         if (data.tallies) {
             validateSelectedTally(data.tallies);
         }
-        if (self.simState.isStateCompleted()) {
-            tallyService.loadOutlines();
-        }
     };
     self.simState = persistentSimulation.initSimulationState(self);
     self.simState.errorMessage = () => errorMessage;
     self.simState.runningMessage = () => {
         return `Completed batch: ${self.simState.getFrameCount()}`;
-    };
-    self.simCompletionState = () => {
-        if (self.simState.isStateError()) {
-            return '';
-        }
-        return `${frameCache.getFrameCount()} batches`;
     };
     self.startSimulation = function() {
         tallyService.clearMesh();
@@ -281,13 +268,13 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         self.simState.saveAndRunSimulation('openmcAnimation');
     };
     self.simState.logFileURL = function() {
-        return requestSender.formatUrl('downloadDataFile', {
-            '<simulation_id>': appState.models.simulation.simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': self.simState.model,
-            '<frame>': SIREPO.nonDataFileFrame,
-            '<suffix>': 'log',
-        });
+        return requestSender.downloadDataFileUrl(
+            appState,
+            {
+                model: self.simState.model,
+                suffix: 'log',
+            },
+        );
     };
     self.tallyTitle = () => {
         const a = appState.models.openmcAnimation;
@@ -337,7 +324,7 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSender, $rootScope) {
+SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope) {
     const self = {
         mesh: null,
         fieldData: null,
@@ -361,16 +348,27 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
     };
 
     self.getMeshRanges = () => {
-        return [0, 1, 2].map(i => [
-            cloudmcService.GEOMETRY_SCALE * self.mesh.lower_left[i], cloudmcService.GEOMETRY_SCALE * self.mesh.upper_right[i], self.mesh.dimension[i]
+        return SIREPO.GEOMETRY.GeometryUtils.BASIS().map(
+            dim => SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim),
+        ).map(i => [
+            cloudmcService.GEOMETRY_SCALE * self.mesh.lower_left[i],
+            cloudmcService.GEOMETRY_SCALE * self.mesh.upper_right[i],
+            self.mesh.dimension[i],
         ]);
     };
 
     self.getOutlines = (volId, dim, index) => {
-        if (! self.outlines || $.isEmptyObject(self.outlines)) {
+        if (! self.outlines) {
             return [];
         }
-        return self.outlines[`${volId}`][dim][index];
+        const t = self.outlines[appState.applicationState().openmcAnimation.tally];
+        if (t && t[`${volId}`]) {
+            const o = t[`${volId}`][dim];
+            if (o.length) {
+                return o[index];
+            }
+        }
+        return [];
     };
 
     self.initMesh = () => {
@@ -379,41 +377,25 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, requestSen
             const f = t[`filter${k}`];
             if (f && f._type === 'meshFilter') {
                 self.mesh = f;
-                return;
+                return true;
             }
         }
         self.mesh = null;
-    };
-
-    self.loadOutlines = () => {
-        self.outlines = {};
-        const url = requestSender.formatUrl(
-            'downloadDataFile',
-            {
-                '<simulation_id>': appState.models.simulation.simulationId,
-                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                '<model>': 'openmcAnimation',
-                '<frame>': SIREPO.nonDataFileFrame,
-                '<suffix>': '.json',
-            }
-        );
-        requestSender.sendRequest(
-            url,
-            data => {
-                self.outlines = data;
-                $rootScope.$broadcast('outlines.loaded');
-            },
-            false,
-            res => {
-                throw new Error(res.error);
-            }
-        );
+        return false;
     };
 
     self.setFieldData = (fieldData, min, max) => {
         self.fieldData = fieldData;
         self.minField = min;
         self.maxField = max;
+    };
+
+    self.setOutlines = (tally, outlines) => {
+        if (appState.applicationState().openmcAnimation.tally === tally) {
+            self.outlines = {
+                [tally]: outlines,
+            };
+        }
     };
 
     self.tallyRange = (dim, useBinCenter=false) => {
@@ -464,14 +446,13 @@ SIREPO.app.factory('volumeLoadingService', function(appState, requestSender, $ro
     }
 
     function volumeURL(volId) {
-        return requestSender.formatUrl(
-            'downloadDataFile',
+        return requestSender.downloadDataFileUrl(
+            appState,
             {
-                '<simulation_id>': appState.models.simulation.simulationId,
-                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                '<model>': 'dagmcAnimation',
-                '<frame>': volId,
-            });
+                model: 'dagmcAnimation',
+                frame: volId,
+            }
+        );
     }
 
     self.loadVolumes = (volIds, initCallback, loadedCallback) => {
@@ -627,6 +608,13 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
                 appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
                 appState.saveQuietly('tallyReport');
             });
+
+            $scope.$on('openmcAnimation.summaryData', (e, summaryData) => {
+                if (summaryData.tally) {
+                    tallyService.setOutlines(summaryData.tally, summaryData.outlines);
+                }
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -634,7 +622,7 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
     };
 });
 
-SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState, tallyService) {
+SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache, panelState, tallyService) {
     return {
         restrict: 'A',
         scope: {},
@@ -767,13 +755,13 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
             }
 
             function updateDisplayRange() {
-                tallyService.initMesh();
-                if (! tallyService.mesh) {
+                if (! tallyService.initMesh()) {
                     return;
                 }
-                ['x', 'y', 'z'].forEach(dim => {
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
                 });
+                updateVisibleAxes();
                 updateSliceAxis();
             }
 
@@ -798,9 +786,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
                 if (! tallyService.fieldData) {
                     return;
                 }
-                tallyService.initMesh();
-                if (! tallyService.mesh) {
-                    return;
+                if (! tallyService.initMesh()) {
+                    return ;
                 }
                 const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
                 appState.models.tallyReport.planePos = adjustToRange(
@@ -810,16 +797,32 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
                 updateSlice();
             }
 
+            function updateVisibleAxes() {
+                const v = {};
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+                    v[dim] = true;
+                    SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim].forEach((bv, bi) => {
+                        if (! bv && tallyService.mesh.dimension[bi] < SIREPO.APP_SCHEMA.constants.minTallyResolution) {
+                            delete v[dim];
+                        }
+                    });
+                });
+                SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+                    const s = ! Object.keys(v).length || dim in v;
+                    panelState.showEnum('tallyReport', 'axis', dim, s);
+                    if (! s && appState.models.tallyReport.axis === dim) {
+                        appState.models.tallyReport.axis = Object.keys(v)[0];
+                    }
+                });
+            }
+
             $scope.$on('tallyReport.summaryData', updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
             $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
-            $scope.$on('outlines.loaded', () => {
-                if (tallyService.fieldData) {
-                    buildTallyReport();
-                }
-            });
-            updateDisplayRange();
+            if (frameCache.hasFrames('openmcAnimation')) {
+                panelState.waitForUI(updateDisplayRange);
+            }
         },
     };
 });
@@ -920,8 +923,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     picker.deletePickList(tallyBundle.actor);
                     tallyBundle = null;
                 }
-                tallyService.initMesh();
-                if (! tallyService.mesh) {
+                if (! tallyService.initMesh()) {
                     return;
                 }
                 const [nx, ny, nz] = tallyService.mesh.dimension;
@@ -1149,7 +1151,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             }
 
             function setGlobalProperties() {
-                if (! vtkScene.renderer) {
+                if (! vtkScene || ! vtkScene.renderer) {
                     return;
                 }
                 vtkScene.setBgColor(model().bgColor);
@@ -1499,7 +1501,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
             });
 
             $scope.$on('cancelChanges', (event, name) => {
-                if (editRowKey && name == 'material') {
+                if (editRowKey && name === 'material') {
                     appState.cancelChanges('volumes');
                     unloadMaterial();
                 }
@@ -1645,7 +1647,7 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
 
             scope.isRequired = () => true;
 
-            ngModel.$parsers.push(function(value) {
+            ngModel.$parsers.push(value => {
                 if (ngModel.$isEmpty(value)) {
                     return null;
                 }
@@ -1672,7 +1674,7 @@ SIREPO.app.directive('componentName', function(appState, requestSender) {
 
                 return value;
             });
-            ngModel.$formatters.push(function(value) {
+            ngModel.$formatters.push(value => {
                 if (ngModel.$isEmpty(value)) {
                     return value;
                 }
@@ -1710,9 +1712,10 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
           </div>
         `,
         controller: function($scope) {
+            const TYPE_NONE = 'None';
 
             function setView() {
-                if (type() && type() !== 'None') {
+                if (type() && type() !== TYPE_NONE) {
                     $scope.viewFields = SIREPO.APP_SCHEMA.view[type()].advanced
                         .map(f => {
                             return {
@@ -1739,7 +1742,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                         $scope.model[$scope.field] = {
                             _type: type(),
                         };
-                        if (newValue !== 'None') {
+                        if (newValue !== TYPE_NONE) {
                             appState.setModelDefaults(
                                 $scope.model[$scope.field],
                                 type(),
@@ -1819,10 +1822,10 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
             </div>
         `,
         controller: function($scope) {
-            const childModel = $scope.field == 'sources' ? 'source' : 'tally';
+            const childModel = $scope.field === 'sources' ? 'source' : 'tally';
             const infoFields = {
                 box: ['lower_left', 'upper_right'],
-                cartesianIndependent: ['x', 'y', 'z'],
+                cartesianIndependent: SIREPO.GEOMETRY.GeometryUtils.BASIS(),
                 cylindricalIndependent: ['r', 'phi', 'z'],
                 point: ['xyz'],
                 sphericalIndependent: ['r', 'theta', 'phi'],
@@ -1918,7 +1921,7 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
             };
 
             $scope.$on('modelChanged', function(event, name) {
-                if (name == childModel) {
+                if (name === childModel) {
                     const m = appState.models[childModel];
                     $scope.model[$scope.field][m._index] = m;
                     appState.removeModel(childModel);
@@ -2057,6 +2060,38 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
     $scope.watchFields = [
         ['source.type'], updateEditor,
     ];
+});
+
+SIREPO.viewLogic('tallyView', function(appState, panelState, $scope) {
+
+    const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
+        .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
+    const inds = SIREPO.UTILS.indexArray(SIREPO.APP_SCHEMA.constants.maxFilters, 1);
+    const TYPE_NONE = 'None';
+
+    function type(index) {
+        return appState.models[$scope.modelName][`filter${index}`]._type;
+    }
+
+    function updateEditor() {
+        // can always select 'None'
+        const assignedTypes = inds.map(i => type(i)).filter(x => x !== TYPE_NONE);
+        // remove assigned types
+        ALL_TYPES.forEach(x => {
+            panelState.showEnum('filter', '_type', x, ! assignedTypes.includes(x));
+        });
+        // replace the type for this "instance"
+        inds.forEach(i => {
+            panelState.showEnum('filter', '_type', type(i), true, i - 1);
+        });
+    }
+
+    $scope.whenSelected = updateEditor;
+
+    $scope.watchFields = [
+        inds.map(i => `${$scope.modelName}.filter${i}._type`), updateEditor,
+    ];
+
 });
 
 SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {

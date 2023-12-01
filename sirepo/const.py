@@ -31,7 +31,6 @@ PORT_DEFAULTS = PKDict(
     nginx_proxy=8080,
     react=3000,
     supervisor=8001,
-    uwsgi=8000,
 )
 
 #: These values will be injected into simulation_db.SCHEMA_COMMON

@@ -15,6 +15,7 @@ import contextlib
 import copy
 import pykern.pkio
 import sirepo.const
+import sirepo.global_resources
 import sirepo.quest
 import sirepo.simulation_db
 import sirepo.srdb
@@ -36,7 +37,8 @@ _HISTORY_FIELDS = frozenset(
         "computeJobQueued",
         "computeJobSerial",
         "computeJobStart",
-        "computeModel" "driverDetails",
+        "computeModel",
+        "driverDetails",
         "error",
         "internalError",
         "isParallel",
@@ -186,6 +188,7 @@ def init_module(**imports):
         sbatch_poll_secs=(15, int, "how often to poll squeue and parallel status"),
     )
     _DB_DIR = sirepo.srdb.supervisor_dir()
+    pykern.pkio.mkdir_parent(_DB_DIR)
     _NEXT_REQUEST_SECONDS = PKDict(
         {
             job.PARALLEL: 2,
@@ -386,6 +389,13 @@ class _Supervisor(PKDict):
         finally:
             c.destroy(cancel=False)
         return PKDict()
+
+    async def _receive_api_globalResources(self, req):
+        return sirepo.global_resources.for_simulation(
+            req.content.data.simulationType,
+            req.content.data.simulationId,
+            uid=req.content.uid,
+        )
 
     async def _receive_api_ownJobs(self, req):
         return self._get_running_pending_jobs(uid=req.content.uid)

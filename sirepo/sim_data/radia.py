@@ -83,6 +83,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "poleObjType",
                 "type",
             ):
+                if not hasattr(dm[m], "get"):
+                    continue
                 cls._fixup_box_to_cuboid(dm[m], f)
         for m in (
             "axisPath",
@@ -178,6 +180,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                         b["cutRemoval"] = "1"
                 if not o.get("fillets"):
                     o.fillets = []
+                if not o.get("materialFormula"):
+                    o.materialFormula = [0, 0, 0, 0, 0, 0]
                 if not o.get("modifications"):
                     o.modifications = o.bevels + o.fillets
                 for m in o.modifications:

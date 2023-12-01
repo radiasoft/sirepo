@@ -12,6 +12,10 @@ SIREPO.app.config(() => {
           <div data-sim-array="" data-model="model" data-field="field" data-sub-model-name="coupledSim"></div>
         </div>
     `;
+
+    SIREPO.appDownloadLinks = `
+        <li data-ng-if="::hasDataFile"><a href data-ng-href="{{ dataFileURL(\'openpmd\') }}">OpenPMD Data File</a></li>
+    `;
 });
 
 SIREPO.app.factory('omegaService', function(appState) {
@@ -124,7 +128,8 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
         template: `
             <div class="clearfix"></div>
             <div data-ng-repeat="sim in reports track by $index">
-              <div class="clearfix hidden-xl"></div>
+              <div class="clearfix hidden-xxl"></div>
+              <div data-ng-if="$index % 2 == 0" class="clearfix visible-xxl"></div>
               <div class="col-md-5 col-xxl-3">
                 <div class="row">
                   <div class="col-sm-12">
@@ -178,7 +183,7 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
     };
 });
 
-SIREPO.app.directive('dynamicSimList', function(appState) {
+SIREPO.app.directive('dynamicSimList', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -191,6 +196,20 @@ SIREPO.app.directive('dynamicSimList', function(appState) {
           </div>
         `,
         controller: function($scope) {
+            const requestSimListByType = (simType) => {
+                requestSender.sendRequest(
+                    'listSimulations',
+                    () => {},
+                    {
+                        simulationType: simType,
+                    }
+                );
+            };
+            if (SIREPO.APP_SCHEMA.relatedSimTypes) {
+                SIREPO.APP_SCHEMA.relatedSimTypes.forEach(simType => {
+                    requestSimListByType(simType);
+                });
+            }
             $scope.selectedCode = () => {
                 if ($scope.model) {
                     $scope.code = $scope.model.simulationType;

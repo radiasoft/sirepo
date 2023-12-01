@@ -50,6 +50,9 @@ SERVER_PING_URI = "/job-api-ping"
 #: path supervisor registers to receive requests from job_process for file PUTs
 DATA_FILE_URI = "/job-cmd-data-file"
 
+#: path supervisor registers to receive requests from job_process for global resources
+GLOBAL_RESOURCES_URI = "/global-resources"
+
 #: how jobs request files
 LIB_FILE_URI = "/job-cmd-lib-file"
 
@@ -86,9 +89,6 @@ DEFAULT_SUPERVISOR_URI_DECL = (
     str,
     "how to reach supervisor",
 )
-
-#: where runner_api writes simulation state
-RUNNER_STATUS_FILE = "status"
 
 #: status values
 CANCELED = "canceled"

@@ -2518,9 +2518,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
            </div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <div data-canceled-due-to-timeout-alert="simState"></div>
-              <div class="progress" data-ng-if="simState.isProcessing()">
-                <div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>
-              </div>
+              <div data-ng-if="simState.isProcessing()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
               <div data-ng-if="simState.isProcessing()">
                 <div class="col-sm-6">
                   <div data-pending-link-to-simulations="" data-sim-state="simState"></div>
@@ -2548,9 +2546,9 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 <div class="col-sm-12" data-simulation-status-timer="simState"></div>
                 <div data-ng-if="simState.showJobSettings()">
                   <div class="form-group form-group-sm">
-                    <div class="col-sm-12" data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
-                    <div data-sbatch-options="simState"></div>
+                    <div data-model-field="'jobRunMode'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
                   </div>
+                  <div data-sbatch-options="simState"></div>
                 </div>
                 <div class="col-sm-6 pull-right">
                   <button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel() }}</button>

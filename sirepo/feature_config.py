@@ -98,7 +98,7 @@ def for_sim_type(sim_type):
 
 
 def is_react_sim_type(sim_type):
-    return sim_type in cfg().react_sim_types
+    return cfg().ui_react and sim_type in cfg().react_sim_types
 
 
 def proprietary_sim_types():
@@ -126,6 +126,7 @@ def _is_fedora_36():
 def _init():
     from pykern import pkconfig
     from pykern import pkio
+    from pykern.pkdebug import pkdp
 
     global _cfg
 
@@ -150,6 +151,11 @@ def _init():
             frozenset(),
             set,
             "codes where all users are authorized by default but that authorization can be revoked",
+        ),
+        enable_global_resources=(
+            False,
+            bool,
+            "enable the global resources allocation system",
         ),
         jspec=dict(
             derbenevskrinsky_force_formula=_test(
@@ -211,6 +217,7 @@ def _init():
             bool,
             "Trust Bash env to run Python and agents",
         ),
+        ui_react=(False, bool, "global control for React UI"),
         ui_websocket=(
             pkconfig.in_dev_mode(),
             bool,

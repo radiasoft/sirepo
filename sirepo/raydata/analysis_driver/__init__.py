@@ -4,7 +4,9 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkcompat
+from pykern import pkconfig
 from pykern import pkio
+from pykern import pkjinja
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
@@ -16,6 +18,8 @@ import uuid
 
 _ANALYSIS_DRIVERS = PKDict()
 
+_PAPERMILL_SCRIPT = "raydata-execute-analysis.sh"
+
 
 class AnalysisDriverBase(PKDict):
     def __init__(self, catalog_name, uid, *args, **kwargs):
@@ -24,6 +28,9 @@ class AnalysisDriverBase(PKDict):
 
     def get_analysis_pdf_paths(self):
         return pkio.walk_tree(self.get_output_dir(), r".*\.pdf$")
+
+    def get_conda_env(self):
+        raise NotImplementedError("children must implement this method")
 
     def get_notebooks(self, *args, **kwargs):
         raise NotImplementedError("children must implement this method")
@@ -64,7 +71,7 @@ class AnalysisDriverBase(PKDict):
             ["scan", self.uid],
             *self._get_papermill_args(),
         ]:
-            res.extend(["-p", n, str(v)])
+            res.extend(["-p", f"'{n}'", f"'{v}'"])
         res.append("--report-mode")
         return res
 
@@ -77,6 +84,23 @@ class AnalysisDriverBase(PKDict):
 
     def has_analysis_pdfs(self):
         return len(self.get_analysis_pdf_paths()) > 0
+
+    def render_papermill_script(self, input_f, output_f):
+        p = self.get_output_dir().join(_PAPERMILL_SCRIPT)
+        pkjinja.render_resource(
+            _PAPERMILL_SCRIPT,
+            PKDict(
+                dev_mode=pkconfig.in_dev_mode(),
+                input_f=input_f,
+                output_f=output_f,
+                papermill_args=" ".join(self.get_papermill_args()),
+                conda_prefix=_cfg.conda_prefix,
+                conda_env=self.get_conda_env(),
+                catalog_name=self.catalog_name,
+            ),
+            output=p,
+        )
+        return p
 
     def _get_papermill_args(self, *args, **kwargs):
         return []
@@ -105,3 +129,12 @@ def init(catalog_names):
             importlib.import_module(f"sirepo.raydata.analysis_driver.{n}"),
             n.upper(),
         )
+
+
+_cfg = pkconfig.init(
+    conda_prefix=(
+        "~/miniconda",
+        pkio.py_path,
+        "base directory for conda environments",
+    ),
+)
