@@ -780,7 +780,7 @@
             "_super": ["_", "model", "fieldPath"],
             "center": ["Center [mm]", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
             "size": ["Size [mm]", "FloatArray", [1, 1, 1], "", ["x", "y", "z"]],
-            "numPoints": ["Num Points", "Integer", 10, "", 2],
+            "numPoints": ["Points per Dimension", "Integer", 10, "Total:", 2, 20],
             "type": ["_", "PathType", "fieldMapPath"]
         },
         "fieldPath": {
