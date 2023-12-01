@@ -1256,7 +1256,7 @@ SIREPO.app.directive('columnEditor', function(appState) {
     };
 });
 
-SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelState, requestSender) {
+SIREPO.app.directive('fileUploadDialog', function(appState, errorService, fileUpload, panelState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -1313,6 +1313,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                     return;
                 }
                 $scope.isUploading = true;
+                srdbg("2 uploading...");
                 fileUpload.uploadFileToUrl(
                     inputFile,
                     $scope.isConfirming
@@ -1320,6 +1321,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                             confirm: $scope.isConfirming,
                         }
                         : null,
+
                     requestSender.formatUrl(
                         'uploadFile',
                         {
@@ -1327,8 +1329,10 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                             simulation_type: SIREPO.APP_SCHEMA.simulationType,
                             file_type: $scope.fileType,
                         }),
+
                     function(data) {
                         $scope.isUploading = false;
+                        srdbg("data in callback", data);
                         if (data.error) {
                             $scope.fileUploadError = data.error;
                             if (data.fileList) {
@@ -1349,7 +1353,8 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                             appState.updateReports();
                         }
                         $('#' + panelState.modalId('fileUpload' + $scope.fileType)).modal('hide');
-                    });
+                    }
+                );
             };
         },
         link: function(scope, element) {
@@ -2715,6 +2720,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                     return;
                 }
                 $scope.isUploading = true;
+                srdbg("3 uploading...");
                 fileUpload.uploadFileToUrl(
                     inputFile,
                     {
@@ -2728,6 +2734,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                     function(data) {
                         $scope.isUploading = false;
                         if (data.error) {
+                            srdbg("data.error", data.error);
                             $scope.fileUploadError = data.error;
                             // used by sub components to display additional data entry fields
                             $scope.errorData = data;
@@ -2739,7 +2746,9 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                             $scope.inputFile = null;
                             requestSender.localRedirectHome(data.models.simulation.simulationId);
                         }
-                    });
+                    },
+                    () => {srdbg("callback");},
+                );
             };
         },
         link: function(scope, element) {
@@ -2801,6 +2810,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
             };
 
             $scope.uploadDatafile = function(info) {
+                // srdbg("uploading...");
                 if (info.file.name) {
                     if (info.file.name != info.filename) {
                         if (! info.invalidFilename) {
@@ -2811,6 +2821,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
                     }
                     info.invalidFilename = false;
                     parentScope.isUploading = true;
+                    srdbg("1 uploading...");
                     fileUpload.uploadFileToUrl(
                         info.file,
                         null,
@@ -2824,13 +2835,17 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
                             }),
                         function(data) {
                             parentScope.isUploading = false;
+                            // srdbg(data);
                             if (data.error) {
+                                srdbg("data.error", data.error);
                                 parentScope.fileUploadError = data.error;
                                 return;
                             }
                             info.hasFile = true;
                             checkFiles();
-                        });
+                        },
+                        () => {srdbg("callback");},
+                    );
                     info.file = {};
                 }
                 return false;
