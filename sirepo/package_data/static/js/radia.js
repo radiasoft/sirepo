@@ -35,6 +35,9 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="IntArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Int"></div>
         </div>
+        <div data-ng-switch-when="Label" class="col-sm-7">
+            <label>{{ model[field] }}</label>
+        </div>
         <div data-ng-switch-when="ObjectType" class="col-sm-7">
             <div data-shape-selector="" data-model-name="modelName" data-model="model" data-field="model[field]" data-field-class="fieldClass" data-parent-controller="parentController" data-view-name="viewName" data-object="viewLogic.getBaseObject()"></div>
         </div>
@@ -3061,7 +3064,7 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
     };
 });
 
-SIREPO.viewLogic('fieldPathsView', function(appState, $scope) {
+SIREPO.viewLogic('fieldPathsView', function(appState, panelState, $scope) {
     
     appState.watchModelFields(
         $scope,
@@ -3070,6 +3073,16 @@ SIREPO.viewLogic('fieldPathsView', function(appState, $scope) {
         true
     );
     
+    const fieldMapPaths = appState.models[$scope.modelName].paths.filter(x => x.type === 'fieldMapPath');
+    fieldMapPaths.forEach((p, i) => {
+        appState.watchModelFields(
+            $scope,
+            [`fieldPaths.paths.${i}`],
+            updateFieldMapPath(p),
+            true
+        );       
+    });
+
     function updateAxisPath(path) {
         path.name = `${path.axis.toUpperCase()}-Axis`;
         const v = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[path.axis];
@@ -3081,6 +3094,12 @@ SIREPO.viewLogic('fieldPathsView', function(appState, $scope) {
         for (const p of appState.models[$scope.modelName].paths.filter(x => x.type === 'axisPath')) {
             updateAxisPath(p);
          }
+    }
+
+    function updateFieldMapPath(p) {
+        return () => {
+            p.totalPoints = p.numPoints**3;
+        };
     }
 });
 
