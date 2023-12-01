@@ -590,6 +590,7 @@ class API(sirepo.quest.API):
         confirm="Bool optional",
     )
     async def api_uploadFile(self, simulation_type, simulation_id, file_type):
+        assert 0, "TESTING"
         f = self.sreq.form_file_get()
         req = self.parse_params(
             file_type=file_type,
