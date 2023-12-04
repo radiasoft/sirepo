@@ -3061,7 +3061,7 @@ SIREPO.app.directive('shapeSelector', function(appState, panelState, plotting, r
     };
 });
 
-SIREPO.viewLogic('fieldPathsView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('fieldPathsView', function(appState, $scope) {
     
     appState.watchModelFields(
         $scope,
