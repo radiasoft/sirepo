@@ -3069,16 +3069,6 @@ SIREPO.viewLogic('fieldPathsView', function(appState, panelState, $scope) {
         updateAxisPaths,
         true
     );
-    
-    const fieldMapPaths = appState.models[$scope.modelName].paths.filter(x => x.type === 'fieldMapPath');
-    fieldMapPaths.forEach((p, i) => {
-        appState.watchModelFields(
-            $scope,
-            [`fieldPaths.paths.${i}`],
-            updateFieldMapPath(p),
-            true
-        );       
-    });
 
     function updateAxisPath(path) {
         path.name = `${path.axis.toUpperCase()}-Axis`;
@@ -3091,12 +3081,6 @@ SIREPO.viewLogic('fieldPathsView', function(appState, panelState, $scope) {
         for (const p of appState.models[$scope.modelName].paths.filter(x => x.type === 'axisPath')) {
             updateAxisPath(p);
          }
-    }
-
-    function updateFieldMapPath(p) {
-        return () => {
-            p.totalPoints = p.numPoints**3;
-        };
     }
 });
 
