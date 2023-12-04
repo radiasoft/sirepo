@@ -781,7 +781,6 @@
             "center": ["Center [mm]", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
             "size": ["Size [mm]", "FloatArray", [1, 1, 1], "", ["x", "y", "z"]],
             "numPoints": ["Points per Dimension", "Integer", 10, "The total number of points is the cube of this number", 2, 20],
-            "totalPoints": ["Total Points", "Label", "1000"],
             "type": ["_", "PathType", "fieldMapPath"]
         },
         "fieldPath": {
@@ -1275,15 +1274,13 @@
                 "name",
                 "center",
                 "size",
-                "numPoints",
-                "totalPoints"
+                "numPoints"
             ],
             "advanced": [
                 "name",
                 "center",
                 "size",
-                "numPoints",
-                "totalPoints"
+                "numPoints"
             ]
         },
         "fieldPaths": {
