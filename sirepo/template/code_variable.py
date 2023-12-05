@@ -406,7 +406,6 @@ class PurePythonEval:
                 expr,
             ),
             variables,
-
         )
 
     def __eval_python_stack(self, expr, variables):
@@ -424,8 +423,6 @@ class PurePythonEval:
 
         values = str(expr).split(" ")
         stack = []
-
-        values = str(expr).split(" ")
         for v in values:
             if v in variables:
                 stack.append(variables[v])
