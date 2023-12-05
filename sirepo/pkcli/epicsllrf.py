@@ -48,5 +48,5 @@ def _epics_fields(models):
     for m in models:
         if p in m:
             for k in models[m]:
-                r.append(epicsllrf.epics_field_name(m, k))
+                r.append(epicsllrf.epics_field_name(p, m, k))
     return r
