@@ -8,9 +8,10 @@ from pykern import pkinspect, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import contextlib
-import os
 import shutil
 import sirepo.auth_db
+import sirepo.auth_role
+import sirepo.file_lock
 import sirepo.job
 import sirepo.quest
 import sirepo.sim_data
@@ -30,19 +31,20 @@ def do_all(qcall):
         y = pkinspect.module_functions("_2")
         return ((n, y[n]) for n in sorted(set(y.keys()) - set(x)))
 
-    assert (
-        not _prevent_db_upgrade_file().exists()
-    ), f"prevent_db_upgrade_file={_prevent_db_upgrade_file()} found"
+    with sirepo.file_lock.FileLock(_db_upgrade_file_lock_path()):
+        assert (
+            not _prevent_db_upgrade_file().exists()
+        ), f"prevent_db_upgrade_file={_prevent_db_upgrade_file()} found"
 
-    for n, f in _new_functions():
-        with _backup_db_and_prevent_upgrade_on_error():
-            pkdlog("running upgrade {}", n)
-            f(qcall=qcall)
-            qcall.auth_db.model(
-                "DbUpgrade",
-                name=n,
-                created=sirepo.srtime.utc_now(),
-            ).save()
+        for n, f in _new_functions():
+            with _backup_db_and_prevent_upgrade_on_error():
+                pkdlog("running upgrade {}", n)
+                f(qcall=qcall)
+                qcall.auth_db.model(
+                    "DbUpgrade",
+                    name=n,
+                    created=sirepo.srtime.utc_now(),
+                ).save()
 
 
 def _20230203_drop_spa_session(qcall):
@@ -50,11 +52,13 @@ def _20230203_drop_spa_session(qcall):
     qcall.auth_db.drop_table("spa_session_t")
 
 
-def _20230529_deploy_flash_update(qcall):
+def _20231120_deploy_flash_update(qcall):
     """Add proprietary lib files to existing FLASH users' lib dir"""
     if not sirepo.template.is_sim_type("flash"):
         return
-    for u in qcall.auth_db.all_uids():
+    for u in qcall.auth_db.model("UserRole").uids_with_roles(
+        (sirepo.auth_role.for_sim_type("flash"),)
+    ):
         with qcall.auth.logged_in_user_set(u):
             # Remove the existing rpm
             pkio.unchecked_remove(
@@ -82,6 +86,10 @@ def _backup_db_and_prevent_upgrade_on_error():
         pkdlog("original db={}", b)
         _prevent_db_upgrade_file().ensure()
         raise
+
+
+def _db_upgrade_file_lock_path():
+    return sirepo.srdb.root().join("db_upgrade_in_progress")
 
 
 def _migrate_sim_type(old_sim_type, new_sim_type, qcall):
