@@ -3931,8 +3931,11 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     // beamline overlay always starts at position 0
                     xdom[0] = 0;
                 }
-                $scope.axes.x.domain = xdom;
-                $scope.axes.x.scale.domain(xdom);
+
+                if (! appState.deepEquals(xdom, $scope.axes.x.domain)) {
+                    $scope.axes.x.domain = xdom;
+                    $scope.axes.x.scale.domain(xdom);
+                }
                 scaleFunction = plotting.scaleFunction($scope.modelName);
                 $scope.axes.y.domain = plotting.ensureDomain([json.y_range[0], json.y_range[1]], scaleFunction);
                 $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
@@ -4137,9 +4140,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                 $scope.axes[dim].scale.invert(0));
                         }
                     }
+                    const xdom = $scope.axes.x.domain;
                     $scope.setYDomain();
                     $scope.padXDomain();
-                    $scope.axes.x.scale.domain($scope.axes.x.domain);
+                    if (! appState.deepEquals(xdom, $scope.axes.x.domain)) {
+                        $scope.axes.x.scale.domain($scope.axes.x.domain);
+                    }
                 }
 
                 $scope.select('.plot-viewport').selectAll('.line')
