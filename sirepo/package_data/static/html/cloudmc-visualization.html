@@ -48,9 +48,14 @@
     </div>
     <div class="clearfix"></div>
   </div>
-    <div class="row">
-    <div class="col-md-12 col-lg-8" data-ng-if="visualization.simState.isStateCompleted() && visualization.simState.hasFrames()">
+  <div class="row" data-ng-if="visualization.simState.isStateCompleted() && visualization.simState.hasFrames()">
+    <div class="col-sm-8">
       <div data-report-panel="tallyViewer" data-model-name="openmcAnimation" data-panel-title="{{visualization.tallyTitle()}}"></div>
+    </div>
+    <div class="col-sm-4">
+      <div data-simple-panel="tallySettings">
+          <div data-tally-settings=""></div>
+      </div>
     </div>
   </div>
 </div>

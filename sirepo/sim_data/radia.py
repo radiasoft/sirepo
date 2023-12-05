@@ -137,6 +137,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                     "end",
                 ):
                     _fixup_number_string_field(p, f)
+                if p.type == "fieldMapPath":
+                    if p.numPoints < sch.model.fieldMapPath.numPoints[4]:
+                        p.numPoints = sch.model.fieldMapPath.numPoints[4]
+                    if p.numPoints > sch.model.fieldMapPath.numPoints[5]:
+                        p.numPoints = sch.model.fieldMapPath.numPoints[5]
 
         def _fixup_number_string_field(model, field, to_type=float):
             if field not in model:
