@@ -109,7 +109,6 @@ def _update_objects(**kwargs):
     for k, v in kwargs.items():
         if k not in fields:
             continue
-        print("PARAM {} -> {}".format(k, v))
         parameters[k] = v
         mf = k.split(".")
         _get_obj(mf[0])[mf[1]] = v
