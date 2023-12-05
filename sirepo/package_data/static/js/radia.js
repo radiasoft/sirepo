@@ -461,12 +461,19 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
         return Object.keys(objs).includes(o.name) && objs[o.name].fields.includes(f);
     };
 
+    self.isScripted = (o, f) => {
+        if (! self.isScriptable(o, f)) {
+            return false;
+        }
+        return isNaN(Number(o[f]));
+    }
+
     self.scriptableObjects = () => self.addressableObjects(['Float', 'FloatArray', 'ScriptableField', 'ScriptableArray']);
 
     self.scriptedObject = o => {
         const s = {};
         for (const f of Object.keys(o)) {
-            s[f] = self.isScriptable(o, f) ? rpnService.getRpnValueForField(o, f) : window.structuredClone(o[f]);
+            s[f] = self.isScripted(o, f) ? rpnService.getRpnValueForField(o, f) : window.structuredClone(o[f]);
         }
         return s;
     };
@@ -805,6 +812,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
 
     self.viewsForObject = obj => {
         const o = radiaVariableService.scriptedObject(obj);
+        srdbg('SC', o);
         const supers = appState.superClasses(o.type);
         let center = o.center;
         let size = o.size;
@@ -1132,7 +1140,7 @@ SIREPO.app.controller('RadiaVisualizationController', function (appState, radiaS
     };
 });
 
-SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCache, persistentSimulation, radiaService, requestSender, $scope) {
+SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCache, persistentSimulation, radiaService, radiaVariableService, requestSender, $scope) {
     const self = this;
     self.simScope = $scope;
     self.simAnalysisModel = 'optimizerAnimation';
@@ -1173,7 +1181,6 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
             appState.models.simulation.simulationId,
             data => {
                 applyResults(data.models.geometryReport.objects);
-                data.models.simulation.name = `${appState.models.simulation.name} (optimized)`;
                 requestSender.sendRequest(
                     'saveSimulationData',
                     () => {
@@ -1185,7 +1192,7 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
                     }
                 );
             },
-            appState.models.simulation.name,
+            `${appState.models.simulation.name} (optimized)`,
             appState.models.simulation.folder
         );
     };
