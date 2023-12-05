@@ -465,7 +465,6 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
 
     self.scriptedObject = o => {
         const s = {};
-        const t = o.type;
         for (const f of Object.keys(o)) {
             s[f] = self.isScriptable(o, f) ? rpnService.getRpnValueForField(o, f) : window.structuredClone(o[f]);
         }
