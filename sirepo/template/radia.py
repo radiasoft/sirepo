@@ -769,11 +769,21 @@ def _export_rsopt_files():
 
 
 def _extract_optimization_results(args):
+    def nat_order(path):
+        import pathlib
+
+        return [
+            int(c) if c.isdigit() else c
+            for c in re.split(r"(\d+)", pathlib.PurePath(path).parent.name)
+        ]
+
     plots = []
     objective_vals = []
     params = PKDict()
     summaryData = PKDict()
-    out_files = pkio.walk_tree(args.run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT)
+    out_files = sorted(
+        pkio.walk_tree(args.run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT), key=nat_order
+    )
     for f in out_files:
         with h5py.File(f, "r") as h:
             d = template_common.h5_to_dict(h)
@@ -1305,36 +1315,15 @@ def _calculate_objective_def(models):
             + f"""
     import numpy
     
-    def _field_in_plane(g_id, p1, p2, d, component='z', steps=25):
-        #print("FIP FROM {{}} TO {{}} DEV {{}}".format(p1, p2, d))
-        int_field = []
-        pts = numpy.linspace(-1 * d, d, steps)
-        for p in pts:
-            d1 = (p1 + p).tolist()
-            d2 = (p2 + p).tolist()
-            v = radia_util.field_integral(g_id, component, d1, d2)
-            #print("INT FROM {{}} TO {{}}: {{}}".format(d1, d2, v))
-            int_field.append(v)
-        #return numpy.array([pts, int_field])
-        return numpy.array(int_field)
-
-    f_old = numpy.array([])
+    f = numpy.array([])
     p1 = {q.begin}
     p2 = {q.end}
-    print('INT PATH {{}} TO {{}} DEV {{}}'.format(p1, p2, {q.deviation}))
     c = 'B{q.component}'
     f0 = radia_util.field_integral(g_id, c, p1, p2)
-    print('INT 0 {{}}'.format(f0))
-    #field_prof = _field_in_plane(g_id, {q.begin}, {q.end}, numpy.array({q.deviation}), c, steps={s.components})
     for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {s.components}):
-        f_old = numpy.append(f_old, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
-    print("FLD INT {{}}".format(f_old))
-    #f = field_prof[1, :] - f0
-    #f = field_prof - f0
-    ff = f_old - f0
-    #print('OLD F {{}} VS NEW F {{}}'.format(ff, f))
-    print('OBJ RES {{}} VAL {{}}'.format(ff.tolist(), numpy.sum(ff**2)))
-    return numpy.sum(ff**2), ff.tolist()
+        f = numpy.append(f, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
+    res = f - f0
+    return numpy.sum(res**2), res.tolist()
 """
         )
     else:
