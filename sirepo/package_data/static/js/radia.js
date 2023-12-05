@@ -3069,7 +3069,7 @@ SIREPO.viewLogic('fieldPathsView', function(appState, $scope) {
         updateAxisPaths,
         true
     );
-    
+
     function updateAxisPath(path) {
         path.name = `${path.axis.toUpperCase()}-Axis`;
         const v = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[path.axis];
