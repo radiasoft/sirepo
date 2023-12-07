@@ -10,7 +10,6 @@ Radia "instance" goes away and references no longer have any meaning.
 
 import inspect
 from pykern import pkcompat
-from pykern import pkconst
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjson
@@ -371,7 +370,6 @@ def sim_frame_optimizerAnimation(frame_args):
 
 def stateful_compute_recompute_rpn_cache_values(data, **kwargs):
     code_var(data.variables, data.cache).recompute_cache(data.cache)
-    pkdp("UPD {}", data)
     return data
 
 
@@ -1390,10 +1388,6 @@ def _prep_new_sim(data, new_sim_data=None):
     data.models.electronTrajectoryReport.finalBeamPosition = f
     sim.enableKickMaps = "1"
     _update_kickmap(data.models.kickMapReport, m, new_sim_data.beamAxis)
-
-
-def _process_objective_code(code):
-    return code
 
 
 def _read_data(view_type, field_type):
