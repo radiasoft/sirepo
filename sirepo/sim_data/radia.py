@@ -105,11 +105,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 cls._fixup_box_to_cuboid(o, f)
 
     @classmethod
-    def find_scriptables(cls, model):
-        m = cls.schema().model[model.type]
-        return [f for f in m if "Scriptable" in m[f][1]]
-
-    @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         import sirepo.util
 

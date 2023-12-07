@@ -744,7 +744,7 @@ def _electron_trajectory_plot(sim_id, **kwargs):
 
 def _evaluate_objects(objs, vars, code_variable):
     for o in objs:
-        for f in _SIM_DATA.find_scriptables(o):
+        for f in _find_scriptables(o):
             e = code_variable.eval_var(f"{o.name}.{f}")
             if e[1] is not None:
                 raise RuntimeError(
@@ -866,8 +866,9 @@ def _find_by_id(arr, obj_id):
     return sirepo.util.find_obj(arr, "id", obj_id)
 
 
-def _find_by_name(arr, name):
-    return sirepo.util.find_obj(arr, "name", name)
+def _find_scriptables(model):
+    m = SCHEMA.model[model.type]
+    return [f for f in m if "Scriptable" in m[f][1]]
 
 
 def _fit_poles_in_c_bend(**kwargs):
