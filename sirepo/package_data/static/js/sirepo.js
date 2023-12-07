@@ -356,7 +356,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         models2.simulationStatus = status[1];
         return res;
     }
-    
+
     function propertyToIndexForm(key) {
         return key.split('.').map(function (x) {
             return "['" + x + "']";
