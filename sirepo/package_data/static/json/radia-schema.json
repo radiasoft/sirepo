@@ -1190,11 +1190,14 @@
     },
     "strings": {
         "completionState": "",
-        "solverAnimation": {
-            "typeOfSimulation": "Solve"
-        },
         "fieldLineoutAnimation": {
             "typeOfSimulation": "Field Plot"
+        },
+        "optimizerAnimation": {
+            "typeOfSimulation": "Optimization"
+        },
+        "solverAnimation": {
+            "typeOfSimulation": "Solve"
         }
     },
     "view": {
