@@ -2530,8 +2530,7 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
             <div class="panel-body">
             <form name="form">
               <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
-                <thead>
-                </thead>
+                <thead></thead>
                   <tbody>
                     <tr data-ng-show="areAllGroupsExpanded(o)" data-ng-attr-id="{{ o.id }}" data-ng-repeat="o in getObjects() track by $index">
                       <td style="padding-left: {{ nestLevel(o) }}em; cursor: pointer; white-space: nowrap">
@@ -2576,7 +2575,6 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
             $scope.expanded = {};
             $scope.fields = ['objects'];
             $scope.locked = {};
-            $scope.simulation = appState.models.simulation;
             $scope.unlockable = {};
 
             const isInGroup = $scope.source.isInGroup;
