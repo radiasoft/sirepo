@@ -356,10 +356,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         models2.simulationStatus = status[1];
         return res;
     }
-
-   function propertiesFieldName(fieldName) {
-        return `${fieldName}$properties`;
-    }
     
     function propertyToIndexForm(key) {
         return key.split('.').map(function (x) {
@@ -724,7 +720,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             return [match[1], match[2]];
         }
         return null;
-    };  
+    };
 
     self.removeModel = function(name) {
         delete self.models[name];
