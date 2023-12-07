@@ -934,7 +934,7 @@
         },
         "objectiveFunction": {
             "code": ["Code", "String", ""],
-            "type": ["_", "ObjectiveFunction", "objectiveFunctionQuality", "FQ"]
+            "type": ["_", "ObjectiveFunction", "objectiveFunctionQuality"]
         },
         "objectiveFunctionQuality": {
             "_super": ["_", "model", "objectiveFunction"],
@@ -943,7 +943,7 @@
             "deviation": ["Deviation [mm]", "FloatArray", [0, 1.0, 0], "", ["± ∂x", "± ∂y", "± ∂z"]],
             "end": ["End [mm]", "FloatArray", [10.0, 0, 0], "", ["x", "y", "z"]],
             "fieldPaths": ["Path", "FieldPaths", []],
-            "type": ["Objective Function", "ObjectiveFunction", "objectiveFunctionQuality", "FQ"],
+            "type": ["Objective Function", "ObjectiveFunction", "objectiveFunctionQuality"],
             "useFieldPath": ["Use Field Path", "Boolean", "0"]
         },
          "objectShape": {
@@ -956,7 +956,7 @@
         },
         "optimizationSoftwareDFOLS": {
             "_super": ["_", "model", "optimizationSoftware"],
-            "components": ["Components", "Integer", 2],
+            "components": ["Components", "Integer", 5],
             "rsoptName": ["_", "String", "dfols"],
             "type": ["", "OptimizationSoftwareType", "optimizationSoftwareDFOLS"]
         },
@@ -965,7 +965,7 @@
             "objective": ["Objective Function", "ObjectiveFunction", "objectiveFunctionQuality", "$\\sum_i B^{\\rm{int}}_{{ appState.models.objectiveFunctionQuality.component }}(x_i) - B^{\\rm{int}}_{{ appState.models.objectiveFunctionQuality.component }}(0)$, $B^{\\rm{int}}_{{ appState.models.objectiveFunctionQuality.component }}(x_i) - B^{\\rm{int}}_{{ appState.models.objectiveFunctionQuality.component }}(0)$"],
             "parameters": ["Parameters", "ObjectOptimizerField", []],
             "software": ["Optimization Package", "model.optimizationSoftware", {
-                "components": 100,
+                "components": 5,
                 "rsoptName": "dfols",
                 "type": "optimizationSoftwareDFOLS"
             }],
