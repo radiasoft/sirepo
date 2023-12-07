@@ -487,11 +487,11 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
         };
     });
 
-    self.updateCacheForVar = (varName, value, rpnCache) => {
+    self.updateCacheForVar = (name, value, rpnCache) => {
         var recomputeRequired = false;
-        var re = new RegExp("\\b" + varName + "\\b");
+        var re = new RegExp("\\b" + name + "\\b");
         for (var k in rpnCache) {
-            if (k == varName) {
+            if (k == name) {
                 rpnCache[k] = value;
             }
             else if (k.match(re)) {
@@ -504,8 +504,8 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
     // {varName0: value0, ...}
     self.updateCacheForVars = (vars, rpnCache) => {
         var recomputeRequired = false;
-        for (const varName in vars) {
-            recomputeRequired = self.updateCacheForVar(varName, vars[varName], rpnCache);
+        for (const name in vars) {
+            recomputeRequired = self.updateCacheForVar(name, vars[name], rpnCache);
         }
         return recomputeRequired;
     };
