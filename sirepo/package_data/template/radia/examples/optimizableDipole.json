@@ -736,7 +736,7 @@
             "lastModified": 1701974087914,
             "magnetType": "freehand",
             "name": "Optimizable Dipole",
-            "notes": "",
+            "notes": "A simple dipole demonstrating optimization of the radius of cylindrical shims towards magnetic field uniformity",
             "simulationId": "nnul6xqs",
             "simulationSerial": 1701974523999507,
             "undulatorType": "undulatorBasic",
