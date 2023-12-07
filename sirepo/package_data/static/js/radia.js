@@ -1209,15 +1209,29 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
             data => {
                 const objs = data.models.geometryReport.objects
                 applyResults(objs);
+                for (const p in self.summaryData) {
+                    radiaService.getObjectByName(p, data.models.rpnVariables).value = self.summaryData[p];
+                }
                 if (radiaVariableService.updateCacheForVars(self.summaryData, data.models.rpnCache)) {
-                    requestSender.sendRpn(
+                    requestSender.sendStatefulCompute(
                         appState,
                         d =>  {
                             data.models.rpnCache = d.cache;
+                            requestSender.sendRequest(
+                                'saveSimulationData',
+                                () => {
+                                    requestSender.localRedirectHome(data.models.simulation.simulationId);
+                                },
+                                data,
+                                err => {
+                                    throw new Error('Simulation creation failed: ' + err);
+                                }
+                            );
                         },
                         {
                             method: 'recompute_rpn_cache_values',
                             cache: data.models.rpnCache,
+                            variables: data.models.rpnVariables,
                         }
                     );
                 }

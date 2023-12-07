@@ -338,7 +338,6 @@ def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
 
 
 def prepare_for_client(data, qcall, **kwargs):
-    # code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
     return data
 
 
@@ -368,6 +367,12 @@ def sim_frame_fieldLineoutAnimation(frame_args):
 
 def sim_frame_optimizerAnimation(frame_args):
     return _extract_optimization_results(frame_args)
+
+
+def stateful_compute_recompute_rpn_cache_values(data, **kwargs):
+    code_var(data.variables, data.cache).recompute_cache(data.cache)
+    pkdp("UPD {}", data)
+    return data
 
 
 def stateless_compute_build_shape_points(data, **kwargs):
