@@ -329,6 +329,8 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         return s;
     };
 
+    self.updateObject = o => (self[`update${SIREPO.UTILS.capitalize(o.type)}`] || (() => {}))(o);
+
     self.updateRaceTrack = o => {
         const s = [0, 0, 0];
         const i = SIREPO.GEOMETRY.GeometryUtils.axisIndex(o.axis);
@@ -485,6 +487,29 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
         };
     });
 
+    self.updateCacheForVar = (varName, value, rpnCache) => {
+        var recomputeRequired = false;
+        var re = new RegExp("\\b" + varName + "\\b");
+        for (var k in rpnCache) {
+            if (k == varName) {
+                rpnCache[k] = value;
+            }
+            else if (k.match(re)) {
+                recomputeRequired = true;
+            }
+        }
+        return recomputeRequired;
+    }
+
+    // {varName0: value0, ...}
+    self.updateCacheForVars = (vars, rpnCache) => {
+        var recomputeRequired = false;
+        for (const varName in vars) {
+            recomputeRequired = self.updateCacheForVar(varName, vars[varName], rpnCache);
+        }
+        return recomputeRequired;
+    }
+    
     self.updateRPNVars = () => {
         if (! appState.models.rpnVariables) {
             appState.models.rpnVariables = [];
@@ -812,7 +837,6 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
 
     self.viewsForObject = obj => {
         const o = radiaVariableService.scriptedObject(obj);
-        srdbg('SC', o);
         const supers = appState.superClasses(o.type);
         let center = o.center;
         let size = o.size;
@@ -1170,17 +1194,34 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
     
     self.newSimFromResults = () => {
         function applyResults(objects) {
+            const modified = new Set();
             for (const p in self.summaryData) {
                 const modelField = p.split('.');
                 const o = radiaService.getObjectByName(modelField[0], objects);
                 o[modelField[1]] = self.summaryData[p];
-            }    
+                modified.add(o);
+            }
+            modified.forEach(radiaService.updateObject);
         }
 
         appState.copySimulation(
             appState.models.simulation.simulationId,
             data => {
-                applyResults(data.models.geometryReport.objects);
+                const objs = data.models.geometryReport.objects
+                applyResults(objs);
+                if (radiaVariableService.updateCacheForVars(self.summaryData, data.models.rpnCache)) {
+                    requestSender.sendRpn(
+                        appState,
+                        d =>  {
+                            data.models.rpnCache = d.cache;
+                        },
+                        {
+                            method: 'recompute_rpn_cache_values',
+                            cache: data.models.rpnCache,
+                        }
+                    );
+                }
+                /*
                 requestSender.sendRequest(
                     'saveSimulationData',
                     () => {
@@ -1191,6 +1232,7 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
                         throw new Error('Simulation creation failed: ' + err);
                     }
                 );
+                */
             },
             `${appState.models.simulation.name} (optimized)`,
             appState.models.simulation.folder
