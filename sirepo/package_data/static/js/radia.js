@@ -3987,7 +3987,7 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
                 fn[f] = currentPath[f];
             });
         }
-    };
+    }
 
     $scope.whenSelected = () => {
         $scope.modelData = appState.models[$scope.modelName];
