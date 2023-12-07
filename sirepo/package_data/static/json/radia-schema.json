@@ -384,8 +384,8 @@
             ["reset", "Reset"]
         ],
         "SymmetryType": [
-            ["perpendicular", "Perpendicular"],
-            ["parallel", "Parallel"]
+            ["perpendicular", "Perpendicular to Plane"],
+            ["parallel", "Parallel to Plane"]
         ],
         "SpatialTransform": [
             ["translate", "Translate"],
@@ -1078,7 +1078,7 @@
             "name": ["Name", "String", "Symmetry"],
             "symmetryPlane": ["Plane", "FloatArray", [1.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "symmetryPoint": ["Point", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "symmetryType": ["B at Plane", "SymmetryType", "parallel"],
+            "symmetryType": ["Invert M Component", "SymmetryType", "parallel"],
             "type": ["_", "TransformTypes", "symmetryTransform"]
         },
         "tee": {
