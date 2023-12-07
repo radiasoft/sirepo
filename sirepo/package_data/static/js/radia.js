@@ -3962,18 +3962,14 @@ SIREPO.viewLogic('optimizerView', function(activeSection, appState, panelState, 
             }
             panelState.showField(md[0], md[1], md[0] === fn);
         }
-        $scope[`update${SIREPO.UTILS.capitalize(fn)}`](appState.models[fn]);
+        updateObjectiveFunctionQuality(appState.models[fn]);
     }
 
     function updateSoftware() {
         panelState.showField('optimizationSoftwareDFOLS', 'components', appState.models[$scope.modelName].software.type === 'optimizationSoftwareDFOLS');
     }
 
-    $scope.updateIntegral = fn => {};
-
-    $scope.updateNone = fn => {};
-
-    $scope.updateObjectiveFunctionQuality = fn => {
+    function updateObjectiveFunctionQuality(fn) {
 
         const pathFields = ['begin', 'end'];
         const useFieldPath = fn.useFieldPath === '1' &&
