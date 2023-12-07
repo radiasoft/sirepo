@@ -468,7 +468,7 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
             return false;
         }
         return isNaN(Number(o[f]));
-    }
+    };
 
     self.scriptableObjects = () => self.addressableObjects(['Float', 'FloatArray', 'ScriptableField', 'ScriptableArray']);
 
@@ -499,7 +499,7 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
             }
         }
         return recomputeRequired;
-    }
+    };
 
     // {varName0: value0, ...}
     self.updateCacheForVars = (vars, rpnCache) => {
@@ -508,7 +508,7 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
             recomputeRequired = self.updateCacheForVar(varName, vars[varName], rpnCache);
         }
         return recomputeRequired;
-    }
+    };
     
     self.updateRPNVars = () => {
         if (! appState.models.rpnVariables) {
@@ -1207,8 +1207,7 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
         appState.copySimulation(
             appState.models.simulation.simulationId,
             data => {
-                const objs = data.models.geometryReport.objects
-                applyResults(objs);
+                applyResults(data.models.geometryReport.objects);
                 for (const p in self.summaryData) {
                     radiaService.getObjectByName(p, data.models.rpnVariables).value = self.summaryData[p];
                 }
@@ -1235,18 +1234,6 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
                         }
                     );
                 }
-                /*
-                requestSender.sendRequest(
-                    'saveSimulationData',
-                    () => {
-                        requestSender.localRedirectHome(data.models.simulation.simulationId);
-                    },
-                    data,
-                    err => {
-                        throw new Error('Simulation creation failed: ' + err);
-                    }
-                );
-                */
             },
             `${appState.models.simulation.name} (optimized)`,
             appState.models.simulation.folder
