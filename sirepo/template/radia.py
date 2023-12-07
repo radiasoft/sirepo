@@ -1039,7 +1039,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
         qcall=qcall,
     )
     v.objects = g.get("objects", [])
-    if data.models.rpnVariables:
+    if data.models.get("rpnVariables"):
         _evaluate_objects(
             v.objects, data.models.rpnVariables, code_var(data.models.rpnVariables)
         )
