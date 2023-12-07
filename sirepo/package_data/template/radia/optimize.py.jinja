@@ -118,7 +118,6 @@ def main(*args, **kwargs):
     _update_objects(**kwargs)
     g_id, id_map = _build_radia_geom()
     s = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
-    print("SOLVE DONE {}".format(s))
     return objective_function(g_id)
 
 
