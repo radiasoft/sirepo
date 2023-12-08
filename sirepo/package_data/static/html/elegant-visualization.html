@@ -11,10 +11,7 @@
                 {{ visualization.runningStatusText() }}
                 <div data-simulation-status-timer="visualization.simState"></div>
               </div>
-              <div class="progress">
-                <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': visualization.simState.isInitializing() }" role="progressbar" aria-valuenow="{{ visualization.simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ visualization.simState.getPercentComplete() }}%">
-                </div>
-              </div>
+              <div data-sim-state-progress-bar="" data-sim-state="visualization.simState"></div>
             </div>
             <div class="col-sm-6 pull-right">
               <button class="btn btn-default" data-ng-click="visualization.simState.cancelSimulation()">{{ visualization.stopButtonLabel() }}</button>
