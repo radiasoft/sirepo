@@ -7,6 +7,7 @@
 from pmd_beamphysics import ParticleGroup
 from pykern import pkio
 from pykern.pkcollections import PKDict
+from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -106,6 +107,7 @@ _ELEGANT_BEAM_PARAMETER_FILE = PKDict(
     Cx="run_setup.centroid.sdds",
     Cy="run_setup.centroid.sdds",
 )
+_RELATED_SIMS_FOLDER = "/Omega"
 _SUCCESS_OUTPUT_FILE = PKDict(
     elegant="run_setup.output.sdds",
     opal="opal.h5",
@@ -124,6 +126,33 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=1,
         outputInfo=_output_info(run_dir),
     )
+
+
+def copy_related_sims(data, qcall=None):
+    for index, sim_obj in enumerate(data.models.simWorkflow.coupledSims):
+        if sim_obj.simulationType and sim_obj.simulationId:
+            p = pkio.py_path(
+                simulation_db.find_global_simulation(
+                    sim_obj.simulationType,
+                    sim_obj.simulationId,
+                )
+            ).join("sirepo-data.json")
+            c = pkjson.load_any(p)
+            c.models.simulation.isExample = False
+            c.models.simulation.folder = _RELATED_SIMS_FOLDER
+            s = simulation_db.save_new_simulation(
+                c,
+                qcall=qcall,
+            )
+            sirepo.sim_data.get_class(sim_obj.simulationType).lib_files_from_other_user(
+                c,
+                simulation_db.lib_dir_from_sim_dir(p),
+                qcall=qcall,
+            )
+            data.models.simWorkflow.coupledSims[
+                index
+            ].simulationId = s.models.simulation.simulationId
+    return data
 
 
 def get_data_file(run_dir, model, frame, options):

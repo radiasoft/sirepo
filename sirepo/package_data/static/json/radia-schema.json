@@ -368,8 +368,8 @@
             ["reset", "Reset"]
         ],
         "SymmetryType": [
-            ["perpendicular", "Parallel"],
-            ["parallel", "Perpendicular"]
+            ["perpendicular", "Perpendicular to Plane"],
+            ["parallel", "Parallel to Plane"]
         ],
         "SpatialTransform": [
             ["translate", "Translate"],
@@ -780,7 +780,7 @@
             "_super": ["_", "model", "fieldPath"],
             "center": ["Center [mm]", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
             "size": ["Size [mm]", "FloatArray", [1, 1, 1], "", ["x", "y", "z"]],
-            "numPoints": ["Num Points", "Integer", 10, "", 2],
+            "numPoints": ["Points per Dimension", "Integer", 10, "The total number of points is the cube of this number. Limited to the range [{{ SIREPO.APP_SCHEMA.model.fieldMapPath.numPoints[SIREPO.INFO_INDEX_MIN] }}, {{ SIREPO.APP_SCHEMA.model.fieldMapPath.numPoints[SIREPO.INFO_INDEX_MAX] }}]", 2, 20],
             "type": ["_", "PathType", "fieldMapPath"]
         },
         "fieldPath": {
@@ -1004,7 +1004,7 @@
             "name": ["Name", "String", "Symmetry"],
             "symmetryPlane": ["Plane", "FloatArray", [1.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "symmetryPoint": ["Point", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
-            "symmetryType": ["B at Plane", "SymmetryType", "parallel"],
+            "symmetryType": ["Invert M Component", "SymmetryType", "parallel"],
             "type": ["_", "TransformTypes", "symmetryTransform"]
         },
         "tee": {

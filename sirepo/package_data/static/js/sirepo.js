@@ -84,7 +84,7 @@ SIREPO.viewLogic = function(name, init) {
                     for (var idx = 0; idx < scope.watchFields.length; idx += 2) {
                         var fields = scope.watchFields[idx];
                         var callback = utilities.debounce(scope.watchFields[idx + 1], SIREPO.debounce_timeout);
-                        appState.watchModelFields(scope, fields, callback);
+                        appState.watchModelFields(scope, fields, callback, true);
                     }
                 }
             },

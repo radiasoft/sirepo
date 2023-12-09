@@ -1189,17 +1189,25 @@
                 "nuclide"
             ]
         },
+        "tallySettings": {
+            "title": "Tally Settings",
+            "model": "openmcAnimation",
+            "basic": [
+                "tally",
+                "score",
+                "aspect",
+                "openmcAnimation.energyRangeSum",
+                "colorMap",
+                "threshold",
+                "opacity",
+                "tallyReport.axis"
+            ],
+            "advanced": []
+        },
         "openmcAnimation": {
             "title": "Tally Results",
             "is3d": true,
             "advanced": [
-                "tally",
-                "threshold",
-                "score",
-                "aspect",
-                "energyRangeSum",
-                "colorMap",
-                "opacity",
                 "bgColor",
                 "showMarker"
             ]

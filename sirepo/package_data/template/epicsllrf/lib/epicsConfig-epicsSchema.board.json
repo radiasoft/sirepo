@@ -1,0 +1,155 @@
+{
+    "constants": {
+        "computedValues": {
+            "adc0Magnitude": {
+                "method": "magnitude",
+                "args": [
+                    "rfsoc_ioc_Root_PvProcessor:AdcI[0]",
+                    "rfsoc_ioc_Root_PvProcessor:AdcQ[0]"
+                ]
+            },
+            "adc1Magnitude": {
+                "method": "magnitude",
+                "args": [
+                    "rfsoc_ioc_Root_PvProcessor:AdcI[1]",
+                    "rfsoc_ioc_Root_PvProcessor:AdcQ[1]"
+                ]
+            },
+            "adc2Magnitude": {
+                "method": "magnitude",
+                "args": [
+                    "rfsoc_ioc_Root_PvProcessor:AdcI[2]",
+                    "rfsoc_ioc_Root_PvProcessor:AdcQ[2]"
+                ]
+            },
+            "adc0Phase": {
+                "method": "phase",
+                "args": [
+                    "rfsoc_ioc_Root_PvProcessor:AdcI[0]",
+                    "rfsoc_ioc_Root_PvProcessor:AdcQ[0]"
+                ]
+            },
+            "adc1Phase": {
+                "method": "phase",
+                "args": [
+                    "rfsoc_ioc_Root_PvProcessor:AdcI[1]",
+                    "rfsoc_ioc_Root_PvProcessor:AdcQ[1]"
+                ]
+            },
+            "adc2Phase": {
+                "method": "phase",
+                "args": [
+                    "rfsoc_ioc_Root_PvProcessor:AdcI[2]",
+                    "rfsoc_ioc_Root_PvProcessor:AdcQ[2]"
+                ]
+            },
+            "dacMagnitude": {
+                "method": "magnitude",
+                "args": [
+                    "rfsoc_ioc_Root_PvProcessor:DacI",
+                    "rfsoc_ioc_Root_PvProcessor:DacQ"
+                ]
+            },
+            "dacPhase": {
+                "method": "phase",
+                "args": [
+                    "rfsoc_ioc_Root_PvProcessor:DacI",
+                    "rfsoc_ioc_Root_PvProcessor:DacQ"
+                ]
+            }
+        },
+        "epicsModelPrefix": "rfsoc_ioc",
+        "editorModelName": "ZCUSignalGenerator",
+        "epicsPlots": {
+            "waveformAReport": {
+                "x": "rfsoc_ioc_Root_PvProcessor:Time",
+                "y1": "dacMagnitude"
+            },
+            "waveformBReport": {
+                "x": "rfsoc_ioc_Root_PvProcessor:Time",
+                "y1": "adc0Magnitude",
+                "y2": "adc1Magnitude",
+                "y3": "adc2Magnitude"
+            },
+            "waveformCReport": {
+                "x": "rfsoc_ioc_Root_PvProcessor:Time",
+                "y1": "dacPhase"
+            },
+            "waveformDReport": {
+                "x": "rfsoc_ioc_Root_PvProcessor:Time",
+                "y1": "adc0Phase",
+                "y2": "adc1Phase",
+                "y3": "adc2Phase"
+            },
+            "plotLabels": {
+                "dacMagnitude": "Magnitude",
+                "dacPhase": "Phase (deg)",
+                "rfsoc_ioc_Root_PvProcessor:Time": "Time (ns)",
+                "rfsoc_ioc_Root_PvProcessor:DacI": "Source",
+                "rfsoc_ioc_Root_PvProcessor:AdcI[0]": "Forward",
+                "rfsoc_ioc_Root_PvProcessor:AdcI[1]": "Reflected",
+                "rfsoc_ioc_Root_PvProcessor:AdcI[2]": "Loopback",
+                "adc0Magnitude": "Forward",
+                "adc1Magnitude": "Reflected",
+                "adc2Magnitude": "Loopback",
+                "adc0Phase": "Forward",
+                "adc1Phase": "Reflected",
+                "adc2Phase": "Loopback"
+            }
+        },
+        "isManualSignalGenerator": true
+    },
+    "model": {
+        "ZCUSignalGenerator": {
+            "amp": ["Amplitude [counts]", "Float", 32000],
+            "start": ["Start of Pulse [clock cycles]", "Float", 0],
+            "duration": ["Pulse Duration [clock cycles]", "Float", 1023]
+        },
+        "rfsoc_ioc_Root_PvProcessor": {
+            "Time": ["", "ReadOnlyFloatArray", []],
+            "DacI": ["", "ReadOnlyFloatArray", []],
+            "DacQ": ["", "ReadOnlyFloatArray", []],
+            "AdcI[0]": ["", "ReadOnlyFloatArray", []],
+            "AdcI[1]": ["", "ReadOnlyFloatArray", []],
+            "AdcI[2]": ["", "ReadOnlyFloatArray", []],
+            "AdcQ[0]": ["", "ReadOnlyFloatArray", []],
+            "AdcQ[1]": ["", "ReadOnlyFloatArray", []],
+            "AdcQ[2]": ["", "ReadOnlyFloatArray", []]
+        },
+        "waveformAReport": {},
+        "waveformBReport": {},
+        "waveformCReport": {},
+        "waveformDReport": {}
+    },
+    "view": {
+        "ZCUSignalGenerator": {
+            "title": "Signal Generator",
+            "basic": [
+                "amp",
+                "start",
+                "duration"
+            ],
+            "advanced": []
+        },
+        "waveformAReport": {
+            "title": "Source Magnitude",
+            "hasDataFile": false,
+            "advanced": []
+        },
+        "waveformBReport": {
+            "title": "Magnitude",
+            "hasDataFile": false,
+            "advanced": []
+        },
+        "waveformCReport": {
+            "title": "Source Phase",
+            "hasDataFile": false,
+            "advanced": []
+        },
+        "waveformDReport": {
+            "title": "Phase",
+            "hasDataFile": false,
+            "advanced": []
+        }
+    }
+}

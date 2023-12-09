@@ -47,7 +47,7 @@ def test_arrays():
     pkeq([124, 125, 126], code_var.eval_var("expressionArray")[0])
     pkeq([[1, 2, 3], [4, 5], [129]], code_var.eval_var("nestedArray")[0])
     # expressions containing arrays are not currently handled
-    pkeq("unknown token: numberArray[0]", code_var.eval_var("arrayExpression")[1])
+    pkeq(2, code_var.eval_var("arrayExpression")[0])
     pkeq("unknown token: y", code_var.eval_var("invalidExpressionArray")[1])
 
 
