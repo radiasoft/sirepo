@@ -12,7 +12,7 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.dipoleType = 'dipoleBasic';
     SIREPO.appDefaultSimulationValues.simulation.undulatorType = 'undulatorBasic';
     SIREPO.appDefaultSimulationValues.simulation.freehandType = 'freehand';
-    SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['solverAnimation', 'optimizerAnimation'];
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="BevelEdge" class="col-sm-12">
           <div data-bevel-edge="" data-model="model" data-model-name="modelName" data-field="field"></div>
@@ -339,7 +339,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
         for (const j of [0, 1]) {
             const k = (i + j + 1) % 3;
             const side = o.sides[j];
-            
+
             // handle scripted sides - note do not use parseFloat!
             if (isNaN(Number(side))) {
                 s[k] = side + ` + ${d}`;
@@ -410,7 +410,7 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
                     x => types.includes(info[x][SIREPO.INFO_INDEX_TYPE])
                 );
             }
-    
+
             const s = new Set();
             for (const m of [modelName, ...appState.superClasses(modelName)]) {
                 for (const f of optFieldsOfModel(m)) {
@@ -509,7 +509,7 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
         }
         return recomputeRequired;
     };
-    
+
     self.updateRPNVars = () => {
         if (! appState.models.rpnVariables) {
             appState.models.rpnVariables = [];
@@ -1092,7 +1092,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
     }
     radiaVariableService.updateRPNVars();
     loadObjectViews();
-    
+
 
     $scope.$on('cancelChanges', function(e, name) {
         if (name === 'geometryReport') {
@@ -1107,7 +1107,7 @@ SIREPO.app.controller('RadiaSourceController', function (appState, panelState, r
         }
         let o = self.selectedObject;
         if (o) {
-            
+
             if (! radiaService.getObject(o.id)) {
                 // catch unrelated saved objects
                 if (o.type === modelName || panelState.getBaseModelKey(o.type) === modelName) {
@@ -1191,7 +1191,7 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
         '<suffix>': 'out',
     });
 
-    
+
     self.newSimFromResults = () => {
         function applyResults(objects) {
             const modified = new Set();
@@ -1255,7 +1255,7 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
                 frameCache.setFrameCount(0);
                 return;
             }
-            frameCache.setFrameCount(data.frameCount);       
+            frameCache.setFrameCount(data.frameCount);
         }
     };
 
@@ -3215,7 +3215,7 @@ SIREPO.app.directive('scriptableField', function(appState, panelState, radiaVari
             panelState.waitForUI(() => {
                 search = utilities.buildSearch($scope, $element, $scope.scriptableClass(), true);
             });
-            
+
         },
         link: (scope, element) => {
             // add an icon to the label
@@ -3575,7 +3575,7 @@ SIREPO.app.directive('terminationTable', function(appState, panelState, radiaSer
 });
 
 SIREPO.viewLogic('fieldPathsView', function(appState, $scope) {
-    
+
     appState.watchModelFields(
         $scope,
         ['fieldPaths.paths'],
