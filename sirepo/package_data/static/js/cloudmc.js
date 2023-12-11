@@ -2128,11 +2128,27 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
         });
     }
 
+    function updateEnergyRange() {
+        const e = cloudmcService.findFilter(TYPE_ENERGY);
+        $scope.energyFilter = e;
+        if (! e || ! cloudmcService.findFilter(TYPE_MESH)) {
+            return;
+        }
+        
+        const s = appState.models.openmcAnimation.energyRangeSum;
+        s.space = e.space;
+        s.min = e.start;
+        s.max = e.stop;
+        s.step = Math.abs(e.stop - e.start) / e.num;
+    }
+    
     function validateFilters() {
+        srdbg('VF');
         const ef = cloudmcService.findFilter('energyFilter');
         if (! ef) {
             return;
         }
+
         const boundsValid = ef.start < ef.stop;
         validationService.validateField(
             'energyFilter',
@@ -2141,6 +2157,7 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
             boundsValid,
             'Start must be less than stop'
         );
+
     }
 
     $scope.whenSelected = updateEditor;
@@ -2529,12 +2546,12 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         panelState.showFields('tallyReport', [
             'axis', is2D,
         ]);
+        panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
     }
 
     function updateEnergyRange() {
         const e = cloudmcService.findFilter(TYPE_ENERGY);
         $scope.energyFilter = e;
-        panelState.showField('openmcAnimation', 'energyRangeSum', ! ! e);
         if (! e || ! cloudmcService.findFilter(TYPE_MESH)) {
             return;
         }
@@ -2554,8 +2571,8 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
 
     $scope.whenSelected = () => {
-        showFields();
         updateEnergyRange();
+        showFields();
     };
 
     $scope.watchFields = [
