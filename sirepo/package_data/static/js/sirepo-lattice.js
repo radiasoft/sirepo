@@ -2821,7 +2821,7 @@ SIREPO.app.directive('rpnEditor', function() {
     };
 });
 
-SIREPO.app.directive('rpnValue', function(appState, rpnService) {
+SIREPO.app.directive('rpnValue', function(appState, rpnService, $timeout) {
     var requestIndex = 0;
     return {
         restrict: 'A',
@@ -2888,6 +2888,15 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                     return value;
                 }
                 return value.toString();
+            });
+
+            // handle programmatic changes - don't step on current parsing
+            scope.$watch('field', () => {
+                $timeout(() => {
+                    ngModel.$parsers.forEach(p => {
+                        p(ngModel.$viewValue);
+                    });
+                }, 500);
             });
         }
     };

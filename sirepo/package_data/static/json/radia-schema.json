@@ -240,7 +240,7 @@
         },
         "sirepoLibs": {
             "css": ["radia.css", "vtk.css"],
-            "js": ["radia.js"]
+            "js": ["sirepo-lattice.js", "radia.js"]
         }
     },
     "enum": {
@@ -331,6 +331,9 @@
             ["objectBevel", "Bevel"],
             ["objectFillet", "Fillet"]
         ],
+        "ObjectiveFunction": [
+            ["objectiveFunctionQuality", "Field Quality"]
+        ],
         "ObjectType": [
             ["cuboid", "Cuboid"],
             ["cylinder", "Cylinder"],
@@ -341,6 +344,16 @@
             ["racetrack", "RaceTrack"],
             ["tee", "Extruded Tee"],
             ["stl", "STL"]
+        ],
+        "OptimizationSoftwareType": [
+            ["optimizationSoftwareDFOLS", "DFO-LS"]
+        ],
+        "OptimizationSoftwareMethodType": [
+            ["dfols", "DFO-LS"]
+        ],
+        "OptimizerFieldType": [
+            ["optimizerField", "Built-in"],
+            ["objectOptimizerField", "Object Field"]
         ],
         "PathType": [
             ["axisPath", "Axis"],
@@ -393,9 +406,10 @@
         ]
     },
     "frameIdFields": {
-        "solverAnimation": [],
         "fieldLineoutAnimation": [],
-        "magnetViewer": []
+        "magnetViewer": [],
+        "optimizerAnimation": [],
+        "solverAnimation": []
     },
     "localRoutes": {
         "source": {
@@ -410,6 +424,13 @@
             "config": {
                 "controller": "RadiaVisualizationController as viz",
                 "templateUrl": "/static/html/radia-visualization.html"
+            }
+        },
+        "optimization": {
+            "route": "/optimization/:simulationId",
+            "config": {
+                "controller": "RadiaOptimizationController as opt",
+                "templateUrl": "/static/html/radia-optimization.html"
             }
         }
     },
@@ -428,7 +449,7 @@
         "cylinder": {
             "_super": ["_", "model", "extrudedObject"],
             "numSides": ["Number of Sides", "Integer", 10, "A cylinder is approximated by a regular polyhedron of this number of sides", 6],
-            "radius": ["Radius", "Float", 5.0, "", 0.0],
+            "radius": ["Radius", "ScriptableField", 5.0, "", 1e-06],
             "segmentation": ["Segmentation Type", "SegmentationType", "cyl"],
             "type": ["_", "ObjectType", "cylinder"]
         },
@@ -812,7 +833,7 @@
         },
         "geomObject": {
             "_super": ["_", "model", "radiaObject"],
-            "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "center": ["Center [mm]", "ScriptableArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "id": ["_", "RandomId", ""],
             "layoutShape":  ["_", "String", "rect"],
             "magnetization": ["Magentization [T]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
@@ -823,13 +844,13 @@
             "remanentMag": ["Remanent Magnetization [T]", "Float", 0.0, "", 0.0],
             "segmentation": ["Segmentation Type", "SegmentationType", "pln"],
             "segmentationCylAxis": ["Segment Axis", "BeamAxis", "z"],
-            "segmentationCylPoint": ["Segment Origin", "FloatArray", [0, 0, 0], "", ["x", "y", "z"]],
-            "segmentationCylRadius": ["Segment Radial Width [mm]", "Float", 5.0],
+            "segmentationCylPoint": ["Segment Origin", "ScriptableArray", [0, 0, 0], "", ["x", "y", "z"]],
+            "segmentationCylRadius": ["Segment Radial Width [mm]", "ScriptableField", 5.0],
             "segmentationCylRatio": ["Segment Axis Ratio", "Float", 1.0, "Ratio of {{ appState.models.geomObject.segmentationCylAxisMajor }} to {{ appState.models.geomObject.segmentationCylAxisMinor }} axes of base (1.0 = circular)", 0.0],
             "segmentationCylUseObjectCenter": ["Use object center as origin", "Boolean", "1"],
             "segments": ["Segments", "IntArray", [1, 1, 1], "", ["N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{rad}' : '{x}' }}$", "N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{az}' : '{y}' }}$", "N$\\small{{ appState.models.geomObject.segmentation == 'cyl' ? '{ax}' : '{z}' }}$"], [1, 1, 1]],
             "shapeButton": ["Shape", "ShapeButton", {}],
-            "size": ["Size [mm]", "FloatArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]],
+            "size": ["Size [mm]", "ScriptableArray", [10.0, 10.0, 10.0], "", ["x", "y", "z"], [0, 0, 0]],
             "type": ["Shape Type", "ObjectType", "cuboid"]
         },
         "jay": {
@@ -911,8 +932,53 @@
             "radius": ["Radius", "Float", 1.0],
             "type": ["_", "ObjectCutType", "objectFillet"]
         },
+        "objectiveFunction": {
+            "code": ["Code", "String", ""],
+            "type": ["_", "ObjectiveFunction", "objectiveFunctionQuality"]
+        },
+        "objectiveFunctionQuality": {
+            "_super": ["_", "model", "objectiveFunction"],
+            "begin": ["Start [mm]", "FloatArray", [-10.0, 0, 0], "", ["x", "y", "z"]],
+            "component": ["Field Component", "BeamAxis", "z"],
+            "deviation": ["Deviation [mm]", "FloatArray", [0, 1.0, 0], "", ["± ∂x", "± ∂y", "± ∂z"]],
+            "end": ["End [mm]", "FloatArray", [10.0, 0, 0], "", ["x", "y", "z"]],
+            "fieldPaths": ["Path", "FieldPaths", []],
+            "type": ["Objective Function", "ObjectiveFunction", "objectiveFunctionQuality"],
+            "useFieldPath": ["Use Field Path", "Boolean", "0"]
+        },
          "objectShape": {
             "viewAxis": ["View Along Axis", "BeamAxis", "z"]
+        },
+        "optimizationSoftware": {
+            "method": ["Method", "OptimizationSoftwareMethodType", "dfols"],
+            "rsoptName": ["_", "String", "dfols"],
+            "type": ["Optimization Package", "OptimizationSoftwareType", "optimizationSoftwareDFOLS"]
+        },
+        "optimizationSoftwareDFOLS": {
+            "_super": ["_", "model", "optimizationSoftware"],
+            "components": ["Components", "Integer", 5],
+            "rsoptName": ["_", "String", "dfols"],
+            "type": ["", "OptimizationSoftwareType", "optimizationSoftwareDFOLS"]
+        },
+        "optimizer": {
+            "maxIterations": ["Max iterations", "Integer", 50, "", 2],
+            "objective": ["Objective Function", "ObjectiveFunction", "objectiveFunctionQuality", "$\\sum_i B^{\\rm{int}}_{{ appState.models.objectiveFunctionQuality.component }}(x_i) - B^{\\rm{int}}_{{ appState.models.objectiveFunctionQuality.component }}(0)$, $B^{\\rm{int}}_{{ appState.models.objectiveFunctionQuality.component }}(x_i) - B^{\\rm{int}}_{{ appState.models.objectiveFunctionQuality.component }}(0)$"],
+            "parameters": ["Parameters", "ObjectOptimizerField", []],
+            "software": ["Optimization Package", "model.optimizationSoftware", {
+                "components": 5,
+                "rsoptName": "dfols",
+                "type": "optimizationSoftwareDFOLS"
+            }],
+            "tolerance": ["Relative Tolerance", "Float", 0.0001]
+        },
+        "optimizerAnimation": {
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "notes": ["Notes", "Text", ""],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["Cores", "Integer", 1],
+            "sbatchProject": ["Project", "OptionalString", ""]
         },
         "pointsReport": {
             "doSnap": ["Snap to Grid", "Boolean", "0"],
@@ -921,16 +987,16 @@
         "racetrack": {
             "_super": ["_", "model", "radiaObject"],
             "axis": ["Axis", "BeamAxis", "y"],
-            "center": ["Center [mm]", "FloatArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
+            "center": ["Center [mm]", "ScriptableArray", [0.0, 0.0, 0.0], "", ["x", "y", "z"]],
             "currentDensity": ["Current Density [A/$mm^2$]", "Float", -0.5],
             "fieldCalc": ["Field Calculation", "AutoManual", "auto", ""],
-            "height": ["Height ({{ appState.models.racetrack.axis }}) [mm]", "Float", 105.0, "Measured along axis"],
+            "height": ["Height ({{ appState.models.racetrack.axis }}) [mm]", "ScriptableField", 105.0, "Measured along axis"],
             "numSegments": ["Number of Corner Segments", "Integer", 3, "", 0],
             "planeAxis1": ["_", "BeamAxis", "z"],
             "planeAxis2": ["_", "BeamAxis", "x"],
-            "radii": ["Radii [mm]", "FloatArray", [5.0, 40.0], "", ["Inner", "Outer"], [0, 0]],
-            "sides": ["Straight Sides [mm]", "FloatArray", [50.0, 62.5], "", ["Length ({{ appState.models.racetrack.planeAxis1 }})", "Width ({{ appState.models.racetrack.planeAxis2 }})"], [0, 0]],
-            "size": ["Size", "FloatArray", [1.0, 1.0, 1.0], "", ["x", "y", "z"], [0, 0, 0]],
+            "radii": ["Radii [mm]", "ScriptableArray", [5.0, 40.0], "", ["Inner", "Outer"], [0, 0]],
+            "sides": ["Straight Sides [mm]", "ScriptableArray", [50.0, 62.5], "", ["Length ({{ appState.models.racetrack.planeAxis1 }})", "Width ({{ appState.models.racetrack.planeAxis2 }})"], [0, 0]],
+            "size": ["Size", "ScriptableArray", [1.0, 1.0, 1.0], "", ["x", "y", "z"], [0, 0, 0]],
             "type": ["_", "ObjectType", "racetrack"]
         },
         "radiaObject": {
@@ -956,9 +1022,14 @@
             "type": ["_", "TransformTypes", "rotate"],
             "useObjectCenter": ["use clone center as origin", "Boolean", "1"]
         },
+        "rpnCache": {},
+        "rpnVariable": {
+            "name": ["Name", "String"],
+            "value": ["Value", "RPNValue"]
+        },
         "simulation": {
             "appMode": ["", "ApplicationMode", "default"],
-            "areObjectsUnlockable": ["_", "Boool", true],
+            "areObjectsUnlockable": ["_", "Bool", true],
             "beamAxis": ["Beam Axis", "BeamAxis", "z", "The beam will travel along this axis, used when exporting fields"],
             "coordinateSystem": ["Coordinate System", "CoordinateSystem" , "standard", "Ordering of spatial variables. Use Standard for [x, y, z] or Beam for [width, height, length]"],
             "dipoleType": ["Dipole Type", "DipoleType", "dipoleBasic"],
@@ -1116,11 +1187,14 @@
     },
     "strings": {
         "completionState": "",
-        "solverAnimation": {
-            "typeOfSimulation": "Solve"
-        },
         "fieldLineoutAnimation": {
             "typeOfSimulation": "Field Plot"
+        },
+        "optimizerAnimation": {
+            "typeOfSimulation": "Optimization"
+        },
+        "solverAnimation": {
+            "typeOfSimulation": "Solve"
         }
     },
     "view": {
@@ -1508,6 +1582,41 @@
                 ]]
             ]
         },
+        "optimizer": {
+            "title": "Optimization",
+            "basic": [
+                ["Main", [
+                    "optimizer.software.type",
+                    "optimizer.software.method",
+                    "optimizationSoftwareDFOLS.components",
+                    "tolerance",
+                    "maxIterations"
+                ]],
+                ["Objective Function", [
+                    "objective",
+                    "objectiveFunctionQuality.component",
+                    "objectiveFunctionQuality.useFieldPath",
+                    "objectiveFunctionQuality.fieldPaths",
+                    "objectiveFunctionQuality.begin",
+                    "objectiveFunctionQuality.end",
+                    "objectiveFunctionQuality.deviation"
+                ]],
+                ["Parameters", [
+                    "parameters"
+                ]]
+            ],
+            "advanced": []
+        },
+        "optimizerAnimation": {
+            "title": "Optimization Path",
+            "advanced": [
+                "notes"
+            ]
+        },
+        "optimizerStatus": {
+            "title": "Optimization Status",
+            "advanced": []
+        },
         "pointsReport": {
             "title": "Points",
             "basic": [
@@ -1718,6 +1827,15 @@
                 ["Termination", [
                     "terminations"
                 ]]
+            ]
+        },
+        "objectiveFunctionQuality": {
+            "title": "Field Quality",
+            "advanced": [],
+            "basic": [
+                "begin",
+                "end",
+                "deviation"
             ]
         }
     }
