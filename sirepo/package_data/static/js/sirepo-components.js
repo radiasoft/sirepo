@@ -1250,11 +1250,11 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
             field: '=',
         },
         template: `
-            <div class="modal fade" id="sr-fileUpload{{ fileType }}-editor" tabindex="-1" role="dialog">
+            <div class="modal fade" id="sr-fileUpload{{ fileType }}-editor" tabindex="-1" role="dialog" data-backdrop="static">
               <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                   <div class="modal-header bg-info">
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <button type="button" class="close" data-dismiss="modal"><span data-ng-if="! isUploading">&times;</span></button>
                     <span class="lead modal-title text-info">{{ dialogTitle }}</span>
                   </div>
                   <div class="modal-body">
