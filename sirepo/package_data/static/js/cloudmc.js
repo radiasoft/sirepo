@@ -1749,7 +1749,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
         `,
         controller: function($scope) {
             const TYPE_NONE = 'None';
-            
+
             function setView() {
                 if (type() && type() !== TYPE_NONE) {
                     $scope.viewFields = SIREPO.APP_SCHEMA.view[type()].advanced
@@ -2531,9 +2531,6 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
 
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, $scope) {
 
-    const TYPE_ENERGY = 'energyFilter';
-    const TYPE_MESH = 'meshFilter';
-
     const autoUpdate = utilities.debounce(() => {
         appState.saveChanges('openmcAnimation');
     }, SIREPO.debounce_timeout);
@@ -2550,9 +2547,9 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     }
 
     function updateEnergyRange() {
-        const e = cloudmcService.findFilter(TYPE_ENERGY);
+        const e = cloudmcService.findFilter('energyFilter');
         $scope.energyFilter = e;
-        if (! e || ! cloudmcService.findFilter(TYPE_MESH)) {
+        if (! e || ! cloudmcService.findFilter('meshFilter')) {
             return;
         }
         
