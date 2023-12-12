@@ -28,6 +28,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
+        sch = cls.schema()
         dm = data.models
         cls._init_models(
             dm,
@@ -50,7 +51,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if "tally" in dm:
             del dm["tally"]
         for t in dm.settings.tallies:
-            for i in range(1, 6):
+            for i in range(1, sch.constants.maxFilters + 1):
                 f = t[f"filter{i}"]
                 y = f._type
                 if y != "None":
