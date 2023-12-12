@@ -181,7 +181,7 @@ def sim_frame(frame_args):
     ).get_tally(name=frame_args.tally)
     try:
         # openmc doesn't have a has_filter() api
-        mf = t.find_filter(openmc.MeshFilter)
+        t.find_filter(openmc.MeshFilter)
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
 
