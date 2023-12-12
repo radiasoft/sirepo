@@ -2174,7 +2174,6 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
     ];
 
     $scope.$on(`${$scope.modelName}.changed`, () => {
-        srdbg('CH');
         updateEnergyRange(cloudmcService.findFilter('energyFilter'));
     });
 });
