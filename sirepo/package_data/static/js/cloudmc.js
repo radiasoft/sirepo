@@ -2112,7 +2112,6 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
     
     function updateEditor() {
         updateAvailableFilters();
-        //validateFilters();
     }
 
     function updateAvailableFilters() {
@@ -2126,48 +2125,58 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
         inds.forEach(i => {
             panelState.showEnum('filter', '_type', type(i), true, i - 1);
         });
+        
     }
 
-    function updateEnergyRange() {
-        const e = cloudmcService.findFilter(TYPE_ENERGY);
-        $scope.energyFilter = e;
-        if (! e || ! cloudmcService.findFilter(TYPE_MESH)) {
-            return;
-        }
-        
+    function updateEnergyRange(filter) {
         const s = appState.models.openmcAnimation.energyRangeSum;
-        s.space = e.space;
-        s.min = e.start;
-        s.max = e.stop;
-        s.step = Math.abs(e.stop - e.start) / e.num;
+        s.space = filter.space;
+        s.min = filter.start;
+        s.max = filter.stop;
+        s.step = Math.abs(filter.stop - filter.start) / filter.num;
     }
     
-    function validateFilters() {
-        srdbg('VF');
-        const ef = cloudmcService.findFilter('energyFilter');
-        if (! ef) {
+    function validateEnergyFilter(filter) {
+        if (! filter) {
             return;
         }
+        const rangeFields = ['start', 'stop'];
+        if (rangeFields.map(x => filter[x]).some(x => x == null)) {
+            return;
+        }
+        const isValid = filter.start < filter.stop;
+        rangeFields.forEach(x => {
+            validationService.validateField(
+                'energyFilter',
+                x,
+                'input',
+                isValid,
+                'Start must be less than stop'
+            );
+        });
+    }
 
-        const boundsValid = ef.start < ef.stop;
-        validationService.validateField(
-            'energyFilter',
-            'start',
-            'input',
-            boundsValid,
-            'Start must be less than stop'
-        );
-
+    function validateFilter(field) {
+        const f = appState.models[$scope.modelName][ field.split('.')[1]];
+        if (f._type === 'None') {
+            return;
+        }
+        if (f._type === 'energyFilter' || f._type === 'energyoutFilter') {
+            validateEnergyFilter(f);
+        }
     }
 
     $scope.whenSelected = updateEditor;
     
     $scope.watchFields = [
         inds.map(i => `${$scope.modelName}.filter${i}._type`), updateEditor,
+        inds.map(i => `${$scope.modelName}.filter${i}`), validateFilter,
     ];
 
-    $scope.$watch($scope.modelName, validateFilters, true);
-
+    $scope.$on(`${$scope.modelName}.changed`, () => {
+        srdbg('CH');
+        updateEnergyRange(cloudmcService.findFilter('energyFilter'));
+    });
 });
 
 SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {

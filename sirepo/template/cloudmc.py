@@ -528,7 +528,7 @@ def _generate_range(filter):
     stop = filter._scale * filter.stop
     if filter.space == "log":
         space = "logspace"
-        start = numpy.log10(start)
+        start = numpy.log10(start) if start > 0 else -307
         stop = numpy.log10(stop)
     return "numpy.{}({}, {}, {})".format(space, start, stop, filter.num)
 
