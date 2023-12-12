@@ -2127,14 +2127,6 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
         });
         
     }
-
-    function updateEnergyRange(filter) {
-        const s = appState.models.openmcAnimation.energyRangeSum;
-        s.space = filter.space;
-        s.min = filter.start;
-        s.max = filter.stop;
-        s.step = Math.abs(filter.stop - filter.start) / filter.num;
-    }
     
     function validateEnergyFilter(filter) {
         if (! filter) {
@@ -2172,10 +2164,6 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
         inds.map(i => `${$scope.modelName}.filter${i}._type`), updateEditor,
         inds.map(i => `${$scope.modelName}.filter${i}`), validateFilter,
     ];
-
-    $scope.$on(`${$scope.modelName}.changed`, () => {
-        updateEnergyRange(cloudmcService.findFilter('energyFilter'));
-    });
 });
 
 SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
