@@ -2106,6 +2106,10 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
     
     const TYPE_NONE = 'None';
 
+    function filterField(index) {
+        return `${$scope.modelName}.filter${index}`;
+    }
+
     function type(index) {
         return appState.models[$scope.modelName][`filter${index}`]._type;
     }
@@ -2161,8 +2165,8 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
     $scope.whenSelected = updateEditor;
     
     $scope.watchFields = [
-        inds.map(i => `${$scope.modelName}.filter${i}._type`), updateEditor,
-        inds.map(i => `${$scope.modelName}.filter${i}`), validateFilter,
+        inds.map(i => `${filterField(i)}._type`), updateEditor,
+        inds.map(i => `${filterField(i)}`), validateFilter,
     ];
 });
 
