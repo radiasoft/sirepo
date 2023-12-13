@@ -263,7 +263,7 @@ def init_module():
         return _cfg
     _cfg = pkconfig.init(
         max_message_bytes=(
-            int(2e3),
+            int(2e5),
             pkconfig.parse_bytes,
             "maximum message size throughout system",
         ),
