@@ -2013,11 +2013,12 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         // error: app specific
         socket = null;
         srlog("WebSocket failed: event=", event);
+        srdbg("toSend = ", toSend);
         if (event.reason == 'message too big') {
-            errorService.alertText('Attempted upload was too large');
+            errorService.alertText('ERROR: Attempted upload was too large');
             $('.modal').modal('hide');
         }
-        if (! event.wasClean) {
+        if (! event.wasClean && ! event.reason == 'message too big') {
             toSend.unshift(...Object.values(needReply));
             needReply = {};
         }
@@ -2215,7 +2216,10 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
                 (error) => {srlog("WebSocket.onmessage error=", error, " event=", event);}
             );
         };
-        s.onopen = (event) => {_send();};
+        s.onopen = (event) => {
+            srdbg("opening");
+            _send();
+        };
         socket = s;
     };
 
