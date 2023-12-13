@@ -2012,6 +2012,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         // close: event.code : short, event.reason : str, wasClean : bool
         // error: app specific
         socket = null;
+        srlog("WebSocket failed: event=", event);
         if (event.reason == 'message too big') {
             errorService.alertText('Attempted upload was too large');
             $('.modal').modal('hide');
