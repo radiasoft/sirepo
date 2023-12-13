@@ -2206,12 +2206,8 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         const s = new WebSocket(
             new URL($window.location.href).origin.replace(/^http/i, "ws") + "/ws",
         );
-        s.onclose = (event) => {
-            _error(event);
-        };
-        s.onerror = (event) => {
-            _error(event);
-        };
+        s.onclose = (event) => {_error(event);};
+        s.onerror = (event) => {_error(event);};
         s.onmessage = (event) => {
             event.data.arrayBuffer().then(
                 (blob) => {_reply(blob);},

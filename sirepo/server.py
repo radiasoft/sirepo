@@ -590,7 +590,6 @@ class API(sirepo.quest.API):
         confirm="Bool optional",
     )
     async def api_uploadFile(self, simulation_type, simulation_id, file_type):
-        # raise sirepo.util.UserAlert("test")
         f = self.sreq.form_file_get()
         req = self.parse_params(
             file_type=file_type,
@@ -626,15 +625,13 @@ class API(sirepo.quest.API):
                     }
                 )
             t.rename(_lib_file_write_path(req))
-        res = self.reply_dict(
+        return self.reply_dict(
             {
                 "filename": req.filename,
                 "fileType": req.file_type,
                 "simulationId": req.id,
             }
         )
-        pkdp("\n\n\nres={}", res)
-        return res
 
     def _proxy_react(self, path):
         import requests

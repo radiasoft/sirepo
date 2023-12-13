@@ -1239,7 +1239,7 @@ SIREPO.app.directive('columnEditor', function(appState) {
     };
 });
 
-SIREPO.app.directive('fileUploadDialog', function(appState, errorService, fileUpload, panelState, requestSender) {
+SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -1303,7 +1303,6 @@ SIREPO.app.directive('fileUploadDialog', function(appState, errorService, fileUp
                             confirm: $scope.isConfirming,
                         }
                         : null,
-
                     requestSender.formatUrl(
                         'uploadFile',
                         {
@@ -1311,7 +1310,6 @@ SIREPO.app.directive('fileUploadDialog', function(appState, errorService, fileUp
                             simulation_type: SIREPO.APP_SCHEMA.simulationType,
                             file_type: $scope.fileType,
                         }),
-
                     function(data) {
                         $scope.isUploading = false;
                         if (data.error) {
@@ -1334,8 +1332,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, errorService, fileUp
                             appState.updateReports();
                         }
                         $('#' + panelState.modalId('fileUpload' + $scope.fileType)).modal('hide');
-                    }
-                );
+                    });
             };
         },
         link: function(scope, element) {
@@ -2725,8 +2722,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                             $scope.inputFile = null;
                             requestSender.localRedirectHome(data.models.simulation.simulationId);
                         }
-                    }
-                );
+                    });
             };
         },
         link: function(scope, element) {
@@ -2817,8 +2813,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
                             }
                             info.hasFile = true;
                             checkFiles();
-                        },
-                    );
+                        });
                     info.file = {};
                 }
                 return false;
