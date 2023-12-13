@@ -4,11 +4,10 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import copy
+import re
 import sirepo.sim_data
 
 
@@ -36,6 +35,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             return "fieldLineoutAnimation"
         elif analysis_model in ("solverAnimation", "reset"):
             return "solverAnimation"
+        elif analysis_model == "optimizerAnimation":
+            return "optimizerAnimation"
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
@@ -137,6 +138,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                     "end",
                 ):
                     _fixup_number_string_field(p, f)
+                if p.type == "fieldMapPath":
+                    if p.numPoints < sch.model.fieldMapPath.numPoints[4]:
+                        p.numPoints = sch.model.fieldMapPath.numPoints[4]
+                    if p.numPoints > sch.model.fieldMapPath.numPoints[5]:
+                        p.numPoints = sch.model.fieldMapPath.numPoints[5]
 
         def _fixup_number_string_field(model, field, to_type=float):
             if field not in model:
@@ -171,6 +177,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         def _fixup_geom_objects(objects):
             for o in objects:
+                o.name = re.sub(r"\s", "_", o.name)
                 if o.get("points") is not None and not o.get("triangulationLevel"):
                     o.triangulationLevel = 0.5
                 if not o.get("bevels"):

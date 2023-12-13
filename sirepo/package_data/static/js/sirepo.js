@@ -1187,21 +1187,27 @@ SIREPO.app.service('validationService', function(utilities) {
     };
 
     // html5 validation
-    this.validateField = function (model, field, inputType, isValid, msg) {
-        const mfId = utilities.modelFieldID(model, field);
-        const r = $(`.${mfId} ${inputType}`);
-        const f = r[0];
+    this.validateField = function(model, field, inputType, isValid, msg) {
+        this.validateInputSelectorString(`.${utilities.modelFieldID(model, field)} ${inputType}`, isValid, msg);
+    };
+
+    this.validateInputSelectorString = function(str, isValid, msg) {
+        this.validateInputSelector($(str), isValid, msg);
+    };
+
+    this.validateInputSelector = function(sel, isValid, msg) {
+        const f = sel[0];
         if (! f) {
             return;
         }
-        const fWarn = $(`.${mfId} .sr-input-warning`);
+        const fWarn = sel.siblings('.sr-input-warning').eq(0);
         const invalidClass = 'ng-invalid ng-dirty';
         fWarn.text(msg);
         fWarn.hide();
         f.setCustomValidity('');
-        r.removeClass(invalidClass);
+        sel.removeClass(invalidClass);
         if (! isValid) {
-            r.addClass(invalidClass);
+            sel.addClass(invalidClass);
             f.setCustomValidity(msg);
             fWarn.show();
         }

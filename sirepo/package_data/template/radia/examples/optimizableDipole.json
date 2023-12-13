@@ -1,0 +1,768 @@
+{
+    "models": {
+        "electronTrajectoryReport": {
+            "energy": 1,
+            "finalBeamPosition": 10,
+            "hidePanel": true,
+            "inProgressText": "Calculating",
+            "initialAngles": [
+                0,
+                0
+            ],
+            "initialPosition": [
+                0,
+                0,
+                -1
+            ],
+            "lastModified": 1701974050208,
+            "numPoints": 101
+        },
+        "fieldDisplay": {
+            "colorMap": "viridis",
+            "scaling": "uniform"
+        },
+        "fieldLineoutAnimation": {
+            "fieldPath": {
+                "_super": "linePath",
+                "axis": "z",
+                "begin": [
+                    0,
+                    0,
+                    -15
+                ],
+                "end": [
+                    0,
+                    0,
+                    15
+                ],
+                "id": "1zFFtUp1bjfvBHhmOIAewBiytse0X5WC",
+                "name": "Z-Axis",
+                "numPoints": 101,
+                "start": -15,
+                "stop": 15,
+                "type": "axisPath"
+            },
+            "fieldPaths": [],
+            "fieldType": "B",
+            "inProgressText": "Calculating",
+            "jobRunMode": "parallel",
+            "lastModified": 1701974087635,
+            "plotAxis": "z",
+            "sbatchCores": 1,
+            "sbatchHours": 0.4,
+            "sbatchProject": "",
+            "sbatchQueue": "debug",
+            "tasksPerNode": 128
+        },
+        "fieldPaths": {
+            "paths": [
+                {
+                    "_super": "linePath",
+                    "axis": "z",
+                    "begin": [
+                        0,
+                        0,
+                        -15
+                    ],
+                    "end": [
+                        0,
+                        0,
+                        15
+                    ],
+                    "id": "1zFFtUp1bjfvBHhmOIAewBiytse0X5WC",
+                    "name": "Z-Axis",
+                    "numPoints": 101,
+                    "start": -15,
+                    "stop": 15,
+                    "type": "axisPath"
+                }
+            ]
+        },
+        "geometryReport": {
+            "doGenerate": "0",
+            "id": "WPuAEzQcTRHlWtJk",
+            "isSolvable": "1",
+            "lastModified": 1701974050208,
+            "name": "dpo",
+            "objects": [
+                {
+                    "_super": "stemmed",
+                    "area": 0,
+                    "armHeight": 1.5,
+                    "armPosition": "0",
+                    "bevels": [],
+                    "center": [
+                        2,
+                        1.875,
+                        0
+                    ],
+                    "color": "#1f77b4",
+                    "extrusionAxis": "z",
+                    "extrusionAxisSegments": 4,
+                    "fillets": [],
+                    "groupId": "ViS8aDNfelmFEqyGeMsHdu4FPwzXxbM5",
+                    "heightAxis": "y",
+                    "hookHeight": 1.5,
+                    "hookWidth": 1,
+                    "id": "5ffrKAZdlSmCGM4IekigF17XBLkdPgZS",
+                    "isNew": true,
+                    "layoutShape": "polygon",
+                    "magnetization": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "material": "nonlinear",
+                    "materialFile": "",
+                    "materialFormula": [
+                        20000,
+                        2,
+                        0.1,
+                        2,
+                        0.1,
+                        2
+                    ],
+                    "modifications": [],
+                    "name": "body",
+                    "points": [
+                        [
+                            4,
+                            3.75
+                        ],
+                        [
+                            0,
+                            3.75
+                        ],
+                        [
+                            0,
+                            0.75
+                        ],
+                        [
+                            1,
+                            0.75
+                        ],
+                        [
+                            1,
+                            2.25
+                        ],
+                        [
+                            2.5,
+                            2.25
+                        ],
+                        [
+                            2.5,
+                            0
+                        ],
+                        [
+                            4,
+                            0
+                        ]
+                    ],
+                    "remanentMag": 0,
+                    "segmentation": "pln",
+                    "segmentationCylAxis": "z",
+                    "segmentationCylAxisMajor": "y",
+                    "segmentationCylAxisMinor": "x",
+                    "segmentationCylPoint": [
+                        2,
+                        1.875,
+                        0
+                    ],
+                    "segmentationCylRadius": 5,
+                    "segmentationCylRatio": 1,
+                    "segmentationCylUseObjectCenter": "1",
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "shapeButton": {},
+                    "size": [
+                        4,
+                        3.75,
+                        25
+                    ],
+                    "stemPosition": "1",
+                    "stemWidth": 1.5,
+                    "transforms": [],
+                    "triangulationLevel": 0.5,
+                    "type": "jay",
+                    "widthAxis": "x"
+                },
+                {
+                    "_super": "radiaObject",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "color": "#cccccc",
+                    "fillets": [],
+                    "groupId": "",
+                    "id": "ViS8aDNfelmFEqyGeMsHdu4FPwzXxbM5",
+                    "isNew": true,
+                    "layoutShape": "rect",
+                    "materialFormula": [
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    ],
+                    "members": [
+                        "5ffrKAZdlSmCGM4IekigF17XBLkdPgZS",
+                        "tMk4FI4A09SEpSicydA0NsGB1fzhDCmr"
+                    ],
+                    "model": "geomGroup",
+                    "modifications": [],
+                    "name": "pole",
+                    "segmentation": "pln",
+                    "segmentationCylAxis": "z",
+                    "segmentationCylPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "segmentationCylRadius": 5,
+                    "segmentationCylRatio": 1,
+                    "segmentationCylUseObjectCenter": "0",
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "size": [
+                        8,
+                        7.5,
+                        25
+                    ],
+                    "transforms": [
+                        {
+                            "_super": "transform",
+                            "id": "pyqYUi3sq6Ksf1Jc2IVEQsi5ov2zjKAo",
+                            "name": "Symmetry",
+                            "symmetryPlane": [
+                                1,
+                                0,
+                                0
+                            ],
+                            "symmetryPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "symmetryType": "perpendicular",
+                            "type": "symmetryTransform"
+                        },
+                        {
+                            "_super": "transform",
+                            "id": "0MITs45eHgL8bdU7yJecQs0ut1Np07RX",
+                            "name": "Symmetry",
+                            "symmetryPlane": [
+                                0,
+                                1,
+                                0
+                            ],
+                            "symmetryPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "symmetryType": "parallel",
+                            "type": "symmetryTransform"
+                        }
+                    ],
+                    "type": "geomGroup"
+                },
+                {
+                    "_super": "radiaObject",
+                    "axis": "y",
+                    "bevels": [],
+                    "center": [
+                        0,
+                        "body.size[1] - body.armHeight - (body.hookHeight / 2)",
+                        0
+                    ],
+                    "color": "#f83030",
+                    "currentDensity": 2000,
+                    "fieldCalc": "auto",
+                    "fillets": [],
+                    "groupId": "",
+                    "height": "(2 / 3) * body.hookHeight",
+                    "id": "eU61NJWacMrqyHok9yMZY3M1TnbjJcz8",
+                    "isNew": true,
+                    "layoutShape": "rect",
+                    "materialFormula": [
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    ],
+                    "modifications": [],
+                    "name": "coil",
+                    "numSegments": 15,
+                    "planeAxis1": "z",
+                    "planeAxis2": "x",
+                    "radii": [
+                        0.1,
+                        0.4
+                    ],
+                    "segmentation": "pln",
+                    "segmentationCylAxis": "z",
+                    "segmentationCylPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "segmentationCylRadius": 5,
+                    "segmentationCylRatio": 1,
+                    "segmentationCylUseObjectCenter": "0",
+                    "segments": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "sides": [
+                        "1.005 * body.size[2]",
+                        "1.005 * 2 * body.hookWidth"
+                    ],
+                    "size": [
+                        "1.005 * 2 * body.hookWidth + 0.8",
+                        "(2 / 3) * body.hookHeight",
+                        "1.005 * body.size[2] + 0.8"
+                    ],
+                    "transforms": [
+                        {
+                            "_super": "transform",
+                            "id": "dYmQGmmndjIdQqjkZnVjsbjT5s2pXRt8",
+                            "name": "Symmetry",
+                            "symmetryPlane": [
+                                0,
+                                1,
+                                0
+                            ],
+                            "symmetryPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "symmetryType": "parallel",
+                            "type": "symmetryTransform"
+                        }
+                    ],
+                    "type": "racetrack"
+                },
+                {
+                    "_super": "extrudedObject",
+                    "bevels": [],
+                    "center": [
+                        "body.hookWidth - shim.radius",
+                        "body.size[1] - body.hookHeight - body.armHeight",
+                        0
+                    ],
+                    "color": "#1f77b4",
+                    "extrusionAxis": "z",
+                    "fillets": [],
+                    "groupId": "ViS8aDNfelmFEqyGeMsHdu4FPwzXxbM5",
+                    "id": "tMk4FI4A09SEpSicydA0NsGB1fzhDCmr",
+                    "isNew": true,
+                    "layoutShape": "rect",
+                    "magnetization": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "material": "nonlinear",
+                    "materialFile": "",
+                    "materialFormula": [
+                        20000,
+                        2,
+                        0.1,
+                        2,
+                        0.1,
+                        2
+                    ],
+                    "modifications": [
+                        {
+                            "cutPlane": [
+                                0,
+                                1,
+                                0
+                            ],
+                            "cutPoint": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "type": "objectCut",
+                            "useObjectCenter": "1"
+                        }
+                    ],
+                    "name": "shim",
+                    "numSides": 24,
+                    "radius": 0.2,
+                    "remanentMag": 0,
+                    "segmentation": "cyl",
+                    "segmentationCylAxis": "z",
+                    "segmentationCylAxisMajor": "y",
+                    "segmentationCylAxisMinor": "x",
+                    "segmentationCylPoint": [
+                        "body.hookWidth - shim.radius",
+                        "body.size[1] - body.hookHeight - body.armHeight",
+                        0
+                    ],
+                    "segmentationCylRadius": "shim.radius / 3",
+                    "segmentationCylRatio": 1,
+                    "segmentationCylUseObjectCenter": "1",
+                    "segments": [
+                        1,
+                        12,
+                        4
+                    ],
+                    "shapeButton": {},
+                    "size": [
+                        0.4,
+                        0.4,
+                        "body.size[2]"
+                    ],
+                    "transforms": [],
+                    "type": "cylinder"
+                }
+            ]
+        },
+        "magnetDisplay": {
+            "alpha": 1,
+            "bgColor": "#ffffff",
+            "fieldType": "M",
+            "notes": "",
+            "showMarker": "1",
+            "viewType": "objects"
+        },
+        "objectiveFunctionQuality": {
+            "_super": "objectiveFunction",
+            "begin": [
+                0,
+                0,
+                -25
+            ],
+            "code": "",
+            "component": "y",
+            "deviation": [
+                1,
+                0,
+                0
+            ],
+            "end": [
+                0,
+                0,
+                25
+            ],
+            "fieldPath": {
+                "_super": "linePath",
+                "axis": "x",
+                "begin": [
+                    0,
+                    0,
+                    -25
+                ],
+                "end": [
+                    0,
+                    0,
+                    25
+                ],
+                "id": "1zFFtUp1bjfvBHhmOIAewBiytse0X5WC",
+                "name": "X-Axis",
+                "numPoints": 11,
+                "start": -2.5,
+                "stop": 2.5,
+                "type": "axisPath"
+            },
+            "fieldPaths": [],
+            "type": "objectiveFunctionQuality",
+            "useFieldPath": "0"
+        },
+        "optimizationSoftware": {
+            "method": "dfols",
+            "rsoptName": "dfols",
+            "type": "optimizationSoftwareDFOLS"
+        },
+        "optimizationSoftwareDFOLS": {
+            "_super": "optimizationSoftware",
+            "components": 5,
+            "method": "dfols",
+            "rsoptName": "dfols",
+            "type": "optimizationSoftwareDFOLS"
+        },
+        "optimizer": {
+            "maxIterations": 30,
+            "objective": "objectiveFunctionQuality",
+            "parameters": [
+                {
+                    "field": "radius",
+                    "max": 0.5,
+                    "min": 0.001,
+                    "object": "shim",
+                    "start": 0.01
+                }
+            ],
+            "software": {
+                "components": 5,
+                "method": "dfols",
+                "rsoptName": "dfols",
+                "type": "optimizationSoftwareDFOLS"
+            },
+            "tolerance": 0.0001
+        },
+        "optimizerAnimation": {
+            "jobRunMode": "parallel",
+            "notes": "",
+            "sbatchCores": 1,
+            "sbatchHours": 0.4,
+            "sbatchProject": "",
+            "sbatchQueue": "debug",
+            "tasksPerNode": 128
+        },
+        "panelState": {
+            "hidden": [
+                "electronTrajectoryReport"
+            ]
+        },
+        "rpnCache": {
+            "(2 / 3) * body.hookHeight": 1,
+            "1.005 * 2 * body.hookWidth": 2.01,
+            "1.005 * 2 * body.hookWidth + 0.8": 2.8099999999999996,
+            "1.005 * body.hookWidth": 1.005,
+            "1.005 * body.hookWidth + 0.8": 1.805,
+            "1.005 * body.size[2]": 25.124999999999996,
+            "1.005 * body.size[2] + 0.8": 25.924999999999997,
+            "1.005 *body.hookWidth": 1.005,
+            "1.005 body.hookWidth + 0.8": 0.8,
+            "body.center[1] - (body.size[1] / 2)": 0,
+            "body.hookHeight": 1.5,
+            "body.hookHeight * 2": 3,
+            "body.hookHeight * 2 / 3": 1,
+            "body.hookWidth": 1,
+            "body.hookWidth * 2 * 1.005": 2.01,
+            "body.hookWidth + 0.8": 1.8,
+            "body.hookWidth - shim.radius": 0.8,
+            "body.size": [
+                4,
+                3.75,
+                25
+            ],
+            "body.size[1]": 3.75,
+            "body.size[1] - body.armHeight": 2.25,
+            "body.size[1] - body.armHeight - (body.hookHeight )": 0.75,
+            "body.size[1] - body.armHeight - (body.hookHeight / 2)": 1.5,
+            "body.size[1] - body.armHeight - (body.hookHeight)": 0.75,
+            "body.size[1] - body.armHeight - body.hookHeight": 0.75,
+            "body.size[1] - body.armHeight - body.hookHeight - shim.radius": 0.55,
+            "body.size[1] - body.hookHeight": 2.25,
+            "body.size[1] - body.hookHeight - body.armHeight": 0.75,
+            "body.size[2]": 25,
+            "body.size[2] * 1.005": 25.124999999999996,
+            "shim.radius / 2": 0.1,
+            "shim.radius / 3": 0.06666666666666667
+        },
+        "rpnVariable": {},
+        "rpnVariables": [
+            {
+                "name": "body.segmentationCylRadius",
+                "value": 5
+            },
+            {
+                "name": "body.area",
+                "value": 0
+            },
+            {
+                "name": "body.magnetization",
+                "value": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "body.segmentationCylRatio",
+                "value": 1
+            },
+            {
+                "name": "body.remanentMag",
+                "value": 0
+            },
+            {
+                "name": "body.armHeight",
+                "value": 1.5
+            },
+            {
+                "name": "body.hookHeight",
+                "value": 1.5
+            },
+            {
+                "name": "body.hookWidth",
+                "value": 1
+            },
+            {
+                "name": "body.segmentationCylPoint",
+                "value": [
+                    2,
+                    1.875,
+                    0
+                ]
+            },
+            {
+                "name": "body.stemWidth",
+                "value": 1.5
+            },
+            {
+                "name": "body.center",
+                "value": [
+                    2,
+                    1.875,
+                    0
+                ]
+            },
+            {
+                "name": "body.size",
+                "value": [
+                    4,
+                    3.75,
+                    25
+                ]
+            },
+            {
+                "name": "coil.center",
+                "value": [
+                    0,
+                    "body.size[1] - body.armHeight - (body.hookHeight / 2)",
+                    0
+                ]
+            },
+            {
+                "name": "coil.currentDensity",
+                "value": 2000
+            },
+            {
+                "name": "coil.height",
+                "value": "(2 / 3) * body.hookHeight"
+            },
+            {
+                "name": "coil.radii",
+                "value": [
+                    0.1,
+                    0.4
+                ]
+            },
+            {
+                "name": "coil.sides",
+                "value": [
+                    "1.005 * body.size[2]",
+                    "1.005 * 2 * body.hookWidth"
+                ]
+            },
+            {
+                "name": "coil.size",
+                "value": [
+                    "1.005 * 2 * body.hookWidth + 0.8",
+                    "(2 / 3) * body.hookHeight",
+                    "1.005 * body.size[2] + 0.8"
+                ]
+            },
+            {
+                "name": "shim.radius",
+                "value": 0.2
+            },
+            {
+                "name": "shim.center",
+                "value": [
+                    "body.hookWidth - shim.radius",
+                    "body.size[1] - body.hookHeight - body.armHeight",
+                    0
+                ]
+            },
+            {
+                "name": "shim.magnetization",
+                "value": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "shim.remanentMag",
+                "value": 0
+            },
+            {
+                "name": "shim.segmentationCylPoint",
+                "value": [
+                    "body.hookWidth - shim.radius",
+                    "body.size[1] - body.hookHeight - body.armHeight",
+                    0
+                ]
+            },
+            {
+                "name": "shim.segmentationCylRadius",
+                "value": "shim.radius / 3"
+            },
+            {
+                "name": "shim.segmentationCylRatio",
+                "value": 1
+            },
+            {
+                "name": "shim.size",
+                "value": [
+                    0.4,
+                    0.4,
+                    "body.size[2]"
+                ]
+            }
+        ],
+        "simFolder": {},
+        "simulation": {
+            "appMode": "default",
+            "areObjectsUnlockable": true,
+            "beamAxis": "z",
+            "coordinateSystem": "standard",
+            "dipoleType": "dipoleBasic",
+            "documentationUrl": "",
+            "enableKickMaps": "0",
+            "folder": "/Examples/Accelerator Magnets",
+            "freehandType": "freehand",
+            "heightAxis": "y",
+            "lastModified": 1701974087914,
+            "magnetType": "freehand",
+            "name": "Optimizable Dipole",
+            "notes": "A simple dipole demonstrating optimization of the radius of cylindrical shims towards magnetic field uniformity",
+            "simulationId": "nnul6xqs",
+            "simulationSerial": 1701974523999507,
+            "undulatorType": "undulatorBasic",
+            "widthAxis": "x"
+        },
+        "solverAnimation": {
+            "jobRunMode": "parallel",
+            "lastSolved": "-1",
+            "maxIterations": 1500,
+            "method": "4",
+            "mode": "solve",
+            "precision": 0.0001,
+            "result": "",
+            "sbatchCores": 1,
+            "sbatchHours": 0.4,
+            "sbatchProject": "",
+            "sbatchQueue": "debug",
+            "tasksPerNode": 128
+        },
+        "threeDBuilder": {
+            "autoFit": true,
+            "elevation": "front",
+            "snapGridSize": "1",
+            "snapToGrid": true
+        }
+    },
+    "simulationType": "radia",
+    "version": "20231207.184134"
+}
