@@ -2017,8 +2017,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         if (event.reason == 'message too big') {
             errorService.alertText('ERROR: Attempted upload was too large');
             $('.modal').modal('hide');
-        }
-        if (! event.wasClean && ! event.reason == 'message too big') {
+        } else if (! event.wasClean) {
             toSend.unshift(...Object.values(needReply));
             needReply = {};
         }
