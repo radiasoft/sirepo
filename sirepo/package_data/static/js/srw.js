@@ -788,6 +788,11 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
         $scope.$on('simulation.changed', syncDistanceFromSourceToFirstElementPosition);
         $scope.$on('multiElectronAnimation.changed', updateMultiElectronWatchpoint);
         $scope.$on('beamlineAnimation0.changed', copyIntensityReportCharacteristics);
+        $scope.$on('modelChanged', (event, modelName) => {
+            if (modelName.indexOf('beamlineAnimation') >= 0) {
+                updateWatchpointReports();
+            }
+        });
         srwService.addSummaryDataListener($scope);
         var search = $location.search();
         if (search) {
@@ -955,14 +960,33 @@ var srwGrazingAngleLogic = function(panelState, srwService, $scope) {
 
 var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) {
 
+    const modelKey = $scope.modelData ? $scope.modelData.modelKey : $scope.modelName;
+
     function hasSamplingMethod() {
         return $scope.modelName == 'sourceIntensityReport' || $scope.modelName == 'coherentModesAnimation';
     }
+
+    function updateDetector() {
+        if ($scope.modelName == 'powerDensityReport') {
+            panelState.showTab($scope.modelName, 4, false);
+        }
+        if ($scope.modelName == 'coherentModesAnimation') {
+            panelState.showTab($scope.modelName, 5, false);
+        }
+        const m = appState.models[modelKey];
+        if (m.useDetector == '1') {
+            m.usePlotRange = '0';
+        }
+        panelState.showField($scope.modelName, 'intensityPlotsWidth', m.useDetector == '0');
+        panelState.showRow($scope.modelName, 'd_rx', m.useDetector == '1');
+    }
+
     function updateIntensityLimit() {
         srwService.updateIntensityLimit(
             $scope.modelName,
             $scope.modelData ? $scope.modelData.modelKey : null);
     }
+
     function updatePlotRange() {
         srwService.updatePlotRange(
             $scope.modelName,
@@ -972,6 +996,7 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
     function updateSelected() {
         updateIntensityLimit();
         updatePlotRange();
+        updateDetector();
         var schemaModel = SIREPO.APP_SCHEMA.model[$scope.modelName];
         if (schemaModel.fieldUnits) {
             panelState.showField($scope.modelName, 'fieldUnits', srwService.isGaussianBeam());
@@ -1004,7 +1029,6 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
         ]);
         panelState.showField('simulation', 'photonEnergy', isSource);
     }
-    var modelKey = $scope.modelData ? $scope.modelData.modelKey : $scope.modelName;
     $scope.whenSelected = updateSelected;
     $scope.watchFields = [
         [
@@ -1014,6 +1038,9 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
             ($scope.modelData ? $scope.modelData.modelKey : $scope.modelName)
                 + '.usePlotRange',
         ], updatePlotRange,
+        [
+            modelKey + '.useDetector',
+        ], updateDetector,
     ];
     if (hasSamplingMethod()) {
         $scope.watchFields.push(
