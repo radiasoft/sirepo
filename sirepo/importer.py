@@ -134,18 +134,19 @@ def _import_related_sims(data, zip_bytes, qcall=None):
                     lib_dir = simulation_db.simulation_lib_dir(
                         d.simulationType, qcall=qcall
                     ).join(pykern.pkio.py_path(lib_file).basename)
-                    try:
-                        f_content = pkcompat.from_bytes(z.read(lib_file))
-                        pykern.pkio.write_text(
-                            lib_dir,
-                            f_content,
-                        )
-                    except UnicodeDecodeError:
-                        # POSIT: binary file case
-                        pykern.pkio.write_binary(
-                            lib_dir,
-                            z.read(lib_file),
-                        )
+                    _write_lib_file(z.read(lib_file), lib_dir)
+                    # try:
+                    #     f_content = pkcompat.from_bytes(z.read(lib_file))
+                    #     pykern.pkio.write_text(
+                    #         lib_dir,
+                    #         f_content,
+                    #     )
+                    # except UnicodeDecodeError:
+                    #     # some lib files will be binary
+                    #     pykern.pkio.write_binary(
+                    #         lib_dir,
+                    #         z.read(lib_file),
+                    #     )
                 data.models.simWorkflow.coupledSims[
                     _sim_index(p)
                 ].simulationId = s.models.simulation.simulationId
@@ -153,3 +154,16 @@ def _import_related_sims(data, zip_bytes, qcall=None):
 
 def _sim_index(path):
     return int(path.purebasename[-1])
+
+
+def _write_lib_file(byte_data, lib_dir):
+    if _is_binary(byte_data):
+        pykern.pkio.write_binary(
+            lib_dir,
+            z.read(lib_file),
+        )
+        return
+    pykern.pkio.write_text(
+        lib_dir,
+        pkcompat.from_bytes(byte_data),
+    )
