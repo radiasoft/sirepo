@@ -16,7 +16,7 @@ from pykern.pkdebug import pkdp
 AXES = ["x", "y", "z"]
 
 AXIS_VECTORS = PKDict(
-    x=numpy.array([1.0, 0, 0],),
+    x=numpy.array([1.0, 0, 0]),
     y=numpy.array([0, 1.0, 0]),
     z=numpy.array([0, 0, 1.0]),
 )
