@@ -153,17 +153,7 @@ class API(sirepo.quest.API):
             type=simulation_type,
         )
         from sirepo import exporter
-        src = pkio.py_path(
-            simulation_db.find_global_simulation(
-                req.type,
-                req.id,
-                checked=True,
-            ),
-        )
-        data = simulation_db.open_json_file(
-            req.type,
-            src.join(simulation_db.SIMULATION_DATA_FILE),
-        )
+
         return exporter.create_archive(req, self)
 
     @sirepo.quest.Spec("allow_visitor")

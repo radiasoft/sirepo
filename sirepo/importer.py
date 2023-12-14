@@ -13,7 +13,6 @@ import pykern.pkio
 import sirepo.util
 import six
 import zipfile
-import os
 
 
 def do_form(form, qcall):
