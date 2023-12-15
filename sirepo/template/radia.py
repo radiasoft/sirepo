@@ -374,7 +374,7 @@ def stateful_compute_recompute_rpn_cache_values(data, **kwargs):
 
 
 def stateless_compute_build_shape_points(data, **kwargs):
-    o = data.args.object
+    o = _evaluated_object(data.args.object, code_var(data.args.rpnVariables))
     if not o.get("pointsFile"):
         return PKDict(
             points=pkinspect.module_functions("_get_")[f"_get_{o.type}_points"](
@@ -740,15 +740,26 @@ def _electron_trajectory_plot(sim_id, **kwargs):
     )
 
 
+def _evaluate_var(var, code_variable):
+    e = code_variable.eval_var(var)
+    if e[1] is not None:
+        raise RuntimeError(
+            "Error evaluating field: {}: {}".format(var, e[1])
+        )
+    return e[0]
+
+
+def _evaluated_object(o, code_variable):
+    c = copy.deepcopy(o)
+    for f in _find_scriptables(c):
+        c[f] = _evaluate_var(f"{c.name}.{f}", code_variable)
+    return c
+
+
 def _evaluate_objects(objs, vars, code_variable):
     for o in objs:
         for f in _find_scriptables(o):
-            e = code_variable.eval_var(f"{o.name}.{f}")
-            if e[1] is not None:
-                raise RuntimeError(
-                    "Error evaluating field: {}.{}: {}".format(o.name, f, e[1])
-                )
-            o[f] = e[0]
+            o[f] = _evaluate_var(f"{o.name}.{f}", code_variable)
 
 
 def _export_rsopt_config(ctx, run_dir):
@@ -1028,21 +1039,21 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.matrix = _get_coord_matrix(dirs, data.models.simulation.coordinateSystem)
     st = f"{v.magnetType}Type"
     v[st] = data.models.simulation[st]
+    v.objects = g.get("objects", [])
+    if data.models.get("rpnVariables"):
+        _evaluate_objects(
+            v.objects, data.models.rpnVariables, code_var(data.models.rpnVariables)
+        )
     pkinspect.module_functions("_update_geom_from_")[
         f"_update_geom_from_{v.magnetType}"
     ](
-        g.objects,
+        v.objects,
         data.models[v[st]],
         height_dir=dirs.height_dir,
         length_dir=dirs.length_dir,
         width_dir=dirs.width_dir,
         qcall=qcall,
     )
-    v.objects = g.get("objects", [])
-    if data.models.get("rpnVariables"):
-        _evaluate_objects(
-            v.objects, data.models.rpnVariables, code_var(data.models.rpnVariables)
-        )
     _validate_objects(v.objects)
 
     for o in v.objects:
