@@ -743,9 +743,7 @@ def _electron_trajectory_plot(sim_id, **kwargs):
 def _evaluate_var(var, code_variable):
     e = code_variable.eval_var(var)
     if e[1] is not None:
-        raise RuntimeError(
-            "Error evaluating field: {}: {}".format(var, e[1])
-        )
+        raise RuntimeError("Error evaluating field: {}: {}".format(var, e[1]))
     return e[0]
 
 
