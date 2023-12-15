@@ -590,17 +590,17 @@ class API(sirepo.quest.API):
         confirm="Bool optional",
     )
     async def api_uploadFile(self, simulation_type, simulation_id, file_type):
+        f = self.sreq.form_file_get()
+        req = self.parse_params(
+            file_type=file_type,
+            filename=f.filename,
+            id=simulation_id,
+            template=True,
+            type=simulation_type,
+        )
+        e = None
+        in_use = None
         try:
-            f = self.sreq.form_file_get()
-            req = self.parse_params(
-                file_type=file_type,
-                filename=f.filename,
-                id=simulation_id,
-                template=True,
-                type=simulation_type,
-            )
-            e = None
-            in_use = None
             with sirepo.sim_run.tmp_dir(qcall=self) as d:
                 t = d.join(req.filename)
                 t.write_binary(f.as_bytes())
@@ -634,11 +634,7 @@ class API(sirepo.quest.API):
                 }
             )
         except Exception as e:
-            return self.reply_dict(
-                {
-                    "error": f"ERROR: {e}"
-                }
-            )
+            return self.reply_dict({"error": f"error uploading file: {e}"})
 
     def _proxy_react(self, path):
         import requests
