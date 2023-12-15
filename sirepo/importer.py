@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from pykern import pkcompat
+from pykern import pkio
 import base64
 import pykern.pkio
 import sirepo.util
@@ -134,7 +135,8 @@ def _import_related_sims(data, zip_bytes, qcall=None):
                     lib_dir = simulation_db.simulation_lib_dir(
                         d.simulationType, qcall=qcall
                     ).join(pykern.pkio.py_path(lib_file).basename)
-                    _write_lib_file(z.read(lib_file), lib_dir)
+                    pkdp("\n\n\n LIB_FILE={}", lib_file)
+                    _write_lib_file(lib_file, lib_dir)
                     # try:
                     #     f_content = pkcompat.from_bytes(z.read(lib_file))
                     #     pykern.pkio.write_text(
@@ -156,8 +158,8 @@ def _sim_index(path):
     return int(path.purebasename[-1])
 
 
-def _write_lib_file(byte_data, lib_dir):
-    if _is_binary(byte_data):
+def _write_lib_file(lib_file, lib_dir):
+    if pkio.is_binary(pkio.py_path(lib_file)):
         pykern.pkio.write_binary(
             lib_dir,
             z.read(lib_file),
