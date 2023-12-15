@@ -590,48 +590,55 @@ class API(sirepo.quest.API):
         confirm="Bool optional",
     )
     async def api_uploadFile(self, simulation_type, simulation_id, file_type):
-        f = self.sreq.form_file_get()
-        req = self.parse_params(
-            file_type=file_type,
-            filename=f.filename,
-            id=simulation_id,
-            template=True,
-            type=simulation_type,
-        )
-        e = None
-        in_use = None
-        with sirepo.sim_run.tmp_dir(qcall=self) as d:
-            t = d.join(req.filename)
-            t.write_binary(f.as_bytes())
-            if hasattr(req.template, "validate_file"):
-                # Note: validate_file may modify the file
-                e = req.template.validate_file(req.file_type, t)
-            if (
-                not e
-                and req.sim_data.lib_file_exists(req.filename, qcall=self)
-                and not self.sreq.form_get("confirm", False)
-            ):
-                in_use = _simulations_using_file(req, ignore_sim_id=req.id)
-                if in_use:
-                    e = "File is in use in other simulations. Please confirm you would like to replace the file for all simulations."
-            if e:
-                return self.reply_dict(
-                    {
-                        "error": e,
-                        "filename": req.filename,
-                        "fileList": in_use,
-                        "fileType": req.file_type,
-                        "simulationId": req.id,
-                    }
-                )
-            t.rename(_lib_file_write_path(req))
-        return self.reply_dict(
-            {
-                "filename": req.filename,
-                "fileType": req.file_type,
-                "simulationId": req.id,
-            }
-        )
+        try:
+            f = self.sreq.form_file_get()
+            req = self.parse_params(
+                file_type=file_type,
+                filename=f.filename,
+                id=simulation_id,
+                template=True,
+                type=simulation_type,
+            )
+            e = None
+            in_use = None
+            with sirepo.sim_run.tmp_dir(qcall=self) as d:
+                t = d.join(req.filename)
+                t.write_binary(f.as_bytes())
+                if hasattr(req.template, "validate_file"):
+                    # Note: validate_file may modify the file
+                    e = req.template.validate_file(req.file_type, t)
+                if (
+                    not e
+                    and req.sim_data.lib_file_exists(req.filename, qcall=self)
+                    and not self.sreq.form_get("confirm", False)
+                ):
+                    in_use = _simulations_using_file(req, ignore_sim_id=req.id)
+                    if in_use:
+                        e = "File is in use in other simulations. Please confirm you would like to replace the file for all simulations."
+                if e:
+                    return self.reply_dict(
+                        {
+                            "error": e,
+                            "filename": req.filename,
+                            "fileList": in_use,
+                            "fileType": req.file_type,
+                            "simulationId": req.id,
+                        }
+                    )
+                t.rename(_lib_file_write_path(req))
+            return self.reply_dict(
+                {
+                    "filename": req.filename,
+                    "fileType": req.file_type,
+                    "simulationId": req.id,
+                }
+            )
+        except Exception as e:
+            return self.reply_dict(
+                {
+                    "error": f"ERROR: {e}"
+                }
+            )
 
     def _proxy_react(self, path):
         import requests
