@@ -1851,10 +1851,10 @@ def _update_undulatorHybrid(model, assembly, qcall=None, **kwargs):
     )
 
     for f in (
-        "bevels",
         "color",
         "material",
         "materialFile",
+        "modifications",
         "remanentMag",
         "type",
         "segments",
