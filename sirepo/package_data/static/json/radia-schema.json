@@ -1279,7 +1279,7 @@
                     "dipoleC.coil.size",
                     "dipoleC.coil.currentDensity"
                 ]],
-                ["Magnet", [
+                ["Core", [
                     "dipoleC.magnet.shapeButton",
                     "dipoleC.magnet.size",
                     "dipoleC.magnet.material",
@@ -1311,7 +1311,7 @@
                     "dipoleH.coil.size",
                     "dipoleH.coil.currentDensity"
                 ]],
-                ["Magnet", [
+                ["Core", [
                     "dipoleH.magnet.shapeButton",
                     "magnetSize",
                     "dipoleH.magnet.material",
