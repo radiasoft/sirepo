@@ -1312,6 +1312,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         }),
                     function(data) {
                         $scope.isUploading = false;
+                        srdbg("data in callback", data);
                         if (data.error) {
                             $scope.fileUploadError = data.error;
                             if (data.fileList) {
@@ -4677,7 +4678,7 @@ SIREPO.app.service('plotToPNG', function() {
 
 });
 
-SIREPO.app.service('fileUpload', function(msgRouter) {
+SIREPO.app.service('fileUpload', function(msgRouter, errorService) {
     this.uploadFileToUrl = function(file, args, uploadUrl, callback) {
         var fd = new FormData();
         fd.append('file', file);
@@ -4695,9 +4696,9 @@ SIREPO.app.service('fileUpload', function(msgRouter) {
                 callback(response.data);
             },
             function() {
-                //TODO(pjm): error handling
-                srlog('file upload failed');
-            });
+                callback({error: 'File Upload Failed'});
+            },
+        );
     };
 });
 
