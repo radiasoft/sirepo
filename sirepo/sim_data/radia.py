@@ -98,6 +98,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             if dm.get(m):
                 dm[m].type = m
         for o in dm.geometryReport.objects:
+            if o.get("model") and not o.get("type"):
+                o.type = o.get("model")
             for f in (
                 "model",
                 "type",
