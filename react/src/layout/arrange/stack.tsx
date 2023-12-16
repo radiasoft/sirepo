@@ -24,10 +24,6 @@ export abstract class BaseStack<C extends StackConfig> extends Layout<C, {}> {
         });
         
     }
-
-    getFormDependencies(): Dependency[] {
-        return (this.children || []).flatMap(c => c.getFormDependencies());
-    }
 } 
 
 

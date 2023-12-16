@@ -9,7 +9,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
-import numpy as np
+import numpy
 import re
 import sirepo.job
 import sirepo.sim_data
@@ -51,13 +51,20 @@ _LATTICE_COLS = (
     "error",
 )
 
-_LATTICE_DATA_FILENAME = "lattice.npy"
+_LATTICE_COL_LABEL = PKDict(
+    xrms="rms x [m]",
+    yrms="rms y [m]",
+)
 
-_LATTICE_RE = re.compile(r"^.+power[\s\w]+\n(.*)", flags=re.DOTALL)
+_LATTICE_DATA_FILENAME = "lattice{}.npy"
+
+_LATTICE_RE = re.compile(r"\bpower\b[\s\w]+\n(.*?)(\n\n|$)", flags=re.DOTALL)
 
 _OUTPUT_FILENAME = "genesis.out"
 _FIELD_DISTRIBUTION_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".fld"
 _PARTICLE_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".par"
+_FINAL_FIELD_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".dfl"
+_FINAL_PARTICLE_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".dpa"
 
 _RUN_ERROR_RE = re.compile(r"(?:^\*\*\* )(.*error.*$)", flags=re.MULTILINE)
 
@@ -71,7 +78,7 @@ _SLICE_COLS = (
 _SLICE_DATA_FILENAME = "slice.npy"
 
 _SLICE_RE = re.compile(
-    r"\s+z\[m\]\s+aw\s+qfld\s+\n(.*)\n^\s*$\n\*",
+    r"\s+z\[m\]\s+aw\s+qfld\s+\n(.*?)\n^\s*$\n\*",
     flags=re.DOTALL | re.MULTILINE,
 )
 
@@ -79,33 +86,51 @@ _SLICE_RE = re.compile(
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return PKDict(percentComplete=0, frameCount=0)
-    if not _genesis_success_exit(run_dir):
-        return PKDict(
-            percentComplete=100,
-            state=sirepo.job.ERROR,
-        )
     c = _get_frame_counts(run_dir)
     return PKDict(
         percentComplete=100,
-        frameCount=1,
-        particleFrameCount=c.particle,
-        fieldFrameCount=c.field,
         reports=[
             PKDict(
                 modelName="fieldDistributionAnimation",
                 frameCount=c.field,
             ),
             PKDict(
+                modelName="finalParticleAnimation",
+                frameCount=c.dpa,
+            ),
+            PKDict(
+                modelName="finalFieldAnimation",
+                frameCount=c.dfl,
+            ),
+            PKDict(
                 modelName="parameterAnimation",
-                # TODO(pjm): if this is changed to update when is_running, then it
-                # should be a file last update time
-                frameCount=1,
+                frameCount=c.parameter,
             ),
             PKDict(
                 modelName="particleAnimation",
                 frameCount=c.particle,
             ),
         ],
+    )
+
+
+def genesis_success_exit(run_dir):
+    dm = sirepo.simulation_db.read_json(
+        run_dir.join(template_common.INPUT_BASE_NAME)
+    ).models
+    return (
+        run_dir.join(_OUTPUT_FILENAME).exists()
+        and _LATTICE_RE.search(pkio.read_text(run_dir.join(_OUTPUT_FILENAME)))
+        and (
+            dm.timeDependence.itdp == "1"
+            or (
+                run_dir.join(_FINAL_PARTICLE_OUTPUT_FILENAME).exists()
+                and run_dir.join(_FINAL_PARTICLE_OUTPUT_FILENAME).size() > 0
+                and not numpy.isnan(
+                    numpy.fromfile(_FINAL_PARTICLE_OUTPUT_FILENAME, dtype=numpy.float64)
+                ).any()
+            )
+        )
     )
 
 
@@ -116,6 +141,10 @@ def get_data_file(run_dir, model, frame, options):
         return _FIELD_DISTRIBUTION_OUTPUT_FILENAME
     if model == "parameterAnimation":
         return _OUTPUT_FILENAME
+    if model == "finalParticleAnimation":
+        return _FINAL_PARTICLE_OUTPUT_FILENAME
+    if model == "finalFieldAnimation":
+        return _FINAL_FIELD_OUTPUT_FILENAME
     raise AssertionError("unknown model={}".format(model))
 
 
@@ -126,13 +155,24 @@ async def import_file(req, **kwargs):
     res = sirepo.simulation_db.default_data(SIM_TYPE)
     p = pkio.py_path(req.filename)
     res.models.simulation.name = p.purebasename
-    return _parse_namelist(res, text)
+    return _parse_namelist(res, text, req)
 
 
-def post_execution_processing(run_dir, **kwargs):
-    if _genesis_success_exit(run_dir):
-        return
-    return _parse_genesis_error(run_dir)
+def parse_genesis_error(run_dir):
+    return "\n".join(
+        [
+            m.group(1).strip()
+            for m in _RUN_ERROR_RE.finditer(
+                pkio.read_text(run_dir.join(template_common.RUN_LOG))
+            )
+        ],
+    )
+
+
+def post_execution_processing(success_exit, run_dir, **kwargs):
+    if success_exit:
+        return None
+    return parse_genesis_error(run_dir)
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -140,8 +180,96 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def sim_frame_fieldDistributionAnimation(frame_args):
-    r = _get_field_distribution(frame_args.sim_in)
-    d = np.abs(r[int(frame_args.frameIndex), 0, :, :])
+    n = frame_args.sim_in.models.mesh.ncar
+    d = numpy.fromfile(
+        str(frame_args.run_dir.join(_FIELD_DISTRIBUTION_OUTPUT_FILENAME)),
+        dtype=numpy.float64,
+    )
+    # Divide by 2 to combine real and imaginary parts which are written separately
+    s = int(d.shape[0] / (n * n) / 2)
+    d = d.reshape(s, 2, n, n)
+    # recombine as a complex number
+    d = d[:, 0, :, :] + 1.0j * d[:, 1, :, :]
+    return _field_plot(
+        frame_args,
+        d[int(frame_args.frameIndex), :, :],
+    )
+
+
+def sim_frame_parameterAnimation(frame_args):
+    l, s = _get_lattice_and_slice_data(frame_args.run_dir, int(frame_args.frameIndex))
+    x = _SLICE_COLS[0]
+    plots = []
+    for f in ("y1", "y2", "y3"):
+        y = frame_args[f]
+        if not y or y == "none":
+            continue
+        plots.append(
+            PKDict(
+                field=y,
+                points=l[:, _LATTICE_COLS.index(y)].tolist(),
+                label=_LATTICE_COL_LABEL.get(y, y),
+            )
+        )
+    title = ""
+    if frame_args.sim_in.models.timeDependence.itdp == "1":
+        title = f"Slice {frame_args.frameIndex + 1}"
+    return template_common.parameter_plot(
+        s[:, _SLICE_COLS.index(x)].tolist(),
+        plots,
+        PKDict(),
+        PKDict(
+            title=title,
+            x_label=x,
+        ),
+    )
+
+
+def sim_frame_finalFieldAnimation(frame_args):
+    n = frame_args.sim_in.models.mesh.ncar
+    v = numpy.fromfile(
+        str(frame_args.run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME)), dtype=complex
+    )
+    v = v.reshape(
+        int(len(v) / n / n),
+        n,
+        n,
+    )
+    return _field_plot(
+        frame_args,
+        v[frame_args.frameIndex],
+    )
+
+
+def sim_frame_finalParticleAnimation(frame_args):
+    return _particle_plot(frame_args, _FINAL_PARTICLE_OUTPUT_FILENAME)
+
+
+def sim_frame_particleAnimation(frame_args):
+    return _particle_plot(frame_args, _PARTICLE_OUTPUT_FILENAME)
+
+
+def validate_file(file_type, path):
+    if file_type == "io-partfile":
+        if _is_text_file(path):
+            return "The PARTFILE should be a binary file. Use the DISTFILE to import a text file."
+    elif file_type == "io-distfile":
+        if not _is_text_file(path):
+            return "The DISTFILE should be a text file with columns: X PX Y PY T P."
+    return None
+
+
+def write_parameters(data, run_dir, is_parallel):
+    pkio.write_text(
+        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+        _generate_parameters_file(data),
+    )
+
+
+def _field_plot(frame_args, d):
+    if frame_args.fieldPlot == "phasePlot":
+        d = numpy.arctan(d.imag / d.real)
+    d = numpy.abs(d)
     s = d.shape[0]
     return PKDict(
         title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ipradi),
@@ -153,79 +281,27 @@ def sim_frame_fieldDistributionAnimation(frame_args):
     )
 
 
-def sim_frame_parameterAnimation(frame_args):
-    l, s = _get_lattice_and_slice_data(frame_args.run_dir)
-    x = _SLICE_COLS[0]
-    plots = []
-    for f in ("y1", "y2", "y3"):
-        y = frame_args[f]
-        if not y or y == "none":
-            continue
-        plots.append(
-            PKDict(
-                field=y,
-                points=l[:, _LATTICE_COLS.index(y)].tolist(),
-                label=y,
-            )
-        )
-    return template_common.parameter_plot(
-        s[:, _SLICE_COLS.index(x)].tolist(),
-        plots,
-        PKDict(),
-        PKDict(
-            title="",
-            x_label=x,
-        ),
-    )
-
-
-def sim_frame_particleAnimation(frame_args):
-    def _get_col(col_key):
-        # POSIT: ParticleColumn keys are in same order as columns in output
-        for i, c in enumerate(SCHEMA.enum.ParticleColumn):
-            if c[0] == col_key:
-                return i, c[1]
-        raise AssertionError(
-            f"No column={SCHEMA.enum.ParticleColumn} with key={col_key}",
-        )
-
-    n = frame_args.sim_in.models.electronBeam.npart
-    d = np.fromfile(_PARTICLE_OUTPUT_FILENAME, dtype=np.float64)
-    b = d.reshape(
-        int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
-        len(SCHEMA.enum.ParticleColumn),
-        n,
-    )
-    x = _get_col(frame_args.x)
-    y = _get_col(frame_args.y)
-    return template_common.heatmap(
-        [
-            b[int(frame_args.frameIndex), x[0], :].tolist(),
-            b[int(frame_args.frameIndex), y[0], :].tolist(),
-        ],
-        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args),
-        PKDict(
-            title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ippart),
-            x_label=x[1],
-            y_label=y[1],
-        ),
-    )
-
-
-def write_parameters(data, run_dir, is_parallel):
-    pkio.write_text(
-        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data),
+def _get_col(col_key):
+    # POSIT: ParticleColumn keys are in same order as columns in output
+    for i, c in enumerate(SCHEMA.enum.ParticleColumn):
+        if c[0] == col_key:
+            return i, c[1]
+    raise AssertionError(
+        f"No column={SCHEMA.enum.ParticleColumn} with key={col_key}",
     )
 
 
 def _generate_parameters_file(data):
-    # TODO(pjm): only support time independent simulations for now
-    data.models.timeDependence.itdp = 0
     io = data.models.io
     io.outputfile = _OUTPUT_FILENAME
     io.iphsty = 1
     io.ishsty = 1
+    if data.models.timeDependence.itdp == "1":
+        io.ippart = 0
+        io.ipradi = 0
+    else:
+        io.idmppar = "1"
+        io.idmpfld = "1"
     r = ""
     fmap = PKDict(
         wcoefz1="WCOEFZ(1)",
@@ -247,7 +323,7 @@ def _generate_parameters_file(data):
                 else:
                     continue
             r += f"{fmap.get(f, f.upper())} = {v}\n"
-    if data.models.io.maginfile:
+    if io.maginfile:
         r += "MAGIN = 1\n"
     return template_common.render_jinja(
         SIM_TYPE,
@@ -255,51 +331,45 @@ def _generate_parameters_file(data):
     )
 
 
-def _genesis_success_exit(run_dir):
-    # Genesis exits with a 0 status regardless of whether it succeeded or failed
-    # Assume success if _OUTPUT_FILENAME exists
-    return run_dir.join(_OUTPUT_FILENAME).exists()
-
-
-def _get_field_distribution(data):
-    n = 1  # TODO(e-carlin): Will be different for time dependent
-    p = data.models.mesh.ncar
-    d = np.fromfile(_FIELD_DISTRIBUTION_OUTPUT_FILENAME, dtype=np.float64)
-    # Divide by 2 to combine real and imaginary parts which are written separately
-    s = int(d.shape[0] / (n * p * p) / 2)
-    d = d.reshape(s, n, 2, p, p)
-    # recombine as a complex number
-    return d[:, :, 0, :, :] + 1.0j * d[:, :, 1, :, :]
-
-
-def _get_lattice_and_slice_data(run_dir):
+def _get_lattice_and_slice_data(run_dir, lattice_index):
     def _reshape_and_persist(data, cols, filename):
         d = data.reshape(int(data.size / len(cols)), len(cols))
-        np.save(filename, d)
+        numpy.save(str(filename), d)
         return d
 
-    f = run_dir.join(_LATTICE_DATA_FILENAME)
+    f = run_dir.join(_LATTICE_DATA_FILENAME.format(lattice_index))
     if f.exists():
-        return np.load(str(f)), np.load(str(run_dir.join(_SLICE_DATA_FILENAME)))
-    o = pkio.read_text(_OUTPUT_FILENAME)
-    return (
+        return numpy.load(str(f)), numpy.load(str(run_dir.join(_SLICE_DATA_FILENAME)))
+    o = pkio.read_text(run_dir.join(_OUTPUT_FILENAME))
+    c = 0
+    for v in re.finditer(_LATTICE_RE, o):
         _reshape_and_persist(
-            np.fromstring(_LATTICE_RE.search(o)[1], sep="\t"),
+            numpy.fromstring(v[1], sep="\t"),
             _LATTICE_COLS,
-            _LATTICE_DATA_FILENAME,
-        ),
+            run_dir.join(_LATTICE_DATA_FILENAME.format(c)),
+        )
+        c += 1
+    return (
+        numpy.load(str(f)),
         _reshape_and_persist(
-            np.fromstring(_SLICE_RE.search(o)[1], sep="\t"),
+            numpy.fromstring(_SLICE_RE.search(o)[1], sep="\t"),
             _SLICE_COLS,
-            _SLICE_DATA_FILENAME,
+            run_dir.join(_SLICE_DATA_FILENAME),
         ),
     )
 
 
 def _get_frame_counts(run_dir):
+    dm = sirepo.simulation_db.read_json(
+        run_dir.join(template_common.INPUT_BASE_NAME)
+    ).models
+    n = dm.timeDependence.nslice if dm.timeDependence.itdp == "1" else 1
     res = PKDict(
         particle=0,
         field=0,
+        parameter=n,
+        dpa=n if run_dir.join(_FINAL_PARTICLE_OUTPUT_FILENAME).exists() else 0,
+        dfl=n if run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME).exists() else 0,
     )
     with pkio.open_text(run_dir.join(_OUTPUT_FILENAME)) as f:
         for line in f:
@@ -311,18 +381,15 @@ def _get_frame_counts(run_dir):
     return res
 
 
-def _parse_genesis_error(run_dir):
-    return "\n".join(
-        [
-            m.group(1).strip()
-            for m in _RUN_ERROR_RE.finditer(
-                pkio.read_text(run_dir.join(template_common.RUN_LOG))
-            )
-        ],
-    )
+def _is_text_file(path):
+    try:
+        pkio.read_text(path)
+        return True
+    except UnicodeDecodeError:
+        return False
 
 
-def _parse_namelist(data, text):
+def _parse_namelist(data, text, req):
     dm = data.models
     nls = template_common.NamelistParser().parse_text(text)
     if "newrun" not in nls:
@@ -333,7 +400,7 @@ def _parse_namelist(data, text):
         nl["wcoefz1"] = nl["wcoefz"][0]
         nl["wcoefz2"] = nl["wcoefz"][1]
         nl["wcoefz3"] = nl["wcoefz"][2]
-
+    missing_files = []
     for m in SCHEMA.model:
         for f in SCHEMA.model[m]:
             if f not in nl:
@@ -342,6 +409,18 @@ def _parse_namelist(data, text):
             if isinstance(v, list):
                 v = v[-1]
             t = SCHEMA.model[m][f][1]
+            if t == "InputFile":
+                if not _SIM_DATA.lib_file_exists(
+                    _SIM_DATA.lib_file_name_with_model_field(m, f, v), qcall=req.qcall
+                ):
+                    missing_files.append(
+                        PKDict(
+                            filename=v,
+                            file_type="{}-{}".format(m, f),
+                        )
+                    )
+                else:
+                    dm.io[f] = v
             d = dm[m]
             if t == "Float":
                 d[f] = float(v)
@@ -362,14 +441,50 @@ def _parse_namelist(data, text):
                 d[f] = "0" if int(v) == 0 else "1"
             elif t == "TaperModel":
                 d[f] = "1" if int(v) == 1 else "2" if int(v) == 2 else "0"
-    # TODO(pjm): remove this if scanning or time dependence is implemented in the UI
+    # TODO(pjm): remove this if scanning is implemented in the UI
+    if missing_files:
+        return PKDict(
+            error="Missing data files",
+            missingFiles=missing_files,
+        )
     dm.scan.iscan = "0"
-    dm.timeDependence.itdp = "0"
     return data
 
 
+def _particle_plot(frame_args, filename):
+    n = frame_args.sim_in.models.electronBeam.npart
+    d = numpy.fromfile(str(frame_args.run_dir.join(filename)), dtype=numpy.float64)
+    b = d.reshape(
+        int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
+        len(SCHEMA.enum.ParticleColumn),
+        n,
+    )
+    x = _get_col(frame_args.x)
+    y = _get_col(frame_args.y)
+    return template_common.heatmap(
+        [
+            b[int(frame_args.frameIndex), x[0], :].tolist(),
+            b[int(frame_args.frameIndex), y[0], :].tolist(),
+        ],
+        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args),
+        PKDict(
+            title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ippart),
+            x_label=x[1],
+            y_label=y[1],
+        ),
+    )
+
+
 def _z_title_at_frame(frame_args, nth):
-    _, s = _get_lattice_and_slice_data(frame_args.run_dir)
-    step = frame_args.frameIndex * nth
+    s = _get_lattice_and_slice_data(frame_args.run_dir, 0)[1]
+    if frame_args.frameReport in ("finalFieldAnimation", "finalParticleAnimation"):
+        step = -1
+    else:
+        step = frame_args.frameIndex * nth
     z = s[:, 0][step]
-    return f"z: {z:.6f} [m] step: {step + 1}"
+    title = f"z: {z:.6f} [m]"
+    if step >= 0:
+        return f"{title} step: {step + 1}"
+    if frame_args.sim_in.models.timeDependence.itdp == "1":
+        title = f"Slice {frame_args.frameIndex + 1}, {title}"
+    return title

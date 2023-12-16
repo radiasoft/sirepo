@@ -39,7 +39,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_job_fields(cls, data, r, compute_model):
         res = []
         if compute_model in ("twissReport", "bunchReport"):
-            res += ["bunch", "bunchSource", "bunchFile"]
+            res += ["bunch", "bunchSource", "bunchFile", "rpnVariables"]
         if r == "twissReport":
             res += ["elements", "beamlines", "commands", "simulation.activeBeamlineId"]
         return res

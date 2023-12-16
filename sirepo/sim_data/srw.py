@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -139,22 +138,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if "fieldUnits" in dm[m]:
                     dm.simulation.fieldUnits = dm[m].fieldUnits
                     del dm[m]["fieldUnits"]
-        # move sampleFactor to simulation model
-        if "sampleFactor" in dm.initialIntensityReport:
-            if "sampleFactor" not in dm.simulation:
-                dm.simulation.sampleFactor = dm.initialIntensityReport.sampleFactor
-            for k in dm:
-                if k == "initialIntensityReport" or cls.is_watchpoint(k):
-                    if "sampleFactor" in dm[k]:
-                        del dm[k]["sampleFactor"]
-        # default intensityReport.method based on source type
-        if "method" not in dm.intensityReport:
-            if cls.srw_is_undulator_source(dm.simulation):
-                dm.intensityReport.method = "1"
-            elif cls.srw_is_dipole_source(dm.simulation):
-                dm.intensityReport.method = "2"
-            else:
-                dm.intensityReport.method = "0"
         # default sourceIntensityReport.method based on source type
         if "method" not in dm.sourceIntensityReport:
             if cls.srw_is_undulator_source(dm.simulation):
@@ -165,34 +148,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.sourceIntensityReport.method = "2"
             else:
                 dm.sourceIntensityReport.method = "0"
-        if "facility" in dm.simulation:
-            del dm.simulation["facility"]
-        if "multiElectronAnimation" not in dm:
-            m = dm.initialIntensityReport
-            dm.multiElectronAnimation = PKDict(
-                horizontalPosition=m.horizontalPosition,
-                horizontalRange=m.horizontalRange,
-                verticalPosition=m.verticalPosition,
-                verticalRange=m.verticalRange,
-            )
+        if "method" not in dm.simulation:
+            dm.simulation.method = dm.sourceIntensityReport.method
         cls.update_model_defaults(dm.multiElectronAnimation, "multiElectronAnimation")
-        e = dm.electronBeam
-        if not has_electron_beam_position:
-            dm.electronBeamPosition.update(
-                horizontalPosition=e.horizontalPosition,
-                verticalPosition=e.verticalPosition,
-                driftCalculationMethod=e.get("driftCalculationMethod", "auto"),
-                drift=e.get("drift", 0),
-            )
-        if "horizontalPosition" in e:
-            for f in (
-                "horizontalPosition",
-                "verticalPosition",
-                "driftCalculationMethod",
-                "drift",
-            ):
-                if f in e:
-                    del e[f]
         cls.__fixup_old_data_beamline(data, qcall)
         cls.__fixup_old_data_by_template(data, qcall)
         hv = (
@@ -201,85 +159,11 @@ class SimData(sirepo.sim_data.SimDataBase):
             "verticalPosition",
             "verticalRange",
         )
-        if "samplingMethod" not in dm.simulation:
-            simulation = dm.simulation
-            simulation.samplingMethod = 1 if simulation.sampleFactor > 0 else 2
-            for k in hv:
-                simulation[k] = dm.initialIntensityReport[k]
-        if "horizontalPosition" in dm.initialIntensityReport:
-            for k in dm:
-                if (
-                    k == "sourceIntensityReport"
-                    or k == "initialIntensityReport"
-                    or cls.is_watchpoint(k)
-                ):
-                    for f in hv:
-                        del dm[k][f]
-        if "indexFile" in data.models.tabulatedUndulator:
-            del data.models.tabulatedUndulator["indexFile"]
-        u = dm.undulator
-        if (
-            "effectiveDeflectingParameter" not in u
-            and "horizontalDeflectingParameter" in u
-        ):
-            u.effectiveDeflectingParameter = math.sqrt(
-                u.horizontalDeflectingParameter**2
-                + u.verticalDeflectingParameter**2,
-            )
-        for k in (
-            "photonEnergy",
-            "horizontalPointCount",
-            "horizontalPosition",
-            "horizontalRange",
-            "sampleFactor",
-            "samplingMethod",
-            "verticalPointCount",
-            "verticalPosition",
-            "verticalRange",
-        ):
-            if k not in dm.sourceIntensityReport:
-                dm.sourceIntensityReport[k] = dm.simulation[k]
-        if "photonEnergy" not in dm.gaussianBeam:
-            dm.gaussianBeam.photonEnergy = dm.simulation.photonEnergy
-        if "longitudinalPosition" in dm.tabulatedUndulator:
-            u = dm.tabulatedUndulator
-            for k in (
-                "undulatorParameter",
-                "period",
-                "longitudinalPosition",
-                "horizontalAmplitude",
-                "horizontalSymmetry",
-                "horizontalInitialPhase",
-                "verticalAmplitude",
-                "verticalSymmetry",
-                "verticalInitialPhase",
-            ):
-                if k in u:
-                    if cls.srw_is_tabulated_undulator_source(dm.simulation):
-                        dm.undulator[k] = u[k]
-                    del u[k]
         if "name" not in dm["tabulatedUndulator"]:
             u = dm.tabulatedUndulator
             u.name = u.undulatorSelector = "Undulator"
         if dm.tabulatedUndulator.get("id", "1") == "1":
             dm.tabulatedUndulator.id = "{} 1".format(dm.simulation.simulationId)
-        if len(dm.postPropagation) == 9:
-            dm.postPropagation += [0, 0, 0, 0, 0, 0, 0, 0]
-            for i in dm.propagation:
-                for r in dm.propagation[i]:
-                    r += [0, 0, 0, 0, 0, 0, 0, 0]
-        if "electronBeams" in dm:
-            del dm["electronBeams"]
-        # special case for old examples with incorrect electronBeam.drift
-        if dm.simulation.isExample and dm.simulation.name in (
-            "NSLS-II HXN beamline",
-            "NSLS-II HXN beamline: SSA closer",
-            "NSLS-II CSX-1 beamline",
-        ):
-            dm.electronBeamPosition.driftCalculationMethod = "manual"
-            dm.electronBeamPosition.drift = (
-                -1.8 if "HXN" in dm.simulation.name else -1.0234
-            )
         if cls.srw_is_gaussian_source(dm.simulation):
             cls.__fixup_gaussian_divergence(dm.gaussianBeam)
         if "distribution" in dm.multipole:
@@ -603,23 +487,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         dm = data.models
         for i in dm.beamline:
             t = i.type
-            if t == "ellipsoidMirror":
-                if "firstFocusLength" not in i:
-                    i.firstFocusLength = i.position
-            if t in ("grating", "ellipsoidMirror", "sphericalMirror", "toroidalMirror"):
-                if "grazingAngle" not in i:
-                    angle = 0
-                    if i.normalVectorX:
-                        angle = math.acos(abs(float(i.normalVectorX))) * 1000
-                    elif i.normalVectorY:
-                        angle = math.acos(abs(float(i.normalVectorY))) * 1000
-                    i.grazingAngle = angle
-            if (
-                "grazingAngle" in i
-                and "normalVectorX" in i
-                and "autocomputeVectors" not in i
-            ):
-                i.autocomputeVectors = "1"
             if t == "crl":
                 for k, v in PKDict(
                     material="User-defined",
@@ -631,7 +498,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 ).items():
                     if k not in i:
                         i[k] = v
-                if i.method == "calculation":
+                if i.method == "calculation" and i.method != "file":
                     i.method = "file"
             if t == "crystal":
                 # this is a hack for existing bad data
@@ -644,62 +511,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                     "tvx",
                     "tvy",
                 ]:
-                    if i.get(k, 0) is None:
-                        i[k] = 0
                     i[k] = float(i.get(k, 0))
-                if "diffractionAngle" not in i:
-                    allowed_angles = [
-                        x[0] for x in cls.schema().enum.DiffractionPlaneAngle
-                    ]
-                    i.diffractionAngle = cls.srw_find_closest_angle(
-                        i.grazingAngle or 0, allowed_angles
-                    )
-                    if i.tvx == "":
-                        i.tvx = i.tvy = 0
-                    cls.srw_compute_crystal_grazing_angle(i)
-            if t == "sample":
-                if "horizontalCenterCoordinate" not in i:
-                    i.horizontalCenterCoordinate = (
-                        cls.schema().model.sample.horizontalCenterCoordinate[2]
-                    )
-                    i.verticalCenterCoordinate = (
-                        cls.schema().model.sample.verticalCenterCoordinate[2]
-                    )
-                if "cropArea" not in i:
-                    for f in (
-                        "areaXEnd",
-                        "areaXStart",
-                        "areaYEnd",
-                        "areaYStart",
-                        "backgroundColor",
-                        "cropArea",
-                        "cutoffBackgroundNoise",
-                        "invert",
-                        "outputImageFormat",
-                        "rotateAngle",
-                        "rotateReshape",
-                        "shiftX",
-                        "shiftY",
-                        "tileColumns",
-                        "tileImage",
-                        "tileRows",
-                    ):
-                        i[f] = cls.schema().model.sample[f][2]
                 if "transmissionImage" not in i:
                     i.transmissionImage = cls.schema().model.sample.transmissionImage[2]
-            if (
-                t in ("crl", "grating", "ellipsoidMirror", "sphericalMirror")
-                and "horizontalOffset" not in i
-            ):
-                i.horizontalOffset = 0
-                i.verticalOffset = 0
-            if "autocomputeVectors" in i:
-                if i.autocomputeVectors == "0":
-                    i.autocomputeVectors = "none"
-                elif i.autocomputeVectors == "1":
-                    i.autocomputeVectors = (
-                        "vertical" if i.normalVectorX == 0 else "horizontal"
-                    )
             if t == "grating":
                 if not i.get("energyAvg"):
                     i.energyAvg = dm.simulation.photonEnergy

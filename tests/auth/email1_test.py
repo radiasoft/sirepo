@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import pytest
 import re
 
@@ -31,7 +30,7 @@ def test_different_email(auth_fc):
         },
     )
     t = fc.sr_auth_state(userName="diff@b.c", displayName="abc")
-    fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
+    fc.sr_logout()
     uid = fc.sr_auth_state(userName=None, isLoggedIn=False).uid
     r = fc.sr_post(
         "authEmailLogin", {"email": "x@y.z", "simulationType": fc.sr_sim_type}
@@ -45,7 +44,7 @@ def test_follow_email_auth_link_twice(auth_fc):
     fc = auth_fc
 
     from pykern import pkconfig, pkunit, pkio, pkcompat
-    from pykern.pkunit import pkok, pkre
+    from pykern.pkunit import pkok, pkre, pkexcept
     from pykern.pkdebug import pkdp
     import json
 
@@ -55,14 +54,14 @@ def test_follow_email_auth_link_twice(auth_fc):
     )
     # The link comes back in dev mode so we don't have to check email
     s = fc.sr_auth_state(isLoggedIn=False)
-    fc.get(r.uri)
-    # get the url twice - should still be logged in
-    d = fc.sr_get(r.uri)
-    assert not re.search(r"login-fail", pkcompat.from_bytes(d.data))
     fc.sr_email_confirm(r)
-    fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
+    # post to the url twice - should still be logged in, but not found
+    fc.sr_get(r.uri, redirect=False).assert_http_redirect("/myapp#/simulations")
+    fc.sr_logout()
     # now logged out, should see login fail for bad link
-    pkre("login-fail", pkcompat.from_bytes(fc.get(r.uri).data))
+    fc.sr_get(r.uri, redirect=False).assert_http_redirect(
+        "/login-fail/email/email-token"
+    )
 
 
 def test_force_login(auth_fc):
@@ -78,8 +77,8 @@ def test_force_login(auth_fc):
     r = fc.sr_post(
         "authEmailLogin", {"email": "force@b.c", "simulationType": fc.sr_sim_type}
     )
-    fc.get(r.uri)
-    fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
+    fc.sr_email_confirm(r)
+    fc.sr_logout()
     with pkexcept("SRException.*routeName.*login"):
         fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
     r = fc.sr_post(
@@ -121,7 +120,7 @@ def test_guest_merge(auth_fc):
             folder="/",
         ),
     )
-    guest_uid = fc.sr_auth_state().uid
+    guest_uid = fc.sr_uid
 
     # Convert to email user
     r = fc.sr_post(
@@ -149,7 +148,7 @@ def test_guest_merge(auth_fc):
             folder="/",
         ),
     )
-    fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
+    fc.sr_logout()
 
     # Login as email user
     r = fc.sr_post(
@@ -191,7 +190,7 @@ def test_happy_path(auth_fc):
         isLoggedIn=True,
         userName="happy@b.c",
     ).uid
-    r = fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
+    r = fc.sr_logout()
     fc.sr_auth_state(
         displayName=None,
         isLoggedIn=False,
@@ -199,6 +198,18 @@ def test_happy_path(auth_fc):
         uid=uid,
         userName=None,
     )
+
+
+def test_multiple_unverified_users(auth_fc):
+    fc = auth_fc
+
+    for e in ("1@x.x", "2@x.x"):
+        r = fc.sr_post(
+            "authEmailLogin",
+            {"email": e, "simulationType": fc.sr_sim_type},
+        )
+    fc.sr_email_confirm(r)
+    fc.sr_auth_state(isLoggedIn=True)
 
 
 def test_token_expired(auth_fc):

@@ -23,7 +23,7 @@ export const LoginRouter = (props) => {
     let routeHelper = useContext(CRouteHelper);
     let loginStatusRef = useRef(undefined);
     let location = useLocation();
-    const [hasLoginStatus, _] = useSetup(true, updateLoginStatusRef(loginStatusRef, appWrapper));
+    const [hasLoginStatus, _] = useSetup(true, () => updateLoginStatusRef(loginStatusRef, appWrapper));
     const isSimulations = location.pathname.startsWith(routeHelper.localRoute("simulations"));
 
     return hasLoginStatus && (
@@ -42,7 +42,7 @@ export const LoginRouter = (props) => {
             <Routes>
                 <Route path={`${routeHelper.localRoutePattern("logout")}/*`} element={<LogoutRoot/>}/>
                 <Route path={`${routeHelper.localRoutePattern("login")}/*`} element={<LoginRoot/>}/>
-                <Route path={routeHelper.localRoutePattern("loginConfirm")} element={<LoginConfirm/>}/>
+                <Route path={routeHelper.localRoutePattern("loginWithEmailConfirm")} element={<LoginConfirm/>}/>
                 <Route path="*" element={<CatchLoggedOut>{props.children}</CatchLoggedOut>}/>
             </Routes>
         </CLoginStatusRef.Provider>
@@ -191,19 +191,12 @@ export const CatchLoggedOut = (props) => {
 
 type LoginConfirmParams = {
     token: string,
-    method: AuthMethod,
     needCompleteRegistration: "0" | "1"
 }
 
 export const LoginConfirm = (props) => {
-    let { token, method, needCompleteRegistration } = useParams<LoginConfirmParams>();
-
-    switch(method) {
-        case 'email':
-            return <LoginEmailConfirm needCompleteRegistration={needCompleteRegistration} token={token}/>
-        default:
-            throw new Error(`could not handle login method=${method}`)
-    }
+    let { token, needCompleteRegistration } = useParams<LoginConfirmParams>();
+    return <LoginEmailConfirm needCompleteRegistration={needCompleteRegistration} token={token}/>
 }
 
 
@@ -236,11 +229,13 @@ export const LoginExtraInfoForm = (props: { onComplete: ({displayName}) => void 
                 <Form.Label column sm="3">
                     Your full name
                 </Form.Label>
-                <Col sm="9">
+                <Col sm="7">
                     <Form.Control value={displayName} onChange={(e) => updateDisplayName(e.target.value)}/>
                 </Col>
+                <Col sm="2">
+                    <Button variant="primary" onClick={() => onComplete({ displayName })} disabled={! displayName}>Continue</Button>
+                </Col>
             </Form.Group>
-            <Button variant="primary" onClick={() => onComplete({ displayName })}>Continue</Button>
         </>
     )
 }
@@ -286,6 +281,7 @@ export function LogoutRoot(props) {
     let navigate = useNavigate();
     let appName = useContext(CAppName);
     let routeHelper = useContext(CRouteHelper);
+    useContext(CLoginStatusRef).current.isLoggedIn = false;
     useEffect(() => {
         fetch(routeHelper.globalRoute("authLogout", { simulation_type: appName })).then(() => navigate(routeHelper.localRoute("root")));
     })

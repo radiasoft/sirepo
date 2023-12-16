@@ -8,11 +8,11 @@ try:
 except:
     pass
 
-import srwl_bl
-import srwlib
-import srwlpy
+import srwpy.srwl_bl
+import srwpy.srwlib
+import srwpy.srwlpy
 import math
-import srwl_uti_smp
+import srwpy.srwl_uti_smp
 
 def set_optics(v, names=None, want_final_propagation=True):
     el = []
@@ -22,7 +22,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     for el_name in names:
         if el_name == 'ApM1':
             # ApM1: aperture 270.0m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_ApM1_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_ApM1_Dx,
@@ -36,8 +36,8 @@ def set_optics(v, names=None, want_final_propagation=True):
             mirror_file = v.op_M1_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by M1 beamline element'.format(mirror_file)
-            el.append(srwlib.srwl_opt_setup_surf_height_1d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_M1_dim,
                 _ang=abs(v.op_M1_ang),
                 _amp_coef=v.op_M1_amp_coef,
@@ -47,13 +47,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_M1_pp)
         elif el_name == 'M1_Watchpoint':
             # M1_Watchpoint: drift 270.0m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_M1_Watchpoint_L,
             ))
             pp.append(v.op_M1_Watchpoint_pp)
         elif el_name == 'ApKB':
             # ApKB: aperture 928.3m
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape=v.op_ApKB_shape,
                 _ap_or_ob='a',
                 _Dx=v.op_ApKB_Dx,
@@ -64,7 +64,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_ApKB_pp)
         elif el_name == 'VFM':
             # VFM: ellipsoidMirror 928.3m
-            el.append(srwlib.SRWLOptMirEl(
+            el.append(srwpy.srwlib.SRWLOptMirEl(
                 _p=v.op_VFM_p,
                 _q=v.op_VFM_q,
                 _ang_graz=v.op_VFM_ang,
@@ -82,8 +82,8 @@ def set_optics(v, names=None, want_final_propagation=True):
             mirror_file = v.op_VFM_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by VFM beamline element'.format(mirror_file)
-            el.append(srwlib.srwl_opt_setup_surf_height_1d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_VFM_dim,
                 _ang=abs(v.op_VFM_ang),
                 _amp_coef=v.op_VFM_amp_coef,
@@ -91,13 +91,13 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
         elif el_name == 'VFM_HFM':
             # VFM_HFM: drift 928.3m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_VFM_HFM_L,
             ))
             pp.append(v.op_VFM_HFM_pp)
         elif el_name == 'HFM':
             # HFM: ellipsoidMirror 928.9m
-            el.append(srwlib.SRWLOptMirEl(
+            el.append(srwpy.srwlib.SRWLOptMirEl(
                 _p=v.op_HFM_p,
                 _q=v.op_HFM_q,
                 _ang_graz=v.op_HFM_ang,
@@ -115,8 +115,8 @@ def set_optics(v, names=None, want_final_propagation=True):
             mirror_file = v.op_HFM_hfn
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by HFM beamline element'.format(mirror_file)
-            el.append(srwlib.srwl_opt_setup_surf_height_1d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_HFM_dim,
                 _ang=abs(v.op_HFM_ang),
                 _amp_coef=v.op_HFM_amp_coef,
@@ -124,14 +124,14 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
         elif el_name == 'HFM_Sample':
             # HFM_Sample: drift 928.9m
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L=v.op_HFM_Sample_L,
             ))
             pp.append(v.op_HFM_Sample_pp)
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
-    return srwlib.SRWLOptC(el, pp)
+    return srwpy.srwlib.SRWLOptC(el, pp)
 
 
 
@@ -246,13 +246,13 @@ varParam = [
     ['w_ry', 'f', 0.00175601622, 'range of vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ny', 'i', 100, 'number of points vs vertical position for calculation of intensity distribution'],
     ['w_smpf', 'f', 2.0, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
-    ['w_meth', 'i', 2, 'method to use for calculation of intensity distribution vs horizontal and vertical position: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"'],
+    ['w_meth', 'i', 0, 'method to use for calculation of intensity distribution vs horizontal and vertical position: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"'],
     ['w_prec', 'f', 0.01, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_mag', 'i', 1, 'magnetic field to be used for calculation of intensity distribution vs horizontal and vertical position: 1- approximate, 2- accurate'],
     ['w_u', 'i', 1, 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
+
     ['si_pol', 'i', 6, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
     ['si_type', 'i', 0, 'type of a characteristic to be extracted after calculation of intensity distribution: 0- Single-Electron Intensity, 1- Multi-Electron Intensity, 2- Single-Electron Flux, 3- Multi-Electron Flux, 4- Single-Electron Radiation Phase, 5- Re(E): Real part of Single-Electron Electric Field, 6- Im(E): Imaginary part of Single-Electron Electric Field, 7- Single-Electron Intensity, integrated over Time or Photon Energy'],
-    ['w_mag', 'i', 1, 'magnetic field to be used for calculation of intensity distribution vs horizontal and vertical position: 1- approximate, 2- accurate'],
-
     ['si_fn', 's', 'res_int_se.dat', 'file name for saving calculated single-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position'],
     ['si_pl', 's', '', 'plot the input intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
     ['ws_fni', 's', 'res_int_pr_se.dat', 'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'],
@@ -389,7 +389,7 @@ def epilogue():
 
 
 def main():
-    v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     names = ['ApM1','M1','M1_Watchpoint','ApKB','VFM','VFM_HFM','HFM','HFM_Sample']
     op = set_optics(v, names, True)
     v.ws = True
@@ -397,7 +397,7 @@ def main():
     v.wm = False
     v.si = True
     v.si_pl = 'xy'
-    srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
+    srwpy.srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
 

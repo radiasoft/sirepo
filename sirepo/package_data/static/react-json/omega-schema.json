@@ -83,7 +83,8 @@
             },
             "simType_1": {
                 "displayName": "1: Simulation Type",
-                "type": "CoupledSimType"
+                "type": "CoupledSimType",
+                "defaultValue": ""
             },
             "simId_1": {
                 "displayName": "Simulation",
@@ -92,6 +93,7 @@
             "simType_2": {
                 "displayName": "2: Simulation Type",
                 "type": "CoupledSimType",
+                "defaultValue": "",
                 "shown": "$(simWorkflow.simType_1) && $(simWorkflow.simId_1) ? true : false"
             },
             "simId_2": {
@@ -102,6 +104,7 @@
             "simType_3": {
                 "displayName": "3: Simulation Type",
                 "type": "CoupledSimType",
+                "defaultValue": "",
                 "shown": "$(simWorkflow.simType_2) && $(simWorkflow.simId_2) ? true : false"
             },
             "simId_3": {
@@ -112,6 +115,7 @@
             "simType_4": {
                 "displayName": "4: Simulation Type",
                 "type": "CoupledSimType",
+                "defaultValue": "",
                 "shown": "$(simWorkflow.simType_3) && $(simWorkflow.simId_3) ? true : false"
             },
             "simId_4": {
@@ -331,12 +335,10 @@
         {
             "layout": "navTabs",
             "config": {
-                "name": "navtabs",
                 "tabs": [
                     {
                         "name": "source",
                         "title": "Source",
-                        "icon": "",
                         "items": [
                             {
                                 "layout": "waterfall",
@@ -350,11 +352,11 @@
                                         "horizontal": ".5em",
                                         "vertical": ".5em"
                                     },
+                                    "padding": ".5em",
                                     "items": [
                                         {
                                             "layout": "panel",
                                             "config": {
-                                                "name": "simWorkflow",
                                                 "title": "Simulation Workflow",
                                                 "basic": [
                                                     {
@@ -402,6 +404,7 @@
                                         "horizontal": ".5em",
                                         "vertical": ".5em"
                                     },
+                                    "padding": ".5em",
                                     "items": [
                                         {
                                             "layout": "panel",
@@ -531,6 +534,7 @@
                                         "horizontal": ".5em",
                                         "vertical": ".5em"
                                     },
+                                    "padding": ".5em",
                                     "items": [
                                         {
                                             "layout": "panel",
@@ -660,6 +664,7 @@
                                         "horizontal": ".5em",
                                         "vertical": ".5em"
                                     },
+                                    "padding": ".5em",
                                     "items": [
                                         {
                                             "layout": "panel",
@@ -789,6 +794,7 @@
                                         "horizontal": ".5em",
                                         "vertical": ".5em"
                                     },
+                                    "padding": ".5em",
                                     "items": [
                                         {
                                             "layout": "panel",

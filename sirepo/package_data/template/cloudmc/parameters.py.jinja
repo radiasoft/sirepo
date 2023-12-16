@@ -1,6 +1,7 @@
 # -*- python -*-
 import numpy
 import openmc
+# this import add openmc.Materials.download_cross_section_data()
 import openmc_data_downloader
 
 
@@ -46,10 +47,9 @@ def create_materials():
     {{ materials }}
     {% endfilter %}
     materials.export_to_xml()
-    openmc_data_downloader.just_in_time_library_generator(
-        libraries='{{ settings_materialLibrary }}',
-        materials=materials,
-        destination='../../lib',
+    materials.download_cross_section_data(
+        libraries=['{{ settings_materialLibrary }}'],
+        destination='{{ materialDirectory }}',
     )
 
 
@@ -82,4 +82,10 @@ create_geometry()
 create_materials()
 create_settings()
 create_tallies()
-openmc.run()
+{% if not isPythonSource %}
+import sirepo.template
+sirepo.template.import_module('cloudmc').write_volume_outlines()
+{% endif %}
+{% if runCommand %}
+{{ runCommand }}
+{% endif %}

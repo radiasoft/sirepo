@@ -4,3 +4,17 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.raydata-button {
+  margin: 5px;
+}
+body {
+  overflow-y: scroll;
+}
+
+.raydata-removable-column .raydata-remove-column-button {
+  visibility: hidden;
+}
+
+.raydata-removable-column:hover .raydata-remove-column-button {
+  visibility: visible;
+}

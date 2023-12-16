@@ -4,8 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import pytest
 
 
 def test_token_reuse(auth_fc):
@@ -21,7 +19,6 @@ def test_token_reuse(auth_fc):
     )
     fc.sr_email_confirm(r)
     s = fc.sr_auth_state(userName="reuse@b.c")
-    fc.sr_get("authLogout", {"simulation_type": fc.sr_sim_type})
-    r = fc.sr_get(r.uri, redirect=False)
-    pkre("/login-fail/email", r.header_get("Location"))
+    fc.sr_logout()
+    fc.sr_get(r.uri, redirect=False).assert_http_redirect("login-fail")
     fc.sr_auth_state(isLoggedIn=False)

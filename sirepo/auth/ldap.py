@@ -49,10 +49,11 @@ class API(sirepo.quest.API):
         def _user(email):
             m = self.auth_db.model(user_model)
             u = m.unchecked_search_by(unverified_email=email)
-            if not u:
-                u = m.new(unverified_email=email, user_name=email)
-                u.save()
-            return u
+            if u:
+                return u
+            u = m.new(unverified_email=email, user_name=email)
+            u.save()
+            return m.unchecked_search_by(unverified_email=email)
 
         def _validate_entry(creds, field):
             if not creds[field]:

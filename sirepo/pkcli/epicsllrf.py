@@ -32,19 +32,21 @@ def run(cfg_dir):
 
 
 def run_background(cfg_dir):
-    f = _epics_fields()
-    s = simulation_db.read_json(
-        template_common.INPUT_BASE_NAME
-    ).models.epicsServer.serverAddress
+    dm = simulation_db.read_json(template_common.INPUT_BASE_NAME).models
+    s = dm.epicsServer.serverAddress
+    f = _epics_fields(dm)
     if epicsllrf.run_epics_cmd(f"pvget {f[0]}", s) != 0:
-        raise AssertionError("Unable to connect to EPICS server: {}".format(s))
+        raise epicsllrf.EpicsDisconnectError(
+            "Unable to connect to EPICS server: {}".format(s)
+        )
     epicsllrf.run_epics_cmd(f"pvmonitor {' '.join(f)} | python parameters.py", s)
 
 
-def _epics_fields():
+def _epics_fields(models):
     r = []
-    for model in epicsllrf.SCHEMA.model:
-        if epicsllrf.SCHEMA.constants.epicsModelPrefix in model:
-            for k in epicsllrf.SCHEMA.model[model]:
-                r.append(epicsllrf.epics_field_name(model, k))
+    p = models.epicsConfig.epicsModelPrefix
+    for m in models:
+        if p in m:
+            for k in models[m]:
+                r.append(epicsllrf.epics_field_name(p, m, k))
     return r

@@ -149,7 +149,12 @@
             "xxprX": 0.0,
             "xxprY": 0.0
         },
-        "electronBeams": [],
+        "electronBeamPosition": {
+            "drift": -1.4432500000000001,
+            "driftCalculationMethod": "auto",
+            "horizontalPosition": 0.0,
+            "verticalPosition": 0.0
+        },
         "fluxReport": {
             "azimuthalPrecision": 1.0,
             "distanceFromSource": 29.5,
@@ -166,6 +171,7 @@
         },
         "gaussianBeam": {
             "energyPerPulse": null,
+            "photonEnergy": 20358.0,
             "polarization": 1,
             "rmsPulseDuration": null,
             "rmsSizeX": null,
@@ -180,8 +186,7 @@
             "characteristic": 0,
             "fieldUnits": 1,
             "polarization": 6,
-            "precision": 0.008,
-            "sampleFactor": 0
+            "precision": 0.008
         },
         "intensityReport": {
             "distanceFromSource": 29.5,
@@ -189,6 +194,7 @@
             "finalEnergy": 20400.0,
             "horizontalPosition": 0.0,
             "initialEnergy": 20000.0,
+            "method": "1",
             "photonEnergyPointCount": 10000,
             "polarization": 6,
             "precision": 0.008,
@@ -573,16 +579,28 @@
             "characteristic": 0,
             "distanceFromSource": 29.5,
             "fieldUnits": 1,
-            "polarization": 6
+            "horizontalPointCount": 100,
+            "horizontalPosition": 0.0,
+            "horizontalRange": 2.4,
+            "photonEnergy": 20358.0,
+            "polarization": 6,
+            "sampleFactor": 0.0,
+            "samplingMethod": 1,
+            "verticalPointCount": 100,
+            "verticalPosition": 0.0,
+            "verticalRange": 2.0
         },
         "undulator": {
+            "effectiveDeflectingParameter": 2.05093584,
             "horizontalAmplitude": 0.0,
+            "horizontalDeflectingParameter": 0.0,
             "horizontalInitialPhase": 0.0,
             "horizontalSymmetry": "1",
             "length": 2.7945,
             "longitudinalPosition": 0.6,
             "period": 23.0,
             "verticalAmplitude": 0.955,
+            "verticalDeflectingParameter": 2.05093584,
             "verticalInitialPhase": 0.0,
             "verticalSymmetry": "-1"
         },
@@ -590,15 +608,13 @@
             "characteristic": 0,
             "fieldUnits": 1,
             "polarization": 6,
-            "precision": 0.008,
-            "sampleFactor": 0
+            "precision": 0.008
         },
         "watchpointReport11": {
             "characteristic": 0,
             "fieldUnits": 1,
             "polarization": 6,
-            "precision": 0.008,
-            "sampleFactor": 0
+            "precision": 0.008
         }
     },
     "simulationType": "srw",

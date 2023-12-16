@@ -25,8 +25,17 @@ INPUT_NAME = "hundli.yml"
 OUTPUT_NAME = "hundli.csv"
 
 
+def stateless_compute_global_resources(data, **kwargs):
+    import sirepo.global_resources
+
+    return sirepo.global_resources.for_simulation(
+        data.simulationType, data.simulationId
+    )
+
+
 def get_data_file(run_dir, model, frame, options):
     if options.suffix == "sr_long_analysis":
+        # Not asyncio.sleep: not in coroutine (job_cmd)
         time.sleep(100)
     return OUTPUT_NAME
 

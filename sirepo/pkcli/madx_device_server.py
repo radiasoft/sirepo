@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-"""DeviceServer stand-in for webcon/controls
+"""DeviceServer stand-in for controls
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog

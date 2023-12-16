@@ -1,0 +1,111 @@
+{
+    "constants": {
+        "epicsModelPrefix": "LLRFSim",
+        "editorModelName": "LLRFSim_Gen",
+        "epicsPlots": {
+            "waveformAReport": {
+                "x": "LLRFSim_Pulse:time_step",
+                "y1": "LLRFSim_Gen:Ig",
+                "y2": "LLRFSim_Cav1:Vt",
+                "y3": "LLRFSim_Cav1:Vr"
+            },
+            "waveformBReport": {
+                "x": "LLRFSim_Pulse:time_step",
+                "y1": "LLRFSim_Gen:phase",
+                "y2": "LLRFSim_Cav1:tphase",
+                "y3": "LLRFSim_Cav1:rphase"
+            },
+            "waveformCReport": {
+                "x": "LLRFSim_Pulse:time_step",
+                "y1": "LLRFSim_Gen:Ig",
+                "y2": "LLRFSim_Cav2:Vt",
+                "y3": "LLRFSim_Cav2:Vr"
+            },
+            "waveformDReport": {
+                "x": "LLRFSim_Pulse:time_step",
+                "y1": "LLRFSim_Gen:phase",
+                "y2": "LLRFSim_Cav2:tphase",
+                "y3": "LLRFSim_Cav2:rphase"
+            },
+            "plotLabels": {
+                "LLRFSim_Pulse:time_step": "Time [s]",
+                "LLRFSim_Gen:Ig": "Forward [V]",
+                "LLRFSim_Cav1:Vt": "Probe [V]",
+                "LLRFSim_Cav1:Vr": "Reflected [V]",
+                "LLRFSim_Gen:phase": "Forward [rad]",
+                "LLRFSim_Cav1:tphase": "Probe [rad]",
+                "LLRFSim_Cav1:rphase": "Reflected [rad]",
+                "LLRFSim_Cav2:Vt": "Probe [V]",
+                "LLRFSim_Cav2:Vr": "Reflected [V]",
+                "LLRFSim_Cav2:tphase": "Probe [rad]",
+                "LLRFSim_Cav2:rphase": "Reflected [rad]"
+            }
+        }
+    },
+    "model": {
+        "LLRFSim_Gen": {
+            "phiG": ["Drive Phase [rad]", "EpicsFloat", 0, "Generator current envelope"],
+            "amp": ["Amplitude [V]", "EpicsFloat", 0],
+            "start": ["Start of Pulse [s]", "EpicsFloat", 0],
+            "duration": ["Pulse Duration [s]", "EpicsFloat", 0],
+            "rho": ["rho", "EpicsFloat", 0],
+            "wS": ["wS", "EpicsFloat", 0],
+            "phiS": ["phiS", "EpicsFloat", 0],
+            "I0S": ["I0S", "EpicsFloat", 0],
+            "Ig": ["", "ReadOnlyFloatArray", []],
+            "phase": ["", "ReadOnlyFloatArray", []]
+        },
+        "LLRFSim_Cav1": {
+            "Vt": ["", "ReadOnlyFloatArray", []],
+            "Vr": ["", "ReadOnlyFloatArray", []],
+            "tphase": ["", "ReadOnlyFloatArray", []],
+            "rphase": ["", "ReadOnlyFloatArray", []]
+        },
+        "LLRFSim_Cav2": {
+            "Vt": ["", "ReadOnlyFloatArray", []],
+            "Vr": ["", "ReadOnlyFloatArray", []],
+            "tphase": ["", "ReadOnlyFloatArray", []],
+            "rphase": ["", "ReadOnlyFloatArray", []]
+        },
+        "LLRFSim_Pulse": {
+            "time_step": ["Timestep", "ReadOnlyFloat", 0]
+        },
+        "waveformAReport": {},
+        "waveformBReport": {},
+        "waveformCReport": {},
+        "waveformDReport": {}
+    },
+    "view": {
+        "LLRFSim_Gen": {
+            "title": "Gen",
+            "basic": [
+                "phiG",
+                "amp",
+                "start",
+                "duration",
+                "rho"
+            ],
+            "advanced": []
+        },
+        "waveformAReport": {
+            "title": "Voltage Cav1",
+            "hasDataFile": false,
+            "advanced": []
+        },
+        "waveformBReport": {
+            "title": "Phase Cav1",
+            "hasDataFile": false,
+            "advanced": []
+        },
+        "waveformCReport": {
+            "title": "Voltage Cav2",
+            "hasDataFile": false,
+            "advanced": []
+        },
+        "waveformDReport": {
+            "title": "Phase Cav2",
+            "hasDataFile": false,
+            "advanced": []
+        }
+    }
+}

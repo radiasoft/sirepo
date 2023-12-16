@@ -78,7 +78,7 @@ def pytest_collection_modifyitems(session, config, items):
 
     s = PKDict(
         elegant="sdds",
-        srw="srwl_bl",
+        srw="srwpy.srwl_bl",
         warp="warp",
     )
     codes = set()
@@ -364,7 +364,7 @@ def _subprocess_start(request, fc_args):
             except Exception as e:
                 l = e
                 time.sleep(0.3)
-        pkunit.pkfail("start failed uri={} exception={}", uri, l)
+        pkunit.restart_or_fail("start failed uri={} exception={}", uri, l)
 
     def _subprocess(cmd):
         p.append(subprocess.Popen(cmd, env=env, cwd=wd))

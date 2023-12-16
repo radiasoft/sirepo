@@ -12,13 +12,15 @@ import { AnimationReader, CReportEventManager, SimulationFrame } from "../data/r
 import React from "react";
 import { CPanelController } from "../data/panel";
 import { LAYOUTS } from "./layouts";
-import { CModelsWrapper, getModelValues } from "../data/wrapper";
-import { ModelsAccessor } from "../data/accessor";
-import { CFormController } from "../data/formController";
-import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { CAppName, CSchema } from "../data/appwrapper";
 import { SchemaLayout } from "../utility/schema";
 import { CRouteHelper } from "../utility/route";
 import { ModelState } from "../store/models";
+import { useShown } from "../hook/shown";
+import { CHandleFactory, DependencyReader } from "../data/handle";
+import { StoreTypes, ValueSelectors } from "../data/data";
+import { interpolate, InterpolationBase } from "../utility/string";
+import { useSimulationInfo } from "../hook/simulationInfo";
 
 
 export type ReportVisualProps<L> = { data: L, model: ModelState };
@@ -42,50 +44,37 @@ export class AutoRunReportLayout extends Layout<AutoRunReportConfig, {}> {
         this.reportLayout = LAYOUTS.getLayoutForSchema(config.reportLayout) as ReportVisual;
     }
 
-    getFormDependencies = () => {
-        return this.reportLayout.getFormDependencies();
-    }
-
     component = (props: LayoutProps<{}>) => {
-        let { report, dependencies } = this.config;
+        let { dependencies } = this.config;
 
-        let simulationInfoPromise = useContext(CSimulationInfoPromise);
         let appName = useContext(CAppName);
+        let schema = useContext(CSchema);
+        let store = useStore();
+        let handleFactory = useContext(CHandleFactory);
+        let simulationInfo = useSimulationInfo(handleFactory);
         let routeHelper = useContext(CRouteHelper);
-        let modelsWrapper = useContext(CModelsWrapper);
-        let formController = useContext(CFormController);
+        let report = interpolate(this.config.report).withDependencies(handleFactory, StoreTypes.Models).raw();
 
         let reportDependencies = dependencies.map(dependencyString => new Dependency(dependencyString));
-
-        let dependentValuesAccessor = new ModelsAccessor(modelsWrapper, [...formController.getDependencies(), ...reportDependencies]);
-        let dependentValues = dependentValuesAccessor.getValues().map(dv => dv.value);
-
+        let dependentValues = new DependencyReader(reportDependencies, StoreTypes.Models, schema).hook();
         let [simulationData, updateSimulationData] = useState(undefined);
 
         let simulationPollingVersionRef = useRef(uuidv4())
-        let [model, updateModel] = useState(undefined);
+        //let model = useModelValue(report, StoreTypes.Models);
+        let model = handleFactory.createModelHandle(report, StoreTypes.Models).hook().value;
 
         useEffect(() => {
             updateSimulationData(undefined);
-            let pollingVersion = uuidv4();
-            simulationPollingVersionRef.current = pollingVersion;
-            simulationInfoPromise.then(({ models, simulationId, simulationType, version }) => {
-                updateModel(models[report]);
-                pollRunReport(routeHelper, {
-                    appName,
-                    models,
-                    simulationId,
-                    report: report,
-                    forceRun: false,
-                    callback: (simulationData) => {
-                        // guard concurrency
-                        if(simulationPollingVersionRef.current === pollingVersion) {
-                            updateSimulationData(simulationData);
-                        } else {
-                            console.log("polling data was not from newest request");
-                        }
-                    }
-                })
+            let { simulationId } = simulationInfo;
+            pollRunReport(routeHelper, {
+                appName,
+                models: store.getState()[StoreTypes.Models.name],
+                simulationId,
+                report: report,
+                forceRun: false,
+                callback: (simulationData) => {
+                    updateSimulationData(simulationData);
+                }
             })
         }, dependentValues)
 
@@ -112,24 +101,29 @@ export function useAnimationReader(reportName: string, reportGroupName: string, 
             panelController.setShown(s);
         }
     }, [animationReader?.frameCount])
+    let handleFactory = useContext(CHandleFactory);
+    let simulationInfo = useSimulationInfo(handleFactory);
     let reportEventManager = useContext(CReportEventManager);
-    let modelsWrapper = useContext(CModelsWrapper);
-    let simulationInfoPromise = useContext(CSimulationInfoPromise);
     let appName = useContext(CAppName);
     let routeHelper = useContext(CRouteHelper);
     let reportEventsVersionRef = useRef(uuidv4())
-    let frameIdDependencies = frameIdFields.map(f => new Dependency(f));
-    let frameIdAccessor = new ModelsAccessor(modelsWrapper, frameIdDependencies);
+    let frameIdHandles = frameIdFields.map(f => new Dependency(f)).map(d => handleFactory.createHandle(d, StoreTypes.Models).hook());
 
-    function reportStatus(reportName, simulationData) {
+    function reportStatus(reportName: string, simulationData: ResponseHasState) {
         if (simulationData.reports) {
             for (const r of simulationData.reports) {
                 if (r.modelName === reportName) {
                     return {
-                        frameCount: r.frameCount || r.lastUpdateTime || 0,
+                        frameCount: r.frameCount !== undefined ? r.frameCount : (r.lastUpdateTime || 0),
                         hasAnimationControls: ! r.lastUpdateTime,
                     };
                 }
+            }
+        } else if(simulationData.outputInfo) {
+            let frameCount = (simulationData.outputInfo as any[]).find(o => o.modelKey === reportName).pageCount
+            return {
+                frameCount,
+                hasAnimationControls: frameCount > 1
             }
         }
         return {
@@ -144,27 +138,28 @@ export function useAnimationReader(reportName: string, reportGroupName: string, 
                 updateAnimationReader(undefined);
             },
             onReportData: (simulationData: ResponseHasState) => {
-                simulationInfoPromise.then(({models, simulationId}) => {
-                    let { computeJobHash, computeJobSerial } = simulationData;
-                    const s = reportStatus(reportName, simulationData);
-                    if (!animationReader || s.frameCount !== animationReader?.frameCount) {
-                        if (s.frameCount > 0) {
-                            let newAnimationReader = new AnimationReader(routeHelper, {
-                                reportName,
-                                simulationId,
-                                appName,
-                                computeJobSerial,
-                                computeJobHash,
-                                frameIdValues: frameIdAccessor.getValues().map(fv => fv.value),
-                                frameCount: s.frameCount,
-                                hasAnimationControls: s.hasAnimationControls,
-                            });
-                            updateAnimationReader(newAnimationReader);
-                        } else {
-                            updateAnimationReader(undefined);
-                        }
+                console.log("onData");
+                let { simulationId } = simulationInfo
+                let { computeJobHash, computeJobSerial } = simulationData;
+                const s = reportStatus(reportName, simulationData);
+                if (!animationReader || s.frameCount !== animationReader?.frameCount) {
+                    console.log("frameCount", s.frameCount);
+                    if (s.frameCount > 0) {
+                        let newAnimationReader = new AnimationReader(routeHelper, {
+                            reportName,
+                            simulationId,
+                            appName,
+                            computeJobSerial,
+                            computeJobHash,
+                            frameIdValues: frameIdHandles.map(h => ValueSelectors.Models(h.value)),
+                            frameCount: s.frameCount,
+                            hasAnimationControls: s.hasAnimationControls,
+                        });
+                        updateAnimationReader(newAnimationReader);
+                    } else {
+                        updateAnimationReader(undefined);
                     }
-                })
+                }
             }
         })
         return () => {
@@ -179,7 +174,7 @@ export type ManualRunReportConfig = {
     reportName: string,
     reportGroupName: string,
     frameIdFields: string[],
-    shown: string,
+    shown: string
 }
 
 export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
@@ -191,22 +186,23 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
         this.reportLayout = LAYOUTS.getLayoutForSchema(config.reportLayout) as ReportVisual;
     }
 
-    getFormDependencies = () => {
-        return this.reportLayout.getFormDependencies();
-    }
-
     component = (props: LayoutProps<{}>) => {
-        let { reportName, reportGroupName, frameIdFields } = this.config;
+        let { reportGroupName, frameIdFields } = this.config;
+        let handleFactory = useContext(CHandleFactory);
+        let reportName = interpolate(this.config.reportName).withDependencies(handleFactory, StoreTypes.Models).raw();
         let showAnimationController = 'showAnimationController' in this.config
                                     ? !!this.config.showAnimationController
                                     : true;
-        let modelsWrapper = useContext(CModelsWrapper);
-        let store = useStore();
-        let model = getModelValues([reportName], modelsWrapper, store.getState())[reportName];
+        let shown = useShown(this.config.shown, true, StoreTypes.Models);
+        //let reportModel = useModelValue(reportName, StoreTypes.Models);
+        let reportModel = handleFactory.createModelHandle(reportName, StoreTypes.Models).hook().value;
         let animationReader = useAnimationReader(reportName, reportGroupName, frameIdFields);
+        console.log("shown", shown);
+        console.log("reportLayout", this.reportLayout);
+        console.log("animationReader", animationReader);
         return (
             <>
-                {this.reportLayout &&
+                {shown && this.reportLayout &&
                 animationReader &&
                 <ReportAnimationController animationReader={animationReader} showAnimationController={showAnimationController} currentFrameIndex={props.currentFrameIndex}>
                     {
@@ -217,7 +213,7 @@ export class ManualRunReportLayout extends Layout<ManualRunReportConfig, {}> {
                             return (
                                 <>
                                 {
-                                    canShowReport && <LayoutComponent data={reportLayoutConfig} model={model}/>
+                                    canShowReport && <LayoutComponent data={reportLayoutConfig} model={reportModel}/>
                                 }
                                 </>
                             )
@@ -321,21 +317,16 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
 
         this.childLayouts = (config.items || []).map(LAYOUTS.getLayoutForSchema);
     }
-
-    getFormDependencies = () => {
-        return (this.childLayouts || []).flatMap(v => v.getFormDependencies());
-    }
-
+    
     component = (props: LayoutProps<{}>) => {
         let { reportGroupName } = this.config;
 
         let reportEventManager = useContext(CReportEventManager);
         let appName = useContext(CAppName);
         let routeHelper = useContext(CRouteHelper);
-        let simulationInfoPromise = useContext(CSimulationInfoPromise);
-        let modelsWrapper = useContext(CModelsWrapper);
         let schema = useContext(CSchema);
-        let modelNames = Object.keys(schema.models);
+        let handleFactory = useContext(CHandleFactory);
+        let simulationInfo = useSimulationInfo(handleFactory);
 
         let store = useStore();
 
@@ -363,29 +354,27 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
 
         useEffect(() => {
             // recover from previous runs on server
-            simulationInfoPromise.then(({simulationId}) => {
-                let models = getModelValues(modelNames, modelsWrapper, store.getState());
-                reportEventManager.getRunStatusOnce({
-                    appName,
-                    models,
-                    simulationId,
-                    report: reportGroupName
-                }).then(simulationData => {
-                    // catch running reports after page refresh
-                    updateSimState(simulationData);
-                    if (simulationData.state === 'running') {
-                        listenForReportData();
-                        reportEventManager.pollRunStatus({
-                            appName,
-                            models,
-                            simulationId,
-                            report: reportGroupName
-                        })
-                    }
-                    if (simulationData.elapsedTime) {
-                        stopwatch.setElapsedSeconds(simulationData.elapsedTime);
-                    }
-                })
+            let { simulationId } = simulationInfo;
+            reportEventManager.getRunStatusOnce({
+                appName,
+                models: store.getState()[StoreTypes.Models.name],
+                simulationId,
+                report: reportGroupName
+            }).then(simulationData => {
+                // catch running reports after page refresh
+                updateSimState(simulationData);
+                if (simulationData.state === 'running') {
+                    listenForReportData();
+                    reportEventManager.pollRunStatus({
+                        appName,
+                        models: store.getState()[StoreTypes.Models.name],
+                        simulationId,
+                        report: reportGroupName
+                    })
+                }
+                if (simulationData.elapsedTime) {
+                    stopwatch.setElapsedSeconds(simulationData.elapsedTime);
+                }
             })
 
             return () => reportEventManager.clearListenersForKey(simulationPollingVersionRef.current);
@@ -395,13 +384,12 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
         let startSimulation = () => {
             listenForReportData();
 
-            simulationInfoPromise.then(({simulationId}) => {
-                reportEventManager.startReport({
-                    appName,
-                    models: getModelValues(modelNames, modelsWrapper, store.getState()),
-                    simulationId,
-                    report: reportGroupName
-                })
+            let { simulationId } = simulationInfo; 
+            reportEventManager.startReport({
+                appName,
+                models: store.getState()[StoreTypes.Models.name],
+                simulationId,
+                report: reportGroupName
             })
         }
 
@@ -410,13 +398,12 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
             stopwatch.reset();
             simulationPollingVersionRef.current = uuidv4();
 
-            simulationInfoPromise.then(({simulationId}) => {
-                cancelReport(routeHelper, {
-                    appName,
-                    models: getModelValues(modelNames, modelsWrapper, store.getState()),
-                    simulationId,
-                    report: reportGroupName
-                })
+            let { simulationId } = simulationInfo;
+            cancelReport(routeHelper, {
+                appName,
+                models: store.getState()[StoreTypes.Models.name],
+                simulationId,
+                report: reportGroupName
             })
         }
 
@@ -454,6 +441,10 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                                 <span>{'Simulation Completed'}</span>
                                 <span>{stopwatch.formatElapsedTime()}</span>
                                 <div>{children}</div>
+                                { simState.alert && <div className="card card-body bg-light">
+                                    <pre>{simState.alert}</pre>
+                                  </div>
+                                }
                                 {startSimulationButton}
                             </Stack>
                         )
@@ -471,6 +462,9 @@ export class SimulationStartLayout extends Layout<SimulationStartConfig, {}> {
                             <Stack gap={2}>
                                 <span>{'Simulation Error'}</span>
                                 <span>{stopwatch.formatElapsedTime()}</span>
+                                <div className="card card-body bg-light">
+                                    <pre>{simState.alert || simState.error}</pre>
+                                </div>
                                 <div>{children}</div>
                                 {startSimulationButton}
                             </Stack>

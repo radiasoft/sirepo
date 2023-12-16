@@ -12,7 +12,6 @@ import importlib
 def import_and_init(name):
     values = PKDict(
         want_apis=name != "sirepo.job_supervisor",
-        want_flask=name == "sirepo.server",
     )
 
     def _base(qual):
@@ -28,7 +27,6 @@ def import_and_init(name):
     # Modules must protect themselves from duplicate initialization
     # TODO(robnagler) eliminate this by storing global state in modules that is read by _i()
     _i("sirepo.srtime", [])
-    _i("sirepo.flask", ["want_flask"])
     _i("sirepo.job", [])
     # Not a real initialization, but needed in values, and actually makes sense to do
     _i("sirepo.simulation_db", [])

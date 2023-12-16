@@ -27,6 +27,8 @@ import os.path
 import random
 import re
 import sirepo.const
+import sirepo.file_lock
+import sirepo.job
 import sirepo.mpi
 import sirepo.resource
 import sirepo.srdb
@@ -76,16 +78,16 @@ _SCHEMA_CACHE = PKDict()
 #: Special field to direct pseudo-subclassing of schema objects
 _SCHEMA_SUPERCLASS_FIELD = "_super"
 
-#: created under dir
-_TMP_DIR = "tmp"
-
-#: Use to assert _serial_new result. Not perfect but good enough to avoid common problems
-_serial_prev = 0
-
 #: configuration
 _cfg = None
 
 _SIM_DB_FILE_PATH_RE = re.compile(r"^[a-zA-Z0-9-_\.]{1,128}$")
+
+#: For re-entrant `user_lock`
+_USER_LOCK = PKDict(paths=set())
+
+
+_SERIAL_INITIALIZE = -1
 
 
 def app_version():
@@ -100,8 +102,14 @@ def app_version():
 
 
 def assert_sid(sid):
-    assert _ID_RE.search(sid), "invalid sid={}".format(sid)
-    return sid
+    if _ID_RE.search(sid) or sirepo.job.QUASI_SID_RE.search(sid):
+        return sid
+    raise AssertionError(f"invalid sid={sid}")
+
+
+def assert_sim_db_file_path(basename):
+    assert _SIM_DB_FILE_PATH_RE.search(basename), f"basename={basename} is invalid"
+    return basename
 
 
 def cfg():
@@ -291,7 +299,6 @@ def generate_json(data, pretty=False):
 
 
 def init_module():
-    # see _init()
     pass
 
 
@@ -301,7 +308,10 @@ def iterate_simulation_datafiles(simulation_type, op, search=None, qcall=None):
     for p in pkio.sorted_glob(sim_dir.join("*", SIMULATION_DATA_FILE)):
         try:
             data = open_json_file(
-                simulation_type, path=p, fixup=True, qcall=qcall, save=True
+                simulation_type,
+                path=p,
+                fixup=True,
+                qcall=qcall,
             )
             if search and not _search_data(data, search):
                 continue
@@ -344,7 +354,34 @@ def lib_dir_from_sim_dir(sim_dir):
     return _sim_from_path(sim_dir)[1].join(_REL_LIB_DIR)
 
 
-def migrate_guest_to_persistent_user(guest_uid, to_uid):
+def mkdir_random(parent_dir, simulation_type=None):
+    """Create a random id in parent_dir
+
+    Args:
+        parent_dir (py.path): where id should be unique
+    Returns:
+        dict: id (str) and path (py.path)
+    """
+    pkio.mkdir_parent(parent_dir)
+    r = random.SystemRandom()
+    # Generate cryptographically secure random string
+    for _ in range(5):
+        i = "".join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
+        if simulation_type:
+            if find_global_simulation(simulation_type, i):
+                continue
+        d = parent_dir.join(i)
+        try:
+            os.mkdir(str(d))
+            return PKDict(id=i, path=d)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            raise
+    raise RuntimeError("{}: failed to create unique directory".format(parent_dir))
+
+
+def migrate_guest_to_persistent_user(guest_uid, to_uid, qcall):
     """Moves all non-example simulations `guest_uid` into `to_uid`.
 
     Only moves non-example simulations. Doesn't delete the guest_uid.
@@ -352,24 +389,21 @@ def migrate_guest_to_persistent_user(guest_uid, to_uid):
     Args:
         guest_uid (str): source user
         to_uid (str): dest user
-
     """
-    with util.THREAD_LOCK:
-        for path in glob.glob(
-            str(user_path(uid=guest_uid).join("*", "*", SIMULATION_DATA_FILE)),
-        ):
-            data = read_json(path)
-            sim = data["models"]["simulation"]
-            if "isExample" in sim and sim["isExample"]:
-                continue
-            dir_path = os.path.dirname(path)
-            new_dir_path = dir_path.replace(guest_uid, to_uid)
-            pkdlog("{} -> {}", dir_path, new_dir_path)
-            pkio.mkdir_parent(new_dir_path)
-            os.rename(dir_path, new_dir_path)
+    with user_lock(uid=guest_uid, qcall=qcall) as g:
+        with user_lock(uid=to_uid, qcall=qcall):
+            for p in glob.glob(
+                str(g.join("*", "*", SIMULATION_DATA_FILE)),
+            ):
+                if read_json(p).models.simulation.get("isExample"):
+                    continue
+                o = os.path.dirname(p)
+                n = o.replace(guest_uid, to_uid)
+                pkio.mkdir_parent(n)
+                os.rename(o, n)
 
 
-def open_json_file(sim_type, path=None, sid=None, fixup=True, save=False, qcall=None):
+def open_json_file(sim_type, path=None, sid=None, fixup=True, qcall=None):
     """Read a db file and return result
 
     Args:
@@ -387,6 +421,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True, save=False, qcall=
             raise util.NotFound("path={} not found", path)
         raise util.SPathNotFound(sim_type=sim_type, sid=sid, uid=_uid_arg(qcall))
     data = None
+    # TODO: no need for lock
     try:
         with p.open() as f:
             data = json_load(f)
@@ -398,9 +433,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True, save=False, qcall=
         raise
     if not fixup:
         return data
-    d, c = fixup_old_data(data, path=p, qcall=qcall)
-    if c and save:
-        return save_simulation_json(d, fixup=False, do_validate=False, qcall=qcall)
+    d, _ = fixup_old_data(data, path=p, qcall=qcall)
     return d
 
 
@@ -497,13 +530,24 @@ def read_simulation_json(sim_type, sid, qcall):
     Returns:
         data (dict): simulation data
     """
-    return open_json_file(
-        sim_type=sim_type,
-        fixup=True,
-        save=True,
-        sid=sid,
-        qcall=qcall,
-    )
+    p = sim_data_file(sim_type, sid, qcall=qcall)
+    if not p.exists():
+        raise util.SPathNotFound(sim_type=sim_type, sid=sid, uid=_uid_arg(qcall))
+    data = None
+    with user_lock(qcall=qcall):
+        try:
+            with p.open() as f:
+                data = json_load(f)
+            # ensure the simulationId matches the path
+            if sid:
+                data.models.simulation.simulationId = _sim_from_path(p)[0]
+        except Exception as e:
+            pkdlog("{}: error: {}", p, pkdexc())
+            raise
+        d, c = fixup_old_data(data, path=p, qcall=qcall)
+        if c:
+            return save_simulation_json(d, fixup=False, do_validate=False, qcall=qcall)
+    return d
 
 
 def save_new_example(data, qcall=None):
@@ -517,8 +561,10 @@ def save_new_example(data, qcall=None):
 
 def save_new_simulation(data, do_validate=True, qcall=None):
     d = simulation_dir(data.simulationType, qcall=qcall)
-    sid = _random_id(d, data.simulationType).id
+    sid = mkdir_random(d, data.simulationType).id
     data.models.simulation.simulationId = sid
+    data.models.simulation.simulationSerial = _SERIAL_INITIALIZE
+    data.pkdel("version")
     return save_simulation_json(
         data,
         do_validate=do_validate,
@@ -538,6 +584,51 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
         do_validate (bool): call srschema.validate_name [True]
         modified (bool): call prepare_for_save and update lastModified [False]
     """
+
+    def _serial(incoming, on_disk):
+        # Serial numbers are 16 digits (time represented in microseconds
+        # since epoch) which are always less than Javascript's
+        # Number.MAX_SAFE_INTEGER (9007199254740991=2*53-1).
+        #
+        # Timestamps are not guaranteed to be sequential so verify
+        # against incoming and on_disk and assure is greater than both.
+        res = int(time.time() * 1000000)
+        if on_disk is None:
+            return res
+        o = _serial_validate(incoming.simulationSerial, on_disk.simulationSerial)
+        if res <= o:
+            res = o + 1
+        return res
+
+    def _serial_validate(incoming, on_disk):
+        if incoming == _SERIAL_INITIALIZE or incoming == on_disk:
+            return on_disk
+        raise util.SRException(
+            "serverUpgraded",
+            PKDict(
+                reason="invalidSimulationSerial",
+                simulationType=data.get("simulationType"),
+            ),
+            "{}: incoming serial {} than stored serial={} sid={}, resetting client",
+            incoming,
+            "newer" if incoming > on_disk else "older",
+            on_disk,
+            data.pkunchecked_nested_get("models.simulation.simulationId"),
+        )
+
+    def _version_validate(data):
+        # If there is no version, ignore.
+        # TODO(robnagler) only case seems to be srw.import_file
+        if data.get("version", SCHEMA_COMMON.version) != SCHEMA_COMMON.version:
+            raise util.SRException(
+                "serverUpgraded",
+                PKDict(reason="newRelease", simulationType=data.get("simulationType")),
+                "data={} != server={}",
+                data.get("version"),
+                SCHEMA_COMMON.version,
+            )
+
+    _version_validate(data)
     if fixup:
         data = fixup_old_data(data, qcall=qcall)[0]
         # we cannot change the logged in user so we need to
@@ -552,8 +643,9 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
     s = data.models.simulation
     sim_type = data.simulationType
     fn = sim_data_file(sim_type, s.simulationId, qcall=qcall)
-    with util.THREAD_LOCK:
+    with user_lock(qcall=qcall):
         need_validate = True
+        on_disk = None
         try:
             # OPTIMIZATION: If folder/name same, avoid reading entire folder
             on_disk = read_json(fn).models.simulation
@@ -572,7 +664,7 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
                 SCHEMA_COMMON.common.constants.maxSimCopies,
             )
             srschema.validate_fields(data, get_schema(data.simulationType))
-        s.simulationSerial = _serial_new()
+        s.simulationSerial = _serial(s, on_disk)
         # Do not write simulationStatus or computeJobCacheKey
         d = copy.deepcopy(data)
         pkcollections.unchecked_del(d.models, "simulationStatus", "computeJobCacheKey")
@@ -614,7 +706,7 @@ def sim_db_file_uri(simulation_type, sid, basename):
         [
             sirepo.template.assert_sim_type(simulation_type),
             assert_sid(sid),
-            _assert_sim_db_file_path(basename),
+            assert_sim_db_file_path(basename),
         ]
     )
 
@@ -625,7 +717,7 @@ def sim_db_file_uri_to_path(path, expect_uid):
     assert p[0] == expect_uid, f"uid={p[0]} is not expect_uid={expect_uid}"
     sirepo.template.assert_sim_type(p[1]),
     assert_sid(p[2]),
-    _assert_sim_db_file_path(p[3]),
+    assert_sim_db_file_path(p[3]),
     return user_path_root().join(*p)
 
 
@@ -641,11 +733,12 @@ def simulation_dir(simulation_type, sid=None, qcall=None):
         sid (str): simulation id (optional)
         uid (str): user id
     """
-    p = user_path(qcall=qcall)
+    p = user_path(qcall=qcall, check=True)
     d = p.join(sirepo.template.assert_sim_type(simulation_type))
-    with util.THREAD_LOCK:
-        if not d.exists():
-            _create_lib_and_examples(p, d.basename, qcall=qcall)
+    if not d.exists():
+        with user_lock(uid=uid_from_dir_name(p), qcall=qcall):
+            if not d.exists():
+                _create_lib_and_examples(p, d.basename, qcall=qcall)
     if not sid:
         return d
     return d.join(assert_sid(sid))
@@ -692,35 +785,6 @@ def static_libs():
     return _files_in_schema(SCHEMA_COMMON.common.staticFiles)
 
 
-@contextlib.contextmanager
-def tmp_dir(chdir=False, qcall=None):
-    """Generates new, temporary directory
-
-    `uid` or `qcall` must be supplied.
-
-    Args:
-        chdir (bool): if true, will save_chdir
-        uid (str): user id
-        qcall (sirepo.quest.API): request state
-    Returns:
-        py.path: directory to use for temporary work
-    """
-    d = None
-    try:
-        p = user_path(qcall=qcall, check=True)
-        d = _cfg.tmp_dir or _random_id(p.join(_TMP_DIR))["path"]
-        pkio.unchecked_remove(d)
-        pkio.mkdir_parent(d)
-        if chdir:
-            with pkio.save_chdir(d):
-                yield d
-        else:
-            yield d
-    finally:
-        if d:
-            pkio.unchecked_remove(d)
-
-
 def uid_from_dir_name(dir_name):
     """Extract user id from user_path
 
@@ -759,7 +823,31 @@ def user_create():
     Returns:
         str: New user id
     """
-    return _random_id(user_path_root())["id"]
+    return mkdir_random(user_path_root())["id"]
+
+
+@contextlib.contextmanager
+def user_lock(uid=None, qcall=None):
+    """Lock the user's directory (re-entrant)
+
+    Args:
+        uid (str): user to lock (or logged in user)
+        qcall (sirepo.quest.API): request state
+    Returns:
+        py.path: user's directory
+    """
+    assert qcall
+    p = user_path(uid=uid, qcall=qcall, check=True)
+    if p in _USER_LOCK.paths:
+        # re-enter, already locked path
+        yield p
+    else:
+        try:
+            _USER_LOCK.paths.add(p)
+            with sirepo.file_lock.FileLock(p):
+                yield p
+        finally:
+            _USER_LOCK.paths.discard(p)
 
 
 def user_path(uid=None, qcall=None, check=False):
@@ -788,41 +876,6 @@ def user_path_root():
     return sirepo.srdb.root().join(USER_ROOT_DIR)
 
 
-def validate_serial(req_data, qcall):
-    """Verify serial in data validates
-
-    Args:
-        req_data (dict): request with serial and possibly models
-    """
-    if req_data.get("version") != SCHEMA_COMMON.version:
-        pkdlog(
-            "req_data={} != server={}", req_data.get("version"), SCHEMA_COMMON.version
-        )
-        raise util.SRException("serverUpgraded", None)
-    with util.THREAD_LOCK:
-        sim_type = sirepo.template.assert_sim_type(req_data.simulationType)
-        sid = req_data.models.simulation.simulationId
-        req_ser = req_data.models.simulation.simulationSerial
-        curr = read_simulation_json(sim_type, sid=sid, qcall=qcall)
-        curr_ser = curr.models.simulation.simulationSerial
-        if not req_ser is None:
-            if req_ser == curr_ser:
-                return
-            status = "newer" if req_ser > curr_ser else "older"
-        raise util.Error(
-            PKDict(
-                sim_type=sim_type,
-                error="invalidSerial",
-                simulationData=req_data,
-            ),
-            "{}: incoming serial {} than stored serial={} sid={}, resetting client",
-            req_ser,
-            status,
-            curr_ser,
-            sid,
-        )
-
-
 def write_json(filename, data):
     """Write data as json to filename
 
@@ -832,11 +885,6 @@ def write_json(filename, data):
         filename (py.path or str): will append sirepo.const.JSON_SUFFIX if necessary
     """
     util.json_dump(data, path=json_filename(filename), pretty=True)
-
-
-def _assert_sim_db_file_path(basename):
-    assert _SIM_DB_FILE_PATH_RE.search(basename), f"basename={basename} is invalid"
-    return basename
 
 
 def _create_lib_and_examples(user_dir, sim_type, qcall=None):
@@ -883,7 +931,6 @@ def _init():
         ),
         logged_in_user=(None, str, "Used in agents"),
         sbatch_display=(None, str, "how to display sbatch cluster to user"),
-        tmp_dir=(None, pkio.py_path, "Used by utilities (not regular config)"),
     )
     _init_schemas()
     JOB_RUN_MODE_MAP = PKDict(
@@ -899,6 +946,7 @@ def _init_schemas():
     SCHEMA_COMMON = json_load(
         sirepo.resource.static("json", f"schema-common{sirepo.const.JSON_SUFFIX}")
     )
+    SCHEMA_COMMON.pkupdate(sirepo.const.SCHEMA_COMMON)
     a = SCHEMA_COMMON.appInfo
     for t in sirepo.feature_config.cfg().sim_types:
         s = read_json(sirepo.resource.static("json", f"{t}-schema.json"))
@@ -919,7 +967,6 @@ def _init_schemas():
             "notifications",
             "localRoutes",
             "model",
-            "reactRoutes",
             "strings",
             "view",
         ]:
@@ -1010,33 +1057,6 @@ def _now_as_version():
     return srtime.utc_now().strftime("%Y%m%d.%H%M%S")
 
 
-def _random_id(parent_dir, simulation_type=None):
-    """Create a random id in parent_dir
-
-    Args:
-        parent_dir (py.path): where id should be unique
-    Returns:
-        dict: id (str) and path (py.path)
-    """
-    pkio.mkdir_parent(parent_dir)
-    r = random.SystemRandom()
-    # Generate cryptographically secure random string
-    for _ in range(5):
-        i = "".join(r.choice(_ID_CHARS) for x in range(_ID_LEN))
-        if simulation_type:
-            if find_global_simulation(simulation_type, i):
-                continue
-        d = parent_dir.join(i)
-        try:
-            os.mkdir(str(d))
-            return PKDict(id=i, path=d)
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                pass
-            raise
-    raise RuntimeError("{}: failed to create unique directory".format(parent_dir))
-
-
 def _search_data(data, search):
     for field, expect in search.items():
         path = field.split(".")
@@ -1052,28 +1072,6 @@ def _search_data(data, search):
         if v != expect:
             return False
     return True
-
-
-def _serial_new():
-    """Generate a serial number
-
-    Serial numbers are 16 digits (time represented in microseconds
-    since epoch) which are always less than Javascript's
-    Number.MAX_SAFE_INTEGER (9007199254740991=2*53-1).
-
-    Timestamps are not guaranteed to be sequential. If the
-    system clock is adjusted, we'll throw an exception here.
-    """
-    global _serial_prev
-    res = int(time.time() * 1000000)
-    with util.THREAD_LOCK:
-        # Good enough assertion. Any collisions will also be detected
-        # by parameter hash so order isn't only validation
-        assert res > _serial_prev, "{}: serial did not increase: prev={}".format(
-            res, _serial_prev
-        )
-        _serial_prev = res
-    return res
 
 
 def _sim_from_path(path):

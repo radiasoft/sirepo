@@ -90,9 +90,11 @@
         ]
     },
     "frameIdFields": {
-        "fieldDistributionAnimation": [],
+        "fieldDistributionAnimation": ["fieldPlot"],
         "parameterAnimation": ["y1", "y2", "y3"],
-        "particleAnimation": ["x", "y", "histogramBins"]
+        "particleAnimation": ["x", "y", "histogramBins"],
+        "finalParticleAnimation": ["x", "y", "histogramBins"],
+        "finalFieldAnimation": ["fieldPlot"]
     },
     "localRoutes": {
         "source": {
@@ -241,6 +243,7 @@
             ]
         },
         "fieldDistributionAnimation": {
+            "fieldPlot": ["Value to Plot", "FieldPlot", "fieldDistributionPlot"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
@@ -337,7 +340,7 @@
                 "FFSPEC",
                 "Integer",
                 0,
-                "To calculate a spectrum a post-processing step requires amplitude and phase, which are written to the output file, defined by LOUT of column 3 and 4. The values depend on the choice of FFSPEC. If the value is equal the near field on-axis intensity and phase is written, while for a negative value it is the same but in the far field zone. For a positive value the near field intensity is replaced by the total radiation power, assuming transverse coherence."
+                "FFSPEC: To calculate a spectrum a post-processing step requires amplitude and phase, which are written to the output file, defined by LOUT of column 3 and 4. The values depend on the choice of FFSPEC. If the value is equal the near field on-axis intensity and phase is written, while for a negative value it is the same but in the far field zone. For a positive value the near field intensity is replaced by the total radiation power, assuming transverse coherence."
             ],
             "fieldfile": [
                 "Field distribution file (optional)",
@@ -639,7 +642,7 @@
                 "MULTCONV",
                 "Integer",
                 0,
-                "If an imported particle distribution from a PARTFILE is up-converted to a higher harmonics the dault behavior is that the number of slices is preserved. This requires that ZSEP is adjusted together with XLAMDS. However if frequency resolution is a problem then a particle distribution can be converted and used multiple times to keep ZSEP constant.The disadvantage is that the CPU execution time is increased as well."
+                "MULTCONV: If an imported particle distribution from a PARTFILE is up-converted to a higher harmonics the dault behavior is that the number of slices is preserved. This requires that ZSEP is adjusted together with XLAMDS. However if frequency resolution is a problem then a particle distribution can be converted and used multiple times to keep ZSEP constant.The disadvantage is that the CPU execution time is increased as well."
             ],
             "ndcut": [
                 "NDCUT",
@@ -693,6 +696,21 @@
             "x": ["Horizontal Value to Plot", "ParticleColumn", "x"],
             "y": ["Vertical Value to Plot", "ParticleColumn", "pxmc"]
         },
+        "finalParticleAnimation": {
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "notes": ["Notes", "Text", ""],
+            "x": ["Horizontal Value to Plot", "ParticleColumn", "x"],
+            "y": ["Vertical Value to Plot", "ParticleColumn", "pxmc"]
+        },
+        "finalFieldAnimation": {
+            "fieldPlot": ["Value to Plot", "FieldPlot", "fieldDistributionPlot"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "notes": ["Notes", "Text", ""]
+        },
         "particleLoading": {
             "iall": [
                 "Slices start with the same sequence element",
@@ -704,7 +722,7 @@
                 "Energy distribution",
                 "IgamGaus",
                 "1",
-                "Defines distribution profile in energy. A non-zero value generates a Gaussian distribution and a uniform otherwise."
+                "IGAMGAUS: Defines distribution profile in energy. A non-zero value generates a Gaussian distribution and a uniform otherwise."
             ],
             "ildgam": [
                 "Base for energy",
@@ -947,10 +965,10 @@
                 "CURLEN: Bunch length of the current profile. If CURLEN is positive a Gaussian distribution is generated with an RMS length given by CURLEN. A negative or zero value yield a constant profile."
             ],
             "isntyp": [
-                "ISNTYP",
-                "Integer",
-                0,
-                "For VERSION below 1.0 only the Pennman algorithm is used for the shot noise, which is only correct for the fundamental wavelength, but for a higher version the default is the Fawley algorithm which applies also the correct shotnoise to all higher harmonics. If the user wants to use the Pennman algorithm at a higher version number (which is not recommended), the value of ISNTYP has to be set to a non-zero value."
+                "Use Pennman algorithm",
+                "Boolean",
+                "0",
+                "ISNTYP: For VERSION below 1.0 only the Pennman algorithm is used for the shot noise, which is only correct for the fundamental wavelength, but for a higher version the default is the Fawley algorithm which applies also the correct shotnoise to all higher harmonics. If the user wants to use the Pennman algorithm at a higher version number (which is not recommended), the value of ISNTYP has to be set to a non-zero value."
             ],
             "itdp": [
                 "Enables time-dependent simulation",
@@ -974,7 +992,7 @@
                 "Random offset to each macro particle phase",
                 "Float",
                 1.0,
-                "GENESIS 1.3 applies a random offset to each macro particle phase to generate the correct statistic for the bunching factor. Each offset is scaled prior by SHOTNOISE, thus SHOTNOISE can be set to zero to disable shot noise. "
+                "SHOTNOISE: GENESIS 1.3 applies a random offset to each macro particle phase to generate the correct statistic for the bunching factor. Each offset is scaled prior by SHOTNOISE, thus SHOTNOISE can be set to zero to disable shot noise. "
             ],
             "zsep": [
                 "Separation of beam slices",
@@ -1149,8 +1167,9 @@
             ]
         },
         "fieldDistributionAnimation": {
-            "title": "Field Distribution",
+            "title": "Field Distribution over Time",
             "advanced": [
+                "fieldPlot",
                 "framesPerSecond",
                 "aspectRatio",
                 "colorMap",
@@ -1244,7 +1263,7 @@
             ]
         },
         "particleAnimation": {
-            "title": "Particle Distribution",
+            "title": "Particle Distribution over Time",
             "advanced": [
                 [
                     ["Horizontal", [
@@ -1255,6 +1274,33 @@
                     ]]
                 ],
                 "framesPerSecond",
+                "histogramBins",
+                "aspectRatio",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "finalParticleAnimation": {
+            "title": "Final Particle Distribution",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "aspectRatio",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "finalFieldAnimation": {
+            "title": "Final Field Distribution",
+            "advanced": [
+                "fieldPlot",
                 "histogramBins",
                 "aspectRatio",
                 "colorMap",
@@ -1344,6 +1390,7 @@
             "title": "Time Dependence",
             "advanced": [],
             "basic": [
+                "itdp",
                 "curlen",
                 "zsep",
                 "nslice",

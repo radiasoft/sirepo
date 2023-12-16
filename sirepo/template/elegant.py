@@ -34,8 +34,6 @@ import stat
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
-CODE_VAR_IGNORE_ARRAY_VALUES = False
-
 ELEGANT_LOG_FILE = "elegant.log"
 
 WANT_BROWSER_FRAME_CACHE = True
@@ -647,19 +645,6 @@ def code_var(variables):
     return elegant_lattice_importer.elegant_code_var(variables)
 
 
-def copy_related_files(data, source_path, target_path):
-    # copy results and log for the long-running simulations
-    for m in ("animation",):
-        # copy any simulation output
-        s = pkio.py_path(source_path).join(m)
-        if not s.exists():
-            continue
-        t = pkio.py_path(target_path).join(m)
-        pkio.mkdir_parent(str(t))
-        for f in pkio.sorted_glob("*"):
-            f.copy(t)
-
-
 def extract_report_data(filename, frame_args, page_count=0):
     def _label(plot, sdds_units):
         if plot.label in _FIELD_LABEL:
@@ -742,7 +727,14 @@ def get_data_file(run_dir, model, frame, options):
                 f"invalid suffix={options.suffix} for download path={path}"
             )
         out = elegant_common.subprocess_output(
-            ["sddsprintout", "-columns", "-spreadsheet=csv", str(path)],
+            [
+                "sddsprintout",
+                "-noTitle",
+                "-columns",
+                "-spreadsheet=delimiter=\\,",
+                "-formatDefaults=float=%1.8e,double=%1.16e,long=%1ld,short=%1hd",
+                str(path),
+            ],
         )
         assert out, f"{path}: invalid or empty output from sddsprintout"
         return PKDict(
@@ -808,6 +800,11 @@ def parse_input_text(
     raise IOError(
         f"{path.basename}: invalid file format; expecting .madx, .ele, or .lte"
     )
+
+
+def parse_elegant_log(run_dir):
+    # used by omega
+    return _parse_elegant_log(run_dir)[0]
 
 
 def prepare_for_client(data, qcall, **kwargs):
@@ -921,10 +918,6 @@ def validate_file(file_type, path):
                     err = "sdds file contains no rows"
         sdds.sddsdata.Terminate(_SDDS_INDEX)
     return err
-
-
-def webcon_generate_lattice(data, qcall):
-    return _Generate(data, validate=False, qcall=qcall).lattice_only()
 
 
 def write_parameters(data, run_dir, is_parallel):

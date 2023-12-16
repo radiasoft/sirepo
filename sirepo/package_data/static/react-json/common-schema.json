@@ -41,8 +41,26 @@
                 "type": "String",
                 "defaultValue": ""
             }
+        },
+        "panelState": {
+            "hidden": {
+                "displayName": "Hidden Panels",
+                "type": "PanelArray",
+                "defaultValue": []
+            }
+        },
+        "runSettings": {
         }
     },
+    "middleware": [
+        {
+            "type": "save",
+            "config": {
+                "debounceDelaySeconds": 0.5,
+                "maxIntervalSeconds": 1
+            }
+        }
+    ],
     "constants": {
         "paymentPlans": {
             "basic": "Sirepo Basic",
@@ -53,6 +71,9 @@
         "simSourceDownloadText": "Python Source"
     },
     "type": {
+        "PanelArray": {
+            "base": "Array"
+        },
         "String": {
             "base": "String",
             "config": {
@@ -111,6 +132,36 @@
             "base": "File",
             "config": {
                 "isRequired": false
+            }
+        },
+        "OutputFile": {
+            "base": "OutputFile",
+            "config": {
+                "isRequired": false
+            }
+        },
+        "RPNValue": {
+            "base": "Float",
+            "config": {
+                "isRequired": true
+            }
+        },
+        "OptionalRPNValue": {
+            "base": "Float",
+            "config": {
+                "isRequired": false
+            }
+        },
+        "ValidatedString": {
+            "base": "String",
+            "config": {
+                "isRequired": true
+            }
+        },
+        "ValueList": {
+            "base": "ValueList",
+            "config": {
+                "isRequired": true
             }
         },
         "AspectRatio": {
@@ -304,8 +355,6 @@
         "downloadFile": "/download-file/:simulation_type/:simulation_id/:filename",
         "errorLogging": "/error-logging",
         "exportArchive": "/export-archive/:simulation_type/:simulation_id/:filename",
-        "exportJupyterNotebook": "/export-jupyter-notebook/:simulation_type/:simulation_id/?:model/?:title",
-        "exportJupyterNotebook2": "/export-jupyter-notebook2/:simulation_type",
         "favicon": "/favicon.ico",
         "findByName": "/find-by-name/:simulation_type/:application_mode/:simulation_name",
         "findByNameWithAuth": "/find-by-name-auth/:simulation_type/:application_mode/:simulation_name",
@@ -339,6 +388,7 @@
         "simulationData": "/simulation/:simulation_type/:simulation_id/:pretty/?:section",
         "simulationFrame": "/simulation-frame/:frame_id",
         "simulationSchema": "/simulation-schema",
+        "svg": "/static/react/svg/:fileName",
         "srUnit": "/ srunit",
         "srwLight": "/light",
         "statefulCompute": "/stateful-compute",
@@ -351,8 +401,7 @@
         "completeRegistration": "/complete-registration",
         "login": "/login",
         "logout": "/logout",
-        "loginConfirm": "/login-confirm/:method/:token/:needCompleteRegistration",
-        "loginWithEmailConfirm": "/login-confirm/email/:token/:needCompleteRegistration",
+        "loginWithEmailConfirm": "/login-with-email-confirm/:token/:needCompleteRegistration",
         "source": "/:simulationId",
         "simulations": "/simulations",
         "root": "/"

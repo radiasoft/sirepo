@@ -1,14 +1,36 @@
-import React, { useContext } from "react";
-import { CFormController, fieldStateFromValue, FormController } from "../data/formController";
-import { CModelsWrapper, CFormStateWrapper } from "../data/wrapper";
-import { CSchema } from "../data/appwrapper";
-import { Col, Form, Row } from "react-bootstrap";
+import { LayoutProps, LayoutType, Layout } from "./layout";
+import React, { useContext, useState } from "react";
+import {
+    Row,
+    Col,
+    Form
+} from "react-bootstrap";
 import { Dependency } from "../data/dependency";
 import { FieldInput, LabeledFieldInput } from "../component/reusable/input";
-import { Layout, LayoutProps, LayoutType } from "./layout";
-import { ValueSelectors } from "../hook/string";
 import { useShown } from "../hook/shown";
-import { useStore } from "react-redux";
+import { useDispatch, useStore } from "react-redux";
+import { CSchema } from "../data/appwrapper";
+import { FormStateHandleFactory } from "../data/form";
+import { CHandleFactory } from "../data/handle";
+import { StoreTypes } from "../data/data";
+import { useCoupledState } from "../hook/coupling";
+
+export function FormControllerElement(props: {children?: React.ReactNode}) {
+    let schema = useContext(CSchema);
+    let handleFactory = useContext(CHandleFactory);
+    let [formHandleFactory, _, hfChanged] = useCoupledState(handleFactory, new FormStateHandleFactory(schema, handleFactory));
+    if(hfChanged) {
+        return <></>
+    }
+    // TODO: form controller might need to "subscribe to updates" during save
+    formHandleFactory.useUpdates(FormControllerElement);
+
+    return (
+        <CHandleFactory.Provider value={formHandleFactory}>
+            { props.children }
+        </CHandleFactory.Provider>
+    )
+}
 
 export function LayoutWithFormController<C, P>(Child: LayoutType<C, P>): LayoutType<C, P> {
     return class extends Child {
@@ -19,30 +41,13 @@ export function LayoutWithFormController<C, P>(Child: LayoutType<C, P>): LayoutT
 
             this.component = (props) => {
                 let ChildComponent = childComponent;
-                let FormComponent = this.formComponent;
                 return (
-                    <FormComponent {...props}>
+                    <FormControllerElement {...props}>
                         <ChildComponent {...props}/>
-                    </FormComponent>
+                    </FormControllerElement>
                 )
             };
         }
-
-        formComponent = (props: LayoutProps<P>) => {
-            let formState = useContext(CFormStateWrapper);
-            let schema = useContext(CSchema);
-            let modelsWrapper = useContext(CModelsWrapper);
-
-            let dependencies = this.getFormDependencies();
-
-            let formController = new FormController(formState, modelsWrapper, dependencies, schema);
-
-            return (
-                <CFormController.Provider value={formController}>
-                    { props.children }
-                </CFormController.Provider>
-            )
-        };
     };
 }
 
@@ -60,20 +65,12 @@ export type FieldGridConfig = {
 }
 
 export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
-    getFormDependencies = () => {
-        let fields = [];
-        for(let row of this.config.rows) {
-            fields.push(...(row.fields));
-        }
-        return fields.map(f => new Dependency(f));
-    }
-
     component = (props: LayoutProps<{}>) => {
-        let formController = useContext(CFormController);
-        let formState = useContext(CFormStateWrapper);
+        let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
         let schema = useContext(CSchema);
+        let dispatch = useDispatch();
         let store = useStore();
-        let gridShown = useShown(this.config.shown, true, formState, ValueSelectors.Fields);
+        let gridShown = useShown(this.config.shown, true, StoreTypes.FormState);
 
         if (! gridShown) {
             return <></>
@@ -94,27 +91,26 @@ export class FieldGridLayout extends Layout<FieldGridConfig, {}> {
 
         for(let idx = 0; idx < rows.length; idx++) {
             let row = rows[idx];
-            let shown = useShown(row.shown, true, formState, ValueSelectors.Fields);
+            let shown = useShown(row.shown, true, StoreTypes.FormState);
             let fields = row.fields;
             let labelElement = someRowHasLabel ? (<Form.Label size={"sm"}>{row.label || ""}</Form.Label>) : undefined;
             let rowElement = shown ? (
                 <Row className="mb-2" key={idx}>
                     {labelElement ? <Col className="text-end">{labelElement}</Col> : undefined}
                     {columns.map((_, index) => {
-                        let fieldDepString = fields[index];
-                        let fieldDependency = new Dependency(fieldDepString);
-                        let fieldValue = formController.getFormStateAccessor().getFieldValue(fieldDependency);
+                        let fieldDependency = new Dependency(fields[index]);
+                        let fieldHandle = formHandleFactory.createHandle(fieldDependency, StoreTypes.FormState).hook();
                         let fieldType = schema.models[fieldDependency.modelName][fieldDependency.fieldName].type;
                         return (<Col key={index}>
                             <FieldInput
                                 key={index}
-                                value={fieldValue}
+                                value={fieldHandle.value}
                                 updateField={(value: unknown): void => {
-                                    formState.updateField(
-                                        fieldDependency.fieldName,
-                                        fieldDependency.modelName,
-                                        store.getState(),
-                                        fieldStateFromValue(value, fieldValue, fieldType));
+                                    fieldHandle.write({
+                                        valid: fieldType.validate(value),
+                                        touched: true,
+                                        value
+                                    }, store.getState(), dispatch)
                                 }}
                                 dependency={fieldDependency}
                                 inputComponent={fieldType.component}/>
@@ -140,18 +136,14 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
         super(config);
     }
 
-    getFormDependencies = () => {
-        return (this.config.fields || []).map(f => new Dependency(f));
-    }
-
     component = (props: LayoutProps<{}>) => {
-        let formController = useContext(CFormController);
-        let formState = useContext(CFormStateWrapper);
+        let formHandleFactory = useContext(CHandleFactory) as FormStateHandleFactory;
         let schema = useContext(CSchema);
+        let dispatch = useDispatch();
         let store = useStore();
 
         let fields = this.config.fields;
-        let listShown = useShown(this.config.shown, true, formState, ValueSelectors.Fields);
+        let listShown = useShown(this.config.shown, true, StoreTypes.FormState);
 
         if (! listShown) {
             return <></>
@@ -170,23 +162,24 @@ export class FieldListLayout extends Layout<FieldListConfig, {}> {
             {heading}
             {fields.map((fieldDepString, idx) => {
                 let fieldDep = new Dependency(fieldDepString);
-                let fieldValue = formController.getFormStateAccessor().getFieldValue(fieldDep);
+                let fieldHandle = formHandleFactory.createHandle(fieldDep, StoreTypes.FormState).hook();
+                let fieldType = schema.models[fieldDep.modelName][fieldDep.fieldName].type;
                 let fieldSchema = schema.models[fieldDep.modelName][fieldDep.fieldName];
-                let shown = useShown(fieldSchema.shown, true, formState, ValueSelectors.Fields);
+                let shown = useShown(fieldSchema.shown, true, StoreTypes.FormState);
 
-                if(shown && fieldValue.active) {
+                if(shown) {
                     return <LabeledFieldInput
                     key={idx}
-                    value={fieldValue}
+                    value={fieldHandle.value}
                     dependency={fieldDep}
                     displayName={fieldSchema.displayName}
                     description={fieldSchema.description}
                     updateField={(value: unknown): void => {
-                        formState.updateField(
-                            fieldDep.fieldName,
-                            fieldDep.modelName,
-                            store.getState(),
-                            fieldStateFromValue(value, fieldValue, fieldSchema.type));
+                        fieldHandle.write({
+                            valid: fieldType.validate(value),
+                            touched: true,
+                            value
+                        }, store.getState(), dispatch)
                     }}
                     inputComponent={fieldSchema.type.component}/>
                 }

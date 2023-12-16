@@ -1,4 +1,5 @@
-import { ModelStates } from "../store/models";
+import { StoreState } from "../store/common";
+import { ModelState } from "../store/models";
 import { RouteHelper } from "./route";
 
 export type SrState = 'completed' | 'srException' | 'error' | 'running' | 'pending' | 'canceled' | 'missing';
@@ -61,7 +62,7 @@ export function pollStatefulCompute(routeHelper: RouteHelper, { method, simulati
 
 export type ReportComputeParams = {
     forceRun: boolean
-    models: ModelStates,
+    models: StoreState<ModelState>,
     report: string
 } & StatefulComputeParams
 
@@ -84,20 +85,18 @@ export function pollRunReport(routeHelper: RouteHelper, { appName, models, simul
 
     doFetch().then(resp => {
         callback(resp);
-        pollRunStatus(routeHelper, {
-            callback,
-            simulationId,
-            models,
-            appName,
-            report,
-            forceRun
-        });
+        if (resp.nextRequest) {
+            pollRunStatus(routeHelper, {
+                callback: callback,
+                ...resp.nextRequest,
+            });
+        }
     });
 }
 
 export type CancelComputeParams = {
     appName: string,
-    models: ModelStates,
+    models: StoreState<ModelState>,
     simulationId: string,
     report: string
 }
@@ -120,7 +119,7 @@ export function cancelReport(routeHelper: RouteHelper, { appName, models, simula
 
 export type RunStatusParams = {
     appName: string,
-    models: ModelStates,
+    models?: StoreState<ModelState>,
     simulationId: string,
     report: string,
     forceRun: boolean
@@ -141,7 +140,7 @@ export function getRunStatusOnce(routeHelper: RouteHelper, { appName, ...otherPa
     return new Promise<ResponseHasState>((resolve, reject) => {
         doStatus().then(async lastResp => resolve(await lastResp.json()));
     })
-    
+
 }
 
 export type RunStatusPollParams = {

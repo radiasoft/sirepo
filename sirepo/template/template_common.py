@@ -583,6 +583,13 @@ def parse_mpi_log(run_dir):
     return e
 
 
+def read_dict_from_h5(file_path, h5_path=None):
+    import h5py
+
+    with h5py.File(file_path, "r") as f:
+        return h5_to_dict(f, path=h5_path)
+
+
 def read_last_csv_line(path):
     # for performance, don't read whole file if only last line is needed
     if not path.exists():
@@ -682,7 +689,7 @@ async def sim_frame(frame_id, op, qcall):
             e,
             pkdexc(),
         )
-    r = qcall.reply_json(x)
+    r = qcall.reply_dict(x)
     if "error" not in x and s.want_browser_frame_cache(s.frameReport):
         return qcall.headers_for_cache(r)
     return qcall.headers_for_no_cache(r)
@@ -717,7 +724,6 @@ def stateful_compute_dispatch(data, **kwargs):
     if re.search(r"(?:^rpn|_rpn)_", m):
         k.schema = getattr(t, "SCHEMA")
         t = getattr(t, "code_var")(data.variables)
-        k.ignore_array_values = getattr(t, "CODE_VAR_IGNORE_ARRAY_VALUES", True)
     return getattr(t, f"stateful_compute_{m}")(**k, **kwargs)
 
 
@@ -881,6 +887,8 @@ def _plot_range(report, axis):
 def _validate_method(template, data):
     m = data.method
     assert re.search(
-        r"^\w{1,35}$", m
-    ), f"method={m} not a valid python function name or too long"
+        r"^[a-z]\w{1,34}$",
+        m,
+        flags=re.IGNORECASE,
+    ), f"method={m} invalid compute or analysis function"
     return m

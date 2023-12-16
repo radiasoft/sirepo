@@ -20,7 +20,6 @@ import pykern.pkjson
 import re
 import random
 import six
-import threading
 import unicodedata
 import zipfile
 
@@ -32,9 +31,6 @@ AUTH_HEADER = "Authorization"
 
 #: http auth header scheme bearer
 AUTH_HEADER_SCHEME_BEARER = "Bearer"
-
-#: Lock for operations across Sirepo (server)
-THREAD_LOCK = threading.RLock()
 
 #: length of string returned by create_token
 TOKEN_SIZE = 16
@@ -95,15 +91,13 @@ class Error(ReplyExc):
     """Raised to send an error response
 
     Args:
-        values (dict or str): values to put in the reply or just the error
+        error_msg (str): just the error to output to user
     """
 
-    def __init__(self, values, *args, **kwargs):
-        if isinstance(values, pkconfig.STRING_TYPES):
-            values = PKDict(error=values)
-        else:
-            assert values.get("error"), 'values={} must contain "error"'.format(values)
-        super().__init__(*args, sr_args=values, **kwargs)
+    def __init__(self, error, *args, **kwargs):
+        # removed dict usage
+        assert isinstance(error, str)
+        super().__init__(*args, sr_args=PKDict(error=error), **kwargs)
 
 
 class Forbidden(ReplyExc):
@@ -128,6 +122,12 @@ class Redirect(OKReplyExc):
 
     def __init__(self, uri, *args, **kwargs):
         super().__init__(*args, sr_args=PKDict(uri=uri), **kwargs)
+
+
+class ContentTooLarge(ReplyExc):
+    """The content requested by the user was too large (ex large data file)"""
+
+    pass
 
 
 class ServerError(ReplyExc):
@@ -168,12 +168,12 @@ class SReplyExc(OKReplyExc):
 class SRException(ReplyExc):
     """Raised to communicate a local redirect and log info
 
-    `params` may have ``sim_type`` and ``reload_js``, which
-    will be used to control execution and uri rendering.
+    `params` may have ``simulationType``, which will be used for routeName rendering.
+    Otherwise, ``sim_type`` on ``qcall`` will be used.
 
     Args:
         route_name (str): a local route
-        params (dict): parameters for route and redirect
+        params (dict): for route url or for srExceptionOnly case
         log_fmt (str): server side log data
     """
 

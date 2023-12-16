@@ -8,11 +8,11 @@ try:
 except:
     pass
 
-import srwl_bl
-import srwlib
-import srwlpy
+import srwpy.srwl_bl
+import srwpy.srwlib
+import srwpy.srwlpy
 import math
-import srwl_uti_smp
+import srwpy.srwl_uti_smp
 
 def set_optics(v, names=None, want_final_propagation=True):
     el = []
@@ -22,7 +22,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     for el_name in names:
         if el_name == 'Sample':
             # Sample: sample 20.0m
-            el.append(srwl_uti_smp.srwl_opt_setup_transm_from_file(
+            el.append(srwpy.srwl_uti_smp.srwl_opt_setup_transm_from_file(
                 file_path=v.op_Sample_file_path,
                 resolution=v.op_Sample_resolution,
                 thickness=v.op_Sample_thick,
@@ -56,7 +56,7 @@ def set_optics(v, names=None, want_final_propagation=True):
     if want_final_propagation:
         pp.append(v.op_fin_pp)
 
-    return srwlib.SRWLOptC(el, pp)
+    return srwpy.srwlib.SRWLOptC(el, pp)
 
 
 
@@ -202,11 +202,11 @@ varParam = [
     ['w_smpf', 'f', 1.0, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_meth', 'i', 1, 'method to use for calculation of intensity distribution vs horizontal and vertical position: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"'],
     ['w_prec', 'f', 0.01, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_mag', 'i', 1, 'magnetic field to be used for calculation of intensity distribution vs horizontal and vertical position: 1- approximate, 2- accurate'],
     ['w_u', 'i', 1, 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
+
     ['si_pol', 'i', 6, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
     ['si_type', 'i', 0, 'type of a characteristic to be extracted after calculation of intensity distribution: 0- Single-Electron Intensity, 1- Multi-Electron Intensity, 2- Single-Electron Flux, 3- Multi-Electron Flux, 4- Single-Electron Radiation Phase, 5- Re(E): Real part of Single-Electron Electric Field, 6- Im(E): Imaginary part of Single-Electron Electric Field, 7- Single-Electron Intensity, integrated over Time or Photon Energy'],
-    ['w_mag', 'i', 1, 'magnetic field to be used for calculation of intensity distribution vs horizontal and vertical position: 1- approximate, 2- accurate'],
-
     ['si_fn', 's', 'res_int_se.dat', 'file name for saving calculated single-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position'],
     ['si_pl', 's', '', 'plot the input intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
     ['ws_fni', 's', 'res_int_pr_se.dat', 'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'],
@@ -318,7 +318,7 @@ def epilogue():
 
 
 def main():
-    v = srwl_bl.srwl_uti_parse_options(srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
     names = ['Sample']
     op = set_optics(v, names, True)
     v.ws = True
@@ -334,7 +334,7 @@ def main():
     v.si_pl = 'xy'
     v.tr = True
     v.tr_pl = 'xz'
-    srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
+    srwpy.srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 main()
 

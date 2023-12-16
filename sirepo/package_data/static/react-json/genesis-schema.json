@@ -1204,6 +1204,7 @@
                                         "horizontal": ".5em",
                                         "vertical": ".5em"
                                     },
+                                    "padding": ".5em",
                                     "items": [
                                         {
                                             "layout": "panel",
@@ -1825,6 +1826,7 @@
                                         "horizontal": ".5em",
                                         "vertical": ".5em"
                                     },
+                                    "padding": ".5em",
                                     "items": [
                                         {
                                             "layout": "panel",

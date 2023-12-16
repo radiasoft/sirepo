@@ -1,0 +1,77 @@
+{
+    "constants": {
+        "epicsModelPrefix": "LLRFSim",
+        "editorModelName": "LLRFSim_Gen",
+        "epicsPlots": {
+            "waveformAReport": {
+                "x": "LLRFSim_Pulse:time_step",
+                "y1": "LLRFSim_Gen:Ig",
+                "y2": "LLRFSim_Cav:Vt",
+                "y3": "LLRFSim_Cav:Vr"
+            },
+            "waveformBReport": {
+                "x": "LLRFSim_Pulse:time_step",
+                "y1": "LLRFSim_Gen:phase",
+                "y2": "LLRFSim_Cav:tphase",
+                "y3": "LLRFSim_Cav:rphase"
+            },
+            "plotLabels": {
+                "LLRFSim_Pulse:time_step": "Time [s]",
+                "LLRFSim_Gen:Ig": "Forward [V]",
+                "LLRFSim_Cav:Vt": "Probe [V]",
+                "LLRFSim_Cav:Vr": "Reflected [V]",
+                "LLRFSim_Gen:phase": "Forward [rad]",
+                "LLRFSim_Cav:tphase": "Probe [rad]",
+                "LLRFSim_Cav:rphase": "Reflected [rad]"
+            }
+        }
+    },
+    "model": {
+        "LLRFSim_Gen": {
+            "phiG": ["Drive Phase [rad]", "EpicsFloat", 0, "Generator current envelope"],
+            "amp": ["Amplitude [V]", "EpicsFloat", 0],
+            "start": ["Start of Pulse [s]", "EpicsFloat", 0],
+            "duration": ["Pulse Duration [s]", "EpicsFloat", 0],
+            "rho": ["rho", "EpicsFloat", 0],
+            "wS": ["wS", "EpicsFloat", 0],
+            "phiS": ["phiS", "EpicsFloat", 0],
+            "I0S": ["I0S", "EpicsFloat", 0],
+            "Ig": ["", "ReadOnlyFloatArray", []],
+            "phase": ["", "ReadOnlyFloatArray", []]
+        },
+        "LLRFSim_Cav": {
+            "Vt": ["", "ReadOnlyFloatArray", []],
+            "Vr": ["", "ReadOnlyFloatArray", []],
+            "tphase": ["", "ReadOnlyFloatArray", []],
+            "rphase": ["", "ReadOnlyFloatArray", []]
+        },
+        "LLRFSim_Pulse": {
+            "time_step": ["Timestep", "ReadOnlyFloat", 0]
+        },
+        "waveformAReport": {},
+        "waveformBReport": {}
+    },
+    "view": {
+        "LLRFSim_Gen": {
+            "title": "Gen",
+            "basic": [
+                "phiG",
+                "amp",
+                "start",
+                "duration",
+                "rho"
+            ],
+            "advanced": []
+        },
+        "waveformAReport": {
+            "title": "Voltage Cav",
+            "hasDataFile": false,
+            "advanced": []
+        },
+        "waveformBReport": {
+            "title": "Phase Cav",
+            "hasDataFile": false,
+            "advanced": []
+        }
+    }
+}

@@ -17,10 +17,6 @@ export class ColumnLayout extends Layout<ColumnConfig, {}> {
         this.child = LAYOUTS.getLayoutForSchema(config.item);
     }
 
-    getFormDependencies(): Dependency[] {
-        return this.child.getFormDependencies();
-    }
-
     component: FunctionComponent<{ [key: string]: any; }> = (props) => {
         let LayoutComponent = this.child.component;
         return (

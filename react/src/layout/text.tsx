@@ -1,8 +1,8 @@
 import React from "react";
 import { FunctionComponent, useContext } from "react";
-import { Dependency } from "../data/dependency";
-import { CModelsWrapper } from "../data/wrapper";
-import { useInterpolatedString, ValueSelectors } from "../hook/string";
+import { StoreTypes } from "../data/data";
+import { CHandleFactory } from "../data/handle";
+import { interpolate } from "../utility/string";
 import { Layout } from "./layout";
 
 export type TextAlign = "left" | "right" | "center"
@@ -15,14 +15,10 @@ export type TextConfig = {
 }
 
 export class TextLayout extends Layout<TextConfig, {}> {
-    getFormDependencies(): Dependency[] {
-        return [];
-    }
-
     component: FunctionComponent<{ [key: string]: any; }> = (props) => {
-        let modelsWrapper = useContext(CModelsWrapper);
+        let handleFactory = useContext(CHandleFactory);
         
-        let interpText = useInterpolatedString(modelsWrapper, this.config.text, ValueSelectors.Models);
+        let interpText = interpolate(this.config.text).withDependencies(handleFactory, StoreTypes.Models).raw();
         let getTextElement = (type: TextType) => {
             switch(type) {
                 case "header":

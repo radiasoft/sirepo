@@ -17,6 +17,7 @@ import signal
 import sirepo.const
 import sirepo.events
 import sirepo.feature_config
+import sirepo.global_resources.api
 import sirepo.job
 import sirepo.job_driver
 import sirepo.job_supervisor
@@ -59,6 +60,7 @@ def default_command():
             (sirepo.job.SERVER_SRTIME_URI, _ServerSrtime),
             (sirepo.job.DATA_FILE_URI + "/(.*)", _DataFileReq),
             (sirepo.job.SIM_DB_FILE_URI + "/(.+)", sirepo.sim_db_file.FileReq),
+            (sirepo.job.GLOBAL_RESOURCES_URI, sirepo.global_resources.api.Req),
         ],
         debug=_cfg.debug,
         static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
@@ -86,9 +88,6 @@ def default_command():
 class _AgentMsg(tornado.websocket.WebSocketHandler):
     sr_class = sirepo.job_driver.AgentMsg
 
-    def check_origin(self, origin):
-        return True
-
     def on_close(self):
         try:
             d = getattr(self, "sr_driver", None)
@@ -98,8 +97,9 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
         except Exception as e:
             pkdlog("error={} {}", e, pkdexc())
 
-    async def on_message(self, msg):
-        await _incoming(msg, self)
+    def on_message(self, msg):
+        # WebSocketHandler only allows one on_message at a time.
+        asyncio.create_task(_incoming(msg, self))
 
     def open(self):
         pkdlog(
@@ -127,7 +127,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
 class _JsonPostRequestHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
-        self.set_header("Content-Type", 'application/json; charset="utf-8"')
+        self.set_header("Content-Type", pkjson.CONTENT_TYPE)
 
 
 class _ServerPing(_JsonPostRequestHandler):

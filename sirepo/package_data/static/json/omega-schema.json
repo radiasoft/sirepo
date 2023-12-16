@@ -1,9 +1,14 @@
 {
     "dynamicFiles": {
-        "sirepoLibs": {}
+        "sirepoLibs": {
+            "js": [
+                "omega.js"
+            ]
+        }
     },
     "enum": {
         "CoupledSimType": [
+            ["", "Select Simulation Type"],
             ["elegant", "elegant"],
             ["opal", "OPAL"],
             ["genesis", "GENESIS 1.3"]
@@ -20,173 +25,97 @@
         ]
     },
     "frameIdFields": {
-        "sim1Phase1Animation": [
-            "histogramBins"
-        ],
-        "sim1Phase2Animation": [
-            "histogramBins"
-        ],
-        "sim1Phase3Animation": [
-            "histogramBins"
-        ],
-        "sim1Phase4Animation": [
-            "histogramBins"
-        ],
-        "sim1BeamAnimation": [
+        "animation": [
+            "simCount",
+            "fieldPlot",
+            "reportCount",
             "y1",
             "y2",
-            "y3"
-        ],
-        "sim2BeamAnimation": [
-            "y1",
-            "y2",
-            "y3"
-        ],
-        "sim3BeamAnimation": [
-            "y1",
-            "y2",
-            "y3"
-        ],
-        "sim4BeamAnimation": [
-            "y1",
-            "y2",
-            "y3"
-        ],
-        "sim2Phase1Animation": [
-            "histogramBins"
-        ],
-        "sim2Phase2Animation": [
-            "histogramBins"
-        ],
-        "sim2Phase3Animation": [
-            "histogramBins"
-        ],
-        "sim2Phase4Animation": [
-            "histogramBins"
-        ],
-        "sim3Phase1Animation": [
-            "histogramBins"
-        ],
-        "sim3Phase2Animation": [
-            "histogramBins"
-        ],
-        "sim3Phase3Animation": [
-            "histogramBins"
-        ],
-        "sim3Phase4Animation": [
-            "histogramBins"
-        ],
-        "sim4Phase1Animation": [
-            "histogramBins"
-        ],
-        "sim4Phase2Animation": [
-            "histogramBins"
-        ],
-        "sim4Phase3Animation": [
-            "histogramBins"
-        ],
-        "sim4Phase4Animation": [
+            "y3",
             "histogramBins"
         ]
     },
-    "model": {
-        "coupledSim": {
-            "simulationType": ["Simulation Type", "CoupledSimType"],
-            "simulationId": ["Simulation ID", "String"]
-        },
-        "simWorkflow": {
-            "coupledSims": ["Simulations", "SimArray", []],
-            "simType_1": ["SimulationType", "CoupledSimType"],
-            "simId_1": ["Simulation ID", "String"],
-            "simType_2": ["SimulationType", "CoupledSimType"],
-            "simId_2": ["Simulation ID", "String"],
-            "simType_3": ["SimulationType", "CoupledSimType"],
-            "simId_3": ["Simulation ID", "String"],
-            "simType_4": ["SimulationType", "CoupledSimType"],
-            "simId_4": ["Simulation ID", "String"]
-        },
-        "simulationStatus": {},
-        "sim1Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim1Phase1Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim1Phase2Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim1Phase3Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim1Phase4Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim1BeamAnimation": {
-            "y1": ["Y1 Value", "BeamParameter", "rmsx"],
-            "y2": ["Y2 Value", "BeamParameter", "rmsy"],
-            "y3": ["Y3 Value", "BeamParameter", "rmss"]
-        },
-        "sim2BeamAnimation": {
-            "y1": ["Y1 Value", "BeamParameter", "rmsx"],
-            "y2": ["Y2 Value", "BeamParameter", "rmsy"],
-            "y3": ["Y3 Value", "BeamParameter", "rmss"]
-        },
-        "sim3BeamAnimation": {
-            "y1": ["Y1 Value", "BeamParameter", "rmsx"],
-            "y2": ["Y2 Value", "BeamParameter", "rmsy"],
-            "y3": ["Y3 Value", "BeamParameter", "rmss"]
-        },
-        "sim4BeamAnimation": {
-            "y1": ["Y1 Value", "BeamParameter", "rmsx"],
-            "y2": ["Y2 Value", "BeamParameter", "rmsy"],
-            "y3": ["Y3 Value", "BeamParameter", "rmss"]
-        },
-        "sim2Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim2Phase1Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim2Phase2Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim2Phase3Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim2Phase4Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim3Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim3Phase1Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim3Phase2Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim3Phase3Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim3Phase4Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim4Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim4Phase1Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim4Phase2Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim4Phase3Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
-        },
-        "sim4Phase4Animation": {
-            "histogramBins": ["Histogram Bins", "Integer", 200]
+    "relatedSimTypes": [
+        "opal",
+        "elegant",
+        "genesis"
+    ],
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/omega-source.html"
+            }
         }
     },
+    "model": {
+        "coupledSim": {
+            "simulationType": ["Simulation Type", "CoupledSimType", ""],
+            "simulationId": ["Simulation Name", "SimList", ""]
+        },
+        "simWorkflow": {
+            "coupledSims": ["", "SimArray", []]
+        },
+        "simulationStatus": {},
+        "simBeamAnimation": {
+            "simCount": ["", "Integer"],
+            "y1": ["Y1 Value", "BeamParameter", "rmsx"],
+            "y2": ["Y2 Value", "BeamParameter", "rmsy"],
+            "y3": ["Y3 Value", "BeamParameter", "rmss"]
+        },
+        "simPhaseSpaceAnimation": {
+            "simCount": ["", "Integer"],
+            "reportCount": ["", "Integer"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "histogramBins": ["Histogram Bins", "Integer", 200]
+        },
+        "simFieldDistributionAnimation": {
+            "fieldPlot": ["Value to Plot", "FieldPlot", "fieldDistributionPlot"],
+            "simCount": ["", "Integer"],
+            "reportCount": ["", "Integer"],
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "simulationStatus": {}
+    },
     "view": {
+        "simBeamAnimation": {
+            "title": "Simulation Beam Parameters",
+            "canFullScreen": false,
+            "hasDataFile": false,
+            "advanced": [
+                "y1",
+                "y2",
+                "y3"
+            ]
+        },
+        "simPhaseSpaceAnimation": {
+            "title": "Simulation Phase Space",
+            "canFullScreen": false,
+            "hasDataFile": false,
+            "advanced": [
+                "colorMap",
+                "histogramBins"
+            ]
+        },
+        "simFieldDistributionAnimation": {
+            "title": "Field Distribution",
+            "advanced": [
+                "fieldPlot",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "simWorkflow": {
+            "title": "Simulation Workflow",
+            "basic": [
+                "coupledSims"
+            ],
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        }
     }
 }

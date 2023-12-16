@@ -1,7 +1,6 @@
 from pykern.pkcollections import PKDict
 from rslaser.optics.crystal import Crystal
-from rslaser.optics.drift import Drift
-from rslaser.optics.lens import Lens
+from rslaser.optics.lens import Lens_srw, Drift_srw, Telescope_lct, Beamsplitter
 from rslaser.pulse.pulse import LaserPulse
 from rslaser.utils import srwl_uti_data
 from sirepo.template import template_common
@@ -46,14 +45,19 @@ class Watchpoint:
         def ranges(pulse, idx):
             return laser_pulse_ranges(pulse.slice_wfr(idx))
 
+        def longitudinal_wavelength_and_frequency(laser_pulse, slice_index):
+            e = laser_pulse.slice[slice_index].photon_e_ev
+            return (const.h * const.c)/(const.e * e) * 1e9, (2.0 * numpy.pi * e * const.e)/const.h
+
         h5_data = PKDict()
         lp = locals()["pulse"]
         t = lp.extract_total_2d_elec_fields()
         p = lp.extract_total_2d_phase()
         for s in range(pulse.nslice):
             nx = lp.slice[s].nx_slice
-            ny = lp.slice[s].ny_slice
+            ny = nx
             i = locals()["intensity"](pulse, s)
+            w, f = longitudinal_wavelength_and_frequency(lp, s)
             h5_data[s] = PKDict(
                 ranges=locals()["ranges"](pulse, s),
                 intensity=i,
@@ -63,6 +67,8 @@ class Watchpoint:
                 longitudinal_intensity=i[int(nx/2)][int(ny/2)],
                 total_intensity=0.5 *const.c *const.epsilon_0 *(t.re**2.0 + t.im**2.0),
                 total_phase=p,
+                longitudinal_wavelength=w,
+                longitudinal_frequency=f,
             )
         template_common.write_dict_to_h5(h5_data, f"results{self.count}.h5")
         self.count += 1
@@ -85,38 +91,64 @@ def laser_pulse_ranges(wavefront):
     }
 
 
+def crystal_ranges(crystal):
+    e = crystal.params.pop_inversion_mesh_extent
+    return {
+        "x": [-e, e],
+        "y": [-e, e],
+    }
+
 def propagate(pulse, elements, beamline):
     crystal_count = 0
     for idx in beamline:
-        e = elements[idx]
+        e = get_element(elements, idx)
         pulse = e[0].propagate(pulse, *e[1])
         if isinstance(e[0], Crystal):
             h5_data = PKDict()
             for s in range(e[0].nslice):
                 h5_data[s] = PKDict(
                     excited_states=e[0].slice[s].pop_inversion_mesh,
-                    ranges=laser_pulse_ranges(pulse.slice_wfr(0)),
+                    ranges=crystal_ranges(e[0]),
                 )
+            # write summary values in first slice
+            (
+                h5_data[0].excited_states_longitudinal,
+                h5_data[0].total_excited_states,
+            ) = e[0].extract_excited_states()
             crystal_count += 1
             template_common.write_dict_to_h5(h5_data, f"crystal{crystal_count}.h5")
     return pulse
+
+crystal_init = set()
+
+def get_element(elements, index):
+    e = elements[index]
+    if isinstance(e[0], Crystal) and index not in crystal_init:
+        crystal_init.add(index)
+        abcd = e[0].calc_n0n2(set_n=True, mesh_density=e[2], heat_load=e[3], method=e[4])[2]
+        for s in e[0].slice:
+            s.A = abcd[0][0]
+            s.B = abcd[0][1]
+            s.C = abcd[1][0]
+            s.D = abcd[1][1]
+    return e
 
 
 pulse = LaserPulse(
     params=PKDict(
         {% for f in (
-            'chirp',
             'nslice',
             'num_sig_long',
             'num_sig_trans',
             'nx_slice',
-            'ny_slice',
             'photon_e_ev',
             'poltype',
             'pulseE',
             'sigx_waist',
             'sigy_waist',
-            'tau_fwhm'
+            'tau_fwhm',
+            'phase_flatten_cutoff',
+            'tau_0',
         ) %}
         {{ f }}={{ laserPulse[f] }},
         {% endfor %}

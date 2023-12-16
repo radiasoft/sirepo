@@ -153,10 +153,22 @@ SIREPO.app.controller('HellwegLatticeController', function (appState, panelState
         return '';
     };
 
-    self.itemValues = function(item) {
-        return appState.viewInfo(item.type).advanced.map(function(f) {
-            return item[f];
-        }).join(' ');
+
+    self.itemLabels = (key) => {
+        return {
+            aperture: 'Aperture',
+            attenuation: 'Attenuation',
+            phaseVelocity: 'Phase Velocity',
+            repeat: 'Repeat Count',
+            acceleratingInvariant: 'Field Invariant',
+            phaseAdvance: 'Advance [deg]',
+            length: 'Length [cm]',
+            radius: 'Radius [cm]',
+            meshPoints: 'Mesh Points',
+            inputPower: 'Input Power [MW]',
+            frequency: 'Frequency [MHz]',
+            phaseShift: 'Phase Shift [deg]',
+        }[key];
     };
 
     self.selectItem = function(item) {
@@ -165,7 +177,7 @@ SIREPO.app.controller('HellwegLatticeController', function (appState, panelState
 
     self.selectedItemName = function() {
         if (self.selectedItem) {
-            return self.itemName(self.selectedItem) + ' ' + self.itemValues(self.selectedItem);
+            return self.itemName(self.selectedItem);
         }
         return '';
     };
@@ -228,6 +240,9 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
         panelState.showField('beam', 'longitudinalFile1d', beam.longitudinalDistribution == 'file1d');
         panelState.showField('beam', 'longitudinalFile2d', beam.longitudinalDistribution == 'file2d');
         panelState.showField('beam', 'cstFile', ! isDistribution);
+        ['particleParamA', 'particleParamQ'].forEach(function(f) {
+            panelState.showField('beam', f, beam.particleKeyword === 'ions');
+        });
     }
 
     function updateCurvature() {
@@ -276,7 +291,7 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
         updateAllFields();
     };
 
-    appState.watchModelFields($scope, ['beam.transversalDistribution', 'beam.longitudinalDistribution', 'beam.spaceCharge', 'beam.beamDefinition', 'sphericalDistribution.curvature', 'sphericalDistribution.curvatureFactor', 'energyPhaseDistribution.distributionType'], updateBeamFields);
+    appState.watchModelFields($scope, ['beam.transversalDistribution', 'beam.longitudinalDistribution', 'beam.spaceCharge', 'beam.beamDefinition', 'sphericalDistribution.curvature', 'sphericalDistribution.curvatureFactor', 'energyPhaseDistribution.distributionType', 'beam.particleKeyword'], updateBeamFields);
     appState.watchModelFields($scope, ['solenoid.sourceDefinition'], updateSolenoidFields);
     appState.whenModelsLoaded($scope, updateAllFields);
 });

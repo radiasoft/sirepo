@@ -1,0 +1,128 @@
+{
+    "models": {
+        "beam": {
+            "beamDefinition": "transverse_longitude",
+            "cstCompress": "0",
+            "cstFile": "",
+            "current": 0.01,
+            "longitudinalDistribution": "norm2d",
+            "longitudinalFile1d": "",
+            "longitudinalFile2d": "",
+            "numberOfParticles": 1000,
+            "particleKeyword": "ions",
+            "particleParamA": 12,
+            "particleParamQ": 6,
+            "spaceCharge": "none",
+            "spaceChargeCore": 3,
+            "transversalDistribution": "sph2d",
+            "transversalFile2d": "",
+            "transversalFile4d": ""
+        },
+        "beamAnimation": {
+            "colorMap": "viridis",
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "isRunning": 0,
+            "notes": "",
+            "plotRangeType": "fit",
+            "plotScale": "linear",
+            "reportType": "x-y",
+            "startTime": 1490386853,
+            "verticalOffset": 0,
+            "verticalSize": 0
+        },
+        "beamHistogramAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "notes": "",
+            "reportType": "r",
+            "startTime": 1490386853
+        },
+        "beamHistogramReport": {
+            "histogramBins": 100,
+            "reportType": "r"
+        },
+        "beamReport": {
+            "histogramBins": 100,
+            "reportType": "x-y"
+        },
+        "beamline": [
+            {
+                "frequency": 2856,
+                "id": 2,
+                "inputPower": 20,
+                "phaseShift": 0,
+                "type": "powerElement"
+            },
+            {
+                "acceleratingInvariant": 1160,
+                "aperture": 0.06,
+                "attenuation": 0,
+                "id": 3,
+                "phaseAdvance": 220,
+                "phaseVelocity": 0.3,
+                "repeat": 15,
+                "type": "cellsElement"
+            }
+        ],
+        "ellipticalDistribution": {
+            "aX": 2,
+            "bY": 0.5,
+            "rmsDeviationFactor": 1,
+            "rotationAngle": 0
+        },
+        "energyPhaseDistribution": {
+            "distributionType": "gaussian",
+            "energyDeviation": 0.1,
+            "energySpread": 0.001,
+            "meanEnergy": 41.5,
+            "meanPhase": 30,
+            "phaseDeviation": 5.72957795131,
+            "phaseLength": 1
+        },
+        "parameterAnimation": {
+            "notes": "",
+            "reportType": "wav-wmax"
+        },
+        "particleAnimation": {
+            "notes": "",
+            "renderCount": "300",
+            "reportType": "r"
+        },
+        "simulation": {
+            "folder": "/Examples",
+            "name": "Ions"
+        },
+        "simulationSettings": {
+            "allowBackwardWaves": "0",
+            "meshPoints": 20,
+            "smoothing": 0.95,
+            "splineInterpolation": "0"
+        },
+        "solenoid": {
+            "fieldStrength": 1000,
+            "fringeRegion": 1,
+            "length": 20,
+            "solenoidFile": "",
+            "sourceDefinition": "none",
+            "z0": 0
+        },
+        "sphericalDistribution": {
+            "curvature": "flat",
+            "curvatureFactor": 0,
+            "radialLimit": 0.1,
+            "thermalEmittance": 0
+        },
+        "twissDistribution": {
+            "horizontalAlpha": 0.14,
+            "horizontalBeta": 2,
+            "horizontalEmittance": 0.0005,
+            "verticalAlpha": 0.28,
+            "verticalBeta": 4,
+            "verticalEmittance": 0.0015
+        }
+    },
+    "simulationType": "hellweg"
+}

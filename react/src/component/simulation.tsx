@@ -9,20 +9,17 @@ import React, {
     useContext
 } from "react";
 import {
-    modelSelectors,
     modelActions,
     ModelState,
-    ModelStates
+    modelsSlice
 } from "../store/models";
 import { FormStateInitializer } from "./reusable/form";
 import { useNavigate, useResolvedPath } from "react-router-dom";
 import { CRelativeRouterHelper, CRouteHelper, RelativeRouteHelper } from "../utility/route";
 import { ReportEventManager } from "../data/report";
 import { CReportEventManager } from "../data/report";
-import { CModelsWrapper, ModelsWrapper } from "../data/wrapper";
-import { CAppName, CSchema, CSimulationInfoPromise } from "../data/appwrapper";
+import { CAppName, CSchema } from "../data/appwrapper";
 import { LAYOUTS } from "../layout/layouts";
-import { ModelsAccessor } from "../data/accessor";
 import { Dependency } from "../data/dependency";
 import { NavbarRightContainerId, NavToggleDropdown } from "./reusable/navbar";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -30,56 +27,90 @@ import * as Icon from "@fortawesome/free-solid-svg-icons";
 import { useSetup } from "../hook/setup";
 import { Portal } from "./reusable/portal";
 import { downloadAs, getAttachmentFileName } from "../utility/download";
+import { Provider, useDispatch, useStore } from "react-redux";
+import { StoreState } from "../store/common";
+import { configureStore } from "@reduxjs/toolkit";
+import { formStatesSlice } from "../store/formState";
+import { BaseHandleFactory, CHandleFactory } from "../data/handle";
+import { StoreTypes } from "../data/data";
+import { useCoupledState } from "../hook/coupling";
+import { middlewaresForSchema } from "../data/middleware/middleware";
+import { useSimulationInfo } from "../hook/simulationInfo";
 
 export type SimulationInfoRaw = {
-    models: ModelStates,
-    simulationType: string,
-    version: string
-}
+    models: StoreState<ModelState>,
+    simulationType: string
+} 
 
-export type SimulationInfo = SimulationInfoRaw & {
-    simulationId: string
+export type SimulationInfo = {
+    simulationType: string,
+    simulationId: string,
+    version: string,
+    name: string,
+    isExample: boolean,
+    folder: string
 }
 
 function SimulationInfoInitializer(props: { simulationId: string } & {[key: string]: any}) {
     let { simulationId } = props;
 
-    let [simulationInfoPromise, updateSimulationInfoPromise] = useState(undefined);
-    let [hasInit, updateHasInit] = useState(false);
+    let schema = useContext(CSchema);
     let appName = useContext(CAppName);
     let routeHelper = useContext(CRouteHelper);
 
-    let modelsWrapper = new ModelsWrapper({
-        modelActions,
-        modelSelectors
-    })
+    const [modelsStore, updateModelsStore] = useState(undefined);
 
-    useEffect(() => {
-        updateSimulationInfoPromise(new Promise((resolve, reject) => {
-            fetch(routeHelper.globalRoute("simulationData", {
-                simulation_type: appName,
-                simulation_id: simulationId,
-                pretty: "0"
-            })).then(async (resp) => {
-                let simulationInfo = await resp.json();
-                let models = simulationInfo['models'] as ModelState[];
+    let [hasSimulationInfo, simulationInfo] = useSetup(true, () => new Promise((resolve, reject) => {
+        fetch(routeHelper.globalRoute("simulationData", {
+            simulation_type: appName,
+            simulation_id: simulationId,
+            pretty: "0"
+        })).then(async (resp) => {
+            let simulationInfo = {...(await resp.json()), simulationId} as SimulationInfoRaw;
+            let models = simulationInfo['models'] as StoreState<ModelState>;
 
-                for(let [modelName, model] of Object.entries(models)) {
-                    modelsWrapper.updateModel(modelName, model);
-                }
-
-                resolve({...simulationInfo, simulationId});
-                updateHasInit(true);
+            let _store = configureStore({ 
+                reducer: {
+                    [modelsSlice.name]: modelsSlice.reducer,
+                    [formStatesSlice.name]: formStatesSlice.reducer,
+                },
+                middleware: [...middlewaresForSchema(schema, simulationInfo)]
             })
-        }))
-    }, [])
 
-    return hasInit && simulationInfoPromise && (
-        <CModelsWrapper.Provider value={modelsWrapper}>
-            <CSimulationInfoPromise.Provider value={simulationInfoPromise}>
+            updateModelsStore(_store)
+
+            for(let [modelName, model] of Object.entries(models)) {
+                _store.dispatch(modelActions.updateModel({
+                    name: modelName,
+                    value: model
+                }))
+            }
+
+            _store.dispatch(modelActions.updateModel({
+                name: "simulation",
+                value: {
+                    ...models["simulation"],
+                    ...{
+                        ...simulationInfo,
+                        models: undefined
+                    }
+                }
+            }))
+
+            console.log("store", _store.getState());
+            
+            resolve(simulationInfo);
+        })
+    }));
+
+    let [handleFactory, _] = useCoupledState(schema, new BaseHandleFactory(schema))
+
+    return hasSimulationInfo && (
+        <Provider store={modelsStore}>
+            <CHandleFactory.Provider value={handleFactory}>
                 {props.children}
-            </CSimulationInfoPromise.Provider>
-        </CModelsWrapper.Provider>
+            </CHandleFactory.Provider>
+        </Provider>
     )
 }
 
@@ -87,12 +118,12 @@ function SimulationCogMenu(props) {
     let appName = useContext(CAppName);
     let routeHelper = useContext(CRouteHelper);
     let navigate = useNavigate();
-    let simulationInfoPromise = useContext(CSimulationInfoPromise);
     let schema = useContext(CSchema);
+    let handleFactory = useContext(CHandleFactory);
 
     let [showCopyModal, updateShowCopyModal] = useState<boolean>(false);
 
-    let [hasSimualtionInfo, simulationInfo] = useSetup(true, simulationInfoPromise);
+    let simulationInfo = useSimulationInfo(handleFactory);
 
     let deleteSimulationPromise = (simulationId: string) => {
         return fetch(routeHelper.globalRoute("deleteSimulation"), {
@@ -108,7 +139,7 @@ function SimulationCogMenu(props) {
     }
 
     let discardChanges = async () => {
-        let { simulationId, models: { simulation: { name }} } = simulationInfo || await simulationInfoPromise;
+        let { simulationId, name } = simulationInfo;
         await deleteSimulationPromise(simulationId);
         let newSimulationInfo: SimulationInfoRaw = await (await fetch(routeHelper.globalRoute("findByName", {
             simulation_type: appName,
@@ -121,13 +152,13 @@ function SimulationCogMenu(props) {
     }
 
     let deleteSimulation = async () => {
-        let { simulationId } = simulationInfo || await simulationInfoPromise;
+        let { simulationId } = simulationInfo;
         await deleteSimulationPromise(simulationId);
         navigate(routeHelper.localRoute("root"));
     }
 
     let exportArchive = async () => {
-        let { simulationId, models: { simulation: { name }} } = simulationInfo || await simulationInfoPromise;
+        let { simulationId, name } = simulationInfo;
         window.open(routeHelper.globalRoute("exportArchive", {
             simulation_type: appName,
             simulation_id: simulationId,
@@ -136,7 +167,7 @@ function SimulationCogMenu(props) {
     }
 
     let pythonSource = async () => {
-        let { simulationId, models: { simulation: { name }} } = simulationInfo || await simulationInfoPromise;
+        let { simulationId, name } = simulationInfo;
 
         let r = await fetch(routeHelper.globalRoute("pythonSource2", { simulation_type: appName }), {
             method: "POST",
@@ -155,7 +186,7 @@ function SimulationCogMenu(props) {
     }
 
     let openCopy = async (newName) => {
-        let { simulationId, models: { simulation: { folder }} } = simulationInfo || await simulationInfoPromise;
+        let { simulationId, folder } = simulationInfo;
         let { models: { simulation: { simulationId: newSimId }} } = await (await fetch(routeHelper.globalRoute("copySimulation"), {
             method: "POST",
             headers: {
@@ -177,7 +208,7 @@ function SimulationCogMenu(props) {
         <>
             <CopySimulationNamePickerModal
             show={showCopyModal}
-            defaultName={simulationInfo ? `${simulationInfo.models.simulation.name} 2` : ""}
+            defaultName={simulationInfo ? `${simulationInfo.name} 2` : ""}
             onComplete={(name) => {
                 updateShowCopyModal(false);
                 openCopy(name)
@@ -188,8 +219,8 @@ function SimulationCogMenu(props) {
                 <Dropdown.Item onClick={() => pythonSource()}><FontAwesomeIcon icon={Icon.faCloudDownload}/> { schema.constants.simSourceDownloadText }</Dropdown.Item>
                 <Dropdown.Item onClick={() => updateShowCopyModal(true)}><FontAwesomeIcon icon={Icon.faCopy}/> Open as a New Copy</Dropdown.Item>
                 {
-                    hasSimualtionInfo && (
-                        simulationInfo.models.simulation.isExample ? (
+                    (
+                        simulationInfo.isExample ? (
                             <Dropdown.Item onClick={() => discardChanges()}><FontAwesomeIcon icon={Icon.faRepeat}/> Discard changes to example</Dropdown.Item>
                         ) : (
                             <Dropdown.Item onClick={() => deleteSimulation()}><FontAwesomeIcon icon={Icon.faTrash}/> Delete</Dropdown.Item>
@@ -243,12 +274,12 @@ export function SimulationOuter(props) {
     let pathPrefix = useResolvedPath('');
     let currentRelativeRouter = new RelativeRouteHelper(pathPrefix);
 
-    let modelsWrapper = useContext(CModelsWrapper);
-    let simNameDep = new Dependency("simulation.name");
-    let simNameAccessor = new ModelsAccessor(modelsWrapper, [simNameDep]);
+    let handleFactory = useContext(CHandleFactory);
+    let store = useStore();
+    let simNameHandle = handleFactory.createHandle(new Dependency("simulation.name"), StoreTypes.Models).hook();
 
     useEffect(() => {
-        document.title = simNameAccessor.getFieldValue(simNameDep) as string;
+        document.title = simNameHandle.value as string;
     })
 
     // TODO: navbar should route to home, when one is made
@@ -276,18 +307,17 @@ export function SimulationRoot(props: {simulationId: string}) {
         )
     });
 
-    // TODO: use multiple rows
     return (
         <SimulationInfoInitializer simulationId={simulationId}>
             <SimulationOuter>
+            <FormStateInitializer>
                 <ReportEventManagerInitializer>
-                    <FormStateInitializer>
-                        <Portal targetId={NavbarRightContainerId} className="order-2">
-                            <SimulationCogMenu/>
-                        </Portal>
-                        {layoutComponents}
-                    </FormStateInitializer>
+                    <Portal targetId={NavbarRightContainerId} className="order-2">
+                        <SimulationCogMenu/>
+                    </Portal>
+                    {layoutComponents}
                 </ReportEventManagerInitializer>
+            </FormStateInitializer>
             </SimulationOuter>
         </SimulationInfoInitializer>
     )

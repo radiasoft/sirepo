@@ -9,6 +9,7 @@ from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdformat
 from sirepo import simulation_db
+import asyncio
 import datetime
 import random
 import re
@@ -48,10 +49,10 @@ class API(sirepo.quest.API):
             ),
         )
         try:
-            c = res.content_as_str()
+            c = res.content_as_redirect()
         finally:
             res.destroy()
-        m = re.search(r'\/source\/(\w+)"', c)
+        m = re.search(r"/source/(\w+)$", c.uri)
         if not m:
             raise RuntimeError("failed to find sid in resp={}".format(c))
         i = m.group(1)
@@ -72,7 +73,7 @@ class API(sirepo.quest.API):
         try:
             resp = await self.call_api("runSimulation", data=d)
             for _ in range(_cfg.max_calls):
-                r = simulation_db.json_load(resp.content_as_str())
+                r = resp.content_as_object()
                 resp.destroy()
                 resp = None
                 pkdlog("resp={}", r)
@@ -86,7 +87,7 @@ class API(sirepo.quest.API):
                     return
                 d = r.nextRequest
                 resp = await self.call_api("runStatus", data=d)
-                time.sleep(_SLEEP)
+                await asyncio.sleep(_SLEEP)
             raise RuntimeError(
                 "simulation timed out: seconds={} resp=".format(
                     _cfg.max_calls * _SLEEP, r

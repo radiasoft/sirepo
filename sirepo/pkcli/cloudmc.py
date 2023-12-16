@@ -8,252 +8,234 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
-import array
 import copy
 import json
-import os
+import numpy
 import py.path
+import pymeshlab
 import pymoab.core
+import pymoab.rng
 import pymoab.types
 import re
-import sirepo.sim_data.cloudmc
+import sirepo.mpi
 import sirepo.simulation_db
-import sirepo.template.cloudmc
 import sirepo.util
 import uuid
 
-import sirepo.template.cloudmc as template
-
-
-_DATA_DIR = "data"
-_VTI_TEMPLATE = PKDict(
-    CellData=PKDict(),
-    FieldData=PKDict(),
-    vtkClass="vtkPolyData",
-    lines=PKDict(
-        name="_lines",
-        numberOfComponents=1,
-        dataType="Uint32Array",
-        vtkClass="vtkCellArray",
-        ref=PKDict(
-            encode="LittleEndian",
-            basepath=_DATA_DIR,
-            id=None,
-        ),
-        size=None,
-    ),
-    polys=PKDict(
-        name="_polys",
-        numberOfComponents=1,
-        dataType="Uint32Array",
-        vtkClass="vtkCellArray",
-        ref=PKDict(
-            encode="LittleEndian",
-            basepath=_DATA_DIR,
-            id=None,
-        ),
-        size=None,
-    ),
-    PointData=PKDict(),
-    points=PKDict(
-        name="Points",
-        numberOfComponents=3,
-        dataType="Float32Array",
-        vtkClass="vtkPoints",
-        ref=PKDict(
-            encode="LittleEndian",
-            basepath=_DATA_DIR,
-            id=None,
-        ),
-        size=None,
-    ),
-    metadata=PKDict(
-        name=None,
-    ),
-)
+_DECIMATION_MAX_POLYGONS = 10000
 
 
 def extract_dagmc(dagmc_filename):
-    mat = _extract_volumes(dagmc_filename)
-    for vol in mat.values():
-        _vtk_to_bin(vol.volId)
-    return mat
+    gc = _MoabGroupCollector(dagmc_filename)
+    sirepo.mpi.restrict_ops_to_first_node(_MoabGroupExtractor(gc).get_items())
+    res = PKDict()
+    for g in gc.groups:
+        res[g.name] = PKDict(
+            name=g.name,
+            volId=g.vol_id,
+        )
+    return res
 
 
 def run(cfg_dir):
     template_common.exec_parameters()
     data = sirepo.simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    template.extract_report_data(pkio.py_path(cfg_dir), data)
-
-
-def run_background(cfg_dir):
-    data = sirepo.simulation_db.read_json(
-        template_common.INPUT_BASE_NAME,
+    sirepo.template.import_module("cloudmc").extract_report_data(
+        pkio.py_path(cfg_dir), data
     )
-    if "report" in data and data.report == "dagmcAnimation":
-        sirepo.simulation_db.write_json(
-            sirepo.template.cloudmc.VOLUME_INFO_FILE,
-            extract_dagmc(sirepo.sim_data.cloudmc.SimData.dagmc_filename(data)),
-        )
-        return
-    template_common.exec_parameters()
 
 
-def _array_from_list(arr, arr_type):
-    res = array.array(arr_type)
-    res.fromlist(arr)
-    return res
+class _MoabGroupCollector:
+    def __init__(self, dagmc_filename):
+        mb = pymoab.core.Core()
+        mb.load_file(dagmc_filename)
+        self.dagmc_filename = dagmc_filename
+        self._id_tag = self._tag(mb, "GLOBAL_ID")
+        self._name_tag = self._tag(mb, "NAME")
+        self.groups = self._groups_and_volumes(mb)
 
+    def _groups(self, mb):
+        for g in mb.get_entities_by_type_and_tag(
+            mb.get_root_set(),
+            pymoab.types.MBENTITYSET,
+            [self._tag(mb, "CATEGORY")],
+            ["Group"],
+        ):
+            yield g
 
-def _assert_size(res, name):
-    n = f"{name}s"
-    if res[n] is None:
-        raise AssertionError(f"Missing {n}")
-    c = res[f"{name}_count"]
-    if len(res[n]) != c:
-        raise AssertionError(f"{n} do not match count: {len(res[n])} != {c}")
+    def _groups_and_volumes(self, mb):
+        res = PKDict()
+        for g in self._groups(mb):
+            n = self._parse_entity_name(mb, g)
+            if not n:
+                continue
+            v = [h for h in mb.get_entities_by_handle(g)]
+            if not v:
+                continue
+            res.pksetdefault(n, lambda: PKDict(name=n, volumes=[]))
+            res[n].volumes[0:0] = v
+        for g in res.values():
+            g.vol_id = self._tag_value(mb, self._id_tag, g.volumes[0])
+            if re.search(r"\_comp$", g.name):
+                g.name = re.sub(r"\_comp$", "", g.name)
+                g.is_complement = True
+        return tuple(res.values())
 
+    def _parse_entity_name(self, mb, group):
+        m = re.search("^mat:(.*)$", self._tag_value(mb, self._name_tag, group))
+        if m:
+            return m.group(1)
+        return None
 
-def _extract_volumes(filename):
-    res = PKDict()
-    visited = PKDict()
-    for v in _parse_volumes(filename).values():
-        name = _parse_entity_name(v.name)
-        if not name:
-            continue
-        skip_volume = False
-        for i in v.volumes:
-            if i in visited:
-                pkdlog(f"skipping volume used in multiple groups: {i} {name}")
-                skip_volume = True
-            visited[i] = True
-        if skip_volume:
-            continue
-        if not res.get(name):
-            res[name] = PKDict(
-                volId=v.volumes[0],
-                volumes=v.volumes,
-            )
-        else:
-            res[name].volumes += v.volumes
-            res[name].volId = v.volumes[0]
+    def _tag(self, mb, name):
+        return mb.tag_get_handle(getattr(pymoab.types, f"{name}_TAG_NAME"))
 
-    for n in res:
-        os.system(
-            f'mbconvert -v {",".join(res[n].volumes)} {filename} {res[n].volId}.vtk'
-        )
-        del res[n]["volumes"]
-    return res
-
-
-def _parse_entity_name(name):
-    m = re.search("^mat:(.*)$", name)
-    if m:
-        return m.group(1)
-    return None
-
-
-def _parse_volumes(filename):
-    def get_tag_value(mb, tag, handle):
+    def _tag_value(self, mb, tag, handle):
         return str(mb.tag_get_data(tag, handle).flat[0])
 
-    mb = pymoab.core.Core()
-    mb.load_file(filename)
-    name_h = mb.tag_get_handle(pymoab.types.NAME_TAG_NAME)
-    id_h = mb.tag_get_handle(pymoab.types.GLOBAL_ID_TAG_NAME)
-    res = PKDict()
-    for group in mb.get_entities_by_type_and_tag(
-        mb.get_root_set(),
-        pymoab.types.MBENTITYSET,
-        [mb.tag_get_handle(pymoab.types.CATEGORY_TAG_NAME)],
-        ["Group"],
-    ):
-        name = get_tag_value(mb, name_h, group)
-        if not re.search(r"^mat:", name):
-            continue
-        assert not res.get(group)
-        res[group] = PKDict(
-            name=name,
-            volumes=[],
+
+class _MoabGroupExtractor:
+    _DATA_DIR = "data"
+    _VTI_TEMPLATE = PKDict(
+        CellData=PKDict(),
+        FieldData=PKDict(),
+        vtkClass="vtkPolyData",
+        polys=PKDict(
+            name="_polys",
+            numberOfComponents=1,
+            dataType="Uint32Array",
+            vtkClass="vtkCellArray",
+            ref=PKDict(
+                encode="LittleEndian",
+                basepath=_DATA_DIR,
+                id=None,
+            ),
+            size=None,
+        ),
+        PointData=PKDict(),
+        points=PKDict(
+            name="Points",
+            numberOfComponents=3,
+            dataType="Float32Array",
+            vtkClass="vtkPoints",
+            ref=PKDict(
+                encode="LittleEndian",
+                basepath=_DATA_DIR,
+                id=None,
+            ),
+            size=None,
+        ),
+        metadata=PKDict(
+            name=None,
+        ),
+    )
+
+    def __init__(self, collector):
+        self._items = []
+        for g in collector.groups:
+            if g.get("is_complement"):
+                continue
+            self._items.append(
+                _MoabGroupExtractorOp(
+                    dagmc_filename=collector.dagmc_filename,
+                    vol_id=g.vol_id,
+                    volumes=g.volumes,
+                    processor=self,
+                )
+            )
+        # process longest volume sets first
+        self._items.sort(key=lambda v: -len(v.volumes))
+
+    def get_items(self):
+        return self._items
+
+    def process_item(self, item):
+        v, p = self._decimate(*self._extract_moab_vertices_and_triangles(item))
+        self._write_vti(item.vol_id, self._get_points_and_polys(v, p))
+        self._write_mesh(item.vol_id, v, p)
+
+    def _decimate(self, vertices, polygons):
+        ms = pymeshlab.MeshSet()
+        ms.add_mesh(pymeshlab.Mesh(vertices, polygons))
+        c = len(ms.current_mesh().face_matrix())
+        if c > _DECIMATION_MAX_POLYGONS:
+            ms.apply_filter(
+                "meshing_decimation_quadric_edge_collapse",
+                preservenormal=True,
+                targetperc=max(0.2, _DECIMATION_MAX_POLYGONS / c),
+            )
+        m = ms.current_mesh()
+        pkdlog(
+            "reduce faces: {} to {} ({}%)",
+            c,
+            len(m.face_matrix()),
+            int(100 - len(m.face_matrix()) * 100 / c),
         )
-        for volume in mb.get_entities_by_handle(group):
-            res[group].volumes.append(get_tag_value(mb, id_h, volume))
-    return res
+        return (
+            m.vertex_matrix().astype(numpy.float32),
+            m.face_matrix().astype(numpy.uint32),
+        )
+
+    def _extract_moab_vertices_and_triangles(self, item):
+        def _reshape3(v):
+            return v.reshape(int(len(v) / 3), 3)
+
+        mb = pymoab.core.Core()
+        mb.load_file(item.dagmc_filename)
+        vr = pymoab.rng.Range()
+        tr = pymoab.rng.Range()
+        for h in item.volumes:
+            self._get_verticies_and_triangles(mb, h, vr, tr)
+        return (
+            _reshape3(mb.get_coords(vr)),
+            _reshape3(numpy.searchsorted(vr, mb.get_connectivity(tr))),
+        )
+
+    def _get_points_and_polys(self, points, polys):
+        return PKDict(
+            points=points.ravel(),
+            # inserts polygon point count (always 3 for triangles)
+            polys=numpy.insert(polys, 0, 3, axis=1).ravel(),
+        )
+
+    def _get_verticies_and_triangles(
+        self, mb, handle, verticies, triangles, visited=None
+    ):
+        if visited is None:
+            visited = set()
+        verticies.merge(mb.get_entities_by_type(handle, pymoab.types.MBVERTEX))
+        triangles.merge(mb.get_entities_by_type(handle, pymoab.types.MBTRI))
+        for c in mb.get_child_meshsets(handle):
+            if c in visited:
+                continue
+            visited.add(c)
+            self._get_verticies_and_triangles(mb, c, verticies, triangles, visited)
+
+    def _write_mesh(self, vol_id, points, polys):
+        ms = pymeshlab.MeshSet()
+        ms.add_mesh(pymeshlab.Mesh(points, polys))
+        ms.save_current_mesh(f"{vol_id}.ply")
+
+    def _write_vti(self, vol_id, geometry):
+        pkio.unchecked_remove(vol_id)
+        p = pkio.mkdir_parent(f"{vol_id}/{_MoabGroupExtractor._DATA_DIR}")
+        vti = copy.deepcopy(_MoabGroupExtractor._VTI_TEMPLATE)
+        vti.metadata.name = f"{vol_id}.vtp"
+        fns = []
+        for n in ("polys", "points"):
+            fn = str(uuid.uuid1()).replace("-", "")
+            with open(str(p.join(fn)), "wb") as f:
+                geometry[n].tofile(f)
+            vti[n].ref.id = fn
+            vti[n].size = int(len(geometry[n]))
+            fns.append(f"{_MoabGroupExtractor._DATA_DIR}/{fn}")
+        with sirepo.util.write_zip(f"{vol_id}.zip") as f:
+            f.writestr("index.json", json.dumps(vti))
+            for fn in fns:
+                f.write(f"{vol_id}/{fn}", arcname=fn)
+        pkio.unchecked_remove(vol_id)
 
 
-def _parse_vtk(filename):
-    res = PKDict(
-        points=[],
-        point_count=None,
-        lines=[],
-        line_count=0,
-        polys=[],
-        poly_count=0,
-        cell_count=None,
-    )
-    state = "header"
-    with pkio.open_text(str(filename)) as f:
-        for line in f:
-            if state == "header":
-                m = re.match(r"^POINTS (\d+)", line)
-                if m:
-                    res.point_count = int(m.group(1)) * 3
-                    state = "points"
-            elif state == "points":
-                m = re.match(r"^CELLS \d+ (\d+)", line)
-                if m:
-                    res.cell_count = int(m.group(1))
-                    state = "cells"
-                    continue
-                p = [float(v) for v in line.split(" ")]
-                if len(p) != 3:
-                    raise AssertionError(f"Invalid point: {p}")
-                res.points += p
-            elif state == "cells":
-                m = re.match(r"^CELL_TYPES", line)
-                if m:
-                    break
-                p = [int(v) for v in line.split(" ")]
-                if p[0] == 2:
-                    res.lines += p
-                    res.line_count += len(p)
-                else:
-                    res.polys += p
-                    res.poly_count += len(p)
-    _assert_size(res, "point")
-    _assert_size(res, "line")
-    _assert_size(res, "poly")
-    if res.line_count + res.poly_count != res.cell_count:
-        raise AssertionError("line and poly count != cell count")
-    return PKDict(
-        points=_array_from_list(res.points, "f"),
-        lines=_array_from_list(res.lines, "I"),
-        polys=_array_from_list(res.polys, "I"),
-    )
-
-
-def _vtk_to_bin(vol_id):
-    filename = f"{vol_id}.vtk"
-    v = _parse_vtk(filename)
-    pkio.unchecked_remove(_DATA_DIR)
-    pkio.mkdir_parent(_DATA_DIR)
-    vti = copy.deepcopy(_VTI_TEMPLATE)
-    vti.metadata.name = f"{vol_id}.vtp"
-    if not len(v.lines):
-        del vti["lines"]
-    fns = []
-    for n in ("lines", "polys", "points"):
-        if n not in vti:
-            continue
-        fn = str(uuid.uuid1()).replace("-", "")
-        with open(f"{_DATA_DIR}/{fn}", "wb") as f:
-            v[n].tofile(f)
-        vti[n].ref.id = fn
-        vti[n].size = int(len(v[n]))
-        fns.append(f"{_DATA_DIR}/{fn}")
-    with sirepo.util.write_zip(f"{vol_id}.zip") as f:
-        f.writestr("index.json", json.dumps(vti))
-        for fn in fns:
-            f.write(fn)
-    pkio.unchecked_remove(_DATA_DIR)
-    pkio.unchecked_remove(filename)
+class _MoabGroupExtractorOp(PKDict):
+    def __call__(self):
+        self.processor.process_item(self)

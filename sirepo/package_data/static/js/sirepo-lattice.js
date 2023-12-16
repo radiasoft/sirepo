@@ -537,6 +537,9 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
         if (angular.isUndefined(v) || v === null) {
             return v;
         }
+        if (Array.isArray(v)) {
+            return v.map(self.getRpnValue);
+        }
         if (self.isCaseInsensitive) {
             v = v.toLowerCase ? v.toLowerCase() : v;
         }
@@ -2818,7 +2821,7 @@ SIREPO.app.directive('rpnEditor', function() {
     };
 });
 
-SIREPO.app.directive('rpnValue', function(appState, rpnService) {
+SIREPO.app.directive('rpnValue', function(appState, rpnService, $timeout) {
     var requestIndex = 0;
     return {
         restrict: 'A',
@@ -2885,6 +2888,15 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                     return value;
                 }
                 return value.toString();
+            });
+
+            // handle programmatic changes - don't step on current parsing
+            scope.$watch('field', () => {
+                $timeout(() => {
+                    ngModel.$parsers.forEach(p => {
+                        p(ngModel.$viewValue);
+                    });
+                }, 500);
             });
         }
     };

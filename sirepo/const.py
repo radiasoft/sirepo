@@ -11,7 +11,14 @@ ASYNC_CANCELED_ERROR = asyncio.CancelledError
 
 STATIC_D = "static"
 
+REACT_ROOT_D = "react"
+
+REACT_BUNDLE_FILE_PAT = rf"{STATIC_D}/(css|js)/main\."
+
 JSON_SUFFIX = ".json"
+
+# matches requirements for uid and isn't actually put in the db
+MOCK_UID = "someuser"
 
 MPI_LOG = "mpi_run.log"
 
@@ -24,7 +31,18 @@ PORT_DEFAULTS = PKDict(
     nginx_proxy=8080,
     react=3000,
     supervisor=8001,
-    uwsgi=8000,
+)
+
+#: These values will be injected into simulation_db.SCHEMA_COMMON
+SCHEMA_COMMON = PKDict(
+    websocketMsg=PKDict(
+        kind=PKDict(
+            httpRequest=1,
+            httpReply=2,
+            srException=3,
+        ),
+        version=1,
+    ),
 )
 
 TEST_PORT_RANGE = range(10000, 11000)

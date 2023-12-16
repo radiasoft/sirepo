@@ -7,19 +7,18 @@ SRW objects.
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjson
 from pykern import pkrunpy
 from pykern.pkdebug import pkdlog, pkdexc, pkdp
-import ast
 import inspect
+import math
 import os
 import py.path
 import re
-import srwl_bl
 import sirepo.sim_data
+import srwpy.srwl_bl
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals("srw")
 
@@ -39,7 +38,7 @@ class SRWParser:
             import shlex
 
             arguments = shlex.split(arguments)
-        self.var_param = srwl_bl.srwl_uti_parse_options(
+        self.var_param = srwpy.srwl_bl.srwl_uti_parse_options(
             m.varParam, use_sys_argv=False, args=arguments
         )
         self.replace_mirror_files()
@@ -51,6 +50,7 @@ class SRWParser:
                 self.replace_mirror_files("mirror_2d.dat")
                 self.optics = getattr(m, optics_func_name)(self.var_param)
         self.data = _parsed_dict(self.var_param, self.optics)
+        self._import_fixups(self.data)
         self.data.models.simulation.name = _name(user_filename)
 
     def replace_mirror_files(self, mirror_file="mirror_1d.dat"):
@@ -75,6 +75,35 @@ class SRWParser:
                     self.var_param.__dict__[key] = str(
                         _SIM_DATA.lib_file_abspath(image_file, qcall=self.qcall)
                     )
+
+    def _import_fixups(self, data):
+        import sirepo.template.srw_common
+        import sirepo.template.srw
+
+        dm = data.models
+        sirepo.template.srw_common.process_beam_parameters(dm["electronBeam"])
+        dm["electronBeamPosition"]["drift"] = sirepo.template.srw.calculate_beam_drift(
+            pkcollections.Dict(dm["electronBeamPosition"]),
+            dm["simulation"]["sourceType"],
+            "u_i",
+            float(dm["undulator"]["length"]),
+            float(dm["undulator"]["period"]) / 1000.0,
+        )
+        for c in "horizontal", "vertical":
+            n = "{}DeflectingParameter".format(c)
+            u = dm.undulator
+            u[n] = sirepo.template.srw.process_undulator_definition(
+                pkcollections.Dict(
+                    undulator_definition="B",
+                    undulator_parameter=None,
+                    amplitude=float(u["{}Amplitude".format(c)]),
+                    undulator_period=float(u.period) / 1000.0,
+                ),
+            ).undulator_parameter
+        u = dm.undulator
+        u.effectiveDeflectingParameter = math.sqrt(
+            u.horizontalDeflectingParameter**2 + u.verticalDeflectingParameter**2,
+        )
 
 
 class Struct(object):
@@ -233,6 +262,9 @@ def _beamline_element(obj, idx, title, elem_type, position):
         data["tangentialSize"] = obj.dt
         data["tangentialVectorX"] = obj.tvx
         data["tangentialVectorY"] = obj.tvy
+        data["autocomputeVectors"] = (
+            "vertical" if data["normalVectorX"] == 0 else "horizontal"
+        )
 
     elif elem_type == "fiber":
         data["method"] = "server"
@@ -332,6 +364,9 @@ def _beamline_element(obj, idx, title, elem_type, position):
         data["tangentialSize"] = obj.dt
         data["tangentialVectorX"] = obj.tvx
         data["tangentialVectorY"] = obj.tvy
+        data["autocomputeVectors"] = (
+            "vertical" if data["normalVectorX"] == 0 else "horizontal"
+        )
 
     elif elem_type == "zonePlate":
         data["numberOfZones"] = obj.nZones
@@ -616,7 +651,7 @@ def _name(user_filename):
 def _parsed_dict(v, op):
     import sirepo.template.srw
 
-    std_options = Struct(**_list2dict(srwl_bl.srwl_uti_std_options()))
+    std_options = Struct(**_list2dict(srwpy.srwl_bl.srwl_uti_std_options()))
 
     beamline_elements = _get_beamline(op.arOpt, v.op_r)
 
@@ -647,7 +682,6 @@ def _parsed_dict(v, op):
             "fieldUnits": 1,
             "polarization": v.si_pol,
             "precision": v.w_prec,
-            "sampleFactor": 0,
         }
     )
 
@@ -690,7 +724,6 @@ def _parsed_dict(v, op):
                         "ebm_emx", v, std_options, 9e-10
                     )
                     * 1e9,
-                    "horizontalPosition": v.ebm_x,
                     "isReadOnly": False,
                     "name": full_beam_name,
                     "rmsSpread": _default_value("ebm_ens", v, std_options, 0.00089),
@@ -706,7 +739,6 @@ def _parsed_dict(v, op):
                         "ebm_emy", v, std_options, 8e-12
                     )
                     * 1e9,
-                    "verticalPosition": v.ebm_y,
                 }
             )
 
@@ -736,6 +768,7 @@ def _parsed_dict(v, op):
 
         gaussianBeam = pkcollections.Dict(
             {
+                "photonEnergy": v.w_e,
                 "energyPerPulse": None,
                 "polarization": 1,
                 "rmsPulseDuration": None,
@@ -777,6 +810,7 @@ def _parsed_dict(v, op):
 
         gaussianBeam = pkcollections.Dict(
             {
+                "photonEnergy": v.w_e,
                 "energyPerPulse": _default_value("gbm_pen", v, std_options),
                 "polarization": _default_value("gbm_pol", v, std_options),
                 "rmsPulseDuration": _default_value("gbm_st", v, std_options) * 1e12,
@@ -796,7 +830,12 @@ def _parsed_dict(v, op):
                 {
                     "beamline": beamline_elements,
                     "electronBeam": electronBeam,
-                    "electronBeams": [],
+                    "electronBeamPosition": {
+                        "horizontalPosition": v.ebm_x,
+                        "verticalPosition": v.ebm_y,
+                        "driftCalculationMethod": "auto",
+                        "drift": 0,
+                    },
                     "beamline3DReport": pkcollections.Dict({}),
                     "fluxReport": pkcollections.Dict(
                         {
@@ -826,6 +865,7 @@ def _parsed_dict(v, op):
                             "polarization": v.ss_pol,
                             "precision": v.ss_prec,
                             "verticalPosition": v.ss_y,
+                            "method": "1" if source_type == "u" else "0",
                         }
                     ),
                     "multiElectronAnimation": pkcollections.Dict(
@@ -883,6 +923,15 @@ def _parsed_dict(v, op):
                             "distanceFromSource": v.op_r,
                             "fieldUnits": 1,
                             "polarization": v.si_pol,
+                            "photonEnergy": v.w_e,
+                            "horizontalPointCount": v.w_nx,
+                            "horizontalPosition": v.w_x,
+                            "horizontalRange": v.w_rx * 1e3,
+                            "sampleFactor": v.w_smpf,
+                            "samplingMethod": 1,
+                            "verticalPointCount": v.w_ny,
+                            "verticalPosition": v.w_y,
+                            "verticalRange": v.w_ry * 1e3,
                         }
                     ),
                     "undulator": undulator,
@@ -890,7 +939,6 @@ def _parsed_dict(v, op):
                 }
             ),
             "simulationType": "srw",
-            "version": "",
         }
     )
 
@@ -958,7 +1006,7 @@ def _update_crystals(data, v):
                 pass
 
             if not data[i]["energy"]:
-                try:  # update energy if an old srwlib.py is used
+                try:  # update energy if an old srwpy.srwlib.py is used
                     data[i]["energy"] = v.op_DCM_e
                 except Exception:
                     data[i]["energy"] = v.w_e

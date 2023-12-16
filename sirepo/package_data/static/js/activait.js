@@ -42,9 +42,7 @@ SIREPO.app.config(() => {
           <input type="text" data-ng-model="model[field]" class="form-control" data-lpignore="true" />
           <span data-ng-show="model.dataOrigin === 'url'" style="font-style: italic; font-size: 80%;">{{ UTILS.formatToThousands(model.bytesLoaded, 1, true) || 0 }} of {{ UTILS.formatToThousands(model.contentLength, 1, true) || 0 }} {{ UTILS.orderOfMagnitude(model.contentLength, true).suffix }}B</span>
           <div class="sr-input-warning"></div>
-          <div data-ng-show="model.contentLength && ! model.bytesLoaded" class="progress">
-            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
-          </div>
+          <div data-ng-show="model.contentLength && ! model.bytesLoaded" data-sim-state-progress-bar=""></div>
         </div>
         <div data-ng-switch-when="XColumn" data-field-class="fieldClass">
           <div data-x-column="" data-model-name="modelName" data-model="model" data-field="field"></div>
@@ -569,13 +567,13 @@ SIREPO.app.directive('analysisActions', function(appState, panelState, activaitS
                             placement: 'bottom',
                             container: 'body',
                             title: 'Cluster: ' + (clusterIndex + 1),
-                            content: '<div><button class="btn btn-default webcon-popover">Open in New Plot</button></div>',
+                            content: '<div><button class="btn btn-default activait-popover">Open in New Plot</button></div>',
                         }).on('hide.bs.popover', () => {
                             $(document).off('click', buttonHandler);
                         });
                         $('.scatter-point').not($(this)).popover('hide');
                         $(this).popover('toggle');
-                        $(document).on('click', '.webcon-popover', buttonHandler);
+                        $(document).on('click', '.activait-popover', buttonHandler);
                     });
                 }
             }
@@ -1100,9 +1098,7 @@ SIREPO.app.directive('diceCoeffViewer', function(requestSender) {
         template: `
         <div>
           <img class="img-responsive dice-plot" />
-          <div data-ng-if="isLoading()" class="progress">
-            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
-          </div>
+          <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
           <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
         </div>
         `,
@@ -1159,9 +1155,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
         template: `
         <div>
           <img class="img-responsive {{ imageClass }}" />
-          <div data-ng-if="isLoading()" class="progress">
-            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
-          </div>
+          <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
           <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
           <div data-ng-if="! isLoading() && multiPage">
             <div class="pull-left">

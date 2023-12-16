@@ -337,6 +337,8 @@ SIREPO.app.controller('VisualizationController', function(appState, flashService
             SIREPO.APP_SCHEMA.constants.flashLogFrameId);
     };
 
+    self.simState.errorMessage = () => self.errorMessage;
+
     appState.whenModelsLoaded($scope, function() {
         setAxis();
         $scope.$on('varAnimation.summaryData', function(e, data) {
@@ -600,7 +602,6 @@ SIREPO.viewLogic('problemFilesView', function(appState, flashService, panelState
                     setProcessing(false);
                 }
             },
-            false,
             err => {
                 setProcessing(false, err.error);
                 appState.models.problemFiles.archive = null;

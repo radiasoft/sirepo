@@ -11,8 +11,7 @@
   <div class="row">
         <div data-ng-if="viz.isSolvable()" data-radia-solver="" data-model-name="solverAnimation"></div>
         <div data-radia-field-paths="" data-model-name="fieldPaths"></div>
-        <div data-field-integral-table="" data-model-name="fieldPaths"></div>
-        <div data-field-download="" data-controller="viz"></div>
+        <div data-ng-if="viz.hasPaths(['axisPath', 'linePath'])" data-report-panel="fieldIntegrals" data-model-name="fieldIntegralReport" class="col-md-6"></div>
         <div data-ng-if="viz.enableKickMaps()" data-kick-map-report="" data-view-name="kickMapReport"></div>
   </div>
 </div>

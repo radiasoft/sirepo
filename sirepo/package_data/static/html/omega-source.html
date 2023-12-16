@@ -1,0 +1,16 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-4">
+      <div data-basic-editor-panel="" data-view-name="simWorkflow"></div>
+    </div>
+    <div class="col-md-6 col-xl-4">
+      <div data-simple-panel="simulationStatus">
+        <div data-sim-status-panel="source.simState"></div>
+      </div>
+    </div>
+    <div data-beam-and-phase-plots="" data-reports="source.reports"></div>
+  </div>
+</div>
+<div data-ng-repeat="report in source.reportNames track by $index">
+  <div data-modal-editor="" view-name="{{ report.modelName }}" data-model-data="source.omegaService.modelAccess(report.modelKey)"></div>
+</div>

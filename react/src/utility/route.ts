@@ -53,7 +53,7 @@ export class RouteHelper {
             let p = match[2]; // matched word
             allParamNames.push(p);
             let s = match[3] || ""; // optional /
-            let e = match.index + match.length;
+            let e = match.index + match[0].length;
 
             if(!params || !Object.keys(params).includes(p)) {
                 if(!o) {

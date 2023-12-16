@@ -44,12 +44,11 @@ def test_jspec_list_files(fc):
     from pykern.pkunit import pkeq, pkre
     import json
 
-    a = fc.sr_get_json(
+    a = fc.sr_post(
         "listFiles",
         PKDict(
-            simulation_type=fc.sr_sim_type,
-            simulation_id="xxxxxxxxxx",
-            file_type="ring-lattice",
+            simulationType=fc.sr_sim_type,
+            fileType="ring-lattice",
         ),
     )
     pkeq(["Booster.tfs"], a)
@@ -59,10 +58,10 @@ def test_srw_delete(fc):
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
-    import sirepo.sim_data
+    from sirepo import sim_data
 
     d = fc.sr_sim_data("Tabulated Undulator Example")
-    s = sirepo.sim_data.get_class(fc.sr_sim_type)
+    s = sim_data.get_class(fc.sr_sim_type)
     u = pkunit.work_dir().join("not_used_name.zip")
     s.lib_file_resource_path("magnetic_measurements.zip").copy(u)
     t = "undulatorTable"
@@ -70,7 +69,6 @@ def test_srw_delete(fc):
     r = fc.sr_post(
         "saveSimulationData",
         data=d,
-        file=u,
     )
     pkunit.pkeq(u.basename, r.models.tabulatedUndulator.magneticFile)
     r = fc.sr_post_form(
@@ -109,27 +107,25 @@ def test_srw_delete(fc):
         ),
     )
     pkunit.pkeq("ok", r.get("state"), "unexpected response={}", r)
-    r = fc.sr_get_json(
+    r = fc.sr_get(
         "downloadFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id=d.models.simulation.simulationId,
             filename=u.basename,
         ),
-        data=PKDict(),
-        redirect=False,
     )
-    pkunit.pkre("does not exist", r.error)
+    pkunit.pkre("not_used_name.zip.*does not exist", r.data)
 
 
 def test_srw_upload(fc):
     from pykern import pkunit, pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
-    import sirepo.sim_data
+    from sirepo import sim_data
 
     d = fc.sr_sim_data("NSLS-II CHX beamline")
-    s = sirepo.sim_data.get_class(fc.sr_sim_type)
+    s = sim_data.get_class(fc.sr_sim_type)
     f = s.lib_file_resource_path("mirror_1d.dat")
     t = "mirror"
     r = fc.sr_post_form(
@@ -184,10 +180,10 @@ def test_srw_validate_file(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkre, pkeq
-    import sirepo.sim_data
+    from sirepo import sim_data
 
     d = fc.sr_sim_data("Sample from Image")
-    s = sirepo.sim_data.get_class(fc.sr_sim_type)
+    s = sim_data.get_class(fc.sr_sim_type)
     r = fc.sr_get(
         "downloadFile",
         params=PKDict(
@@ -196,7 +192,6 @@ def test_srw_validate_file(fc):
             filename="sample.tif",
         ),
         data=PKDict(),
-        redirect=False,
     )
     pkre("/tif", r.mimetype)
     f = s.lib_file_resource_path("sample.tif")
@@ -220,10 +215,10 @@ def test_warpvnd_import(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkre, pkeq
-    import sirepo.sim_data
+    from sirepo import sim_data
 
     d = PKDict(name="new1", folder="/", simulationType=fc.sr_sim_type)
-    s = sirepo.sim_data.get_class(fc.sr_sim_type)
+    s = sim_data.get_class(fc.sr_sim_type)
     d = fc.sr_post("newSimulation", d)
     r = fc.sr_post_form(
         "uploadFile",

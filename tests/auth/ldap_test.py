@@ -11,27 +11,18 @@ def test_happy_path():
     from pykern import pkunit
 
     r, u = _call_login("vagrant@radiasoft.net", "vagrant")
-    pkunit.pkeq(200, r.status_as_int())
-    pkunit.pkre("location.*/complete-registration", r.content_as_str())
+    pkunit.pkeq("/myapp#/complete-registration", r.content_as_redirect().uri)
     pkunit.pkne(None, u)
 
 
-def test_cred_validation():
+def test_cred_deviance():
     from pykern import pkunit
 
-    pkunit.pkre(
-        "Invalid user and/or password",
-        _call_login("any-user", "")[0]._SReply__attrs.content,
-    )
-
-
-def test_incorrect_creds():
-    from pykern import pkunit
-
-    pkunit.pkre(
-        "Invalid user and/or password",
-        _call_login("not-a-user", "any-password")[0]._SReply__attrs.content,
-    )
+    for x in (("any-user", ""), ("not-a-user", "any-password")):
+        pkunit.pkeq(
+            "Invalid user and/or password",
+            _call_login(*x)[0].content_as_object().form_error,
+        )
 
 
 def _call_login(email, password):

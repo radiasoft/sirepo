@@ -271,6 +271,7 @@
         "column": "6",
         "distanceFromSource": 0,
         "histogramBins": 100,
+        "notes": "",
         "weight": "22"
     },
     "initialIntensityReport": {

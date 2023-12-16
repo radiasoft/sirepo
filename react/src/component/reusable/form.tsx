@@ -11,12 +11,15 @@ import React, {
 } from "react";
 import {
     formActions,
-    formSelectors
+    formStatesSlice
 } from "../../store/formState";
-import { formStateFromModel } from "../../data/formController";
-import { useStore } from "react-redux";
-import { CModelsWrapper, CFormStateWrapper, FormStateWrapper } from "../../data/wrapper";
-import { CSchema } from "../../data/appwrapper";
+import { useDispatch, useStore } from "react-redux";
+import { AppWrapper, CSchema } from "../../data/appwrapper";
+import { SimulationInfo } from "../simulation";
+import { AnyAction, Dispatch, Store } from "redux";
+import { FormStateHandleFactory, initialFormStateFromValue } from "../../data/form";
+import { modelsSlice } from "../../store/models";
+import { mapProperties } from "../../utility/object";
 
 export function FormField(props) {
     let { label, tooltip, ...passedProps } = props;
@@ -43,38 +46,59 @@ export function EditorForm(props) {
     );
 }
 
+export function formActionFunctions(config: {
+    formHandleFactory: FormStateHandleFactory, 
+    store: Store<any, AnyAction>,
+    dispatch: Dispatch<AnyAction>
+}): { cancel: () => void, submit: () => void } {
+    let {
+        formHandleFactory,
+        store,
+        dispatch
+    } = config;
+    return {
+        cancel: () => formHandleFactory.cancel(store.getState(), dispatch),
+        submit: () => {
+            formHandleFactory.save(store.getState(), dispatch);
+        }
+    } 
+}
+
 export function FormStateInitializer(props) {
     let [hasInit, updateHasInit] = useState(undefined);
 
     let schema = useContext(CSchema);
 
     let store = useStore();
+    let dispatch = useDispatch();
 
-    let models = useContext(CModelsWrapper);
-    let formState = new FormStateWrapper({
-        formActions,
-        formSelectors
-    })
-
-    let modelNames = Object.keys(schema.models);
+    let ms = store.getState()[modelsSlice.name]
+    let modelNames = Object.keys(ms);
 
     useEffect(() => {
-        let state = store.getState();
         modelNames.map(mn => {
             return {
                 modelName: mn,
-                value: models.getModel(mn, state)
+                value: ms[mn]
             }
         }).forEach(({ modelName, value }) => {
-            formState.updateModel(modelName, formStateFromModel(value, schema.models[modelName]))
+            if(!value) {
+                throw new Error(`could not get model=${modelName}`);
+            }
+            /*let modelSchema = schema.models[modelName];
+            if(!modelSchema) {
+                throw new Error(`could not get schema for model=${modelName}`);
+            }*/
+            dispatch(formActions.updateModel({
+                name: modelName,
+                value: mapProperties(value, (_, fv) => initialFormStateFromValue(fv))
+            }));
         });
-
+        console.log("fs store", store.getState());
         updateHasInit(true);
-    }, [])
+    })
 
     return hasInit && (
-        <CFormStateWrapper.Provider value={formState}>
-            {props.children}
-        </CFormStateWrapper.Provider>
+        <>{props.children}</>
     );
 }

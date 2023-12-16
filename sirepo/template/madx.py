@@ -957,7 +957,7 @@ def _output_info(run_dir):
                     PKDict(
                         modelKey="twissFromParticlesAnimation",
                         filename=f.filename,
-                        isHistogram=True,
+                        isHistogram=False,
                         plottableColumns=PTC_OBSERVE_TWISS_COLS,
                         pageCount=0,
                     ),

@@ -9,6 +9,7 @@ from pykern.pkdebug import pkdp
 import base64
 import email.utils
 import pykern.pkcompat
+import pykern.pkjson
 import sirepo.const
 import sirepo.quest
 import sirepo.util
@@ -23,6 +24,8 @@ _SIM_TYPE_ATTR = "sirepo_http_request_sim_type"
 #: We always use the same name for a file upload
 _FORM_FILE_NAME = "file"
 
+_TORNADO_WEBSOCKET = "tornado_websocket"
+
 
 def init_quest(qcall, internal_req=None):
     if qcall.bucket_unchecked_get("in_pkcli"):
@@ -30,40 +33,43 @@ def init_quest(qcall, internal_req=None):
             http_authorization=None,
             http_headers=PKDict(),
             http_method="GET",
-            http_request_uri="/",
             http_server_uri="http://localhost/",
             internal_req=internal_req,
+            _kind="pkcli",
             remote_addr="0.0.0.0",
+            _set_log_user=lambda u: None,
         )
-    elif "werkzeug" in str(type(internal_req)):
-        import flask
-
+    elif "websocket" in str(type(internal_req)).lower():
         sreq = _SRequest(
-            body_as_bytes=lambda: internal_req.get_data(cache=False),
-            http_authorization=internal_req.authorization,
+            # This is not use except in error logging, which shouldn't happen
+            body_as_bytes=lambda: pykern.pkjson.dump_bytes(internal_req.get("content")),
+            _body_as_content=internal_req.get("content"),
+            http_authorization=None,
             http_headers=internal_req.headers,
-            http_method=internal_req.method,
-            http_request_uri=internal_req.url,
-            http_server_uri=flask.url_for("_flask_dispatch_empty", _external=True),
+            http_method="POST" if "content" in internal_req else "GET",
+            http_server_uri=internal_req.handler.http_server_uri,
+            remote_addr=internal_req.handler.remote_addr,
             internal_req=internal_req,
-            remote_addr=internal_req.remote_addr,
-            _form_file_class=_FormFileFlask,
-            _form_get=internal_req.form.get,
+            _kind=_TORNADO_WEBSOCKET,
+            _form_file_class=_FormFileWebSocket,
+            _form_get=lambda x, y: internal_req.content.get(x, y),
+            _set_log_user=internal_req.set_log_user,
         )
     elif "tornado" in str(type(internal_req)):
         r = internal_req.request
-        u = f"{r.protocol}://{r.host}"
         sreq = _SRequest(
             body_as_bytes=lambda: internal_req.request.body,
             http_authorization=_parse_authorization(r.headers.get("Authorization")),
             http_headers=r.headers,
             http_method=r.method,
-            http_request_uri=u + r.path,
-            http_server_uri=u + "/",
+            http_request_uri=r.full_url(),
+            http_server_uri=f"{r.protocol}://{r.host}/",
             internal_req=internal_req,
+            _kind="tornado_http",
             remote_addr=r.remote_ip,
             _form_file_class=_FormFileTornado,
             _form_get=internal_req.get_argument,
+            _set_log_user=internal_req.sr_set_log_user,
         )
     else:
         raise AssertionError(f"unknown internal_req={type(internal_req)}")
@@ -98,23 +104,15 @@ class _FormFileBase(PKDict):
         if not f:
             raise sirepo.util.Error("must supply a file", "no file in request={}", sreq)
         self.filename = f.filename
+        # TODO(robnagler) need to garbage collect
         self._internal = f
 
     def as_str(self):
         return pykern.pkcompat.from_bytes(self.as_bytes())
 
 
-class _FormFileFlask(_FormFileBase):
-    def as_bytes(self):
-        return self._internal.stream.read()
-
-    def _get(self, internal_req):
-        return internal_req.files.get(_FORM_FILE_NAME)
-
-
 class _FormFileTornado(_FormFileBase):
     def as_bytes(self):
-        # TODO(robnagler) need to garbage collect
         return self._internal.body
 
     def _get(self, internal_req):
@@ -126,14 +124,27 @@ class _FormFileTornado(_FormFileBase):
         return res[0]
 
 
+class _FormFileWebSocket(_FormFileBase):
+    def as_bytes(self):
+        return self._internal.blob
+
+    def _get(self, internal_req):
+        return internal_req.get("attachment")
+
+
 class _SRequest(sirepo.quest.Attr):
     """Holds context for incoming requests"""
 
-    def content_type_eq(self, value):
-        c = self.__content_type()._key
-        if c is None:
-            return False
-        return self.__content_type()._key.lower() == value.lower()
+    def body_as_content(self):
+        if "_body_as_content" in self:
+            return self.get("_body_as_content")
+        if not self._content_type_eq(pykern.pkjson.MIME_TYPE):
+            raise sirepo.util.BadRequest(
+                "Content-Type={} must be {}",
+                self.header_uget("Content-Type"),
+                pykern.pkjson.MIME_TYPE,
+            )
+        return pykern.pkjson.load_any(self.body_as_bytes())
 
     def form_get(self, name, default):
         return self._form_get(name, default)
@@ -161,6 +172,9 @@ class _SRequest(sirepo.quest.Attr):
     def method_is_post(self):
         return self.http_method == "POST"
 
+    def set_log_user(self, log_user):
+        self._set_log_user(log_user)
+
     def set_post(self, data=None):
         """Interface for uri_router"""
         # Always remove data (if there)
@@ -168,6 +182,12 @@ class _SRequest(sirepo.quest.Attr):
         if data is not None:
             self[_POST_ATTR] = data
         return res
+
+    def _content_type_eq(self, value):
+        c = self.__content_type()._key
+        if c is None:
+            return False
+        return self.__content_type()._key.lower() == value.lower()
 
     def __content_type(self):
         if "_content_type" not in self:

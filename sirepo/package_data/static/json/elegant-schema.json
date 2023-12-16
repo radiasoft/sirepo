@@ -1505,7 +1505,7 @@
             "p_lower": ["P Lower", "RPNValue", 0, "If different, the lower and upper limit on βγ of particles to use."],
             "p_upper": ["P Upper", "RPNValue", 0, ""],
             "save_initial_coordinates": ["Save Initial Coordinates", "RPNBoolean", "1", "A flag that, if set, results in saving initial coordinates of tracked particles in memory. This is the default behavior. If unset, the initial coordinates are not saved, but are reread from disk each time they are needed. This is more memory efficient and is useful for tracking very large numbers of particles."],
-            "reverse_t_sign": ["Reverse T Sign", "RPNValue", 0, ""],
+            "reverse_t_sign": ["Reverse T Sign", "RPNBoolean", "0", ""],
             "n_duplicates": ["N Duplicates", "RPNValue", 0, "This specifies duplicating the particles from the input file to allow tracking more particles. n_duplicates specifies the number of duplications, where the default value of 0 indicates no duplication. If n-fold duplication is invoked, the particle ID of a new particle is equal to the particle ID of its parent particle plus i N_p, where i=1,...,n+1 is the duplication index and N_p is the number of particles in the parent bunch. This should be kept in mind when using the particle ID to segregate the beam into bunches."],
             "duplicate_stagger": ["Duplicate Stagger", "StringArray", "0, 0, 0, 0, 0, 0", "Specifies offsetting of the coordinates x, x^′, y, y^′, t, and δ for each duplication by the specified amounts. One assumes that some stochastic process such as synchrotron radiation will cause further differentiation of duplicate particles. One can also use SCATTER or DSCATTER elements in the beamline for this purpose."]
         },

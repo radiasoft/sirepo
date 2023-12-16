@@ -2,6 +2,7 @@
     "models": {
         "beamline": [
             {
+                "autocomputeVectors": "vertical",
                 "firstFocusLength": 120,
                 "focalLength": 1.7000000000000028,
                 "grazingAngle": 14.0,
@@ -21,6 +22,7 @@
                 "type": "ellipsoidMirror"
             },
             {
+                "autocomputeVectors": "horizontal",
                 "firstFocusLength": 120.6,
                 "focalLength": 1.1000000000000085,
                 "grazingAngle": 14.0,
@@ -76,7 +78,12 @@
             "xxprX": 0.0,
             "xxprY": 0.0
         },
-        "electronBeams": [],
+        "electronBeamPosition": {
+            "drift": 0,
+            "driftCalculationMethod": "auto",
+            "horizontalPosition": 0.0,
+            "verticalPosition": 0.0
+        },
         "fluxReport": {
             "azimuthalPrecision": 1.0,
             "distanceFromSource": 120,
@@ -93,6 +100,7 @@
         },
         "gaussianBeam": {
             "energyPerPulse": 0.001,
+            "photonEnergy": 1240.0,
             "polarization": 1,
             "rmsPulseDuration": 0.01,
             "rmsSizeX": 40.0,
@@ -107,8 +115,7 @@
             "characteristic": 0,
             "fieldUnits": 1,
             "polarization": 6,
-            "precision": 0.01,
-            "sampleFactor": 0
+            "precision": 0.01
         },
         "intensityReport": {
             "distanceFromSource": 120,
@@ -116,6 +123,7 @@
             "finalEnergy": 1241.0,
             "horizontalPosition": 0.0,
             "initialEnergy": 1239.0,
+            "method": "0",
             "photonEnergyPointCount": 200,
             "polarization": 6,
             "precision": 0.01,
@@ -275,10 +283,21 @@
             "characteristic": 0,
             "distanceFromSource": 120,
             "fieldUnits": 1,
-            "polarization": 6
+            "horizontalPointCount": 100,
+            "horizontalPosition": 0.0,
+            "horizontalRange": 2.0,
+            "photonEnergy": 1240.0,
+            "polarization": 6,
+            "sampleFactor": 1.0,
+            "samplingMethod": 1,
+            "verticalPointCount": 100,
+            "verticalPosition": 0.0,
+            "verticalRange": 2.0
         },
         "undulator": {
+            "effectiveDeflectingParameter": 1.65776086,
             "horizontalAmplitude": "0",
+            "horizontalDeflectingParameter": 0.0,
             "horizontalInitialPhase": 0,
             "horizontalSymmetry": 1,
             "length": 3,
@@ -286,6 +305,7 @@
             "period": "20",
             "undulatorParameter": 1.65776086,
             "verticalAmplitude": "0.88770981",
+            "verticalDeflectingParameter": 1.65776086,
             "verticalInitialPhase": 0,
             "verticalSymmetry": -1
         },
@@ -293,8 +313,7 @@
             "characteristic": 0,
             "fieldUnits": 1,
             "polarization": 6,
-            "precision": 0.01,
-            "sampleFactor": 0
+            "precision": 0.01
         }
     },
     "simulationType": "srw",

@@ -19,6 +19,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(
             dm,
             (
+                "beam",
                 "beamAnimation",
                 "beamHistogramAnimation",
                 "parameterAnimation",

@@ -109,11 +109,7 @@ class CodeVar:
             if not err:
                 cache[k] = v
 
-    def stateful_compute_rpn_value(self, data, schema, ignore_array_values, **kwargs):
-        if ignore_array_values and re.search(r"^\{.*\}$", data.value):
-            # accept array of values enclosed in curly braces
-            data.result = ""
-            return True
+    def stateful_compute_rpn_value(self, data, schema, **kwargs):
         v, err = self.eval_var(data.value)
         if err:
             data.error = err
@@ -121,15 +117,11 @@ class CodeVar:
             data.result = v
         return data
 
-    def stateful_compute_recompute_rpn_cache_values(
-        self, data, schema, ignore_array_values, **kwargs
-    ):
+    def stateful_compute_recompute_rpn_cache_values(self, data, schema, **kwargs):
         self.recompute_cache(data.cache)
         return data
 
-    def stateful_compute_validate_rpn_delete(
-        self, data, schema, ignore_array_values, **kwargs
-    ):
+    def stateful_compute_validate_rpn_delete(self, data, schema, **kwargs):
         from sirepo import simulation_db
 
         model_data = simulation_db.read_json(
@@ -181,6 +173,8 @@ class CodeVar:
                 expr = re.sub(r"\^", "**", expr)
                 rpn = cls.__parse_expr_infix(expr)
                 expr = rpn
+            else:
+                expr = float(expr)
         except Exception as e:
             pass
         return expr
@@ -351,15 +345,19 @@ class PurePythonEval:
     def eval_var(self, expr, depends, variables):
         variables = variables.copy()
         for d in depends:
-            v, err = PurePythonEval.__eval_python_stack(
+            # recurse eval_var, but with empty dependencies
+            v, err = PurePythonEval.eval_var(
                 self,
-                variables[d],
+                self.__eval_indexed_variable(variables[d], variables),
+                {},
                 variables,
             )
             if err:
                 return None, err
             variables[d] = v
-        return self.__eval_python_stack(expr, variables)
+        return self.__eval_python_stack(
+            self.__eval_indexed_variable(expr, variables), variables
+        )
 
     @classmethod
     def postfix_to_infix(cls, expr):
@@ -395,9 +393,34 @@ class PurePythonEval:
                 stack.append(v)
         return __strip_parens(stack[-1])
 
+    def __eval_indexed_variable(self, expr, variables):
+        if isinstance(expr, list):
+            return [self.__eval_indexed_variable(e, variables) for e in expr]
+        r = rf"(.*)({'|'.join(list(variables.keys()))})\s*\[\s*(\d+)\s*\]"
+        if not re.match(r, str(expr)):
+            return CodeVar.infix_to_postfix(expr)
+        return self.__eval_indexed_variable(
+            re.sub(
+                r,
+                lambda m: m.group(1) + str(variables[m.group(2)][int(m.group(3))]),
+                expr,
+            ),
+            variables,
+        )
+
     def __eval_python_stack(self, expr, variables):
         if not CodeVar.is_var_value(expr):
             return expr, None
+        if isinstance(expr, list):
+            evs = []
+            # loop instead of map so we can fail out on the first error
+            for e in expr:
+                ev = self.__eval_python_stack(CodeVar.infix_to_postfix(e), variables)
+                if ev[1] is not None:
+                    return None, ev[1]
+                evs.append(ev[0])
+            return evs, None
+
         values = str(expr).split(" ")
         stack = []
         for v in values:
