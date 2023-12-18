@@ -596,7 +596,7 @@ SIREPO.app.directive('randomSeed', function() {
     };
 });
 
-SIREPO.app.directive('listSearch', function(appState, fileManager) {
+SIREPO.app.directive('listSearch', function(panelState, utilities) {
     const searchClass = 'list-search-autocomplete';
 
     return {
@@ -612,33 +612,11 @@ SIREPO.app.directive('listSearch', function(appState, fileManager) {
               <input class="${searchClass} form-control" placeholder="{{ placeholderText }}" />
             </div>
        `,
-        controller: function($scope) {
+        controller: function($scope, $element) {
             let sel = null;
-
-            function buildSearch() {
-                const s = $(`.${searchClass}`);
-                s.autocomplete({
-                    delay: 0,
-                    select: (e, ui) => {
-                        $scope.$apply(() => {
-                            // the jqueryui autocomplete wants to display the value instead of the
-                            // label when a select happens. This keeps the label in place
-                            e.preventDefault();
-                            s.val(ui.item.label);
-                            $scope.onSelect()(ui.item.value);
-                        });
-                    },
-                });
-                return s;
-            }
-
-            function updateSearch() {
-                sel.autocomplete('option', 'source', $scope.list);
-                sel.autocomplete('option', 'disabled', ! $scope.list.length);
-            }
-
-            $scope.$watch('list', updateSearch);
-            sel = buildSearch();
+            panelState.waitForUI(() => {
+                sel = utilities.buildSearch($scope, $element, searchClass);
+            });
         },
     };
 });
@@ -773,6 +751,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             <div data-ng-switch="info[1]">
               <div data-ng-switch-when="Integer" data-ng-class="fieldClass">
                 <input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
+                <div class="sr-input-warning"></div>
               </div>
               <div data-ng-switch-when="Float" data-ng-class="fieldClass">
                 <input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
@@ -801,6 +780,9 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               </div>
               <div data-ng-switch-when="InputFile" class="col-sm-7">
                 <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[4]" data-empty-selection-text="No File Selected"></div>
+              </div>
+              <div data-ng-switch-when="Bool" class="col-sm-7">
+                  <input type="checkbox" data-ng-model="model[field]">
               </div>
                <div data-ng-switch-when="Boolean" class="fieldClass">
                  <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
@@ -833,6 +815,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                   <button class="btn sr-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>
                 </div>
                 <select data-ng-if="! wantEnumButtons" number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
+                <div class="sr-input-warning"></div>
               </div>
             </div>
             </div>
@@ -1267,11 +1250,11 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
             field: '=',
         },
         template: `
-            <div class="modal fade" id="sr-fileUpload{{ fileType }}-editor" tabindex="-1" role="dialog">
+            <div class="modal fade" id="sr-fileUpload{{ fileType }}-editor" tabindex="-1" role="dialog" data-backdrop="static">
               <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                   <div class="modal-header bg-info">
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <button type="button" class="close" data-dismiss="modal"><span data-ng-if="! isUploading">&times;</span></button>
                     <span class="lead modal-title text-info">{{ dialogTitle }}</span>
                   </div>
                   <div class="modal-body">
@@ -5174,6 +5157,78 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
             return 'MSFullscreenChange';
         }
         return 'fullscreenchange';
+    };
+
+    this.buildSearch = (scope, element, searchClass, supportsMulti) => {
+        const utilities = this;
+        function findToken(text, caretPos) {
+            let n = 0;
+            const tokens = text.split(/\s+/);
+            for (let i = 0; i < tokens.length; ++i) {
+                const t = tokens[i];
+                const j = text.indexOf(t, n);
+                const k = j + t.length;
+                if (caretPos >= j && caretPos <= k) {
+                    return {index: i, token: t};
+                }
+                n = k;
+            }
+            return null;
+        }
+
+        const s = $(element).find(`.${searchClass}`);
+        s.autocomplete({
+            delay: 0,
+            select: (e, ui) => {
+                scope.$apply(() => {
+                    // the jqueryui autocomplete wants to display the value instead of the
+                    // label when a select happens. This keeps the label in place
+                    e.preventDefault();
+                    let val = ui.item.label;
+                    if (supportsMulti) {
+                        const tokens = s.val().split(/\s+/);
+                        const t = findToken(s.val(), e.target.selectionStart);
+                        if (t) {
+                            tokens[t.index] = val;
+                        }
+                        val = tokens.join(' ');
+                    }
+                    s.val(val);
+                    if (scope.onSelect) {
+                        scope.onSelect()(ui.item.value);
+                    }
+                    // send a change event to trigger parsers
+                    s[0].dispatchEvent(new Event('change'));
+                });
+            },
+            source: (req, res) => {
+                const text = req.term;
+                const l = scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1));
+                if (! supportsMulti) {
+                    res(l.filter(x => x.label.includes(text)));
+                    return;
+                }
+                const t = findToken(text, s.get(0).selectionStart);
+                if (t) {
+                    res(l.filter(x => x.label.includes(t.token)));
+                }
+            },
+        });
+        const modal = s.closest('div[role="dialog"]');
+        if (modal.length) {
+            // required to have the popup appear on top and scroll along with the modal content
+            s.autocomplete('option', 'appendTo', modal);
+        }
+        const search = {
+            container: s,
+            update: () => {
+                s.autocomplete('option', 'disabled', ! scope.list.length);
+            },
+        };
+        scope.$watch('list', () => {
+            search.update();
+        });
+        return search;
     };
 
     // Returns a function, that, as long as it continues to be invoked, will not

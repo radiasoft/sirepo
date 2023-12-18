@@ -1,0 +1,123 @@
+{%- macro objectFields() -%}
+{%- for p in optimizer.parameters -%}
+    "{{ p.object }}.{{ p.field }}",
+{%- endfor -%}
+{%- endmacro -%}
+
+from pykern.pkcollections import PKDict
+from sirepo.template import radia_util
+from sirepo.template import template_common
+
+VIEW_TYPE_OBJ = "objects"
+VIEW_TYPE_FIELD = "fields"
+
+_MODEL_CEE = "cee"
+_MODEL_CUBOID = "cuboid"
+_MODEL_CYLINDER = "cylinder"
+_MODEL_ELL = "ell"
+_MODEL_JAY= "jay"
+_MODEL_GROUP = "geomGroup"
+_MODEL_OBJECT = "geomObject"
+_MODEL_EXTRUDED_POINTS = "extrudedPoints"
+_MODEL_EXTRUDED_POLY = "extrudedPoly"
+_MODEL_RACETRACK = "racetrack"
+_MODEL_STL = "stl"
+_EXTRUDED_MODELS = (_MODEL_CEE, _MODEL_ELL, _MODEL_JAY, _MODEL_EXTRUDED_POINTS, _MODEL_EXTRUDED_POLY)
+_GROUP_MODELS = (_MODEL_GROUP,)
+_OBJ_MODELS = (_MODEL_CUBOID, _MODEL_CYLINDER, _MODEL_RACETRACK, _MODEL_OBJECT, _MODEL_STL) + _EXTRUDED_MODELS
+_MODELS = _OBJ_MODELS + _GROUP_MODELS
+
+sirepo_objs = {{ objects }}
+
+parameters = PKDict()
+
+def _add_object(o, radia_objs, id_map):
+    model = o.get("model")
+    t = o.get("type")
+    sc = o.get("super_classes", [])
+    mat = {{ matrix }}
+    if _MODEL_OBJECT in sc:
+        o.magnetization = radia_util.multiply_vector_by_matrix(o.magnetization, mat)
+        o.segments = radia_util.multiply_vector_by_matrix(o.segments, mat)
+    if t in _OBJ_MODELS:
+        g_id = radia_util.build_object(**o)
+        radia_util.apply_color(
+            g_id,
+            [c / 255.0 for c in tuple(int(o.color.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))]
+        )
+    if model in _GROUP_MODELS:
+        grp = []
+        for obj_id in o.members:
+            obj = [mobj for mobj in sirepo_objs if mobj["id"] == obj_id][0]
+            m = PKDict(obj)
+            if m.id not in id_map.values():
+                # have not added this object yet
+                m_id = _add_object(m, radia_objs, id_map)
+                grp.append(m_id)
+            else:
+                grp.extend(
+                    [list(id_map.keys())[list(id_map.values()).index(v)] for v in id_map.values() if v == m.id]
+                )
+        g_id = radia_util.build_container(grp)
+    for transform in o.transforms:
+        radia_util.apply_transform(g_id, **transform)
+    id_map[g_id] = o.id
+    # don't add objects if they are already in a group
+    if not o.groupId:
+        radia_objs.append(g_id)
+    return g_id
+
+
+def _build_radia_geom():
+    id_map = PKDict()
+    radia_objs = []
+    for obj in sirepo_objs:
+        o = PKDict(obj)
+        if o.id in id_map.values():
+            continue
+        o_id = _add_object(o, radia_objs, id_map)
+        id_map[o_id] = o.id
+    g_id = radia_util.build_container(radia_objs)
+    return g_id, id_map
+
+
+def load_objective_function_result(*args):
+    r = template_common.read_dict_from_h5("{{ objectiveFunctionResultsFileName }}")
+    return r.val, r.arr
+
+
+def objective_function(g_id):
+    res = _calculate_objective(g_id)
+    template_common.write_dict_to_h5(
+        PKDict(
+            parameters=parameters,
+            arr=res[1],
+            val=res[0],
+        ),
+        "{{ objectiveFunctionResultsFileName }}"
+    )
+    return res
+
+
+{{ objectiveFunctionDef }}
+
+def _update_objects(**kwargs):
+    def _get_obj(name):
+        return [o for o in sirepo_objs if o.get("name") == name][0]
+
+    fields = ({{ objectFields() }})
+    for k, v in kwargs.items():
+        if k not in fields:
+            continue
+        parameters[k] = v
+        mf = k.split(".")
+        _get_obj(mf[0])[mf[1]] = v
+
+
+def main(*args, **kwargs):
+    _update_objects(**kwargs)
+    g_id, id_map = _build_radia_geom()
+    s = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
+    return objective_function(g_id)
+
+
