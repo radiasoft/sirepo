@@ -79,6 +79,9 @@ SIREPO.app.config(() => {
             <select class="form-control" data-ng-model="model[field]" data-ng-options="t.name as t.name for t in model.tallies"></select>
           </div>
         </div>
+        <div data-ng-switch-when="JRange" class="col-sm-5">
+          <div data-j-range-slider="" data-ng-model="model[field]" data-model-name="modelName" data-field-name="field" data-model="model" data-field="model[field]"></div>
+        </div>
         <div data-ng-switch-when="ScoreList" data-ng-class="fieldClass">
           <div class="input-group">
             <select class="form-control" data-ng-model="model[field]" data-ng-options="s.score as s.score for s in (model.tallies | filter:{name:model.tally})[0].scores"></select>
@@ -94,8 +97,15 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
     const self = {};
     appState.setAppService(self);
 
-    function findScore(score) {
-        return findTally().scores.filter(v => v.score === score).length
+    function findFilter(tallies, tally, type) {
+        const t = findTally(tallies, tally);
+        return self.FILTER_INDICES
+            .map(i => t[`filter${i}`])
+            .filter(x => x._type === type)[0];
+    }
+
+    function findScore(tallies, tally, score) {
+        return findTally(tallies, tally).scores.filter(v => v.score == score).length
             ? score
             : null;
     }
@@ -107,6 +117,8 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
 
     // volumes are measured in centimeters
     self.GEOMETRY_SCALE = SIREPO.APP_SCHEMA.constants.geometryScale;
+
+    self.FILTER_INDICES = SIREPO.UTILS.indexArray(SIREPO.APP_SCHEMA.constants.maxFilters, 1);
 
     self.buildRangeDelegate = (modelName, field) => {
         const d = panelState.getFieldDelegate(modelName, field);
@@ -127,6 +139,21 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
 
     self.computeModel = modelKey => modelKey;
 
+    self.findFilter = type => {
+        return findFilter(
+            appState.models.settings.tallies,
+            appState.models.openmcAnimation.tally,
+            type
+        );
+    };
+
+    self.findTally = () => {
+        return findTally(
+            appState.models.openmcAnimation.tallies,
+            appState.models.openmcAnimation.tally,
+        );
+    };
+
     self.getNonGraveyardVolumes = () => {
         const vols = [];
         for (const n in appState.models.volumes) {
@@ -146,8 +173,6 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
         }
         return null;
     };
-
-    self.findTally = findTally;
 
     self.isGraveyard = volume => {
         return volume.name && volume.name.toLowerCase() === 'graveyard';
@@ -581,7 +606,7 @@ SIREPO.app.directive('tallyVolumePicker', function(cloudmcService, volumeLoading
     };
 });
 
-SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
+SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting, tallyService) {
     return {
         restrict: 'A',
         scope: {
@@ -598,6 +623,9 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
                         <a href data-ng-click="setSelectedGeometry('3D')">3D</a>
                     </li>
                 </ul>
+                <div data-ng-if="energyFilter()" class="pull-right">
+                  <label>Energy &Sigma; {{ sumDisplay(sumRange.val[0]) }}-{{ sumDisplay(sumRange.val[1]) }} MeV</label>
+                </div>
                 <div data-ng-if="is3D()">
                     <div data-report-content="geometry3d" data-model-key="{{ modelName }}"></div>
                 </div>
@@ -608,6 +636,22 @@ SIREPO.app.directive('tallyViewer', function(appState, plotting, tallyService) {
         `,
         controller: function($scope) {
             plotting.setTextOnlyReport($scope);
+
+            $scope.appState = appState;
+            $scope.sumRange = appState.models.openmcAnimation.energyRangeSum;
+
+            $scope.sumDisplay = val => {
+                if ($scope.energyFilter().space === 'linear') {
+                    return val;
+                }
+                return SIREPO.UTILS.formatFloat(
+                    SIREPO.UTILS.linearToLog(val, $scope.sumRange.min, $scope.sumRange.max, $scope.sumRange.step),
+                    4
+                );
+            };
+
+            $scope.energyFilter = () => cloudmcService.findFilter('energyFilter');
+
             $scope.load = json => {
                 if (json.content) {
                     // old format, ignore
@@ -2062,18 +2106,27 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('tallyView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, validationService, $scope) {
 
     const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
         .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
-    const inds = SIREPO.UTILS.indexArray(SIREPO.APP_SCHEMA.constants.maxFilters, 1);
+    const inds = cloudmcService.FILTER_INDICES;
+    
     const TYPE_NONE = 'None';
+
+    function filterField(index) {
+        return `${$scope.modelName}.filter${index}`;
+    }
 
     function type(index) {
         return appState.models[$scope.modelName][`filter${index}`]._type;
     }
 
     function updateEditor() {
+        updateAvailableFilters();
+    }
+
+    function updateAvailableFilters() {
         // can always select 'None'
         const assignedTypes = inds.map(i => type(i)).filter(x => x !== TYPE_NONE);
         // remove assigned types
@@ -2084,14 +2137,45 @@ SIREPO.viewLogic('tallyView', function(appState, panelState, $scope) {
         inds.forEach(i => {
             panelState.showEnum('filter', '_type', type(i), true, i - 1);
         });
+        
+    }
+    
+    function validateEnergyFilter(filter) {
+        if (! filter) {
+            return;
+        }
+        const rangeFields = ['start', 'stop'];
+        if (rangeFields.map(x => filter[x]).some(x => x == null)) {
+            return;
+        }
+        const isValid = filter.start < filter.stop;
+        rangeFields.forEach(x => {
+            validationService.validateField(
+                'energyFilter',
+                x,
+                'input',
+                isValid,
+                'Start must be less than stop'
+            );
+        });
+    }
+
+    function validateFilter(field) {
+        const f = appState.models[$scope.modelName][ field.split('.')[1]];
+        if (f._type === 'None') {
+            return;
+        }
+        if (f._type === 'energyFilter' || f._type === 'energyoutFilter') {
+            validateEnergyFilter(f);
+        }
     }
 
     $scope.whenSelected = updateEditor;
-
+    
     $scope.watchFields = [
-        inds.map(i => `${$scope.modelName}.filter${i}._type`), updateEditor,
+        inds.map(i => `${filterField(i)}._type`), updateEditor,
+        inds.map(i => `${filterField(i)}`), validateFilter,
     ];
-
 });
 
 SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
@@ -2212,6 +2296,136 @@ SIREPO.app.directive('materialList', function(appState, cloudmcService) {
                 return res;
             }
             $scope.volumes = initVolumes();
+        },
+    };
+});
+
+SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '<',
+            fieldName: '<',
+            model: '=',
+            modelName: '<',
+        },
+        template: `
+            <div data-label-with-tooltip="" data-label=""></div>
+            <div class="{{ sliderClass }}"></div>
+            <div style="display:flex; justify-content:space-between;">
+                    <span>{{ formatFloat(field.min) }}</span>
+                    <span>{{ display(field) }}</span>
+                    <span>{{ formatFloat(field.max) }}</span>
+            </div>
+        `,
+        controller: function($scope, $element) {
+            $scope.appState = appState;
+            $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`;
+
+            let hasSteps = false;
+            let slider = null;
+            const watchFields = ['min', 'max', 'step'].map(x => `model[fieldName].${x}`);
+            
+            function adjustToRange(val, range) {
+                if (! isValid(range)) {
+                    return val;
+                }
+                if (val < range.min) {
+                    return range.min;
+                }
+                else if (val > range.max) {
+                    return range.max;
+                }
+                else {
+                    return range.min + range.step * Math.round((val - range.min) / range.step);
+                }
+            }
+
+            function buildSlider() {
+                const range = $scope.field;
+                hasSteps = range.min !== range.max;
+                if (! hasSteps) {
+                    return;
+                }
+                const sel = $(`.${$scope.sliderClass}`);
+                let val = range.val;
+                const isMulti = Array.isArray(val);
+                if (isMulti) {
+                    val[0] = adjustToRange(val[0], range);
+                    val[1] = adjustToRange(val[1], range);
+                }
+                else {
+                    val = adjustToRange(val, range);
+                }
+                sel.slider({
+                    min: range.min,
+                    max: range.max,
+                    range: isMulti,
+                    slide: (e, ui) => {
+                        // prevent handles from having the same value
+                        if (isMulti && ui.values[0] === ui.values[1]) {
+                            return false;
+                        }
+                        $scope.$apply(() => {
+                            if (isMulti) {
+                                $scope.field.val[ui.handleIndex] = ui.value;
+                            }
+                            else {
+                                $scope.field.val = ui.value;
+                            }
+                        });
+                    },
+                    step: range.step,
+                });
+                // jqueryui sometimes decrements the max by the step value due to floating-point
+                // shenanigans. Reset it here
+                sel.slider('instance').max = range.max;
+                sel.slider('option', isMulti ? 'values' : 'value', val);
+                sel.slider('option', 'disabled', ! isValid(range));
+                return sel;
+            }
+
+            function updateSlider() {
+                slider = buildSlider();
+            }
+
+            function isValid(range) {
+                const v = [range.min, range.max, range.step].every(x => x != null) &&
+                    range.min !== range.max;
+                return v;
+            }
+
+            $scope.display = (range) => {
+                function toLog(val, r) {
+                    return $scope.formatFloat(SIREPO.UTILS.linearToLog(val, r.min, r.max, r.step));
+                }
+
+                const v = range.val;
+                if (range.space === 'linear') {
+                    return v;
+                }
+                return Array.isArray(v) ? v.map(x => toLog(x, range)) : toLog(v);
+            };
+            $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
+            $scope.hasSteps = () => hasSteps;
+
+            panelState.waitForUI(updateSlider);
+
+            $scope.$watchGroup(
+                watchFields,
+                (newValues, oldValues) => {
+                    if (newValues.some((x, i) => x !== oldValues[i]) && ! newValues.some(x => x == null)) {
+                        updateSlider();
+                    }
+                }
+            );
+
+            $scope.$on('$destroy', () => {
+                if (slider) {
+                    slider.slider('destroy');
+                    slider = null;
+                }
+            });
         },
     };
 });
@@ -2337,6 +2551,21 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         panelState.showFields('tallyReport', [
             'axis', is2D,
         ]);
+        panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
+    }
+
+    function updateEnergyRange() {
+        const e = cloudmcService.findFilter('energyFilter');
+        $scope.energyFilter = e;
+        if (! e || ! cloudmcService.findFilter('meshFilter')) {
+            return;
+        }
+        
+        const s = appState.models.openmcAnimation.energyRangeSum;
+        s.space = e.space;
+        s.min = e.start;
+        s.max = e.stop;
+        s.step = Math.abs(e.stop - e.start) / e.num;
     }
 
     function validateTally() {
@@ -2346,12 +2575,16 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     
     cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
 
-    $scope.whenSelected = showFields;
+    $scope.whenSelected = () => {
+        updateEnergyRange();
+        showFields();
+    };
 
     $scope.watchFields = [
         [
             'openmcAnimation.score',
             'openmcAnimation.aspect',
+            'openmcAnimation.energyRangeSum',
             'openmcAnimation.colorMap',
             'openmcAnimation.threshold',
             'openmcAnimation.opacity',
