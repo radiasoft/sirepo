@@ -4693,9 +4693,11 @@ SIREPO.app.service('fileUpload', function(msgRouter, errorService) {
             headers: {'Content-Type': undefined}
         }).then(
             function(response) {
+                srdbg('onSuccess response:', response);
                 callback(response.data);
             },
-            function() {
+            function(response) {
+                srdbg('onRejected response:', response);
                 callback({error: 'File Upload Failed'});
             },
         );
