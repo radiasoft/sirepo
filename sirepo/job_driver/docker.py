@@ -192,8 +192,8 @@ class DockerDriver(job_driver.DriverBase):
             )
             + self._constrain_resources(c)
             + self._volumes()
-            + (self._image,)
             + self._gpus()
+            + (self._image,)
         )
         self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
         self.driver_details.pkupdate(host=self.host.name)
@@ -232,7 +232,7 @@ class DockerDriver(job_driver.DriverBase):
         return res + ":" + pkconfig.cfg.channel
 
     def _gpus(self):
-        return ("--gpus",) if self.cfg.gpus is not None else tuple()
+        return (f"--gpus={self.cfg.gpus}",) if self.cfg.gpus is not None else tuple()
 
     @classmethod
     def _init_dev_hosts(cls):
