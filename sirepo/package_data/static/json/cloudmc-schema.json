@@ -9,23 +9,6 @@
         "inProgressText": "Working",
         "minTallyResolution": 5,
         "maxFilters": 5,
-        "normalizableScores": [
-            "flux",
-            "delayed-nu-fission",
-            "prompt-nu-fission",
-            "nu-fission",
-            "nu-scatter",
-            "H1-production",
-            "H2-production",
-            "H3-production",
-            "He3-production",
-            "He4-production",
-            "current",
-            "events",
-            "heating",
-            "heating-local",
-            "damage-energy"
-        ],
         "sbatch": {
             "fields": ["sbatchHours", "sbatchNodes"],
             "nersc": ["sbatchQueue", "sbatchProject"]
@@ -41,6 +24,10 @@
             "inverse-velocity": "cm/s",
             "kappa-fission": "eV"
         },
+        "unnormalizableScores": [
+            "decay-rate",
+            "inverse-velocity"
+        ],
         "volumeProperties": ["color", "opacity"]
     },
     "enum": {

@@ -410,17 +410,18 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         return false;
     };
 
-    function normalizedFieldData() {
+    function normalizer() {
         const p = appState.models.settings.particles;
-        const n = SIREPO.APP_SCHEMA.constants.normalizableScores.includes(appState.models.openmcAnimation.score) ?
-            appState.models.settings.sourceNormalization : p;
-        return self.fieldData.map(x => (n / p) * x);
+        const n = SIREPO.APP_SCHEMA.constants.unnormalizableScores.includes(appState.models.openmcAnimation.score) ?
+            p : appState.models.settings.sourceNormalization;
+        return x => (n / p) * x;
     }
 
     self.setFieldData = (fieldData, min, max) => {
-        self.fieldData = fieldData;
-        self.minField = min;
-        self.maxField = max;
+        const n = normalizer();
+        self.fieldData = fieldData.map(n);
+        self.minField = n(min);
+        self.maxField = n(max);
     };
 
     self.setOutlines = (tally, outlines) => {
