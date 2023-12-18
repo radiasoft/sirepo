@@ -505,7 +505,8 @@
                     }
                 ],
                 "size": [5.0, 5.0, 5.0]
-            }]
+            }],
+            "type": ["_", "DipoleType", "dipoleBasic"]
         },
         "dipoleC": {
             "_super": ["_", "model", "dipoleBasic"],
@@ -674,7 +675,8 @@
             }],
             "poleWidth": ["Width ({{ appState.models.simulation.widthAxis }})", "Float", 50.0, "", 0.0],
             "gap": ["Gap", "Float", 10.0, "", 0.0],
-            "dipoleType": ["_", "DipoleType", "dipoleC"]
+            "dipoleType": ["_", "DipoleType", "dipoleC"],
+            "type": ["_", "DipoleType", "dipoleC"]
         },
         "dipoleH": {
             "_super": ["_", "model", "dipoleC"],
@@ -741,7 +743,8 @@
             "magnetSize": ["Size [mm]", "FloatArray", [10.0, 16.0, 7.5], "", ["Length ({{ appState.models.simulation.beamAxis }})", "Width ({{ appState.models.simulation.widthAxis }})", "Height ({{ appState.models.simulation.heightAxis }})"], [0, 0, 0]],
             "poleWidth": ["Width ({{ appState.models.simulation.widthAxis }})", "Float", 10.0, "", 0.0],
             "gap": ["Gap", "Float", 1.5, "", 0.0],
-            "dipoleType": ["_", "DipoleType", "dipoleH"]
+            "dipoleType": ["_", "DipoleType", "dipoleH"],
+            "type": ["_", "DipoleType", "dipoleH"]
         },
         "electronTrajectoryReport": {
             "energy": ["Electron Energy [GeV]", "Float", 1.0, "The sign of the energy determines the direction of the electron along the beam ({{ appState.models.simulation.beamAxis }}) axis"],
@@ -1124,7 +1127,8 @@
             }],
             "periodLength": ["Period Length [mm]", "Float", 46.0],
             "phaseCount": ["Phase per Period", "Integer", 2, "The magnetization of each successive magnet is rotated by 2π/n about the beam direction", 2],
-            "undulatorType": ["_", "UndulatorType", "undulatorBasic"]
+            "undulatorType": ["_", "UndulatorType", "undulatorBasic"],
+            "type": ["_", "UndulatorType", "undulatorBasic"]
         },
         "undulatorHybrid": {
             "_super": ["_", "model", "undulatorBasic"],
@@ -1182,7 +1186,8 @@
                 "name": "core + pole"
             }],
             "gapOffset": ["Gap Offset [mm]", "Float", 1.0, "Additional offset of magnets away from the beam along the height axis"],
-            "undulatorType": ["_", "UndulatorType", "undulatorHybrid"]
+            "undulatorType": ["_", "UndulatorType", "undulatorHybrid"],
+            "type": ["_", "UndulatorType", "undulatorHybrid"]
         }
     },
     "strings": {
@@ -1274,7 +1279,7 @@
                     "dipoleC.coil.size",
                     "dipoleC.coil.currentDensity"
                 ]],
-                ["Magnet", [
+                ["Core", [
                     "dipoleC.magnet.shapeButton",
                     "dipoleC.magnet.size",
                     "dipoleC.magnet.material",
@@ -1306,7 +1311,7 @@
                     "dipoleH.coil.size",
                     "dipoleH.coil.currentDensity"
                 ]],
-                ["Magnet", [
+                ["Core", [
                     "dipoleH.magnet.shapeButton",
                     "magnetSize",
                     "dipoleH.magnet.material",
