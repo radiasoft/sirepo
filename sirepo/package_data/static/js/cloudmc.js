@@ -352,6 +352,13 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         outlines: null,
     };
 
+    function normalizer() {
+        const p = appState.models.settings.particles;
+        const n = SIREPO.APP_SCHEMA.constants.unnormalizableScores.includes(appState.models.openmcAnimation.score) ?
+            p : appState.models.settings.sourceNormalization;
+        return x => (n / p) * x;
+    }
+
     self.clearMesh = () => {
         self.mesh = null;
         self.fieldData = null;
@@ -409,13 +416,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         self.mesh = null;
         return false;
     };
-
-    function normalizer() {
-        const p = appState.models.settings.particles;
-        const n = SIREPO.APP_SCHEMA.constants.unnormalizableScores.includes(appState.models.openmcAnimation.score) ?
-            p : appState.models.settings.sourceNormalization;
-        return x => (n / p) * x;
-    }
 
     self.setFieldData = (fieldData, min, max) => {
         const n = normalizer();

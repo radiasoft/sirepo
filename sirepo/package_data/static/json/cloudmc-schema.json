@@ -977,7 +977,7 @@
             "inactive": ["Number of inactive batches", "Integer", 0],
             "particles": ["Number of particles per generation", "Integer", 5000],
             "photon_transport": ["Photon transport", "Boolean", "0", "Simulate the passage of photons through matter"],
-            "sourceNormalization": ["Normalize to", "Float", 1e12, "Per-particle tally scores are normalized to this many source particles (a factor of {{ appState.models.settings.sourceNormalization / appState.models.settings.particles }})", 1.0],
+            "sourceNormalization": ["Normalize to particle count", "Float", 1e12, "Per-particle tally scores are normalized to this many source particles (a factor of {{ appState.models.settings.sourceNormalization / appState.models.settings.particles }})", 1.0],
             "sources": ["", "SourcesOrTallies", []],
             "tallies": ["", "SourcesOrTallies", []],
             "run_mode": ["Run mode", "RunMode", "eigenvalue", "The type of calculation to perform"],
