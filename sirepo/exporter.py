@@ -74,7 +74,6 @@ def _create_zip(sim, out_dir, qcall):
                     for lib_file in sim_data.get_class(
                         sim_obj.simulationType
                     ).lib_file_basenames(d):
-                        # if re.match(_RUN_FILE_PATTERN, lib_file) is None or idx == 0:
                         z.write(
                             sim_data.get_class(
                                 sim_obj.simulationType

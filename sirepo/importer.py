@@ -115,14 +115,12 @@ def read_zip(zip_bytes, qcall, sim_type=None):
 def _import_related_sims(data, zip_bytes, qcall=None):
     from sirepo import simulation_db, sim_data
 
-    with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
-        for i in z.infolist():
+    with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as zip_obj:
+        for i in zip_obj.infolist():
             p = pykern.pkio.py_path(i.filename)
             b = p.basename
-            # TODO (gurhar1133): better way than how I am indexing?
-            # is the indexing necessary?
             if "related_sim" in b:
-                d = simulation_db.json_load(z.read(i))
+                d = simulation_db.json_load(zip_obj.read(i))
                 d.models.simulation.isExample = False
                 d.models.simulation.folder = f"/{d.simulationType.title()}"
                 s = simulation_db.save_new_simulation(
@@ -131,28 +129,13 @@ def _import_related_sims(data, zip_bytes, qcall=None):
                 )
                 for lib_file in [
                     f
-                    for f in z.namelist()
+                    for f in zip_obj.namelist()
                     if f.startswith(f"related_sim_{_sim_index(p)}_lib")
                 ]:
                     lib_dir = simulation_db.simulation_lib_dir(
                         d.simulationType, qcall=qcall
                     )
-                    # .join(pykern.pkio.py_path(lib_file).basename)
-                    pkdp("\n\n\n LIB_FILE={}", lib_file)
-                    pkdp("\n\n\n LIB_DIR={} lib_dir type={}\n\n\n", lib_dir, type(lib_dir))
-                    _write_lib_file(lib_file, lib_dir, z)
-                    # try:
-                    #     f_content = pkcompat.from_bytes(z.read(lib_file))
-                    #     pykern.pkio.write_text(
-                    #         lib_dir,
-                    #         f_content,
-                    #     )
-                    # except UnicodeDecodeError:
-                    #     # some lib files will be binary
-                    #     pykern.pkio.write_binary(
-                    #         lib_dir,
-                    #         z.read(lib_file),
-                    #     )
+                    _write_lib_file_from_zip(lib_file, lib_dir, zip_obj, qcall)
                 data.models.simWorkflow.coupledSims[
                     _sim_index(p)
                 ].simulationId = s.models.simulation.simulationId
@@ -162,20 +145,20 @@ def _sim_index(path):
     return int(path.purebasename[-1])
 
 
-def _write_lib_file(lib_file, lib_dir, zip_obj):
-    # TODO (gurhar1133): can we just extract into the target dir and skip this part?
-    zip_obj.extract(pykern.pkio.py_path(lib_file).basename, path=lib_dir)
+def _write_lib_file_from_zip(lib_file, lib_dir, zip_obj, qcall):
+    import os
+    from sirepo import sim_run
 
-    # # Now you can open the extracted file with its absolute path
-    # absolute_path_to_file = '/path/to/extract/location/' + file_to_extract
-
-    # if pkio.is_binary(pkio.py_path(lib_file)):
-    #     pykern.pkio.write_binary(
-    #         lib_dir,
-    #         z.read(lib_file),
-    #     )
-    #     return
-    # pykern.pkio.write_text(
-    #     lib_dir,
-    #     pkcompat.from_bytes(byte_data),
-    # )
+    with sim_run.tmp_dir(qcall=qcall) as tmp:
+        zip_obj.extract(lib_file, path=tmp)
+        p = lib_dir.join(pykern.pkio.py_path(lib_file).basename)
+        if pkio.is_binary(tmp.join(lib_file)):
+            pykern.pkio.write_binary(
+                p,
+                zip_obj.read(lib_file),
+            )
+            return
+        pykern.pkio.write_text(
+            p,
+            pkcompat.from_bytes(byte_data),
+        )
