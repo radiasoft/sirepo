@@ -922,6 +922,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             let picker = null;
             let renderedFieldData = [];
             let selectedVolume = null;
+            const sourceBundles = [];
             let vtkScene = null;
 
             // ********* 3d tally state and functions
@@ -955,19 +956,18 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
 
             function addSources() {
                 function boxDims(space) {
-                    const sz = space.upper_right.map((x, i) => Math.abs(x - space.lower_left[i]));
-                    const ctr = sz.map((x, i) => space.lower_left[i] + 0.5 * x);
+                    const size = space.upper_right.map((x, i) => Math.abs(x - space.lower_left[i]));
                     return {
-                        sz: sz,
-                        ctr: ctr,
+                        center: size.map((x, i) => space.lower_left[i] + 0.5 * x),
+                        size: size,
                     };
                 }
 
                 function boxSource(space) {
                     const d = boxDims(space);
                     return coordMapper.buildBox(
-                        d.sz,
-                        d.ctr,
+                        d.size,
+                        d.center,
                         {
                             edgeColor: [255, 0, 0],
                             edgeVisibility: true,
@@ -977,19 +977,19 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 }
 
                 function pointSource(space) {
-                    //sphere?
-
                 }
 
                 for (const b of sourceBundles) {
                     vtkScene.removeActor(b.actor);
                 }
-                sourceBundles = [];
+                
                 for (const s of appState.models.settings.sources.filter(x => x.space)) {
                     let b = null;
                     const space = s.space;
                     if (space._type === 'box') {
                         b = boxSource(space);
+                        b.actor.getProperty().setColor([1.0, 0, 0]);
+                        b.actorProperties.setRepresentationToWireframe();
                     }
                     if (space._type === 'point') {
                         b = pointSource(space);
@@ -1379,7 +1379,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 if (hasTallies && tallyService.fieldData) {
                     addTally(tallyService.fieldData);
                 }
-                //addSources();
+                addSources();
                 vtkScene.resetView();
 
                 plotToPNG.initVTK($element, vtkScene.renderer);
