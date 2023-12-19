@@ -480,11 +480,6 @@ def _copy_frame_args_into_model(frame_args, name):
     for f in frame_args:
         if f in m and f in m_schema:
             m[f] = frame_args[f]
-            if m_schema[f][1] == "Float":
-                m[f] = re.sub(r"\s", "+", m[f])
-                m[f] = float(m[f])
-            elif m_schema[f][1] == "Integer":
-                m[f] = int(m[f])
     return m
 
 
@@ -2179,6 +2174,10 @@ def _is_for_rsopt(report):
     return report == _SIM_DATA.EXPORT_RSOPT
 
 
+def _is_true(model, field):
+    return str(model.get(field, "0")) == "1"
+
+
 def _load_user_model_list(model_name, qcall=None):
     f = _SIM_DATA.lib_file_write_path(
         _USER_MODEL_LIST_FILENAME[model_name], qcall=qcall
@@ -2241,7 +2240,7 @@ def _remap_3d(info, allrange, out, report):
         info.subtitle = info.subtitle + " Image Rotate {}^0".format(rotate_angle)
     if out.units[2]:
         out.labels[2] = "{} [{}]".format(out.labels[2], out.units[2])
-    if report.get("useIntensityLimits", "0") == "1":
+    if _is_true(report, "useIntensityLimits"):
         z_range = [report.minIntensityLimit, report.maxIntensityLimit]
     else:
         z_range = [np.min(ar2d), np.max(ar2d)]
@@ -2265,9 +2264,9 @@ def _reshape_3d(ar1d, allrange, report):
     totLen = int(x_range[2] * y_range[2])
     n = len(ar1d) if totLen > len(ar1d) else totLen
     ar2d = np.reshape(ar1d[0:n], (int(y_range[2]), int(x_range[2])))
-    if report.get("usePlotRange", "0") == "1":
+    if _is_true(report, "usePlotRange"):
         ar2d, x_range, y_range = _update_report_range(report, ar2d, x_range, y_range)
-    if report.get("useIntensityLimits", "0") == "1":
+    if _is_true(report, "useIntensityLimits"):
         ar2d[ar2d < report["minIntensityLimit"]] = report["minIntensityLimit"]
         ar2d[ar2d > report["maxIntensityLimit"]] = report["maxIntensityLimit"]
     ar2d, x_range, y_range = _resize_report(report, ar2d, x_range, y_range)
@@ -2309,7 +2308,7 @@ def _rotate_report(report, ar2d, x_range, y_range):
     from scipy import ndimage
 
     rotate_angle = report.rotateAngle
-    rotate_reshape = report.get("rotateReshape", "0") == "1"
+    rotate_reshape = _is_true(report, "rotateReshape")
     pkdc("Size before: {}  Dimensions: {}", ar2d.size, ar2d.shape)
     shape_before = list(ar2d.shape)
     ar2d = ndimage.rotate(
