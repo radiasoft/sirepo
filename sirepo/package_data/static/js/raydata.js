@@ -29,23 +29,27 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="CatalogNameDisplay" data-ng-class="fieldClass">
           <div data-catalog-name-display="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="SearchTerms">
+          <div data-search-terms="" data-model="model" data-field="field"></div>
+        </div>
     `;
     SIREPO.appReportTypes  = `
         <div data-ng-switch-when="pngImage" data-png-image="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
     `;
 });
 
-SIREPO.app.factory('raydataService', function(appState, panelState) {
+SIREPO.app.factory('raydataService', function(appState, panelState, requestSender) {
     const self = {};
     let id = 0;
+
+    self.selectSearchFieldText = 'Select Search Field';
 
     //POSIT: _AnalysisStatus.NON_STOPPED in scan monitor
     self.ANALYSIS_STATUS_NON_STOPPED = ["pending", "running"];
 
-    // POSIT: Matches _AnalysisStatus.NONE in scan monitor
+    // POSIT: Matches scan monitor values in _AnalysisStatus
+    self.ANALYSIS_STATUS_COMPLETED = "completed";
     self.ANALYSIS_STATUS_NONE = "none";
-
-    // POSIT: Matches _AnalysisStatus.PENDING in scan monitor
     self.ANALYSIS_STATUS_PENDING = "pending";
 
     // POSIT: status + sirepo.template.raydata._DEFAULT_COLUMNS
@@ -57,6 +61,24 @@ SIREPO.app.factory('raydataService', function(appState, panelState) {
 
     self.canViewOutput = scan => {
         return ! [self.ANALYSIS_STATUS_NONE, self.ANALYSIS_STATUS_PENDING].includes(scan.status);
+    };
+
+    self.getScanFields = callback => {
+        requestSender.sendStatelessCompute(
+            appState,
+            json => {
+                if (json.columns) {
+                    json.columns.sort((a, b) => a.localeCompare(b));                    
+                    callback(json.columns);
+                }
+            },
+            {
+                method: 'scan_fields',
+                args: {
+                    catalogName: appState.models.catalog.catalogName,
+                }
+            },
+        );
     };
 
     self.nextPngImageId = () => {
@@ -228,26 +250,17 @@ SIREPO.app.directive('columnPicker', function() {
               </div>
             </div>
         `,
-        controller: function($scope, appState, panelState, raydataService, requestSender) {
+        controller: function($scope, appState, panelState, raydataService) {
             $scope.id = panelState.modalId('columnPicker');
             $scope.selected = null;
             $scope.availableColumns = null;
             let masterListColumns;
 
             function init() {
-                requestSender.sendStatelessCompute(
-                    appState,
-                    json => {
-                        masterListColumns = json.columns;
-                        setAvailableColumns();
-                    },
-                    {
-                        method: 'scan_fields',
-                        args: {
-                            catalogName: appState.models.catalog.catalogName,
-                        }
-                    },
-                );
+                raydataService.getScanFields(columns => {
+                    masterListColumns = columns;
+                    setAvailableColumns();
+                });
             }
 
             function setAvailableColumns() {
@@ -256,7 +269,7 @@ SIREPO.app.directive('columnPicker', function() {
                 }
                 $scope.availableColumns = masterListColumns.filter((value) => {
                     return value !== 'uid' && ! $scope.columnHeaders.includes(value);
-                }).sort((a, b) => a.localeCompare(b));
+                });
             }
 
             $scope.selectColumn = () => {
@@ -525,6 +538,12 @@ SIREPO.app.directive('scansTable', function() {
                 }
             }
 
+            function findScan(scanId) {
+                return $scope.scans[
+                    $scope.scans.findIndex(s => s.uid === scanId)
+                ];
+            }
+
             function init() {
                 setColumnHeaders();
                 if (scanService.cachedScans($scope.analysisStatus)) {
@@ -542,7 +561,7 @@ SIREPO.app.directive('scansTable', function() {
                 $scope.isRefreshingScans = false;
                 $scope.noScansReturned = $scope.scans.length === 0;
                 for (const p in $scope.pdfSelectedScans) {
-                    if ($scope.scans.findIndex(s => s.uid === p) === -1) {
+                    if (! findScan(p)) {
                         delete $scope.pdfSelectedScans[p];
                     }
                 }
@@ -617,9 +636,8 @@ SIREPO.app.directive('scansTable', function() {
             }
 
             function setScanPending(scanId) {
-                $scope.scans[
-                    $scope.scans.findIndex(s => s.uid === scanId)
-                ].status = raydataService.ANALYSIS_STATUS_PENDING;
+                const s = findScan(scanId);
+                s.status = raydataService.ANALYSIS_STATUS_PENDING;
                 delete pendingRunAnalysis[scanId];
             }
 
@@ -717,9 +735,19 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.runAnalysis = (scanId, forceRun) => {
-                if (! forceRun && appState.models.runAnalysis.confirmRunAnalysis === '0') {
-                    $scope.confirmScanId = scanId;
-                    return;
+                if (! forceRun) {
+                    const scan = findScan(scanId);
+                    // confirm if the scan has already completed successfully,
+                    // or if the status is "none", but it has a pdf document available
+                    if (appState.models.runAnalysis.confirmRunAnalysis === '0'
+                        && (
+                            scan.status === raydataService.ANALYSIS_STATUS_COMPLETED
+                            || (scan.status === raydataService.ANALYSIS_STATUS_NONE && scan.pdf)
+                        )
+                    ) {
+                        $scope.confirmScanId = scanId;
+                        return;
+                    }
                 }
                 pendingRunAnalysis[scanId] = true;
                 requestSender.sendStatelessCompute(
@@ -1041,6 +1069,55 @@ SIREPO.app.directive('confirmAnalysisModal', function() {
                     });
                     el.modal('show');
                 }
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('searchTerms', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <div data-ng-if="columns" class="raydata-search-terms col-sm-12">
+              <div class="form-group" data-ng-repeat="searchTerm in appState.models.runAnalysis.searchTerms track by $index">
+                <div class="col-sm-2"></div>
+                <div data-field-editor="'column'" data-label-size="0"
+                   data-field-size="3" data-model-name="'searchTerm'"
+                   data-model="searchTerm"></div>
+                 <div data-field-editor="'term'" data-label-size="0"
+                   data-field-size="5" data-model-name="'searchTerm'"
+                   data-model="searchTerm"></div>
+                 <div class="col-sm-2" style="margin-top: 5px; margin-left: -15px">
+                   <button class="btn btn-danger btn-xs">
+                     <span class="glyphicon glyphicon-remove"></span>
+                   </button>
+                 </div>
+               </div>
+            </div>`,
+        controller: function(appState, raydataService, $scope) {
+            $scope.appState = appState;
+
+            function init() {
+                if (! appState.models.runAnalysis.searchTerms) {
+                    appState.models.runAnalysis.searchTerms = [
+                        {
+                            column: raydataService.selectSearchFieldText,
+                            term: '',
+                            valueList: {
+                                column: $scope.columns,
+                            },
+                        },
+                    ];
+                }
+            }
+            
+            raydataService.getScanFields(columns => {
+                $scope.columns = [raydataService.selectSearchFieldText, ...columns];
+                init();
             });
         },
     };

@@ -18,3 +18,17 @@ body {
 .raydata-removable-column:hover .raydata-remove-column-button {
   visibility: visible;
 }
+
+.form-group-sm .raydata-search-terms select {
+  text-align-last: right;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.model-runAnalysis-scans .control-label {
+  display: none;
+}
+
+.model-runAnalysis-searchTerms .control-label {
+  display: none;
+}

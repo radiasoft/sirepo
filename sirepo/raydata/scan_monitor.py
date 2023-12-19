@@ -185,6 +185,34 @@ class _RequestHandler(_JsonPostRequestHandler):
     async def post(self):
         self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
 
+    def _build_query(self, text):
+        nums = []
+        terms = re.findall(r'(".*?")', text)
+        text = re.sub(r'".*?"', "", text)
+        for t in re.split(r"\s+", text.strip()):
+            if t.startswith("-"):
+                terms.append(t)
+            elif re.search(r"^\d+$", t):
+                nums.append(int(t))
+            elif t:
+                terms.append(f'"{t}"')
+        terms = " ".join(terms)
+
+        if len(nums) and len(terms):
+            return {
+                "$and": [
+                    databroker.queries.TextQuery(terms).query,
+                    {
+                        "scan_id": {"$in": nums},
+                    },
+                ],
+            }
+        elif len(nums):
+            return {
+                "scan_id": {"$in": nums},
+            }
+        return databroker.queries.TextQuery(terms).query
+
     def _databroker_search(self, req_data):
         def _search_params(req_data):
             q = databroker.queries.TimeRange(
@@ -194,9 +222,7 @@ class _RequestHandler(_JsonPostRequestHandler):
                 q = {
                     "$and": [
                         q.query,
-                        databroker.queries.TextQuery(
-                            _text_query(req_data.searchText)
-                        ).query,
+                        self._build_query(req_data.searchText),
                     ],
                 }
             return q
@@ -217,12 +243,6 @@ class _RequestHandler(_JsonPostRequestHandler):
                     )
                 )
             return s
-
-        def _text_query(search_text):
-            r = []
-            for t in re.split(r"\s+", search_text.strip()):
-                r.append(t if '"' in t or t.startswith("-") else f'"{t}"')
-            return " ".join(r)
 
         c = sirepo.raydata.databroker.catalog(req_data.catalogName)
         pc = math.ceil(
