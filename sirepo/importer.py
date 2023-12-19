@@ -119,6 +119,8 @@ def _import_related_sims(data, zip_bytes, qcall=None):
         for i in z.infolist():
             p = pykern.pkio.py_path(i.filename)
             b = p.basename
+            # TODO (gurhar1133): better way than how I am indexing?
+            # is the indexing necessary?
             if "related_sim" in b:
                 d = simulation_db.json_load(z.read(i))
                 d.models.simulation.isExample = False
@@ -134,9 +136,11 @@ def _import_related_sims(data, zip_bytes, qcall=None):
                 ]:
                     lib_dir = simulation_db.simulation_lib_dir(
                         d.simulationType, qcall=qcall
-                    ).join(pykern.pkio.py_path(lib_file).basename)
+                    )
+                    # .join(pykern.pkio.py_path(lib_file).basename)
                     pkdp("\n\n\n LIB_FILE={}", lib_file)
-                    _write_lib_file(lib_file, lib_dir)
+                    pkdp("\n\n\n LIB_DIR={} lib_dir type={}\n\n\n", lib_dir, type(lib_dir))
+                    _write_lib_file(lib_file, lib_dir, z)
                     # try:
                     #     f_content = pkcompat.from_bytes(z.read(lib_file))
                     #     pykern.pkio.write_text(
@@ -158,14 +162,20 @@ def _sim_index(path):
     return int(path.purebasename[-1])
 
 
-def _write_lib_file(lib_file, lib_dir):
-    if pkio.is_binary(pkio.py_path(lib_file)):
-        pykern.pkio.write_binary(
-            lib_dir,
-            z.read(lib_file),
-        )
-        return
-    pykern.pkio.write_text(
-        lib_dir,
-        pkcompat.from_bytes(byte_data),
-    )
+def _write_lib_file(lib_file, lib_dir, zip_obj):
+    # TODO (gurhar1133): can we just extract into the target dir and skip this part?
+    zip_obj.extract(pykern.pkio.py_path(lib_file).basename, path=lib_dir)
+
+    # # Now you can open the extracted file with its absolute path
+    # absolute_path_to_file = '/path/to/extract/location/' + file_to_extract
+
+    # if pkio.is_binary(pkio.py_path(lib_file)):
+    #     pykern.pkio.write_binary(
+    #         lib_dir,
+    #         z.read(lib_file),
+    #     )
+    #     return
+    # pykern.pkio.write_text(
+    #     lib_dir,
+    #     pkcompat.from_bytes(byte_data),
+    # )
