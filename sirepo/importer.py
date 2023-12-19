@@ -94,6 +94,7 @@ def read_zip(zip_bytes, qcall, sim_type=None):
                 zipped[b] = tmp.join(b)
                 zipped[b].write(c, "wb")
         assert data, "missing {} in archive".format(simulation_db.SIMULATION_DATA_FILE)
+        # TODO (gurhar1133): why not in main tmp/z block?
         _import_related_sims(data, zip_bytes, qcall=qcall)
         needed = set()
         s = sim_data.get_class(data.simulationType)
