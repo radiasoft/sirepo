@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 import pytest
 
@@ -104,7 +103,7 @@ def test_radia(fc):
     )
 
 
-def test_rshellweg(fc):
+def test_hellweg(fc):
     fc.sr_animation_run(
         fc.sr_sim_data("RF Fields"),
         "beamAnimation",

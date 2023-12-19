@@ -7,6 +7,7 @@ import { Scale } from '@visx/visx';
 import { Zoom } from '@visx/zoom';
 import { constrainZoom, createColorScale, useGraphContentBounds } from "../../utility/component";
 import { rgb } from 'd3-color';
+import { useWindowSize } from '../../hook/breakpoint';
 
 export type HeatPlotConfig = {
     title: string,
@@ -67,6 +68,7 @@ function HeatplotImage({ xScaleDomain, yScaleDomain, xRange, yRange, width, heig
 
 export function Heatplot({title, xRange, yRange, zRange, xLabel, yLabel, zMatrix, colorMap }: HeatPlotConfig & HeatPlotConfigExtras) {
     const ref = useRef(null);
+    useWindowSize(); // needs to resize when window does
     colorMap = colorMap || 'viridis';
     const showColorBar = colorMap !== 'contrast';
     //TODO(pjm): use props.aspectRatio if present

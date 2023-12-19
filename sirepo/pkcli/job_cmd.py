@@ -5,23 +5,27 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkcompat
+from pykern import pkconfig
+from pykern import pkconst
 from pykern import pkio
 from pykern import pkjson
+from pykern import pkunit
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import simulation_db
 from sirepo.template import template_common
 import contextlib
+import os
 import re
 import requests
 import signal
 import sirepo.sim_data
+import sirepo.sim_run
 import sirepo.template
 import sirepo.util
 import subprocess
 import sys
-import tempfile
 import time
 
 _MAX_FASTCGI_EXCEPTIONS = 3
@@ -91,8 +95,7 @@ def _dispatch_compute(msg, template):
                 state=job.ERROR,
                 error=f"method={template.SIM_TYPE}.{msg.jobCmd}_{msg.data.method} unexpected return=JobCmdFile uri={r.uri}",
             )
-        e = _validate_msg(r.content)
-        if e:
+        if e := _error_if_response_too_large(r.content):
             return e
         requests.put(
             msg.dataFileUri + r.uri,
@@ -106,7 +109,7 @@ def _dispatch_compute(msg, template):
             template.SIM_TYPE,
         ).does_api_reply_with_file(msg.api, msg.data.method)
         if x:
-            with simulation_db.tmp_dir(chdir=True) as d:
+            with sirepo.sim_run.tmp_dir(chdir=True) as d:
                 return _op(expect_file=x)
         else:
             return _op(expect_file=x)
@@ -128,8 +131,12 @@ def _do_compute(msg, template):
             stdout=run_log,
             stderr=run_log,
         )
+
+    if pkconfig.in_dev_mode() and pkunit.is_test_run():
+        sys.stderr.write(pkio.read_text(msg.runDir.join(template_common.RUN_LOG)))
     while True:
         for j in range(20):
+            # Not asyncio.sleep: not in coroutine
             time.sleep(0.1)
             r = p.poll()
             i = r is None
@@ -176,15 +183,14 @@ def _do_download_data_file(msg, template):
         if u is None:
             u = r.filename.basename
         c = r.get("content")
+        if e := _error_if_response_too_large(c if c else r.filename):
+            return e
         if c is None:
             c = (
                 pkcompat.to_bytes(pkio.read_text(r.filename))
                 if u.endswith((".py", ".txt", ".csv"))
                 else r.filename.read_binary()
             )
-            e = _validate_msg(c)
-            if e:
-                return e
         requests.put(
             msg.dataFileUri + u,
             data=c,
@@ -278,6 +284,7 @@ def _do_sbatch_status(msg, template):
             pkio.unchecked_remove(s)
             return PKDict(state=job.COMPLETED)
         _write_parallel_status(msg, template, True)
+        # Not asyncio.sleep: not in coroutine
         time.sleep(msg.nextRequestSeconds)
     # DOES NOT RETURN
 
@@ -297,6 +304,23 @@ def _do_stateful_compute(msg, template):
 
 def _do_stateless_compute(msg, template):
     return _dispatch_compute(msg, template)
+
+
+def _error_if_response_too_large(payload):
+    def _payload_size(payload):
+        return (
+            payload.size()
+            if isinstance(payload, pkconst.PY_PATH_LOCAL_TYPE)
+            else len(payload)
+        )
+
+    if _payload_size(payload) >= job.cfg().max_message_bytes:
+        return PKDict(
+            state=job.COMPLETED,
+            error="Response is too large to send",
+            errorCode=job.ERROR_CODE_RESPONSE_TOO_LARGE,
+        )
+    return None
 
 
 def _maybe_parse_user_alert(exception, error=None):
@@ -363,16 +387,9 @@ def _parse_python_errors(text):
     return ""
 
 
-def _validate_msg(msg):
-    if len(msg) >= job.cfg().max_message_bytes:
-        return PKDict(state=job.COMPLETED, error="Response is too large to send")
-    return None
-
-
 def _validate_msg_and_jsonl(msg):
     m = pkjson.dump_bytes(msg)
-    r = _validate_msg(m)
-    if r:
+    if r := _error_if_response_too_large(m):
         m = pkjson.dump_bytes(r)
     return m + b"\n"
 

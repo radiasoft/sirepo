@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjson
@@ -12,6 +11,7 @@ from pykern.pkdebug import pkdp
 from sirepo import sim_data
 from sirepo import simulation_db
 from sirepo import template
+import sirepo.sim_run
 import sirepo.util
 
 
@@ -24,24 +24,9 @@ def create_archive(sim, qcall):
     Returns:
         py.path.Local: zip file name
     """
-    if hasattr(sim.template, "create_archive"):
-        res = sim.template.create_archive(sim, qcall)
-        if res:
-            return res
-    if not pkio.has_file_extension(sim.filename, "zip"):
-        raise sirepo.util.NotFound(
-            "unknown file type={}; expecting zip".format(sim.filename)
-        )
-    with simulation_db.tmp_dir(qcall=qcall) as d:
-        want_zip = sim.filename.endswith("zip")
-        f, c = _create_zip(sim, out_dir=d, qcall=qcall)
-        if want_zip:
-            t = "application/zip"
-        else:
-            f, t = _create_html(f, c, qcall)
+    with sirepo.sim_run.tmp_dir(qcall=qcall) as d:
         return qcall.reply_attachment(
-            f,
-            content_type="application/zip",
+            _create_zip(sim, out_dir=d, qcall=qcall),
             filename=sim.filename,
         )
 
@@ -77,7 +62,7 @@ def _create_zip(sim, out_dir, qcall):
             simulation_db.SIMULATION_DATA_FILE,
             pkjson.dump_pretty(data, pretty=True),
         )
-    return path, data
+    return path
 
 
 def _python(data, sim, qcall):

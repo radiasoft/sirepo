@@ -1,0 +1,28 @@
+<div class="container-fluid">
+    <div class="row">
+        <div data-ng-if="! source.hasEpicsSchema()" class="col-md-6">
+          <div data-basic-editor-panel="" data-view-name="epicsConfig">{{ source.loadingSchemaMessage }}</div>
+        </div>
+        <div data-ng-if="source.hasEpicsSchema()" class="col-md-4">
+            <div class="row">
+                <div class="col-sm-12">
+                    <div data-simple-panel="simulationStatus">
+                        <div data-sim-status-panel="source.simState"></div>
+                    </div>
+                </div>
+                <div class="col-sm-12">
+                    <div data-basic-editor-panel="" data-view-name="{{ source.editorModelName }}"></div>
+                </div>
+            </div>
+        </div>
+        <div data-ng-if="source.hasEpicsSchema()" class="col-md-8">
+            <div class="row">
+                <div data-ng-repeat="name in source.reportNames track by name" class="col-sm-6">
+                    <div data-waveform-loader="" data-model-name="{{ name }}">
+                        <div data-report-panel="parameter" data-model-name="{{ name }}"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

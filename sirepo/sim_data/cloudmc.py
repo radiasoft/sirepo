@@ -28,6 +28,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
+        sch = cls.schema()
         dm = data.models
         cls._init_models(
             dm,
@@ -40,11 +41,21 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "settings",
                 "tallyReport",
                 "volumes",
-                "voxels",
             ),
         )
+        for v in dm.volumes:
+            if "material" not in dm.volumes[v]:
+                continue
+            if not dm.volumes[v].material.get("standardType"):
+                dm.volumes[v].material.standardType = "None"
         if "tally" in dm:
             del dm["tally"]
+        for t in dm.settings.tallies:
+            for i in range(1, sch.constants.maxFilters + 1):
+                f = t[f"filter{i}"]
+                y = f._type
+                if y != "None":
+                    cls.update_model_defaults(f, y)
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
@@ -58,6 +69,16 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
+        if data.get("report") == "tallyReport":
+            return []
         return [
             cls.dagmc_filename(data),
         ] + cls.source_filenames(data)
+
+    @classmethod
+    def _sim_file_basenames(cls, data):
+        res = []
+        if data.report == "openmcAnimation":
+            for v in data.models.volumes:
+                res.append(PKDict(basename=f"{data.models.volumes[v].volId}.ply"))
+        return res

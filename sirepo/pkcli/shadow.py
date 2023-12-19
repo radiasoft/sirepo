@@ -15,7 +15,6 @@ import py.path
 import re
 import sirepo.template.shadow as template
 
-
 _MM_TO_CM = 0.1
 _CM_TO_M = 0.01
 _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)

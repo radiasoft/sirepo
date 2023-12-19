@@ -5,7 +5,7 @@
     </div>
     <div class="col-md-6 col-xl-4">
       <div data-simple-panel="simulationStatus">
-        <div data-sim-status-panel="visualization.simState"></div>
+        <div data-sim-status-panel="visualization.simState" data-start-function="visualization.startSimulation()"></div>
         <div class="row">
           <div class="col-md-offset-2 col-md-8" data-ng-show="visualization.eigenvalue">
           <table class="table">
@@ -48,9 +48,14 @@
     </div>
     <div class="clearfix"></div>
   </div>
-    <div class="row">
-    <div class="col-sm-8" data-ng-if="visualization.simState.isStateCompleted()">
-      <div data-report-panel="geometry3d" data-model-name="openmcAnimation" data-panel-title="{{visualization.tallyTitle()}}"></div>
+  <div class="row" data-ng-if="visualization.simState.isStateCompleted() && visualization.simState.hasFrames()">
+    <div class="col-sm-8">
+      <div data-report-panel="tallyViewer" data-model-name="openmcAnimation" data-panel-title="{{visualization.tallyTitle()}}"></div>
+    </div>
+    <div class="col-sm-4">
+      <div data-simple-panel="tallySettings">
+          <div data-tally-settings=""></div>
+      </div>
     </div>
   </div>
 </div>

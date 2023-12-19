@@ -13,10 +13,15 @@ from sirepo.template import template_common
 import numpy
 import re
 import sirepo.feature_config
+import sirepo.mpi
 import sirepo.sim_data
+import sirepo.sim_run
+import subprocess
 
-
-VOLUME_INFO_FILE = "volumes.json"
+_CACHE_DIR = "cloudmc-cache"
+_OUTLINES_FILE = "outlines.json"
+_PREP_SBATCH_PREFIX = "prep-sbatch"
+_VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
@@ -81,12 +86,12 @@ def background_percent_complete(report, run_dir, is_running):
                 percentComplete=0,
                 frameCount=0,
             )
-        if not run_dir.join(VOLUME_INFO_FILE).exists():
+        if not run_dir.join(_VOLUME_INFO_FILE).exists():
             raise AssertionError("Volume extraction failed")
         return PKDict(
             percentComplete=100,
             frameCount=1,
-            volumes=simulation_db.read_json(VOLUME_INFO_FILE),
+            volumes=simulation_db.read_json(_VOLUME_INFO_FILE),
         )
     return _percent_complete(run_dir, is_running)
 
@@ -112,8 +117,14 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError("no data file for model={model} and options={options}")
 
 
-def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
+def post_execution_processing(
+    compute_model, sim_id, success_exit, is_parallel, run_dir, **kwargs
+):
     if success_exit:
+        if compute_model == "dagmcAnimation":
+            ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
+            for f in ply_files:
+                _SIM_DATA.put_sim_file(sim_id, f, f.basename)
         return None
     return _parse_run_log(run_dir)
 
@@ -138,32 +149,67 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
 def sim_frame(frame_args):
     import openmc
 
+    def _get_filter(tally, type):
+        for i in range(1, SCHEMA.constants.maxFilters + 1):
+            f = tally[f"filter{i}"]
+            if f._type == type:
+                return f
+        return None
+
+    def _get_tally(tallies, name):
+        f = [x for x in tallies if x.name == name]
+        return f[0] if len(f) else None
+
+    def _sum_energy_bins(values, mesh_filter, energy_filter, sum_range):
+        f = (lambda x: x) if energy_filter.space == "linear" else numpy.log10
+        bins = numpy.ceil(
+            energy_filter.num
+            * numpy.abs(f(numpy.array(sum_range.val)) - f(sum_range.min))
+            / numpy.abs(f(sum_range.max) - f(sum_range.min))
+        ).astype(int)
+
+        vv = numpy.reshape(values, (*mesh_filter.dimension, -1))
+        z = numpy.zeros((*mesh_filter.dimension, 1))
+        for i in range(len(vv)):
+            for j in range(len(vv[i])):
+                for k in range(len(vv[i][j])):
+                    z[i][j][k][0] = numpy.sum(vv[i][j][k][bins[0] : bins[1]])
+        return z.ravel()
+
     t = openmc.StatePoint(
         frame_args.run_dir.join(_statepoint_filename(frame_args.sim_in))
     ).get_tally(name=frame_args.tally)
-    f = str(frame_args.run_dir.join(f"{frame_args.tally}.vtk"))
     try:
         # openmc doesn't have a has_filter() api
         t.find_filter(openmc.MeshFilter)
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
+
+    v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
+
     try:
-        t.find_filter(openmc.MeshFilter).mesh.write_data_to_vtk(
-            filename=f,
-            datasets={
-                frame_args.aspect: getattr(t, frame_args.aspect)[
-                    :, :, t.get_score_index(frame_args.score)
-                ],
-            },
+        t.find_filter(openmc.EnergyFilter)
+        tally = _get_tally(frame_args.sim_in.models.settings.tallies, frame_args.tally)
+        v = _sum_energy_bins(
+            v,
+            _get_filter(tally, "meshFilter"),
+            _get_filter(tally, "energyFilter"),
+            frame_args.energyRangeSum,
         )
-    except RuntimeError as e:
-        if re.search(r"should be equal to the number of cells", str(e)):
-            return PKDict(
-                error=f"Tally {frame_args.tally} contains a Mesh and another multi-binned Filter"
-            )
-        raise
+    except ValueError:
+        pass
+
+    # volume normalize copied from openmc.UnstructuredMesh.write_data_to_vtk()
+    v /= t.find_filter(openmc.MeshFilter).mesh.volumes.ravel()
+    o = simulation_db.read_json(frame_args.run_dir.join(_OUTLINES_FILE))
     return PKDict(
-        content=_grid_to_poly(f),
+        field_data=v.tolist(),
+        min_field=v.min(),
+        max_field=v.max(),
+        summaryData=PKDict(
+            tally=frame_args.tally,
+            outlines=o[frame_args.tally] if frame_args.tally in o else {},
+        ),
     )
 
 
@@ -194,10 +240,130 @@ def stateless_compute_validate_material_name(data, **kwargs):
 
 
 def write_parameters(data, run_dir, is_parallel):
-    pkio.write_text(
-        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, run_dir=run_dir),
-    )
+    if _is_sbatch_run_mode(data):
+        pkio.write_text(
+            run_dir.join(f"{_PREP_SBATCH_PREFIX}.py"),
+            _generate_parameters_file(data, run_dir=run_dir),
+        )
+        with pkio.open_text(run_dir.join(f"{_PREP_SBATCH_PREFIX}.log"), mode="w") as l:
+            subprocess.run(
+                ["python", f"{_PREP_SBATCH_PREFIX}.py"],
+                check=True,
+                stderr=l,
+                stdout=l,
+            )
+        pkio.write_text(
+            run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+            template_common.render_jinja(
+                SIM_TYPE,
+                PKDict(
+                    cacheDir=sirepo.sim_run.cache_dir(_CACHE_DIR),
+                    numThreads=data.models.openmcAnimation.ompThreads,
+                ),
+                "openmc-sbatch.py",
+            ),
+        )
+    else:
+        pkio.write_text(
+            run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+            _generate_parameters_file(data, run_dir=run_dir),
+        )
+    if is_parallel:
+        return template_common.get_exec_parameters_cmd()
+
+
+def write_volume_outlines():
+    import trimesh
+    import dagmc_geometry_slice_plotter
+
+    _MIN_RES = SCHEMA.constants.minTallyResolution
+
+    def _center_range(mesh, dim):
+        f = (
+            0.5
+            * abs(mesh.upper_right[dim] - mesh.lower_left[dim])
+            / mesh.dimension[dim]
+        )
+        return numpy.linspace(
+            mesh.lower_left[dim] + f,
+            mesh.upper_right[dim] - f,
+            mesh.dimension[dim],
+        )
+
+    def _get_meshes():
+        tallies = simulation_db.read_json(
+            template_common.INPUT_BASE_NAME
+        ).models.settings.tallies
+        for t in tallies:
+            for f in [x for x in t if x.startswith("filter")]:
+                if t[f]._type == "meshFilter":
+                    yield t.name, t[f]
+
+    def _is_skip_dimension(tally_range, dim1, dim2):
+        return len(tally_ranges[dim1]) < _MIN_RES or len(tally_ranges[dim2]) < _MIN_RES
+
+    all_outlines = PKDict()
+    for tally_name, tally_mesh in _get_meshes():
+        tally_ranges = [_center_range(tally_mesh, i) for i in range(3)]
+        # don't include outlines of low resolution dimensions
+        skip_dimensions = PKDict(
+            x=_is_skip_dimension(tally_ranges, 1, 2),
+            y=_is_skip_dimension(tally_ranges, 0, 2),
+            z=_is_skip_dimension(tally_ranges, 0, 1),
+        )
+        outlines = PKDict()
+        all_outlines[tally_name] = outlines
+        basis_vects = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        rots = [
+            numpy.array([[1, 0], [0, 1]]),
+            numpy.array([[0, -1], [1, 0]]),
+            numpy.array([[0, 1], [-1, 0]]),
+        ]
+        for mf in pkio.sorted_glob("*.ply"):
+            vol_id = mf.purebasename
+            vol_mesh = None
+            outlines[vol_id] = PKDict(x=[], y=[], z=[])
+            with open(mf, "rb") as f:
+                vol_mesh = trimesh.Trimesh(**trimesh.exchange.ply.load_ply(f))
+            for i, dim in enumerate(outlines[vol_id].keys()):
+                if skip_dimensions[dim]:
+                    outlines[vol_id][dim] = []
+                    continue
+                n = basis_vects[i]
+                r = rots[i]
+                for pos in tally_ranges[i]:
+                    coords = []
+                    try:
+                        coords = dagmc_geometry_slice_plotter.get_slice_coordinates(
+                            dagmc_file_or_trimesh_object=vol_mesh,
+                            plane_origin=pos * n,
+                            plane_normal=n,
+                        )
+                        # get_slice_coordinates returns a list of "TrackedArrays",
+                        # arranged for use in matplotlib
+                        ct = []
+                        for c in [
+                            (SCHEMA.constants.geometryScale * x.T) for x in coords
+                        ]:
+                            ct.append([numpy.dot(r, x).tolist() for x in c])
+                        coords = ct
+                    except ValueError:
+                        # no intersection at this plane position
+                        pass
+                    outlines[vol_id][dim].append(coords)
+    simulation_db.write_json(_OUTLINES_FILE, all_outlines)
+
+
+def _dagmc_animation_python(filename):
+    return f"""
+import sirepo.pkcli.cloudmc
+import sirepo.simulation_db
+
+sirepo.simulation_db.write_json(
+    "{_VOLUME_INFO_FILE}",
+    sirepo.pkcli.cloudmc.extract_dagmc("{filename}"),
+)
+"""
 
 
 def _generate_angle(angle):
@@ -329,14 +495,23 @@ def _generate_materials(data):
 
 def _generate_parameters_file(data, run_dir=None):
     report = data.get("report", "")
-    for f in [b.basename for b in _SIM_DATA.sim_file_basenames(data)]:
-        pkio.unchecked_remove(f)
-    if report in ("dagmcAnimation", "tallyReport"):
+    if report == "dagmcAnimation":
+        return _dagmc_animation_python(_SIM_DATA.dagmc_filename(data))
+    if report == "tallyReport":
         return ""
     res, v = template_common.generate_parameters_file(data)
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
-    v.simId = data.models.simulation.simulationId
-    v.statepointFilename = _statepoint_filename(data)
+    v.isPythonSource = False if run_dir else True
+    if v.isPythonSource:
+        v.materialDirectory = "."
+        v.runCommand = "openmc.run()"
+    else:
+        v.materialDirectory = sirepo.sim_run.cache_dir(_CACHE_DIR)
+        r = data.models.openmcAnimation.jobRunMode
+        if not _is_sbatch_run_mode(data):
+            cores = 1 if r == "sequential" else sirepo.mpi.cfg().cores
+            v.runCommand = f"openmc.run(threads={ cores })"
+
     v.materials = _generate_materials(data)
     v.sources = _generate_sources(data)
     v.tallies = _generate_tallies(data)
@@ -348,12 +523,14 @@ def _generate_parameters_file(data, run_dir=None):
 
 
 def _generate_range(filter):
-    return "numpy.{}({}, {}, {})".format(
-        "linspace" if filter.space == "linear" else "logspace",
-        filter.start,
-        filter.stop,
-        filter.num,
-    )
+    space = "linspace"
+    start = filter._scale * filter.start
+    stop = filter._scale * filter.stop
+    if filter.space == "log":
+        space = "logspace"
+        start = numpy.log10(start) if start > 0 else -307
+        stop = numpy.log10(stop)
+    return "numpy.{}({}, {}, {})".format(space, start, stop, filter.num)
 
 
 def _generate_source(source):
@@ -473,52 +650,15 @@ t{tally._index + 1}.nuclides = [{','.join(["'" + s.nuclide + "'" for s in tally.
     return res
 
 
-def _grid_to_poly(path):
-    def _poly_lines(nx, ny, nz):
-        l = []
-        for k in range(nz):
-            # only rects
-            z = k * (nx + 1) * (ny + 1)
-            for j in range(ny):
-                y = j * (nx + 1)
-                d = y + z
-                c = [0, 1, nx + 2, nx + 1]
-                for i in range(nx):
-                    l.append("4 ")
-                    for n in range(len(c)):
-                        l.append(f"{c[n] + d + i} ")
-                    l.append("\n")
-        return l
-
-    with pkio.open_text(path) as f:
-        state = "header"
-        lines = []
-        for line in f:
-            # force version 4.1
-            if line.startswith("# vtk DataFile Version"):
-                lines.append("# vtk DataFile Version 4.1\n")
-                continue
-            # only polydata is allowed
-            if line.startswith("DATASET STRUCTURED_GRID"):
-                lines.append("DATASET POLYDATA\n")
-                continue
-            if line.startswith("DIMENSIONS"):
-                continue
-            if "POINTS" in line:
-                state = "points"
-                lines.append("POINTS 0 double\nPOLYGONS 0 0\n")
-            if "CELL_DATA" in line:
-                state = "cells"
-            if state != "points":
-                lines.append(line)
-    return "".join(lines)
-
-
 def _has_graveyard(data):
     for v in data.models.volumes.values():
         if v.name and v.name.lower() == "graveyard":
             return True
     return False
+
+
+def _is_sbatch_run_mode(data):
+    return data.models.openmcAnimation.jobRunMode == "sbatch"
 
 
 def _parse_run_log(run_dir):

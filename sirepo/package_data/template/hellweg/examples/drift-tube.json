@@ -1,0 +1,95 @@
+{
+    "models": {
+        "beam": {
+            "current": 0,
+            "longitudinalDistribution": "norm2d",
+            "numberOfParticles": 10000,
+            "spaceCharge": "none",
+            "spaceChargeCore": 3,
+            "transversalDistribution": "sph2d"
+        },
+        "beamAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "reportType": "r-ar",
+            "startTime": 1490893613
+        },
+        "beamHistogramAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "reportType": "r",
+            "startTime": 1490893613
+        },
+        "beamHistogramReport": {
+            "histogramBins": 100,
+            "reportType": "r"
+        },
+        "beamReport": {
+            "histogramBins": 100,
+            "reportType": "x-y"
+        },
+        "beamline": [
+            {
+                "id": 2,
+                "length": 10,
+                "meshPoints": 500,
+                "radius": 2.5,
+                "type": "driftElement"
+            }
+        ],
+        "ellipticalDistribution": {
+            "aX": 2,
+            "bY": 0.5,
+            "rmsDeviationFactor": 1,
+            "rotationAngle": 0
+        },
+        "energyPhaseDistribution": {
+            "distributionType": "uniform",
+            "energyDeviation": 0.25,
+            "energySpread": 0.001,
+            "meanEnergy": 1,
+            "meanPhase": 0,
+            "phaseDeviation": 20,
+            "phaseLength": 180
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "simulation": {
+            "folder": "/",
+            "isExample": true,
+            "name": "Drift Tube",
+            "outOfSessionSimulationId": "",
+            "simulationId": "kc2EEDr4",
+            "simulationSerial": 1490894013614259
+        },
+        "simulationSettings": {
+            "allowBackwardWaves": "0",
+            "meshPoints": 20,
+            "smoothing": 0.95,
+            "splineInterpolation": "0"
+        },
+        "solenoid": {
+            "fieldStrength": 1000,
+            "fringeRegion": 1,
+            "length": 20,
+            "sourceDefinition": "none",
+            "z0": 0
+        },
+        "sphericalDistribution": {
+            "curvature": "flat",
+            "curvatureFactor": 0,
+            "radialLimit": 5,
+            "thermalEmittance": 10
+        },
+        "twissDistribution": {
+            "horizontalAlpha": 0.14,
+            "horizontalBeta": 2,
+            "horizontalEmittance": 0.0005,
+            "verticalAlpha": 0.28,
+            "verticalBeta": 4,
+            "verticalEmittance": 0.0015
+        }
+    },
+    "simulationType": "hellweg"
+}

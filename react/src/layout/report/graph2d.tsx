@@ -77,10 +77,6 @@ export class Graph2dFromApi extends ReportVisual<undefined, {}, Graph2dConfigApi
         return !!this.getConfigFromApiResponse(apiResponse);
     }
 
-    getFormDependencies = () => {
-        return [];
-    }
-
     component = (props: LayoutProps<{}> & ReportVisualProps<Graph2dConfig>) => {
         let { data, model } = props;
         if(!data) {

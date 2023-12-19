@@ -3,13 +3,11 @@
         "beamline": [
             {
                 "_super": "beamElement",
-                "calc_gain": "1",
                 "crystal_alpha": 120,
                 "icon": "ti-sapphire-crystal.png",
                 "id": 2,
                 "inversion_mesh_extent": 0.01,
                 "inversion_n_cells": 64,
-                "l_scale": 0.001,
                 "length": 2,
                 "n0": [
                     1.75,
@@ -34,7 +32,6 @@
                 "pump_energy": 0.0211,
                 "pump_waist": 0.00164,
                 "pump_wavelength": 5.32e-07,
-                "radial_n2": "1",
                 "reuseCrystal": 0,
                 "title": "Crystal #1",
                 "type": "crystal"
@@ -43,42 +40,19 @@
                 "_super": "beamElement",
                 "id": 3,
                 "position": 2,
-                "propagationType": "default",
                 "title": "Watchpoint",
                 "type": "watch"
             }
         ],
         "crystal3dAnimation": {},
         "crystalAnimation": {},
-        "crystalCylinder": {
-            "T0": 20,
-            "crystal": "0",
-            "crystalLength": 2,
-            "dT": 3.8,
-            "diameter": 7,
-            "diffusionConstant": 0.0565,
-            "supergaussian": 8,
-            "wdT": 1
-        },
-        "crystalSettings": {
-            "meshDensity": 30,
-            "plotInterval": 10,
-            "steps": 100,
-            "time": 1,
-            "tolerance": 0.008
-        },
         "initialIntensityReport": {
             "colorMap": "viridis",
             "dataType": "intensity",
             "sliceNumber": 0
         },
-        "initialPhaseReport": {
-            "colorMap": "viridis",
-            "sliceNumber": 0
-        },
         "laserPulse": {
             "ccd": "",
-            "chirp": 0,
             "distribution": "gaussian",
             "meta": "",
             "nslice": 3,
@@ -91,15 +65,11 @@
             "pulseE": 0.001,
             "sigx_waist": 0.001,
             "sigy_waist": 0.001,
-            "tau_fwhm": 2.35865e-11,
             "wfs": ""
         },
-        "plot2Animation": {},
-        "plotAnimation": {},
         "simulation": {
             "distanceFromSource": 0,
             "folder": "/Examples",
-            "isExample": true,
             "name": "Single Crystal"
         },
         "watchpointReport3": {

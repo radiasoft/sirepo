@@ -4,6 +4,11 @@
             "localRoute": "runAnalysis"
         }
     },
+    "constants": {
+         "canDownloadInputFile": false,
+         "canExportArchive": false,
+         "canShowDocumentationUrl": false
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "css": [
@@ -50,7 +55,7 @@
     },
     "model": {
         "catalog": {
-            "catalogName": ["Catalog Name", "CatalogName", ""]
+            "catalogName": ["Catalog Name", "CatalogNameDisplay", ""]
         },
         "executedScans": {
             "searchStartTime":["Start", "DateTimePicker", null],
@@ -63,18 +68,28 @@
         "inputFiles": {
             "mask": ["Mask ZIP", "InputFile"]
         },
+        "metadataColumns": {
+            "selected": ["", "Array", []]
+        },
         "queuedScans": {
             "scans": ["", "QueuedScansTable", ""]
         },
         "replay": {
-            "sourceCatalogName": ["Source Catalog", "CatalogName", ""],
-            "destinationCatalogName": ["Destination Catalog", "CatalogName", ""],
+            "sourceCatalogName": ["Source Catalog", "CatalogNamePicker", ""],
+            "destinationCatalogName": ["Destination Catalog", "CatalogNamePicker", ""],
             "numScans": ["Number of Scans", "Integer", null]
         },
         "runAnalysis": {
+            "presetTimePicker": ["", "PresetTimePicker", ""],
             "searchStartTime":["Start", "DateTimePicker", null],
             "searchStopTime":["Stop", "DateTimePicker", null],
-            "scans": ["", "RunAnalysisTable", ""]
+            "searchText": ["Search Text", "OptionalString", "", "Search across all columns by term.<br /><br />Phrases can be quoted, ex. \"canted mode\".<br /><br />Negations can be added to the search text by adding a minus (-) sign to the word, however negations must be included with another search term, ex. csx -flatfield.<br /><br />ex. csx \"canted mode\" pinhole -flatfield"],
+            "pageSize": ["Page Size", "Integer", 15],
+            "scans": ["", "RunAnalysisTable", ""],
+            "confirmRunAnalysis": ["Hide this message for this session", "Boolean", "0"]
+        },
+        "simulation": {
+            "catalogNamePicker": ["Catalog Name", "CatalogNamePicker", ""]
         },
         "simulationStatus": {
             "notes": ["Notes", "Text", ""]
@@ -90,7 +105,6 @@
         "analysisQueue": {
             "title": "Analysis Queue",
             "basic": [
-                "catalog.catalogName",
                 "queuedScans.scans"
             ],
             "advanced": []
@@ -98,7 +112,6 @@
         "executedScans": {
             "title": "Executed Scans",
             "basic": [
-                "catalog.catalogName",
                 "searchStartTime",
                 "searchStopTime",
                 "scans"
@@ -134,9 +147,18 @@
                 "catalog.catalogName",
                 "searchStartTime",
                 "searchStopTime",
-                "scans"
+                "presetTimePicker",
+                "searchText"
             ],
-            "advanced": []
+            "advanced": [
+                "pageSize"
+            ]
+        },
+        "simulation": {
+            "title": "Source",
+            "advanced": [
+                "catalogNamePicker"
+            ]
         },
         "simulationStatus": {
             "title": "Poll For New Scans",

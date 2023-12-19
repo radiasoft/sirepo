@@ -9,9 +9,25 @@
             ["new", "New"],
             ["reuse", "Use Existing"]
         ],
-        "DataType": [
-            ["intensity", "Intensity"],
-            ["phase", "Phase"]
+        "CrystalPlot": [
+            ["total_excited_states", "Total Excited States"],
+            ["excited_states", "Excited States by Slice"],
+            ["excited_states_longitudinal", "Excited States Longitudinal Distribution"]
+        ],
+        "WatchpointPlot": [
+            ["intensity", "Intensity by Slice"],
+            ["phase", "Phase by Slice"],
+            ["photons", "Number of Photons by Slice"],
+            ["longitudinal_photons", "Longitudinal Photons"],
+            ["longitudinal_wavelength", "Longitudinal Wavelength"],
+            ["longitudinal_frequency", "Longitudinal Frequency"],
+            ["longitudinal_intensity", "Longitudinal Central Intensity"],
+            ["total_intensity", "Total Intensity"],
+            ["total_phase", "Total Phase"]
+        ],
+        "TempProfilePlot": [
+            ["radialPlot", "Radial"],
+            ["longitudinalPlot", "Longitudinal"]
         ],
         "DistributionType": [
             ["gaussian", "Gaussian"],
@@ -20,13 +36,18 @@
         "GaussianBeamPolarization": [
             ["1", "Linear Horizontal"]
         ],
+        "PropCalcType": [
+            ["fenics", "Simulated"],
+            ["analytical", "Analytical"]
+        ],
         "PropagationType": [
             ["abcd_lct", "ABCD LCT"],
-            ["attenuate", "Attenuate"],
-            ["default", "Default"],
-            ["gain_calc", "Gain Calculation"],
-            ["n0n2_srw", "N0N2 SRW"],
-            ["n0n2_lct", "N0N2 LCT"]
+            ["n0n2_srw", "N0N2 SRW"]
+        ],
+        "PumpPulseProfile": [
+            ["gaussian", "Gaussian"],
+            ["hog", "Higher Order Gaussian"],
+            ["tophat", "Top Hat"]
         ],
         "PumpType": [
             ["dual", "Dual"],
@@ -77,109 +98,143 @@
         }
     },
     "frameIdFields": {
+        "beamlineAnimation": ["watchpointPlot", "crystalPlot"],
+        "laserPulseAnimation": ["watchpointPlot"],
+        "laserPulse2Animation": ["watchpointPlot"],
         "crystalAnimation": [],
         "crystal3dAnimation": [],
-        "plotAnimation": [],
-        "plot2Animation": []
+        "tempHeatMapAnimation": [],
+        "tempProfileAnimation": ["tempProfilePlot"]
     },
     "model": {
         "beamElement": {
-            "position": ["Central Position [m]", "Float", 0.0],
-            "propagationType": ["Propagation Type", "PropagationType", "default"]
+            "position": ["Central Position [m]", "Float", 0.0]
         },
         "crystal": {
             "_super": ["_", "model", "beamElement"],
             "icon": ["", "String", "ti-sapphire-crystal.png"],
             "nslice": ["Number of Slices", "Integer", 10, "", 1],
             "propagationType": ["Propagation Type", "PropagationType", "n0n2_srw"],
-            "n0": ["Index of Refraction ($n_0$)", "Float6", [1.75, 1.75, 1.75, 1.75, 1.75, 1.75], "On axis index of refraction", 1e-24],
-            "n2": ["Thermal Lensing ($n_2$)", "Float6", [30.5, 18.3, 10.4, 5.9, 3.3, 1.9], "Quadratic variations of index of refraction, with $n(r) = n_0 - \\frac{n_2 r^2} 2  [\\frac 1 {m^2}]$", 0.0],
+            "initial_temp": ["Inital Temperature [°C]", "Float", 0.0],
+            "mesh_density": ["Mesh Density", "Integer", 80],
             "title": ["Element Name", "String", "Crystal"],
-            "A": ["A", "Float", 0.99736924],
-            "B": ["B", "Float", 0.0141972275],
-            "C": ["C", "Float", -0.260693],
-            "D": ["D", "Float", 0.99892682],
+            "A": ["A", "Float", 0],
+            "B": ["B", "Float", 0],
+            "C": ["C", "Float", 0],
+            "D": ["D", "Float", 0],
             "length": ["Length [cm]", "Float", 2],
-            "l_scale": ["Length Scale Factor for LCT Propagation", "Float", 0.001],
-            "radial_n2": ["Include Transverse Variation", "Boolean", "0"],
-            "calc_gain": ["Include Gain Calculations", "Boolean", "0"],
-            "inversion_n_cells": ["Inversion Mesh Cell Count", "Integer", 64],
-            "inversion_mesh_extent": ["Inversion Mesh Extent [m]", "Float", 0.01],
-            "crystal_alpha": ["Crystal Alpha [1/m]", "Float", 120.0],
+            "calc_type": ["Propagation Calculation Type", "PropCalcType", "analytical"],
+            "inversion_n_cells": ["Mesh Cell Count", "Integer", 64],
+            "inversion_mesh_extent": ["Radius [m]", "Float", 0.01],
+            "crystal_alpha": ["Alpha [1/m]", "Float", 120.0],
             "pump_waist": ["Pump Waist [m]", "Float", 0.00164],
             "pump_wavelength": ["Pump Wavelength [m]", "Float", 532.0e-9],
             "pump_energy": ["Pump Energy [J]", "Float", 0.0211, "Pump laser energy onto the crystal"],
             "pump_gaussian_order": ["Pump Gaussian Order", "Float", 2.0],
+            "pump_pulse_profile": ["Pump Pulse Profile", "PumpPulseProfile", "gaussian"],
             "pump_type": ["Pump Type", "PumpType", "dual"],
             "origin": ["Crystal", "CrystalOrigin", "new"],
-            "reuseCrystal": ["Select Crystal", "SelectCrystal", 0]
+            "n0n2Plot": ["", "N0n2Plot", "n0n2Plot"],
+            "reuseCrystal": ["Select Crystal", "SelectCrystal", 0],
+            "pump_offset_x": ["Pump Offset X [m]", "Float", 0.0],
+            "pump_offset_y": ["Pump Offset Y [m]", "Float", 0.0],
+            "pump_rep_rate": ["Pump Rep Rate [Hz]", "PumpRepRate", 1.0, "", 1, 100]
         },
         "crystalAnimation": {},
-        "crystalSettings": {
-            "meshDensity": ["Mesh Density", "Integer", 30, "", 10, 50],
-            "time": ["Simulation Time [sec]", "Float", 1, "", 1e-24],
-            "steps": ["Number of Time Steps", "Integer", 100, "", 1],
-            "plotInterval": ["Number of Intervals Between Records", "Integer", 10, "", 1],
-            "tolerance": ["Boundary Tolerance", "Float", 8e-3, "Adjust this value to avoid points outside domain (for a coarse mesh, increase this value)"]
+        "tempProfileAnimation": {
+            "tempProfilePlot": ["Temperature Profile", "TempProfilePlot", "radialPlot"]
         },
-        "crystalCylinder": {
-            "diameter": ["Diameter [cm]", "Float", 7, "", 1e-24],
-            "crystal": ["Crystal in Beamline", "SelectCrystal", 0],
-            "crystalLength": ["Length [cm]", "Float", 2],
-            "diffusionConstant": ["Diffusion Constant [$\\bf cm^2/s$]", "Float", 5.65e-2],
-            "T0": ["$\\Large T_0$ [$\\bf \\degree C$]", "Float", 20],
-            "dT": ["$\\Large \\delta_T$ [$\\bf\\degree C$]", "Float", 3.8],
-            "wdT": ["$\\Large \\xi$ [cm]", "Float", 1],
-            "supergaussian": ["$\\Large P$", "Integer", 8, "Supergaussian degree", 1, 12]
+        "tempHeatMapAnimation": {
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "x": ["Horizontal Value to Plot", "ValueList", "x"],
+            "y1": ["Vertical Value to Plot", "ValueList", "y"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "crystal3dAnimation": {},
         "laserPulse": {
-            "chirp": ["Chirp [eV]", "Float", 0, "Energy variation from first to last slice in laser pulse"],
             "ccd": ["Intensity", "InputFile", ""],
             "meta": ["WFS Space Data", "InputFile", "", "A file describing the pixel dimensions of your wavefront sensor. Pixel dimensions are assumed to be in microns."],
             "wfs": ["Phase", "InputFile", ""],
-            "num_sig_long": ["Number of Gaussian Sigmas", "Integer", 3],
-            "num_sig_trans": ["Number of Gaussian Sigmas", "Integer", 6],
+            "num_sig_long": ["Longitudinal RMS (in terms of beam size)", "Integer", 6],
+            "num_sig_trans": ["Transverse RMS (in terms of beam size)", "Integer", 12],
             "nx_slice": ["Horizontal Number of Mesh Points in Slice", "Integer", 64, "", 1],
             "ny_slice": ["Vertical Number of Mesh Points in Slice", "Integer", 64, "", 1],
-            "nslice": ["Number of Slices", "Integer", 3, "", 1],
+            "nslice": ["Number of Slices", "Integer", 5, "", 1],
             "photon_e_ev": ["Photon energy [eV]", "Float", 1.5],
             "poltype": ["Polarization", "GaussianBeamPolarization", "1"],
-            "tau_fwhm": ["FWHM Length [s]", "Float", 2.35865e-11],
+            "tau_fwhm": ["FWHM Length [ps]", "Float", 424.264068],
+            "tau_0": ["Fourier-limited pulse length of a given spectral bandwidth [ps]", "Float",  0.04949747],
+            "chirp": ["Chirp", "Float", 0.066014],
             "pulseE": ["Total Laser Pulse Energy [J]", "Float", 0.001],
             "distribution": ["Distribution Type", "DistributionType", "gaussian"],
-            "sigx_waist": ["Horizontal RMS Waist Size [m]", "Float", 0.001],
-            "sigy_waist": ["Vertical RMS Waist Size [m]", "Float", 0.001]
+            "sigx_waist": ["Horizontal Beam Size [m]", "Float", 0.001, "Size is in terms of RMS"],
+            "sigy_waist": ["Vertical Beam Size [m]", "Float", 0.001, "Size is in terms of RMS"],
+            "phase_flatten_cutoff": ["Phase Flatten Cutoff", "Float", 0.85]
+        },
+        "laserPulseAnimation": {
+            "_super": ["_", "model", "initialIntensityReport"]
+        },
+        "laserPulse2Animation": {
+            "_super": ["_", "model", "initialIntensityReport"],
+            "watchpointPlot": ["Value to Plot", "WatchpointPlot", "total_phase"]
         },
         "initialIntensityReport": {
-            "dataType": ["Value to Plot", "DataType", "intensity"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "sliceNumber": ["Slice Number", "SliceNumber", 0]
-        },
-        "initialPhaseReport": {
-            "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "sliceNumber": ["Slice Number", "SliceNumber", 0]
+            "watchpointPlot": ["Value to Plot", "WatchpointPlot", "total_intensity"]
         },
         "lens": {
             "_super": ["_", "model", "beamElement"],
             "focalLength": ["Focal Length [m]", "Float", 2.0],
             "title": ["Element Name", "String", "Lens"]
         },
-        "mirror": {
+        "mirror2": {
             "_super": ["_", "model", "beamElement"],
             "title": ["Element Name", "String", "Mirror"]
         },
-        "plotAnimation": {},
-        "plot2Animation": {},
         "simulation": {
             "distanceFromSource": ["", "Float", 0.0 , "", 0.0]
+        },
+        "splitter": {
+            "_super": ["_", "model", "beamElement"],
+            "title": ["Element Name", "String", "Splitter"],
+            "transmitted_fraction": ["Transmitted Fraction", "Float", 0.4]
+        },
+        "telescope": {
+            "_super": ["_", "model", "beamElement"],
+            "focal_length_1": ["Focal Length 1 [m]", "Float", -0.1],
+            "focal_length_2": ["Focal Length 2 [m]", "Float", 0.2],
+            "drift_length_1": ["Drift Length 1 [m]", "Float", 1.9],
+            "drift_length_2": ["Drift Length 2 [m]", "Float", 0.1],
+            "drift_length_3": ["Drift Length 3 [m]", "Float", 0.54],
+            "title": ["Element Name", "String", "Telescope"]
+        },
+        "thermalTransportCrystal": {
+            "crystal_id": ["Crystal in Beamline", "SelectThermalTransportCrystal", 0],
+            "crystal": ["", "model"]
+        },
+        "thermalTransportSettings": {
+            "grid_points_r": ["Grid Points R", "Integer", 200],
+            "grid_points_w": ["Grid Points W", "Integer", 0],
+            "grid_points_z": ["Grid Points Z", "Integer", 200],
+            "edge_fraction": ["Fraction of Radial Edge", "Float", 0.98]
         },
         "watch": {
             "_super": ["_", "model", "beamElement"],
             "title": ["Element Name", "SafePath", "Watchpoint"]
         },
         "watchpointReport": {
-            "_super": ["_", "model", "initialIntensityReport"]
+            "_super": ["_", "model", "initialIntensityReport"],
+            "crystalPlot": ["Value to Plot", "CrystalPlot", "total_excited_states"]
+        }
+    },
+    "strings": {
+        "beamlineTabName": "Amplifier",
+        "completionState": ": {frameCount} completed reports",
+        "pumpPulseProfileEquation": {
+            "gaussian": "$f = T_0 + \\delta_T \\exp\\bigl[ -\\tfrac{1}{2}\\bigl(\\tfrac{x^2 + y^2}{wp^2}\\bigr)^P \\bigr] [\\exp(-z/\\lambda) + \\exp((z-l)/\\lambda)]$",
+            "hog": "$f = T_0 + \\delta_T  \\exp(-((x^2+y^2)/(2*wp^2))^P) * \\exp(-\\alpha * (z - z0))$",
+            "tophat":"$if \\> \\> x^2+y^2 <= wp:$ $\\newline$ $f = T_0 + \\delta_T * \\alpha * \\exp(-\\alpha * (z - z0))/(1 - \\exp(2 * \\alpha * z0))$ $\\newline$ $otherwise:$ $\\newline$ $f = T_0$"
         }
     },
     "view": {
@@ -193,28 +248,34 @@
                     "title",
                     "position",
                     "length",
+                    "inversion_mesh_extent",
+                    "crystal_alpha",
                     "nslice"
                 ]],
                 ["Propagation", [
                     "propagationType",
-                    "n0",
-                    "n2",
+                    "initial_temp",
+                    "mesh_density"
+                ]],
+                ["Pump Pulse", [
+                    "pump_type",
+                    "pump_energy",
+                    "pump_waist",
+                    "pump_rep_rate",
+                    "calc_type",
+                    "pump_gaussian_order",
+                    "pump_pulse_profile",
+                    "pump_wavelength",
+                    "pump_offset_x",
+                    "pump_offset_y",
+                    "inversion_n_cells"
+                ]],
+                ["Summary", [
+                    "n0n2Plot",
                     "A",
                     "B",
                     "C",
-                    "D",
-                    "l_scale"
-                ]],
-                ["Gain", [
-                    "radial_n2",
-                    "calc_gain",
-                    "inversion_n_cells",
-                    "inversion_mesh_extent",
-                    "crystal_alpha",
-                    "pump_type",
-                    "pump_waist",
-                    "pump_wavelength",
-                    "pump_energy"
+                    "D"
                 ]]
             ]
         },
@@ -222,38 +283,25 @@
             "title": "Crystal Animation",
             "advanced": []
         },
-        "crystalSettings": {
-            "title": "Simulation Settings",
-            "basic": [
-                "meshDensity",
-                "time",
-                "steps",
-                "plotInterval",
-                "tolerance"
-            ],
-            "advanced": []
+        "tempProfileAnimation": {
+            "title": "Temperature Profile",
+            "advanced": [
+                "tempProfilePlot"
+            ]
         },
-        "crystalCylinder": {
-            "title": "Ti:Sapphire Crystal Cylinder",
-            "basic": [
-                "crystal",
-                "crystalLength",
-                "diameter",
-                "diffusionConstant",
-                "*Initial Temperature Due to Pump Laser:\n$f = T_0 + \\delta_T \\exp\\bigl[ -\\tfrac{1}{2}\\bigl(\\tfrac{x^2 + y^2}{\\xi^2}\\bigr)^P \\bigr] [\\exp(-z/\\lambda) + \\exp((z-l)/\\lambda)]$",
-                "T0",
-                "dT",
-                "wdT",
-                "supergaussian"
-            ],
-            "advanced": []
+        "tempHeatMapAnimation": {
+            "title": "Radial/Axial Temperature Profile",
+            "advanced": ["colorMap"]
         },
         "crystal3dAnimation": {
             "title": "Crystal 3D Mesh",
-            "advanced": []
+            "is3d": true,
+            "advanced": [],
+            "canFullScreen": false
         },
-        "mirror": {
-            "title": "Ideal Mirror",
+        "mirror2": {
+            "title": "Two Mirrors",
+            "description": "The pulse is reflected off of two mirrors, resulting in a flip of the electric fields. Since 1D amplifier geometry is assumed, the mirrors' small, off-axis angles are ignored.",
             "basic": [],
             "advanced": [
                 "title",
@@ -266,13 +314,11 @@
             "basic": [
                 ["Energy", [
                     "photon_e_ev",
-                    "chirp",
-                    "pulseE"
+                    "pulseE",
+                    "phase_flatten_cutoff"
                 ]],
                 ["Transverse", [
                     "num_sig_trans",
-                    "distribution",
-                    "poltype",
                     "ccd",
                     "wfs",
                     "meta",
@@ -290,21 +336,22 @@
                 ["Longitudinal", [
                     "num_sig_long",
                     "nslice",
-                    "tau_fwhm"
+                    "tau_fwhm",
+                    "tau_0",
+                    "chirp"
                 ]]
             ]
         },
-        "initialIntensityReport": {
-            "title": "Intensity",
-            "advanced": [
-                "sliceNumber",
-                "colorMap"
-            ]
+        "laserPulseAnimation": {
+            "_super": ["_", "view", "initialIntensityReport"]
         },
-        "initialPhaseReport": {
-            "title": "Phase",
+        "laserPulse2Animation": {
+            "_super": ["_", "view", "initialIntensityReport"]
+        },
+        "initialIntensityReport": {
+            "title": "Laser Pulse",
             "advanced": [
-                "sliceNumber",
+                "watchpointPlot",
                 "colorMap"
             ]
         },
@@ -317,16 +364,76 @@
                 "focalLength"
             ]
         },
-        "plotAnimation": {
-            "title": "Radial Temperature Profile",
-            "advanced": []
-        },
-        "plot2Animation": {
-            "title": "Longitudinal Temperature Profile",
+        "n0n2Plot": {
+            "title": "",
             "advanced": []
         },
         "simulationStatus": {
             "title": "Simulation Status",
+            "advanced": []
+        },
+        "splitter": {
+            "title": "Beam Splitter",
+            "basic": [],
+            "advanced": [
+                "title",
+                "position",
+                "transmitted_fraction"
+            ]
+        },
+        "telescope": {
+            "title": "Telescope LCT",
+            "advanced": [
+                "title",
+                "position",
+                "focal_length_1",
+                "focal_length_2",
+                "drift_length_1",
+                "drift_length_2",
+                "drift_length_3"
+            ]
+        },
+        "thermalTransportCrystal": {
+            "title": "Ti:Sapphire Crystal Cylinder",
+            "basic": [
+                ["Crystal", [
+                    "crystal_id",
+                    "crystal.length",
+                    "crystal.inversion_mesh_extent",
+                    "crystal.crystal_alpha",
+                    "crystal.nslice",
+                    "crystal.initial_temp",
+                    "crystal.mesh_density"
+                ]],
+                ["Pump Pulse", [
+                    "crystal_id",
+                    "crystal.pump_type",
+                    "crystal.pump_energy",
+                    "crystal.pump_waist",
+                    "crystal.pump_rep_rate",
+                    "crystal.calc_type",
+                    "crystal.pump_gaussian_order",
+                    "crystal.pump_pulse_profile",
+                    "crystal.pump_wavelength",
+                    "crystal.pump_offset_x",
+                    "crystal.pump_offset_y",
+                    "crystal.inversion_n_cells"
+                ]]
+            ],
+            "advanced": []
+        },
+        "thermalTransportSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                [
+                    ["R", [
+                        "grid_points_r"
+                    ]],
+                    ["Z", [
+                        "grid_points_z"
+                    ]]
+                ]
+            ],
             "advanced": []
         },
         "watch": {
@@ -340,7 +447,7 @@
         "watchpointReport": {
             "_super": ["_", "view", "initialIntensityReport"],
             "advanced": [
-                "dataType"
+                "crystalPlot"
             ]
         }
     }

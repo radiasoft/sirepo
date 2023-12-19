@@ -8,15 +8,15 @@ except:
     pass
 
 
-import srwl_bl
-import srwlib
-import srwlpy
-import srwl_uti_smp
+import srwpy.srwl_bl
+import srwpy.srwlib
+import srwpy.srwlpy
+import srwpy.srwl_uti_smp
 
 
 def set_optics(v=None):
     el = []
-    el.append(srwl_uti_smp.srwl_opt_setup_transm_from_file(
+    el.append(srwpy.srwl_uti_smp.srwl_opt_setup_transm_from_file(
                     file_path=v.op_sample1,
                     resolution=2.480469e-09,
                     thickness=1e-05,
@@ -30,10 +30,10 @@ def set_optics(v=None):
 
 
     pp.append([0, 0, 1.0, 0, 0, 0.005, 20.0, 0.005, 20.0])
-    return srwlib.SRWLOptC(el, pp)
+    return srwpy.srwlib.SRWLOptC(el, pp)
 
 
-varParam = srwl_bl.srwl_uti_ext_options([
+varParam = srwpy.srwl_bl.srwl_uti_ext_options([
     ['name', 's', 'Sample from Image', 'simulation name'],
 
 #---Data Folder
@@ -211,12 +211,12 @@ varParam = srwl_bl.srwl_uti_ext_options([
 
 
 def main():
-    v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
-    source_type, mag = srwl_bl.setup_source(v)
+    v = srwpy.srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
+    source_type, mag = srwpy.srwl_bl.setup_source(v)
     op = set_optics(v)
     v.ws = True
     v.ws_pl = 'xy'
-    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
+    srwpy.srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,92 @@
+{
+    "models": {
+        "beam": {
+            "current": 0,
+            "longitudinalDistribution": "norm2d",
+            "numberOfParticles": 1000,
+            "spaceCharge": "none",
+            "spaceChargeCore": 3,
+            "transversalDistribution": "sph2d"
+        },
+        "beamAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "reportType": "x-y",
+            "startTime": 1490894383
+        },
+        "beamHistogramAnimation": {
+            "framesPerSecond": "5",
+            "histogramBins": 100,
+            "reportType": "r",
+            "startTime": 1490894383
+        },
+        "beamHistogramReport": {
+            "histogramBins": 100,
+            "reportType": "r"
+        },
+        "beamReport": {
+            "histogramBins": 100,
+            "reportType": "x-y"
+        },
+        "beamline": [
+            {
+                "id": 2,
+                "length": 25,
+                "meshPoints": 500,
+                "radius": 1,
+                "type": "driftElement"
+            }
+        ],
+        "ellipticalDistribution": {
+            "aX": 2,
+            "bY": 0.5,
+            "rmsDeviationFactor": 1,
+            "rotationAngle": 0
+        },
+        "energyPhaseDistribution": {
+            "distributionType": "uniform",
+            "energyDeviation": 0.25,
+            "energySpread": 1e-05,
+            "meanEnergy": 0.03,
+            "meanPhase": 0,
+            "phaseDeviation": 20,
+            "phaseLength": 180
+        },
+        "simulation": {
+            "folder": "/",
+            "isExample": true,
+            "name": "Solenoid",
+            "outOfSessionSimulationId": "",
+            "simulationId": "LUV9dLw2",
+            "simulationSerial": 1490894709088191
+        },
+        "simulationSettings": {
+            "allowBackwardWaves": "0",
+            "meshPoints": 20,
+            "smoothing": 0.95,
+            "splineInterpolation": "0"
+        },
+        "solenoid": {
+            "fieldStrength": 500,
+            "fringeRegion": 1,
+            "length": 25,
+            "sourceDefinition": "values",
+            "z0": 1
+        },
+        "sphericalDistribution": {
+            "curvature": "flat",
+            "curvatureFactor": 0,
+            "radialLimit": 0.5,
+            "thermalEmittance": 0
+        },
+        "twissDistribution": {
+            "horizontalAlpha": 0.14,
+            "horizontalBeta": 2,
+            "horizontalEmittance": 0.0005,
+            "verticalAlpha": 0.28,
+            "verticalBeta": 4,
+            "verticalEmittance": 0.0015
+        }
+    },
+    "simulationType": "hellweg"
+}

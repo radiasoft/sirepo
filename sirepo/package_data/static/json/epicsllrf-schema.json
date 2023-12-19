@@ -1,0 +1,61 @@
+{
+    "constants": {
+        "inProgressText": "Reading"
+    },
+    "enum": {
+        "UpdateFrequency": [
+            ["0.5", "0.5"],
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"]
+        ]
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["epicsllrf.js"],
+            "css": [
+                "epicsllrf.css"
+            ]
+        }
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "epicsllrfController as source",
+                "templateUrl": "/static/html/epicsllrf-source.html"
+            }
+        }
+    },
+    "model": {
+        "epicsServer": {
+            "serverAddress": ["Network Address", "String", "localhost", "EPICS server network address, $\\text{<host>:<port>}$. The port should be the UDP PVA Broadcast Port configured on the server (default is 5076)."],
+            "updateFrequency": ["Update Frequency [Hz]", "UpdateFrequency", "0.5"]
+        },
+        "epicsConfig": {
+            "epicsSchema": ["EPICS Schema Definition", "InputFile", "", "A JSON file containing the Sirepo schema describing the EPICS fields"],
+            "epicsModelPrefix": ["", "OptionalString"]
+        },
+        "simulationStatus": {}
+    },
+    "strings": {
+        "completionState": "",
+        "typeOfSimulation": "monitor"
+    },
+    "view": {
+        "epicsConfig": {
+            "title": "EPICS Configuration",
+            "basic": [
+                "epicsSchema"
+            ],
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "EPICS Monitor",
+            "advanced": [
+                "epicsServer.serverAddress",
+                "epicsServer.updateFrequency"
+            ]
+        }
+    }
+}

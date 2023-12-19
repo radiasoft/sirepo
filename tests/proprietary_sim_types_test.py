@@ -35,9 +35,9 @@ def test_myapp(auth_fc):
     r = fc.sr_post(
         "listSimulations", {"simulationType": fc.sr_sim_type}, raw_response=True
     )
-    pkunit.pkeq(403, r.status_code)
+    r.assert_http_status(403)
     sirepo.pkcli.roles.add_roles(
-        fc.sr_auth_state().uid,
+        fc.sr_uid,
         sirepo.auth_role.for_sim_type(fc.sr_sim_type),
     )
     r = fc.sr_run_sim(fc.sr_sim_data(), "heightWeightReport")

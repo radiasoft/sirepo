@@ -17,11 +17,6 @@ export type InputConfigBase = {
 export type InputLayoutType<C extends InputConfigBase = any, V = unknown, M = unknown, L extends InputLayout<C, V, M> = any> = new(config: C) => L
 
 export abstract class InputLayout<C extends InputConfigBase = any, V = unknown, M=V> extends Layout<C, InputComponentProps<V>> {
-
-    getFormDependencies(): Dependency[] {
-        return [];
-    }
-
     abstract toModelValue: (value: V) => M;
     abstract fromModelValue: (value: M) => V;
 

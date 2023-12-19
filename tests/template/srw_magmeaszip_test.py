@@ -10,7 +10,7 @@ from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 import pytest
 
-pytest.importorskip("srwl_bl")
+pytest.importorskip("srwpy.srwl_bl")
 
 
 def test_srw_magnetic_measurements_zip_file():

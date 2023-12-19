@@ -1,10 +1,11 @@
-#!/usr/bin/python
-
-import os
+#!/usr/bin/env python
+import subprocess
 import sys
 
-try:
-    (infile1, infile2, outfile) = sys.argv[1:]
-    os.system('sddscombine {} {} -merge {}'.format(infile1, infile2, outfile))
-except:
-    raise RuntimeError('usage: {} <infile> <infile> <outfile>'.format(sys.argv[0]))
+if len(sys.argv) != 4:
+    raise RuntimeError(
+        f"Expected 3 args, got {len(sys.argv) - 1}\nusage: {sys.argv[0]} <infile> <infile> <outfile>",
+    )
+subprocess.check_call(
+    ("sddscombine", sys.argv[1], sys.argv[2], "-merge", sys.argv[3]),
+)

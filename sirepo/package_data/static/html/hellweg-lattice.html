@@ -1,0 +1,34 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-12">
+      <div class="text-center bg-info" style="padding: 1em">
+        <div data-ng-repeat="item in ::lattice.toolbarItems" class="hellweg-icon" data-ng-drag="true" data-ng-drag-data="item"><span class="badge">{{ ::lattice.itemName(item) }}</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-sm-8 col-xl-6 col-xl-offset-3 col-sm-offset-2">
+      <p data-ng-drop="true" data-ng-drop-success="lattice.dropLast($data)" class="lead text-center hellweg-drop-zone"><small><em>drag and drop elements here to define the beamline</em></small></p>
+      <div class="hellweg-editor-holder">
+      <table class="table table-hover table-condensed hellweg-beamline-table">
+        <tr data-ng-repeat="item in lattice.appState.models.beamline">
+          <td data-ng-drop="true" data-ng-drop-success="lattice.dropItem($index, $data)" data-ng-drag-start="lattice.selectItem($data)">
+            <div class="sr-button-bar-parent pull-right"><div class="sr-button-bar"><button class="btn btn-info btn-xs"  data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, item)"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == lattice.appState.models.beamline.length - 1" data-ng-click="moveItem(1, item)"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="lattice.copyItem(item)">Copy</button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="lattice.editItem(item)">Edit</button> <button data-ng-click="lattice.deleteItem(item)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div>
+            <div class="hellweg-icon" data-ng-drag="true" data-ng-drag-data="item"><a href data-ng-click="lattice.selectItem(item)" data-ng-dblclick="lattice.editItem(item)"><span class="badge" data-ng-class="{'sr-item-selected': lattice.isSelected(item)}">{{ lattice.itemName(item.type) }}</span></a>
+            </div>
+            <span data-ng-if="lattice.itemLabels(key)" data-ng-repeat="(key, value) in item">
+              <span style="white-space: nowrap; padding-left: 1em; text-indent: -1em; line-height: 2em;"> <b>{{ lattice.itemLabels(key) }}</b> : {{ value }} </span>
+            </span>
+          </td>
+        </tr>
+        <tr><td style="height: 4em" data-ng-drop="true" data-ng-drop-success="lattice.dropLast($data)"> </td></tr>
+      </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div data-confirmation-modal="" data-id="hellweg-delete-element-confirmation" data-title="Delete Element?" data-ok-text="Delete" data-ok-clicked="lattice.deleteSelected()">Delete element &quot;{{ lattice.selectedItemName() }}&quot;?</div>
+<div data-ng-drag-clone=""><div class="hellweg-icon"><span class="badge sr-item-selected">{{ lattice.itemName(clonedData) }}</span></div></div>
+
+<div data-modal-editor="" view-name="saveElement" data-parent-controller="lattice"></div>

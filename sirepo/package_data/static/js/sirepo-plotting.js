@@ -308,8 +308,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         scope.prevFrameIndex = SIREPO.nonDataFileFrame;
         scope.isPlaying = false;
         var requestData = scope.requestData || function() {
-            if (! scope.hasFrames() || scope.onlyClientFieldsChanged) {
-                scope.onlyClientFieldsChanged = false;
+            if (! scope.hasFrames()) {
                 return;
             }
             var index = frameCache.getCurrentFrame(scope.modelName);
@@ -438,13 +437,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
     function initPlot(scope) {
         var interval = null;
-        var requestData = function(forceRunCount) {
-            //TODO(pjm): see #1155
-            // Don't request data if saving sim (data will be requested again when the save is complete)
-            // var qi = requestQueue.getCurrentQI('requestQueue');
-            // if (qi && qi.params && qi.params.urlOrParams === 'saveSimulationData') {
-            //     return;
-            // }
+        var requestData = function() {
             var priority = getCurrentPriority();
             interval = $interval(function() {
                 if (interval) {
@@ -458,7 +451,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     if (! scope.element) {
                         return;
                     }
-                    forceRunCount = forceRunCount || 0;
                     if (data.x_range) {
                         scope.clearData();
                         scope.load(data);
@@ -466,16 +458,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                             broadcastSummaryData(scope.modelName, data.summaryData);
                         }
                     }
-                    else if (forceRunCount++ <= 2) {
-                        // try again, probably bad data
-                        panelState.clear(scope.modelName);
-                        requestData(forceRunCount);
-                    }
                     else {
-                        panelState.setError(scope.modelName, 'server error: incomplete result');
-                        srlog('incomplete response: ', data);
+                        panelState.setError(scope.modelName, 'Invalid results received from server');
                     }
-                }, forceRunCount ? true : false);
+                });
             }, 50 + priority * 10, 1);
         };
 
@@ -615,6 +601,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             var m = appState.models[modelName];
             var zMin = plotRange.min;
             var zMax = plotRange.max;
+            if (zMin == zMax) {
+                // draw single value plot as lowest colormap value
+                zMax += 1;
+            }
             if (m.colorRangeType == 'fixed') {
                 zMin = m.colorMin;
                 zMax = m.colorMax;
@@ -751,7 +741,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return scope.isAnimation ? 1 : INITIAL_HEIGHT;
         },
 
-        initImage: function(plotRange, heatmap, cacheCanvas, imageData, modelName) {
+        initImage: function(plotRange, heatmap, cacheCanvas, imageData, modelName, threshold=null) {
             var scaleFunction = this.scaleFunction(modelName);
             if (scaleFunction) {
                 if (["e", "10", "2"].indexOf(scaleFunction.powerName) >= 0) {
@@ -774,13 +764,23 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 for (var xi = 0; xi < xSize; ++xi) {
                     var v = heatmap[yi][xi];
                     if (scaleFunction) {
+                        const old = v;
                         v = scaleFunction(v);
+                        if (! v && plotRange.min === 0 && old) {
+                            // special case for 0..n range with log scale
+                            // scale log(1) to a nonzero value
+                            v = 0.5;
+                        }
                     }
                     var c = d3.rgb(colorScale(v));
                     img.data[++p] = c.r;
                     img.data[++p] = c.g;
                     img.data[++p] = c.b;
-                    img.data[++p] = 255;
+                    let a = 255;
+                    if (threshold !== null) {
+                        a = v > threshold ? 255 : 0;
+                    }
+                    img.data[++p] = a;
                 }
             }
             try {
@@ -812,10 +812,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 scope.$broadcast('sr-plotEvent', args);
                 scope.$emit('sr-plotEvent', args);
             };
-
+            // work-around for #6230 Safari browser
+            $(element, 'div.sr-plot').on('wheel', e => {});
             scope.$on('$destroy', function() {
                 scope.destroy();
                 $(d3.select(scope.element).select('svg.sr-plot').node()).off();
+                $(scope.element, 'div.sr-plot').off();
                 scope.element = null;
             });
 
@@ -827,7 +829,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                         scope.modelChanged();
                     }
                     panelState.clear(scope.modelName);
-                    requestData();
+                    if (! scope.isClientOnly) {
+                        requestData();
+                    }
                 });
 
             scope.isLoading = () => panelState.isLoading(scope.modelName);
@@ -1728,75 +1732,103 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
 
     svc.parseLabelAndUnits = function(label, isFixedUnits) {
         const re = isFixedUnits ? /\((.*?)\)/ : /\[(.*?)\]/;
-        let units = '';
-        let match = label.match(re);
+        const match = label.match(re);
         if (match) {
-            units = match[1];
-            label = label.replace(re, '').trim();
+            return {
+                label: label.replace(re, '').trim(),
+                units: match[1],
+            };
         }
         return {
             label: label,
-            units: units
+            units: '',
         };
     };
 
     svc.plotAxis = function(margin, dimension, orientation, refresh) {
-        var MAX_TICKS = 10;
-        var ZERO_REGEX = /^\-?0(\.0+)?(e\+0)?$/;
+        const MAX_TICKS = 10;
+        const ZERO_REGEX = /^\-?0(\.0+)?(e\+0)?$/;
 
         // Using https://bl.ocks.org/mbostock/7621155 as a reference for log scales
-        var superscript = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+        const superscript = "⁰¹²³⁴⁵⁶⁷⁸⁹";
 
         // global value, don't allow margin updates during zoom/pad handling
         svc.plotAxis.allowUpdates = true;
 
-        var self = {};
-        var debouncedRefresh = utilities.debounce(function() {
-            var sum = margin.left + margin.right;
+        const self = {};
+        const debouncedRefresh = utilities.debounce(function() {
+            const sum = margin.left + margin.right;
             refresh();
             if (sum != margin.left + margin.right) {
                 refresh();
             }
         }, 500);
 
-        function applyUnit(v, unit) {
+
+        ///////
+        // these 3 methods are from a future version of d3, backported to this version of sirepo
+        function d3_exponent(x) {
+            x = d3_formatDecimalParts(Math.abs(x));
+            return x ? x[1] : NaN;
+        }
+
+        function d3_formatDecimalParts(x, p) {
+            if ((i = (x = p ? x.toExponential(p - 1) : x.toExponential()).indexOf("e")) < 0) {
+                return null;
+            }
+            var i, coefficient = x.slice(0, i);
+            return [
+                coefficient.length > 1 ? coefficient[0] + coefficient.slice(2) : coefficient,
+                +x.slice(i + 1)
+            ];
+        }
+
+        function d3_precisionRound(step, max) {
+            step = Math.abs(step);
+            max = Math.abs(max) - step;
+            return Math.max(0, d3_exponent(max) - d3_exponent(step)) + 1;
+        }
+        ///////
+
+        function applyUnit(v, base, unit) {
+            if (base) {
+                v -= base;
+            }
             return unit ? unit.scale(v) : v;
         }
 
-        function calcFormat(count, unit, base, isBaseFormat) {
+        function baseLabel() {
+            // remove any parenthesis first, ex. "p (mec)" --> "p"
+            const label = (self.label || '').replace(/\s\(.*/, '');
+            const res = label.length > 4 ? dimension : label;
+            // padding is unicode thin-space
+            return res ? ('< ' + res + ' >') : '';
+        }
+
+        function calcFormat(count, unit, base) {
             let code = 'e';
-            const tickValues = self.scale.ticks(count);
-            const v0 = applyUnit(tickValues[0] - (base || 0), unit);
-            const v1 = applyUnit(tickValues[tickValues.length - 1] - (base || 0), unit);
-            const p0 = valuePrecision(v0);
-            const p1 = valuePrecision(v1);
-            let decimals = valuePrecision(applyUnit(tickValues[1] - tickValues[0], unit));
-            if (isBaseFormat || useFloatFormat(decimals)) {
-                if ((v0 == 0 && useFloatFormat(p1)) || (v1 == 0 && useFloatFormat(p0)) || (useFloatFormat(p0) && useFloatFormat(p1))) {
-                    code = 'f';
+            let tickValues = self.scale.ticks(count);
+            if (tickValues.length < 2) {
+                tickValues = self.scale.ticks(count + 1);
+            }
+            const v0 = applyUnit(tickValues[0], base, unit);
+            const v1 = applyUnit(tickValues[1], base, unit);
+            const vn = applyUnit(tickValues[tickValues.length - 1], base, unit);
+            const max = Math.abs(v0) > Math.abs(vn) ? Math.abs(v0) : vn;
+            let decimals = d3_precisionRound(v1 - v0, max);
+            if (useFloatFormat(v0) && useFloatFormat(vn)) {
+                code = 'f';
+                decimals -= valuePrecision(max);
+                if (decimals < 0) {
+                    decimals = 0;
                 }
             }
-            else {
-                if (p0 == 0) {
-                    decimals -= p1;
-                }
-                else if (p1 == 0) {
-                    decimals -= p0;
-                }
-                else {
-                    decimals -= Math.max(p0, p1);
-                }
-            }
-            if (code == 'e' && decimals >= 0) {
-                decimals = -(p0 - decimals);
-            }
-            if (v0 == v1) {
-                decimals = 1;
-            }
-            else {
-                decimals = decimals < 0 ? Math.abs(decimals) : 0;
+            while (decimals > 0 && hasTrailingZeros(unit, base, code, decimals, tickValues)) {
+                decimals -= 1;
             }
             return {
+                base: base,
+                tickCount: tickValues.length,
                 decimals: decimals,
                 code: code,
                 unit: unit,
@@ -1805,14 +1837,10 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             };
         }
 
-        function calcTickCount(format, canvasSize, unit, base, fontSize) {
-            var d = self.scale.domain();
-            var width = Math.max(
-                4,
-                Math.max(format(applyUnit(d[0] - (base || 0), unit)).length, format(applyUnit(d[1] - (base || 0), unit)).length)
-            );
-            var tickCount;
+        function calcTickCount(formatInfo, canvasSize, fontSize) {
+            let tickCount;
             if (dimension == 'x') {
+                const width = Math.max(4, maxDomainWidth(formatInfo));
                 tickCount = Math.min(MAX_TICKS, Math.round(canvasSize.width / (width * fontSize)));
             }
             else {
@@ -1821,42 +1849,38 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             return Math.max(2, tickCount);
         }
 
-        //TODO(pjm): this could be refactored, moving the base recalc out
-        function calcTicks(formatInfo, canvasSize, unit, fontSize) {
-            var d = self.scale.domain();
-            var tickCount = calcTickCount(formatInfo.format, canvasSize, unit, null, fontSize);
-            formatInfo = calcFormat(tickCount, unit);
-            if (formatInfo.decimals > 3 && ! canvasSize.scaleFunction) {
-                var baseFormat = calcFormat(tickCount, unit, null, true).format;
-                var base = midPoint(formatInfo, d);
-                if (unit) {
-                    unit = formatPrefix(d, base);
-                }
-                formatInfo = calcFormat(tickCount, unit, base);
-                tickCount = calcTickCount(formatInfo.format, canvasSize, unit, base, fontSize);
-                var f2 = calcFormat(tickCount, unit);
-                base = midPoint(f2, d);
-                if (unit) {
-                    unit = formatPrefix(d, base);
-                }
-                formatInfo = calcFormat(tickCount, unit, base);
-                formatInfo.base = base;
+        function calcTicks(formatInfo, canvasSize, fontSize) {
+            formatInfo = calcFormat(
+                calcTickCount(formatInfo, canvasSize, fontSize),
+                formatInfo.unit,
+            );
+
+            if (formatInfo.decimals > 3 && ! canvasSize.scaleFunction && ! self.noBaseFormat) {
+                const baseFormat = formatInfo.format;
+                formatInfo = midPoint(formatInfo.tickValues, formatInfo.unit);
+                formatInfo = midPoint(
+                    calcFormat(
+                        calcTickCount(formatInfo, canvasSize, fontSize),
+                        formatInfo.unit,
+                    ).tickValues,
+                    formatInfo.unit,
+                );
                 formatInfo.baseFormat = baseFormat;
             }
             if ((orientation === 'left' || orientation === 'right') && ! canvasSize.isPlaying) {
-                var w = Math.max(formatInfo.format(applyUnit(d[0] - (formatInfo.base || 0), unit)).length, formatInfo.format(applyUnit(d[1] - (formatInfo.base || 0), unit)).length);
+                let w = maxDomainWidth(formatInfo) + 6;
                 if (canvasSize.scaleFunction) {
                     w += 2;
                 }
-                margin[orientation] = (w + 6) * (fontSize / 2);
+                margin[orientation] = w * (fontSize / 2);
             }
-            self.svgAxis.ticks(tickCount);
-            self.tickCount = tickCount;
-            self.svgAxis.tickFormat(function(v) {
+            self.svgAxis.ticks(formatInfo.tickCount);
+            self.tickCount = formatInfo.tickCount;
+            self.svgAxis.tickFormat(v => {
                 if (canvasSize.scaleFunction) {
                     return formatScale(v, canvasSize.scaleFunction);
                 }
-                var res = formatInfo.format(applyUnit(v - (formatInfo.base || 0), unit));
+                const res = formatInfo.format(applyUnit(v, formatInfo.base, formatInfo.unit));
                 // format zero values as '0'
                 if (ZERO_REGEX.test(res)) {
                     return '0';
@@ -1867,13 +1891,36 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             return formatInfo;
         }
 
+        function formatBase(formatInfo, unit) {
+            let v = '';
+            if (formatInfo.base) {
+                let label = baseLabel();
+                if (label) {
+                    label += ' = ';
+                }
+                else {
+                    if (formatInfo.base > 0) {
+                        label = '+';
+                    }
+                }
+                v = label + formatInfo.baseFormat(applyUnit(formatInfo.base, 0, unit))
+                                      .replace(/(\.\d+?)0+($|e)/, '$1$2')
+                                      .replace(/\.0+($|e)/, '$1');
+                if (unit) {
+                    v += ' ' + unit.symbol + self.units;
+                }
+            }
+            return v;
+        }
+
         // If the axis is set to preserve units, use whatever prefix the plot started
         // with regardless of zoom.  Useful for non-linear units (1/sec, m^2, etc)
-        function formatPrefix(dom, base) {
+        function formatPrefix(base) {
+            const d = self.scale.domain();
             if (! base) {
                 base = 0;
             }
-            return d3.formatPrefix(Math.max(Math.abs(dom[0] - base), Math.abs(dom[1] - base)), 0);
+            return d3.formatPrefix(Math.max(Math.abs(d[0] - base), Math.abs(d[1] - base)), 0);
         }
 
         function formatScale(v, scaleFunction) {
@@ -1887,21 +1934,45 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             return '';
         }
 
-        function midPoint(formatInfo, domain) {
-            // find the tickValue which is closest to the domain midpoint
-            var mid = domain[0] + (domain[1] - domain[0]) / 2;
-            var values = formatInfo.tickValues;
-            var v = (values.length - 1) / 2;
-            var i1 = Math.floor(v);
-            var i2 = Math.ceil(v);
-            if (Math.abs(values[i1] - mid) > Math.abs(values[i2] - mid)) {
-                return values[i2];
-            }
-            return values[i1];
+        function hasTrailingZeros(unit, base, code, decimals, tickValues) {
+            const f = d3.format('.' + decimals + code);
+            return tickValues.every(v => {
+                const vf = f(applyUnit(v, base, unit));
+                return vf.search(/\.\d*0e/) >= 0 || vf.search(/\.\d*0$/) >= 0;
+            });
         }
 
-        function useFloatFormat(logV) {
-            return logV >= -2 && logV <= 3;
+        function maxDomainWidth(formatInfo) {
+            const d = self.scale.domain();
+            return Math.max(
+                formatInfo.format(applyUnit(d[0], formatInfo.base, formatInfo.unit)).length,
+                formatInfo.format(applyUnit(d[1], formatInfo.base, formatInfo.unit)).length,
+            );
+        }
+
+        function midPoint(tickValues, unit) {
+            // find the tickValue which is closest to the domain midpoint
+            const d = self.scale.domain();
+            const mid = d[0] + (d[1] - d[0]) / 2;
+            const v = (tickValues.length - 1) / 2;
+            const i1 = Math.floor(v);
+            const i2 = Math.ceil(v);
+            let base;
+            if (Math.abs(tickValues[i1] - mid) > Math.abs(tickValues[i2] - mid)) {
+                base = tickValues[i2];
+            }
+            else {
+                base = tickValues[i1];
+            }
+            if (unit) {
+                unit = formatPrefix(base);
+            }
+            return calcFormat(tickValues.length, unit, base);
+        }
+
+        function useFloatFormat(v) {
+            v = valuePrecision(v);
+            return v >= -2 && v <= 3;
         }
 
         function valuePrecision(v) {
@@ -1933,7 +2004,7 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
         };
 
         self.parseLabelAndUnits = function(label) {
-            var lu = svc.parseLabelAndUnits(label);
+            const lu = svc.parseLabelAndUnits(label);
             self.units = lu.units;
             self.unitSymbol = '';
             self.label = lu.label;
@@ -1944,55 +2015,28 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             select(`.${dimension}-axis-label`).text(label);
         };
 
-        function baseLabel() {
-            // remove any parenthesis first, ex. "p (mec)" --> "p"
-            var label = (self.label || '').replace(/\s\(.*/, '');
-            var res = label.length > 4 ? dimension : label;
-            // padding is unicode thin-space
-            return res ? ('< ' + res + ' >') : '';
-        }
-
         self.updateLabelAndTicks = function(canvasSize, select, cssPrefix) {
             if (svc.plotAxis.allowUpdates) {
                 // update the axis to get the tick font size from the css
                 select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
-                var fontSize = plotting.tickFontSize(select('.sr-plot .axis text'));
-                var formatInfo, unit;
+                const fontSize = plotting.tickFontSize(select('.sr-plot .axis text'));
+                let formatInfo, unit;
                 if (self.units) {
-                    var d = self.scale.domain();
-                    unit = formatPrefix(d, 0);
-                    formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, unit, fontSize);
+                    unit = formatPrefix(0);
+                    formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, fontSize);
                     select('.' + dimension + '-axis-label').text(
                         self.label + (formatInfo.base ? (' - ' + baseLabel()) : '')
                         + ' ' + svc.formatUnits(formatInfo.unit.symbol + self.units));
                 }
                 else {
-                    formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize, null, fontSize);
+                    formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize, fontSize);
                     if (self.label) {
                         select('.' + dimension + '-axis-label').text(
                             self.label + (formatInfo.base ? (' - ' + baseLabel()) : ''));
                     }
                 }
-                var formattedBase = '';
-                if (formatInfo.base) {
-                    var label = baseLabel();
-                    if (label) {
-                        label += ' = ';
-                    }
-                    else {
-                        if (formatInfo.base > 0) {
-                            label = '+';
-                        }
-                    }
-                    formattedBase = label + formatInfo.baseFormat(applyUnit(formatInfo.base, unit));
-                    formattedBase = formattedBase.replace(/0+$/, '');
-                    formattedBase = formattedBase.replace(/0+e/, 'e');
-                    if (unit) {
-                        formattedBase += unit.symbol + self.units;
-                    }
-                }
                 if (! self.noBaseFormat) {
-                    select('.' + dimension + '-base').text(formattedBase);
+                    select('.' + dimension + '-base').text(formatBase(formatInfo, unit));
                 }
             }
             select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
@@ -3027,7 +3071,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 axes.y.grid = axes.y.createAxis('left');
                 resetZoom();
                 canvas = select('canvas').node();
-                ctx = canvas.getContext('2d');
+                ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
                 axes.x.cutLine = d3.svg.line()
                     .x(function(d) {return axes.x.scale(d[0]);})
@@ -3190,16 +3234,21 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
-            var aspectRatio = 1.0;
-            var canvas, ctx, amrLine, heatmap, mouseMovePoint, pointer, zoom;
-            var globalMin = 0.0;
-            var globalMax = 1.0;
-            var cacheCanvas, imageData;
-            var colorbar, hideColorBar;
-            var axes = {
+            const axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
             };
+            const overlayDataClass = 'sr-overlay-data';
+
+            let aspectRatio = 1.0;
+            let canvas, ctx, amrLine, heatmap, mouseMovePoint, pointer, zoom;
+            let globalMin = 0.0;
+            let globalMax = 1.0;
+            let threshold = null;
+            let cacheCanvas, imageData;
+            let colorbar, hideColorBar;
+
+            let overlayData = null;
 
             function colorbarSize() {
                 var tickFormat = colorbar.tickFormat();
@@ -3213,6 +3262,18 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 var res = textSize + colorbar.thickness() + colorbar.margin().left;
                 colorbar.margin().right = res;
                 return res;
+            }
+
+            function drawOverlay() {
+                const ns = 'http://www.w3.org/2000/svg';
+                let ds = d3.select('svg.sr-plot g.sr-overlay-data-group')
+                    .selectAll(`path.${overlayDataClass}`)
+                    .data(overlayData);
+                ds.exit().remove();
+                ds.enter()
+                    .append(d => document.createElementNS(ns, 'path'))
+                    .append(d => document.createElementNS(ns, 'title'));
+                ds.call(updateOverlay);
             }
 
             function getRange(values) {
@@ -3279,6 +3340,10 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     select('svg.colorbar').remove();
                     $scope.margin.right = 20;
                 }
+
+                if (overlayData) {
+                    drawOverlay();
+                }
             }
 
             function resetZoom() {
@@ -3301,7 +3366,12 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                         min: plotMin,
                         max: plotMax,
                     },
-                    heatmap, cacheCanvas, imageData, $scope.modelName);
+                    heatmap,
+                    cacheCanvas,
+                    imageData,
+                    $scope.modelName,
+                    threshold
+                );
                 colorbar.scale(colorScale);
             }
 
@@ -3312,13 +3382,34 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return false;
             }
 
+            function updateOverlay(selection) {
+                selection
+                    .attr('class', overlayDataClass)
+                    .attr('id', d => {
+                        return `${overlayDataClass}-${d.name}`;
+                    })
+                    .attr('clip-path', 'url(#sr-plot-window)')
+                    .attr('stroke', d => d.color)
+                    .attr('stroke-width', 2.0)
+                    .attr('fill', 'none')
+                    .attr('d', d => {
+                        // we don't use the SVGPath directly, but it is a convenient way to build
+                        // a path string
+                        return new SIREPO.DOM.SVGPath(
+                            null,
+                            d.data.map(c => [axes.x.scale(c[0]), axes.y.scale(c[1])])
+                        ).pathString();
+                    })
+                    .select('title').text(d => d.name);
+            }
+
             $scope.clearData = function() {
                 $scope.dataCleared = true;
                 $scope.prevFrameIndex = SIREPO.nonDataFileFrame;
             };
 
             $scope.destroy = function() {
-                $('.mouse-rect').off();
+                select('.mouse-rect').on('mousemove', null);
                 zoom.on('zoom', null);
                 document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
@@ -3335,7 +3426,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     mouseMovePoint = d3.mouse(this);
                     mouseMove();
                 });
-                ctx = canvas.getContext('2d');
+                ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
                 colorbar = Colorbar()
                     .margin({top: 10, right: 100, bottom: 20, left: 10})
@@ -3356,18 +3447,29 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     //TODO(pjm): plot may be loaded with { state: 'canceled' }?
                     return;
                 }
+                overlayData = json.overlayData;
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
                 heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
                 globalMin = json.global_min;
                 globalMax = json.global_max;
+                threshold = json.threshold;
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
+                let c = false;
                 $.each(axes, function(dim, axis) {
-                    axis.values = plotting.linearlySpacedArray(json[dim + '_range'][0], json[dim + '_range'][1], json[dim + '_range'][2]);
+                    const r = axis.values && getRange(axis.values);
+                    axis.values = plotting.linearlySpacedArray(...json[dim + '_range']);
                     axis.updateLabel(json[dim + '_label'], select);
-                    axis.scale.domain(getRange(axis.values));
+                    if (! appState.deepEquals(r, getRange(axis.values))) {
+                        c = true;
+                    }
                 });
+                if (c) {
+                    Object.values(axes).forEach(axis => {
+                        axis.scale.domain(getRange(axis.values));
+                    });
+                }
                 cacheCanvas.width = axes.x.values.length;
                 cacheCanvas.height = axes.y.values.length;
                 imageData = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
@@ -3421,6 +3523,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             var includeForDomain = [];
             var childPlots = {};
             var scaleFunction;
+            var plotVisibilty = {};
             let dynamicYLabel = false;
 
             // for built-in d3 symbols - the units are *pixels squared*
@@ -3493,6 +3596,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return true;
             }
 
+            function cachedPlotVisibilty(pIndex, modelName) {
+                plotVisibilty[modelName] = plotVisibilty[modelName] || {};
+                if (! plotVisibilty[modelName].hasOwnProperty(pIndex)) {
+                    plotVisibilty[modelName][pIndex] = false;
+                  }
+                return plotVisibilty[modelName][pIndex];
+            }
+
             function createLegend() {
                 const plots = $scope.axes.y.plots;
                 var legend = $scope.select('.sr-plot-legend');
@@ -3516,7 +3627,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         .attr('y', 17 + count * 20)
                         .text(vIconText(true))
                         .on('click', function() {
-                            togglePlot(i);
+                            togglePlot(i, $scope.modelName);
                             $scope.$applyAsync();
                         });
                     itemWidth = item.node().getBBox().width;
@@ -3642,9 +3753,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 });
             }
 
-            function togglePlot(pIndex) {
+            function togglePlot(pIndex, modelName) {
                 setPlotVisible(pIndex, ! isPlotVisible(pIndex));
                 updateYLabel();
+                if (plotVisibilty) {
+                    plotVisibilty[modelName][pIndex] = ! plotVisibilty[modelName][pIndex];
+                }
             }
 
             function updateYLabel() {
@@ -3817,8 +3931,11 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     // beamline overlay always starts at position 0
                     xdom[0] = 0;
                 }
-                $scope.axes.x.domain = xdom;
-                $scope.axes.x.scale.domain(xdom);
+
+                if (! appState.deepEquals(xdom, $scope.axes.x.domain)) {
+                    $scope.axes.x.domain = xdom;
+                    $scope.axes.x.scale.domain(xdom);
+                }
                 scaleFunction = plotting.scaleFunction($scope.modelName);
                 $scope.axes.y.domain = plotting.ensureDomain([json.y_range[0], json.y_range[1]], scaleFunction);
                 $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
@@ -3966,6 +4083,20 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     setPlotVisible(ip, true);
                 });
                 updateYLabel();
+                plots.forEach(function(plot, i) {
+                    if (cachedPlotVisibilty(i, $scope.modelName)) {
+                        setPlotVisible(i, ! isPlotVisible(i));
+                    }
+                });
+
+                $scope.$on(
+                    $scope.modelName + '.changed',
+                    () => {
+                        plots.forEach((plot, i) => {
+                            plotVisibilty[$scope.modelName][i] = false;
+                        });
+                    }
+                );
             };
 
             $scope.recalculateYDomain = function() {
@@ -4009,9 +4140,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                 $scope.axes[dim].scale.invert(0));
                         }
                     }
+                    const xdom = $scope.axes.x.domain;
                     $scope.setYDomain();
                     $scope.padXDomain();
-                    $scope.axes.x.scale.domain($scope.axes.x.domain);
+                    if (! appState.deepEquals(xdom, $scope.axes.x.domain)) {
+                        $scope.axes.x.scale.domain($scope.axes.x.domain);
+                    }
                 }
 
                 $scope.select('.plot-viewport').selectAll('.line')

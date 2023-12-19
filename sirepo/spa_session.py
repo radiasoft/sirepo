@@ -10,7 +10,7 @@ import contextlib
 import datetime
 import sirepo.quest
 import sirepo.srtime
-import sirepo.util
+import threading
 
 _REFRESH_SESSION = datetime.timedelta(seconds=5 * 60)
 
@@ -40,12 +40,10 @@ async def init_quest(qcall):
         if s:
             if t - s.request_time < _REFRESH_SESSION:
                 return False
-            with sirepo.util.THREAD_LOCK:
-                s.request_time = t
+            s.request_time = t
         else:
             s = PKDict(request_time=t)
-            with sirepo.util.THREAD_LOCK:
-                _DB[u] = s
+            _DB[u] = s
         return True
 
     if qcall.sreq.method_is_post() and qcall.auth.is_logged_in() and _check():

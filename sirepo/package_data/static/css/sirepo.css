@@ -352,6 +352,14 @@
     .sr-panel-running .sr-panel-wait {
       font-weight: bold;
     }
+    .sr-panel-waiting {
+      background-color: #777;
+    }
+    .sr-panel-waiting .sr-panel-wait {
+      color: white;
+      display: block;
+      z-index: 1000;
+    }
     .sr-hide-report {
       opacity: 0;
       height: 0;
@@ -902,8 +910,9 @@ ul.sr-nav-sidebar-root {
   text-decoration: none;
 }
 .sr-iconset .sr-icon-view-toggle {
+  padding-left: 1em;
   float: right;
-  min-width: 8em;
+  min-width: 9em;
 }
 .sr-icon-col {
   float: left;
@@ -1151,4 +1160,29 @@ label .katex {
 
 .sr-disabled-item {
   background-color: lightgray !important;
+}
+
+img.sr-disabled-image {
+  filter: opacity(0.5);
+}
+
+@keyframes icon-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.completed-icon {
+  color: green;
+}
+
+.error-icon {
+  color: red;
+}
+
+.running-icon {
+  animation: icon-rotate 2s linear 0s infinite;
 }

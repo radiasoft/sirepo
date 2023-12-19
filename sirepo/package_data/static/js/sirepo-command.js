@@ -50,7 +50,7 @@ SIREPO.app.factory('commandService', function(appState, latticeService, panelSta
 
     self.editCommand = function(item) {
         var modelName = self.commandModelName(item._type);
-        appState.models[modelName] = self.commandForId(item._id);
+        appState.models[modelName] = self.commandForId(item._id) || item;
         if (latticeService.includeCommandNames) {
             latticeService.setValidator(modelName, item);
         }
@@ -81,6 +81,15 @@ SIREPO.app.factory('commandService', function(appState, latticeService, panelSta
     self.formatFieldValue = function(value, type) {
         return value;
     };
+
+    self.getNextCommand = type => {
+         return {
+             _id: latticeService.nextId(),
+             type: type,
+             name: latticeService.uniqueNameForType(type.substring(0, 2).toUpperCase()),
+         };
+    };
+
 
     self.isCommandModelName = latticeService.isCommandModelName;
 
@@ -132,7 +141,7 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
               <table class="table table-hover" style="width: 100%; table-layout: fixed">
                 <tr data-ng-repeat="cmd in commands" data-ng-class="{'sr-disabled-item': cmd.isDisabled == '1'}">
                   <td data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)" data-ng-drag-start="selectItem($data)">
-                    <div class="sr-button-bar-parent pull-right"><div class="sr-button-bar" data-ng-class="{'sr-disabled-item': cmd.isDisabled == '1'}"><button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, cmd)" title="Move item up"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == commands.length - 1" data-ng-click="moveItem(1, cmd)" title="Move item down"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="toggleDisableCommand(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{'glyphicon-ok-circle': cmd.isDisabled == '1', 'glyphicon-ban-circle': cmd.isDisabled == '0'}" data-ng-attr-title="{{ enableItemToggleTitle(cmd) }}"></span></button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs" data-ng-attr-title="{{ expandCommandTitle(cmd) }}"><span class="glyphicon" data-ng-class="{'glyphicon-chevron-up': isExpanded(cmd), 'glyphicon-chevron-down': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs" title="Delete item"><span class="glyphicon glyphicon-remove"></span></button></div></div>
+                    <div class="sr-button-bar-parent pull-right"><div class="sr-button-bar" data-ng-class="{'sr-disabled-item': cmd.isDisabled == '1'}"><button class="btn btn-info btn-xs" data-ng-disabled="$index == 0" data-ng-click="moveItem(-1, cmd)" title="Move item up"><span class="glyphicon glyphicon-arrow-up"></span></button> <button class="btn btn-info btn-xs" data-ng-disabled="$index == commands.length - 1" data-ng-click="moveItem(1, cmd)" title="Move item down"><span class="glyphicon glyphicon-arrow-down"></span></button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyCommand(cmd)">Copy</button> <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="editCommand(cmd)">Edit</button> <button data-ng-click="toggleDisableCommand(cmd)" class="btn btn-info btn-xs"><span class="glyphicon" data-ng-class="{'glyphicon-ok-circle': cmd.isDisabled == '1', 'glyphicon-ban-circle': cmd.isDisabled == '0'}" data-ng-attr-title="{{ enableItemToggleTitle(cmd) }}"></span></button> <button data-ng-click="expandCommand(cmd)" data-ng-disabled="isExpandDisabled(cmd)" class="btn btn-info btn-xs" data-ng-attr-title="{{ expandCommandTitle(cmd) }}"><span class="glyphicon" data-ng-class="{'glyphicon-chevron-up': isExpanded(cmd), 'glyphicon-chevron-down': ! isExpanded(cmd)}"></span></button> <button data-ng-click="deleteCommand(cmd)" class="btn btn-danger btn-xs" title="Delete item"><span class="glyphicon glyphicon-remove"></span></button></div></div>
                     <div class="sr-command-icon-holder" data-ng-drag="true" data-ng-drag-data="cmd">
                       <a style="cursor: move; -moz-user-select: none; font-size: 14px" class="badge sr-badge-icon" data-ng-class="{'sr-item-selected': isSelected(cmd) }" href data-ng-click="selectItem(cmd)" data-ng-dblclick="editCommand(cmd)">{{ commandName(cmd) }}</a>
                     </div>
@@ -241,6 +250,10 @@ SIREPO.app.directive('commandTable', function(appState, commandService, latticeS
                 }
                 return -1;
             }
+
+            $scope.copyCommand = cmd => {
+                $scope.editCommand({...commandService.commandForId(cmd._id), ...commandService.getNextCommand(cmd._type)});
+            };
 
             $scope.commandName = function(cmd) {
                 return commandService.formatCommandName(cmd);

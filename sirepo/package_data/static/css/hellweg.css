@@ -1,0 +1,43 @@
+.hellweg-icon {
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+  display: inline-block;
+}
+
+.hellweg-icon span {
+  cursor: move;
+  display: inline-block;
+  min-width: 6em;
+  padding: 1ex;
+  margin-right: 1em;
+}
+
+.hellweg-beamline-table td div {
+  transition: padding 0.5s ease 0s;
+}
+
+.hellweg-beamline-table td.drag-enter {
+  background-color: #d9edf7;
+}
+
+.hellweg-beamline-table td.drag-enter div.hellweg-icon {
+  padding-top: 2em;
+}
+
+.hellweg-beamline-table td.drag-enter div.dragging {
+  padding-top: 0;
+}
+
+table.hellweg-beamline-table.drag-enter div.sr-button-bar-parent {
+  display: none;
+}
+
+div.hellweg-icon.dragging {
+  visibility: hidden;
+}
+
+p.hellweg-drop-zone {
+  margin: 0;
+  padding-bottom: 25px;
+}

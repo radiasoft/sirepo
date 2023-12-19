@@ -13,7 +13,7 @@ _DEPENDENT_CODES = [
     ["jspec", "elegant"],
     ["controls", "madx"],
     ["omega", "elegant"],
-    ["omega", "madx"],
+    ["omega", "genesis"],
     ["omega", "opal"],
 ]
 
@@ -31,6 +31,7 @@ PROD_FOSS_CODES = frozenset(
         "opal",
         "radia",
         "shadow",
+        "silas",
         "srw",
         "warppba",
         "warpvnd",
@@ -41,9 +42,9 @@ PROD_FOSS_CODES = frozenset(
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset(
     (
+        "epicsllrf",
         "myapp",
-        "silas",
-        "rshellweg",
+        "hellweg",
     )
 )
 
@@ -96,6 +97,10 @@ def for_sim_type(sim_type):
     )
 
 
+def is_react_sim_type(sim_type):
+    return cfg().ui_react and sim_type in cfg().react_sim_types
+
+
 def proprietary_sim_types():
     """All sim types that have proprietary information and require granted access to use
 
@@ -121,6 +126,7 @@ def _is_fedora_36():
 def _init():
     from pykern import pkconfig
     from pykern import pkio
+    from pykern.pkdebug import pkdp
 
     global _cfg
 
@@ -145,6 +151,11 @@ def _init():
             frozenset(),
             set,
             "codes where all users are authorized by default but that authorization can be revoked",
+        ),
+        enable_global_resources=(
+            False,
+            bool,
+            "enable the global resources allocation system",
         ),
         jspec=dict(
             derbenevskrinsky_force_formula=_test(
@@ -179,9 +190,9 @@ def _init():
             ),
         ),
         react_sim_types=(
-            ("jspec", "genesis", "warppba", "omega", "myapp")
-            if pkconfig.in_dev_mode()
-            else ("omega",),
+            ("jspec", "genesis", "warppba", "myapp", "shadow", "madx")
+            if pkconfig.channel_in("dev")
+            else (),
             set,
             "React apps",
         ),
@@ -205,6 +216,12 @@ def _init():
             False,
             bool,
             "Trust Bash env to run Python and agents",
+        ),
+        ui_react=(False, bool, "global control for React UI"),
+        ui_websocket=(
+            pkconfig.in_dev_mode(),
+            bool,
+            "whether the UI should use a websocket",
         ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, "Include 3D features in the Warp VND UI"),

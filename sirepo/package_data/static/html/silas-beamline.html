@@ -1,8 +1,7 @@
-<div class="container-fluid" data-ng-if="beamline.appState.isLoaded()">
+<div class="container-fluid">
   <div data-beamline-toolbar="beamline.toolbarItemNames" data-parent-controller="beamline"></div>
   <div data-beamline-builder="beamline" data-beamline-models="beamline.beamlineModels"></div>
-  <div class="row">
-    <div data-beamline-reports=""></div>
-  </div>
 </div>
+<div data-beamline-animation=""></div>
+<div data-watchpoint-modal-editor="" data-item-id="0"></div>
 <div data-watchpoint-modal-editor="" data-ng-repeat="item in beamline.beamlineService.getWatchItems() track by item.id" data-item-id="item.id"></div>

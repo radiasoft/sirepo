@@ -1,0 +1,15 @@
+<svg class="srw-beamline-item-icon" version="1.1" id="Splitter" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 612 792" style="enable-background:new 0 0 612 792;" xml:space="preserve">
+<style type="text/css">
+	.splitter-st0{fill:#BBD8F1;}
+	.splitter-st1{fill:#6396B6;}
+	.splitter-st2{fill:#3A53A4;}
+</style>
+
+<g>
+    <g transform="matrix(0.71678013,0,0,0.71678013,-63.872638,-4.7358715)">
+        <path class="splitter-st0" id="path865" d="m 172.68878,14.057617 h -46.0827 a 1.0959399,1.0959399 112.5 0 0 -0.77494,1.870886 l 47.63258,47.632577 a 1.0959402,1.0959402 157.5 0 0 1.87089,-0.774947 l 0,-46.082683 a 2.6458333,2.6458333 45 0 0 -2.64583,-2.645833 z" style="stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"/>
+        <use height="100%" width="100%" transform="rotate(180,149.64743,39.744792)" id="use883" xlink:href="#path865" y="0" x="0"/>
+    </g>
+</g>
+</svg>

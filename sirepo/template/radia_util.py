@@ -16,9 +16,9 @@ from pykern.pkdebug import pkdp
 AXES = ["x", "y", "z"]
 
 AXIS_VECTORS = PKDict(
-    x=numpy.array([1, 0, 0]),
-    y=numpy.array([0, 1, 0]),
-    z=numpy.array([0, 0, 1]),
+    x=numpy.array([1.0, 0, 0]),
+    y=numpy.array([0, 1.0, 0]),
+    z=numpy.array([0, 0, 1.0]),
 )
 
 
@@ -93,13 +93,11 @@ def _apply_bevel(g_id, **kwargs):
         + numpy.array(dirs.heightDir) * [1, 1, -1, -1][e] * numpy.sqrt(vx2 / v2)
     )
 
-    # args are object id, point in plane, plane normal - returns array of new ids
-    return radia.ObjCutMag(
+    return _apply_cut(
         g_id,
-        (_corner_for_axes(e, **dirs, **kwargs) + w_offset).tolist(),
-        plane.tolist(),
-        "Frame->Lab",
-    )[0]
+        cutPoint=(_corner_for_axes(e, **dirs, **kwargs) + w_offset).tolist(),
+        cutPlane=plane.tolist(),
+    )
 
 
 def _apply_clone(g_id, xform):
@@ -124,6 +122,21 @@ def _apply_clone(g_id, xform):
     radia.TrfMlt(g_id, total_xform, xform.numCopies + 1)
 
 
+def _apply_cut(g_id, **kwargs):
+    d = PKDict(kwargs)
+    p = d.cutPoint
+    if d.get("useObjectCenter", "0") == "1":
+        p = (numpy.array(p) + numpy.array(d.obj_center)).tolist()
+
+    # args are object id, point in plane, plane normal - returns array of new ids
+    return radia.ObjCutMag(
+        g_id,
+        p,
+        d.cutPlane,
+        "Frame->Lab",
+    )[0]
+
+
 def _apply_fillet(g_id, **kwargs):
     d = PKDict(kwargs)
 
@@ -145,17 +158,43 @@ def _apply_fillet(g_id, **kwargs):
         _corner_for_axes(int(d.edge), **dirs, **kwargs)
         + w_offset
         + h_offset
-        - (numpy.array(d.size) / 2) * dirs.lenDir
+        - (numpy.array(d.obj_size) / 2) * dirs.lenDir
     )
-    c_id = build_cylinder(
-        extrusion_axis=d.cutAxis,
+    c_id = _build_cylinder(
         center=ctr,
-        num_sides=d.numSides,
-        seg_type="pln",
-        **{k: v for k, v in kwargs.items() if k != "center"},
+        extrusionAxis=d.cutAxis,
+        segmentation="cyl",
+        size=d.obj_size,
+        **kwargs,
     )
     c_id = _apply_bevel(c_id, cutRemoval=-1, **cut_amts, **kwargs)
     return build_container([g_id, c_id])
+
+
+def _apply_material(g_id, **kwargs):
+    def _radia_material(**kwargs):
+        d = PKDict(kwargs)
+        if d.material == "custom":
+            return radia.MatSatIsoTab(
+                [
+                    [_MU_0 * d.h_m_curve[i][0], d.h_m_curve[i][1]]
+                    for i in range(len(d.h_m_curve))
+                ]
+            )
+        if d.material == "nonlinear":
+            f = d.materialFormula
+            return radia.MatSatIsoFrm(f[0:2], f[2:4], f[4:6])
+        return radia.MatStd(d.material, d.remanentMag)
+
+    radia.MatApl(g_id, _radia_material(**kwargs))
+
+
+def _apply_modification(g_id, **kwargs):
+    return PKDict(
+        objectBevel=_apply_bevel,
+        objectCut=_apply_cut,
+        objectFillet=_apply_fillet,
+    )[kwargs.get("type")](g_id, **kwargs)
 
 
 def _apply_rotation(g_id, xform):
@@ -174,23 +213,36 @@ def _apply_rotation(g_id, xform):
     )
 
 
-def _apply_segments(g_id, segments, seg_type="pln", **kwargs):
-    if segments and any([s > 1 for s in segments]):
-        if seg_type == "pln":
-            radia.ObjDivMag(g_id, segments)
+def _apply_segments(g_id, **kwargs):
+    d = PKDict(kwargs)
+    if d.segments and any([s > 1 for s in d.segments]):
+        if d.segmentation == "pln":
+            radia.ObjDivMag(g_id, d.segments)
         # cylindrical division does not seem to work properly in the local frame if the
         # axis is not "x" and the center is not [0, 0, 0]
-        if seg_type == "cyl":
-            d = PKDict(kwargs)
+        if d.segmentation == "cyl":
+            p = (
+                d.center
+                if d.segmentationCylUseObjectCenter == "1"
+                else d.segmentationCylPoint
+            )
+            # The radial segment number is "number of segments between 0 and the given radius",
+            # except when it is 1 in which case it's "none". We ignore it and prompt the user
+            # for the radial size. Since 1 is special we say "2 segments in twice the radius"
             radia.ObjDivMag(
                 g_id,
-                segments,
-                seg_type,
+                [2, d.segments[1], d.segments[2]],
+                d.segmentation,
                 [
-                    d.center,
-                    d.axis,
-                    d.perp_axis,
-                    1.0,
+                    p,
+                    AXIS_VECTORS[d.segmentationCylAxis].tolist(),
+                    (
+                        2.0
+                        * d.segmentationCylRadius
+                        * AXIS_VECTORS[next_axis(d.segmentationCylAxis)]
+                        + p
+                    ).tolist(),
+                    d.segmentationCylRatio,
                 ],
                 "Frame->Lab",
             )
@@ -214,15 +266,53 @@ def _apply_translation(g_id, xform):
     )
 
 
-def axes_index(axis):
-    return AXES.index(axis)
-
-
 def _bevel_offsets_for_axes(edge_index, **kwargs):
     d = PKDict(kwargs)
     return (
         d.amountHoriz * numpy.array(d.widthDir) * [1, -1, -1, 1][edge_index],
         d.amountVert * numpy.array(d.heightDir) * [-1, -1, 1, 1][edge_index],
+    )
+
+
+def _build_cuboid(**kwargs):
+    d = PKDict(kwargs)
+    return radia.ObjRecMag(d.center, d.size, d.magnetization)
+
+
+def _build_stl(**kwargs):
+    d = PKDict(kwargs)
+    g_id = radia.ObjPolyhdr(
+        d.stlVertices, (numpy.array(d.stlFaces) + 1).tolist(), d.magnetization
+    )
+    if d.preserveVerticesOnImport == "0":
+        center = [x - d.stlBoundsCenter[i] for i, x in enumerate(d.center)]
+        radia.TrfOrnt(g_id, radia.TrfTrsl([center[0], center[1], center[2]]))
+    return g_id
+
+
+def _build_cylinder(**kwargs):
+    d = PKDict(kwargs)
+    return radia.ObjCylMag(
+        d.center,
+        d.radius,
+        d.size[axes_index(d.extrusionAxis)],
+        d.numSides,
+        d.extrusionAxis,
+        d.magnetization,
+    )
+
+
+def _build_racetrack(**kwargs):
+    d = PKDict(kwargs)
+    return radia.ObjRaceTrk(
+        d.center,
+        d.radii,
+        d.sides,
+        d.height,
+        d.numSegments,
+        d.currentDensity,
+        d.fieldCalc,
+        d.axis,
     )
 
 
@@ -251,10 +341,26 @@ def _corner_for_axes(edge_index, **kwargs):
     h = numpy.array(d.heightDir)
     w = numpy.array(d.widthDir)
     return (
-        numpy.array(d.center)
-        + numpy.array(d.size)
+        numpy.array(d.obj_center)
+        + numpy.array(d.obj_size)
         / 2
         * [-w + h + l, w + h + l, w - h + l, -w - h + l][edge_index]
+    )
+
+
+def _extrude(**kwargs):
+    d = PKDict(kwargs)
+    b = AXIS_VECTORS[d.extrusionAxis]
+    return radia.ObjMltExtTri(
+        numpy.sum(b * d.center),
+        numpy.sum(b * d.size),
+        d.points,
+        numpy.full((len(d.points), 2), [1, 1]).tolist(),
+        d.extrusionAxis,
+        d.magnetization,
+        f"TriAreaMax->{0.125 * d.area * (1.04 - d.triangulationLevel)}"
+        if d.triangulationLevel > 0
+        else "",
     )
 
 
@@ -266,97 +372,57 @@ def _geom_bounds(g_id):
     )
 
 
-def _radia_material(material_type, magnetization_magnitude, h_m_curve):
-    if material_type == "custom":
-        return radia.MatSatIsoTab(
-            [[_MU_0 * h_m_curve[i][0], h_m_curve[i][1]] for i in range(len(h_m_curve))]
-        )
-    return radia.MatStd(material_type, magnetization_magnitude)
-
-
-_MODS = PKDict(
-    objectBevel=_apply_bevel,
-    objectFillet=_apply_fillet,
-    rotate=_apply_rotation,
-    translate=_apply_translation,
-)
-
-_TRANSFORMS = PKDict(
-    cloneTransform=_apply_clone,
-    symmetryTransform=_apply_symmetry,
-    rotate=_apply_rotation,
-    translate=_apply_translation,
-)
-
-
 def apply_color(g_id, color):
     radia.ObjDrwAtr(g_id, color)
 
 
-def multiply_vector_by_matrix(v, m):
-    return numpy.array(m).dot(numpy.array(v)).tolist()
-
-
 def apply_transform(g_id, **kwargs):
-    _TRANSFORMS[kwargs["type"]](g_id, kwargs)
+    PKDict(
+        cloneTransform=_apply_clone,
+        symmetryTransform=_apply_symmetry,
+        rotate=_apply_rotation,
+        translate=_apply_translation,
+    )[kwargs.get("type")](g_id, kwargs)
 
 
-def apply_modification(g_id, **kwargs):
-    return _MODS[kwargs["type"]](g_id, **kwargs)
+def axes_index(axis):
+    return AXES.index(axis)
 
 
 def build_container(g_ids):
     return radia.ObjCnt(g_ids)
 
 
-def build_cuboid(**kwargs):
+def build_object(**kwargs):
     d = PKDict(kwargs)
-    g_id = radia.ObjRecMag(d.center, d.size, d.magnetization)
-    _apply_segments(g_id, d.segments)
-    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
+    t = d.type
+    g_id = PKDict(
+        cee=_extrude,
+        cuboid=_build_cuboid,
+        cylinder=_build_cylinder,
+        ell=_extrude,
+        extrudedPoints=_extrude,
+        jay=_extrude,
+        racetrack=_build_racetrack,
+        stl=_build_stl,
+    )[t](**kwargs)
+    # coils get no extra handling
+    if t == "racetrack":
+        return g_id
+    _apply_segments(g_id, **kwargs)
+    _apply_material(g_id, **kwargs)
+    for m in d.get("modifications", []):
+        g_id = _apply_modification(
+            g_id,
+            magnetization=d.magnetization,
+            material=d.material,
+            obj_center=d.center,
+            obj_size=d.size,
+            remanentMag=d.remanentMag,
+            h_m_curve=d.h_m_curve,
+            **m,
+        )
     return g_id
-
-
-def build_stl(**kwargs):
-    d = PKDict(kwargs)
-    g_id = radia.ObjPolyhdr(
-        d.vertices, (numpy.array(d.faces) + 1).tolist(), d.magnetization
-    )
-    center = [x - d.centroid[i] for i, x in enumerate(d.center)]
-    radia.TrfOrnt(g_id, radia.TrfTrsl([center[0], center[1], center[2]]))
-    _apply_segments(g_id, d.segments)
-    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
-    return g_id
-
-
-def build_cylinder(**kwargs):
-    d = PKDict(kwargs)
-    axis = d.extrusion_axis
-    g_id = radia.ObjCylMag(
-        d.center,
-        d.radius,
-        d.size[axes_index(axis)],
-        d.num_sides,
-        d.extrusion_axis,
-        d.magnetization,
-    )
-    _apply_segments(
-        g_id,
-        d.segments,
-        seg_type=d.get("seg_type", "cyl"),
-        center=d.center,
-        axis=AXIS_VECTORS[axis].tolist(),
-        perp_axis=(d.radius * AXIS_VECTORS[next_axis(axis)] + d.center).tolist(),
-    )
-    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
-    return g_id
-
-
-def build_racetrack(**kwargs):
-    d = PKDict(kwargs)
-    return radia.ObjRaceTrk(
-        d.center, d.radii, d.sides, d.height, d.num_segs, d.curr_density, d.calc, d.axis
-    )
 
 
 def dump(g_id):
@@ -365,23 +431,6 @@ def dump(g_id):
 
 def dump_bin(g_id):
     return radia.UtiDmp(g_id, "bin")
-
-
-def extrude(**kwargs):
-    d = PKDict(kwargs)
-    b = AXIS_VECTORS[d.extrusion_axis]
-    g_id = radia.ObjMltExtTri(
-        numpy.sum(b * d.center),
-        numpy.sum(b * d.size),
-        d.points,
-        numpy.full((len(d.points), 2), [1, 1]).tolist(),
-        d.extrusion_axis,
-        d.magnetization,
-        f"TriAreaMax->{0.125 * d.area * (1.04 - d.t_level)}" if d.t_level > 0 else "",
-    )
-    _apply_segments(g_id, d.segments)
-    radia.MatApl(g_id, _radia_material(d.material, d.rem_mag, d.h_m_curve))
-    return g_id
 
 
 # only i (?), m, h
@@ -544,6 +593,10 @@ def kick_map(
 
 def load_bin(data):
     return radia.UtiDmpPrs(data)
+
+
+def multiply_vector_by_matrix(v, m):
+    return numpy.array(m).dot(numpy.array(v)).tolist()
 
 
 def new_geom_object():

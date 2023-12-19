@@ -1,0 +1,55 @@
+from pykern.pkcollections import PKDict
+import json
+import re
+import select
+import shutil
+import sys
+
+
+def pv_to_model_field_name(pv_name):
+    c = pv_name.count(":") - 1
+    return pv_name.replace(":", "_", c)
+
+
+STATUS_FILE = "{{ statusFile }}"
+OUT_FILE = "out.json"
+pvs = PKDict()
+last_name = None
+
+for line in sys.stdin:
+    if line != "\n":
+        if re.search("No broadcast addresses found or specified", line):
+            raise AssertionError(line)
+
+        if last_name:
+            m = re.match(r"^(\S+)\s+", line)
+            if m:
+                print(f"failed to find value for multiline field: {last_name}")
+                last_name = None
+            else:
+                m = re.match(r"^\s+(?:short|double)\[\]\s+(\[.*?\])", line)
+                if m:
+                    # print("last_name", last_name)
+                    pvs[last_name] = [m.group(1), ""]
+                    last_name = None
+        if not re.match(r"^\s", line):
+            m = re.match(r"^(\S+)\s+.*NTNDArray:1.0\s*$", line)
+            if m:
+                last_name = pv_to_model_field_name(m.group(1))
+            else:
+                m = re.match(
+                    r"^(\S+)\s+(\S+\s\S+)\s+(.*?)\s*((UDF INVALID)|(STATE .*))?$", line
+                )
+                if not m:
+                    print(f"unmatched: {line}")
+                    continue
+                name, time, value = m.group(1, 2, 3)
+                # print("name", name)
+                pvs[pv_to_model_field_name(name)] = [value, time]
+    if not select.select([sys.stdin], [], [], 0.0)[0]:
+        # print("writing file")
+        # no remaining data, save input file info
+        with open(OUT_FILE, "w") as f:
+            json.dump(pvs, f)
+        # move is atomic, so full file will be available for reader
+        shutil.move(OUT_FILE, STATUS_FILE)

@@ -146,7 +146,7 @@ class ObjectViews {
     scaledArray(arr) {
         return ObjectViews.scaledArray(arr, this.scale);
     }
-    
+
     setShapeProperties(props) {
         for (const e in this.shapes) {
             const s = this.shapes[e];
@@ -316,17 +316,6 @@ class RacetrackViews extends ExtrudedPolyViews {
 class VTKUtils {
 
     /**
-     * Modes when interacting with the vtk canvas
-     * @returns {Object} - interactionModes
-     */
-    static interactionMode() {
-        return {
-            INTERACTION_MODE_MOVE: 'move',
-            INTERACTION_MODE_SELECT: 'select',
-        };
-    }
-
-    /**
      * Builds a wireframe box with the specified bounds and optional padding
      * @param {[number]} bounds - the bounds in the format [xMin, xMax, yMin, yMax, zMin, zMax]
      * @param {number} padPct - additional padding as a percentage of the size
@@ -390,96 +379,6 @@ class VTKUtils {
     }
 
     /**
-     * vtk.IO.Legacy.vtkLegacyAsciiParser.parseLegacyASCII ignores field data. This adds it
-     * to the PolyData
-     * @param {string} str - the contents of an ASCII legacy (.vtk) file
-     */
-    static parseLegacy(str) {
-
-        /**
-         * Parses field data
-         * @param {string} d - the contents of an ASCII legacy (.vtk) file
-         * @returns {null|*[]}
-         */
-        function parseFieldData(d) {
-
-            /**
-             * Creates a vtk data array from
-             * @param {string[]} lines - lines from the file
-             * @returns {{arr, index: number}|null}
-             */
-            function buildArray(lines) {
-                const ARR_TYPES = {
-                    double: vtk.Common.Core.vtkDataArray.VtkDataTypes.DOUBLE,
-                    int: vtk.Common.Core.vtkDataArray.VtkDataTypes.INT,
-                };
-
-                let hdr = lines[0].split(/\s+/);
-                const name = hdr[0];
-                const numComps = parseInt(hdr[1]);
-                const numTuples = parseInt(hdr[2]);
-                const a = [];
-                let i = 1;
-                for (i = 1; i < lines.length; ++i) {
-                    const l = lines[i];
-                    if (! l) {
-                        break;
-                    }
-                    a.push(...l.trim().split(/\s+/).map(x => parseFloat(x)));
-                    if (a.length === numComps * numTuples) {
-                        break;
-                    }
-                }
-                if (! a.length) {
-                    return null;
-                }
-                return {
-                    arr: vtk.Common.Core.vtkDataArray.newInstance({
-                        dataType: ARR_TYPES[hdr[3]],
-                        name: name,
-                        numberOfComponents: numComps,
-                        size: a.length,
-                        values: a,
-                    }),
-                    index: i,
-                };
-            }
-
-            const lines = d.split('\n');
-            let i = 0;
-            for (i = 0; i < lines.length; ++i) {
-                if (lines[i].startsWith('FIELD')) {
-                    break;
-                }
-            }
-            if (i >= lines.length) {
-                return null;
-            }
-            let l = lines[i];
-            const numArrays = parseInt(l.split(/\s+/)[2]);
-            if (! numArrays) {
-                return null;
-            }
-            let index = i + 1;
-            let a = [];
-            for (let i = 0; i < numArrays; ++i) {
-                const x = buildArray(lines.slice(index));
-                a.push(x.arr);
-                index = index + x.index + 1;
-            }
-            return a;
-        }
-
-        const v = vtk.IO.Legacy.vtkLegacyAsciiParser.parseLegacyASCII(str);
-        const pd = v.dataset;
-        for (const a of parseFieldData(str)) {
-            pd.getFieldData().addArray(a);
-        }
-        pd.buildCells();
-        return pd;
-    }
-
-    /**
      * Creates a vtk user matrix from a SquareMatrix.
      * * @param {SquareMatrix} matrix - vtk actor
      * @returns {[[number]]}
@@ -504,7 +403,7 @@ class VTKScene {
      * @param {{}} container - jquery element in which to place the scene
      * @param {string} resetSide - the dimension to display facing the user when the scene is reset
      */
-    constructor(container, resetSide) {
+    constructor(container, resetSide, resetDirection=1) {
         this.fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
             background: [1, 1, 1, 1],
             container: container,
@@ -517,14 +416,13 @@ class VTKScene {
         this.cam = this.renderer.get().activeCamera;
         this.camProperties = VTKScene.CAM_DEFAULTS();
         this.resetSide = resetSide;
-
-        this.interactionMode = VTKUtils.interactionMode().INTERACTION_MODE_MOVE;
+        this.resetDirection = resetDirection;
 
         this.marker = null;
         this.isMarkerEnabled = false;
 
         this.viewSide = this.resetSide;
-        this.viewDirection = 1;
+        this.viewDirection = this.resetDirection;
     }
 
     /**
@@ -629,7 +527,7 @@ class VTKScene {
      * Sets the camera so that the resetSide is facing the user
      */
     resetView() {
-        this.showSide(this.resetSide, 1);
+        this.showSide();
     }
 
     /**
@@ -692,16 +590,18 @@ class VTKScene {
      * Sets the camera so that the given side is facing the user. If that side is already set, flip to the
      * other side
      * @param {string} side - x|y|z
-     * @param {number} direction - -1|0|1
      */
-    showSide(side = this.resetSide, direction = 0) {
-        if (side === this.viewSide) {
-            this.viewDirection *= -1;
+    showSide(side) {
+        if (! side) {
+            this.viewSide = this.resetSide;
+            this.viewDirection = this.resetDirection;
         }
-        if (direction) {
-            this.viewDirection = Math.sign(direction);
+        else {
+            if (side === this.viewSide) {
+                this.viewDirection *= -1;
+            }
+            this.viewSide = side;
         }
-        this.viewSide = side || this.resetSide;
         const pos = SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[this.viewSide]
             .map(c =>  c * this.viewDirection);
         this.setCam(pos, this.camProperties[this.viewSide].viewUp);
@@ -721,6 +621,11 @@ class VTKScene {
      * Cleans up vtk items
      */
     teardown() {
+        window.removeEventListener('resize', this.fsRenderer.resize);
+        document.removeEventListener(
+            'visibilitychange',
+            this.fsRenderer.getInteractor().handleVisibilityChange,
+        );
         this.isMarkerEnabled = false;
         this.refreshMarker(false);
         this.fsRenderer.getInteractor().unbindEvents();
@@ -755,9 +660,7 @@ class ActorBundle {
         /** @member {vtk.Rendering.Core.Property} - properties of the actor */
         this.actorProperties = this.actor.getProperty();
 
-        for (const p in actorProperties) {
-            this.setActorProperty(p, actorProperties[p]);
-        }
+        this.setActorProperties(actorProperties);
 
         this.actor.setUserMatrix(VTKUtils.userMatrix(this.transform.matrix));
     }
@@ -778,6 +681,15 @@ class ActorBundle {
      */
     getActorProperty(name) {
         return this.actorProperties[`get${SIREPO.UTILS.capitalize(name)}`]();
+    }
+
+    /**
+     * Set a group of properties.
+     */
+    setActorProperties(values) {
+        for (const p in values) {
+            this.setActorProperty(p, values[p]);
+        }
     }
 
     /**
@@ -2167,6 +2079,9 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function editObject(shape) {
                 d3.event.stopPropagation();
+                if (! shape.draggable) {
+                    return;
+                }
                 $scope.$applyAsync(function() {
                     $scope.source.editObjectWithId(shape.id);
                 });
@@ -2174,6 +2089,10 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             function formatObjectLength(val) {
                 return utilities.roundToPlaces(invObjScale * val, 4);
+            }
+
+            function getShape(id) {
+                return $scope.shapes.filter(x => x.id === id)[0];
             }
 
             function hideShapeLocation() {
@@ -2529,10 +2448,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     replot();
                 });
 
-                $scope.$on('cancelChanges', function(e, name) {
-                    refresh();
-                });
-
                 select('svg').attr('height', plotting.initialHeight($scope));
 
                 $.each(axes, function(dim, axis) {
@@ -2579,6 +2494,20 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
 
             $scope.$on('shapes.loaded', drawShapes);
 
+            $scope.$on('shape.locked', (e, locks) => {
+                let doRefresh = false;
+                for (const l of locks) {
+                    const s = getShape(l.id);
+                    if (s) {
+                        doRefresh = true;
+                        s.draggable = ! l.doLock;
+                    }
+                }
+                if (doRefresh) {
+                    refresh();
+                }
+            });
+
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
@@ -2586,7 +2515,7 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
     };
 });
 
-SIREPO.app.directive('objectTable', function(appState) {
+SIREPO.app.directive('objectTable', function(appState, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -2599,55 +2528,73 @@ SIREPO.app.directive('objectTable', function(appState) {
           <div class="panel panel-info">
             <div class="panel-heading"><span class="sr-panel-heading">Objects</span></div>
             <div class="panel-body">
+            <form name="form">
               <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
                 <thead></thead>
                   <tbody>
-                    <tr data-ng-show="areAllParentsExpanded(o)" data-ng-attr-id="{{ o.id }}" data-ng-repeat="o in getObjects() track by $index">
+                    <tr data-ng-show="areAllGroupsExpanded(o)" data-ng-attr-id="{{ o.id }}" data-ng-repeat="o in getObjects() track by $index">
                       <td style="padding-left: {{ nestLevel(o) }}em; cursor: pointer; white-space: nowrap">
-                        <span style="font-size: large; color: {{o.color || '#cccccc'}};">■</span>
-                          <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-down': expanded[o.id], 'glyphicon-chevron-up': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
-                            <span>{{ o.name }}</span>
-                            <span class="sr-button-bar-parent" data-ng-if="isGroup(o)">
-                              <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(o, t.type)"><img alt="{{ t.title }}" data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
-                            </span>
+                        <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/lock.svg" data-ng-show="locked[o.id]" data-ng-class="{'sr-disabled-image': ! unlockable[o.id]}" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
+                        <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/unlock.svg" data-ng-show="! locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
+                        <span style="font-size: large; color: {{o.color || '#cccccc'}}; padding-left: 1px;">■</span>
+                        <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-up': expanded[o.id], 'glyphicon-chevron-down': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
+                        <span>{{ o.name }}</span>
                       </td>
                         <td style="text-align: right">
                           <div class="sr-button-bar-parent">
                             <div class="sr-button-bar sr-button-bar-active">
-                               <button data-ng-if="! isGroup(o)" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy">Copy</button>
-                               <button data-ng-click="editObject(o)" class="btn btn-info btn-xs" title="edit">Edit</button>
-                               <button data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
+                               <button data-ng-disabled="isAlignDisabled(o)" class="dropdown-toggle btn btn-info btn-xs" title="align" data-toggle="dropdown"><span class="glyphicon glyphicon-move"></span></button>
+                               <ul class="dropdown-menu">
+                                 <div class="container col-sm-8">
+                                   <div class="row">
+                                     <li style="display: inline-block">
+                                        <span class="sr-button-bar-parent">
+                                          <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(o, t.type)"><img alt="{{ t.title }}" data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
+                                        </span>
+                                      </li>
+                                   <div>
+                                 <div>
+                               </ul>
+                               <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)" title="move up"><span class="glyphicon glyphicon-arrow-up"></span></button>
+                               <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)" title="move down"><span class="glyphicon glyphicon-arrow-down"></span></button>
+                               <button data-ng-disabled="isGroup(o) || locked[o.id]" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-duplicate"></span></button>
+                               <button data-ng-disabled="locked[o.id]" data-ng-click="editObject(o)" class="btn btn-info btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
+                               <button data-ng-disabled="locked[o.id]" data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
                             </div>
                           </div>
-                        </td>                    
+                        </td>
                     </tr>
                   </tbody>
                 </table>
             </div>
           </div>
+          <div data-buttons="" data-model-name="modelName" data-fields="fields"></div>
+          </form>
         `,
         controller: function($scope) {
             $scope.expanded = {};
+            $scope.fields = ['objects'];
+            $scope.locked = {};
+            $scope.unlockable = {};
 
-            function init() {
-                for (const o of $scope.getObjects()) {
-                    $scope.expanded[o.id] = true;
-                }
-            }
+            const isInGroup = $scope.source.isInGroup;
+            const getGroup = $scope.source.getGroup;
+            const getMemberObjects = $scope.source.getMemberObjects;
+            let areObjectsUnlockable = appState.models.simulation.areObjectsUnlockable;
 
             function arrange(objects) {
 
                 const arranged = [];
 
                 function addGroup(o) {
-                    const p = $scope.getParent(o);
+                    const p = getGroup(o);
                     if (p && ! arranged.includes(p)) {
                         return;
                     }
                     if (! arranged.includes(o)) {
                         arranged.push(o);
                     }
-                    for (const m of $scope.memberObjects(o)) {
+                    for (const m of getMemberObjects(o)) {
                         if ($scope.isGroup(m)) {
                             addGroup(m);
                         }
@@ -2661,7 +2608,7 @@ SIREPO.app.directive('objectTable', function(appState) {
                     if (arranged.includes(o)) {
                         continue;
                     }
-                    if ($scope.isNotInGroup(o)) {
+                    if (! isInGroup(o)) {
                         arranged.push(o);
                     }
                     if ($scope.isGroup(o)) {
@@ -2671,8 +2618,50 @@ SIREPO.app.directive('objectTable', function(appState) {
                 return arranged;
             }
 
+            function init() {
+                if (areObjectsUnlockable === undefined) {
+                    areObjectsUnlockable = true;
+                }
+                for (const o of $scope.getObjects()) {
+                    $scope.expanded[o.id] = true;
+                    $scope.unlockable[o.id] = areObjectsUnlockable;
+                    $scope.locked[o.id] = ! areObjectsUnlockable;
+
+                }
+            }
+
+            function setLocked(o, doLock) {
+                $scope.locked[o.id] =  doLock;
+                let ids = [
+                    {
+                        id: o.id,
+                        doLock: doLock
+                    },
+                ];
+                if ($scope.isGroup(o)) {
+                    getMemberObjects(o).forEach(x => {
+                        ids = ids.concat(setLocked(x, doLock));
+                        if (areObjectsUnlockable) {
+                            $scope.unlockable[x.id] = ! doLock;
+                        }
+                    });
+                }
+                return ids;
+            }
+
             $scope.align = (o, alignType) => {
                 $scope.source.align(o, alignType, $scope.elevation.labAxisIndices());
+            };
+
+            $scope.areAllGroupsExpanded = o => {
+                if (! isInGroup(o)) {
+                    return true;
+                }
+                const p = getGroup(o);
+                if (! $scope.expanded[p.id]) {
+                    return false;
+                }
+                return $scope.areAllGroupsExpanded(p);
             };
 
             $scope.copyObject = $scope.source.copyObject;
@@ -2681,26 +2670,41 @@ SIREPO.app.directive('objectTable', function(appState) {
 
             $scope.editObject = $scope.source.editObject;
 
-            $scope.getParent = o => $scope.source.getObject(o.groupId);
-
             $scope.getObjects = () => {
                 return arrange((appState.models[$scope.modelName] || {}).objects);
             };
 
-            $scope.isInGroup = $scope.source.isInGroup;
-
-            $scope.isNotInGroup = o => ! $scope.isInGroup(o);
+            $scope.isAlignDisabled = o => $scope.locked[o.id] || ! $scope.isGroup(o) || getMemberObjects(o).length < 2;
 
             $scope.isGroup = $scope.source.isGroup;
 
-            $scope.memberObjects = o => {
-                return ($scope.source.getMembers(o) || []).map(mId => $scope.source.getObject(mId));
+            $scope.isMoveDisabled = (direction, o) => {
+                if ($scope.locked[o.id]) {
+                    return true;
+                }
+                const objects = isInGroup(o) ?
+                    getMemberObjects(getGroup(o)) :
+                    $scope.getObjects().filter(x => ! isInGroup(x));
+                let i = objects.indexOf(o);
+                return direction === -1 ? i === 0 : i === objects.length - 1;
             };
+
+            $scope.lockTitle = o => {
+                if (! areObjectsUnlockable) {
+                    return 'designer is read-only for this magnet';
+                }
+                if (! $scope.unlockable[o.id]) {
+                    return 'cannot unlock';
+                }
+                return `click to ${$scope.locked[o.id] ? 'unlock' : 'lock'}`;
+            };
+
+            $scope.moveObject = $scope.source.moveObject;
 
             $scope.nestLevel = o => {
                 let n = 0;
-                if ($scope.isInGroup(o)) {
-                    n += (1 + $scope.nestLevel($scope.source.getObject(o.groupId)));
+                if (isInGroup(o)) {
+                    n += (1 + $scope.nestLevel(getGroup(o)));
                 }
                 return n;
             };
@@ -2709,15 +2713,11 @@ SIREPO.app.directive('objectTable', function(appState) {
                 $scope.expanded[o.id] = ! $scope.expanded[o.id];
             };
 
-            $scope.areAllParentsExpanded = o => {
-                if ($scope.isNotInGroup(o)) {
-                    return true;
+            $scope.toggleLock = o => {
+                if (! $scope.unlockable[o.id]) {
+                    return;
                 }
-                const p = $scope.getParent(o);
-                if (! $scope.expanded[p.id]) {
-                    return false;
-                }
-                return $scope.areAllParentsExpanded(p);
+                $rootScope.$broadcast('shape.locked', setLocked(o, ! $scope.locked[o.id]));
             };
 
             init();
@@ -2791,7 +2791,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             var axisCfg = axisCfgDefault;
 
             var d3self = select();
-            var lastSize = [1, 1];
+            var lastSize = null;
 
             function select(selector) {
                 var e = d3.select($element[0]);
@@ -2799,7 +2799,10 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             }
 
             function refresh() {
-                const size = [$($element).width(), $($element).height()];
+                let size = [$($element).width(), $($element).height()];
+                if (! size[0] || ! size[1] && lastSize) {
+                    size = lastSize;
+                }
                 const screenRect = new SIREPO.GEOMETRY.Rect(
                     new SIREPO.GEOMETRY.Point(
                         $scope.axesMargins.x.width,
@@ -3025,7 +3028,7 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
                     rebuildAxes();
                     refresh();
                 }
-            });
+            }, true);
 
             init();
         },
@@ -3062,7 +3065,7 @@ SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSende
 });
 
 // General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plotting, plotToPNG, vtkPlotting, vtkService, vtkUtils, utilities, $document, $window) {
+SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $document, $window) {
 
     return {
         restrict: 'A',
@@ -3074,6 +3077,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             eventHandlers: '<',
             modelName: '@',
             reportId: '<',
+            resetDirection: '@',
             resetSide: '@',
             showBorder: '@',
         },
@@ -3086,8 +3090,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                 enabled: true,
             };
             $scope.modeText = {};
-            $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_MOVE] = 'Click and drag to rotate. Double-click to reset camera';
-            $scope.modeText[VTKUtils.interactionMode().INTERACTION_MODE_SELECT] = 'Control-click an object to select';
             $scope.isOrtho = false;
             $scope.selection = null;
 
@@ -3129,7 +3131,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
             }
 
             function resize() {
-                refresh(true);
+                refresh();
             }
 
             $scope.init = function() {
@@ -3155,7 +3157,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
                     };
                 }
 
-                $scope.vtkScene = new VTKScene(rw, $scope.resetSide);
+                $scope.vtkScene = new VTKScene(rw, $scope.resetSide, $scope.resetDirection);
 
                 // double click handled separately
                 rw.addEventListener('dblclick', function (evt) {
@@ -3200,24 +3202,19 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
             $scope.rotate = angle => {
                 $scope.vtkScene.rotate(angle);
-                refresh(true);
-            };
-
-            $scope.setInteractionMode = mode => {
-                $scope.vtkScene.interactionMode = mode;
-                $scope.$emit('vtkScene.interactionMode', mode);
+                refresh();
             };
 
             $scope.showSide = side => {
                 $scope.vtkScene.showSide(side);
-                refresh(true);
+                refresh();
             };
 
             $scope.toggleOrtho = () => {
                 $scope.isOrtho = ! $scope.isOrtho;
                 $scope.vtkScene.cam.setParallelProjection($scope.isOrtho);
                 $scope.vtkScene.render();
-                refresh(true);
+                refresh();
             };
 
             $scope.$on('$destroy', function() {
@@ -3228,7 +3225,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, geometry, panelState, plot
 
             function refresh() {
                 if ($scope.axisObj) {
-                    $scope.$broadcast('axes.refresh');
+                    $scope.$broadcast('axes.refresh', $scope.axisObj);
                 }
             }
 

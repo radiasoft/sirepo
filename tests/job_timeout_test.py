@@ -84,4 +84,4 @@ def test_myapp_analysis(fc):
             suffix="sr_long_analysis",
         ),
     )
-    pkunit.pkok(r.status_code == 404, "r={}", r)
+    r.assert_http_status(413)

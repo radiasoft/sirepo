@@ -45,7 +45,12 @@
             "xxprX": 0.0,
             "xxprY": 0.0
         },
-        "electronBeams": [],
+        "electronBeamPosition": {
+            "drift": -1.54,
+            "driftCalculationMethod": "auto",
+            "horizontalPosition": 0.0,
+            "verticalPosition": 0.0
+        },
         "fluxReport": {
             "azimuthalPrecision": 1.0,
             "distanceFromSource": 20.0,
@@ -62,6 +67,7 @@
         },
         "gaussianBeam": {
             "energyPerPulse": null,
+            "photonEnergy": 9000.0,
             "polarization": 1,
             "rmsPulseDuration": null,
             "rmsSizeX": null,
@@ -76,8 +82,7 @@
             "characteristic": 0,
             "fieldUnits": 1,
             "polarization": 6,
-            "precision": 0.01,
-            "sampleFactor": 0
+            "precision": 0.01
         },
         "intensityReport": {
             "distanceFromSource": 20.0,
@@ -85,6 +90,7 @@
             "finalEnergy": 20000.0,
             "horizontalPosition": 0.0,
             "initialEnergy": 100.0,
+            "method": "1",
             "photonEnergyPointCount": 10000,
             "polarization": 6,
             "precision": 0.01,
@@ -178,16 +184,28 @@
             "characteristic": 0,
             "distanceFromSource": 20.0,
             "fieldUnits": 1,
-            "polarization": 6
+            "horizontalPointCount": 100,
+            "horizontalPosition": 0.0,
+            "horizontalRange": 0.5,
+            "photonEnergy": 9000.0,
+            "polarization": 6,
+            "sampleFactor": 1.0,
+            "samplingMethod": 1,
+            "verticalPointCount": 100,
+            "verticalPosition": 0.0,
+            "verticalRange": 0.5
         },
         "undulator": {
+            "effectiveDeflectingParameter": 1.65776086,
             "horizontalAmplitude": 0.0,
+            "horizontalDeflectingParameter": 0.0,
             "horizontalInitialPhase": 0.0,
             "horizontalSymmetry": "1",
             "length": 3.0,
             "longitudinalPosition": 0.0,
             "period": 20.0,
             "verticalAmplitude": 0.88770981,
+            "verticalDeflectingParameter": 1.65776086,
             "verticalInitialPhase": 0.0,
             "verticalSymmetry": "-1"
         }

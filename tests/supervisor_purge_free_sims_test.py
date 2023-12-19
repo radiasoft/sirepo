@@ -5,7 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import pytest
-from pykern.pkcollections import PKDict
 import os
 import time
 
@@ -14,25 +13,31 @@ _PURGE_FREE_AFTER_DAYS = 1
 
 
 def setup_module(module):
+    import os
+
     os.environ.update(
         SIREPO_JOB_SUPERVISOR_JOB_CACHE_SECS=str(_CACHE_AND_SIM_PURGE_PERIOD),
-        SIREPO_JOB_SUPERVISOR_PURGE_NON_PREMIUM_AFTER_SECS=str(_PURGE_FREE_AFTER_DAYS)
-        + "d",
-        SIREPO_JOB_SUPERVISOR_PURGE_NON_PREMIUM_TASK_SECS="00:00:0{}".format(
+        SIREPO_JOB_SUPERVISOR_RUN_DIR_LIFETIME=str(_PURGE_FREE_AFTER_DAYS) + "d",
+        SIREPO_JOB_SUPERVISOR_PURGE_CHECK_INTERVAL="00:00:0{}".format(
             _CACHE_AND_SIM_PURGE_PERIOD
         ),
     )
 
 
 def test_myapp_free_user_sim_purged(auth_fc):
-    from pykern import pkio
-    from pykern import pkunit
+    from pykern import pkunit, pkcollections, pkio, pkunit
     from pykern.pkdebug import pkdp
-    from sirepo import auth_role
+    from sirepo import auth_role, const, srdb
 
     def _check_run_dir(should_exist=0):
         f = pkio.walk_tree(fc.sr_user_dir(), file_re=m)
         pkunit.pkeq(should_exist, len(f), "incorrect file count")
+
+    def _make_invalid_job():
+        d = srdb.supervisor_dir()
+        d.ensure(dir=True)
+        # This will be the first file found and cause purge_non_premium to raise
+        pkunit.data_dir().join("00000001-JzccRZNg-heightWeightReport.json").copy(d)
 
     def _make_user_premium(uid):
         from sirepo import srunit
@@ -62,7 +67,8 @@ def test_myapp_free_user_sim_purged(auth_fc):
     user_premium = "premium@x.y"
     fc.sr_email_login(user_free)
     fc.sr_email_login(user_premium)
-    _make_user_premium(fc.sr_auth_state().uid)
+    _make_user_premium(fc.sr_uid)
+    _make_invalid_job()
     next_req_premium = _run_sim(fc.sr_sim_data())
     fc.sr_email_login(user_free)
     next_req_free = _run_sim(fc.sr_sim_data())
@@ -79,6 +85,7 @@ def test_elegant_no_frame_after_purge(auth_fc):
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
+    import time
 
     fc = auth_fc
     user_free = "free@b.c"

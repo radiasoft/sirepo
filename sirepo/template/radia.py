@@ -17,6 +17,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from scipy.spatial.transform import Rotation
 from sirepo import simulation_db
+from sirepo.template import code_variable
 from sirepo.template import radia_util
 from sirepo.template import template_common
 import copy
@@ -84,6 +85,7 @@ _KICK_MAP_COLS = ["x", "y", "xpFactor", "ypFactor"]
 _KICK_MAP_UNITS = ["m", "m", "(T*m)$a2$n", "(T*m)$a2$n"]
 _GEOM_DIR = "geometryReport"
 _GEOM_FILE = "geometryReport.h5"
+_HEADER_FILE = "header.py"
 _KICK_FILE = "kickMap.h5"
 _KICK_SDDS_FILE = "kickMap.sdds"
 _KICK_TEXT_FILE = "kickMap.txt"
@@ -99,13 +101,14 @@ _POST_SIM_REPORTS = [
     "fieldIntegralReport",
     "kickMapReport",
 ]
-_SIM_REPORTS = ["geometryReport", "reset", "solverAnimation"]
+_SIM_REPORTS = ["geometryReport", "optimizerAnimation", "reset", "solverAnimation"]
 _REPORTS = [
     "electronTrajectoryReport",
     "fieldIntegralReport",
     "fieldLineoutAnimation",
     "geometryReport",
     "kickMapReport",
+    "optimizerAnimation",
     "reset",
     "solverAnimation",
 ]
@@ -113,6 +116,7 @@ _REPORT_RES_MAP = PKDict(
     reset="geometryReport",
     solverAnimation="geometryReport",
 )
+_RSOPT_OBJECTIVE_FUNCTION_OUT = "objective_function_results.h5"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SDDS_INDEX = 0
 _SIM_FILES = [b.basename for b in _SIM_DATA.sim_file_basenames(None)]
@@ -132,6 +136,8 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=0,
     )
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    if report == "optimizerAnimation":
+        return _rsopt_percent_complete(run_dir, res)
     if is_running:
         res.percentComplete = 0
         return res
@@ -142,16 +148,8 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
-def create_archive(sim, qcall):
-    if sim.filename.endswith("dat"):
-        return qcall.reply_attachment(
-            simulation_db.simulation_dir(SIM_TYPE, sid=sim.id, qcall=qcall).join(
-                _DMP_FILE
-            ),
-            content_type="application/octet-stream",
-            filename=sim.filename,
-        )
-    return False
+def code_var(variables):
+    return code_variable.CodeVar(variables, code_variable.PurePythonEval())
 
 
 def extract_report_data(run_dir, sim_in):
@@ -226,13 +224,28 @@ def extract_report_data(run_dir, sim_in):
         )
 
 
+def generate_field_data(sim_id, g_id, name, field_type, field_paths):
+    assert (
+        field_type in radia_util.FIELD_TYPES
+    ), "field_type={}: invalid field type".format(field_type)
+    try:
+        if field_type == radia_util.FIELD_TYPE_MAG_M:
+            f = radia_util.get_magnetization(g_id)
+        else:
+            f = radia_util.get_field(g_id, field_type, _build_field_points(field_paths))
+        return radia_util.vector_field_to_data(
+            g_id, name, f, radia_util.FIELD_UNITS[field_type]
+        )
+    except RuntimeError as e:
+        _backend_alert(sim_id, g_id, e)
+
+
 def get_data_file(run_dir, model, frame, options):
     assert model in _REPORTS, "model={}: unknown report".format(model)
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     sim = data.models.simulation
     name = sim.name
     sim_id = sim.simulationId
-    beam_axis = _rotate_axis(to_axis="z", from_axis=sim.beamAxis)
     rpt = data.models[model]
     sfx = options.suffix or SCHEMA.constants.dataDownloads._default[0].suffix
     f = f"{model}.{sfx}"
@@ -252,6 +265,7 @@ def get_data_file(run_dir, model, frame, options):
         )
         return f
     if model == "fieldLineoutAnimation":
+        beam_axis = _rotate_axis(to_axis="z", from_axis=sim.beamAxis)
         f_type = rpt.fieldType
         fd = generate_field_data(sim_id, get_g_id(), name, f_type, [rpt.fieldPath])
         v = fd.data[0].vectors
@@ -261,13 +275,30 @@ def get_data_file(run_dir, model, frame, options):
             return _save_field_csv(f_type, v, beam_axis, f)
         if sfx == "zip":
             return _save_field_srw(
-                f_type,
                 data.models[data.models.simulation.undulatorType].gap,
                 v,
                 beam_axis,
                 pkio.py_path(f),
             )
         return f
+    if model == "optimizerAnimation":
+        return template_common.text_data_file("optimize.out", run_dir)
+    if model == "geometryReport":
+        return PKDict(
+            uri=f"{name}.{sfx}",
+            filename=pkio.py_path(_DMP_FILE),
+        )
+    if model == "fieldIntegralReport":
+        _save_field_integrals_csv(
+            data.models.fieldPaths.paths,
+            simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME)),
+            f,
+        )
+        return f
+
+
+def get_g_id():
+    return radia_util.load_bin(pkio.read_binary(_DMP_FILE))
 
 
 async def import_file(req, tmp_dir=None, **kwargs):
@@ -305,6 +336,23 @@ def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     return template_common.parse_mpi_log(run_dir)
 
 
+def prepare_for_client(data, qcall, **kwargs):
+    return data
+
+
+def python_source_for_model(data, model, qcall, **kwargs):
+    return _generate_parameters_file(data, False, for_export=True, qcall=qcall)
+
+
+def save_field_srw(gap, vectors, beam_axis, filename):
+    return _save_field_srw(
+        gap,
+        vectors,
+        _rotate_axis(to_axis="z", from_axis=beam_axis),
+        pkio.py_path(filename),
+    )
+
+
 def sim_frame_fieldLineoutAnimation(frame_args):
     return _field_lineout_plot(
         frame_args.sim_in.models.simulation.simulationId,
@@ -316,8 +364,17 @@ def sim_frame_fieldLineoutAnimation(frame_args):
     )
 
 
+def sim_frame_optimizerAnimation(frame_args):
+    return _extract_optimization_results(frame_args)
+
+
+def stateful_compute_recompute_rpn_cache_values(data, **kwargs):
+    code_var(data.variables, data.cache).recompute_cache(data.cache)
+    return data
+
+
 def stateless_compute_build_shape_points(data, **kwargs):
-    o = data.args.object
+    o = _evaluated_object(data.args.object, code_var(data.args.rpnVariables))
     if not o.get("pointsFile"):
         return PKDict(
             points=pkinspect.module_functions("_get_")[f"_get_{o.type}_points"](
@@ -341,22 +398,23 @@ def stateless_compute_stl_size(data, **kwargs):
     f = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_type(data.args.file, SCHEMA.constants.fileTypeSTL)
     )
-    return PKDict(size=_create_stl_trimesh(f).bounding_box.primitive.extents.tolist())
-
-
-def python_source_for_model(data, model, qcall, **kwargs):
-    return _generate_parameters_file(data, False, for_export=True, qcall=qcall)
+    m = _create_stl_trimesh(f)
+    return PKDict(
+        center=(m.bounding_box.bounds[0] + 0.5 * m.bounding_box.extents).tolist(),
+        size=m.bounding_box.primitive.extents.tolist(),
+    )
 
 
 def validate_file(file_type, path):
-    if path.ext not in (".csv", ".dat", ".stl", ".txt"):
+    p = path.ext.lower()
+    if p not in (".csv", ".dat", ".stl", ".txt"):
         return f"invalid file type: {path.ext}"
     if file_type == "extrudedPoints-pointsFile":
         try:
             _ = sirepo.csv.read_as_number_list(path)
         except RuntimeError as e:
             return e
-    if path.ext == ".stl":
+    if p == ".stl":
         mesh = _create_stl_trimesh(path)
         if trimesh.convex.is_convex(mesh) == False:
             return f"not convex model: {path.basename}"
@@ -371,7 +429,9 @@ def write_parameters(data, run_dir, is_parallel):
         _generate_parameters_file(data, is_parallel, run_dir=run_dir, qcall=None),
     )
     if is_parallel:
-        return template_common.get_exec_parameters_cmd(is_mpi=True)
+        return template_common.get_exec_parameters_cmd(
+            is_mpi=data.report not in ("optimizerAnimation",)
+        )
     return None
 
 
@@ -538,7 +598,7 @@ def _build_geom_obj(model_name, **kwargs):
     )
     _SIM_DATA.update_model_defaults(o, model_name)
     o.pkupdate(kwargs)
-    if not o.name:
+    if not o.get("name"):
         o.name = f"{model_name}.{o.id}"
     return o
 
@@ -598,17 +658,6 @@ def _build_undulator_objects(geom_objs, model, **kwargs):
     geom_objs.append(_update_group(model.octantGroup, oct_grp, do_replace=True))
 
     return _update_geom_from_undulator(geom_objs, model, **kwargs)
-
-
-def _is_binary(file_path):
-    return bool(
-        open(file_path, "rb")
-        .read(1024)
-        .translate(
-            None,
-            bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7F}),
-        )
-    )
 
 
 def _create_stl_trimesh(file_path):
@@ -691,6 +740,99 @@ def _electron_trajectory_plot(sim_id, **kwargs):
     )
 
 
+def _evaluate_var(var, code_variable):
+    e = code_variable.eval_var(var)
+    if e[1] is not None:
+        raise RuntimeError("Error evaluating field: {}: {}".format(var, e[1]))
+    return e[0]
+
+
+def _evaluated_object(o, code_variable):
+    c = copy.deepcopy(o)
+    for f in _find_scriptables(c):
+        c[f] = _evaluate_var(f"{c.name}.{f}", code_variable)
+    return c
+
+
+def _evaluate_objects(objs, vars, code_variable):
+    for o in objs:
+        for f in _find_scriptables(o):
+            o[f] = _evaluate_var(f"{o.name}.{f}", code_variable)
+
+
+def _export_rsopt_config(ctx, run_dir):
+
+    for f in _export_rsopt_files().values():
+        pkio.write_text(
+            run_dir.join(f),
+            template_common.render_jinja(SIM_TYPE, ctx, f),
+        )
+
+
+def _export_rsopt_files():
+    files = PKDict()
+    for t in (
+        "py",
+        "sh",
+        "yml",
+    ):
+        files[f"{t}FileName"] = f"optimize.{t}"
+    return files
+
+
+def _extract_optimization_results(args):
+    def nat_order(path):
+        import pathlib
+
+        return [
+            int(c) if c.isdigit() else c
+            for c in re.split(r"(\d+)", pathlib.PurePath(path).parent.name)
+        ]
+
+    plots = []
+    objective_vals = []
+    params = PKDict()
+    summaryData = PKDict()
+    out_files = sorted(
+        pkio.walk_tree(args.run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT), key=nat_order
+    )
+    for f in out_files:
+        with h5py.File(f, "r") as h:
+            d = template_common.h5_to_dict(h)
+            objective_vals.append(d.val)
+            for k, v in d.parameters.items():
+                if k not in params:
+                    params[k] = []
+                params[k].append(v)
+                summaryData[k] = v
+    plots.append(
+        PKDict(
+            points=objective_vals,
+            label="Objective function results",
+            style="line",
+        )
+    )
+    for k, v in params.items():
+        plots.append(
+            PKDict(
+                points=v,
+                label=k,
+                style="line",
+            )
+        )
+    return template_common.parameter_plot(
+        numpy.arange(1, len(out_files) + 1).tolist(),
+        plots,
+        PKDict(),
+        PKDict(
+            title="Optimization Output",
+            y_label="Result",
+            x_label=f"Run",
+            summaryData=summaryData,
+        ),
+    )
+
+
 def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None):
     v = (
         field_data
@@ -731,8 +873,9 @@ def _find_by_id(arr, obj_id):
     return sirepo.util.find_obj(arr, "id", obj_id)
 
 
-def _find_by_name(arr, name):
-    return sirepo.util.find_obj(arr, "name", name)
+def _find_scriptables(model):
+    m = SCHEMA.model[model.type]
+    return [f for f in m if "Scriptable" in m[f][1]]
 
 
 def _fit_poles_in_c_bend(**kwargs):
@@ -773,29 +916,13 @@ def _generate_electron_trajectory(sim_id, g_id, **kwargs):
         _backend_alert(sim_id, g_id, e)
 
 
-def generate_field_data(sim_id, g_id, name, field_type, field_paths):
-    assert (
-        field_type in radia_util.FIELD_TYPES
-    ), "field_type={}: invalid field type".format(field_type)
-    try:
-        if field_type == radia_util.FIELD_TYPE_MAG_M:
-            f = radia_util.get_magnetization(g_id)
-        else:
-            f = radia_util.get_field(g_id, field_type, _build_field_points(field_paths))
-        return radia_util.vector_field_to_data(
-            g_id, name, f, radia_util.FIELD_UNITS[field_type]
-        )
-    except RuntimeError as e:
-        _backend_alert(sim_id, g_id, e)
-
-
 def _generate_field_integrals(sim_id, g_id, f_paths):
     l_paths = [fp for fp in f_paths if fp.type in ("linePath", "axisPath")]
     if len(l_paths) == 0:
         # return something or server.py will raise an exception
         return PKDict(warning="No paths")
     try:
-        res = PKDict()
+        res = PKDict(x_range=[])
         for p in l_paths:
             res[p.name] = PKDict()
             p1 = p.begin
@@ -847,10 +974,12 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     rpt_out = f"{_REPORT_RES_MAP.get(report, report)}"
     res, v = template_common.generate_parameters_file(data)
     if report == "fieldLineoutAnimation":
-        v.sim_id = data.models.simulation.simulationId
-        v.name = data.models.simulation.name
+        v.beam_axis = data.models.simulation.beamAxis
         v.f_type = data.models.fieldLineoutAnimation.fieldType
         v.f_path = data.models.fieldLineoutAnimation.fieldPath
+        v.gap = data.models[data.models.simulation.undulatorType].gap
+        v.name = data.models.simulation.name
+        v.sim_id = data.models.simulation.simulationId
         return template_common.render_jinja(
             SIM_TYPE,
             v,
@@ -864,7 +993,9 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     g = data.models.geometryReport
     v.simId = data.models.simulation.simulationId
 
-    if report == "solverAnimation":
+    if report == "optimizerAnimation":
+        v.solverMode = "solve"
+    elif report == "solverAnimation":
         v.solverMode = data.models.solverAnimation.get("mode")
     elif for_export:
         v.solverMode = "solve"
@@ -906,17 +1037,21 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.matrix = _get_coord_matrix(dirs, data.models.simulation.coordinateSystem)
     st = f"{v.magnetType}Type"
     v[st] = data.models.simulation[st]
+    v.objects = g.get("objects", [])
+    if data.models.get("rpnVariables"):
+        _evaluate_objects(
+            v.objects, data.models.rpnVariables, code_var(data.models.rpnVariables)
+        )
     pkinspect.module_functions("_update_geom_from_")[
         f"_update_geom_from_{v.magnetType}"
     ](
-        g.objects,
+        v.objects,
         data.models[v[st]],
         height_dir=dirs.height_dir,
         length_dir=dirs.length_dir,
         width_dir=dirs.width_dir,
         qcall=qcall,
     )
-    v.objects = g.get("objects", [])
     _validate_objects(v.objects)
 
     for o in v.objects:
@@ -959,8 +1094,26 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     v.h5SolutionPath = _H5_PATH_SOLUTION
     v.h5IdMapPath = _H5_PATH_ID_MAP
 
+    if report == "optimizerAnimation":
+        rx = _rsopt_jinja_context(data)
+        rx.update(v)
+        _export_rsopt_config(rx, run_dir=run_dir)
+        return f"""import subprocess
+subprocess.call(['bash', 'optimize.sh'])
+"""
+    h = (
+        template_common.render_jinja(
+            SIM_TYPE,
+            v,
+            _HEADER_FILE,
+            jinja_env=PKDict(loader=jinja2.PackageLoader("sirepo", "template")),
+        )
+        if for_export or rpt_out in _SIM_REPORTS
+        else ""
+    )
+
     j_file = RADIA_EXPORT_FILE if for_export else f"{rpt_out}.py"
-    return template_common.render_jinja(
+    return h + template_common.render_jinja(
         SIM_TYPE,
         v,
         j_file,
@@ -1036,10 +1189,6 @@ def _get_ell_points(o, stemmed_info):
         ],
         stemmed_info.plane_ctr,
     )
-
-
-def get_g_id():
-    return radia_util.load_bin(pkio.read_binary(_DMP_FILE))
 
 
 def _get_geom_data(
@@ -1129,6 +1278,17 @@ def _get_sdds(cols, units):
     return _cfg.sdds
 
 
+def _is_binary(file_path):
+    return bool(
+        open(file_path, "rb")
+        .read(1024)
+        .translate(
+            None,
+            bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7F}),
+        )
+    )
+
+
 def _kick_map_plot(model):
     from sirepo import srschema
 
@@ -1151,6 +1311,37 @@ def _kick_map_plot(model):
 def _normalize_bool(x):
     bool_map = {"1": True, "0": False}
     return bool_map[x] if x in bool_map else x
+
+
+def _calculate_objective_def(models):
+    o = models.optimizer
+    t = o.objective
+    if t == "custom":
+        return o.code
+    c = """def _calculate_objective(g_id):
+"""
+    if t == "objectiveFunctionQuality":
+        q = models.objectiveFunctionQuality
+        s = models.optimizationSoftwareDFOLS
+        c = (
+            c
+            + f"""
+    import numpy
+    
+    f = numpy.array([])
+    p1 = {q.begin}
+    p2 = {q.end}
+    c = 'B{q.component}'
+    f0 = radia_util.field_integral(g_id, c, p1, p2)
+    for d in numpy.linspace(-1 * numpy.array({q.deviation}), 1 * numpy.array({q.deviation}), {s.components}):
+        f = numpy.append(f, radia_util.field_integral(g_id, c, (p1 + d).tolist(), (p2 + d).tolist()))
+    res = f - f0
+    return numpy.sum(res**2), res.tolist()
+"""
+        )
+    else:
+        raise ValueError("objective_functon={}: unknown function".format(t))
+    return c
 
 
 def _orient_stemmed_points(o, points, plane_ctr):
@@ -1318,6 +1509,67 @@ def _rotate_flat_vector_list(vectors, scipy_rotation):
     return scipy_rotation.apply(numpy.reshape(vectors, (-1, 3)))
 
 
+def _rsopt_percent_complete(run_dir, res):
+    def _scan_stats(search_re):
+        for line in pkio.read_text("libE_stats.txt").split("\n"):
+            m = re.match(search_re, line, re.IGNORECASE)
+            if m:
+                return m
+        return None
+
+    res.frameCount = 0
+    res.percentComplete = 0
+    out_files = pkio.walk_tree(run_dir, _RSOPT_OBJECTIVE_FUNCTION_OUT)
+    if not out_files:
+        return res
+    count = len(out_files)
+    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
+    res.frameCount = count
+    p = count / dm.optimizer.maxIterations
+    # errors that allow completion
+    if pkio.sorted_glob("H_*.npy"):
+        p = 1
+        m = _scan_stats(r"Worker\s*(\d+):\s+sim_id\s*(\d+).*Status:\s*Task Failed")
+        if m:
+            p = 0
+            res.state = "error"
+            res.error = (
+                f"Error during optimization: worker {m.group(1)} sim id {m.group(2)}"
+            )
+    # errors that interrupt
+    else:
+        m = _scan_stats(
+            r"Worker\s*(\d+):\s+Gen no\s*(\d+).*Status:\s*Exception occurred"
+        )
+        if m:
+            p = 0
+            res.state = "error"
+            res.error = (
+                f"Error during optimization: worker {m.group(1)} gen no {m.group(2)}"
+            )
+    res.percentComplete = 100 * p
+    return res
+
+
+def _rsopt_jinja_context(data):
+    import multiprocessing
+
+    res = PKDict(
+        errFileName="optimize.err",
+        libFiles=_SIM_DATA.lib_file_basenames(data),
+        numWorkers=max(1, multiprocessing.cpu_count() - 1),
+        optimizer=data.models.optimizer,
+        objectiveFunctionDef=_calculate_objective_def(data.models),
+        outFileName="optimize.out",
+        objectiveFunctionResultsFileName=_RSOPT_OBJECTIVE_FUNCTION_OUT,
+    )
+    m = data.models.get(res.optimizer.software.type, {})
+    for k in m:
+        res.optimizer.software[k] = m[k]
+    res.update(_export_rsopt_files())
+    return res
+
+
 def _save_field_csv(field_type, vectors, scipy_rotation, path):
     # reserve first line for a header
     data = [f"x,y,z,{field_type}x,{field_type}y,{field_type}z"]
@@ -1333,7 +1585,7 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
 
 # zip file - data plus index.  This will likely be used to generate files for a range
 # of gaps later
-def _save_field_srw(field_type, gap, vectors, scipy_rotation, path):
+def _save_field_srw(gap, vectors, scipy_rotation, path):
     # no whitespace in filenames
     base_name = re.sub(r"\s", "_", path.purebasename)
     data_path = path.dirpath().join(f"{base_name}_{gap}.dat")
@@ -1390,6 +1642,34 @@ def _save_fm_sdds(name, vectors, scipy_rotation, path):
         s.setColumnValueLists(n, col_data[i])
     s.save(str(path))
     return path
+
+
+def _save_field_integrals_csv(integral_paths, integrals, file_path):
+    with open(file_path, "w") as f:
+        out = csv.writer(f)
+        out.writerow(
+            [
+                "Path",
+                "x0",
+                "y0",
+                "z0",
+                "x1",
+                "y1",
+                "z1",
+                "Bx",
+                "By",
+                "Bz",
+                "Hx",
+                "Hy",
+                "Hz",
+            ]
+        )
+        for p in [x for x in integral_paths if x.type in ("axisPath", "linePath")]:
+            row = [p.name, *p.begin, *p.end]
+            for t in ("B", "H"):
+                row.extend(integrals[p.name][t])
+            out.writerow(row)
+    return file_path
 
 
 def _save_kick_map_sdds(name, path, km_data):
@@ -1580,10 +1860,10 @@ def _update_undulatorHybrid(model, assembly, qcall=None, **kwargs):
     )
 
     for f in (
-        "bevels",
         "color",
         "material",
         "materialFile",
+        "modifications",
         "remanentMag",
         "type",
         "segments",
@@ -1710,6 +1990,9 @@ def _update_geom_obj(o, qcall=None, **kwargs):
             d.stlFaces.append(list(f))
         o.stlVertices = d.stlVertices
         o.stlFaces = d.stlFaces
+        o.stlBoundsCenter = list(
+            mesh.bounding_box.bounds[0] + 0.5 * mesh.bounding_box.extents
+        )
         o.size = list(mesh.bounding_box.primitive.extents)
         o.stlCentroid = mesh.centroid.tolist()
 

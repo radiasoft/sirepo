@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
@@ -16,8 +15,8 @@ import contextlib
 import copy
 import pykern.pkio
 import sirepo.const
+import sirepo.global_resources
 import sirepo.quest
-import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.srdb
 import sirepo.srtime
@@ -38,7 +37,8 @@ _HISTORY_FIELDS = frozenset(
         "computeJobQueued",
         "computeJobSerial",
         "computeJobStart",
-        "computeModel" "driverDetails",
+        "computeModel",
+        "driverDetails",
         "error",
         "internalError",
         "isParallel",
@@ -169,19 +169,26 @@ def init_module(**imports):
                 "maximum run-time for sequential job",
             ),
         ),
-        purge_non_premium_after_secs=(
-            0,
-            pkconfig.parse_seconds,
-            "expiration period for purging non-premium users simulations",
-        ),
-        purge_non_premium_task_secs=(
+        purge_check_interval=(
             None,
             pkconfig.parse_seconds,
-            "when to clean up simulation runs of non-premium users (%H:%M:%S)",
+            "time interval to clean up simulation runs of non-premium users, value of 0 means no checks are performed",
+        ),
+        purge_non_premium_after_secs=pkconfig.ReplacedBy(
+            "sirepo.job_supervisor.run_dir_lifetime"
+        ),
+        purge_non_premium_task_secs=pkconfig.ReplacedBy(
+            "sirepo.job_supervisor.purge_check_interval"
+        ),
+        run_dir_lifetime=(
+            "1d",
+            pkconfig.parse_seconds,
+            "expiration period for purging non-premium users simulation run output",
         ),
         sbatch_poll_secs=(15, int, "how often to poll squeue and parallel status"),
     )
     _DB_DIR = sirepo.srdb.supervisor_dir()
+    pykern.pkio.mkdir_parent(_DB_DIR)
     _NEXT_REQUEST_SECONDS = PKDict(
         {
             job.PARALLEL: 2,
@@ -189,9 +196,7 @@ def init_module(**imports):
             job.SEQUENTIAL: 1,
         }
     )
-    tornado.ioloop.IOLoop.current().add_callback(
-        _ComputeJob.purge_free_simulations,
-    )
+    tornado.ioloop.IOLoop.current().add_callback(_ComputeJob.purge_non_premium)
 
 
 async def terminate():
@@ -385,12 +390,18 @@ class _Supervisor(PKDict):
             c.destroy(cancel=False)
         return PKDict()
 
+    async def _receive_api_globalResources(self, req):
+        return sirepo.global_resources.for_simulation(
+            req.content.data.simulationType,
+            req.content.data.simulationId,
+            uid=req.content.uid,
+        )
+
     async def _receive_api_ownJobs(self, req):
         return self._get_running_pending_jobs(uid=req.content.uid)
 
     @classmethod
     def _reply_exception(cls, exc):
-        n = exc.__class__
         if isinstance(exc, sirepo.util.SRException):
             return PKDict(
                 {
@@ -484,16 +495,14 @@ class _ComputeJob(_Supervisor):
         )
 
     @classmethod
-    async def purge_free_simulations(cls):
+    async def purge_non_premium(cls):
         def _get_uids_and_files(qcall):
             r = []
             u = None
             p = qcall.auth_db.model("UserRole").uids_of_paid_users()
             for f in pkio.sorted_glob(
                 _DB_DIR.join(
-                    "*{}".format(
-                        sirepo.const.JSON_SUFFIX,
-                    )
+                    f"*{sirepo.const.JSON_SUFFIX}",
                 )
             ):
                 n = sirepo.job.split_jid(jid=f.purebasename).uid
@@ -514,40 +523,45 @@ class _ComputeJob(_Supervisor):
             if r:
                 yield u, r
 
-        def _purge_sim(jid, qcall):
+        def _purge_job(jid, qcall):
             d = cls.__db_load(jid)
             if d.lastUpdateTime > _too_old:
                 return
             cls._purged_jids_cache.add(jid)
-            if d.status == job.JOB_RUN_PURGED:
+            if d.status == job.JOB_RUN_PURGED or not sirepo.util.is_sim_type(
+                d.simulationType
+            ):
                 return
-            p = sirepo.simulation_db.simulation_run_dir(d, qcall=qcall)
-            pkio.unchecked_remove(p)
+            try:
+                pkio.unchecked_remove(
+                    sirepo.simulation_db.simulation_run_dir(d, qcall=qcall)
+                )
+            except sirepo.util.UserDirNotFound:
+                pass
             n = cls.__db_init_new(d, d)
             n.status = job.JOB_RUN_PURGED
             cls.__db_write_file(n)
+            pkdlog("jid={}", jid)
 
-        if not _cfg.purge_non_premium_task_secs:
+        if not _cfg.purge_check_interval:
             return
         s = sirepo.srtime.utc_now()
         u = None
         f = None
         try:
-            _too_old = (
-                sirepo.srtime.utc_now_as_int() - _cfg.purge_non_premium_after_secs
-            )
+            _too_old = sirepo.srtime.utc_now_as_int() - _cfg.run_dir_lifetime
             with sirepo.quest.start() as qcall:
                 for u, v in _get_uids_and_files(qcall):
                     with qcall.auth.logged_in_user_set(u):
                         for f in v:
-                            _purge_sim(jid=f.purebasename, qcall=qcall)
+                            _purge_job(jid=f.purebasename, qcall=qcall)
                     await tornado.gen.sleep(0)
         except Exception as e:
             pkdlog("u={} f={} error={} stack={}", u, f, e, pkdexc())
         finally:
             tornado.ioloop.IOLoop.current().call_later(
-                _cfg.purge_non_premium_task_secs,
-                cls.purge_free_simulations,
+                _cfg.purge_check_interval,
+                cls.purge_non_premium,
             )
 
     def set_situation(self, op, situation, exception=None):
@@ -569,7 +583,8 @@ class _ComputeJob(_Supervisor):
     @classmethod
     def __db_file(cls, computeJid):
         return _DB_DIR.join(
-            computeJid + sirepo.const.JSON_SUFFIX,
+            sirepo.simulation_db.assert_sim_db_file_path(computeJid)
+            + sirepo.const.JSON_SUFFIX,
         )
 
     def __db_init(self, req, prev_db=None):
@@ -583,7 +598,7 @@ class _ComputeJob(_Supervisor):
             queueState="queued",
             canceledAfterSecs=None,
             computeJid=data.computeJid,
-            computeJobHash=data.computeJobHash,
+            computeJobHash=data.get("computeJobHash"),
             computeJobQueued=0,
             computeJobSerial=0,
             computeJobStart=0,
@@ -718,8 +733,11 @@ class _ComputeJob(_Supervisor):
             r = set(
                 o
                 for o in self.ops
-                # Do not cancel sim frames. Allow them to come back for a canceled run
-                if not (self.db.isParallel and o.opName == job.OP_ANALYSIS)
+                # Do not cancel sim frames and file requests. Allow them to come back for a canceled
+                # compute job. Both can have relevant data in the event of a canceled compute job.
+                # In the case of OP_IO we excpect that the only reason for cancelation is due to
+                # a timeout (max_run_secs reached) in which case we send back "content-too-large".
+                if not (self.db.isParallel and o.opName in (job.OP_ANALYSIS, job.OP_IO))
             )
             if timed_out_op in self.ops:
                 r.add(timed_out_op)
@@ -791,7 +809,7 @@ class _ComputeJob(_Supervisor):
             # Read this first https://github.com/radiasoft/sirepo/issues/2007
             r = await self._receive_api_runStatus(req)
             if r.state == job.MISSING:
-                # happens when the run dir is deleted (ex _purge_free_simulations)
+                # happens when the run dir is deleted (ex purge_non_premium)
                 assert (
                     recursion_depth == 0
                 ), "Infinite recursion detected. Already called from self. req={}".format(
@@ -843,7 +861,7 @@ class _ComputeJob(_Supervisor):
         if r:
             return r
         r = await self._send_op_analysis(req, "sequential_result")
-        if r.state == job.ERROR:
+        if r.state == job.ERROR and "errorCode" not in r:
             return self._init_db_missing_response(req)
         return r
 

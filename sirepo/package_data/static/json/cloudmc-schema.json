@@ -5,8 +5,14 @@
         }
     },
     "constants": {
+        "geometryScale": 0.01,
+        "inProgressText": "Working",
+        "minTallyResolution": 5,
         "maxFilters": 5,
-        "volumeProperties": ["color", "opacity"],
+        "sbatch": {
+            "fields": ["sbatchHours", "sbatchNodes"],
+            "nersc": ["sbatchQueue", "sbatchProject"]
+        },
         "scoreUnits": {
             "damage-energy": "eV",
             "decay-rate": "$s^{-1}$",
@@ -17,7 +23,8 @@
             "heating-local": "eV",
             "inverse-velocity": "cm/s",
             "kappa-fission": "eV"
-        }
+        },
+        "volumeProperties": ["color", "opacity"]
     },
     "enum": {
         "Axis": [
@@ -104,6 +111,16 @@
             ["point", "Point"],
             ["sphericalIndependent", "SphericalIndependent"]
         ],
+        "StandardMaterial": [
+            ["None", "None"],
+            ["materialStandardConcreteHanford", "Concrete, Hanford Dry"],
+            ["materialStandardConcreteLosAlamos", "Concrete, Los Alamos (MCNP)"],
+            ["materialStandardConcreteOrdinary", "Concrete, Ordinary (NIST)"],
+            ["materialStandardPolyethylene", "Polyethylene"],
+            ["materialStandardPolyethyleneBorated", "Polyethylene, Borated"],
+            ["materialStandardSteelStainless304", "Steel, Stainless 304"],
+            ["materialStandardSteelStainless316", "Steel, Stainless 316"]
+        ],
         "UnitSphereDistribution": [
             ["None", "None"],
             ["isotropic", "Isotropic"],
@@ -123,6 +140,10 @@
             ["energyFilter", "EnergyFilter"],
             ["energyoutFilter", "EnergyoutFilter"],
             ["particleFilter", "ParticleFilter"]
+        ],
+        "TallyGeometry": [
+            ["2D", "2D"],
+            ["3D", "3D"]
         ],
         "TallyScore": [
             ["flux", "flux: Total flux"],
@@ -215,7 +236,8 @@
         "openmcAnimation": [
             "tally",
             "score",
-            "aspect"
+            "aspect",
+            "energyRangeSum"
         ]
     },
     "localRoutes": {
@@ -264,20 +286,23 @@
         },
         "energyFilter": {
             "_super": ["_", "model", "filter"],
+            "_scale": ["", "Float", 1e6],
             "space": ["Space", "BinSpace", "linear"],
-            "start": ["Start", "Float", 0],
-            "stop": ["Stop", "Float", 1],
-            "num": ["Number of samples", "Integer", 50]
+            "start": ["Start [MeV]", "Float", 0, "A logarithmic space treats 0 as $10^{-307}$", 0],
+            "stop": ["Stop [MeV]", "Float", 25],
+            "num": ["Number of samples", "Integer", 50, "", 2]
         },
         "energyoutFilter": {
             "_super": ["_", "model", "filter"],
+            "_scale": ["", "Float", 1e6],
             "space": ["Space", "BinSpace", "linear"],
-            "start": ["Start", "Float", 0],
-            "stop": ["Stop", "Float", 1],
+            "start": ["Start [MeV]", "Float", 0],
+            "stop": ["Stop [MeV]", "Float", 1],
             "num": ["Number of samples", "Integer", 50]
         },
         "filter": {
-            "_type": ["", "TallyFilter"]
+            "_type": ["", "TallyFilter"],
+            "_scale": ["", "Float", 1.0]
         },
         "geometryInput": {
             "dagmcFile": ["DAGMC file", "InputFile", ""],
@@ -286,7 +311,8 @@
         "geometry3DReport": {
             "bgColor": ["Background color", "Color", "#fff9ed"],
             "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
-            "showEdges": ["Show edges", "Boolean", "0"]
+            "showEdges": ["Show edges", "Boolean", "0"],
+            "showMarker": ["Show axis marker", "Boolean", "1"]
         },
         "isotropic": {
             "_super": ["_", "model", "unitSphere"]
@@ -302,6 +328,7 @@
             "density": ["Density", "Float"],
             "density_units": ["Density units", "DensityUnits", "g/cm3"],
             "depletable": ["Depletable", "Boolean", "0"],
+            "standardType": ["Standard Material", "StandardMaterial", "None"],
             "volume": ["Volume [$cm^3$] (Optional)", "OptionalFloat"],
             "components": ["", "MaterialComponents"]
         },
@@ -320,6 +347,545 @@
         "materialFilter": {
             "_super": ["_", "model", "filter"],
             "bins": ["Cells", "SimpleListEditor", [], "", "materialValue"]
+        },
+        "materialStandard": {
+            "_super": ["_", "model", "material"]
+        },
+        "materialStandardConcreteHanford": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 2.18],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "H",
+                    "percent": 0.004000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "O",
+                    "percent": 0.482102,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Na",
+                    "percent": 0.002168,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Mg",
+                    "percent": 0.014094,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Al",
+                    "percent": 0.069387,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Si",
+                    "percent": 0.277549,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "K",
+                    "percent": 0.013010,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Ca",
+                    "percent": 0.080229,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Fe",
+                    "percent": 0.057461,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Concrete, Hanford Dry"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardConcreteHanford"]
+        },
+        "materialStandardConcreteLosAlamos": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 2.25],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "H",
+                    "percent": 0.004530,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "O",
+                    "percent": 0.512600,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Na",
+                    "percent": 0.015270,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Al",
+                    "percent": 0.035550,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Si",
+                    "percent": 0.360360,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Ca",
+                    "percent": 0.057910,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Fe",
+                    "percent": 0.013780,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Concrete, Los Alamos (MCNP)"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardConcreteLosAlamos"]
+        },
+        "materialStandardConcreteOrdinary": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 2.18],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "H",
+                    "percent": 0.022100,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "C",
+                    "percent": 0.002484,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "O",
+                    "percent": 0.574930,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Na",
+                    "percent": 0.015208,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Mg",
+                    "percent": 0.001266,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Al",
+                    "percent": 0.019953,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Si",
+                    "percent": 0.304627,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "K",
+                    "percent": 0.010045,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Ca",
+                    "percent": 0.042951,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Fe",
+                    "percent": 0.006435,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Concrete, Ordinary (NIST)"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardConcreteOrdinary"]
+        },
+        "materialStandardPolyethylene": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 0.93],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "H",
+                    "percent": 0.143716,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "C",
+                    "percent": 0.856284,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Polyethylene"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardPolyethylene"]
+        },
+        "materialStandardPolyethyleneBorated": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 1.0],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "H",
+                    "percent": 0.125355,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "B",
+                    "percent": 0.100000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "C",
+                    "percent": 0.774645,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Polyethylene, Borated"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardPolyethyleneBorated"]
+        },
+        "materialStandardSteelStainless304": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 8.0],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "C",
+                    "percent": 0.000400,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Si",
+                    "percent": 0.005000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "P",
+                    "percent": 0.000230,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "S",
+                    "percent": 0.000150,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Cr",
+                    "percent": 0.190000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Mn",
+                    "percent": 0.010000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Fe",
+                    "percent": 0.701730,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Ni",
+                    "percent": 0.092500,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Steel, Stainless 304"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardSteelStainless304"]
+        },
+        "materialStandardSteelStainless316": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 8.0],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "C",
+                    "percent": 0.000410,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Si",
+                    "percent": 0.005070,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "P",
+                    "percent": 0.000230,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "S",
+                    "percent": 0.000150,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Cr",
+                    "percent": 0.170000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Mn",
+                    "percent": 0.010140,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Fe",
+                    "percent": 0.669000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Ni",
+                    "percent": 0.120000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Mo",
+                    "percent": 0.025000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Steel, Stainless 316"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardSteelStainless316"]
         },
         "materialValue": {
             "value": ["Material", "MaterialValue"]
@@ -355,12 +921,22 @@
         "openmcAnimation": {
             "aspect": ["Aspect", "TallyAspect", "mean"],
             "bgColor": ["Background color", "Color", "#fff9ed"],
-            "colorMap": ["Color Map", "ColorMap", "jet"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "energyRangeSum": ["Sum over energies [MeV]", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": [0, 1], "space": "linear"}],
             "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
+            "showMarker": ["Show axis marker", "Boolean", "1"],
             "tally": ["Tally", "TallyList"],
+            "threshold": ["Threshold", "Float", 0.0, "Tally cells with a value below this will not be displayed"],
             "score": ["Score", "ScoreList"],
-            "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.0, "", 0.0, 1.0]
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Tasks per node", "Integer", 8, "", 1],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchNodes": ["Nodes", "Integer", 32, "", 1],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["CPUs per task", "Integer", 16, "", 1],
+            "sbatchProject": ["Project", "OptionalString", ""],
+            "ompThreads": ["OMP threads", "Integer", 16, "", 1]
         },
         "particle": {
             "value": ["Particle", "FilterParticle"]
@@ -450,18 +1026,10 @@
             "nuclides": ["Nuclides", "SimpleListEditor", [], "List of nuclides to use when scoring results", "nuclide"]
         },
         "tallyReport": {
-            "axis": ["Axis", "Axis", "y"],
-            "colorMap": ["Color Map", "ColorMap", "jet"],
-            "horizontalAxis": ["_", "Axis", "z"],
-            "horizontalTrim": ["Trim", "FloatArray", []],
+            "axis": ["Slice Axis", "Axis", "y"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "planePos": ["_", "Range", 0.0, ""],
-            "verticalAxis": ["_", "Axis", "x"],
-            "xDisplayMin": ["Min X", "Float", -1e100],
-            "xDisplayMax": ["Max X", "Float", 1e100],
-            "yDisplayMin": ["Min Y", "Float", -1e100],
-            "yDisplayMax": ["Max Y", "Float", 1e100],
-            "zDisplayMin": ["Min Z", "Float", -1e100],
-            "zDisplayMax": ["Max Z", "Float", 1e100]
+            "selectedGeometry": ["", "TallyGeometry", "3D"]
         },
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
@@ -478,10 +1046,6 @@
             "_type": ["", "ProbabilityDistribution"]
         },
         "volumes": {},
-        "voxels": {
-            "colorMap": ["Color Map", "ColorMap", "jet"],
-            "voxelInsetPct": ["Voxel Inset [%]", "Float", 0.10, "", 0.0, 1.0]
-        },
         "watt": {
             "_super": [ "_", "model", "univariate"],
             "a": ["a", "Float", 0.988e6, "The Watt fission energy spectrum is characterized by two parameters $a$ and $b$ and has density function $p(E) dE = c e^{-E/a} \\sinh \\sqrt{b \\, E} dE$"],
@@ -553,10 +1117,12 @@
         },
         "geometry3DReport": {
             "title": "DAGMC Geometry",
+            "is3d": true,
             "advanced": [
                 "opacity",
                 "bgColor",
-                "showEdges"
+                "showEdges",
+                "showMarker"
             ]
         },
         "isotropic": {
@@ -571,6 +1137,7 @@
             "title": "Material",
             "advanced": [
                 "name",
+                "standardType",
                 "density_with_units",
                 "depletable",
                 "temperature",
@@ -623,17 +1190,27 @@
                 "nuclide"
             ]
         },
-        "openmcAnimation": {
-            "title": "Tally Results",
-            "advanced": [
+        "tallySettings": {
+            "title": "Tally Settings",
+            "model": "openmcAnimation",
+            "basic": [
                 "tally",
                 "score",
                 "aspect",
-                "voxels.voxelInsetPct",
-                "voxels.colorMap",
+                "openmcAnimation.energyRangeSum",
+                "colorMap",
+                "threshold",
                 "opacity",
+                "tallyReport.axis"
+            ],
+            "advanced": []
+        },
+        "openmcAnimation": {
+            "title": "Tally Results",
+            "is3d": true,
+            "advanced": [
                 "bgColor",
-                "showEdges"
+                "showMarker"
             ]
         },
         "particle": {

@@ -5,9 +5,10 @@
 .sr-navbar-container {
     display: flex;
     flex-flow: row nowrap;
-    width: 100%;
     padding-left: 10px;
     align-items: center;
+    flex-grow: 1;
+    justify-content: space-between;
 }
 
 .sr-navbar {

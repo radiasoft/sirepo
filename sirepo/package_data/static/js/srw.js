@@ -2380,7 +2380,7 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
     };
 });
 
-SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
+SIREPO.app.directive('samplePreview', function(appState, requestSender) {
     return {
         restrict: 'A',
         template: `
@@ -2438,9 +2438,9 @@ SIREPO.app.directive('samplePreview', function(appState, requestSender, $http) {
                     (data) => {
                         imageData = data;
                         $scope.isLoading = false;
-                        const u = window.URL || window.webkitURL;
                         if ($('.srw-processed-image').length) {
-                            $('.srw-processed-image')[0].src = u.createObjectURL(data);
+                            // TODO(robnagler) need to call revokeObjectURL for previous url
+                            $('.srw-processed-image')[0].src = URL.createObjectURL(data);
                         }
                     },
                 );
@@ -2518,9 +2518,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
            </div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <div data-canceled-due-to-timeout-alert="simState"></div>
-              <div class="progress" data-ng-if="simState.isProcessing()">
-                <div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>
-              </div>
+              <div data-ng-if="simState.isProcessing()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
               <div data-ng-if="simState.isProcessing()">
                 <div class="col-sm-6">
                   <div data-pending-link-to-simulations="" data-sim-state="simState"></div>
@@ -2548,9 +2546,9 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 <div class="col-sm-12" data-simulation-status-timer="simState"></div>
                 <div data-ng-if="simState.showJobSettings()">
                   <div class="form-group form-group-sm">
-                    <div class="col-sm-12" data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
-                    <div data-sbatch-options="simState"></div>
+                    <div data-model-field="'jobRunMode'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
                   </div>
+                  <div data-sbatch-options="simState"></div>
                 </div>
                 <div class="col-sm-6 pull-right">
                   <button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel() }}</button>
@@ -3350,87 +3348,6 @@ SIREPO.app.directive('srwNumberList', function(appState) {
                 }
                 return $scope.values;
             };
-        },
-    };
-});
-
-SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, persistentSimulation) {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: `
-          <div class="col-sm-3">
-            <button class="btn btn-default pull-right" data-ng-click="start()" data-ng-show="simState.isStopped()">Start New Simulation</button>
-            <button class="btn btn-default pull-right" data-ng-click="simState.cancelSimulation()" data-ng-show="simState.isProcessing()">End Simulation</button>
-          </div>
-          <div data-ng-show="simState.isStateError()" class="col-sm-9" style="margin-top: 1ex">
-            Error: {{ simState.getError() }}
-          </div>
-          <div class="col-sm-5 col-md-4 col-lg-3" style="margin-top: 1ex">
-            <div data-pending-link-to-simulations="" data-sim-state="simState"></div>
-            <div data-ng-show="simState.isStateRunning()">
-              <div class="progress">
-                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%"></div>
-              </div>
-            </div>
-          </div>
-          <div style="margin-bottom: 1em" class="clearfix"></div>
-          <div data-ng-repeat="report in reports" data-ng-if="simState.hasFrames()">
-            <div data-watchpoint-report="" data-item-id="report.id"></div>
-            <div class="clearfix hidden-xl" data-ng-hide="($index + 1) % 2"></div>
-            <div class="clearfix visible-xl" data-ng-hide="($index + 1) % 3"></div>
-          </div>
-        `,
-        controller: function($scope, $rootScope) {
-            $scope.reports = [];
-            $scope.simScope = $scope;
-            $scope.simComputeModel = 'beamlineAnimation';
-            $scope.$on('framesCleared', () => {
-                $scope.reports = [];
-            });
-
-            $scope.start = function() {
-                $rootScope.$broadcast('saveLattice', appState.models);
-                appState.models.simulation.framesCleared = false;
-                appState.saveChanges(
-                    [$scope.simState.model, 'simulation'],
-                    $scope.simState.runSimulation);
-            };
-
-            $scope.simHandleStatus = (data) => {
-                if (appState.models.simulation.framesCleared) {
-                    return;
-                }
-                if (! data.outputInfo) {
-                    return;
-                }
-                for (let i = 0; i < data.frameCount; i++) {
-                    if ($scope.reports.length != i) {
-                        continue;
-                    }
-                    let info = data.outputInfo[i];
-                    $scope.reports.push({
-                        id: info.id,
-                        modelAccess: {
-                            modelKey: info.modelKey,
-                        },
-                    });
-                    frameCache.setFrameCount(1, info.modelKey);
-                }
-                frameCache.setFrameCount(data.frameCount || 0);
-            };
-
-            $scope.simState = persistentSimulation.initSimulationState($scope);
-
-            $scope.$on('modelChanged', (e, name) => {
-                if (! appState.isReportModelName(name)) {
-                    if (frameCache.getFrameCount() > 0) {
-                        frameCache.setFrameCount(0);
-                        appState.models.simulation.framesCleared = true;
-                        appState.saveQuietly('simulation');
-                    }
-                }
-            });
         },
     };
 });

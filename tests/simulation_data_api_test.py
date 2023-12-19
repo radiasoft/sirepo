@@ -4,12 +4,10 @@
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
-import pytest
 
 
 def test_elegant_get_beam_input_type(fc):
+    from pykern.pkcollections import PKDict
     from pykern import pkunit
 
     f = None
@@ -18,21 +16,27 @@ def test_elegant_get_beam_input_type(fc):
 
 
 def test_invalid_method(fc):
-    from pykern import pkunit
+    from pykern import pkunit, pkdebug
 
-    m = "-x23"
+    # must be pretty specific. If it contains a "-", it will be caught by split_jid.
+    # If it doesn't have a valid file name character, it'll be caught by assert_sim_db_file_path.
+    # This method is illegal and makes it through.
+    m = "0x23"
     r = _do_stateless_compute(fc, m)
-    pkunit.pkre(f"method={m} not a valid python function name or too long", r.error)
+    pkunit.pkre(f"method={m}.*invalid", r.error)
 
 
 def test_madx_calculate_bunch_parameters(fc):
-    from pykern import pkunit
+    from pykern import pkunit, pkdebug
 
     r = _do_stateless_compute(fc, "calculate_bunch_parameters")
-    pkunit.pkok(r.command_beam, "unexpected response={}", r)
+    pkdebug.pkdp(r)
+    pkunit.pkok(r.get("command_beam"), "unexpected response={}", r)
 
 
 def _do(fc, api, method, data):
+    from pykern.pkcollections import PKDict
+
     return fc.sr_post(
         api,
         PKDict(
@@ -45,6 +49,8 @@ def _do(fc, api, method, data):
 
 
 def _do_stateful_compute(fc, method, data):
+    from pykern.pkcollections import PKDict
+
     t = "elegant"
     d = fc.sr_sim_data(sim_name="Backtracking", sim_type=t)
     return _do(
@@ -56,6 +62,8 @@ def _do_stateful_compute(fc, method, data):
 
 
 def _do_stateless_compute(fc, method, data=None):
+    from pykern.pkcollections import PKDict
+
     data = data or PKDict()
     t = "madx"
     d = fc.sr_sim_data(sim_name="FODO PTC", sim_type=t)

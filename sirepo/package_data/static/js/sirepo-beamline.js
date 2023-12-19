@@ -58,7 +58,7 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
     };
 
     self.getReportTitle = function(modelName, itemId) {
-        if (modelName == 'initialIntensityReport'
+        if (itemId == 0
             && SIREPO.INITIAL_INTENSITY_REPORT_TITLE) {
             return SIREPO.INITIAL_INTENSITY_REPORT_TITLE;
         }
@@ -103,8 +103,9 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
         if (appState.isLoaded()) {
             var beamline = appState.applicationState().beamline;
             var res = [];
+            self.createWatchModel(0);
             for (var i = 0; i < beamline.length; i++) {
-                if (beamline[i].type == 'watch') {
+                if (self.isWatchpointReportElement(beamline[i])) {
                     res.push(beamline[i]);
                     self.createWatchModel(beamline[i].id);
                 }
@@ -170,6 +171,13 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
 
     self.isTouchscreen = function() {
         return isTouchscreen;
+    };
+
+    self.isWatchpointReportElement = item => {
+        if (SIREPO.BEAMLINE_WATCHPOINT_REPORT_ELEMENTS) {
+            return SIREPO.BEAMLINE_WATCHPOINT_REPORT_ELEMENTS.includes(item.type);
+        }
+        return item.type == 'watch';
     };
 
     self.removeActiveItem = function() {
@@ -241,15 +249,15 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
         template: `
             <div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="dropComplete($data, $event)">
               <div data-ng-transclude=""></div>
-              <p class="lead text-center">beamline definition area
+              <p class="lead text-center">{{ beamlineName }} definition area
                 <button title="Download beamline as PNG" class="btn btn-default btn-sm" data-ng-if="showPNGDownloadLink()" data-ng-click="createBeamlinePNG()"><span class="glyphicon glyphicon-cloud-download"></span></button><br>
-                <small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>
+                <small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the {{ beamlineName }}</em></small></p>
               <div class="srw-beamline-container">
                 <div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">
                   <div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data, $event)"> </div><div data-ng-drag="::beamlineService.isEditable()" data-ng-drag-data="item" data-item="item" data-beamline-item=""
                     data-show-active-watchpoints="showActiveWatchpoints" data-active-watchpoint-title="{{ activeWatchpointTitle }}" data-is-watchpoint-active="isWatchpointActive(item)" data-set-watchpoint-active="setWatchpointActive(item)"
-                    class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}"
-                    data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}" oncontextmenu="return false">
+                    class="srw-beamline-element {{ beamlineService.isTouchscreen() ? '' : 'srw-hover' }}"
+                    data-ng-class="{'srw-disabled-item': item.isDisabled, 'srw-beamline-invalid': ! beamlineService.isItemValid(item)}" oncontextmenu="return false">
                   </div><div class="srw-drop-between-zone" data-ng-attr-style="width: {{ dropBetweenWidth }}px"  data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data, $event)"> </div>
                 </div>
             </div>
@@ -265,6 +273,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
             </div>
         `,
         controller: function($scope, $rootScope) {
+            $scope.beamlineName = (SIREPO.APP_SCHEMA.strings.beamlineTabName || 'beamline').toLowerCase();
             $scope.setWatchpointActive = function(item) {
                 if(! $scope.parentController.setWatchpointActive) {
                     return;
@@ -295,7 +304,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 if (newItem.type == 'ellipsoidMirror') {
                     newItem.firstFocusLength = newItem.position;
                 }
-                if (newItem.type == 'watch') {
+                if (beamlineService.isWatchpointReportElement(newItem)) {
                     beamlineService.createWatchModel(newItem.id);
                 }
                 appState.models.beamline.push(newItem);
@@ -407,7 +416,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
                 };
                 for (var i = 0; i < appState.models.beamline.length; i++) {
                     var item = appState.models.beamline[i];
-                    if (item.type == 'watch') {
+                    if (beamlineService.isWatchpointReportElement(item)) {
                         watchpoints[beamlineService.watchpointReportName(item.id)] = true;
                     }
                 }
@@ -443,7 +452,9 @@ SIREPO.app.directive('beamlineIcon', function() {
             <div data-ng-if="::isSVG">
               <data-ng-include src="::iconUrl" data-onload="iconLoaded()"/>
             </div>
-            <img class="srw-beamline-item-icon" data-ng-if="::! isSVG" data-ng-attr-src="{{ ::iconUrl }}"/>
+            <div data-ng-if="::! isSVG">
+              <img class="srw-beamline-item-icon" data-ng-attr-src="{{ ::iconUrl }}"/>
+            </div>
         `,
         controller: function($scope, $element) {
             var adjustmentsByType = {
@@ -457,9 +468,12 @@ SIREPO.app.directive('beamlineIcon', function() {
                 lens: [5],
                 mask: [5, 0, 5],
                 mirror: [15, 5, 12],
+                mirror2: [15],
                 obstacle: [-15, 10, -2],
                 sample: [20, -10, 10],
                 sphericalMirror: [10, 10, 7],
+                splitter: [-10, 5, 0],
+                telescope: [5],
                 toroidalMirror: [15, 0, 7],
                 watch: [0, 15, 10],
                 zonePlate: [20, -10, -5],
@@ -508,15 +522,15 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             setWatchpointActive: '&',
         },
         template: `
-            <span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : (item.position === 0 ? \'0m\' : \'⚠ \') }}</span>
+            <span class="srw-beamline-badge badge">{{ item.position ? item.position + 'm' : (item.position === 0 ? '0m' : '⚠ ') }}</span>
             <span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon srw-beamline-toggle glyphicon glyphicon-remove-circle" title="Delete Element"></span>
             <span data-ng-if="showItemButtons()" data-ng-click="beamlineService.copyElement(item)" class="srw-beamline-copy-icon srw-beamline-toggle glyphicon glyphicon-duplicate" title="Copy Element"></span>
-            <span data-ng-if="showItemButtons() && showActiveIcon(item)" data-ng-click="setWatchpointActive(item)" class="srw-beamline-report-icon srw-beamline-toggle glyphicon glyphicon-ok" data-ng-class="{\'srw-beamline-report-icon-active\': isWatchpointActive(item)}" title="{{ activeWatchpointTitle }}"></span>
-            <span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon srw-beamline-toggle glyphicon" data-ng-class="{\'glyphicon-ok-circle\': item.isDisabled, \' glyphicon-ban-circle\': ! item.isDisabled}" title="{{ enableItemToggleTitle() }}"></span>
+            <span data-ng-if="showItemButtons() && showActiveIcon(item)" data-ng-click="setWatchpointActive(item)" class="srw-beamline-report-icon srw-beamline-toggle glyphicon glyphicon-ok" data-ng-class="{'srw-beamline-report-icon-active': isWatchpointActive(item)}" title="{{ activeWatchpointTitle }}"></span>
+            <span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon srw-beamline-toggle glyphicon" data-ng-class="{'glyphicon-ok-circle': item.isDisabled, ' glyphicon-ban-circle': ! item.isDisabled}" title="{{ enableItemToggleTitle() }}"></span>
             <div class="srw-beamline-image">
               <span data-beamline-icon="" data-item="item"></span>
             </div>
-            <div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ (beamlineService.isItemValid(item) ? \'\' : \'⚠ \') + item.title }}<span class="caret"></span></div>
+            <div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ (beamlineService.isItemValid(item) ? '' : '⚠ ') + item.title }}<span class="caret"></span></div>
         `,
         controller: function($scope, $element) {
             $scope.beamlineService = beamlineService;
@@ -685,7 +699,7 @@ SIREPO.app.directive('beamlineReports', function(beamlineService) {
         scope: {},
         template: `
             <div data-column-for-aspect-ratio="initialIntensityReport">
-              <div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamlineService.getReportTitle(\'initialIntensityReport\') }}"></div>
+              <div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamlineService.getReportTitle('initialIntensityReport') }}"></div>
             </div>
             <div data-ng-if="! item.isDisabled" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id">
               <div data-watchpoint-report="" data-item-id="item.id"></div>
@@ -713,11 +727,11 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
                   <div class="sr-toolbar-section" data-ng-repeat="section in ::sectionItems">
                     <div class="sr-toolbar-section-header"><span class="sr-toolbar-section-title">{{ ::section[0] }}</span></div>
                     <span data-ng-repeat="item in ::section[1]" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
-                      <span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}
+                      <span data-beamline-icon="" data-item="item"></span>{{ ::item.title }}
                     </span>
                   </div>
                   <span data-ng-repeat="item in ::standaloneItems" class="srw-toolbar-button srw-beamline-image" data-ng-drag="true" data-ng-drag-data="item">
-                    <span data-beamline-icon="" data-item="item"></span><br>{{ ::item.title }}
+                    <span data-beamline-icon="" data-item="item"></span>{{ ::item.title }}
                   </span>
                 </div>
               </div>
@@ -793,7 +807,7 @@ SIREPO.app.directive('watchpointReport', function(beamlineService) {
         },
         template: `
             <div data-column-for-aspect-ratio="{{ watchpointModelName }}">
-              <div data-report-panel="3d" data-request-priority="2" data-model-name="{{ modelName }}" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>
+              <div data-report-panel="{{ modelAccess.getData().reportType || '3d' }}" data-request-priority="2" data-model-name="{{ modelName }}" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>
             </div>
         `,
         controller: function($scope) {
@@ -825,6 +839,109 @@ SIREPO.app.directive('watchPointList', function(appState, beamlineService) {
             }
             appState.whenModelsLoaded($scope, updateWatchItems);
             $scope.$on('modelChanged', updateWatchItems);
+        },
+    };
+});
+
+SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelState, persistentSimulation) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+          <div class="col-sm-3">
+            <div data-canceled-due-to-timeout-alert="simState"></div>
+            <div data-simulation-stopped-status="simState"></div>
+            <div class="col-sm-12" data-simulation-status-timer="simState"></div>
+            <button class="btn btn-default pull-right" data-ng-click="start()" data-ng-show="simState.isStopped()">Start New Simulation</button>
+            <button class="btn btn-default pull-right" data-ng-click="simState.cancelSimulation()" data-ng-show="simState.isProcessing()">End Simulation</button>
+          </div>
+          <div class="col-sm-5 col-md-4 col-lg-3" style="margin-top: 1ex">
+            <div data-pending-link-to-simulations="" data-sim-state="simState"></div>
+            <div data-ng-show="simState.isStateRunning()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
+            <div data-ng-show="simState.isStateError()">{{ simState.errorMessage() }}</div>
+          </div>
+          <div style="margin-bottom: 1em" class="clearfix"></div>
+          <div data-ng-repeat="report in reports" data-ng-if="simState.hasFrames()">
+            <div data-watchpoint-report="" data-item-id="report.id" data-ng-if="showReport(report)"></div>
+            <div class="clearfix hidden-xl" data-ng-hide="($index + 1) % 2"></div>
+            <div class="clearfix visible-xl" data-ng-hide="($index + 1) % 3"></div>
+          </div>
+        `,
+        controller: function($scope, $rootScope) {
+            let errorMessage;
+            $scope.reports = [];
+            $scope.simScope = $scope;
+            $scope.simComputeModel = 'beamlineAnimation';
+            $scope.$on('framesCleared', () => {
+                $scope.reports = [];
+            });
+
+            $scope.showReport = report => {
+                if ($scope.simState.isStateRunning()) {
+                    return true;
+                }
+                return frameCache.getFrameCount(report.modelAccess.modelKey) !== SIREPO.nonDataFileFrame;
+            };
+
+            $scope.start = function() {
+                $rootScope.$broadcast('saveLattice', appState.models);
+                appState.models.simulation.framesCleared = false;
+                appState.saveChanges(
+                    [$scope.simState.model, 'simulation'],
+                    $scope.simState.runSimulation);
+            };
+
+            $scope.simHandleStatus = (data) => {
+                function getReport(id) {
+                    for(const r of $scope.reports) {
+                        if (id === r.id) {
+                            return r;
+                        }
+                    }
+                    return null;
+                }
+
+                if (appState.models.simulation.framesCleared) {
+                    return;
+                }
+                errorMessage = data.error;
+                if (! data.outputInfo) {
+                    return;
+                }
+
+                for (let i = 0; i < data.outputInfo.length; i++) {
+                    let info = data.outputInfo[i];
+                    if (! getReport(info.id)) {
+                        $scope.reports.push(
+                            {
+                                id: info.id,
+                                modelAccess: {
+                                    modelKey: info.modelKey,
+                                },
+                            }
+                        );
+                    }
+                    frameCache.setFrameCount(
+                        info.waitForData ? SIREPO.nonDataFileFrame : (info.frameCount || 1),
+                        info.modelKey
+                    );
+                    panelState.setWaiting(info.modelKey, ! ! info.waitForData);
+                }
+                frameCache.setFrameCount(data.frameCount || 0);
+            };
+
+            $scope.simState = persistentSimulation.initSimulationState($scope);
+            $scope.simState.errorMessage = () => errorMessage;
+
+            $scope.$on('modelChanged', (e, name) => {
+                if (! appState.isReportModelName(name)) {
+                    if (frameCache.getFrameCount() > 0) {
+                        frameCache.setFrameCount(0);
+                        appState.models.simulation.framesCleared = true;
+                        appState.saveQuietly('simulation');
+                    }
+                }
+            });
         },
     };
 });

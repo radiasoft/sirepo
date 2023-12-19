@@ -3,11 +3,7 @@
 
         "dagmcAnimation": {},
         "geometry3DReport": {
-            "bgColor": [
-                1,
-                0.97647,
-                0.929412
-            ],
+            "bgColor": "#fff9ed",
             "opacity": 1,
             "showEdges": "0"
         },
@@ -17,7 +13,7 @@
         "openmcAnimation": {
             "aspect": "mean",
             "bgColor": "#fff9ed",
-            "colorMap": "jet",
+            "colorMap": "viridis",
             "opacity": 1,
             "score": "heating",
             "showEdges": "0",
@@ -332,7 +328,8 @@
         "simFolder": {},
         "simulation": {
             "folder": "/Examples",
-            "name": "Tokamak Reactor"
+            "name": "Tokamak Reactor",
+            "notes": "From https://github.com/fusion-energy/magnetic_fusion_openmc_dagmc_paramak_example"
         },
         "volumes": {
             "blanket": {
@@ -803,10 +800,6 @@
                 "opacity": 0.3,
                 "volId": "23"
             }
-        },
-        "voxels": {
-            "colorMap": "jet",
-            "voxelInsetPct": 0
         }
     },
     "simulationType": "cloudmc"

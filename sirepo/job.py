@@ -7,6 +7,7 @@
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+import pykern.pkcompat
 import pykern.pkdebug
 import sirepo.const
 import sirepo.feature_config
@@ -14,6 +15,7 @@ import sirepo.srdb
 import sirepo.util
 import re
 
+ERROR_CODE_RESPONSE_TOO_LARGE = "response_too_large"
 
 OP_ANALYSIS = "analysis"
 OP_CANCEL = "cancel"
@@ -47,6 +49,9 @@ SERVER_PING_URI = "/job-api-ping"
 
 #: path supervisor registers to receive requests from job_process for file PUTs
 DATA_FILE_URI = "/job-cmd-data-file"
+
+#: path supervisor registers to receive requests from job_process for global resources
+GLOBAL_RESOURCES_URI = "/global-resources"
 
 #: how jobs request files
 LIB_FILE_URI = "/job-cmd-lib-file"
@@ -84,9 +89,6 @@ DEFAULT_SUPERVISOR_URI_DECL = (
     str,
     "how to reach supervisor",
 )
-
-#: where runner_api writes simulation state
-RUNNER_STATUS_FILE = "status"
 
 #: status values
 CANCELED = "canceled"
@@ -135,6 +137,14 @@ UNIQUE_KEY_CHARS_RE = r"\w+"
 
 #: A standalone unique key
 UNIQUE_KEY_RE = re.compile(r"^{}$".format(UNIQUE_KEY_CHARS_RE))
+
+_QUASI_SID_PREFIX = "_1_"
+
+#: Allow sids for different kinds of jobs (not simulations)
+QUASI_SID_RE = re.compile(f"^{_QUASI_SID_PREFIX}")
+
+#: Must match length of simulation_db._ID_LEN
+_QUASI_SID_OP_KEY_LEN = 5
 
 
 _cfg = None
@@ -311,6 +321,18 @@ def ok_reply():
     return _OK_REPLY.copy()
 
 
+def quasi_jid(uid, op_key, method):
+    """Creates an id for a non-simulation job
+
+    Args:
+        uid (str): user id
+        op_key (str): "stful" or "stlss"
+        method (str): statelessCompute or statefulCompute method
+    """
+    assert len(op_key) == _QUASI_SID_OP_KEY_LEN
+    return join_jid(uid, _QUASI_SID_PREFIX + op_key, method)
+
+
 def split_jid(jid):
     """Split jid into named parts
 
@@ -320,7 +342,7 @@ def split_jid(jid):
         PKDict: parts named uid, sid, compute_model.
     """
     return PKDict(
-        zip(
+        pykern.pkcompat.zip_strict(
             ("uid", "sid", "compute_model"),
             jid.split(_JOB_ID_SEP),
         )

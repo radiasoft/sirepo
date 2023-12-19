@@ -4,8 +4,8 @@ import { LAYOUTS } from "./layouts";
 import { LayoutProps, Layout } from "./layout";
 import { ReportAnimationController, useAnimationReader } from "./report"
 import { SchemaLayout } from "../utility/schema";
-import { SimulationFrame } from "../data/report";
 import { useWindowSize } from "../hook/breakpoint";
+import { SimulationFrame } from "../data/report";
 
 export type MultiPanelConfig = {
     items: SchemaLayout[],
@@ -24,10 +24,6 @@ export class MultiPanelLayout extends Layout<MultiPanelConfig, {}> {
             config.columns = 3;
         }
         this.items = config.items.map(LAYOUTS.getLayoutForSchema);
-    }
-
-    getFormDependencies = () => {
-        return [...(this.items)].map(childLayout => childLayout.getFormDependencies()).flat();
     }
 
     component = (props: LayoutProps<{}>) => {

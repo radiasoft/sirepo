@@ -80,14 +80,13 @@ def is_login_expired(qcall, res=None):
 def validate_login(qcall):
     """If expiry is configured, check timestamp
 
-    Returns:
-        object: if valid, None, otherwise flask.Response.
+    Raises SRException loginFail if expired.
     """
     msg = PKDict()
     if is_login_expired(qcall, msg):
         raise sirepo.util.SRException(
             "loginFail",
-            PKDict({":method": "guest", ":reason": "guest-expired"}),
+            PKDict(method="guest", reason="guest-expired"),
             "expired uid={uid}, expiry={expiry} now={now}",
             **msg
         )

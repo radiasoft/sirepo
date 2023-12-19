@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2018 Bivio Software, Inc.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import pytest
 from pykern.pkcollections import PKDict
 
@@ -44,10 +43,16 @@ def test_srw_auth_login(fc):
         simulationId=data.simulationId,
     )
     bluesky.auth_hash(req)
-    resp = fc.sr_post("authBlueskyLogin", req)
-    pkeq("ok", resp["state"])
-    pkeq(req.simulationId, resp.data.models.simulation.simulationId)
-    pkeq("srw", resp["schema"]["simulationType"])
+    r = fc.sr_post("authBlueskyLogin", req)
+    pkeq("ok", r["state"])
+    pkeq(req.simulationId, r.data.models.simulation.simulationId)
+    pkeq("srw", r["schema"]["simulationType"])
     req.authHash = "not match"
-    resp = fc.sr_post("authBlueskyLogin", req, raw_response=True)
-    pkeq(401, resp.status_code)
+    r = fc.sr_post("authBlueskyLogin", req, raw_response=True)
+    r.assert_http_status(401)
+    # DEPRECATED
+    fc.cookie_jar.clear()
+    bluesky.auth_hash(req)
+    r = fc.sr_post("blueskyAuth", req)
+    pkeq("ok", r["state"])
+    pkeq(req.simulationId, r.data.models.simulation.simulationId)

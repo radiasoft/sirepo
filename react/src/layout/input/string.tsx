@@ -1,9 +1,11 @@
 import React, { ChangeEventHandler, FunctionComponent } from 'react';
 import { Form } from 'react-bootstrap';
+import { interpolate } from '../../utility/string';
 import { AlignmentClass, InputComponentProps, InputConfigBase, InputLayout } from './input';
 
 export type StringInputConfig = {
-    align: AlignmentClass
+    align: AlignmentClass,
+    valid?: string
 } & InputConfigBase
 
 export class StringInputLayout extends InputLayout<StringInputConfig, string> {
@@ -15,7 +17,11 @@ export class StringInputLayout extends InputLayout<StringInputConfig, string> {
     }
 
     validate = (value: string) => {
-        return (!this.config.isRequired) || (this.hasValue(value) && value.length > 0);
+        let v = (!this.config.isRequired) || (this.hasValue(value) && value.length > 0);
+        if (this.config.valid) {
+            return v && interpolate(this.config.valid).withValues({ value }).evaluated();
+        }
+        return v;
     }
 
     toModelValue: (value: string) => string = (v) => v;

@@ -7,16 +7,16 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             assert os.path.isfile(mirror_file), \
                 'Missing input file {}, required by {{ item.name }} beamline element'.format(mirror_file)
 {% if item.heightProfileDimension == 1 %}
-            el.append(srwlib.srwl_opt_setup_surf_height_1d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
 {% else %}
-            el.append(srwlib.srwl_opt_setup_surf_height_2d(
-                srwlib.srwl_uti_read_data_cols(mirror_file, "\t"),
+            el.append(srwpy.srwlib.srwl_opt_setup_surf_height_2d(
+                srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t"),
 {% endif %}
                 _dim={{ field(item, 'orientation') }},
                 _ang=abs({{ field(item, 'grazingAngle') }}),
                 _amp_coef={{ field(item, 'heightAmplification') }},
-{% if 'horizontalTransverseSize' in item %}
+{% if 'horizontalTransverseSize' in item and item.type == 'mirror' %}
                 _size_x={{ field(item, 'horizontalTransverseSize') }},
                 _size_y={{ field(item, 'verticalTransverseSize') }},
 {% endif %}
@@ -46,7 +46,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             # {{ item.name }}: {{ item.type }} {{ item.position }}m
             {% endif %}
 {% if item.type == 'aperture' %}
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape={{ field(item, 'shape') }},
                 _ap_or_ob='a',
                 _Dx={{ field(item, 'horizontalSize') }},
@@ -56,7 +56,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             ))
             pp.append(v.op_{{ item.name }}_pp)
 {% elif item.type == 'crl' %}
-            el.append(srwlib.srwl_opt_setup_CRL(
+            el.append(srwpy.srwlib.srwl_opt_setup_CRL(
                 _foc_plane={{ field(item, 'focalPlane') }},
                 _delta={{ field(item, 'refractiveIndex') }},
                 _atten_len={{ field(item, 'attenuationLength') }},
@@ -71,7 +71,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             ))
             pp.append(v.op_{{ item.name }}_pp)
 {% elif item.type == 'crystal' %}
-            crystal = srwlib.SRWLOptCryst(
+            crystal = srwpy.srwlib.SRWLOptCryst(
                 _d_sp={{ field(item, 'dSpacing') }},
                 _psi0r={{ field(item, 'psi0r') }},
                 _psi0i={{ field(item, 'psi0i') }},
@@ -94,12 +94,12 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             pp.append(v.op_{{ item.name }}_pp)
             {{ height_profile(item) }}
 {% elif item.type == 'drift' %}
-            el.append(srwlib.SRWLOptD(
+            el.append(srwpy.srwlib.SRWLOptD(
                 _L={{ field(item, 'length') }},
             ))
             pp.append(v.op_{{ item.name }}_pp)
 {% elif item.type == 'ellipsoidMirror' %}
-            el.append(srwlib.SRWLOptMirEl(
+            el.append(srwpy.srwlib.SRWLOptMirEl(
                 _p={{ field(item, 'firstFocusLength') }},
                 _q={{ field(item, 'focalLength') }},
                 _ang_graz={{ field(item, 'grazingAngle') }},
@@ -116,7 +116,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             pp.append(v.op_{{ item.name }}_pp)
             {{ height_profile(item) }}
 {% elif item.type == 'fiber' %}
-            el.append(srwlib.srwl_opt_setup_cyl_fiber(
+            el.append(srwpy.srwlib.srwl_opt_setup_cyl_fiber(
                 _foc_plane={{ field(item, 'focalPlane') }},
                 _delta_ext={{ field(item, 'externalRefractiveIndex') }},
                 _delta_core={{ field(item, 'coreRefractiveIndex') }},
@@ -129,7 +129,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             ))
             pp.append(v.op_{{ item.name }}_pp)
 {% elif item.type == 'grating' %}
-            mirror = srwlib.SRWLOptMirPl(
+            mirror = srwpy.srwlib.SRWLOptMirPl(
                 _size_tang={{ field(item, 'tangentialSize') }},
                 _size_sag={{ field(item, 'sagittalSize') }},
                 _nvx={{ field(item, 'nvx') }},
@@ -140,7 +140,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 _x={{ field(item, 'horizontalOffset') }},
                 _y={{ field(item, 'verticalOffset') }},
             )
-            opEl=srwlib.SRWLOptG(
+            opEl=srwpy.srwlib.SRWLOptG(
                 _mirSub=mirror,
                 _m={{ field(item, 'diffractionOrder') }},
                 _grDen={{ field(item, 'grooveDensity0') }},
@@ -157,7 +157,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             pp.append(v.op_{{ item.name }}_pp)
             {{ height_profile(item) }}
 {% elif item.type == 'lens' %}
-            el.append(srwlib.SRWLOptL(
+            el.append(srwpy.srwlib.SRWLOptL(
                 _Fx={{ field(item, 'horizontalFocalLength') }},
                 _Fy={{ field(item, 'verticalFocalLength') }},
                 _x={{ field(item, 'horizontalOffset') }},
@@ -165,7 +165,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             ))
             pp.append(v.op_{{ item.name }}_pp)
 {% elif item.type == 'mask' %}
-            el.append(srwlib.srwl_opt_setup_mask(
+            el.append(srwpy.srwlib.srwl_opt_setup_mask(
                 _delta={{ field(item, 'refractiveIndex') }},
                 _atten_len={{ field(item, 'attenuationLength') }},
                 _thick={{ field(item, 'maskThickness') }},
@@ -189,7 +189,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             {% if report == 'beamline3DReport' %}
             cosAng = math.cos({{ field(item, 'ang') }})
             sinAng = math.sin({{ field(item, 'ang') }})
-            el.append(srwlib.SRWLOptMirPl(
+            el.append(srwpy.srwlib.SRWLOptMirPl(
                 _nvx=0. if {{ field(item, 'dim') }} == 'y' else cosAng, #OC: orientation to be checked before the final implementation!
                 _nvy=0. if {{ field(item, 'dim') }} == 'x' else cosAng,
                 _nvz=-sinAng,
@@ -201,7 +201,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             {{ height_profile(item) }}
             pp.append(v.op_{{ item.name }}_pp)
 {% elif item.type == 'obstacle' %}
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape={{ field(item, 'shape') }},
                 _ap_or_ob='o',
                 _Dx={{ field(item, 'horizontalSize') }},
@@ -211,7 +211,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             ))
             pp.append(v.op_{{ item.name }}_pp)
 {% elif item.type == 'sample' and item.sampleSource == 'file' %}
-            el.append(srwl_uti_smp.srwl_opt_setup_transm_from_file(
+            el.append(srwpy.srwl_uti_smp.srwl_opt_setup_transm_from_file(
                 file_path={{ field(item, 'imageFile') }},
                 resolution={{ field(item, 'resolution') }},
                 thickness={{ field(item, 'thickness') }},
@@ -243,7 +243,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             ))
             pp.append(v.op_{{ item.name }}_pp)
 {% elif item.type == 'sample' and item.sampleSource == 'randomDisk' %}
-            el.append(srwl_uti_smp.srwl_opt_setup_smp_rnd_obj2d(
+            el.append(srwpy.srwl_uti_smp.srwl_opt_setup_smp_rnd_obj2d(
                 _thickness={{ field(item, 'thickness') }},
                 _delta={{ field(item, 'refractiveIndex') }},
                 _atten_len={{ field(item, 'attenuationLength') }},
@@ -280,7 +280,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             ))
             pp.append(v.op_{{ item.name }}_pp)
 {% elif item.type == 'sphericalMirror' %}
-            el.append(srwlib.SRWLOptMirSph(
+            el.append(srwpy.srwlib.SRWLOptMirSph(
                 _r={{ field(item, 'radius') }},
                 _size_tang={{ field(item, 'tangentialSize') }},
                 _size_sag={{ field(item, 'sagittalSize') }},
@@ -295,7 +295,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             pp.append(v.op_{{ item.name }}_pp)
             {{ height_profile(item) }}
 {% elif item.type == 'toroidalMirror' %}
-            el.append(srwlib.SRWLOptMirTor(
+            el.append(srwpy.srwlib.SRWLOptMirTor(
                 _rt={{ field(item, 'tangentialRadius') }},
                 _rs={{ field(item, 'sagittalRadius') }},
                 _size_tang={{ field(item, 'tangentialSize') }},
@@ -314,7 +314,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
 {% elif item.type == 'watch' %}
             {% if report == 'beamline3DReport' %}
             {# for beamline3DReport, render watches as wide apertures so they are included in the output #}
-            el.append(srwlib.SRWLOptA(
+            el.append(srwpy.srwlib.SRWLOptA(
                 _shape='r',
                 _ap_or_ob='a',
                 _Dx=1e6,
@@ -326,7 +326,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
             {% endif %}
             {% endif %}
 {% elif item.type == 'zonePlate' %}
-            el.append(srwlib.SRWLOptZP(
+            el.append(srwpy.srwlib.SRWLOptZP(
                 _nZones={{ field(item, 'numberOfZones') }},
                 _rn={{ field(item, 'outerRadius') }},
                 _thick={{ field(item, 'thickness') }},
@@ -345,4 +345,4 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
         pp.append(v.op_fin_pp)
 {% endif %}
 
-    return srwlib.SRWLOptC(el, pp)
+    return srwpy.srwlib.SRWLOptC(el, pp)

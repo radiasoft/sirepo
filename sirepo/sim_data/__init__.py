@@ -14,6 +14,7 @@ import hashlib
 import inspect
 import re
 import requests
+import sirepo.agent_supervisor_api
 import sirepo.const
 import sirepo.feature_config
 import sirepo.job
@@ -28,9 +29,6 @@ _cfg = None
 
 #: default compute_model
 _ANIMATION_NAME = "animation"
-
-#: prefix for auth header of sim_db_file requests
-_AUTH_HEADER_PREFIX = f"{sirepo.util.AUTH_HEADER_SCHEME_BEARER} "
 
 _MODEL_RE = re.compile(r"^[\w-]+$")
 
@@ -65,11 +63,11 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
       force (bool): Overwrite existing lib files with the same name as new ones
       sim_types (set): Set of sim_types to audit (proprietary_sim_types if None)
     """
-    from sirepo import simulation_db
+    from sirepo import simulation_db, sim_run
 
     def _add(proprietary_code_dir, sim_type, cls):
         p = proprietary_code_dir.join(cls.proprietary_code_tarball())
-        with simulation_db.tmp_dir(chdir=True, qcall=qcall) as t:
+        with sim_run.tmp_dir(chdir=True, qcall=qcall) as t:
             d = t.join(p.basename)
             d.mksymlinkto(p, absolute=False)
             subprocess.check_output(
@@ -102,7 +100,7 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
             continue
         d = sirepo.srdb.proprietary_code_dir(t)
         assert d.exists(), f"{d} proprietary_code_dir must exist" + (
-            "; run: sirepo setup_dev" if pykern.pkconfig.in_dev_mode() else ""
+            "; run: sirepo setup_dev" if pkconfig.in_dev_mode() else ""
         )
         r = qcall.auth_db.model("UserRole").has_role(
             role=sirepo.auth_role.for_sim_type(t),
@@ -163,7 +161,12 @@ def parse_frame_id(frame_id):
     s.frameReport = s.parse_model(res)
     s.simulationId = s.parse_sid(res)
     # TODO(robnagler) validate these
-    res.update(zip(s._frame_id_fields(res), v[len(_FRAME_ID_KEYS) :]))
+    res.update(
+        zip(
+            s._frame_id_fields(res),
+            [SimDataBase._frame_param_to_field(x) for x in v[len(_FRAME_ID_KEYS) :]],
+        )
+    )
     return res, s
 
 
@@ -274,6 +277,14 @@ class SimDataBase(object):
         raise NotImplementedError()
 
     @classmethod
+    def react_format_data(cls, data):
+        pass
+
+    @classmethod
+    def react_unformat_data(cls, data):
+        pass
+
+    @classmethod
     def frame_id(cls, data, response, model, index):
         """Generate a frame_id from values (unit testing)
 
@@ -301,7 +312,10 @@ class SimDataBase(object):
                 response.computeJobHash,
                 str(response.computeJobSerial),
             ]
-            + [str(m.get(k)) for k in cls._frame_id_fields(frame_args)],
+            + [
+                pkjson.dump_pretty(m.get(k), pretty=False)
+                for k in cls._frame_id_fields(frame_args)
+            ],
         )
 
     @classmethod
@@ -702,6 +716,15 @@ class SimDataBase(object):
         return f[r] if r in f else f[cls.compute_model(r)]
 
     @classmethod
+    def _frame_param_to_field(cls, param):
+        from json.decoder import JSONDecodeError
+
+        try:
+            return pkjson.load_any(param)
+        except JSONDecodeError:
+            return param
+
+    @classmethod
     def _delete_sim_db_file(cls, uri):
         _request(
             "DELETE",
@@ -886,17 +909,8 @@ class SimDbFileNotFound(Exception):
 
 
 def _request(method, uri, data=None):
-    r = requests.request(
-        method,
-        uri,
-        data=data,
-        verify=sirepo.job.cfg().verify_tls,
-        headers=PKDict(
-            {
-                sirepo.util.AUTH_HEADER: _AUTH_HEADER_PREFIX
-                + _cfg.supervisor_sim_db_file_token,
-            }
-        ),
+    r = sirepo.agent_supervisor_api.request(
+        method, uri, _cfg.supervisor_sim_db_file_token, data=data
     )
     if method == "GET" and r.status_code == 404:
         raise SimDbFileNotFound(f"uri={uri} not found")

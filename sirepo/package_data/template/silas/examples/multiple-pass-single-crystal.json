@@ -1,0 +1,328 @@
+{
+    "models": {
+        "beamline": [
+            {
+                "_super": "beamElement",
+                "id": 10,
+                "position": 1.375,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "A": 0.99736924,
+                "B": 0.0141972275,
+                "C": -0.260693,
+                "D": 0.99892682,
+                "_super": "beamElement",
+                "calc_type": "analytical",
+                "crystal_alpha": 106.4,
+                "icon": "ti-sapphire-crystal.png",
+                "id": 2,
+                "initial_temp": 0.0,
+                "inversion_mesh_extent": 0.005,
+                "inversion_n_cells": 64,
+                "length": 2.5,
+                "mesh_density": 80,
+                "n0": [
+                    1.75991159,
+                    1.75991117,
+                    1.759911,
+                    1.759911,
+                    1.75991117,
+                    1.75991159
+                ],
+                "n2": [
+                    0.00621168,
+                    0.00328352,
+                    0.00246076,
+                    0.00246076,
+                    0.00328352,
+                    0.00621168
+                ],
+                "nslice": 10,
+                "origin": "new",
+                "position": 1.375,
+                "propagationType": "n0n2_srw",
+                "pump_energy": 0.82,
+                "pump_gaussian_order": 8,
+                "pump_offset_x": 0,
+                "pump_offset_y": 0,
+                "pump_rep_rate": 1,
+                "pump_type": "dual",
+                "pump_waist": 0.00382,
+                "pump_wavelength": 5.32e-07,
+                "reuseCrystal": 0,
+                "title": "Crystal #1",
+                "type": "crystal"
+            },
+            {
+                "_super": "beamElement",
+                "id": 11,
+                "position": 1.375,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "_super": "beamElement",
+                "id": 12,
+                "position": 2.75,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "_super": "beamElement",
+                "id": 3,
+                "position": 2.75,
+                "title": "Mirror",
+                "type": "mirror"
+            },
+            {
+                "_super": "beamElement",
+                "id": 13,
+                "position": 4.125,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "A": 0.99736924,
+                "B": 0.0141972275,
+                "C": -0.260693,
+                "D": 0.99892682,
+                "_super": "beamElement",
+                "calc_type": "analytical",
+                "crystal_alpha": 120,
+                "icon": "ti-sapphire-crystal.png",
+                "id": 4,
+                "initial_temp": 0.0,
+                "inversion_mesh_extent": 0.01,
+                "inversion_n_cells": 64,
+                "length": 2,
+                "mesh_density": 80,
+                "n0": [
+                    1.75,
+                    1.75,
+                    1.75,
+                    1.75,
+                    1.75,
+                    1.75
+                ],
+                "n2": [
+                    30.5,
+                    18.3,
+                    10.4,
+                    5.9,
+                    3.3,
+                    1.9
+                ],
+                "nslice": 10,
+                "origin": "reuse",
+                "position": 4.125,
+                "propagationType": "n0n2_srw",
+                "pump_energy": 0.0211,
+                "pump_gaussian_order": 2,
+                "pump_offset_x": 0,
+                "pump_offset_y": 0,
+                "pump_rep_rate": 1000,
+                "pump_type": "dual",
+                "pump_waist": 0.00164,
+                "pump_wavelength": 5.32e-07,
+                "reuseCrystal": 2,
+                "title": "Crystal #1",
+                "type": "crystal"
+            },
+            {
+                "_super": "beamElement",
+                "id": 14,
+                "position": 4.125,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "_super": "beamElement",
+                "id": 15,
+                "position": 5.5,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "_super": "beamElement",
+                "id": 5,
+                "position": 5.5,
+                "title": "Mirror",
+                "type": "mirror"
+            },
+            {
+                "_super": "beamElement",
+                "id": 16,
+                "position": 6.875,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "A": 0.99736924,
+                "B": 0.0141972275,
+                "C": -0.260693,
+                "D": 0.99892682,
+                "_super": "beamElement",
+                "calc_type": "analytical",
+                "crystal_alpha": 120,
+                "icon": "ti-sapphire-crystal.png",
+                "id": 6,
+                "initial_temp": 0.0,
+                "inversion_mesh_extent": 0.01,
+                "inversion_n_cells": 64,
+                "length": 2,
+                "mesh_density": 80,
+                "n0": [
+                    1.75,
+                    1.75,
+                    1.75,
+                    1.75,
+                    1.75,
+                    1.75
+                ],
+                "n2": [
+                    30.5,
+                    18.3,
+                    10.4,
+                    5.9,
+                    3.3,
+                    1.9
+                ],
+                "nslice": 10,
+                "origin": "reuse",
+                "position": 6.875,
+                "propagationType": "n0n2_srw",
+                "pump_energy": 0.0211,
+                "pump_gaussian_order": 2,
+                "pump_offset_x": 0,
+                "pump_offset_y": 0,
+                "pump_rep_rate": 1000,
+                "pump_type": "dual",
+                "pump_waist": 0.00164,
+                "pump_wavelength": 5.32e-07,
+                "reuseCrystal": 2,
+                "title": "Crystal #1",
+                "type": "crystal"
+            },
+            {
+                "_super": "beamElement",
+                "id": 17,
+                "position": 6.875,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "_super": "beamElement",
+                "id": 18,
+                "position": 8.25,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "_super": "beamElement",
+                "id": 7,
+                "position": 8.25,
+                "title": "Mirror",
+                "type": "mirror"
+            },
+            {
+                "_super": "beamElement",
+                "id": 19,
+                "position": 9.625,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "A": 0.99736924,
+                "B": 0.0141972275,
+                "C": -0.260693,
+                "D": 0.99892682,
+                "_super": "beamElement",
+                "calc_type": "analytical",
+                "crystal_alpha": 120,
+                "icon": "ti-sapphire-crystal.png",
+                "id": 8,
+                "initial_temp": 0.0,
+                "inversion_mesh_extent": 0.01,
+                "inversion_n_cells": 64,
+                "length": 2,
+                "mesh_density": 80,
+                "n0": [
+                    1.75,
+                    1.75,
+                    1.75,
+                    1.75,
+                    1.75,
+                    1.75
+                ],
+                "n2": [
+                    30.5,
+                    18.3,
+                    10.4,
+                    5.9,
+                    3.3,
+                    1.9
+                ],
+                "nslice": 10,
+                "origin": "reuse",
+                "position": 9.625,
+                "propagationType": "n0n2_srw",
+                "pump_energy": 0.0211,
+                "pump_gaussian_order": 2,
+                "pump_offset_x": 0,
+                "pump_offset_y": 0,
+                "pump_rep_rate": 1000,
+                "pump_type": "dual",
+                "pump_waist": 0.00164,
+                "pump_wavelength": 5.32e-07,
+                "reuseCrystal": 2,
+                "title": "Crystal #1",
+                "type": "crystal"
+            },
+            {
+                "_super": "beamElement",
+                "id": 20,
+                "position": 9.625,
+                "title": "Watchpoint",
+                "type": "watch"
+            },
+            {
+                "_super": "beamElement",
+                "id": 9,
+                "position": 11,
+                "title": "Watchpoint",
+                "type": "watch"
+            }
+        ],
+        "crystal3dAnimation": {},
+        "crystalAnimation": {},
+        "initialIntensityReport": {
+            "colorMap": "viridis",
+            "watchpointPlot": "total_intensity"
+        },
+        "laserPulse": {
+            "ccd": "",
+            "distribution": "gaussian",
+            "meta": "",
+            "nslice": 10,
+            "num_sig_long": 6,
+            "num_sig_trans": 24,
+            "nx_slice": 512,
+            "ny_slice": 512,
+            "phase_flatten_cutoff": 0.8,
+            "photon_e_ev": 1.5498,
+            "poltype": "1",
+            "pulseE": 0.002,
+            "sigx_waist": 0.003056,
+            "sigy_waist": 0.003056,
+            "wfs": ""
+        },
+        "simulation": {
+            "distanceFromSource": 0,
+            "folder": "/Examples",
+            "name": "Multiple Passes Through Single Crystal"
+        }
+    },
+    "simulationType": "silas"
+}
