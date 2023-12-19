@@ -720,10 +720,7 @@ class SimDataBase(object):
         from json.decoder import JSONDecodeError
 
         try:
-            # floating point numbers will have lost the + sign when
-            # converted from a query string
-            # ex. 1e+40 would result in "1e 40"
-            return pkjson.load_any(re.sub(r"(\d)e (\d)", r"\1e+\2", param))
+            return pkjson.load_any(param)
         except JSONDecodeError:
             return param
 
