@@ -816,6 +816,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         name: `source-${s.particle}-${s.space._type}-${i}`,
                         color: '#ff0000',
                         data: view.shapePoints(dim),
+                        doClose: true,
                     });
                 });
                 return outlines;

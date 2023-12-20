@@ -3398,7 +3398,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                         return new SIREPO.DOM.SVGPath(
                             null,
                             d.data.map(c => [axes.x.scale(c[0]), axes.y.scale(c[1])])
-                        ).pathString();
+                        ).pathString(d.doClose);
                     })
                     .select('title').text(d => d.name);
             }
