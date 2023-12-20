@@ -76,9 +76,9 @@ def _create_zip(sim, out_dir, qcall):
                         sim_obj.simulationType
                     ).lib_file_basenames(d):
                         z.write(
-                            sim_data.get_class(
-                                sim_obj.simulationType
-                            ).lib_file_abspath(lib_file, qcall=qcall),
+                            sim_data.get_class(sim_obj.simulationType).lib_file_abspath(
+                                lib_file, qcall=qcall
+                            ),
                             arcname=f"related_sim_{idx}_lib/{lib_file}",
                         )
         z.writestr(

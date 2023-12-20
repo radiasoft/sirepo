@@ -94,8 +94,7 @@ def read_zip(zip_bytes, qcall, sim_type=None):
                 zipped[b] = tmp.join(b)
                 zipped[b].write(c, "wb")
         assert data, "missing {} in archive".format(simulation_db.SIMULATION_DATA_FILE)
-        # TODO (gurhar1133): why not in main tmp/z block?
-        _import_related_sims(data, zip_bytes, qcall=qcall)
+        _import_related_sims(data, zip_bytes, tmp, qcall=qcall)
         needed = set()
         s = sim_data.get_class(data.simulationType)
         u = qcall.auth.logged_in_user()
@@ -113,7 +112,7 @@ def read_zip(zip_bytes, qcall, sim_type=None):
         return data
 
 
-def _import_related_sims(data, zip_bytes, qcall=None):
+def _import_related_sims(data, zip_bytes, tmp_dir, qcall=None):
     from sirepo import simulation_db, sim_data
 
     with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as zip_obj:
@@ -136,7 +135,7 @@ def _import_related_sims(data, zip_bytes, qcall=None):
                     lib_dir = simulation_db.simulation_lib_dir(
                         d.simulationType, qcall=qcall
                     )
-                    _write_lib_file_from_zip(lib_file, lib_dir, zip_obj, qcall)
+                    _write_lib_file_from_zip(lib_file, lib_dir, zip_obj, tmp_dir)
                 data.models.simWorkflow.coupledSims[
                     _sim_index(p)
                 ].simulationId = s.models.simulation.simulationId
@@ -146,20 +145,16 @@ def _sim_index(path):
     return int(path.purebasename[-1])
 
 
-def _write_lib_file_from_zip(lib_file, lib_dir, zip_obj, qcall):
-    import os
-    from sirepo import sim_run
-
-    with sim_run.tmp_dir(qcall=qcall) as tmp:
-        zip_obj.extract(lib_file, path=tmp)
-        p = lib_dir.join(pykern.pkio.py_path(lib_file).basename)
-        if pkio.is_binary(tmp.join(lib_file)):
-            pykern.pkio.write_binary(
-                p,
-                zip_obj.read(lib_file),
-            )
-            return
-        pykern.pkio.write_text(
+def _write_lib_file_from_zip(lib_file, lib_dir, zip_obj, tmp_dir):
+    zip_obj.extract(lib_file, path=tmp_dir)
+    p = lib_dir.join(pykern.pkio.py_path(lib_file).basename)
+    if pkio.is_binary(tmp_dir.join(lib_file)):
+        pykern.pkio.write_binary(
             p,
-            pkcompat.from_bytes(byte_data),
+            zip_obj.read(lib_file),
         )
+        return
+    pykern.pkio.write_text(
+        p,
+        pkcompat.from_bytes(byte_data),
+    )
