@@ -127,11 +127,7 @@ def _import_related_sims(data, zip_bytes, tmp_dir, qcall=None):
                     d,
                     qcall=qcall,
                 )
-                for lib_file in [
-                    f
-                    for f in zip_obj.namelist()
-                    if f.startswith(f"related_sim_{_sim_index(p)}_lib")
-                ]:
+                for lib_file in _related_lib_files(zip_obj, p):
                     lib_dir = simulation_db.simulation_lib_dir(
                         d.simulationType, qcall=qcall
                     )
@@ -139,6 +135,14 @@ def _import_related_sims(data, zip_bytes, tmp_dir, qcall=None):
                 data.models.simWorkflow.coupledSims[
                     _sim_index(p)
                 ].simulationId = s.models.simulation.simulationId
+
+
+def _related_lib_files(zip_obj, zip_sim_path):
+    res = []
+    for f in zip_obj.namelist():
+        if f.startswith(f"related_sim_{_sim_index(p)}_lib"):
+            res.append(f)
+    return res
 
 
 def _sim_index(path):
