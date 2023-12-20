@@ -122,6 +122,7 @@ def _import_related_sims(data, zip_bytes, tmp_dir, qcall=None):
             if "related_sim" in b:
                 d = simulation_db.json_load(zip_obj.read(i))
                 d.models.simulation.isExample = False
+                # TODO: folder needs to be /Omega
                 d.models.simulation.folder = f"/{d.simulationType.title()}"
                 s = simulation_db.save_new_simulation(
                     d,
@@ -152,13 +153,11 @@ def _sim_index(path):
 def _write_lib_file_from_zip(lib_file, lib_dir, zip_obj, tmp_dir):
     zip_obj.extract(lib_file, path=tmp_dir)
     p = lib_dir.join(pykern.pkio.py_path(lib_file).basename)
+    c = zip_obj.read(lib_file)
     if pkio.is_binary(tmp_dir.join(lib_file)):
-        pykern.pkio.write_binary(
-            p,
-            zip_obj.read(lib_file),
-        )
+        pykern.pkio.write_binary(p, c)
         return
     pykern.pkio.write_text(
         p,
-        pkcompat.from_bytes(byte_data),
+        pkcompat.from_bytes(c),
     )
