@@ -140,7 +140,7 @@ def _import_related_sims(data, zip_bytes, tmp_dir, qcall=None):
 def _related_lib_files(zip_obj, zip_sim_path):
     res = []
     for f in zip_obj.namelist():
-        if f.startswith(f"related_sim_{_sim_index(p)}_lib"):
+        if f.startswith(f"related_sim_{_sim_index(zip_sim_path)}_lib"):
             res.append(f)
     return res
 
