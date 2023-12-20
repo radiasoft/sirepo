@@ -708,17 +708,16 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             function addSources() {
                 function boxDims(space) {
-                    const s = SIREPO.APP_SCHEMA.constants.geometryScale;
-                    const size = space.upper_right.map((x, i) => s * Math.abs(x - space.lower_left[i]));
+                    const size = space.upper_right.map((x, i) => Math.abs(x - space.lower_left[i]));
                     return {
-                        center: size.map((x, i) => s * space.lower_left[i] + 0.5 * x),
+                        center: size.map((x, i) => space.lower_left[i] + 0.5 * x),
                         size: size,
                     };
                 }
 
                 function boxSource(space) {
                     const d = boxDims(space);
-                    return new SIREPO.VTK.CuboidViews(SIREPO.UTILS.randomString(), 'box', d.center, d.size);
+                    return new SIREPO.VTK.CuboidViews(SIREPO.UTILS.randomString(), 'box', d.center, d.size, SIREPO.APP_SCHEMA.constants.geometryScale);
                 }
 
                 function pointSource(space) {
@@ -1432,6 +1431,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 if (hasTallies) {
                     //TODO(pjm): this should only be enabled for hover, see #6039
                     // vtkScene.renderWindow.getInteractor().onMouseMove(showFieldInfo);
+                    addSources();
                 }
 
                 const vols = cloudmcService.getNonGraveyardVolumes();
@@ -1440,7 +1440,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 if (hasTallies && tallyService.fieldData) {
                     addTally(tallyService.fieldData);
                 }
-                addSources();
                 vtkScene.resetView();
 
                 plotToPNG.initVTK($element, vtkScene.renderer);
