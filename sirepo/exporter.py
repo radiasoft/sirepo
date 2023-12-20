@@ -64,7 +64,6 @@ def _create_zip(sim, out_dir, qcall):
                     d = simulation_db.open_json_file(
                         sim_obj.simulationType, sid=sim_obj.simulationId, qcall=qcall
                     )
-                    # TODO (gurhar1133): something better than "related_sim" prefix?
                     z.writestr(
                         f"related_sim{idx}.json",
                         pkjson.dump_pretty(d, pretty=True),

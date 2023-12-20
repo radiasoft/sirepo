@@ -113,7 +113,7 @@ def read_zip(zip_bytes, qcall, sim_type=None):
 
 
 def _import_related_sims(data, zip_bytes, tmp_dir, qcall=None):
-    from sirepo import simulation_db, sim_data
+    from sirepo import simulation_db
 
     with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as zip_obj:
         for i in zip_obj.infolist():
@@ -122,8 +122,7 @@ def _import_related_sims(data, zip_bytes, tmp_dir, qcall=None):
             if "related_sim" in b:
                 d = simulation_db.json_load(zip_obj.read(i))
                 d.models.simulation.isExample = False
-                # TODO: folder needs to be /Omega
-                d.models.simulation.folder = f"/{d.simulationType.title()}"
+                d.models.simulation.folder = f"/{data.simulationType.title()}"
                 s = simulation_db.save_new_simulation(
                     d,
                     qcall=qcall,
