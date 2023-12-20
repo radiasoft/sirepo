@@ -70,7 +70,7 @@ SIREPO.app.factory('raydataService', function(appState) {
     return self;
 });
 
-SIREPO.app.factory('columnsService', function(appState, panelState, requestSender, $rootScope) {
+SIREPO.app.factory('columnsService', function(appState, requestSender, $rootScope) {
     const self = {};
 
     self.allColumns = null;
@@ -124,15 +124,15 @@ SIREPO.app.factory('columnsService', function(appState, panelState, requestSende
         }
     };
 
+    if (appState.isLoaded()) {
+        loadColumns();
+    }
     $rootScope.$on('modelsUnloaded', () => {
         self.allColumns = null;
         self.allColumnsWithHeading = null;
     });
-    if (appState.isLoaded()) {
-        loadColumns();
-    }
     $rootScope.$on('modelsLoaded', loadColumns);
-    
+
     return self;
 });
 
@@ -176,7 +176,7 @@ SIREPO.app.controller('RunAnalysisController', function() {
     return self;
 });
 
-SIREPO.app.directive('appFooter', function() {
+SIREPO.app.directive('appFooter', function(raydataService) {
     return {
         restrict: 'A',
         scope: {
@@ -263,13 +263,13 @@ SIREPO.app.directive('columnPicker', function() {
         restrict: 'A',
         scope: {},
         template: `
-            <div class="form-group form-group-sm pull-right">
+            <div class="form-group form-group-sm pull-right" style="margin: 0">
               <select class="form-control" data-ng-model="selected" ng-change="selectColumn()">
                 <option ng-repeat="column in availableColumns">{{column}}</option>
               </select>
             </div>
         `,
-        controller: function($scope, appState, panelState, columnsService) {
+        controller: function($scope, appState, columnsService) {
             $scope.selected = null;
             $scope.availableColumns = null;
             const addColumnText = 'Add Column';
@@ -293,7 +293,7 @@ SIREPO.app.directive('columnPicker', function() {
             $scope.$on('metadataColumns.changed', setAvailableColumns);
             $scope.columnsService = columnsService;
             $scope.$watch('columnsService.allColumns', setAvailableColumns);
-            
+
             setAvailableColumns();
         },
     };
@@ -460,7 +460,7 @@ SIREPO.app.directive('scansTable', function() {
             modelName: '=',
         },
         template: `
-            <div class="row" data-show-loading-and-error="" data-model-key="scans">
+            <div>
               <div>
                 <div class="pull-right" data-ng-if="pageLocationText">
                   <span class="raydata-button">{{ pageLocationText }}</span>
@@ -495,7 +495,7 @@ SIREPO.app.directive('scansTable', function() {
                   </tbody>
                 </table>
                 <div style="height: 20px;">
-                  <div ng-show="isLoadingNewScans">Loading scans</div>
+                  <div ng-show="isLoadingNewScans">Loading scans ...</div>
                   <div ng-show="isRefreshingScans && ! isLoadingNewScans">Checking for new scans</div>
                   <div ng-show="noScansReturned">No scans found</div>
                   <div ng-show="searchError"><span class="bg-warning">{{ searchError }}</span></div>
@@ -1117,7 +1117,7 @@ SIREPO.app.directive('columnList', function() {
         },
     };
 });
-        
+
 SIREPO.app.directive('searchTerms', function() {
     return {
         restrict: 'A',
@@ -1178,7 +1178,7 @@ SIREPO.app.directive('searchTerms', function() {
                     || search.term
                 ) ? false : true;
             };
-            
+
             $scope.showRow = idx => (idx == 0) || ! $scope.isEmpty(idx - 1);
 
             $scope.showTerms = () => {

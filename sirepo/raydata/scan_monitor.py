@@ -188,7 +188,7 @@ class _RequestHandler(_JsonPostRequestHandler):
     def _build_search_terms(self, terms):
         res = []
         for search in terms:
-            if re.search(r"^[\d\.]+$", search.term):
+            if self._is_float(search.term):
                 # numeric values might be stored as strings in the mongo db
                 # so need to search for either string value or number value
                 res.append(
@@ -308,6 +308,13 @@ class _RequestHandler(_JsonPostRequestHandler):
         for s in l:
             s.status = d.get(s.uid, _AnalysisStatus.NONE)
         return l, pc
+
+    def _is_float(self, value):
+        try:
+            float(value)
+            return True
+        except:
+            return False
 
     def _request_analysis_output(self, req_data):
         return sirepo.raydata.analysis_driver.get(req_data).get_output()

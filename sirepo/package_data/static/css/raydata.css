@@ -29,6 +29,10 @@ body {
   display: none;
 }
 
+.model-runAnalysis-confirmRunAnalysis .control-label {
+  display: block;
+}
+
 .model-runAnalysis-searchTerms .control-label {
   display: none;
 }
