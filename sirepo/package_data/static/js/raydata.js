@@ -349,9 +349,9 @@ SIREPO.app.directive('presetTimePicker', function() {
             modelName: '=',
         },
         template: `
-          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeMaxRange()">All Time</button>
           <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastHour()">Last Hour</button>
           <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastDay()">Last Day</button>
+          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeMaxRange()">All Time</button>
         `,
         controller: function(appState, timeService, $scope) {
             $scope.setDefaultStartStopTime = () => {
