@@ -54,12 +54,15 @@ class SbatchDriver(job_driver.DriverBase):
         self.__instances[self.uid] = self
 
     async def kill(self):
-        if not self._websocket:
+        if not self.get("_websocket"):
             # if there is no websocket then we don't know about the agent
             # so we can't do anything
             return
-        # hopefully the agent is nice and listens to the kill
-        self._websocket.write_message(PKDict(opName=job.OP_KILL))
+        try:
+            # hopefully the agent is nice and listens to the kill
+            self._websocket.write_message(PKDict(opName=job.OP_KILL))
+        except Exception as e:
+            pkdlog("{} error={} stack={}", self, e, pkdexc())
 
     @classmethod
     def get_instance(cls, op):
@@ -121,7 +124,7 @@ class SbatchDriver(job_driver.DriverBase):
             )
         )
         m.runDir = "/".join((m.userDir, m.simulationType, m.computeJid))
-        if op.opName == job.OP_RUN:
+        if op.op_name == job.OP_RUN:
             assert m.sbatchHours
             if self.cfg.cores:
                 m.sbatchCores = min(m.sbatchCores, self.cfg.cores)
@@ -129,11 +132,12 @@ class SbatchDriver(job_driver.DriverBase):
         m.shifterImage = self.cfg.shifter_image
         return await super().prepare_send(op)
 
-    def _agent_env(self):
+    def _agent_env(self, op):
         return super()._agent_env(
+            op,
             env=PKDict(
                 SIREPO_SRDB_ROOT=self._srdb_root,
-            )
+            ),
         )
 
     async def _do_agent_start(self, op):
@@ -144,7 +148,7 @@ class SbatchDriver(job_driver.DriverBase):
 set -e
 mkdir -p '{agent_start_dir}'
 cd '{self._srdb_root}'
-{self._agent_env()}
+{self._agent_env(op)}
 (/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) >& {log_file} &
 disown
 """
@@ -246,8 +250,12 @@ scancel -u $USER >& /dev/null || true
         """Sbatch agents should be kept alive as long as possible"""
         pass
 
-    def _websocket_free(self):
-        self._srdb_root = None
+    async def free_resources(self, *args, **kwargs):
+        try:
+            self._srdb_root = None
+        except Exception as e:
+            pkdlog("{} error={} stack={}", self, e, pkdexc())
+        return await super().free_resources(*args, **kwargs)
 
 
 CLASS = SbatchDriver
