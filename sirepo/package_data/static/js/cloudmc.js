@@ -375,12 +375,14 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         minField: 0,
         maxField: 0,
         outlines: null,
+        sourceOutlines: null,
     };
 
     self.clearMesh = () => {
         self.mesh = null;
         self.fieldData = null;
         self.outlines = null;
+        self.sourceOutlines = null;
     };
 
     self.colorScale = modelName => {
@@ -413,6 +415,21 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
             return [];
         }
         const t = self.outlines[appState.applicationState().openmcAnimation.tally];
+        if (t && t[`${volId}`]) {
+            const o = t[`${volId}`][dim];
+            if (o.length) {
+                return o[index];
+            }
+        }
+        return [];
+    };
+
+    self.getSourceOutlines = (volId, dim, index) => {
+        if (! self.sourceOutlines) {
+            return [];
+        }
+        const t = self.outlines[appState.applicationState().openmcAnimation.tally];
+        srdbg(t);
         if (t && t[`${volId}`]) {
             const o = t[`${volId}`][dim];
             if (o.length) {
@@ -687,6 +704,40 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
             const displayRanges = {};
+            const sources = [];
+
+            function addSources() {
+                function boxDims(space) {
+                    const s = SIREPO.APP_SCHEMA.constants.geometryScale;
+                    const size = space.upper_right.map((x, i) => s * Math.abs(x - space.lower_left[i]));
+                    return {
+                        center: size.map((x, i) => s * space.lower_left[i] + 0.5 * x),
+                        size: size,
+                    };
+                }
+
+                function boxSource(space) {
+                    const d = boxDims(space);
+                    return new SIREPO.VTK.CuboidViews(SIREPO.UTILS.randomString(), 'box', d.center, d.size);
+                }
+
+                function pointSource(space) {
+                }
+                
+                for (const s of appState.models.settings.sources.filter(x => x.space)) {
+                    let b = null;
+                    const space = s.space;
+                    if (space._type === 'box') {
+                        b = boxSource(space);
+                    }
+                    if (space._type === 'point') {
+                        b = pointSource(space);
+                    }
+                    if (b) {
+                        sources.push(b);
+                    }
+                }
+            }
 
             function buildTallyReport() {
                 if (! tallyService.mesh) {
@@ -759,6 +810,14 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         });
                     });
                 }
+                sources.forEach((view, i) => {
+                    const s = appState.models.settings.sources[i];
+                    outlines.push({
+                        name: `source-${s.particle}-${s.space._type}-${i}`,
+                        color: '#ff0000',
+                        data: view.shapePoints(dim),
+                    });
+                });
                 return outlines;
             }
 
@@ -878,6 +937,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             if (frameCache.hasFrames('openmcAnimation')) {
                 panelState.waitForUI(updateDisplayRange);
             }
+            addSources();
         },
     };
 });
