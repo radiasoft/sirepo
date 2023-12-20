@@ -120,6 +120,14 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
 
     self.FILTER_INDICES = SIREPO.UTILS.indexArray(SIREPO.APP_SCHEMA.constants.maxFilters, 1);
 
+    self.boxDimensions = space => {
+        const size = space.upper_right.map((x, i) => Math.abs(x - space.lower_left[i]));
+        return {
+            center: size.map((x, i) => space.lower_left[i] + 0.5 * x),
+            size: size,
+        };
+    };
+
     self.buildRangeDelegate = (modelName, field) => {
         const d = panelState.getFieldDelegate(modelName, field);
         d.range = () => {
@@ -163,6 +171,21 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
         }
         return vols;
     };
+
+
+    self.getSources = builders => {
+        const sources = [];
+        const noop = () => {};
+        for (const s of appState.models.settings.sources.filter(x => x.space)) {
+            let b = null;
+            const space = s.space;
+            b = (builders[space._type] || noop)(space);
+            if (b) {
+                sources.push(b);
+            }
+        }
+        return sources;
+    }
 
     self.getVolumeById = volId => {
         for (const n in appState.models.volumes) {
@@ -704,39 +727,21 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
             const displayRanges = {};
-            const sources = [];
-
-            function addSources() {
-                function boxDims(space) {
-                    const size = space.upper_right.map((x, i) => Math.abs(x - space.lower_left[i]));
-                    return {
-                        center: size.map((x, i) => space.lower_left[i] + 0.5 * x),
-                        size: size,
-                    };
+            const sources = cloudmcService.getSources(
+                {
+                    box: space => {
+                        const d = cloudmcService.boxDimensions(space);
+                        return new SIREPO.VTK.CuboidViews(
+                            SIREPO.UTILS.randomString(),
+                            'box',
+                            d.center,
+                            d.size,
+                            SIREPO.APP_SCHEMA.constants.geometryScale
+                        );
+                    },
+                    point: space => {},
                 }
-
-                function boxSource(space) {
-                    const d = boxDims(space);
-                    return new SIREPO.VTK.CuboidViews(SIREPO.UTILS.randomString(), 'box', d.center, d.size, SIREPO.APP_SCHEMA.constants.geometryScale);
-                }
-
-                function pointSource(space) {
-                }
-                
-                for (const s of appState.models.settings.sources.filter(x => x.space)) {
-                    let b = null;
-                    const space = s.space;
-                    if (space._type === 'box') {
-                        b = boxSource(space);
-                    }
-                    if (space._type === 'point') {
-                        b = pointSource(space);
-                    }
-                    if (b) {
-                        sources.push(b);
-                    }
-                }
-            }
+            );
 
             function buildTallyReport() {
                 if (! tallyService.mesh) {
@@ -937,7 +942,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             if (frameCache.hasFrames('openmcAnimation')) {
                 panelState.waitForUI(updateDisplayRange);
             }
-            addSources();
         },
     };
 });
@@ -982,7 +986,26 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             let picker = null;
             let renderedFieldData = [];
             let selectedVolume = null;
-            const sourceBundles = [];
+            const sourceBundles = cloudmcService.getSources(
+                {
+                    box: space => {
+                        const d = cloudmcService.boxDimensions(space);
+                        const b = coordMapper.buildBox(
+                            d.size,
+                            d.center,
+                            {
+                                color: [255, 0, 0],
+                                edgeVisibility: true,
+                                lighting: false
+                            }
+                        );
+                        b.actorProperties.setRepresentationToWireframe();
+                        return b;
+                    },
+                    point: space => {},
+                }
+            );
+
             let vtkScene = null;
 
             // ********* 3d tally state and functions
@@ -1015,50 +1038,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             }
 
             function addSources() {
-                function boxDims(space) {
-                    const size = space.upper_right.map((x, i) => Math.abs(x - space.lower_left[i]));
-                    return {
-                        center: size.map((x, i) => space.lower_left[i] + 0.5 * x),
-                        size: size,
-                    };
-                }
-
-                function boxSource(space) {
-                    const d = boxDims(space);
-                    return coordMapper.buildBox(
-                        d.size,
-                        d.center,
-                        {
-                            edgeColor: [255, 0, 0],
-                            edgeVisibility: true,
-                            lighting: false
-                        }
-                    );
-                }
-
-                function pointSource(space) {
-                }
-
-                for (const b of sourceBundles) {
+                sourceBundles.forEach(b => {
                     vtkScene.removeActor(b.actor);
-                }
-                
-                for (const s of appState.models.settings.sources.filter(x => x.space)) {
-                    let b = null;
-                    const space = s.space;
-                    if (space._type === 'box') {
-                        b = boxSource(space);
-                        b.actor.getProperty().setColor([1.0, 0, 0]);
-                        b.actorProperties.setRepresentationToWireframe();
-                    }
-                    if (space._type === 'point') {
-                        b = pointSource(space);
-                    }
-                    if (b) {
-                        sourceBundles.push(b);
-                        vtkScene.addActor(b.actor);
-                    }
-                }
+                    vtkScene.addActor(b.actor);
+                })
             }
 
             function buildVoxel(lowerLeft, wx, wy, wz, points, polys) {
