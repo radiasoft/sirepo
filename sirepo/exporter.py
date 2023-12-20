@@ -11,11 +11,8 @@ from pykern.pkdebug import pkdp
 from sirepo import sim_data
 from sirepo import simulation_db
 from sirepo import template
-import re
 import sirepo.sim_run
 import sirepo.util
-
-_RUN_FILE_PATTERN = r"(bunchFile-sourceFile|command_run_setup-expand_for|command_distribution-fname|io-partfile)"
 
 
 def create_archive(sim, qcall):
