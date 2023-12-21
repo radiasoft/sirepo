@@ -92,6 +92,14 @@ SIREPO.viewLogic('electronBeamView', function(appState, panelState, $scope) {
     ];
 });
 
+SIREPO.viewLogic('focusingView', function(appState, panelState, $scope) {
+    $scope.$on('io.changed', () => {
+        // TODO (gurhar1133): probably needs to more specifically
+        // check if io.maginfile changed
+        srdbg('magin changed');
+    });
+});
+
 SIREPO.viewLogic('meshView', function(appState, panelState, $scope) {
 
     function updateSpaceCharge() {
