@@ -319,7 +319,8 @@ class SphereViews extends ObjectViews {
         numSides=8,
         scale=1.0
     ) {
-        super(id, name, center, [radius, radius, radius], scale);
+        super(id, name, center, [2 * radius, 2 * radius, 2 * radius], scale);
+        this.radius = radius;
         SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
             const pts = [];
             const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
@@ -683,7 +684,7 @@ class ActorBundle {
         /** @member {*} - vtk source */
         this.setSource(source);
 
-        /** @member {vtk.Rendering.Core.vtkActor} - the transform */
+        /** @member {vtk.Rendering.Core.vtkActor} - the actor */
         this.actor = vtk.Rendering.Core.vtkActor.newInstance({
             mapper: this.mapper
         });
@@ -957,7 +958,7 @@ class SphereBundle extends ActorBundle {
      * @param {[number]} labCenter - center in the lab
      */
     setCenter(labCenter) {
-        this.source.setCenter(this.transform.apply(new SIREPO.GEOMETRY.Matrix(labCenter)).val);
+        this.source.setCenter(labCenter);
     }
 
     /**
