@@ -1001,6 +1001,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                             0.5,
                             sourceProps
                         );
+                        b.setRes(8, 8);
                         b.actorProperties.setRepresentationToWireframe();
                         return b;
                     },
