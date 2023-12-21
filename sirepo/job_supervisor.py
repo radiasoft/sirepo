@@ -1137,7 +1137,6 @@ class _Op(PKDict):
             pkdlog("assigned driver={} to op={}", self.driver, self)
             self.cpu_slot = self.driver.cpu_slot_q.sr_slot_proxy(self)
             if q := self.driver.op_slot_q.get(self.op_name):
-                pkdp("assigned slot")
                 self.op_slot = q.sr_slot_proxy(self)
             self.max_run_secs = self._get_max_run_secs()
             if "dataFileKey" in self.msg:
@@ -1146,7 +1145,6 @@ class _Op(PKDict):
                     job.DATA_FILE_URI,
                     self.msg.pop("dataFileKey"),
                 )
-        pkdp("{} driver", self)
         await self.driver.prepare_send(self)
 
     async def reply_get(self):
