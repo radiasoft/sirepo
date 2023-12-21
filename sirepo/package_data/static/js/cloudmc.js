@@ -978,6 +978,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             let picker = null;
             let renderedFieldData = [];
             let selectedVolume = null;
+            const sourceProps = {
+                color: [255, 0, 0],
+                edgeVisibility: true,
+                lighting: false
+            };
             const sourceBundles = cloudmcService.getSources(
                 {
                     box: space => {
@@ -985,16 +990,20 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                         const b = coordMapper.buildBox(
                             d.size,
                             d.center,
-                            {
-                                color: [255, 0, 0],
-                                edgeVisibility: true,
-                                lighting: false
-                            }
+                            sourceProps
                         );
                         b.actorProperties.setRepresentationToWireframe();
                         return b;
                     },
-                    point: space => {},
+                    point: space => {
+                        const b = coordMapper.buildSphere(
+                            space.xyz,
+                            0.5,
+                            sourceProps
+                        );
+                        b.actorProperties.setRepresentationToWireframe();
+                        return b;
+                    },
                 }
             );
 
