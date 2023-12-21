@@ -398,14 +398,12 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         minField: 0,
         maxField: 0,
         outlines: null,
-        sourceOutlines: null,
     };
 
     self.clearMesh = () => {
         self.mesh = null;
         self.fieldData = null;
         self.outlines = null;
-        self.sourceOutlines = null;
     };
 
     self.colorScale = modelName => {
@@ -438,21 +436,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
             return [];
         }
         const t = self.outlines[appState.applicationState().openmcAnimation.tally];
-        if (t && t[`${volId}`]) {
-            const o = t[`${volId}`][dim];
-            if (o.length) {
-                return o[index];
-            }
-        }
-        return [];
-    };
-
-    self.getSourceOutlines = (volId, dim, index) => {
-        if (! self.sourceOutlines) {
-            return [];
-        }
-        const t = self.outlines[appState.applicationState().openmcAnimation.tally];
-        srdbg(t);
         if (t && t[`${volId}`]) {
             const o = t[`${volId}`][dim];
             if (o.length) {
@@ -732,14 +715,23 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     box: space => {
                         const d = cloudmcService.boxDimensions(space);
                         return new SIREPO.VTK.CuboidViews(
-                            SIREPO.UTILS.randomString(),
+                            null,
                             'box',
                             d.center,
                             d.size,
-                            SIREPO.APP_SCHEMA.constants.geometryScale
+                            cloudmcService.GEOMETRY_SCALE
                         );
                     },
-                    point: space => {},
+                    point: space => {
+                        return new SIREPO.VTK.SphereViews(
+                            null,
+                            'point',
+                            space.xyz,
+                            0.5,
+                            24,
+                            cloudmcService.GEOMETRY_SCALE,
+                        );
+                    },
                 }
             );
 
@@ -819,7 +811,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     outlines.push({
                         name: `source-${s.particle}-${s.space._type}-${i}`,
                         color: '#ff0000',
-                        data: view.shapePoints(dim),
+                        data: view.shapePoints(dim).map(p => p.toReversed()),
                         doClose: true,
                     });
                 });
