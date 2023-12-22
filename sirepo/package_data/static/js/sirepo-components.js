@@ -4687,11 +4687,8 @@ SIREPO.app.service('fileUpload', function(authState, msgRouter, errorService) {
                 fd.append(k, args[k]);
             }
         }
-        srdbg('authState', authState);
-        srdbg('file', file);
-        srdbg('file size = ', file.size);
         if (file.size > authState.max_message_bytes) {
-            callback({error: 'File was too large for upload'});
+            callback({error: `File of size=${file.size} bytes was too large for upload. Max size=${authState.max_message_bytes} bytes`});
             return;
         }
         //TODO(robnagler) formData needs to be handled properly
@@ -4701,11 +4698,14 @@ SIREPO.app.service('fileUpload', function(authState, msgRouter, errorService) {
         }).then(
             function(response) {
                 srdbg('onSuccess response:', response);
+                if (response.data.status == 500) {
+                    callback({error: 'File upload failed due to server error'});
+                    return;
+                }
                 callback(response.data);
             },
             function(response) {
-                srdbg('onRejected response:', response);
-                callback({error: 'File Upload Failed'});
+                callback({error: 'File Upload Failed (reason unknown)'});
             },
         );
     };
