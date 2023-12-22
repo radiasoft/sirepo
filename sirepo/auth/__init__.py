@@ -633,6 +633,7 @@ class _Auth(sirepo.quest.Attr):
             isLoggedIn=self.is_logged_in(s),
             isLoginExpired=False,
             jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
+            max_message_bytes=2e4,
             method=self._qcall_bound_method(),
             needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
             roles=[],

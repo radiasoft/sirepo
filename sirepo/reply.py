@@ -610,9 +610,13 @@ class _SReply(sirepo.quest.Attr):
             401, headers=PKDict({"WWW-Authenticate": 'Basic realm="*"'})
         )
 
-    def _gen_http_exception(self, code, headers=None):
+    # def _gen_http_exception(self, code, headers=None):
+    #     return self.from_kwargs(
+    #         content=_HTTPException(PKDict(code=code, headers=headers))
+    #     )
+    def _gen_http_exception(self, status, headers=None):
         return self.from_kwargs(
-            content=_HTTPException(PKDict(code=code, headers=headers))
+            content=_HTTPException(PKDict(status=status, code=status, headers=headers))
         )
 
     def _gen_redirect_for_anchor(self, uri, **kwargs):

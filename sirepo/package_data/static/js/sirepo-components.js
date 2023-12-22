@@ -4678,7 +4678,7 @@ SIREPO.app.service('plotToPNG', function() {
 
 });
 
-SIREPO.app.service('fileUpload', function(msgRouter, errorService) {
+SIREPO.app.service('fileUpload', function(authState, msgRouter, errorService) {
     this.uploadFileToUrl = function(file, args, uploadUrl, callback) {
         var fd = new FormData();
         fd.append('file', file);
@@ -4686,6 +4686,13 @@ SIREPO.app.service('fileUpload', function(msgRouter, errorService) {
             for (var k in args) {
                 fd.append(k, args[k]);
             }
+        }
+        srdbg('authState', authState);
+        srdbg('file', file);
+        srdbg('file size = ', file.size);
+        if (file.size > authState.max_message_bytes) {
+            callback({error: 'File was too large for upload'});
+            return;
         }
         //TODO(robnagler) formData needs to be handled properly
         msgRouter.send(uploadUrl, fd, {
