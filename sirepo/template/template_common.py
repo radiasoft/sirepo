@@ -583,6 +583,13 @@ def parse_mpi_log(run_dir):
     return e
 
 
+def read_dict_from_h5(file_path, h5_path=None):
+    import h5py
+
+    with h5py.File(file_path, "r") as f:
+        return h5_to_dict(f, path=h5_path)
+
+
 def read_last_csv_line(path):
     # for performance, don't read whole file if only last line is needed
     if not path.exists():

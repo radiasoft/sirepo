@@ -93,6 +93,7 @@ class DockerDriver(job_driver.DriverBase):
                 bool,
                 "mount ~/.pyenv, ~/.local and ~/src for development",
             ),
+            gpus=(None, _cfg_gpus, "enable gpus"),
             hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, "execution hosts"),
             idle_check_secs=pkconfig.ReplacedBy("sirepo.job_driver.idle_check_secs"),
             image=("radiasoft/sirepo", str, "docker image to run all jobs"),
@@ -191,6 +192,7 @@ class DockerDriver(job_driver.DriverBase):
             )
             + self._constrain_resources(c)
             + self._volumes()
+            + self._gpus()
             + (self._image,)
         )
         self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
@@ -228,6 +230,9 @@ class DockerDriver(job_driver.DriverBase):
         if ":" in res:
             return res
         return res + ":" + pkconfig.cfg.channel
+
+    def _gpus(self):
+        return (f"--gpus={self.cfg.gpus}",) if self.cfg.gpus is not None else tuple()
 
     @classmethod
     def _init_dev_hosts(cls):
@@ -300,6 +305,12 @@ class DockerDriver(job_driver.DriverBase):
 
 
 CLASS = DockerDriver
+
+
+def _cfg_gpus(value):
+    if value != "all":
+        pkconfig.raise_error("only accepts 'all' or empty string")
+    return value
 
 
 def _cfg_tls_dir(value):

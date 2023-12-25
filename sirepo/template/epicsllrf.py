@@ -9,6 +9,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import numpy
 import os
 import re
 import sirepo.sim_data
@@ -33,7 +34,7 @@ def analysis_job_read_epics_values(data, run_dir, **kwargs):
         return PKDict()
     e.copy(p, stat=True)
     return PKDict(
-        epicsData=_read_epics_data(run_dir),
+        epicsData=_read_epics_data(run_dir, data.args.get("computedValues")),
     )
 
 
@@ -46,8 +47,13 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def epics_field_name(model_name, field):
-    return model_name.replace("_", ":") + ":" + field
+def epics_field_name(epics_prefix, model_name, field):
+    return (
+        epics_prefix
+        + model_name.replace(epics_prefix, "").replace("_", ":")
+        + ":"
+        + field
+    )
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -91,7 +97,7 @@ def stateless_compute_update_epics_value(data, **kwargs):
     for f in data.args.fields:
         if (
             run_epics_cmd(
-                f"pvput {epics_field_name(data.args.model, f.field)} {f.value}",
+                f"pvput {epics_field_name(data.args.epicsModelPrefix, data.args.model, f.field)} {f.value}",
                 data.args.serverAddress,
             )
             != 0
@@ -103,11 +109,35 @@ def stateless_compute_update_epics_value(data, **kwargs):
     return PKDict(success=True)
 
 
+def stateless_compute_update_signal_generator(data, **kwargs):
+    # could have different implementations based on the modelName
+    if data.args.modelName == "ZCUSignalGenerator":
+        return _set_zcu_signal(data.args.serverAddress, data.args.model)
+    raise AssertionError("unknown signal generator modelName: {}", data.args.modelName)
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
+
+
+def _calculate_computed_values(d, computed_values):
+    for f in computed_values:
+        fd = computed_values[f]
+        if fd.method == "magnitude":
+            d[f] = numpy.abs(
+                numpy.array(d[fd.args[0]]) + 1j * numpy.array(d[fd.args[1]]),
+            ).tolist()
+        elif fd.method == "phase":
+            d[f] = numpy.angle(
+                numpy.array(d[fd.args[0]]) + 1j * numpy.array(d[fd.args[1]]),
+                deg=True,
+            ).tolist()
+        else:
+            raise AssertionError(f"unknown computedValue method: {fd.method}")
+    return d
 
 
 def _generate_parameters_file(data):
@@ -120,7 +150,19 @@ def _generate_parameters_file(data):
     )
 
 
-def _read_epics_data(run_dir):
+def _parse_epics_log(run_dir):
+    res = ""
+    with pkio.open_text(run_dir.join(template_common.RUN_LOG)) as f:
+        for line in f:
+            m = re.match(
+                r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)", line
+            )
+            if m:
+                return m.group(1)
+    return res
+
+
+def _read_epics_data(run_dir, computed_values):
     s = run_dir.join(_STATUS_FILE)
     if s.exists():
         d = simulation_db.json_load(s)
@@ -134,17 +176,46 @@ def _read_epics_data(run_dir):
             else:
                 v = float(v)
             d[f] = v
+        if computed_values:
+            _calculate_computed_values(d, computed_values)
         return d
     return PKDict()
 
 
-def _parse_epics_log(run_dir):
-    res = ""
-    with pkio.open_text(run_dir.join(template_common.RUN_LOG)) as f:
-        for line in f:
-            m = re.match(
-                r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)", line
+def _set_zcu_signal(server_address, model):
+    # 'model': {'amp': 32000, 'duration': 1023, 'start': 0},
+    # 'serverAddress': 'localhost'
+
+    def write_nco_freq(adc=796.8, dac=186.24):
+        for v in ([0, 0], [0, 1], [1, 0], [1, 1]):
+            run_epics_cmd(
+                f"pvput rfsoc_ioc:Root:XilinxRFSoC:RfDataConverter:adcTile[{v[0]}]:adcBlock[{v[1]}]:ncoFrequency {adc}",
+                server_address,
             )
-            if m:
-                return m.group(1)
-    return res
+        run_epics_cmd(
+            f"pvput rfsoc_ioc:Root:XilinxRFSoC:RfDataConverter:dacTile[0]:dacBlock[0]:ncoFrequency {dac}",
+            server_address,
+        )
+
+    def set_signal(pulse_width=200, pulse_amp=32000, pulse_delay=200):
+        # p4p is required to set the Dac values, pvput doesn't work with union array types
+        from p4p.client.thread import Context
+
+        ctx = Context(
+            "pva",
+            dict(
+                EPICS_PVA_ADDR_LIST=server_address,
+                EPICS_PVA_AUTO_ADDR_LIST="NO",
+            ),
+        )
+        I = numpy.zeros(shape=4096, dtype=numpy.int32, order="C")
+        I[pulse_delay : (pulse_delay + pulse_width)] = pulse_amp
+        ctx.put("rfsoc_ioc:Root:XilinxRFSoC:Application:DacSigGen:DacI", I)
+        Q = numpy.zeros(shape=4096, dtype=numpy.int32, order="C")
+        Q[pulse_delay : (pulse_delay + pulse_width)] = pulse_amp
+        ctx.put("rfsoc_ioc:Root:XilinxRFSoC:Application:DacSigGen:DacQ", Q)
+
+    write_nco_freq()
+    set_signal(model.duration, model.amp, model.start)
+
+    return PKDict(success=True)

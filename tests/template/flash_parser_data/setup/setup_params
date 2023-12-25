@@ -1,0 +1,272 @@
+physics/materialProperties/Opacity/OpacityMain/Multispecies
+    op_chamAbsorb [STRING] ["op_undefined"]
+        Valid Values: "op_undefined", "op_constant", "op_constcm2g", "op_tabpa",
+        "op_tabpe", "op_tabro"
+
+    op_chamAbsorbConstant [REAL] [-1.0]
+        Valid Values: Unconstrained
+
+    op_chamEmiss [STRING] ["op_undefined"]
+        Valid Values: "op_undefined", "op_constant", "op_constcm2g", "op_tabpa",
+        "op_tabpe", "op_tabro"
+
+    op_chamEmissConstant [REAL] [-1.0]
+        Valid Values: Unconstrained
+
+    op_chamFileName [STRING] ["NOT SPECIFIED"]
+        Valid Values: Unconstrained
+
+    op_chamFileType [STRING] ["NOT SPECIFIED"]
+        Valid Values: "tops", "ionmix", "ionmix4", "propaceos", "opacplot", "NOT
+        SPECIFIED"
+
+    op_chamTrans [STRING] ["op_undefined"]
+        Valid Values: "op_undefined", "op_constant", "op_constcm2g", "op_tabpa",
+        "op_tabpe", "op_tabro"
+
+    op_chamTransConstant [REAL] [-1.0]
+        Valid Values: Unconstrained
+
+    op_targAbsorb [STRING] ["op_undefined"]
+        Valid Values: "op_undefined", "op_constant", "op_constcm2g", "op_tabpa",
+        "op_tabpe", "op_tabro"
+
+    op_targAbsorbConstant [REAL] [-1.0]
+        Valid Values: Unconstrained
+
+    op_targEmiss [STRING] ["op_undefined"]
+        Valid Values: "op_undefined", "op_constant", "op_constcm2g", "op_tabpa",
+        "op_tabpe", "op_tabro"
+
+    op_targEmissConstant [REAL] [-1.0]
+        Valid Values: Unconstrained
+
+    op_targFileName [STRING] ["NOT SPECIFIED"]
+        Valid Values: Unconstrained
+
+    op_targFileType [STRING] ["NOT SPECIFIED"]
+        Valid Values: "tops", "ionmix", "ionmix4", "propaceos", "opacplot", "NOT
+        SPECIFIED"
+
+    op_targTrans [STRING] ["op_undefined"]
+        Valid Values: "op_undefined", "op_constant", "op_constcm2g", "op_tabpa",
+        "op_tabpe", "op_tabro"
+
+    op_targTransConstant [REAL] [-1.0]
+        Valid Values: Unconstrained
+
+    opacity_ceiling [REAL] [1.e6]
+        Valid Values: Unconstrained
+        ceiling for the opacity values when reading from TOPS tables. Below the
+        plasma cut-off frequency TOPS sets the ceiling to 1.e10, which is too
+        high for FLASH
+    opacity_ignoreLowTemp [BOOLEAN] [TRUE]
+        control parameter indicating if the low temperature capability should be
+        ignored
+    opacity_writeOpacityInfo [BOOLEAN] [FALSE]
+        control parameter indicating if detailed info of the opacity unit should
+        be written out
+
+
+Simulation/SimulationMain/flashApp
+    sim_eosCham [STRING] ["eos_gam"]
+        Valid Values: "eos_tab", "eos_gam"
+        chamber EOS type
+    sim_eosTarg [STRING] ["eos_tab"]
+        Valid Values: "eos_tab", "eos_gam"
+        chamber EOS type
+
+Multispecies/MultispeciesMain
+    eos_chamEosType [STRING] ["-none-"]
+        Valid Values: "-none-", "eos_gam", "eos_tab"
+
+    eos_chamGroupName [STRING] ["-none-"]
+        Valid Values: Unconstrained
+
+    eos_chamSesDblFmt [STRING] ["E22.15"]
+        Valid Values: Unconstrained
+
+    eos_chamSubType [STRING] ["-none-"]
+        Valid Values: "-none-", "ionmix", "ionmix4", "ionmix6", "propaceos",
+        "opacplot", "sesame"
+
+    eos_chamTableFile [STRING] ["-none-"]
+        Valid Values: Unconstrained
+
+    eos_targEosType [STRING] ["-none-"]
+        Valid Values: "-none-", "eos_gam", "eos_tab"
+
+    eos_targGroupName [STRING] ["-none-"]
+        Valid Values: Unconstrained
+
+    eos_targSesDblFmt [STRING] ["E22.15"]
+        Valid Values: Unconstrained
+
+    eos_targSubType [STRING] ["-none-"]
+        Valid Values: "-none-", "ionmix", "ionmix4", "ionmix6", "propaceos",
+        "opacplot", "sesame"
+
+    eos_targTableFile [STRING] ["-none-"]
+        Valid Values: Unconstrained
+
+    ms_chamA [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamAElems_1 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamAElems_2 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamAElems_3 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamAElems_4 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamAElems_5 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamAElems_6 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamBindEnergy [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamFractions_1 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamFractions_2 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamFractions_3 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamFractions_4 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamFractions_5 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamFractions_6 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamGamma [REAL] [1.6666666666666667]
+        Valid Values: Unconstrained
+
+    ms_chamNegative [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamNeutral [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamNumElems [INTEGER] [0]
+        Valid Values: -INFTY to 6
+
+    ms_chamZ [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_chamZElems_1 [INTEGER] [-999]
+        Valid Values: Unconstrained
+
+    ms_chamZElems_2 [INTEGER] [-999]
+        Valid Values: Unconstrained
+
+    ms_chamZElems_3 [INTEGER] [-999]
+        Valid Values: Unconstrained
+
+    ms_chamZElems_4 [INTEGER] [-999]
+        Valid Values: Unconstrained
+
+    ms_chamZElems_5 [INTEGER] [-999]
+        Valid Values: Unconstrained
+
+    ms_chamZElems_6 [INTEGER] [-999]
+        Valid Values: Unconstrained
+
+    ms_chamZMin [REAL] [-998.]
+        Valid Values: Unconstrained
+
+    ms_targA [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targAElems_1 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targAElems_2 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targAElems_3 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targAElems_4 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targAElems_5 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targAElems_6 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targBindEnergy [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targFractions_1 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targFractions_2 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targFractions_3 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targFractions_4 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targFractions_5 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targFractions_6 [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targGamma [REAL] [1.6666666666666667]
+        Valid Values: Unconstrained
+
+    ms_targNegative [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targNeutral [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targNumElems [INTEGER] [0]
+        Valid Values: -INFTY to 6
+
+    ms_targZ [REAL] [-999.]
+        Valid Values: Unconstrained
+
+    ms_targZElems_1 [INTEGER] [-999]
+        Valid Values: Unconstrained
+
+    ms_targZElems_2 [INTEGER] [-999]
+        Valid Values: Unconstrained
+
+    ms_targZElems_3 [INTEGER] [-999]
+        Valid Values: Unconstrained
+
+    ms_targZElems_4 [INTEGER] [-999]
+        Valid Values: Unconstrained
+
+    ms_targZElems_5 [INTEGER] [-999]
+        Valid Values: Unconstrained
+
+    ms_targZElems_6 [INTEGER] [-999]
+        Valid Values: Unconstrained
+
+    ms_targZMin [REAL] [-998.]
+        Valid Values: Unconstrained
+
+    op_chamLowTemp [REAL] [0.0]
+        Valid Values: Unconstrained
+
+    op_targLowTemp [REAL] [0.0]
+        Valid Values: Unconstrained

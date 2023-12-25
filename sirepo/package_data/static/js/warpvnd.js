@@ -2554,9 +2554,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                       <div data-ng-show="simState.getFrameCount() > 0 && simState.getPercentComplete() >= 100">
                         Tracing Particles
                       </div>
-                      <div class="progress">
-                        <div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>
-                      </div>
+                      <div data-sim-state-progress-bar="" data-sim-state="simState"></div>
                     </div>
                   </div>
                   <div class="col-sm-6 pull-right">

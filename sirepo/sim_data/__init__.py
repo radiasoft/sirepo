@@ -161,7 +161,12 @@ def parse_frame_id(frame_id):
     s.frameReport = s.parse_model(res)
     s.simulationId = s.parse_sid(res)
     # TODO(robnagler) validate these
-    res.update(zip(s._frame_id_fields(res), v[len(_FRAME_ID_KEYS) :]))
+    res.update(
+        zip(
+            s._frame_id_fields(res),
+            [SimDataBase._frame_param_to_field(x) for x in v[len(_FRAME_ID_KEYS) :]],
+        )
+    )
     return res, s
 
 
@@ -307,7 +312,10 @@ class SimDataBase(object):
                 response.computeJobHash,
                 str(response.computeJobSerial),
             ]
-            + [str(m.get(k)) for k in cls._frame_id_fields(frame_args)],
+            + [
+                pkjson.dump_pretty(m.get(k), pretty=False)
+                for k in cls._frame_id_fields(frame_args)
+            ],
         )
 
     @classmethod
@@ -706,6 +714,15 @@ class SimDataBase(object):
         f = cls.schema().frameIdFields
         r = frame_args.frameReport
         return f[r] if r in f else f[cls.compute_model(r)]
+
+    @classmethod
+    def _frame_param_to_field(cls, param):
+        from json.decoder import JSONDecodeError
+
+        try:
+            return pkjson.load_any(param)
+        except JSONDecodeError:
+            return param
 
     @classmethod
     def _delete_sim_db_file(cls, uri):

@@ -1,0 +1,36 @@
+codes:
+    - python:
+        parameters:
+        {% for p in optimizer.parameters %}
+            {{ p.object }}.{{ p.field }}:
+              min: {{ p.min }}
+              max: {{ p.max }}
+              start: {{ p.start }}
+        {% endfor %}
+        setup:
+            # Name of Python file where function is defined
+            input_file: optimize.py
+            # Name of function to run for every evaluation
+            function: main
+            execution_type: serial
+            serial_python_mode: process
+options:
+    # For serial execution the `main` function can directly return the objective value
+    # For parallel execution a new subprocess must be used so the return value of `main` is lost
+    # To calculate the objective function after each simulation the appropriate data should be saved to file and evaluated by a separate function given here. The function given to `objective_function` will be run in serial and is always used if given, even if the simulation defined above was run in serial
+    objective_function: [optimize.py, load_objective_function_result]
+    record_interval: 1
+
+    # Options for setting up and terminating
+    software: {{ optimizer.software.rsoptName }}
+    method: {{ optimizer.software.method }}
+    nworkers: {{ numWorkers }}
+    exit_criteria:
+        sim_max: {{ optimizer.maxIterations }}
+    {% if optimizer.software.rsoptName == "dfols" %}
+    components: {{ optimizer.software.components }}
+    {% endif %}
+    software_options:
+        {{ optimizer.software.rsoptName }}_kwargs:
+              user_params:
+                  'model.rel_tol': {{ optimizer.tolerance }}
