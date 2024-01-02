@@ -84,7 +84,7 @@ SIREPO.viewLogic = function(name, init) {
                     for (var idx = 0; idx < scope.watchFields.length; idx += 2) {
                         var fields = scope.watchFields[idx];
                         var callback = utilities.debounce(scope.watchFields[idx + 1], SIREPO.debounce_timeout);
-                        appState.watchModelFields(scope, fields, callback);
+                        appState.watchModelFields(scope, fields, callback, true);
                     }
                 }
             },
@@ -1187,21 +1187,27 @@ SIREPO.app.service('validationService', function(utilities) {
     };
 
     // html5 validation
-    this.validateField = function (model, field, inputType, isValid, msg) {
-        const mfId = utilities.modelFieldID(model, field);
-        const r = $(`.${mfId} ${inputType}`);
-        const f = r[0];
+    this.validateField = function(model, field, inputType, isValid, msg) {
+        this.validateInputSelectorString(`.${utilities.modelFieldID(model, field)} ${inputType}`, isValid, msg);
+    };
+
+    this.validateInputSelectorString = function(str, isValid, msg) {
+        this.validateInputSelector($(str), isValid, msg);
+    };
+
+    this.validateInputSelector = function(sel, isValid, msg) {
+        const f = sel[0];
         if (! f) {
             return;
         }
-        const fWarn = $(`.${mfId} .sr-input-warning`);
+        const fWarn = sel.siblings('.sr-input-warning').eq(0);
         const invalidClass = 'ng-invalid ng-dirty';
         fWarn.text(msg);
         fWarn.hide();
         f.setCustomValidity('');
-        r.removeClass(invalidClass);
+        sel.removeClass(invalidClass);
         if (! isValid) {
-            r.addClass(invalidClass);
+            sel.addClass(invalidClass);
             f.setCustomValidity(msg);
             fWarn.show();
         }
@@ -1245,6 +1251,13 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     self.modelToCurrentFrame = {};
 
     self.frameId = function(frameReport, frameIndex) {
+        function fieldToFrameParam(field) {
+            if (angular.isObject(field)) {
+                return JSON.stringify(field);
+            }
+            return `${field}`;
+        }
+
         var c = appState.appService.computeModel(frameReport);
         var s = appState.models.simulationStatus[c];
         if (! s) {
@@ -1268,7 +1281,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         }
         // POSIT: same as sirepo.sim_data._FRAME_ID_SEP
         return v.concat(
-            f.map(function (a) {return m[a];})
+            f.map(a => fieldToFrameParam(m[a]))
         ).join('*');
     };
 

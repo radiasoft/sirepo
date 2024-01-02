@@ -125,7 +125,8 @@
                                 }
                             ]
                         }
-                    ]
+                    ],
+                    "type": "geomGroup"
                 },
                 {
                     "name": "Termination Magnet",
@@ -157,6 +158,7 @@
                         "b40f7233-89ba-49d5-90bc-f4efb4e0e421"
                     ],
                     "transforms": [],
+                    "type": "geomGroup",
                     "groupId": "630ea5d1-4948-498e-8ef3-1f2d86d51e57",
                     "id": "a2e13feb-19d9-4a8a-931f-0d231f4c8c7c"
                 },
@@ -207,7 +209,8 @@
                             "symmetryPoint": [0, 0, 0],
                             "symmetryType": "perpendicular"
                         }
-                    ]
+                    ],
+                    "type": "geomGroup"
                 }
             ]
         },

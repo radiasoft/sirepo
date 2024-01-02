@@ -149,6 +149,33 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
 def sim_frame(frame_args):
     import openmc
 
+    def _get_filter(tally, type):
+        for i in range(1, SCHEMA.constants.maxFilters + 1):
+            f = tally[f"filter{i}"]
+            if f._type == type:
+                return f
+        return None
+
+    def _get_tally(tallies, name):
+        f = [x for x in tallies if x.name == name]
+        return f[0] if len(f) else None
+
+    def _sum_energy_bins(values, mesh_filter, energy_filter, sum_range):
+        f = (lambda x: x) if energy_filter.space == "linear" else numpy.log10
+        bins = numpy.ceil(
+            energy_filter.num
+            * numpy.abs(f(numpy.array(sum_range.val)) - f(sum_range.min))
+            / numpy.abs(f(sum_range.max) - f(sum_range.min))
+        ).astype(int)
+
+        vv = numpy.reshape(values, (*mesh_filter.dimension, -1))
+        z = numpy.zeros((*mesh_filter.dimension, 1))
+        for i in range(len(vv)):
+            for j in range(len(vv[i])):
+                for k in range(len(vv[i][j])):
+                    z[i][j][k][0] = numpy.sum(vv[i][j][k][bins[0] : bins[1]])
+        return z.ravel()
+
     t = openmc.StatePoint(
         frame_args.run_dir.join(_statepoint_filename(frame_args.sim_in))
     ).get_tally(name=frame_args.tally)
@@ -157,7 +184,21 @@ def sim_frame(frame_args):
         t.find_filter(openmc.MeshFilter)
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
+
     v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
+
+    try:
+        t.find_filter(openmc.EnergyFilter)
+        tally = _get_tally(frame_args.sim_in.models.settings.tallies, frame_args.tally)
+        v = _sum_energy_bins(
+            v,
+            _get_filter(tally, "meshFilter"),
+            _get_filter(tally, "energyFilter"),
+            frame_args.energyRangeSum,
+        )
+    except ValueError:
+        pass
+
     # volume normalize copied from openmc.UnstructuredMesh.write_data_to_vtk()
     v /= t.find_filter(openmc.MeshFilter).mesh.volumes.ravel()
     o = simulation_db.read_json(frame_args.run_dir.join(_OUTLINES_FILE))
@@ -482,12 +523,14 @@ def _generate_parameters_file(data, run_dir=None):
 
 
 def _generate_range(filter):
-    return "numpy.{}({}, {}, {})".format(
-        "linspace" if filter.space == "linear" else "logspace",
-        filter.start,
-        filter.stop,
-        filter.num,
-    )
+    space = "linspace"
+    start = filter._scale * filter.start
+    stop = filter._scale * filter.stop
+    if filter.space == "log":
+        space = "logspace"
+        start = numpy.log10(start) if start > 0 else -307
+        stop = numpy.log10(stop)
+    return "numpy.{}({}, {}, {})".format(space, start, stop, filter.num)
 
 
 def _generate_source(source):

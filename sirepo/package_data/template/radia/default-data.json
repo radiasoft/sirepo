@@ -1,5 +1,7 @@
 {
     "models": {
+        "rpnCache": {},
+        "rpnVariables": [],
         "simFolder": {},
         "simulation": {
             "beamAxis": "z",
