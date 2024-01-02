@@ -977,7 +977,7 @@
             "eigenvalueHistory": ["Eigenvalue History", "Integer", 5],
             "inactive": ["Number of inactive batches", "Integer", 0],
             "particles": ["Number of particles per generation", "Integer", 5000],
-            "photon_transport": ["Photon transport", "Boolean", "0", "Simulate the passage of photons through matter."],
+            "photon_transport": ["Photon transport", "Boolean", "0", "Simulate the passage of photons through matter"],
             "sources": ["", "SourcesOrTallies", []],
             "tallies": ["", "SourcesOrTallies", []],
             "run_mode": ["Run mode", "RunMode", "eigenvalue", "The type of calculation to perform"],
@@ -993,6 +993,7 @@
             "time": ["Time distribution", "Univariate", {"_type": "None"}],
             "type": ["Source Settings", "SourceSettings", "manual"]
         },
+        "sources": [],
         "spatial": {
             "_type": ["", "SpatialDistribution"]
         },
@@ -1001,7 +1002,7 @@
             "r": ["R distribution", "Univariate", {"_type": "None"}],
             "theta": ["Theta distribution", "Univariate", {"_type": "None"}, "Distribution of theta-coordinates (angle relative to the z-axis) in a reference frame specified by the origin parameter"],
             "phi": ["Phi distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
-            "origin": ["Origin [cm]", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the spherical reference frame for the source."]
+            "origin": ["Origin [cm]", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the spherical reference frame for the source"]
         },
         "tabular": {
             "_super": [ "_", "model", "univariate"],
