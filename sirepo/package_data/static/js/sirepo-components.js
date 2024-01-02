@@ -4677,7 +4677,7 @@ SIREPO.app.service('plotToPNG', function() {
 
 });
 
-SIREPO.app.service('fileUpload', function(authState, msgRouter, errorService) {
+SIREPO.app.service('fileUpload', function(authState, msgRouter) {
     this.uploadFileToUrl = function(file, args, uploadUrl, callback) {
         var fd = new FormData();
         fd.append('file', file);
