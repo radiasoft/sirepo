@@ -4698,13 +4698,15 @@ SIREPO.app.service('fileUpload', function(authState, msgRouter, errorService) {
         }).then(
             function(response) {
                 srdbg('onSuccess response:', response);
-                if (response.data.status == 500) {
-                    callback({error: 'File upload failed due to server error'});
-                    return;
-                }
+
                 callback(response.data);
             },
             function(response) {
+                srdbg("response =", response);
+                if (response.status == 500) {
+                    callback({error: 'File upload failed due to server error'});
+                    return;
+                }
                 callback({error: 'File Upload Failed (reason unknown)'});
             },
         );

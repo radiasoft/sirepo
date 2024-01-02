@@ -620,7 +620,7 @@ class _SReply(sirepo.quest.Attr):
         return self.from_kwargs(
             # TODO (gurhar1133): figure out why _HTTPException doesn't work
             # but _Object does
-            content=_Object(PKDict(status=status, code=status, headers=headers))
+            content=_HTTPException(PKDict(status=status, code=status, headers=headers))
         )
 
     def _gen_redirect_for_anchor(self, uri, **kwargs):
@@ -744,13 +744,15 @@ class _HTTPException(_Base):
         if self.value.headers:
             for k, v in self.value.headers.items():
                 sreply.header_set(k, v)
+        pkdp("\n\n\n self.value.code={}", self.value.code)
         return self._http_error(self.value.code, sreply)
 
     def websocket_content(self):
         pkdp("\n\n\n hit for websocket_content() \n\n")
         pkdp("\n\n\n self.value.code={}", self.value.code)
         return self._sr_exception(
-            routeName="httpException", params=PKDict(code=self.value.code)
+            routeName="httpException",
+            params=PKDict(code=self.value.code),
         )
 
 
@@ -759,6 +761,7 @@ class _Object(_Base):
         return self._json(self.value)
 
     def websocket_content(self):
+        pkdp("\n\n WEB SOCK CONTENT HIT")
         return self._value()
 
 
