@@ -1,4 +1,4 @@
-n  # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """TODO(e-carlin): Doc
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
