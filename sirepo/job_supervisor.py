@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+n  # -*- coding: utf-8 -*-
 """TODO(e-carlin): Doc
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -13,6 +13,7 @@ from sirepo import job
 import asyncio
 import contextlib
 import copy
+import enum
 import pykern.pkio
 import sirepo.const
 import sirepo.global_resources
@@ -64,20 +65,15 @@ _PARALLEL_STATUS_FIELDS = frozenset(
 
 _cfg = None
 
-#: how many times restart request when Awaited() raised
-_MAX_RETRIES = 10
-
-
 #: POSIT: same as sirepo.reply
 _REPLY_SR_EXCEPTION_STATE = "srException"
 _REPLY_ERROR_STATE = "error"
 _REPLY_STATE = "state"
 
 
-class Awaited(Exception):
-    """An await occurred, restart operation"""
-
-    pass
+class SlotAllocStatus(enum.Enum):
+    DID_NOT_AWAIT = 1
+    HAD_TO_AWAIT = 2
 
 
 class ServerReq(PKDict):
@@ -106,14 +102,15 @@ class SlotProxy(PKDict):
 
     async def alloc(self, situation):
         if self._value is not None:
-            return
+            return SlotAllocStatus.DID_NOT_AWAIT
         try:
             self._value = self._q.get_nowait()
+            return SlotAllocStatus.DID_NOT_AWAIT
         except tornado.queues.QueueEmpty:
             pkdlog("{} situation={}", self._op, situation)
             with self._op.set_job_situation(situation):
                 self._value = await self._q.get()
-            raise Awaited()
+            return SlotAllocStatus.HAD_TO_AWAIT
 
     def free(self):
         if self._value is None:
@@ -375,11 +372,6 @@ class _Supervisor(PKDict):
         c = self._create_op(job.OP_BEGIN_SESSION, req, job.SEQUENTIAL, "sequential")
         try:
             await c.prepare_send()
-        except Awaited:
-            # OPTIMIZATION: _agent_ready is the first thing that could raise Awaited.
-            # In the event that it does, the agent is still started,
-            # so no need to try again after Awaited.
-            pass
         finally:
             c.destroy(cancel_task=False)
         return PKDict()
@@ -757,43 +749,31 @@ class _ComputeJob(_Supervisor):
             return r
         internal_error = None
         candidates = _ops_to_cancel()
-        c = None
-        o = set()
+        # must be after candidates so don't cancel "c"
+        c = self._create_op(job.OP_CANCEL, req)
         # No matter what happens the job is canceled
         self.__db_update(status=job.CANCELED)
         self._canceled_serial = self.db.computeJobSerial
         try:
-            for i in range(_MAX_RETRIES):
-                try:
-                    o = _ops_to_cancel().intersection(candidates)
-                    if o:
-                        # TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
-                        if not c:
-                            c = self._create_op(job.OP_CANCEL, req)
-                        await c.prepare_send()
-                    elif c:
-                        # nothing left to cancel
-                        c.destroy(cancel_task=False)
-                        c = None
-                    pkdlog("{} to_cancel={}", self, o)
-                    for x in o:
-                        x.destroy(cancel_task=True)
-                    if timed_out_op:
-                        self.db.canceledAfterSecs = timed_out_op.max_run_secs
-                    if c:
-                        c.msg.opIdsToCancel = [x.op_id for x in o]
-                        c.send()
-                        await c.reply_get()
-                    return r
-                except Awaited:
-                    pass
-            else:
-                raise AssertionError("too many retries {}".format(req))
+            # TODO(robnagler) cancel run_op, not just by jid, which is insufficient (hash)
+            await c.prepare_send()
+            # Only cancel "old" ops. New ones should not be affected by this cancel.
+            o = _ops_to_cancel().intersection(candidates)
+            if not o:
+                return
+            pkdlog("{} to_cancel={}", self, o)
+            if timed_out_op:
+                self.__db_update(canceledAfterSecs=timed_out_op.max_run_secs)
+            for x in o:
+                x.destroy(cancel_task=True)
+            c.msg.opIdsToCancel = [x.op_id for x in o]
+            c.send()
+            await c.reply_get()
+            return r
         except Exception as e:
             internal_error = f"_run exception={e}"
         finally:
-            if c:
-                c.destroy(cancel_task=False, internal_error=internal_error)
+            c.destroy(cancel_task=False, internal_error=internal_error)
 
     async def _receive_api_runSimulation(self, req, recursion_depth=0):
         f = req.content.data.get("forceRun")
@@ -919,14 +899,7 @@ class _ComputeJob(_Supervisor):
 
         async def _send_op(op, compute_job_serial, prev_db):
             try:
-                for _ in range(_MAX_RETRIES):
-                    try:
-                        await op.prepare_send()
-                        break
-                    except Awaited:
-                        pass
-                else:
-                    raise AssertionError(f"too many retries {op}")
+                await op.prepare_send()
             except sirepo.const.ASYNC_CANCELED_ERROR:
                 if self.pkdel("_canceled_serial") != compute_job_serial:
                     # There was a timeout getting the run started. Set the
@@ -1017,21 +990,15 @@ class _ComputeJob(_Supervisor):
         o = self._create_op(op_name, req, **kwargs)
         internal_error = None
         try:
-            for i in range(_MAX_RETRIES):
-                try:
-                    await o.prepare_send()
-                    o.send()
-                    r = await o.reply_get()
-                    # POSIT: any api_* that could run into runDirNotFound
-                    # will call _send_with_single_reply() and this will
-                    # properly format the reply
-                    if r.get("runDirNotFound"):
-                        return self._init_db_missing_response(req)
-                    return r
-                except Awaited:
-                    pass
-            else:
-                raise AssertionError("too many retries {}".format(req))
+            await o.prepare_send()
+            o.send()
+            r = await o.reply_get()
+            # POSIT: any api_* that could run into runDirNotFound
+            # will call _send_with_single_reply() and this will
+            # properly format the reply
+            if r.get("runDirNotFound"):
+                return self._init_db_missing_response(req)
+            return r
         except Exception as e:
             internal_error = f"_send_with_single_reply exception={e}"
             raise
@@ -1113,6 +1080,7 @@ class _Op(PKDict):
             self.internal_error = internal_error
         self._supervisor.destroy_op(self)
         self.driver.destroy_op(self)
+        self.driver = None
 
     def make_lib_dir_symlink(self):
         self.driver.make_lib_dir_symlink(self)

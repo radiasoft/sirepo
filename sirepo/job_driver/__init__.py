@@ -171,13 +171,18 @@ class DriverBase(PKDict):
         )
 
     async def prepare_send(self, op):
-        """Sends the op
+        """Awaits agent ready and slots for sending.
 
-        Returns:
-            bool: True if the op was actually sent
+        Agent is guaranteed to be ready and all slots are allocated
+        upon return.
         """
+
+        # If the agent is not ready after awaiting on slots, we need
+        # to recheck the agent, because agent can die (asynchronously) at any point
+        # while waiting for slots.
         await self._agent_ready(op)
-        await self._slots_ready(op)
+        if await self._slots_ready(op) == job_supervisor.SlotAllocStatus.HAD_TO_AWAIT:
+            await self._agent_ready(op)
         self._prepared_sends[op.op_id] = op
 
     @classmethod
@@ -203,8 +208,6 @@ class DriverBase(PKDict):
             try:
                 # TODO(robnagler) need timeout
                 await d.kill()
-            except job_supervisor.Awaited:
-                pass
             except Exception as e:
                 # If one kill fails still try to kill the rest
                 pkdlog("error={} stack={}", e, pkdexc())
@@ -272,7 +275,6 @@ class DriverBase(PKDict):
         pkdlog("{} {} await _websocket_ready", self, op)
         await self._websocket_ready.wait()
         pkdlog("{} {} websocket alive", self, op)
-        raise job_supervisor.Awaited()
 
     def _agent_receive(self, msg):
         c = msg.content
@@ -327,8 +329,6 @@ class DriverBase(PKDict):
             return
         try:
             async with self._agent_life_change_lock:
-                # POSIT: we do not have to raise Awaited(), because
-                # this is the first thing an op waits on.
                 if self._websocket_ready_timeout or self._websocket_ready.is_set():
                     return
                 pkdlog("{} {} await=_do_agent_start", self, op)
@@ -365,26 +365,53 @@ class DriverBase(PKDict):
         return f"{type(self).__name__}({self._agent_id:.4}, {self.uid:.4}, ops={list(self._prepared_sends.values())})"
 
     async def _slots_ready(self, op):
-        """Only one op of each type allowed"""
+        """Allocate all required slots for op
+
+        Slot allocation may require yielding so `_agent_ready` needs
+        to be called if `HAD_TO_AWAIT` is true.
+
+        All slots are allocated and only freed when the op is
+        destroyed. We don't need to recheck the slots, because
+        `destroy_op` cancels this task. `_agent_ready` is state held
+        outside this op so it needs to be rechecked when
+        `HAD_TO_AWAIT` is returned.
+
+        Return:
+            job_supervisor.SlotAllocStatus: whether coroutine had to yield
+        """
+
+        def _alloc_check(alloc_res):
+            if alloc_res == job_supervisor.SlotAllocStatus.HAD_TO_AWAIT:
+                return job_supervisor.SlotAllocStatus.DID_NOT_AWAIT
+            return res
+
         n = op.op_name
+        res = job_supervisor.SlotAllocStatus.DID_NOT_AWAIT
         if n in (job.OP_CANCEL, job.OP_KILL, job.OP_BEGIN_SESSION):
-            return
+            return res
         if n == job.OP_SBATCH_LOGIN:
             assert (
                 not self._prepared_sends
             ), f"received op={op} but have _prepared_sends={self._prepared_sends}"
-            return
-        await op.op_slot.alloc(
-            "Waiting for another simulation to complete await=op_slot"
+            return res
+        res = _alloc_check(
+            await op.op_slot.alloc(
+                "Waiting for another simulation to complete await=op_slot"
+            ),
         )
-        await op.run_dir_slot.alloc(
-            "Waiting for access to simulation state await=run_dir_slot"
+        res = _alloc_check(
+            await op.run_dir_slot.alloc(
+                "Waiting for access to simulation state await=run_dir_slot"
+            ),
         )
         if n not in _CPU_SLOT_OPS:
-            return
+            return res
         # once job-op relative resources are acquired, ask for global resources
         # so we only acquire on global resources, once we know we are ready to go.
-        await op.cpu_slot.alloc("Waiting for CPU resources await=cpu_slot")
+        res = _alloc_check(
+            await op.cpu_slot.alloc("Waiting for CPU resources await=cpu_slot"),
+        )
+        return res
 
     def _start_free_resources(self, caller):
         pkdlog("{} caller={}", self, caller)
