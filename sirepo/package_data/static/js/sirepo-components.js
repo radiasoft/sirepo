@@ -1312,7 +1312,6 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         }),
                     function(data) {
                         $scope.isUploading = false;
-                        srdbg("data in callback", data);
                         if (data.error) {
                             $scope.fileUploadError = data.error;
                             if (data.fileList) {
@@ -4697,16 +4696,14 @@ SIREPO.app.service('fileUpload', function(authState, msgRouter, errorService) {
             headers: {'Content-Type': undefined}
         }).then(
             function(response) {
-                srdbg('onSuccess response:', response);
                 callback(response.data);
             },
             function(response) {
-                srdbg("response =", response);
-                if (response.status == 500) {
-                    callback({error: 'File upload failed due to server error'});
-                    return;
-                }
-                callback({error: 'File Upload Failed (reason unknown)'});
+                callback(
+                    {
+                        error: `File upload failed due to server error (error code=${response.status})`
+                    }
+                );
             },
         );
     };
