@@ -471,11 +471,8 @@ class _SReply(sirepo.quest.Attr):
                     x = pkcompat.from_bytes(x)
                 return x, k
             elif isinstance(c, _Base):
-                res = c.websocket_content()
-                pkdp("\n\n\n INSTANCE HIT res={}", res)
-                return res
+                return c.websocket_content()
             else:
-                pkdp("\n\n\n NON INSTANCE HIT. c={} k={}", c, k)
                 return c, k
 
         async def _send(content, kind):
@@ -587,7 +584,6 @@ class _SReply(sirepo.quest.Attr):
         return self.from_kwargs(**r.__attrs)
 
     def _gen_exception_reply_ServerError(self, args):
-        pkdp("\n\n\nreply_serverError hit, args={}", args)
         return self._gen_http_exception(500)
 
     def _gen_exception_reply_SPathNotFound(self, args):
@@ -595,7 +591,6 @@ class _SReply(sirepo.quest.Attr):
         return self._gen_http_exception(404)
 
     def _gen_exception_reply_SRException(self, args):
-        pkdp("\n\n\nHIT FOR GEN reply_SRException")
         if args.get("params") is None:
             args.params = PKDict()
         args.pksetdefault(sim_type=lambda: self.qcall.sim_type_uget())
@@ -616,10 +611,7 @@ class _SReply(sirepo.quest.Attr):
         )
 
     def _gen_http_exception(self, status, headers=None):
-        pkdp("\n\n\n\nHIT, status={} headers={} \n\n\n\n", status, headers)
         return self.from_kwargs(
-            # TODO (gurhar1133): figure out why _HTTPException doesn't work
-            # but _Object does
             content=_HTTPException(PKDict(status=status, code=status, headers=headers))
         )
 
@@ -708,12 +700,10 @@ class _Base:
         # certain cases.
         # TODO(robnagler) this probably should be an assert
         params.pkdel("simulationType")
-        res = (
+        return (
             PKDict(routeName=routeName, params=params),
             sirepo.const.SCHEMA_COMMON.websocketMsg.kind.srException,
         )
-        pkdp("\n\n\n res in _sr_exception = {}", res)
-        return res
 
     def _value(self, value=None):
         return (
@@ -740,16 +730,12 @@ class _Error(_Base):
 
 class _HTTPException(_Base):
     def http_response(self, sreply):
-        pkdp("\n\n\n hit for http_response")
         if self.value.headers:
             for k, v in self.value.headers.items():
                 sreply.header_set(k, v)
-        pkdp("\n\n\n self.value.code={}", self.value.code)
         return self._http_error(self.value.code, sreply)
 
     def websocket_content(self):
-        pkdp("\n\n\n hit for websocket_content() \n\n")
-        pkdp("\n\n\n self.value.code={}", self.value.code)
         return self._sr_exception(
             routeName="httpException",
             params=PKDict(code=self.value.code),
@@ -761,7 +747,6 @@ class _Object(_Base):
         return self._json(self.value)
 
     def websocket_content(self):
-        pkdp("\n\n WEB SOCK CONTENT HIT")
         return self._value()
 
 
@@ -820,5 +805,4 @@ class _SRException(_Base):
         )
 
     def websocket_content(self):
-        pkdp("\n\n\n websocket_content self.value={}", self.value)
         return self._sr_exception(**self.value)

@@ -2070,9 +2070,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         if (header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.srException) {
             const n = content.routeName;
             const r = {data: {}};
-            srdbg("content = ", content);
             if (n === "httpException") {
-                srdbg("httpException hit");
                 r.status = content.params.code;
             }
             else {

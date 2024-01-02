@@ -4698,7 +4698,6 @@ SIREPO.app.service('fileUpload', function(authState, msgRouter, errorService) {
         }).then(
             function(response) {
                 srdbg('onSuccess response:', response);
-
                 callback(response.data);
             },
             function(response) {
