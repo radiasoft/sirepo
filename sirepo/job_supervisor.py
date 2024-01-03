@@ -1067,6 +1067,17 @@ class _Op(PKDict):
         pkdlog("{} runDir={}", self, self.msg.get("runDir"))
 
     def destroy(self, cancel_task=True, internal_error=None):
+        """Idempotently destroy op
+
+        Ops can be destroyed multiple times. The first
+        `internal_error` is "closest to the source" so it won't be
+        overwritten by subsequent calls unless it is `None`.
+
+        Args:
+            cancel_task (bool): cancel `self.task` if True [default: True]
+            internal_error (str): saved for logging in `destroy_op` [default: None]
+
+        """
         if x := self.pkdel("run_dir_slot"):
             x.free()
         if (x := self.pkdel("task")) and cancel_task:
@@ -1074,13 +1085,11 @@ class _Op(PKDict):
         for x in "run_callback", "timer":
             if y := self.pkdel(x):
                 tornado.ioloop.IOLoop.current().remove_timeout(y)
-        # Ops can be destroyed multiple times
-        # The first error is "closest to the source" so don't overwrite it
         if internal_error and not self.internal_error:
             self.internal_error = internal_error
         self._supervisor.destroy_op(self)
-        self.driver.destroy_op(self)
-        self.driver = None
+        if "driver" in self:
+            self.driver.destroy_op(self)
 
     def make_lib_dir_symlink(self):
         self.driver.make_lib_dir_symlink(self)
