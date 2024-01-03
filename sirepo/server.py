@@ -342,7 +342,7 @@ class API(sirepo.quest.API):
             raise
         except Exception as e:
             pkdlog("{}: exception: {}", f and f.filename, pkdexc())
-            # TODO(robnagler) security issue here. Really don't want to report errors to user
+            # TODO(robnagler) security issue here. Really don't want to report all errors to user
             if hasattr(e, "args"):
                 if len(e.args) == 1:
                     error = str(e.args[0])
@@ -350,11 +350,7 @@ class API(sirepo.quest.API):
                     error = str(e.args)
             else:
                 error = str(e)
-        return self.reply_dict(
-            {
-                "error": error if error else "An unknown error occurred",
-            }
-        )
+        return self.reply_dict(PKDict(error=error or "An unknown error occurred"))
 
     @sirepo.quest.Spec("allow_visitor", path_info="PathInfo optional")
     async def api_homePage(self, path_info=None):
