@@ -60,12 +60,10 @@ def assign_instance_op(op):
         res = _CLASSES[job.SBATCH].get_instance(op)
     else:
         res = _DEFAULT_CLASS.get_instance(op)
-    assert m.uid == res.uid, "op.msg.uid={} is not same as db.uid={} for jid={}".format(
-        m.uid,
-        res.uid,
-        m.get("computeJid"),
-    )
-    # Not linking to ops yet, because we aren't ready to send.
+    if m.uid != res.uid:
+        raise AssertionError(
+            f"op.msg.uid={m.uid} is not same as db.uid={res.uid} for jid={m.get('computeJid')}",
+        )
     return res
 
 
@@ -313,7 +311,8 @@ class DriverBase(PKDict):
         """
         self._websocket_ready_timeout_cancel()
         if self._websocket:
-            assert self._websocket == msg.handler, f"incoming msg.content={msg.content}"
+            if self._websocket != msg.handler:
+                raise AssertionError(f"incoming msg.content={msg.content}")
         else:
             self._websocket = msg.handler
         self._websocket_ready.set()
@@ -390,9 +389,10 @@ class DriverBase(PKDict):
         if n in (job.OP_CANCEL, job.OP_KILL, job.OP_BEGIN_SESSION):
             return res
         if n == job.OP_SBATCH_LOGIN:
-            assert (
-                not self._prepared_sends
-            ), f"received op={op} but have _prepared_sends={self._prepared_sends}"
+            if self._prepared_sends:
+                raise AssertionError(
+                    f"received op={op} but have _prepared_sends={self._prepared_sends}",
+                )
             return res
         res = _alloc_check(
             await op.op_slot.alloc(
