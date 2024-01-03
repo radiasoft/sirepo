@@ -450,13 +450,6 @@ def get_data_file(run_dir, model, frame, options):
     return _ZGOUBI_FAI_DATA_FILE
 
 
-async def import_file(req, unit_test_mode=False, **kwargs):
-    return zgoubi_importer.import_file(
-        req.form_file.as_str(),
-        unit_test_mode=unit_test_mode,
-    )
-
-
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
@@ -568,12 +561,13 @@ def stateful_compute_import_file(data, **kwargs):
     return PKDict(
         imported_data=zgoubi_importer.import_file(
             text=data.args.file_as_str,
-            unit_test_mode=False,
+            import_file_aux=data.args.sim_data_import_file_aux,
         ),
     )
 
 
 def stateful_compute_tosca_info(data, **kwargs):
+    # TODO(robnagler) unused?
     return zgoubi_importer.tosca_info(data.args.tosca)
 
 
@@ -852,11 +846,11 @@ def _generate_beamline_elements(report, data):
         beamline_map[bl.id] = bl
     element_map = PKDict()
     for el in copy.deepcopy(data.models.elements):
-        element_map[el._id] = zgoubi_importer.MODEL_UNITS.scale_to_native(el.type, el)
+        element_map[el._id] = zgoubi_importer.model_units().scale_to_native(el.type, el)
         # TODO(pjm): special case for FFA dipole array
         if "dipoles" in el:
             for dipole in el.dipoles:
-                zgoubi_importer.MODEL_UNITS.scale_to_native(dipole.type, dipole)
+                zgoubi_importer.model_units().scale_to_native(dipole.type, dipole)
     beamline_id = lattice.LatticeUtil(data, SCHEMA).select_beamline().id
     return _generate_beamline(data, beamline_map, element_map, beamline_id)
 
@@ -874,7 +868,7 @@ def _generate_pyzgoubi_element(el, schema_type=None):
 
 def _generate_parameters_file(data):
     bunch = data.models.bunch
-    zgoubi_importer.MODEL_UNITS.scale_to_native("bunch", bunch)
+    zgoubi_importer.model_units().scale_to_native("bunch", bunch)
     for f in ("FNAME", "FNAME2", "FNAME3"):
         if bunch[f]:
             bunch[f] = _SIM_DATA.lib_file_name_with_model_field("bunch", f, bunch[f])

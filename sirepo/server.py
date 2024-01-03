@@ -301,6 +301,9 @@ class API(sirepo.quest.API):
                         basename=os.path.basename(req.filename),
                         file_as_str=req.form_file.as_str(),
                         import_file_arguments=req.import_file_arguments,
+                        sim_data_import_file_aux=req.sim_data.import_file_aux(
+                            qcall=self
+                        ),
                     ),
                     simulationType=req.type,
                 ),

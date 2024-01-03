@@ -277,14 +277,6 @@ class SimDataBase(object):
         raise NotImplementedError()
 
     @classmethod
-    def react_format_data(cls, data):
-        pass
-
-    @classmethod
-    def react_unformat_data(cls, data):
-        pass
-
-    @classmethod
     def frame_id(cls, data, response, model, index):
         """Generate a frame_id from values (unit testing)
 
@@ -317,6 +309,15 @@ class SimDataBase(object):
                 for k in cls._frame_id_fields(frame_args)
             ],
         )
+
+    @classmethod
+    def import_file_aux(cls, qcall):
+        """Template specific info to pass to `stateful_compute_import_file`.
+
+        Returns:
+            object: passed as ``sim_data_import_file_aux`` from server to agent
+        """
+        return None
 
     @classmethod
     def is_parallel(cls, data_or_model):
@@ -387,6 +388,17 @@ class SimDataBase(object):
             bool: True if it exists
         """
         return cls._lib_file_abspath_or_exists(basename, qcall=qcall, exists_only=True)
+
+    @classmethod
+    def lib_file_is_zip(cls, basename):
+        """Is this lib file a zip file?
+
+        Args:
+            basename (str): to search
+        Returns:
+            bool: True if is a zip file
+        """
+        return basename.endswith(".zip")
 
     @classmethod
     def lib_file_in_use(cls, data, basename):
@@ -620,6 +632,14 @@ class SimDataBase(object):
     @classmethod
     def put_sim_file(cls, sim_id, file_path, basename):
         return cls._put_sim_db_file(file_path, cls._sim_file_uri(sim_id, basename))
+
+    @classmethod
+    def react_format_data(cls, data):
+        pass
+
+    @classmethod
+    def react_unformat_data(cls, data):
+        pass
 
     @classmethod
     def resource_path(cls, filename):
