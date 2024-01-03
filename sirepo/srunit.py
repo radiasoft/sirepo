@@ -976,7 +976,7 @@ def _cfg():
     from pykern import pkconfig
 
     __cfg = pkconfig.init(
-        # 100 is slower than a 2ghz cpu so should be reasonable default
-        cpu_div=(100, int, "cpu speed divisor to compute timeouts"),
+        # 50 is based on a 2.2 GHz server
+        cpu_div=(50, int, "cpu speed divisor to compute timeouts"),
     )
     return __cfg

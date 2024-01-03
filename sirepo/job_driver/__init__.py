@@ -60,12 +60,10 @@ def assign_instance_op(op):
         res = _CLASSES[job.SBATCH].get_instance(op)
     else:
         res = _DEFAULT_CLASS.get_instance(op)
-    assert m.uid == res.uid, "op.msg.uid={} is not same as db.uid={} for jid={}".format(
-        m.uid,
-        res.uid,
-        m.get("computeJid"),
-    )
-    res.ops[op.opId] = op
+    if m.uid != res.uid:
+        raise AssertionError(
+            f"op.msg.uid={m.uid} is not same as db.uid={res.uid} for jid={m.get('computeJid')}",
+        )
     return res
 
 
@@ -78,18 +76,18 @@ class DriverBase(PKDict):
         super().__init__(
             driver_details=PKDict({"type": self.__class__.__name__}),
             kind=op.kind,
-            ops=PKDict(),
             # TODO(robnagler) sbatch could override OP_RUN, but not OP_ANALYSIS
             # because OP_ANALYSIS touches the directory sometimes. Reasonably
             # there should only be one OP_ANALYSIS running on an agent at one time.
             op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in SLOT_OPS}),
             uid=op.msg.uid,
-            _agentId=job.unique_key(),
-            _agent_start_lock=tornado.locks.Lock(),
-            _agent_starting_timeout=None,
+            _agent_id=job.unique_key(),
+            _agent_life_change_lock=tornado.locks.Lock(),
             _idle_timer=None,
+            _prepared_sends=PKDict(),
             _websocket=None,
             _websocket_ready=sirepo.tornado.Event(),
+            _websocket_ready_timeout=None,
         )
         self._sim_db_file_token = sirepo.sim_db_file.FileReq.token_for_user(self.uid)
         self._global_resources_token = (
@@ -99,33 +97,35 @@ class DriverBase(PKDict):
             else None
         )
         # Drivers persist for the life of the program so they are never removed
-        self.__instances[self._agentId] = self
+        self.__instances[self._agent_id] = self
         pkdlog("{}", self)
 
     def destroy_op(self, op):
         """Clear our op and (possibly) free cpu slot"""
-        self.ops.pkdel(op.opId)
-        op.cpu_slot.free()
-        if op.op_slot:
-            op.op_slot.free()
+        self._prepared_sends.pkdel(op.op_id)
+        if x := op.pkdel("cpu_slot"):
+            x.free()
+        if x := op.pkdel("op_slot"):
+            x.free()
         if "lib_dir_symlink" in op:
             # lib_dir_symlink is unique_key so not dangerous to remove
             pykern.pkio.unchecked_remove(op.pkdel("lib_dir_symlink"))
 
-    def free_resources(self, internal_error=None):
+    async def free_resources(self, caller):
         """Remove holds on all resources and remove self from data structures"""
-        pkdlog("{} internal_error={}", self, internal_error)
         try:
-            self._agent_starting_done()
-            self._websocket_ready.clear()
-            w = self._websocket
-            self._websocket = None
-            if w:
-                # Will not call websocket_on_close()
-                w.sr_close()
-            for o in list(self.ops.values()):
-                o.destroy(internal_error=internal_error)
-            self._websocket_free()
+            async with self._agent_life_change_lock:
+                await self.kill()
+                self._websocket_ready_timeout_cancel()
+                self._websocket_ready.clear()
+                w = self._websocket
+                self._websocket = None
+                if w:
+                    # Will not call websocket_on_close()
+                    w.sr_close()
+                e = f"job_driver.free_resources caller={caller}"
+                for o in list(self._prepared_sends.values()):
+                    o.destroy(cancel_task=True, internal_error=e)
         except Exception as e:
             pkdlog("{} error={} stack={}", self, e, pkdexc())
 
@@ -156,33 +156,39 @@ class DriverBase(PKDict):
                 )
 
     def op_is_untimed(self, op):
-        return op.opName in _UNTIMED_OPS
+        return op.op_name in _UNTIMED_OPS
 
     def pkdebug_str(self):
         return pkdformat(
             "{}(a={:.4} k={} u={:.4} {})",
             self.__class__.__name__,
-            self._agentId,
+            self._agent_id,
             self.kind,
             self.uid,
-            list(self.ops.values()),
+            list(self._prepared_sends.values()),
         )
 
     async def prepare_send(self, op):
-        """Sends the op
+        """Awaits agent ready and slots for sending.
 
-        Returns:
-            bool: True if the op was actually sent
+        Agent is guaranteed to be ready and all slots are allocated
+        upon return.
         """
+
+        # If the agent is not ready after awaiting on slots, we need
+        # to recheck the agent, because agent can die (asynchronously) at any point
+        # while waiting for slots.
         await self._agent_ready(op)
-        await self._slots_ready(op)
+        if await self._slots_ready(op) == job_supervisor.SlotAllocStatus.HAD_TO_AWAIT:
+            await self._agent_ready(op)
+        self._prepared_sends[op.op_id] = op
 
     @classmethod
     def receive(cls, msg):
         """Receive message from agent"""
         a = cls.__instances.get(msg.content.agentId)
         if a:
-            a._receive(msg)
+            a._agent_receive(msg)
             return
         pkdlog("unknown agent, sending kill; msg={}", msg)
         try:
@@ -200,29 +206,38 @@ class DriverBase(PKDict):
             try:
                 # TODO(robnagler) need timeout
                 await d.kill()
-            except job_supervisor.Awaited:
-                pass
             except Exception as e:
                 # If one kill fails still try to kill the rest
                 pkdlog("error={} stack={}", e, pkdexc())
 
     def websocket_on_close(self):
         pkdlog("{}", self)
-        self.free_resources()
+        self._start_free_resources(caller="websocket_on_close")
 
-    def _agent_cmd_stdin_env(self, **kwargs):
+    def _websocket_ready_timeout_cancel(self):
+        if self._websocket_ready_timeout:
+            tornado.ioloop.IOLoop.current().remove_timeout(
+                self._websocket_ready_timeout
+            )
+            self._websocket_ready_timeout = None
+
+    async def _websocket_ready_timeout_handler(self):
+        pkdlog("{} timeout={}", self, self.cfg.agent_starting_secs)
+        await self._start_free_resources(caller="_websocket_ready_timeout_handler")
+
+    def _agent_cmd_stdin_env(self, op, **kwargs):
         return job.agent_cmd_stdin_env(
             ("sirepo", "job_agent", "start"),
-            env=self._agent_env(),
+            env=self._agent_env(op),
             uid=self.uid,
             **kwargs,
         )
 
-    def _agent_env(self, env=None):
+    def _agent_env(self, op, env=None):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
                 PYKERN_PKDEBUG_WANT_PID_TIME="1",
-                SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agentId,
+                SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agent_id,
                 # POSIT: same as pkcli.job_agent.start
                 SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS=os.environ.get(
                     "SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS",
@@ -230,7 +245,7 @@ class DriverBase(PKDict):
                 ),
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_GLOBAL_RESOURCES_TOKEN=self._global_resources_token,
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_GLOBAL_RESOURCES_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
-                SIREPO_PKCLI_JOB_AGENT_START_DELAY=self.get("_agent_start_delay", "0"),
+                SIREPO_PKCLI_JOB_AGENT_START_DELAY=str(op.get("_agent_start_delay", 0)),
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,
                 SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_URI=job.supervisor_file_uri(
                     self.cfg.supervisor_uri,
@@ -248,66 +263,18 @@ class DriverBase(PKDict):
             uid=self.uid,
         )
 
+    def _agent_is_idle(self):
+        return not self._prepared_sends and not self._websocket_ready_timeout
+
     async def _agent_ready(self, op):
         if self._websocket_ready.is_set():
             return
         await self._agent_start(op)
         pkdlog("{} {} await _websocket_ready", self, op)
         await self._websocket_ready.wait()
-        pkdc("{} websocket alive", op)
-        raise job_supervisor.Awaited()
+        pkdlog("{} {} websocket alive", self, op)
 
-    async def _agent_start(self, op):
-        if self._agent_starting_timeout:
-            return
-        async with self._agent_start_lock:
-            # POSIT: we do not have to raise Awaited(), because
-            # this is the first thing an op waits on.
-            if self._agent_starting_timeout or self._websocket_ready.is_set():
-                return
-            try:
-                t = self.cfg.agent_starting_secs
-                if pkconfig.channel_in_internal_test():
-                    x = op.msg.pkunchecked_nested_get("data.models.dog.favoriteTreat")
-                    if x:
-                        x = re.search(r"agent_start_delay=(\d+)", x)
-                        if x:
-                            self._agent_start_delay = int(x.group(1))
-                            t += self._agent_start_delay
-                            pkdlog(
-                                "op={} agent_start_delay={}",
-                                op,
-                                self._agent_start_delay,
-                            )
-                pkdlog("{} {} await _do_agent_start", self, op)
-                # All awaits must be after this. If a call hangs the timeout
-                # handler will cancel this task
-                self._agent_starting_timeout = (
-                    tornado.ioloop.IOLoop.current().call_later(
-                        t,
-                        self._agent_starting_timeout_handler,
-                    )
-                )
-                # POSIT: Canceled errors aren't smothered by any of the below calls
-                await self.kill()
-                await self._do_agent_start(op)
-            except (Exception, sirepo.const.ASYNC_CANCELED_ERROR) as e:
-                pkdlog("{} error={} stack={}", self, e, pkdexc())
-                self.free_resources(internal_error="failure starting agent")
-                raise
-
-    def _agent_starting_done(self):
-        self._start_idle_timeout()
-        if self._agent_starting_timeout:
-            tornado.ioloop.IOLoop.current().remove_timeout(self._agent_starting_timeout)
-            self._agent_starting_timeout = None
-
-    async def _agent_starting_timeout_handler(self):
-        pkdlog("{} timeout={}", self, self.cfg.agent_starting_secs)
-        await self.kill()
-        self.free_resources(internal_error="timeout waiting for agent to start")
-
-    def _receive(self, msg):
+    def _agent_receive(self, msg):
         c = msg.content
         i = c.get("opId")
         if ("opName" not in c or c.opName == job.OP_ERROR) or (
@@ -323,64 +290,139 @@ class DriverBase(PKDict):
             if "reply" not in c:
                 pkdlog("{} no reply={}", self, c)
                 c.reply = PKDict(state="error", error="no reply")
-            if i in self.ops:
+            if i in self._prepared_sends:
                 # SECURITY: only ops known to this driver can be replied to
-                self.ops[i].reply_put(c.reply)
+                self._prepared_sends[i].reply_put(c.reply)
             else:
                 pkdlog(
-                    "{} not pending opName={} o={:.4}",
+                    "{} not in prepared_sends opName={} o={:.4} content={}",
                     self,
-                    i,
                     c.opName,
+                    i,
+                    c,
                 )
         else:
-            getattr(self, "_receive_" + c.opName)(msg)
+            getattr(self, "_agent_receive_" + c.opName)(msg)
 
-    def _receive_alive(self, msg):
+    def _agent_receive_alive(self, msg):
         """Receive an ALIVE message from our agent
 
         Save the websocket and register self with the websocket
         """
-        self._agent_starting_done()
+        self._websocket_ready_timeout_cancel()
         if self._websocket:
             if self._websocket != msg.handler:
-                pkdlog("{} new websocket", self)
-                # New _websocket so bind
-                self.free_resources()
-        self._websocket = msg.handler
+                raise AssertionError(f"incoming msg.content={msg.content}")
+        else:
+            self._websocket = msg.handler
         self._websocket_ready.set()
         self._websocket.sr_driver_set(self)
+        self._start_idle_timeout()
 
-    def __str__(self):
-        return f"{type(self).__name__}({self._agentId:.4}, {self.uid:.4}, ops={list(self.ops.values())})"
-
-    def _receive_error(self, msg):
+    def _agent_receive_error(self, msg):
         # TODO(robnagler) what does this mean? Just a way of logging? Document this.
         pkdlog("{} msg={}", self, msg)
 
+    async def _agent_start(self, op):
+        if self._websocket_ready_timeout:
+            return
+        try:
+            async with self._agent_life_change_lock:
+                if self._websocket_ready_timeout or self._websocket_ready.is_set():
+                    return
+                pkdlog("{} {} await=_do_agent_start", self, op)
+                # All awaits must be after this. If a call hangs the timeout
+                # handler will cancel this task
+                self._websocket_ready_timeout = (
+                    tornado.ioloop.IOLoop.current().call_later(
+                        self._agent_start_delay(op),
+                        self._websocket_ready_timeout_handler,
+                    )
+                )
+                # POSIT: Canceled errors aren't smothered by any of the below calls
+                await self._do_agent_start(op)
+        except (Exception, sirepo.const.ASYNC_CANCELED_ERROR) as e:
+            pkdlog("{} error={} stack={}", self, e, pkdexc())
+            self._start_free_resources(caller="_agent_start")
+            raise
+
+    def _agent_start_delay(self, op):
+        t = self.cfg.agent_starting_secs
+        if not pkconfig.channel_in_internal_test():
+            return t
+        x = op.pkunchecked_nested_get("msg.data.models.dog.favoriteTreat")
+        if not x:
+            return t
+        x = re.search(r"agent_start_delay=(\d+)", x)
+        if not x:
+            return t
+        op._agent_start_delay = int(x.group(1))
+        pkdlog("op={} agent_start_delay={}", op, self._agent_start_delay)
+        return t + op._agent_start_delay
+
+    def __str__(self):
+        return f"{type(self).__name__}({self._agent_id:.4}, {self.uid:.4}, ops={list(self._prepared_sends.values())})"
+
     async def _slots_ready(self, op):
-        """Only one op of each type allowed"""
-        n = op.opName
+        """Allocate all required slots for op
+
+        Slot allocation may require yielding so `_agent_ready` needs
+        to be called if `HAD_TO_AWAIT` is true.
+
+        All slots are allocated and only freed when the op is
+        destroyed. We don't need to recheck the slots, because
+        `destroy_op` cancels this task. `_agent_ready` is state held
+        outside this op so it needs to be rechecked when
+        `HAD_TO_AWAIT` is returned.
+
+        Return:
+            job_supervisor.SlotAllocStatus: whether coroutine had to yield
+        """
+
+        def _alloc_check(alloc_res):
+            if alloc_res == job_supervisor.SlotAllocStatus.HAD_TO_AWAIT:
+                return job_supervisor.SlotAllocStatus.DID_NOT_AWAIT
+            return res
+
+        n = op.op_name
+        res = job_supervisor.SlotAllocStatus.DID_NOT_AWAIT
         if n in (job.OP_CANCEL, job.OP_KILL, job.OP_BEGIN_SESSION):
-            return
+            return res
         if n == job.OP_SBATCH_LOGIN:
-            l = [o for o in self.ops.values() if o.opId != op.opId]
-            assert not l, "received {} but have other ops={}".format(op, l)
-            return
-        await op.op_slot.alloc("Waiting for another simulation to complete")
-        await op.run_dir_slot.alloc("Waiting for access to simulation state")
+            if self._prepared_sends:
+                raise AssertionError(
+                    f"received op={op} but have _prepared_sends={self._prepared_sends}",
+                )
+            return res
+        res = _alloc_check(
+            await op.op_slot.alloc(
+                "Waiting for another simulation to complete await=op_slot"
+            ),
+        )
+        res = _alloc_check(
+            await op.run_dir_slot.alloc(
+                "Waiting for access to simulation state await=run_dir_slot"
+            ),
+        )
         if n not in _CPU_SLOT_OPS:
-            return
+            return res
         # once job-op relative resources are acquired, ask for global resources
         # so we only acquire on global resources, once we know we are ready to go.
-        await op.cpu_slot.alloc("Waiting for CPU resources")
+        res = _alloc_check(
+            await op.cpu_slot.alloc("Waiting for CPU resources await=cpu_slot"),
+        )
+        return res
+
+    def _start_free_resources(self, caller):
+        pkdlog("{} caller={}", self, caller)
+        tornado.ioloop.IOLoop.current().add_callback(self.free_resources, caller=caller)
 
     def _start_idle_timeout(self):
         async def _kill_if_idle():
             self._idle_timer = None
-            if not self.ops:
+            if self._agent_is_idle():
                 pkdlog("{}", self)
-                await self.kill()
+                self._start_free_resources(caller="_kill_if_idle")
             else:
                 self._start_idle_timeout()
 
@@ -389,9 +431,6 @@ class DriverBase(PKDict):
                 _cfg.idle_check_secs,
                 _kill_if_idle,
             )
-
-    def _websocket_free(self):
-        pass
 
 
 def init_module(**imports):
