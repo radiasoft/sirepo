@@ -14,7 +14,6 @@ def test_importer(fc):
     import asyncio
 
     for f in pkio.sorted_glob(pkunit.data_dir().join("*.dat")):
-        file_ext = "dat"
         pkdlog("file={}", f)
         sim_type = "zgoubi"
         fc.sr_get_root(sim_type)

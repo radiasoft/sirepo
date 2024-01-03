@@ -57,20 +57,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def import_file_aux(cls, qcall):
-        """Template specific about lib files
-
-        Returns:
-            object: passed as ``sim_data_import_file_support`` to `stateful_compute_import_file`
-        """
-        res = PKDict()
-        for f in cls._lib_file_list("*.zip"):
-            with zipfile.ZipFile(str(f), "r") as z:
-                sirepo.util.yield_to_event_loop()
-                res[f.basename] = [i.Filename for i in z.infolist()]
-        return PKDict(lib_files_with_zip=res)
-
-    @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         if r == "tunesReport":
             return [r]

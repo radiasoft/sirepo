@@ -556,18 +556,12 @@ def sim_frame(frame_args):
 
 
 def stateful_compute_import_file(data, **kwargs):
-    from sirepo.template import srw_importer
-
     return PKDict(
-        imported_data=zgoubi_importer.import_file(
-            text=data.args.file_as_str,
-            import_file_aux=data.args.sim_data_import_file_aux,
-        ),
+        imported_data=zgoubi_importer.import_file(data.args.file_as_str),
     )
 
 
 def stateful_compute_tosca_info(data, **kwargs):
-    # TODO(robnagler) unused?
     return zgoubi_importer.tosca_info(data.args.tosca)
 
 
