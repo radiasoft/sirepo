@@ -461,7 +461,8 @@ class _Importer():
         elif field_type == "Integer":
             model[field] = int(model[field])
         elif field_type == "FileNameArray":
-            return self._validate_file_names(model, model[field])
+            #TODO(robnagler) look for _validate_file_names
+            return
         elif field_type in SCHEMA.enum:
             for v in SCHEMA.enum[field_type]:
                 if v[0] == model[field]:
@@ -474,46 +475,6 @@ class _Importer():
                 model[field],
             )
             model[field] = field_info[2]
-
-
-    def _validate_file_names(self, model, file_names):
-
-        # TODO(pjm): currently specific to TOSCA element, but could be generalized on model.type
-        # flatten filenames, search individual and zip files which contains all files, set magnetFile if found
-        for i in range(len(file_names)):
-            file_names[i] = os.path.basename(file_names[i])
-        file_type = "{}-{}".format(model.type, "magnetFile")
-        magnet_file = None
-        if len(file_names) == 1:
-            name = file_names[0]
-            target = _SIM_DATA.lib_file_name_with_model_field(
-                model.type, "magnetFile", name
-            )
-            if _SIM_DATA.lib_file_exists(target):
-                magnet_file = name
-        to_find = set(file_names)
-        for basename, zip_names in self.import_file_aux.lib_files_with_zip.items():
-            to_find.intersection(zip_names)
-            for name in to_find:
-                if name not in zip_names:
-                    zip_has_files = False
-                    break
-            if zip_has_files:
-                if not basename.startswith(file_type):
-		    raise AssertionError(f"zip={basename} does not begin with file_type={file_type}")
-                magnet_file = basename[len(file_type) + 1 :]
-                break
-        if magnet_file:
-            model.magnetFile = magnet_file
-            info = tosca_info(model)
-            if "toscaInfo" in info:
-                model.l = info.toscaInfo.toscaLength
-            return
-        return PKDict(
-            {
-                model.type: sorted(file_names),
-            }
-        )
 
 
     def _validate_model(self, model_type, model, missing_files):
