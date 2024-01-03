@@ -8,15 +8,11 @@ import pytest
 
 
 def test_importer(import_req):
-    from pykern import pkcollections
     from pykern import pkio
-    from pykern import pkjson
     from pykern import pkunit
     from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
     from pykern.pkunit import pkeq
-    from sirepo import srunit
-    from sirepo.template import zgoubi
-    from sirepo import sim_data
+    from sirepo import sim_data, template
     import asyncio
 
     with pkunit.save_chdir_work() as w:
@@ -24,13 +20,16 @@ def test_importer(import_req):
             error = None
             req = import_req(fn)
             try:
-                data = asyncio.run(zgoubi.import_file(req, unit_test_mode=True))
+                data = asyncio.run(
+                    template.import_module("zgoubi").import_file(
+                        req,
+                        unit_test_mode=True,
+                    )
+                )
                 sim_data.get_class("zgoubi").fixup_old_data(
                     data,
                     qcall=req.qcall,
                 )
-                # TODO(pjm): easier way to convert nested dict to pkcollections.Dict?
-                data = pkcollections.json_load_any(pkjson.dump_pretty(data))
             except Exception as e:
                 pkdlog(pkdexc())
                 error = e.message
