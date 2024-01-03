@@ -100,6 +100,10 @@ def extract_report_data(run_dir, sim_in):
     # dummy result
     if sim_in.report == "tallyReport":
         template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
+    if sim_in.report == "energyReport":
+        template_common.write_sequential_result(
+            _energy_plot()
+        )
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -364,6 +368,10 @@ sirepo.simulation_db.write_json(
     sirepo.pkcli.cloudmc.extract_dagmc("{filename}"),
 )
 """
+
+
+def _energy_plot():
+    return PKDict(x_range=[], summaryData={})
 
 
 def _generate_angle(angle):

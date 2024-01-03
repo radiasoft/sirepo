@@ -300,6 +300,8 @@
             "stop": ["Stop [MeV]", "Float", 1],
             "num": ["Number of samples", "Integer", 50]
         },
+        "energyReport": {
+        },
         "filter": {
             "_type": ["", "TallyFilter"],
             "_scale": ["", "Float", 1.0]
