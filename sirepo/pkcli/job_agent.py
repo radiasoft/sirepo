@@ -170,11 +170,11 @@ class _Dispatcher(PKDict):
         self._fastcgi_file = None
         self.fastcgi_cmd = None
 
-    def format_op(self, msg, opName, **kwargs):
+    def format_op(self, msg, op_name, **kwargs):
         if msg:
             kwargs["opId"] = msg.get("opId")
         return pkjson.dump_bytes(
-            PKDict(agentId=_cfg.agent_id, opName=opName).pksetdefault(**kwargs),
+            PKDict(agentId=_cfg.agent_id, opName=op_name).pksetdefault(**kwargs),
         )
 
     async def job_cmd_reply(self, msg, op_name, text):
