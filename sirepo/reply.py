@@ -737,8 +737,7 @@ class _HTTPException(_Base):
 
     def websocket_content(self):
         return self._sr_exception(
-            routeName="httpException",
-            params=PKDict(code=self.value.code),
+            routeName="httpException", params=PKDict(code=self.value.code)
         )
 
 
