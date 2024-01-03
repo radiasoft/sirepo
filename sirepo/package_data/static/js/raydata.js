@@ -263,7 +263,7 @@ SIREPO.app.directive('columnPicker', function() {
         restrict: 'A',
         scope: {},
         template: `
-            <div class="form-group form-group-sm pull-right" style="margin: 0">
+            <div class="form-group form-group-sm pull-right" style="margin: 0; font-weight: 700">
               <select class="form-control" data-ng-model="selected" ng-change="selectColumn()">
                 <option ng-repeat="column in availableColumns">{{column}}</option>
               </select>
@@ -1032,6 +1032,8 @@ SIREPO.app.directive('analysisModal', function() {
             $scope.jsonFiles = null;
 
             function showModal() {
+                $scope.images = null;
+                $scope.jsonFiles = null;
                 const el = $('#' + $scope.analysisModalId);
                 el.modal('show');
                 el.on('hidden.bs.modal', () => {
@@ -1114,7 +1116,8 @@ SIREPO.app.directive('columnList', function() {
             },
         template: `
             <select data-ng-if="columnsService.allColumnsWithHeading"
-              class="form-control" data-ng-model="model[field]"
+              class="form-control pull-right" style="width: auto"
+              data-ng-model="model[field]"
               data-ng-options="item as item for item in columnsService.allColumnsWithHeading">
             </select>
         `,
