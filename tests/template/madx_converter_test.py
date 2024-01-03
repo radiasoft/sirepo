@@ -50,7 +50,7 @@ def test_import_elegant_export_madx(import_req):
     )
     data = asyncio.run(
         elegant.import_file(
-            import_req(pkunit.data_dir().join("test1.lte")), test_data=data
+            import_req(pkunit.data_dir().join("test1.lte")), input_data=data
         )
     )
     # this is updated from javascript unfortunately

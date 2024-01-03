@@ -353,7 +353,7 @@ class SimDataBase(object):
         Returns:
             object: py.path.local to files (duplicates removed) OR py.path.local
         """
-        p = cls._lib_file_abspath(basename, data=data, qcall=qcall)
+        p = cls._lib_file_abspath_or_exists(basename, qcall=qcall)
         if p:
             return p
         from sirepo import auth
@@ -378,8 +378,15 @@ class SimDataBase(object):
 
     @classmethod
     def lib_file_exists(cls, basename, qcall=None):
-        cls._assert_server_side()
-        return bool(cls._lib_file_abspath(basename, qcall=qcall))
+        """Does `basename` exist in library
+
+        Args:
+            basename (str): to test for existence
+            qcall (quest.API): quest state
+        Returns:
+            bool: True if it exists
+        """
+        return cls._lib_file_abspath_or_exists(basename, qcall=qcall, exists_only=True)
 
     @classmethod
     def lib_file_in_use(cls, data, basename):
@@ -743,10 +750,32 @@ class SimDataBase(object):
             )
 
     @classmethod
-    def _lib_file_abspath(cls, basename, data=None, qcall=None):
+    def _lib_file_abspath_or_exists(
+        cls,
+        basename,
+        qcall=None,
+        exists_only=False,
+    ):
+        """Absolute path of lib file
+
+        On agent (`cfg.lib_file_uri`) downloads file unless `exists_only`.
+
+        For utilities (`cfg.lib_file_resource_only`) only checks
+        resources (not user library).
+
+        Args:
+            basename (str): name to find
+            qcall (quest.API): quest [None]
+            exists_only (bool): if ``True`` do not download [False]
+
+        Returns:
+            object: bool if `exists_only` else py.path
+        """
         if _cfg.lib_file_uri:
             # In agent
             if basename in _cfg.lib_file_list:
+                if exists_only:
+                    return True
                 # User generated lib file
                 p = pkio.py_path(basename)
                 r = _request("GET", _cfg.lib_file_uri + basename)
@@ -762,16 +791,16 @@ class SimDataBase(object):
                 qcall=qcall,
             ).join(basename)
             if f.check(file=True):
-                return f
+                return exists_only or f
         try:
             # Lib file distributed with build
             f = cls.lib_file_resource_path(basename)
             if f.check(file=True):
-                return f
+                return exists_only or f
         except Exception as e:
             if not pkio.exception_is_not_found(e):
                 raise
-        return None
+        return False if exists_only else None
 
     @classmethod
     def _lib_file_list(cls, pat, want_user_lib_dir=True, qcall=None):

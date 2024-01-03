@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """zgoubi datafile parser
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -479,8 +477,8 @@ def _validate_field(model, field, model_info):
 
 
 def _validate_file_names(model, file_names):
-    if _UNIT_TEST_MODE:
-        return
+    #    if _UNIT_TEST_MODE:
+    #        return
     # TODO(pjm): currently specific to TOSCA element, but could be generalizaed on model.type
     # flatten filenames, search indiviual and zip files which contains all files, set magnetFile if found
     for idx in range(len(file_names)):
@@ -499,7 +497,7 @@ def _validate_file_names(model, file_names):
         zip_names = []
         with zipfile.ZipFile(str(f), "r") as z:
             for info in z.infolist():
-                zip_names.append(info.filename)
+                zip_names.append(info.Filename)
         for name in file_names:
             if name not in zip_names:
                 zip_has_files = False

@@ -496,7 +496,7 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError("unknown model={}".format(model))
 
 
-async def import_file(req, unit_test_mode=False, **kwargs):
+async def import_file(req, **kwargs):
     from sirepo.template import opal_parser
 
     text = req.form_file.as_str()

@@ -450,19 +450,6 @@ def get_data_file(run_dir, model, frame, options):
     return _ZGOUBI_FAI_DATA_FILE
 
 
-def sim_frame(frame_args):
-    r = frame_args.frameReport
-    if "bunchAnimation" in r or r in ("energyAnimation", "elementStepAnimation"):
-        return _extract_animation(frame_args)
-    if r == "particleAnimation":
-        return _extract_spin_3d(frame_args)
-    return None
-
-
-def stateful_compute_tosca_info(data, **kwargs):
-    return zgoubi_importer.tosca_info(data.args.tosca)
-
-
 async def import_file(req, unit_test_mode=False, **kwargs):
     return zgoubi_importer.import_file(
         req.form_file.as_str(),
@@ -564,6 +551,30 @@ def save_sequential_report_data(data, run_dir):
     else:
         raise AssertionError("unknown report: {}".format(report_name))
     template_common.write_sequential_result(res, run_dir=run_dir)
+
+
+def sim_frame(frame_args):
+    r = frame_args.frameReport
+    if "bunchAnimation" in r or r in ("energyAnimation", "elementStepAnimation"):
+        return _extract_animation(frame_args)
+    if r == "particleAnimation":
+        return _extract_spin_3d(frame_args)
+    return None
+
+
+def stateful_compute_import_file(data, **kwargs):
+    from sirepo.template import srw_importer
+
+    return PKDict(
+        imported_data=zgoubi_importer.import_file(
+            text=data.args.file_as_str,
+            unit_test_mode=False,
+        ),
+    )
+
+
+def stateful_compute_tosca_info(data, **kwargs):
+    return zgoubi_importer.tosca_info(data.args.tosca)
 
 
 def write_parameters(

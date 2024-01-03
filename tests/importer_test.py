@@ -7,14 +7,10 @@
 
 
 def test_import_json(fc):
-    from sirepo import srunit
-
     _do(fc, "json", lambda f: f.read(mode="rb"))
 
 
 def test_import_python(fc):
-    from sirepo import srunit
-
     _do(fc, "py", lambda f: f.read(mode="rb"))
 
 
@@ -40,7 +36,7 @@ def _do(fc, file_ext, parse):
     from pykern import pkunit
     from pykern import pkcollections
     from pykern.pkdebug import pkdp, pkdlog
-    from pykern.pkunit import pkeq, pkfail, pkok, pkre
+    from pykern.pkunit import pkeq, pkok, pkre
     import re
 
     for suffix in ("",) if file_ext == "py" else ("", " 2", " 3"):
