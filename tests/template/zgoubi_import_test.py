@@ -13,16 +13,22 @@ def test_importer(fc):
     from sirepo import sim_data, template
     import asyncio
 
-    for f in pkio.sorted_glob(pkunit.data_dir().join("*.dat")):
-        pkdlog("file={}", f)
-        sim_type = "zgoubi"
-        fc.sr_get_root(sim_type)
-        is_dev = "deviance" in f.basename
+    sim_type = "zgoubi"
+    fc.sr_get_root(sim_type)
+    for d in pkunit.case_dirs():
         res = fc.sr_post_form(
             "importFile",
             PKDict(folder="/importer_test"),
             PKDict(simulation_type=sim_type),
-            file=f,
+            file=d.join("in.dat"),
         )
-        sim_name = f.purebasename
-        pkok("models" in res, "no models file={} res={}", f, res)
+        pkio.write_text(
+            "parameters.py",
+            fc.sr_get(
+                "pythonSource",
+                PKDict(
+                    simulation_id=res.models.simulation.simulationId,
+                    simulation_type=sim_type,
+                ),
+            ).data,
+        )

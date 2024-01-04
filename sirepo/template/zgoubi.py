@@ -840,11 +840,11 @@ def _generate_beamline_elements(report, data):
         beamline_map[bl.id] = bl
     element_map = PKDict()
     for el in copy.deepcopy(data.models.elements):
-        element_map[el._id] = zgoubi_importer.model_units().scale_to_native(el.type, el)
+        element_map[el._id] = zgoubi_importer.MODEL_UNITS.scale_to_native(el.type, el)
         # TODO(pjm): special case for FFA dipole array
         if "dipoles" in el:
             for dipole in el.dipoles:
-                zgoubi_importer.model_units().scale_to_native(dipole.type, dipole)
+                zgoubi_importer.MODEL_UNITS.scale_to_native(dipole.type, dipole)
     beamline_id = lattice.LatticeUtil(data, SCHEMA).select_beamline().id
     return _generate_beamline(data, beamline_map, element_map, beamline_id)
 
@@ -862,7 +862,7 @@ def _generate_pyzgoubi_element(el, schema_type=None):
 
 def _generate_parameters_file(data):
     bunch = data.models.bunch
-    zgoubi_importer.model_units().scale_to_native("bunch", bunch)
+    zgoubi_importer.MODEL_UNITS.scale_to_native("bunch", bunch)
     for f in ("FNAME", "FNAME2", "FNAME3"):
         if bunch[f]:
             bunch[f] = _SIM_DATA.lib_file_name_with_model_field("bunch", f, bunch[f])
