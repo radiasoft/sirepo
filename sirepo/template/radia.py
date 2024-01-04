@@ -302,7 +302,7 @@ def get_g_id():
 
 
 async def import_file(req, tmp_dir=None, **kwargs):
-    data = simulation_db.default_data(req.type)
+    data = simulation_db.default_data(_SIM_TYPE)
     data.models.simulation.pkupdate(
         {k: v for k, v in req.req_data.items() if k in data.models.simulation}
     )
@@ -1327,7 +1327,7 @@ def _calculate_objective_def(models):
             c
             + f"""
     import numpy
-    
+
     f = numpy.array([])
     p1 = {q.begin}
     p2 = {q.end}

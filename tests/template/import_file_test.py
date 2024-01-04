@@ -9,21 +9,20 @@ def test_importer(fc):
     from pykern import pkio, pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
-    from pykern.pkunit import pkeq, pkok
-    from sirepo import sim_data, template
-    import asyncio
+    import re
 
-    sim_type = "zgoubi"
-    fc.sr_get_root(sim_type)
     for d in pkunit.case_dirs():
+        m = re.search("^(.+?)-", d.basename)
+        sim_type = m.group(1)
+        fc.sr_get_root(sim_type)
         res = fc.sr_post_form(
             "importFile",
             PKDict(folder="/importer_test"),
             PKDict(simulation_type=sim_type),
-            file=d.join("in.dat"),
+            file=pkio.sorted_glob("in.*")[0],
         )
         pkio.write_text(
-            "parameters.py",
+            "pythonSource.txt",
             fc.sr_get(
                 "pythonSource",
                 PKDict(

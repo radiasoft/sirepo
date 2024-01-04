@@ -355,18 +355,6 @@ def get_data_file(run_dir, model, frame, options):
     assert False, f"no data file for model: {model}"
 
 
-async def import_file(req, **kwargs):
-    text = req.form_file.as_str()
-    if not bool(re.search(r"\.madx$|\.seq$", req.filename, re.IGNORECASE)):
-        raise AssertionError("invalid file extension, expecting .madx or .seq")
-    data = madx_parser.parse_file(text, downcase_variables=True)
-    # TODO(e-carlin): need to clean this up. copied from elegant
-    data.models.simulation.name = re.sub(
-        r"\.madx$|\.seq$", "", req.filename, flags=re.IGNORECASE
-    )
-    return data
-
-
 def post_execution_processing(success_exit, run_dir, **kwargs):
     if success_exit:
         return None
@@ -418,6 +406,17 @@ def stateless_compute_calculate_bunch_parameters(data, **kwargs):
     return _calc_bunch_parameters(
         data.args.bunch, data.args.command_beam, data.args.variables
     )
+
+
+def stateful_compute_import_file(data, **kwargs):
+    m = re.search(r"^(.+?)\.(?:madx|seq)$", data.args.basename, re.IGNORECASE)
+    if not m:
+        raise AssertionError(
+            f"invalid file={data.args.basename}, expecting .madx or .seq"
+        )
+    d = madx_parser.parse_file(data.args.file_as_str, downcase_variables=True)
+    d.models.simulation.name = m.group(1)
+    return PKDict(imported_data=d)
 
 
 def to_float(value):
