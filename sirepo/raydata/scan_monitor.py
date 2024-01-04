@@ -209,19 +209,89 @@ class _RequestHandler(_JsonPostRequestHandler):
     async def post(self):
         self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
 
+    def _build_search_terms(self, terms):
+        res = []
+        for search in terms:
+            if self._can_cast_to_float(search.term):
+                # numeric values might be stored as strings in the mongo db
+                # so need to search for either string value or number value
+                res.append(
+                    {
+                        "$or": [
+                            {
+                                search.column: search.term,
+                            },
+                            {
+                                search.column: float(search.term),
+                            },
+                        ]
+                    }
+                )
+            else:
+                if "*" in search.term:
+                    res.append(
+                        {
+                            search.column: {"$regex": re.sub(r"\*", ".*", search.term)},
+                        }
+                    )
+                else:
+                    res.append(
+                        {
+                            search.column: search.term,
+                        }
+                    )
+        return res
+
+    def _build_search_text(self, text):
+        # separate out scan_id (integer) searches from the text terms
+        nums = []
+        terms = re.findall(r'(".*?")', text)
+        for t in re.split(r"\s+", re.sub(r'".*?"', "", text).strip()):
+            if t.startswith("-"):
+                terms.append(t)
+            elif re.search(r"^\d{5,}$", t):
+                nums.append(int(t))
+            elif t:
+                terms.append(f'"{t}"')
+        terms = " ".join(terms)
+
+        if len(nums) and len(terms):
+            return {
+                "$and": [
+                    databroker.queries.TextQuery(terms).query,
+                    {
+                        "scan_id": {"$in": nums},
+                    },
+                ],
+            }
+        elif len(nums):
+            return {
+                "scan_id": {"$in": nums},
+            }
+        return databroker.queries.TextQuery(terms).query
+
+    def _can_cast_to_float(self, value):
+        try:
+            float(value)
+            return True
+        except ValueError:
+            return False
+
     def _databroker_search(self, req_data):
         def _search_params(req_data):
             q = databroker.queries.TimeRange(
                 since=req_data.searchStartTime, until=req_data.searchStopTime
             )
-            if req_data.get("searchText"):
+            if req_data.get("searchText") or len(req_data.get("searchTerms", [])):
+                items = [
+                    q.query,
+                ]
+                if req_data.get("searchText"):
+                    items.append(self._build_search_text(req_data.searchText))
+                if req_data.get("searchTerms"):
+                    items += self._build_search_terms(req_data.searchTerms)
                 q = {
-                    "$and": [
-                        q.query,
-                        databroker.queries.TextQuery(
-                            _text_query(req_data.searchText)
-                        ).query,
-                    ],
+                    "$and": items,
                 }
             return q
 
@@ -241,12 +311,6 @@ class _RequestHandler(_JsonPostRequestHandler):
                     )
                 )
             return s
-
-        def _text_query(search_text):
-            r = []
-            for t in re.split(r"\s+", search_text.strip()):
-                r.append(t if '"' in t or t.startswith("-") else f'"{t}"')
-            return " ".join(r)
 
         c = sirepo.raydata.databroker.catalog(req_data.catalogName)
         pc = math.ceil(
@@ -371,9 +435,11 @@ class _RequestHandler(_JsonPostRequestHandler):
 
     def _request_scan_fields(self, req_data):
         return PKDict(
-            columns=sirepo.raydata.databroker.get_metadata_for_most_recent_scan(
-                req_data.catalogName
-            ).get_start_fields(),
+            columns=_display_columns(
+                sirepo.raydata.databroker.get_metadata_for_most_recent_scan(
+                    req_data.catalogName
+                ).get_start_fields(),
+            )
         )
 
 
@@ -423,6 +489,10 @@ async def _init_analysis_processors():
         asyncio.create_task(_process_analysis_queue())
     ] * cfg.concurrent_analyses
     await asyncio.gather(*_ANALYSIS_PROCESSOR_TASKS)
+
+
+def _display_columns(columns):
+    return [k for k in columns if k not in _NON_DISPLAY_SCAN_FIELDS]
 
 
 async def _init_catalog_monitors():
@@ -497,7 +567,7 @@ def _queue_for_analysis(scan_metadata):
         _Analysis.set_scan_status(s, _AnalysisStatus.PENDING)
 
 
-def _scan_info(rduid, status, req_data):
+def _scan_info(rduid, status, req_data, all_columns):
     m = sirepo.raydata.databroker.get_metadata(rduid, req_data.catalogName)
     d = PKDict(
         rduid=rduid,
@@ -511,6 +581,9 @@ def _scan_info(rduid, status, req_data):
 
     for c in req_data.get("selectedColumns", []):
         d[c] = m.get_start_field(c, unchecked=True)
+
+    for c in m.get_start_fields():
+        all_columns.add(c)
     return d
 
 
@@ -535,7 +608,8 @@ def _scan_info_result(scans, page_count, req_data):
             return 0
         return -1 if v1 < v2 else 1
 
-    s = [_scan_info(x.rduid, x.status, req_data) for x in scans]
+    all_columns = set()
+    s = [_scan_info(x.rduid, x.status, req_data, all_columns) for x in scans]
     if req_data.analysisStatus in ("recentlyExecuted", "queued"):
         s = sorted(
             s,
@@ -545,9 +619,7 @@ def _scan_info_result(scans, page_count, req_data):
     return PKDict(
         data=PKDict(
             scans=s,
-            cols=[k for k in s[0].keys() if k not in _NON_DISPLAY_SCAN_FIELDS]
-            if s
-            else [],
+            cols=_display_columns(all_columns),
             pageCount=page_count,
             pageNumber=req_data.pageNumber,
             sortColumn=req_data.sortColumn,

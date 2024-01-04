@@ -55,7 +55,7 @@ def stateless_compute_catalog_names(data, **kwargs):
 
 def stateless_compute_download_analysis_pdfs(data, data_file_uri=None, **kwargs):
     assert data_file_uri, f"expected data_file_uri={data_file_uri}"
-    data.dataFileUri = data_file_uri
+    data.args.dataFileUri = data_file_uri
     return _request_scan_monitor(PKDict(method="download_analysis_pdfs", data=data))
 
 
