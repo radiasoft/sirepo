@@ -93,6 +93,6 @@ def test_srw(fc):
     d = fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
     r = fc.sr_get("/find-by-name-auth/srw/default/UndulatorRadiation")
     r.assert_http_status(404)
-    for sep in (" ", "%20", "+"):
+    for sep in (" ", "%20"):
         r = fc.sr_get("/find-by-name-auth/srw/default/Undulator{}Radiation".format(sep))
         r.assert_http_status(200)

@@ -29,7 +29,7 @@ class LocalDriver(job_driver.DriverBase):
         self.update(
             _agent_exec_dir=pkio.py_path(op.msg.userDir).join(
                 "agent-local",
-                self._agentId,
+                self._agent_id,
             ),
             _agent_exit=tornado.locks.Event(),
         )
@@ -83,17 +83,20 @@ class LocalDriver(job_driver.DriverBase):
     async def kill(self):
         if "subprocess" not in self:
             return
-        pkdlog("{} pid={}", self, self.subprocess.proc.pid)
-        self.subprocess.proc.terminate()
-        self.kill_timeout = tornado.ioloop.IOLoop.current().call_later(
-            job_driver.KILL_TIMEOUT_SECS,
-            self.subprocess.proc.kill,
-        )
-        await self._agent_exit.wait()
-        self._agent_exit.clear()
+        try:
+            pkdlog("{} pid={}", self, self.subprocess.proc.pid)
+            self.subprocess.proc.terminate()
+            self.kill_timeout = tornado.ioloop.IOLoop.current().call_later(
+                job_driver.KILL_TIMEOUT_SECS,
+                self.subprocess.proc.kill,
+            )
+            await self._agent_exit.wait()
+            self._agent_exit.clear()
+        except Exception as e:
+            pkdlog("{} error={} stack={}", self, e, pkdexc())
 
     async def prepare_send(self, op):
-        if op.opName == job.OP_RUN:
+        if op.op_name == job.OP_RUN:
             op.msg.mpiCores = sirepo.mpi.cfg().cores if op.msg.isParallel else 1
         return await super().prepare_send(op)
 
@@ -109,7 +112,7 @@ class LocalDriver(job_driver.DriverBase):
     async def _do_agent_start(self, op):
         stdin = None
         try:
-            cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
+            cmd, stdin, env = self._agent_cmd_stdin_env(op, cwd=self._agent_exec_dir)
             pkdlog("{} agent_exec_dir={}", self, self._agent_exec_dir)
             # since this is local, we can make the directory; useful for debugging
             pkio.mkdir_parent(self._agent_exec_dir)
