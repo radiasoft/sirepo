@@ -22,6 +22,7 @@ import numpy as np
 import re
 import sirepo.lib
 import sirepo.sim_data
+import os.path
 
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -670,27 +671,30 @@ def sim_frame_plot2Animation(frame_args):
 def stateful_compute_import_file(data, **kwargs):
     from sirepo.template import opal_parser
 
-    text = data.args.file_as_str
-    basename = data.args.basename
-    if re.search(r"\.in$", basename, re.IGNORECASE):
-        data, input_files = opal_parser.parse_file(text, filename=basename)
+    name, ext = os.path.splitext(data.args.basename)
+    ext = ext.lower()
+    if ext == ".in":
+        res, input_files = opal_parser.parse_file(
+            data.args.file_as_str,
+            filename=data.args.basename,
+        )
         missing_files = []
         for infile in input_files:
-            if not _SIM_DATA.lib_file_exists(infile.lib_filename, qcall=req.qcall):
+            if not _SIM_DATA.lib_file_exists(infile.lib_filename):
                 missing_files.append(infile)
         if missing_files:
             return PKDict(
                 error="Missing data files",
                 missingFiles=missing_files,
             )
-    elif re.search(r"\.madx$", basename, re.IGNORECASE):
-        data = OpalMadxConverter(qcall=req.qcall).from_madx_text(text)
-        data.models.simulation.name = re.sub(
-            r"\.madx$", "", basename, flags=re.IGNORECASE
-        )
+    elif ext == ".madx":
+        res = OpalMadxConverter().from_madx_text(data.args.file_as_str)
+        res.models.simulation.name = name
     else:
-        raise IOError("invalid file extension, expecting .in or .madx")
-    return PKDict(imported_data=data)
+        raise IOError(
+            f"invalid file={data.args.basename} extension, expecting .in or .madx"
+        )
+    return PKDict(imported_data=res)
 
 
 def write_parameters(data, run_dir, is_parallel):
