@@ -573,7 +573,7 @@ SIREPO.app.directive('scansTable', function() {
 
             function findScan(scanId) {
                 return $scope.scans[
-                    $scope.scans.findIndex(s => s.uid === scanId)
+                    $scope.scans.findIndex(s => s.rduid === scanId)
                 ];
             }
 
