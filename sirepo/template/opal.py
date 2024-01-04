@@ -496,31 +496,6 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError("unknown model={}".format(model))
 
 
-async def import_file(req, **kwargs):
-    from sirepo.template import opal_parser
-
-    text = req.form_file.as_str()
-    if re.search(r"\.in$", req.filename, re.IGNORECASE):
-        data, input_files = opal_parser.parse_file(text, filename=req.filename)
-        missing_files = []
-        for infile in input_files:
-            if not _SIM_DATA.lib_file_exists(infile.lib_filename, qcall=req.qcall):
-                missing_files.append(infile)
-        if missing_files:
-            return PKDict(
-                error="Missing data files",
-                missingFiles=missing_files,
-            )
-    elif re.search(r"\.madx$", req.filename, re.IGNORECASE):
-        data = OpalMadxConverter(qcall=req.qcall).from_madx_text(text)
-        data.models.simulation.name = re.sub(
-            r"\.madx$", "", req.filename, flags=re.IGNORECASE
-        )
-    else:
-        raise IOError("invalid file extension, expecting .in or .madx")
-    return data
-
-
 def new_simulation(data, new_simulation_data, qcall, **kwargs):
     data.models.simulation.elementPosition = new_simulation_data.elementPosition
 
@@ -690,6 +665,32 @@ def sim_frame_plot2Animation(frame_args):
             dynamicYLabel=True,
         )
     )
+
+
+def stateful_compute_import_file(data, **kwargs):
+    from sirepo.template import opal_parser
+
+    text = data.args.file_as_str
+    basename = data.args.basename
+    if re.search(r"\.in$", basename, re.IGNORECASE):
+        data, input_files = opal_parser.parse_file(text, filename=basename)
+        missing_files = []
+        for infile in input_files:
+            if not _SIM_DATA.lib_file_exists(infile.lib_filename, qcall=req.qcall):
+                missing_files.append(infile)
+        if missing_files:
+            return PKDict(
+                error="Missing data files",
+                missingFiles=missing_files,
+            )
+    elif re.search(r"\.madx$", basename, re.IGNORECASE):
+        data = OpalMadxConverter(qcall=req.qcall).from_madx_text(text)
+        data.models.simulation.name = re.sub(
+            r"\.madx$", "", basename, flags=re.IGNORECASE
+        )
+    else:
+        raise IOError("invalid file extension, expecting .in or .madx")
+    return PKDict(imported_data=data)
 
 
 def write_parameters(data, run_dir, is_parallel):
