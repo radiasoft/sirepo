@@ -114,21 +114,12 @@ class _Analysis(_DbBase):
 
     @classmethod
     def init(cls, db_file):
-        def _fixup_running_statuses():
-            for x in cls.session.query(cls).filter(
-                cls.status.in_(_AnalysisStatus.NON_STOPPED)
-            ):
-                cls.set_scan_status(
-                    PKDict(rduid=x.rduid, catalog_name=x.catalog_name),
-                    _AnalysisStatus.ERROR,
-                )
-
         global engine
         if engine is None:
             engine = sqlalchemy.create_engine(f"sqlite:///{db_file}")
         cls.metadata.create_all(bind=engine)
         cls.session = sqlalchemy.orm.Session(bind=engine)
-        _fixup_running_statuses()
+        cls._db_upgrade()
 
     @classmethod
     def scans_with_status(cls, catalog_name, statuses):
@@ -170,6 +161,38 @@ class _Analysis(_DbBase):
             .filter(cls.catalog_name == catalog_name, cls.rduid.in_(rduids))
             .all()
         )
+
+    @classmethod
+    def _db_upgrade(cls):
+        def _fixup_running_statuses():
+            for x in cls.session.query(cls).filter(
+                cls.status.in_(_AnalysisStatus.NON_STOPPED)
+            ):
+
+                cls.set_scan_status(
+                    PKDict(rduid=x.rduid, catalog_name=x.catalog_name),
+                    _AnalysisStatus.ERROR,
+                )
+
+        def _rduid_in_schema():
+            global engine
+            for c in sqlalchemy.inspect(engine).get_columns(cls.__tablename__):
+                if c.get("name") == "rduid":
+                    return True
+            return False
+
+        def _rename_uid_column_to_rduid():
+            if _rduid_in_schema():
+                return
+            cls.session.execute(
+                sqlalchemy.text(
+                    f"ALTER TABLE {cls.__tablename__} RENAME COLUMN uid TO rduid"
+                )
+            )
+            cls.session.commit()
+
+        _rename_uid_column_to_rduid()
+        _fixup_running_statuses()
 
 
 # TODO(e-carlin): copied from sirepo
