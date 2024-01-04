@@ -682,10 +682,13 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         restrict: 'A',
         scope: {},
         template: `
-             <div data-report-content="heatmap" data-model-key="{{ modelName }}"></div>
+             <div data-report-content="heatmap" data-model-key="{{ modelName }}" data-report-cfg="reportCfg"></div>
         `,
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
+            $scope.reportCfg = {
+                wantCrossHairs: true,
+            };
             const displayRanges = {};
 
             function buildTallyReport() {
