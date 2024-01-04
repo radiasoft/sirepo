@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Radia execution template.
 
 All Radia calls have to be done from here, NOT in jinja files, because otherwise the
@@ -7,8 +6,6 @@ Radia "instance" goes away and references no longer have any meaning.
 :copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-
-import inspect
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
@@ -25,6 +22,7 @@ import csv
 import h5py
 import math
 import numpy
+import os.path
 import re
 import sdds
 import sirepo.csv
@@ -302,12 +300,16 @@ def get_g_id():
 
 
 async def import_file(req, tmp_dir=None, **kwargs):
-    data = simulation_db.default_data(_SIM_TYPE)
+    data = simulation_db.default_data(SIM_TYPE)
     data.models.simulation.pkupdate(
         {k: v for k, v in req.req_data.items() if k in data.models.simulation}
     )
+    # data.args.basename,
     data.models.simulation.pkupdate(
-        _parse_input_file_arg_str(req.import_file_arguments)
+        dmpImportFile=req.filename,
+        name=os.path.splitext(req.filename)[0],
+        notes=f"Imported from {req.filename}",
+        **_parse_input_file_arg_str(req.import_file_arguments),
     )
     _prep_new_sim(data)
     return data

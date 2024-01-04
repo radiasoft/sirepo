@@ -11,7 +11,7 @@ def test_importer(fc):
     from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
     import re
 
-    for d in pkunit.case_dirs():
+    for d in pkunit.case_dirs(group_prefix="rad"):
         m = re.search("^(.+?)-", d.basename)
         sim_type = m.group(1)
         fc.sr_get_root(sim_type)
