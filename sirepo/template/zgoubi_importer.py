@@ -458,12 +458,7 @@ def _validate_field(model, field, model_info):
     elif field_type == "Integer":
         model[field] = int(model[field])
     elif field_type == "FileNameArray":
-        # TODO(robnagler): Was _validate_file_names(model, model[field])
-        # We removed this, because it needs to list all zip file names.
-        # Could add this feature by adding "import_file_aux", but
-        # it's a tricky check. The code in _validate_file_names would need
-        # to be reworked.
-        return
+        return _validate_file_names(model, model[field])
     elif field_type in SCHEMA.enum:
         for v in SCHEMA.enum[field_type]:
             if v[0] == model[field]:
@@ -476,6 +471,15 @@ def _validate_field(model, field, model_info):
             model[field],
         )
         model[field] = field_info[2]
+
+
+def _validate_file_names(model, file_names):
+    """UNIMPLEMENTED. Was removed because didn't work on the agent.
+
+    Returns:
+        PKDict: indicating an error
+    """
+    return PKDict({model.type: sorted(file_names)}
 
 
 def _validate_model(model_type, model, missing_files):
