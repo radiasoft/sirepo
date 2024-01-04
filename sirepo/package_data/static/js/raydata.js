@@ -489,11 +489,11 @@ SIREPO.app.directive('scansTable', function() {
                   </thead>
                   <tbody>
                     <tr ng-repeat="s in scans track by $index">
-                      <td style="width: 1%" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans[s.uid]" data-ng-click="togglePdfSelectScan(s.uid)"/></td>
+                      <td style="width: 1%" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans[s.rduid]" data-ng-click="togglePdfSelectScan(s.rduid)"/></td>
                       <td width="1%"><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-repeat="c in columnHeaders.slice(1)"><div data-scan-cell-value="s[c]", data-column-name="c"></div></td>
                       <td style="white-space: nowrap" width="1%">
-                        <button data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="runAnalysis(s.uid)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button>
+                        <button data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="runAnalysis(s.rduid)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button>
                         <button class="btn btn-info btn-xs" data-ng-disabled="! raydataService.canViewOutput(s)" data-ng-click="setAnalysisScan(s)">View Output</button>
                         <button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s)">View Log</button>
                       </td>
@@ -573,7 +573,7 @@ SIREPO.app.directive('scansTable', function() {
 
             function findScan(scanId) {
                 return $scope.scans[
-                    $scope.scans.findIndex(s => s.uid === scanId)
+                    $scope.scans.findIndex(s => s.rduid === scanId)
                 ];
             }
 
@@ -725,7 +725,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.disableRunAnalysis = scan => {
-                if (pendingRunAnalysis[scan.uid]) {
+                if (pendingRunAnalysis[scan.rduid]) {
                     return true;
                 }
                 return raydataService.ANALYSIS_STATUS_NON_STOPPED.includes(scan.status);
@@ -741,7 +741,7 @@ SIREPO.app.directive('scansTable', function() {
                         method: 'download_analysis_pdfs',
                         responseType: 'blob',
                         args: {
-                            uids: Object.keys($scope.pdfSelectedScans),
+                            rduids: Object.keys($scope.pdfSelectedScans),
                             catalogName: appState.applicationState().catalog.catalogName,
                         }
                     },
@@ -790,7 +790,7 @@ SIREPO.app.directive('scansTable', function() {
                         method: 'run_analysis',
                         args: {
                             catalogName: appState.applicationState().catalog.catalogName,
-                            uid: scanId,
+                            rduid: scanId,
                         }
                     },
                     {
@@ -807,7 +807,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.setAnalysisScan = scan => {
-                $scope.analysisScanId = scan.uid;
+                $scope.analysisScanId = scan.rduid;
             };
 
             $scope.showCheckbox = scan => {
@@ -823,7 +823,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.showRunLogModal = scan => {
-                $scope.runLogScanId = scan.uid;
+                $scope.runLogScanId = scan.rduid;
             };
 
             $scope.sortCol = column => {
@@ -841,17 +841,17 @@ SIREPO.app.directive('scansTable', function() {
                 if ($scope.pdfSelectAllScans) {
                     $scope.scans.forEach(s => {
                         if (s.pdf) {
-                            $scope.pdfSelectedScans[s.uid] = true;
+                            $scope.pdfSelectedScans[s.rduid] = true;
                         }
                     });
                 }
             };
 
-            $scope.togglePdfSelectScan = uid => {
-                if (uid in $scope.pdfSelectedScans) {
-                    delete $scope.pdfSelectedScans[uid];
+            $scope.togglePdfSelectScan = rduid => {
+                if (rduid in $scope.pdfSelectedScans) {
+                    delete $scope.pdfSelectedScans[rduid];
                 } else {
-                    $scope.pdfSelectedScans[uid] = true;
+                    $scope.pdfSelectedScans[rduid] = true;
                 }
             };
 
@@ -954,7 +954,7 @@ SIREPO.app.directive('logModal', function() {
                         method: 'analysis_run_log',
                         args: {
 			    catalogName: appState.applicationState().catalog.catalogName,
-			    uid: $scope.scanId,
+			    rduid: $scope.scanId,
                         }
                     },
                     {
@@ -1051,7 +1051,7 @@ SIREPO.app.directive('analysisModal', function() {
                         method: 'analysis_output',
                         args: {
                             catalogName: appState.models.catalog.catalogName,
-                            uid: $scope.scanId
+                            rduid: $scope.scanId
                         }
                     },
                     {
