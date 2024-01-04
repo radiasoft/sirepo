@@ -3249,9 +3249,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             let cacheCanvas, imageData;
             let colorbar, hideColorBar;
             const overlaySelector = 'svg.sr-plot g.sr-overlay-data-group';
-            const wantCrossHairs = ($scope.reportCfg || {}).wantCrossHairs;
-            const crosshairs = [{axis: 'x'}, {axis: 'y'}];
-            const crosshairClass = 'sr-crosshair';
+            const cellHighlight = ($scope.reportCfg || {}).cellHighlight;
+            const cellHighlightClass = 'sr-cell-highlight';
 
             let overlayData = null;
 
@@ -3271,13 +3270,13 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             function drawOverlay() {
                 const ns = 'http://www.w3.org/2000/svg';
-                if (wantCrossHairs) {
-                    const o = d3.select(overlaySelector)
-                        .selectAll(`line.${crosshairClass}`)
-                        .data(crosshairs);
-                    o.enter()
-                        .append(d => document.createElementNS(ns, 'line'))
-                    o.call(updateCrosshairs);
+                if (cellHighlight) {
+                    const c = d3.select(overlaySelector)
+                        .selectAll(`rect.${cellHighlightClass}`)
+                        .data([cellHighlight]);
+                    c.enter()
+                        .append(d => document.createElementNS(ns, 'rect'))
+                    c.call(updateCellHighlight);
                 }
                 d3.select(overlaySelector)
                 let ds = d3.select(overlaySelector)
@@ -3290,30 +3289,25 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 ds.call(updateOverlay);
             }
 
-            function updateCrosshairs(selection) {
-                function isXAxis(d) {
-                    return 
-                }
+            function updateCellHighlight(selection, x, y, w, h) {
 
-                if (! wantCrossHairs) {
+                if (! cellHighlight) {
                     return;
                 }
                 selection
-                    .attr('class', d => `${crosshairClass} crosshair-${d.axis}`)
-                    .attr('stroke', 'red');
+                    .attr('class', cellHighlightClass)
+                    .attr('stroke', cellHighlight.color)
+                    .attr('fill', 'none')
+                    .attr('stroke-width', cellHighlight.strokeWidth);
                 if (! mouseMovePoint) {
                     return;
                 }
-                ['x', 'y'].forEach(dim => {
-                    [0, 1].forEach(i => {
-                        selection.attr(`${dim}${i + 1}`, d => d.axis == dim ? mouseMovePoint[i] + 10 * (2 * i - 1): mouseMovePoint[i])
-                    })
-                })
-                //selection
-                //    .attr('x1', d => d.axis == 'x' ? mouseMovePoint[0] - 10 : mouseMovePoint[0])
-                //    .attr('x2', d => d.axis == 'x' ? mouseMovePoint[0] + 10 : mouseMovePoint[0])
-                //    .attr('y1', d => d.axis == 'x' ? mouseMovePoint[1] : mouseMovePoint[1] - 10)
-                //    .attr('y2', d => d.axis == 'x' ? mouseMovePoint[1] : mouseMovePoint[1] + 10);
+                //return;
+                selection
+                    .attr('x', x)
+                    .attr('y', y)
+                    .attr('width', w)
+                    .attr('height', h);
             }
 
             function getRange(values) {
@@ -3325,16 +3319,24 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
-                var point = mouseMovePoint;
-                var xRange = getRange(axes.x.values);
-                var yRange = getRange(axes.y.values);
-                var x0 = axes.x.scale.invert(point[0] - 1);
-                var y0 = axes.y.scale.invert(point[1] - 1);
-                var x = Math.round((heatmap[0].length - 1) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
-                var y = Math.round((heatmap.length - 1) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
+                const point = mouseMovePoint;
+                const xRange = getRange(axes.x.values);
+                const yRange = getRange(axes.y.values);
+                const x0 = axes.x.scale.invert(point[0] - 1);
+                const y0 = axes.y.scale.invert(point[1] - 1);
+                const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - 1);
+                const dy = Math.abs((yRange[1] - yRange[0])) / (heatmap.length - 1);
+                const i = Math.round((x0 - xRange[0]) / dx);
+                const j = Math.round((y0 - yRange[0]) / dy);
+                const xr = xRange[0] + i * dx;
+                const yr = yRange[0] + j * dy;
+                const px = Math.round(axes.x.scale(xr));
+                const py = Math.round(axes.y.scale(yr));
+                const w = Math.abs(Math.round(axes.x.scale(xr + dx)) - px);
+                const h = Math.abs(Math.round(axes.y.scale(yr + dy)) - py);
                 try {
-                    pointer.pointTo(heatmap[heatmap.length - 1 - y][x]);
-                    updateCrosshairs(d3.select(overlaySelector).selectAll(`line.${crosshairClass}`));
+                    pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
+                    updateCellHighlight(d3.select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), px, py, w, h);
                 }
                 catch (err) {
                     // ignore range errors due to mouse move after heatmap is reset

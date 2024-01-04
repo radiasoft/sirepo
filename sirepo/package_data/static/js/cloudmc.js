@@ -687,7 +687,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
             $scope.reportCfg = {
-                wantCrossHairs: true,
+                cellHighlight: {
+                    color: 'red',
+                    strokeWidth: '2.0',
+                },
             };
             const displayRanges = {};
 
