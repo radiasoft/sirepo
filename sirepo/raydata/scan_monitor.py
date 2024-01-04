@@ -175,7 +175,6 @@ class _Analysis(_DbBase):
                 )
 
         def _rduid_in_schema():
-            global engine
             for c in sqlalchemy.inspect(engine).get_columns(cls.__tablename__):
                 if c.get("name") == "rduid":
                     return True
