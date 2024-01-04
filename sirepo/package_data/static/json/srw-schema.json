@@ -479,6 +479,7 @@
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0],
             "useDetector": ["Use Detector", "Boolean", "0"],
+            "showPlotSize": ["Show Result Dimensions on Plot", "Boolean", "0"],
             "d_x": ["Horizontal Center Position [m]", "Float", 0],
             "d_rx": ["Horizontal Detector Range [m]", "Float", 0.01],
             "d_nx": ["Horizontal Pixel Count", "Integer", 1024],
@@ -1168,7 +1169,8 @@
                             "d_ny",
                             "d_y"
                         ]]
-                    ]
+                    ],
+                    "showPlotSize"
                 ]],
                 ["Other", [
                     "colorMap",

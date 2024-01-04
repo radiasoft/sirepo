@@ -3173,6 +3173,10 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 resizefocusPointText();
             };
 
+            $scope.showPlotSize = () => {
+                return appState.models[$scope.modelName].showPlotSize == '1';
+            };
+
             $scope.$on(SIREPO.PLOTTING_LINE_CSV_EVENT, function(evt, axisName) {
                 var title = $($scope.element).closest('.panel-body')
                         .parent().parent().find('.sr-panel-heading').text();

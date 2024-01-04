@@ -32,6 +32,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             "plotScale",
             "rotateAngle",
             "rotateReshape",
+            "showPlotSize",
             "useIntensityLimits",
             "usePlotRange",
             "verticalOffset",
