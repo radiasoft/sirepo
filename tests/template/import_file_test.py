@@ -19,6 +19,7 @@ def test_importer(fc):
             "importFile",
             PKDict(folder="/importer_test"),
             PKDict(simulation_type=sim_type),
+            # NOTE: first file must be first
             file=pkio.sorted_glob("*")[0],
         )
         pkunit.pkok("models" in res, "no models in res={}", res)
