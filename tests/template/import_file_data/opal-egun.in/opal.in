@@ -110,8 +110,11 @@ Dist1:DISTRIBUTION, TYPE = "GUNGAUSSFLATTOPTH",
 		    ekin=0.4,
 		    NBIN=5;
 
-Dist2:DISTRIBUTION, TYPE=fromfile,
-		    FNAME="Reference-Particles-1.dat";
+//TODO(robnagler): this does not work with import_file, because it
+// looks for the file. previous test just called parse_file which didn't
+// check the value
+//Dist2:DISTRIBUTION, TYPE=fromfile,
+//		    FNAME="Reference-Particles-1.dat";
 
 beam1: BEAM, PARTICLE = ELECTRON, pc = P0, NPART = 20000, BFREQ = BF, BCURRENT = BC, CHARGE = -1;
 
