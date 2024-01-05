@@ -299,22 +299,6 @@ def get_g_id():
     return radia_util.load_bin(pkio.read_binary(_DMP_FILE))
 
 
-async def import_file(req, tmp_dir=None, **kwargs):
-    data = simulation_db.default_data(SIM_TYPE)
-    data.models.simulation.pkupdate(
-        {k: v for k, v in req.req_data.items() if k in data.models.simulation}
-    )
-    # data.args.basename,
-    data.models.simulation.pkupdate(
-        dmpImportFile=req.filename,
-        name=os.path.splitext(req.filename)[0],
-        notes=f"Imported from {req.filename}",
-        **_parse_input_file_arg_str(req.import_file_arguments),
-    )
-    _prep_new_sim(data)
-    return data
-
-
 def new_simulation(data, new_sim_data, qcall, **kwargs):
     _prep_new_sim(data, new_sim_data=new_sim_data)
     dirs = _geom_directions(new_sim_data.beamAxis, new_sim_data.heightAxis)
@@ -368,6 +352,18 @@ def sim_frame_fieldLineoutAnimation(frame_args):
 
 def sim_frame_optimizerAnimation(frame_args):
     return _extract_optimization_results(frame_args)
+
+
+def stateful_compute_import_file(data, **kwargs):
+    res = simulation_db.default_data(SIM_TYPE)
+    res.models.simulation.pkupdate(
+        dmpImportFile=data.args.basename,
+        name=os.path.splitext(data.args.basename)[0],
+        notes=f"Imported from {data.args.basename}",
+        **_parse_input_file_arg_str(data.args.import_file_arguments),
+    )
+    _prep_new_sim(res)
+    return res
 
 
 def stateful_compute_recompute_rpn_cache_values(data, **kwargs):
