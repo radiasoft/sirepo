@@ -11,7 +11,8 @@ def test_importer(fc):
     from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
     import re
 
-    for d in pkunit.case_dirs(group_prefix="rad"):
+    # set group_prefix when debugging a specific code, e.g. radia
+    for d in pkunit.case_dirs(group_prefix=""):
         m = re.search("^(.+?)-", d.basename)
         sim_type = m.group(1)
         fc.sr_get_root(sim_type)
@@ -22,7 +23,11 @@ def test_importer(fc):
             # NOTE: first file must be first
             file=pkio.sorted_glob("*")[0],
         )
-        pkunit.pkok("models" in res, "no models in res={}", res)
+        pkunit.pkok(
+            res.pkunchecked_nested_get("models.simulation.simulationId"),
+            "no simulationId in res={}",
+            res,
+        )
         pkio.write_text(
             "pythonSource.txt",
             fc.sr_get(

@@ -1405,19 +1405,15 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
             };
             $scope.fileUploadError = '';
             $scope.isUploading = false;
-            $scope.importDmpFile = function(inputFile) {
+            $scope.importDmpFile = function (inputFile) {
                 if (! inputFile) {
                     return;
                 }
-                importFile(inputFile);
-            };
-
-            function importFile(inputFile) {
                 fileUpload.uploadFileToUrl(
                     inputFile,
                     {
                         folder: fileManager.getActiveFolderPath(),
-                        arguments: importFileArguments(data)
+                        arguments: '',
                     },
                     requestSender.formatUrl(
                         'importFile',
@@ -1430,19 +1426,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                         throw new Error(inputFile + ': Error during import ' + err);
                     },
                 );
-            }
-
-            // turn a dict into a delimited string so it can be added to the FormData.
-            // works for simple values, not arrays or other dicts
-            function importFileArguments(o) {
-                let d = SIREPO.APP_SCHEMA.constants.inputFileArgDelims;
-                let s = '';
-                for (const k in o) {
-                    s += `${k}${d.item}${o[k]}${d.list}`;
-                }
-                return s;
-            }
-
+            };
         },
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {

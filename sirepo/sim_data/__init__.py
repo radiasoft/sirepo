@@ -12,6 +12,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdformat
 import hashlib
 import inspect
+import os.path
 import re
 import requests
 import sirepo.agent_supervisor_api

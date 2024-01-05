@@ -359,7 +359,6 @@ def stateful_compute_import_file(data, **kwargs):
     res.models.simulation.pkupdate(
         dmpImportFile=data.args.basename,
         name=os.path.splitext(data.args.basename)[0],
-        **_parse_input_file_arg_str(data.args.import_file_arguments),
     )
     _prep_new_sim(res)
     # _prep_new_sim sets _MAGNET_NOTES for notes so overwrite after
@@ -1349,16 +1348,6 @@ def _orient_stemmed_points(o, points, plane_ctr):
         [2 * plane_ctr[i] * idx[i] + (-1) ** idx[i] * v for (i, v) in enumerate(p)]
         for p in points
     ]
-
-
-def _parse_input_file_arg_str(s):
-    d = PKDict()
-    for kvp in s.split(SCHEMA.constants.inputFileArgDelims.list):
-        if not kvp:
-            continue
-        kv = kvp.split(SCHEMA.constants.inputFileArgDelims.item)
-        d[kv[0]] = kv[1]
-    return d
 
 
 def _prep_new_sim(data, new_sim_data=None):

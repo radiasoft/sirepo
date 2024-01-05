@@ -479,7 +479,7 @@ def _validate_file_names(model, file_names):
     Returns:
         PKDict: indicating an error
     """
-    return PKDict({model.type: sorted(file_names)}
+    return PKDict({model.type: sorted(file_names)})
 
 
 def _validate_model(model_type, model, missing_files):
