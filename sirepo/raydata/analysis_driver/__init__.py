@@ -74,9 +74,7 @@ class AnalysisDriverBase(PKDict):
             *self._get_papermill_args(),
         ]:
             res.extend(["-p", f"'{n}'", f"'{v}'"])
-        res.append("--report-mode")
-        res.append("--log-output")
-        res.append("--no-progress-bar")
+            res.extend(("--report-mode", "--log-output", "--no-progress-bar"))
         return res
 
     def get_run_log(self):
