@@ -622,6 +622,14 @@ class SimDataBase(object):
         return 2 if cls.is_parallel(data) else 1
 
     @classmethod
+    def prepare_import_file_args(cls, req):
+        return PKDict(
+            basename=os.path.basename(req.filename),
+            file_as_str=req.form_file.as_str(),
+            import_file_arguments=req.import_file_arguments,
+        )
+
+    @classmethod
     def proprietary_code_tarball(cls):
         return None
 

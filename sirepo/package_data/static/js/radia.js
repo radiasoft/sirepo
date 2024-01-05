@@ -1386,7 +1386,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                   <div class="modal-body">
                     <div class="container-fluid">
                         <form>
-                        <div data-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true" data-file-formats="${IMPORT_FORMATS.join(',')}"></div>
+                        <div data-file-chooser="" data-input-file="inputFile" data-title="title" data-description="description" data-file-formats="${IMPORT_FORMATS.join(',')}"></div>
                           <div class="col-sm-6 pull-right">
                             <button data-ng-click="importDmpFile(inputFile)" class="btn btn-primary" data-ng-class="{'disabled': isMissingImportFile() }">Import File</button>
                              <button data-dismiss="modal" class="btn btn-default">Cancel</button>
@@ -1400,7 +1400,6 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
         `,
         controller: function($scope) {
             $scope.inputFile = null;
-            $scope.fileURL = null;
             $scope.isMissingImportFile = function() {
                 return ! $scope.inputFile;
             };
@@ -1410,49 +1409,27 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                 if (! inputFile) {
                     return;
                 }
-                let data = null;
-                let a = inputFile.name.split('.');
-                let t = `${a[a.length - 1]}`;
-                if (isRadiaImport(t)) {
-                    data = appState.setModelDefaults(appState.models.simulation, 'simulation');
-                }
-                importFile(inputFile, t, data);
+                importFile(inputFile);
             };
 
-            function cleanup(simId) {
-                $('#simulation-import').modal('hide');
-                $scope.inputFile = null;
-                URL.revokeObjectURL($scope.fileURL);
-                $scope.fileURL = null;
-                requestSender.localRedirectHome(simId);
-            }
-
-            function importFile(inputFile, fileType, data={}) {
-                let f = fileManager.getActiveFolderPath();
-                if (fileManager.isFolderExample(f)) {
-                    f = fileManager.rootFolder();
-                }
+            function importFile(inputFile) {
                 fileUpload.uploadFileToUrl(
                     inputFile,
                     {
-                        folder: f,
+                        folder: fileManager.getActiveFolderPath(),
                         arguments: importFileArguments(data)
                     },
                     requestSender.formatUrl(
                         'importFile',
-                        {
-                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        }),
+                        {simulation_type: SIREPO.APP_SCHEMA.simulationType},
+                    ),
                     function(d) {
-                        let simId = d.models.simulation.simulationId;
-                        if (! isRadiaImport(fileType)) {
-                            cleanup(simId);
-                            return;
-                        }
-                        upload(inputFile, fileType, simId);
-                    }, function (err) {
+                        requestSender.localRedirectHome(d.models.simulation.simulationId);
+                    },
+                    function (err) {
                         throw new Error(inputFile + ': Error during import ' + err);
-                    });
+                    },
+                );
             }
 
             // turn a dict into a delimited string so it can be added to the FormData.
@@ -1466,27 +1443,6 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                 return s;
             }
 
-            function isRadiaImport(fileType) {
-                return RADIA_IMPORT_FORMATS.indexOf(`.${fileType}`) >= 0;
-            }
-
-            function upload(inputFile, fileType, simId) {
-                fileUpload.uploadFileToUrl(
-                    inputFile,
-                    null,
-                    requestSender.formatUrl(
-                        'uploadFile',
-                        {
-                            '<simulation_id>': simId,
-                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                            '<file_type>': SIREPO.APP_SCHEMA.constants.fileTypeRadiaDmp,
-                        }),
-                    function(d) {
-                        cleanup(simId);
-                    }, function (err) {
-                        throw new Error(inputFile + ': Error during upload ' + err);
-                    });
-            }
         },
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {

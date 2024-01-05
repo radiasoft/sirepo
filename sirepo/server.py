@@ -297,14 +297,7 @@ class API(sirepo.quest.API):
                 "statefulCompute",
                 data=PKDict(
                     method="import_file",
-                    args=PKDict(
-                        basename=os.path.basename(req.filename),
-                        file_as_bytes=req.form_file.as_bytes(),
-                        import_file_arguments=req.import_file_arguments,
-                        sim_data_import_file_aux=req.sim_data.import_file_aux(
-                            qcall=self
-                        ),
-                    ),
+                    args=req.sim_data.prepare_import_file_args(req=req),
                     simulationType=req.type,
                 ),
             )

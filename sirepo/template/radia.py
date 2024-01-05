@@ -359,11 +359,12 @@ def stateful_compute_import_file(data, **kwargs):
     res.models.simulation.pkupdate(
         dmpImportFile=data.args.basename,
         name=os.path.splitext(data.args.basename)[0],
-        notes=f"Imported from {data.args.basename}",
         **_parse_input_file_arg_str(data.args.import_file_arguments),
     )
     _prep_new_sim(res)
-    return res
+    # _prep_new_sim sets _MAGNET_NOTES for notes so overwrite after
+    res.models.simulation.notes = f"Imported from {data.args.basename}"
+    return PKDict(imported_data=res)
 
 
 def stateful_compute_recompute_rpn_cache_values(data, **kwargs):

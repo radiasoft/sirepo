@@ -7,8 +7,10 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import copy
+import os.path
 import re
 import sirepo.sim_data
+import sirepo.util
 
 
 class SimData(sirepo.sim_data.SimDataBase):
@@ -23,6 +25,26 @@ class SimData(sirepo.sim_data.SimDataBase):
             "scaling",
         )
     )
+
+    @classmethod
+    def prepare_import_file_args(cls, req):
+        res = PKDict()
+        res.basename = os.path.basename(req.filename)
+        e = os.path.splitext(res.basename)[1]
+        if e.lower() != ".dat":
+            raise sirepo.util.UserAlert(f"invalid file extension='{e}'")
+        p = req.sim_data.lib_file_name_with_type(
+            res.basename,
+            cls.schema().constants.fileTypeRadiaDmp,
+        )
+        if cls.lib_file_exists(p, qcall=req.qcall):
+            raise sirepo.util.UserAlert(
+                f"dump file='{res.basename}' already exists; import another file name"
+            )
+        cls.lib_file_write_path(p, qcall=req.qcall).write_binary(
+            req.form_file.as_bytes(),
+        )
+        return res.pkupdate(import_file_arguments=req.import_file_arguments)
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
