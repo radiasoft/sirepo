@@ -75,6 +75,8 @@ class AnalysisDriverBase(PKDict):
         ]:
             res.extend(["-p", f"'{n}'", f"'{v}'"])
         res.append("--report-mode")
+        res.append("--log-output")
+        res.append("--no-progress-bar")
         return res
 
     def get_run_log(self):
