@@ -22,9 +22,11 @@ _PAPERMILL_SCRIPT = "raydata-execute-analysis.sh"
 
 
 class AnalysisDriverBase(PKDict):
-    def __init__(self, catalog_name, uid, *args, **kwargs):
-        super().__init__(catalog_name=catalog_name, uid=uid, *args, **kwargs)
-        self._scan_metadata = sirepo.raydata.databroker.get_metadata(uid, catalog_name)
+    def __init__(self, catalog_name, rduid, *args, **kwargs):
+        super().__init__(catalog_name=catalog_name, rduid=rduid, *args, **kwargs)
+        self._scan_metadata = sirepo.raydata.databroker.get_metadata(
+            rduid, catalog_name
+        )
 
     def get_analysis_pdf_paths(self):
         return pkio.walk_tree(self.get_output_dir(), r".*\.pdf$")
@@ -67,8 +69,8 @@ class AnalysisDriverBase(PKDict):
     def get_papermill_args(self):
         res = []
         for n, v in [
-            ["uid", self.uid],
-            ["scan", self.uid],
+            ["uid", self.rduid],
+            ["scan", self.rduid],
             *self._get_papermill_args(),
         ]:
             res.extend(["-p", f"'{n}'", f"'{v}'"])
@@ -107,17 +109,17 @@ class AnalysisDriverBase(PKDict):
 
 
 def get(incoming):
-    def _verify_uid(uid):
-        # uid will be combined with paths throughout the application.
-        # So, verify that uid is actually a UUID from the start.
+    def _verify_rduid(rduid):
+        # rduid will be combined with paths throughout the application.
+        # So, verify that rduid is actually a UUID from the start.
         # UUIDs don't have any specials (ex ../) so checking that the
         # value is in fact a uuid also checks that it is safe.
-        return str(uuid.UUID(uid))
+        return str(uuid.UUID(rduid))
 
     i = copy.deepcopy(incoming)
     c = i.pkdel("catalogName" if "catalogName" in i else "catalog_name")
-    u = _verify_uid(i.pkdel("uid"))
-    return _ANALYSIS_DRIVERS[c](catalog_name=c, uid=u, data=i)
+    u = _verify_rduid(i.pkdel("rduid"))
+    return _ANALYSIS_DRIVERS[c](catalog_name=c, rduid=u, data=i)
 
 
 def init(catalog_names):
