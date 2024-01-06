@@ -1387,6 +1387,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                     <div class="container-fluid">
                         <form>
                         <div data-file-chooser="" data-input-file="inputFile" data-title="title" data-description="description" data-file-formats="${IMPORT_FORMATS.join(',')}"></div>
+                          <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
                           <div class="col-sm-6 pull-right">
                             <button data-ng-click="importDmpFile(inputFile)" class="btn btn-primary" data-ng-class="{'disabled': isMissingImportFile() }">Import File</button>
                              <button data-dismiss="modal" class="btn btn-default">Cancel</button>
@@ -1420,10 +1421,18 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                         {simulation_type: SIREPO.APP_SCHEMA.simulationType},
                     ),
                     function(d) {
-                        requestSender.localRedirectHome(d.models.simulation.simulationId);
+                        if (d.error) {
+                            $scope.fileUploadError = d.error;
+                            return;
+                        }
+                        $('#simulation-import').modal('hide');
+                        requestSender.localRedirect(
+                            'visualization',
+                            {'simulationId': d.models.simulation.simulationId}
+                        );
                     },
                     function (err) {
-                        throw new Error(inputFile + ': Error during import ' + err);
+                        $scope.fileUploadError = err;
                     },
                 );
             };
