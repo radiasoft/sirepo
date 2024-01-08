@@ -4687,7 +4687,7 @@ SIREPO.app.service('fileUpload', function(authState, msgRouter) {
             }
         }
         if (file.size > authState.max_message_bytes) {
-            callback({error: `File of size=${file.size} bytes was too large for upload. Max size=${authState.max_message_bytes} bytes`});
+            callback({error: `File of size=${file.size} bytes is greater than maximum allowable size=${authState.max_message_bytes} bytes`});
             return;
         }
         //TODO(robnagler) formData needs to be handled properly
@@ -4702,11 +4702,9 @@ SIREPO.app.service('fileUpload', function(authState, msgRouter) {
                 if (response.status) {
                     callback(
                         {
-                            error: `File upload failed due to server error (error code=${response.status})`
+                            error: `File upload failed due to server error (status=${response.status || 'unknown'})`
                         }
                     );
-                } else {
-                    throw new Error('Recieved error response without status code');
                 }
             },
         );
