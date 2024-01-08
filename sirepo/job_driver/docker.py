@@ -117,9 +117,10 @@ class DockerDriver(job_driver.DriverBase):
         return cls
 
     async def kill(self):
-        c = self.pkdel("_cid")
-        pkdlog("{} cid={:.12}", self, c)
+        c = None
         try:
+            c = self.pkdel("_cid")
+            pkdlog("{} cid={:.12}", self, c)
             # TODO(e-carlin): This can possibly hang and needs to be handled
             # Ex. docker daemon is not responsive
             await self._cmd(
@@ -132,7 +133,7 @@ class DockerDriver(job_driver.DriverBase):
             pkdlog("{} error={} stack={}", self, e, pkdexc())
 
     async def prepare_send(self, op):
-        if op.opName == job.OP_RUN:
+        if op.op_name == job.OP_RUN:
             op.msg.mpiCores = self.cfg[self.kind].get("cores", 1)
         return await super().prepare_send(op)
 
@@ -169,7 +170,7 @@ class DockerDriver(job_driver.DriverBase):
         )
 
     async def _do_agent_start(self, op):
-        cmd, stdin, env = self._agent_cmd_stdin_env(cwd=self._agent_exec_dir)
+        cmd, stdin, env = self._agent_cmd_stdin_env(op, cwd=self._agent_exec_dir)
         pkdlog("{} agent_exec_dir={}", self, self._agent_exec_dir)
         pkio.mkdir_parent(self._agent_exec_dir)
         c = self.cfg[self.kind]
@@ -192,8 +193,8 @@ class DockerDriver(job_driver.DriverBase):
             )
             + self._constrain_resources(c)
             + self._volumes()
-            + (self._image,)
             + self._gpus()
+            + (self._image,)
         )
         self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
         self.driver_details.pkupdate(host=self.host.name)
@@ -232,7 +233,7 @@ class DockerDriver(job_driver.DriverBase):
         return res + ":" + pkconfig.cfg.channel
 
     def _gpus(self):
-        return ("--gpus",) if self.cfg.gpus is not None else tuple()
+        return (f"--gpus={self.cfg.gpus}",) if self.cfg.gpus is not None else tuple()
 
     @classmethod
     def _init_dev_hosts(cls):

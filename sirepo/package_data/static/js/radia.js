@@ -138,6 +138,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
                 method: 'build_shape_points',
                 args: {
                     object: o,
+                    rpnVariables: appState.models.rpnVariables,
                 }
             },
             {

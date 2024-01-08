@@ -491,7 +491,7 @@ def _init_uris(simulation_db, sim_types):
 def _path_to_route(path):
     if path is None:
         return (None, _route_default, PKDict(path_info=None))
-    parts = re.sub(r"\+", " ", path).split("/")
+    parts = path.split("/")
     route = None
     kwargs = None
     try:

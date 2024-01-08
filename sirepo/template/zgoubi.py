@@ -673,13 +673,13 @@ def _extract_animation(frame_args):
             if row[kex_index] != "1":
                 # particle isn't active
                 continue
-        if frame_args.showAllFrames == "1":
+        if str(frame_args.showAllFrames) == "1":
             if it_filter and row[it_index] != it_filter:
                 continue
             rows.append(row)
         elif int(row[ipass_index]) == ipass:
             rows.append(row)
-    if frame_args.showAllFrames == "1":
+    if str(frame_args.showAllFrames) == "1":
         title = "All Frames"
         if it_filter:
             title += ", Particle {}".format(it_filter)

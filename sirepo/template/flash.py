@@ -214,7 +214,7 @@ def sim_frame_oneDimensionProfileAnimation(frame_args):
         frame_args.var,
         frame_args.axis,
         _LINEOUTS_SAMPLING_SIZE,
-        interpolate=frame_args.get("interpolate", "1") == "1",
+        interpolate=str(frame_args.get("interpolate", "1")) == "1",
     )
     x = xs[0]
     r = [numpy.min(x), numpy.max(x)]

@@ -29,7 +29,7 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
                     self._scan_metadata.get_start_field("cycle"),
                     self._scan_metadata.get_start_field("user"),
                     "ResPipelines",
-                    f"{self._scan_metadata.get_start_field('auto_pipeline')}_{self.uid}.ipynb",
+                    f"{self._scan_metadata.get_start_field('auto_pipeline')}_{self.rduid}.ipynb",
                 ),
             )
         ]
@@ -39,7 +39,7 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
             self._scan_metadata.get_start_field("cycle"),
             self._scan_metadata.get_start_field("user"),
             "Results",
-            self.uid,
+            self.rduid,
         )
 
     def _get_papermill_args(self, *args, **kwargs):

@@ -84,7 +84,7 @@ SIREPO.viewLogic = function(name, init) {
                     for (var idx = 0; idx < scope.watchFields.length; idx += 2) {
                         var fields = scope.watchFields[idx];
                         var callback = utilities.debounce(scope.watchFields[idx + 1], SIREPO.debounce_timeout);
-                        appState.watchModelFields(scope, fields, callback);
+                        appState.watchModelFields(scope, fields, callback, true);
                     }
                 }
             },
@@ -1251,6 +1251,13 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     self.modelToCurrentFrame = {};
 
     self.frameId = function(frameReport, frameIndex) {
+        function fieldToFrameParam(field) {
+            if (angular.isObject(field)) {
+                return JSON.stringify(field);
+            }
+            return `${field}`;
+        }
+
         var c = appState.appService.computeModel(frameReport);
         var s = appState.models.simulationStatus[c];
         if (! s) {
@@ -1274,7 +1281,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         }
         // POSIT: same as sirepo.sim_data._FRAME_ID_SEP
         return v.concat(
-            f.map(function (a) {return m[a];})
+            f.map(a => fieldToFrameParam(m[a]))
         ).join('*');
     };
 
