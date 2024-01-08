@@ -4699,13 +4699,11 @@ SIREPO.app.service('fileUpload', function(authState, msgRouter) {
                 callback(response.data);
             },
             function(response) {
-                if (response.status) {
-                    callback(
-                        {
-                            error: `File upload failed due to server error (status=${response.status || 'unknown'})`
-                        }
-                    );
-                }
+                callback(
+                    {
+                        error: `File upload failed due to server error (status=${response.status || 'unknown'})`
+                    }
+                );
             },
         );
     };
