@@ -691,6 +691,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     color: 'red',
                     strokeWidth: '2.0',
                 },
+                crosshairs: {
+                    color: 'red',
+                    strokeWidth: '2.0',                    
+                },
             };
             const displayRanges = {};
 
