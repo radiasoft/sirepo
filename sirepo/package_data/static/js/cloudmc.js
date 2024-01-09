@@ -137,6 +137,8 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
         return d;
     };
 
+    self.canNormalizeScore = score => ! SIREPO.APP_SCHEMA.constants.unnormalizableScores.includes(score);
+
     self.computeModel = modelKey => modelKey;
 
     self.findFilter = type => {
@@ -377,12 +379,12 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         outlines: null,
     };
 
-    function normalizer(numParticles) {
-        const n = SIREPO.APP_SCHEMA.constants.unnormalizableScores.includes(appState.models.openmcAnimation.score) ?
-            numParticles : appState.models.openmcAnimation.sourceNormalization;
+    function normalizer(score, numParticles) {
+        const n = cloudmcService.canNormalizeScore(score) ?
+            appState.models.openmcAnimation.sourceNormalization : numParticles;
         return x => (n / numParticles) * x;
     }
-
+    
     self.clearMesh = () => {
         self.mesh = null;
         self.fieldData = null;
@@ -442,7 +444,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
     };
 
     self.setFieldData = (fieldData, min, max, numParticles) => {
-        const n = normalizer(numParticles);
+        const n = normalizer(appState.models.openmcAnimation.score, numParticles);
         self.fieldData = fieldData.map(n);
         self.minField = n(min);
         self.maxField = n(max);
@@ -2551,6 +2553,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'axis', is2D,
         ]);
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
+        panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
     }
 
     function updateEnergyRange() {
@@ -2590,7 +2593,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.sourceNormalization',
         ], autoUpdate,
         ['openmcAnimation.tally'], validateTally,
-        ['tallyReport.selectedGeometry'], showFields,
+        ['tallyReport.selectedGeometry', 'openmcAnimation.score'], showFields,
     ];
     
 });
