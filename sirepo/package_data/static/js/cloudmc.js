@@ -377,11 +377,10 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         outlines: null,
     };
 
-    function normalizer() {
-        const p = appState.models.settings.particles;
+    function normalizer(numParticles) {
         const n = SIREPO.APP_SCHEMA.constants.unnormalizableScores.includes(appState.models.openmcAnimation.score) ?
-            p : appState.models.openmcAnimation.sourceNormalization;
-        return x => (n / p) * x;
+            numParticles : appState.models.openmcAnimation.sourceNormalization;
+        return x => (n / numParticles) * x;
     }
 
     self.clearMesh = () => {
@@ -442,8 +441,8 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         return false;
     };
 
-    self.setFieldData = (fieldData, min, max) => {
-        const n = normalizer();
+    self.setFieldData = (fieldData, min, max, numParticles) => {
+        const n = normalizer(numParticles);
         self.fieldData = fieldData.map(n);
         self.minField = n(min);
         self.maxField = n(max);
@@ -657,7 +656,7 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                     // old format, ignore
                     return;
                 }
-                tallyService.setFieldData(json.field_data, json.min_field, json.max_field);
+                tallyService.setFieldData(json.field_data, json.min_field, json.max_field, json.num_particles);
             };
 
             $scope.setSelectedGeometry = d => {
