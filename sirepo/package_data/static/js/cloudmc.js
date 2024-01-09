@@ -380,7 +380,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
     function normalizer() {
         const p = appState.models.settings.particles;
         const n = SIREPO.APP_SCHEMA.constants.unnormalizableScores.includes(appState.models.openmcAnimation.score) ?
-            p : appState.models.settings.sourceNormalization;
+            p : appState.models.openmcAnimation.sourceNormalization;
         return x => (n / p) * x;
     }
 
@@ -2588,6 +2588,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.colorMap',
             'openmcAnimation.threshold',
             'openmcAnimation.opacity',
+            'openmcAnimation.sourceNormalization',
         ], autoUpdate,
         ['openmcAnimation.tally'], validateTally,
         ['tallyReport.selectedGeometry'], showFields,
