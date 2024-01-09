@@ -40,7 +40,10 @@ def _percent_complete(run_dir, is_running):
         frameCount=0,
         percentComplete=0,
     )
-    with pkio.open_text(str(run_dir.join(template_common.RUN_LOG))) as f:
+    log = run_dir.join(template_common.RUN_LOG)
+    if not log.exists():
+        return res
+    with pkio.open_text(log) as f:
         res.eigenvalue = None
         res.results = None
         has_results = False
