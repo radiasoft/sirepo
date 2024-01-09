@@ -972,7 +972,7 @@ def _cfg():
     from pykern import pkconfig
 
     __cfg = pkconfig.init(
-        # 25 is based on the speed of a MacBook Pro 2019.
-        cpu_div=(25, int, "cpu speed divisor to compute timeouts"),
+        # 50 is based on a 2.2 GHz server
+        cpu_div=(50, int, "cpu speed divisor to compute timeouts"),
     )
     return __cfg
