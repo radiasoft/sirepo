@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Example
+# spectrometer1
 execution_mode = 'serial'
 
 lattice_file = """
