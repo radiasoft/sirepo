@@ -1,4 +1,4 @@
-"""PyTest for :mod:`sirepo.importer`
+"""Test elegant importer directly
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -29,8 +29,6 @@ def test_importer():
                 k.actual = "did not raise exception"
         elif fn.ext == ".lte":
             data = srunit.template_import_file("elegant", fn).imported_data
-            # TODO(robnagler) this is necessary?
-            #            data["models"]["commands"] = []
             g = sirepo.template.import_module("elegant")._Generate(data)
             g.sim()
             j = g.jinja_env
