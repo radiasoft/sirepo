@@ -145,6 +145,8 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
         return d;
     };
 
+    self.canNormalizeScore = score => ! SIREPO.APP_SCHEMA.constants.unnormalizableScores.includes(score);
+
     self.computeModel = modelKey => modelKey;
 
     self.findFilter = type => {
@@ -400,6 +402,13 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         outlines: null,
     };
 
+    function normalizer(score, numParticles) {
+        if (numParticles === undefined || ! cloudmcService.canNormalizeScore(score)) {
+            return x => x;
+        }
+        return x => (appState.models.openmcAnimation.sourceNormalization / numParticles) * x;
+    }
+
     self.clearMesh = () => {
         self.mesh = null;
         self.fieldData = null;
@@ -430,7 +439,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
              ? self.minField
              : t;
     };
-    
+
     self.getOutlines = (volId, dim, index) => {
         if (! self.outlines) {
             return [];
@@ -458,10 +467,11 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         return false;
     };
 
-    self.setFieldData = (fieldData, min, max) => {
-        self.fieldData = fieldData;
-        self.minField = min;
-        self.maxField = max;
+    self.setFieldData = (fieldData, min, max, numParticles) => {
+        const n = normalizer(appState.models.openmcAnimation.score, numParticles);
+        self.fieldData = fieldData.map(n);
+        self.minField = n(min);
+        self.maxField = n(max);
     };
 
     self.setOutlines = (tally, outlines) => {
@@ -672,7 +682,7 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                     // old format, ignore
                     return;
                 }
-                tallyService.setFieldData(json.field_data, json.min_field, json.max_field);
+                tallyService.setFieldData(json.field_data, json.min_field, json.max_field, json.num_particles);
             };
 
             $scope.setSelectedGeometry = d => {
@@ -2197,7 +2207,7 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
     const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
         .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
     const inds = cloudmcService.FILTER_INDICES;
-    
+
     const TYPE_NONE = 'None';
 
     function filterField(index) {
@@ -2223,9 +2233,9 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
         inds.forEach(i => {
             panelState.showEnum('filter', '_type', type(i), true, i - 1);
         });
-        
+
     }
-    
+
     function validateEnergyFilter(filter) {
         if (! filter) {
             return;
@@ -2257,7 +2267,7 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
     }
 
     $scope.whenSelected = updateEditor;
-    
+
     $scope.watchFields = [
         inds.map(i => `${filterField(i)}._type`), updateEditor,
         inds.map(i => `${filterField(i)}`), validateFilter,
@@ -2411,7 +2421,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             let hasSteps = false;
             let slider = null;
             const watchFields = ['min', 'max', 'step'].map(x => `model[fieldName].${x}`);
-            
+
             function adjustToRange(val, range) {
                 if (! isValid(range)) {
                     return val;
@@ -2638,6 +2648,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'axis', is2D,
         ]);
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
+        panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
     }
 
     function updateEnergyRange() {
@@ -2646,7 +2657,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         if (! e || ! cloudmcService.findFilter('meshFilter')) {
             return;
         }
-        
+
         const s = appState.models.openmcAnimation.energyRangeSum;
         s.space = e.space;
         s.min = e.start;
@@ -2658,7 +2669,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         cloudmcService.validateSelectedTally();
         appState.saveChanges('openmcAnimation');
     }
-    
+
     cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
 
     $scope.whenSelected = () => {
@@ -2674,11 +2685,12 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.colorMap',
             'openmcAnimation.threshold',
             'openmcAnimation.opacity',
+            'openmcAnimation.sourceNormalization',
         ], autoUpdate,
         ['openmcAnimation.tally'], validateTally,
-        ['tallyReport.selectedGeometry'], showFields,
+        ['tallyReport.selectedGeometry', 'openmcAnimation.score'], showFields,
     ];
-    
+
 });
 
 SIREPO.viewLogic('geometry3DReportView', function(cloudmcService, $scope) {
