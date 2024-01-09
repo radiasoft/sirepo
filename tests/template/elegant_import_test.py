@@ -1,20 +1,15 @@
-# -*- coding: utf-8 -*-
 """PyTest for :mod:`sirepo.importer`
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkio
-from pykern import pkunit
-from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
-import pytest
 
 
-def test_importer(import_req):
+def test_importer():
     from pykern.pkcollections import PKDict
-    from sirepo.template import elegant
-    import asyncio
+    from sirepo import template, srunit
     import sirepo.lib
+    from pykern import pkio, pkunit, pkdebug
 
     for fn in pkio.sorted_glob(pkunit.data_dir().join("*")):
         if not pkio.has_file_extension(fn, ("ele", "lte")) or fn.basename.endswith(
@@ -22,19 +17,21 @@ def test_importer(import_req):
         ):
             continue
         k = PKDict()
-        pkdlog("file={}", fn)
+        pkdebug.pkdlog("file={}", fn)
         if fn.basename.startswith("deviance-"):
             try:
-                data = asyncio.run(elegant.import_file(import_req(fn)))
+                # Do not try to look at imported_data, because
+                # the exception should happen inside the import
+                srunit.template_import_file("elegant", fn)
             except Exception as e:
                 k.actual = f"{e}\n"
             else:
                 k.actual = "did not raise exception"
         elif fn.ext == ".lte":
-            data = elegant.stateless_compute_import_file(import_req(fn)))
+            data = srunit.template_import_file("elegant", fn).imported_data
             # TODO(robnagler) this is necessary?
             #            data["models"]["commands"] = []
-            g = elegant._Generate(data)
+            g = sirepo.template.import_module("elegant")._Generate(data)
             g.sim()
             j = g.jinja_env
             k.actual = j.rpn_variables + j.lattice

@@ -40,30 +40,6 @@ def fc_module(request):
         yield c
 
 
-@pytest.fixture
-def import_req(request):
-    def w(path):
-        from sirepo import srunit
-        from pykern.pkcollections import PKDict
-        from pykern import pkcompat
-
-        with srunit.quest_start() as qcall:
-            req = qcall.parse_params(
-                filename=path.basename,
-                folder="/import_test",
-                template=True,
-                type=_sim_type(request),
-            )
-            # Mock sirepo.request._FormFileBase
-            req.form_file = PKDict(
-                as_str=lambda: pkcompat.from_bytes(path.read_binary()),
-                filename=path.basename,
-            )
-            return req
-
-    return w
-
-
 @pytest.fixture(scope="function")
 def new_user_fc(request, fc_module):
     return _fc(request, fc_module, new_user=True)

@@ -118,6 +118,7 @@ def template_import_file(sim_type, path, arguments=None):
                 basename=path.basename,
                 ext_lower=path.ext.lower(),
                 file_as_str=pkio.read_text(path),
+                folder="/import_test",
                 import_file_arguments=arguments,
                 purebasename=path.purebasename,
             ),
