@@ -536,8 +536,8 @@ def _generate_range(filter):
 
 def _generate_source(source):
     if source.get("type") == "file" and source.get("file"):
-        return f"openmc.Source(filename=\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
-    return f"""openmc.Source(
+        return f"openmc.IndependentSource(filename=\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
+    return f"""openmc.IndependentSource(
         space={_generate_space(source.space)},
         angle={_generate_angle(source.angle)},
         energy={_generate_distribution(source.energy)},
