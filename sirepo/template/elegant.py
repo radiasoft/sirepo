@@ -893,11 +893,11 @@ def stateful_compute_import_file(data, **kwargs):
         text=data.args.file_as_str,
         input_data=d,
     )
+    if not d:
+        res.models.simulation.name = data.args.purebasename
     r = LatticeUtil.find_first_command(res, "run_setup")
     if r and r.lattice != "Lattice":
         return PKDict(importState="needLattice", eleData=res)
-    if not d:
-        res.models.simulation.name = data.args.purebasename
     return PKDict(imported_data=res)
 
 

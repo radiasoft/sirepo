@@ -97,6 +97,34 @@ def setup_srdb_root(cfg=None):
     )
 
 
+def template_import_file(sim_type, path, arguments=None):
+    """Call `stateful_compute_import_file`
+
+    Args:
+        sim_type (str): template name
+        path (object): if path is a str, will be joined with `data_dir`,
+        arguments (object): literal passed as import_file_arguments
+    Returns:
+        PKDict: imported_data if successful; otherwise, error state
+    """
+    from pykern import pkio, pkunit
+    from sirepo import template
+
+    if isinstance(path, str):
+        path = pkunit.data_dir().join(path)
+    return template.import_module(sim_type).stateful_compute_import_file(
+        data=PKDict(
+            args=PKDict(
+                basename=path.basename,
+                ext_lower=path.ext.lower(),
+                file_as_str=pkio.read_text(path),
+                import_file_arguments=arguments,
+                purebasename=path.purebasename,
+            ),
+        ),
+    )
+
+
 class _TestClient:
     def __init__(self, env, job_run_mode, port):
         from sirepo import feature_config
