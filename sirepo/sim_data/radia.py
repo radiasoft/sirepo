@@ -28,11 +28,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def prepare_import_file_args(cls, req):
-        res = PKDict()
-        res.basename = os.path.basename(req.filename)
-        e = os.path.splitext(res.basename)[1]
-        if e.lower() != ".dat":
-            raise sirepo.util.UserAlert(f"invalid file extension='{e}'")
+        res = cls._prepare_import_file_name_args(req)
+        if res.ext_lower != ".dat":
+            raise sirepo.util.UserAlert(f"invalid file extension='{res.ext_lower}'")
         p = req.sim_data.lib_file_name_with_type(
             res.basename,
             cls.schema().constants.fileTypeRadiaDmp,
@@ -44,7 +42,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls.lib_file_write_path(p, qcall=req.qcall).write_binary(
             req.form_file.as_bytes(),
         )
-        return res.pkupdate(import_file_arguments=req.import_file_arguments)
+        # radia doesn't use import_file_arguments
+        return res
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):

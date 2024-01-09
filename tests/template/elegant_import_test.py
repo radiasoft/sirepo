@@ -33,7 +33,8 @@ def test_importer(import_req):
                 k.actual = "did not raise exception"
         elif fn.ext == ".lte":
             data = asyncio.run(elegant.import_file(import_req(fn)))
-            data["models"]["commands"] = []
+            # TODO(robnagler) this is necessary?
+            #            data["models"]["commands"] = []
             g = elegant._Generate(data)
             g.sim()
             j = g.jinja_env

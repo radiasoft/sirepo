@@ -752,23 +752,6 @@ def get_data_file(run_dir, model, frame, options):
     return _sdds(_report_output_filename("bunchReport"))
 
 
-async def import_file(req, test_data=None, **kwargs):
-    # input_data is passed by test cases only
-    d = test_data
-    if "id" in req:
-        d = simulation_db.read_simulation_json(SIM_TYPE, sid=req.id, qcall=req.qcall)
-    p = pkio.py_path(req.filename)
-    res = parse_input_text(p, req.form_file.as_str(), d, qcall=req.qcall)
-    res.models.simulation.name = p.purebasename
-    if d and not test_data:
-        simulation_db.delete_simulation(
-            SIM_TYPE,
-            d.models.simulation.simulationId,
-            qcall=req.qcall,
-        )
-    return res
-
-
 def parse_input_text(
     path, text=None, input_data=None, update_filenames=True, qcall=None
 ):
@@ -901,6 +884,17 @@ def stateful_compute_get_beam_input_type(data, **kwargs):
             _SIM_DATA.lib_file_abspath(data.args.input_file),
         )
     return data
+
+
+def stateful_compute_import_file(data, **kwargs):
+    d := data.args.pkunchecked_nested_get("import_file_arguments.eleData")
+    res = parse_input_text(p, data.args.file_as_str, d, qcall=req.qcall)
+    r = LatticeUtil.find_first_command(res, "run_setup")
+    if r and r.lattice != 'Lattice':
+        return PKDict(state="needLattice", eleData=res)
+    if not d:
+        res.models.simulation.name = data.args.purebasename
+    return res
 
 
 def validate_file(file_type, path):

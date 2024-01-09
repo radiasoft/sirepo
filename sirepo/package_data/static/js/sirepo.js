@@ -2418,7 +2418,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         var u = r.baseUri ? '/' + r.baseUri : '';
         for (p of r.params) {
             if (p.name in params) {
-                u = u + '/' + encodeURIComponent(serializeValue(params[p.name], p.name));
+                v = params[p.name];
+            }
+            else if (p.name === "simulation_type") {
+                v = SIREPO.APP_SCHEMA.simulationType;
             }
             else if (p.isOptional) {
                 break;
@@ -2426,6 +2429,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             else {
                 throw new Error(`param=${p.name} param missing map=${map._name} route=${r.name}`);
             }
+            u = u + '/' + encodeURIComponent(serializeValue(v, p.name));
         }
         return u;
     }

@@ -358,7 +358,7 @@ def stateful_compute_import_file(data, **kwargs):
     res = simulation_db.default_data(SIM_TYPE)
     res.models.simulation.pkupdate(
         dmpImportFile=data.args.basename,
-        name=os.path.splitext(data.args.basename)[0],
+        name=data.args.purebasename,
     )
     _prep_new_sim(res)
     # _prep_new_sim sets _MAGNET_NOTES for notes so overwrite after

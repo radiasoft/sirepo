@@ -36,6 +36,22 @@ class SimData(sirepo.sim_data.SimDataBase):
         LatticeUtil.fixup_output_files(data, s, OutputFileIterator(True))
 
     @classmethod
+    def prepare_import_file_args(cls, req):
+        res = super().prepare_import_file_args(req)
+        p = req.sim_data.lib_file_name_with_type(
+            res.basename,
+            cls.schema().constants.fileTypeRadiaDmp,
+        )
+        if cls.lib_file_exists(p, qcall=req.qcall):
+            raise sirepo.util.UserAlert(
+                f"dump file='{res.basename}' already exists; import another file name"
+            )
+        cls.lib_file_write_path(p, qcall=req.qcall).write_binary(
+            req.form_file.as_bytes(),
+        )
+        return res.pkupdate(import_file_arguments=req.import_file_arguments)
+
+    @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         res = []
         if compute_model in ("twissReport", "bunchReport"):

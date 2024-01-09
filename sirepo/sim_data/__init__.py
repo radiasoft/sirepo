@@ -312,15 +312,6 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def import_file_aux(cls, qcall):
-        """Template specific info to pass to `stateful_compute_import_file`.
-
-        Returns:
-            object: passed as ``sim_data_import_file_aux`` from server to agent
-        """
-        return None
-
-    @classmethod
     def is_parallel(cls, data_or_model):
         """Is this report a parallel (long) simulation?
 
@@ -624,8 +615,7 @@ class SimDataBase(object):
 
     @classmethod
     def prepare_import_file_args(cls, req):
-        return PKDict(
-            basename=os.path.basename(req.filename),
+        return self._prepare_import_file_name_args(req).pkupdate(
             file_as_str=req.form_file.as_str(),
             import_file_arguments=req.import_file_arguments,
         )
@@ -915,6 +905,13 @@ class SimDataBase(object):
         dm = data.models
         if dm.simulation.get("isExample") and dm.simulation.folder == "/":
             dm.simulation.folder = "/Examples"
+
+    @classmethod
+    def _prepare_import_file_name_args(cls, req):
+        res = PKDict(basename=os.path.basename(req.filename))
+        res.purebasename, e = os.path.splitext(res.basename)
+        res.ext_lower = e.lower()
+        return res
 
     @classmethod
     def _proprietary_code_tarball(cls):

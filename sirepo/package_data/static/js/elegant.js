@@ -918,15 +918,6 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                 }
             }
 
-            function hasMissingLattice(data) {
-                var runSetup = elegantService.findFirstCommand('run_setup', data.models.commands);
-                if (! runSetup || runSetup.lattice == 'Lattice') {
-                    return false;
-                }
-                $scope.latticeFileName = runSetup.lattice;
-                return true;
-            }
-
             function hideAndRedirect() {
                 $('#simulation-import').modal('hide');
                 requestSender.localRedirect('lattice', {
@@ -963,11 +954,6 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
             }
 
             function verifyInputFiles(data) {
-                if (hasMissingLattice(data)) {
-                    $scope.state = 'lattice';
-                    $scope.elegantFile = null;
-                    return;
-                }
                 var requiredFiles = {};
                 var i;
                 for (i = 0; i < data.models.elements.length; i++) {
@@ -1059,7 +1045,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                     folder: fileManager.getActiveFolderPath(),
                 };
                 if ($scope.state == 'lattice') {
-                    args.simulationId = $scope.id;
+                    args.arguments = {eleData: $scope.eleData};
                 }
                 else {
                     $scope.resetState();
@@ -1069,15 +1055,16 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                 fileUpload.uploadFileToUrl(
                     elegantFile,
                     args,
-                    requestSender.formatUrl(
-                        'importFile',
-                        {
-                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        }),
+                    requestSender.formatUrl('importFile'),
                     function(data) {
                         if (data.error) {
                             $scope.resetState();
                             $scope.fileUploadError = data.error;
+                        }
+                        else if (data.state && data.state === "needLattice") {
+                            $scope.state = 'lattice';
+                            $scope.elegantFile = null;
+                            $scope.eleData = data.eleData;
                         }
                         else {
                             $scope.id = data.models.simulation.simulationId;
