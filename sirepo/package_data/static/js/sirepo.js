@@ -2390,7 +2390,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     }
 
     function formatUrl(map, routeOrParams, params) {
-        var n = routeOrParams;
+        let n = routeOrParams;
         if (angular.isObject(routeOrParams)) {
             n = routeOrParams.routeName;
             if (! n) {
@@ -2414,8 +2414,9 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         if (! map[n]) {
             throw new Error(`routeName=${n} not found in map=${map._name}`);
         }
-        var r = map[n];
-        var u = r.baseUri ? '/' + r.baseUri : '';
+        let r = map[n];
+        let u = r.baseUri ? '/' + r.baseUri : '';
+        let v = null;
         for (p of r.params) {
             if (p.name in params) {
                 v = params[p.name];

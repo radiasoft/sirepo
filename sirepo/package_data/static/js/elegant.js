@@ -1065,6 +1065,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                             $scope.state = 'lattice';
                             $scope.elegantFile = null;
                             $scope.eleData = data.eleData;
+                            $scope.latticeFileName = data.latticeFileName;
                         }
                         else {
                             $scope.id = data.models.simulation.simulationId;
