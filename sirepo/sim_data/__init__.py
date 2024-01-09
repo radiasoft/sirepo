@@ -615,7 +615,7 @@ class SimDataBase(object):
 
     @classmethod
     def prepare_import_file_args(cls, req):
-        return self._prepare_import_file_name_args(req).pkupdate(
+        return cls._prepare_import_file_name_args(req).pkupdate(
             file_as_str=req.form_file.as_str(),
             import_file_arguments=req.import_file_arguments,
         )

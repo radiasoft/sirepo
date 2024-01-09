@@ -23,6 +23,18 @@ def test_importer(fc):
             # NOTE: first file must be first
             file=pkio.sorted_glob("*")[0],
         )
+        # Only for elegant
+        if res.get("importState") == "needLattice":
+            res = fc.sr_post_form(
+                "importFile",
+                PKDict(
+                    folder="/importer_test",
+                    arguments=PKDict(eleData=res.eleData),
+                ),
+                PKDict(simulation_type=sim_type),
+                # NOTE: first file must be first
+                file=pkio.sorted_glob("*")[1],
+            )
         pkunit.pkok(
             res.pkunchecked_nested_get("models.simulation.simulationId"),
             "no simulationId in res={}",

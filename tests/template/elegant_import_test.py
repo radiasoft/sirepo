@@ -32,7 +32,7 @@ def test_importer(import_req):
             else:
                 k.actual = "did not raise exception"
         elif fn.ext == ".lte":
-            data = asyncio.run(elegant.import_file(import_req(fn)))
+            data = elegant.stateless_compute_import_file(import_req(fn)))
             # TODO(robnagler) this is necessary?
             #            data["models"]["commands"] = []
             g = elegant._Generate(data)

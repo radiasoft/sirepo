@@ -1061,7 +1061,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                             $scope.resetState();
                             $scope.fileUploadError = data.error;
                         }
-                        else if (data.state && data.state === "needLattice") {
+                        else if (data.importState && data.importState === "needLattice") {
                             $scope.state = 'lattice';
                             $scope.elegantFile = null;
                             $scope.eleData = data.eleData;

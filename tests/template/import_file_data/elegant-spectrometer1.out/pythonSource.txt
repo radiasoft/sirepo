@@ -1,0 +1,162 @@
+#!/usr/bin/env python
+
+# Example
+execution_mode = 'serial'
+
+lattice_file = """
+% 0.0 sto beam_alpha_x
+% 0.0 sto beam_alpha_y
+
+"B1": CSBEND,angle="pi 2 /",edge_order=2,l=1,n_kicks=40
+"D0": EDRIFT,l=0.5
+"D1": EDRIFT,l=0.5
+"D2": EDRIFT,l=2
+"D3": EDRIFT,l=2
+"Q1": KQUAD,k1=1,l=0.25,n_kicks=20
+"Q2": KQUAD,k1=-1,l=0.25,n_kicks=20
+"BL": LINE=("D0","Q1","D1","Q2","D2","B1","D3")
+
+"""
+
+elegant_file = """
+
+&global_settings
+  mpi_io_write_buffer_size = 1048576,
+&end
+
+&run_setup
+  semaphore_file = run_setup.semaphore,
+  default_order = 1,
+  final = "run_setup.final.sdds",
+  lattice = "elegant.lte",
+  p_central_mev = 100,
+  parameters = "run_setup.parameters.sdds",
+  use_beamline = "BL",
+&end
+
+&twiss_output
+  matched = 0,
+  output_at_each_step = 1,
+&end
+
+&run_control
+&end
+
+&optimization_setup
+  log_file = "optimization_setup.log_file.sdds",
+  n_evaluations = 1500,
+  n_passes = 3,
+  n_restarts = 2,
+  output_sparsing_factor = 100,
+  tolerance = 1e-12,
+  verbose = 0,
+&end
+
+&optimization_term
+  term = "betax etax sqr /",
+&end
+
+&optimization_term
+  term = "max.betax 20 .1 segt",
+&end
+
+&optimization_term
+  term = "max.betay 20 .1 segt",
+&end
+
+&optimization_variable
+  item = "L",
+  name = "D0",
+  step_size = 1e-3,
+  upper_limit = 5,
+&end
+
+&optimization_variable
+  item = "L",
+  lower_limit = 0.1,
+  name = "D1",
+  step_size = 1e-3,
+  upper_limit = 5,
+&end
+
+&optimization_variable
+  item = "L",
+  lower_limit = 0.1,
+  name = "D2",
+  step_size = 1e-3,
+  upper_limit = 5,
+&end
+
+&optimization_variable
+  item = "L",
+  lower_limit = 0.1,
+  name = "D3",
+  step_size = 1e-3,
+  upper_limit = 5,
+&end
+
+&optimization_variable
+  item = "K1",
+  name = "Q1",
+  step_size = 1e-3,
+  upper_limit = 2.5,
+&end
+
+&optimization_variable
+  item = "K1",
+  lower_limit = -2.5,
+  name = "Q2",
+  step_size = 1e-3,
+&end
+
+&bunched_beam
+&end
+
+&optimize
+&end
+
+&save_lattice
+  filename = "save_lattice.filename.lte",
+&end
+
+&run_setup
+  semaphore_file = run_setup.semaphore,
+  lattice = "save_lattice.filename.lte",
+  magnets = "run_setup2.magnets.sdds",
+  output = "run_setup2.output.sdds",
+  p_central_mev = 100,
+  sigma = "run_setup2.sigma.sdds",
+  use_beamline = "BL",
+&end
+
+&twiss_output
+  filename = "twiss_output2.filename.sdds",
+&end
+
+&run_control
+&end
+
+&bunched_beam
+  alpha_x = "(beam_alpha_x)",
+  alpha_y = "(beam_alpha_y)",
+  distribution_cutoff[0] = 3, 3, 3,
+  emit_nx = 1e-6,
+  emit_ny = 1e-6,
+  enforce_rms_values[0] = 1, 1, 1,
+  n_particles_per_bunch = 100000,
+  sigma_dp = 1e-3,
+&end
+
+&track
+&end
+
+"""
+
+with open('elegant.lte', 'w') as f:
+    f.write(lattice_file)
+
+with open('elegant.ele', 'w') as f:
+    f.write(elegant_file)
+
+import os
+os.system('elegant elegant.ele')

@@ -887,14 +887,18 @@ def stateful_compute_get_beam_input_type(data, **kwargs):
 
 
 def stateful_compute_import_file(data, **kwargs):
-    d := data.args.pkunchecked_nested_get("import_file_arguments.eleData")
-    res = parse_input_text(p, data.args.file_as_str, d, qcall=req.qcall)
+    d = data.args.pkunchecked_nested_get("import_file_arguments.eleData")
+    res = parse_input_text(
+        path=pkio.py_path(data.args.basename),
+        text=data.args.file_as_str,
+        input_data=d,
+    )
     r = LatticeUtil.find_first_command(res, "run_setup")
-    if r and r.lattice != 'Lattice':
-        return PKDict(state="needLattice", eleData=res)
+    if r and r.lattice != "Lattice":
+        return PKDict(importState="needLattice", eleData=res)
     if not d:
         res.models.simulation.name = data.args.purebasename
-    return res
+    return PKDict(imported_data=res)
 
 
 def validate_file(file_type, path):
