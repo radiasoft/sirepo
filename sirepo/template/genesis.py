@@ -148,16 +148,6 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError("unknown model={}".format(model))
 
 
-async def import_file(req, **kwargs):
-    text = req.form_file.as_str()
-    if not bool(re.search(r"\.in$", req.filename, re.IGNORECASE)):
-        raise AssertionError("invalid file extension, expecting .in")
-    res = sirepo.simulation_db.default_data(SIM_TYPE)
-    p = pkio.py_path(req.filename)
-    res.models.simulation.name = p.purebasename
-    return _parse_namelist(res, text, req)
-
-
 def parse_genesis_error(run_dir):
     return "\n".join(
         [
@@ -247,6 +237,17 @@ def sim_frame_finalParticleAnimation(frame_args):
 
 def sim_frame_particleAnimation(frame_args):
     return _particle_plot(frame_args, _PARTICLE_OUTPUT_FILENAME)
+
+
+def stateful_compute_import_file(data, **kwargs):
+    text = data.args.file_as_str
+    if data.args.ext_lower != ".in":
+        raise AssertionError(
+            "invalid file={data.args.basename} extension, expecting .in",
+        )
+    res = sirepo.simulation_db.default_data(SIM_TYPE)
+    res.models.simulation.name = data.args.purebasename
+    return PKDict(imported_data=_parse_namelist(res, text))
 
 
 def validate_file(file_type, path):
@@ -389,7 +390,7 @@ def _is_text_file(path):
         return False
 
 
-def _parse_namelist(data, text, req):
+def _parse_namelist(data, text):
     dm = data.models
     nls = template_common.NamelistParser().parse_text(text)
     if "newrun" not in nls:
@@ -411,7 +412,7 @@ def _parse_namelist(data, text, req):
             t = SCHEMA.model[m][f][1]
             if t == "InputFile":
                 if not _SIM_DATA.lib_file_exists(
-                    _SIM_DATA.lib_file_name_with_model_field(m, f, v), qcall=req.qcall
+                    _SIM_DATA.lib_file_name_with_model_field(m, f, v),
                 ):
                     missing_files.append(
                         PKDict(

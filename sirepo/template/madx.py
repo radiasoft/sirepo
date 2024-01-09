@@ -415,7 +415,7 @@ def stateful_compute_import_file(data, **kwargs):
             f"invalid file={data.args.basename}, expecting .madx or .seq"
         )
     d = madx_parser.parse_file(data.args.file_as_str, downcase_variables=True)
-    d.models.simulation.name = m.group(1)
+    d.models.simulation.name = data.args.purebasename
     return PKDict(imported_data=d)
 
 

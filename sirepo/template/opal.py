@@ -671,9 +671,7 @@ def sim_frame_plot2Animation(frame_args):
 def stateful_compute_import_file(data, **kwargs):
     from sirepo.template import opal_parser
 
-    name, ext = os.path.splitext(data.args.basename)
-    ext = ext.lower()
-    if ext == ".in":
+    if data.args.ext_lower == ".in":
         res, input_files = opal_parser.parse_file(
             data.args.file_as_str,
             filename=data.args.basename,
@@ -689,7 +687,7 @@ def stateful_compute_import_file(data, **kwargs):
             )
     elif ext == ".madx":
         res = OpalMadxConverter().from_madx_text(data.args.file_as_str)
-        res.models.simulation.name = name
+        res.models.simulation.name = data.args.purebasename
     else:
         raise IOError(
             f"invalid file={data.args.basename} extension, expecting .in or .madx"
