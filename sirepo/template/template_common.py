@@ -569,6 +569,22 @@ def parse_enums(enum_schema):
     return res
 
 
+def parse_log_file_for_errors(run_dir, log_filename, error_patterns):
+    res = ""
+    p = run_dir.join(log_filename)
+    if not p.exists():
+        return res
+    with pkio.open_text(p) as f:
+        for line in f:
+            for pattern in error_patterns:
+                m = re.search(pattern, line)
+            if m:
+                res += m.group(1) + "\n"
+    if res:
+        return res
+    return "An unknown error occurred"
+
+
 def parse_mpi_log(run_dir):
     e = None
     f = run_dir.join(sirepo.const.MPI_LOG)
