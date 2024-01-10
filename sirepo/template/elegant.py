@@ -4,9 +4,9 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
@@ -887,7 +887,9 @@ def stateful_compute_get_beam_input_type(data, **kwargs):
 
 
 def stateful_compute_import_file(data, **kwargs):
-    d = data.args.pkunchecked_nested_get("import_file_arguments.eleData")
+    d = data.args.pkunchecked_nested_get("import_file_arguments")
+    if d:
+        d = pkjson.load_any(d)
     res = parse_input_text(
         path=pkio.py_path(data.args.basename),
         text=data.args.file_as_str,

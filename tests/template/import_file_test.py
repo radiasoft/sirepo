@@ -6,13 +6,13 @@
 
 
 def test_importer(fc):
-    from pykern import pkio, pkunit
+    from pykern import pkio, pkjson, pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
     import re
 
     # set group_prefix when debugging a specific code, e.g. radia
-    for d in pkunit.case_dirs(group_prefix=""):
+    for d in pkunit.case_dirs(group_prefix="elegant-s"):
         m = re.search("^(.+?)-", d.basename)
         sim_type = m.group(1)
         fc.sr_get_root(sim_type)
@@ -29,7 +29,7 @@ def test_importer(fc):
                 "importFile",
                 PKDict(
                     folder="/importer_test",
-                    arguments=PKDict(eleData=res.eleData),
+                    arguments=pkjson.dump_pretty(res.eleData, pretty=False),
                 ),
                 PKDict(simulation_type=sim_type),
                 # NOTE: first file must be first

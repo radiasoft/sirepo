@@ -1045,7 +1045,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                     folder: fileManager.getActiveFolderPath(),
                 };
                 if ($scope.state == 'lattice') {
-                    args.arguments = {eleData: $scope.eleData};
+                    args.arguments = JSON.stringify($scope.eleData);
                 }
                 else {
                     $scope.resetState();

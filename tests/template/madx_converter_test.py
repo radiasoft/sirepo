@@ -38,7 +38,7 @@ def test_from_elegant_to_madx_and_back():
 
 
 def test_import_elegant_export_madx():
-    from pykern import pkunit, pkdebug
+    from pykern import pkunit, pkdebug, pkjson
     from pykern.pkcollections import PKDict
     from sirepo import srunit
     from sirepo.template import elegant
@@ -48,7 +48,7 @@ def test_import_elegant_export_madx():
     data = srunit.template_import_file(
         "elegant",
         "test1.lte",
-        arguments=PKDict(eleData=r.eleData),
+        arguments=pkjson.dump_pretty(r.eleData, pretty=False),
     ).imported_data
     pkdebug.pkdp(data.models.simulation)
     # this is updated from javascript unfortunately
