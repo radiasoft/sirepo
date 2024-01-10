@@ -83,10 +83,15 @@
             "presetTimePicker": ["", "PresetTimePicker", ""],
             "searchStartTime":["Start", "DateTimePicker", null],
             "searchStopTime":["Stop", "DateTimePicker", null],
-            "searchText": ["Search Text", "OptionalString", "", "Search across all columns by term.<br /><br />Phrases can be quoted, ex. \"canted mode\".<br /><br />Negations can be added to the search text by adding a minus (-) sign to the word, however negations must be included with another search term, ex. csx -flatfield.<br /><br />ex. csx \"canted mode\" pinhole -flatfield"],
+            "searchText": ["Search Text", "OptionalString", "", "Search across all text columns by term.<br /><br />Phrases can be quoted, ex. \"canted mode\".<br /><br />Negations can be added to the search text by adding a minus (-) sign to the word, however negations must be included with another search term, ex. csx -flatfield.<br /><br />ex. csx \"canted mode\" pinhole -flatfield<br /><br />Use the individual search fields below to search for a specific field value. Wildcards (*) may be used with individual field searches, ex. <b>owner</b> xf*"],
             "pageSize": ["Page Size", "Integer", 15],
             "scans": ["", "RunAnalysisTable", ""],
-            "confirmRunAnalysis": ["Hide this message for this session", "Boolean", "0"]
+            "confirmRunAnalysis": ["Hide this message for this session", "Boolean", "0"],
+            "searchTerms": ["", "SearchTerms", []]
+        },
+        "searchTerm": {
+            "column": ["Column", "ColumnList", ""],
+            "term": ["Search Term", "OptionalString", ""]
         },
         "simulation": {
             "catalogNamePicker": ["Catalog Name", "CatalogNamePicker", ""]
@@ -148,7 +153,8 @@
                 "searchStartTime",
                 "searchStopTime",
                 "presetTimePicker",
-                "searchText"
+                "searchText",
+                "searchTerms"
             ],
             "advanced": [
                 "pageSize"
