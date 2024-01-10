@@ -368,9 +368,24 @@ async def import_file(req, **kwargs):
 
 
 def post_execution_processing(success_exit, run_dir, **kwargs):
+    def _parse(f):
+        res = ""
+        for line in f:
+            if re.search(r"^\++ (error|warning):", line, re.IGNORECASE):
+                line = re.sub(r"^\++ ", "", line)
+                res += line + "\n"
+            elif re.search(r"^\+.*? fatal:", line, re.IGNORECASE):
+                line = re.sub(r"^.*? ", "", line)
+                res += line + "\n"
+        return res
+
     if success_exit:
         return None
-    return _parse_madx_log(run_dir)
+    return template_common.parse_log_file_for_errors(
+        run_dir,
+        MADX_LOG_FILE,
+        file_parser=_parse,
+    )
 
 
 def prepare_for_client(data, qcall, **kwargs):
@@ -976,22 +991,6 @@ def _output_info(run_dir):
     if res:
         res[0]["_version"] = _OUTPUT_INFO_VERSION
     simulation_db.write_json(info_file, res)
-    return res
-
-
-def _parse_madx_log(run_dir):
-    path = run_dir.join(MADX_LOG_FILE)
-    if not path.exists():
-        return ""
-    res = ""
-    with pkio.open_text(str(path)) as f:
-        for line in f:
-            if re.search(r"^\++ (error|warning):", line, re.IGNORECASE):
-                line = re.sub(r"^\++ ", "", line)
-                res += line + "\n"
-            elif re.search(r"^\+.*? fatal:", line, re.IGNORECASE):
-                line = re.sub(r"^.*? ", "", line)
-                res += line + "\n"
     return res
 
 

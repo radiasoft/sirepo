@@ -40,6 +40,8 @@ PARAMETERS_PYTHON_FILE = "parameters.py"
 #: stderr and stdout
 RUN_LOG = "run.log"
 
+_DEFAULT_ERROR_PATTERNS = r"Error: (.*)"
+
 _HISTOGRAM_BINS_MAX = 500
 
 _PLOT_LINE_COLOR = [
@@ -570,7 +572,10 @@ def parse_enums(enum_schema):
 
 
 def parse_log_file_for_errors(
-    run_dir, log_filename, error_patterns=(r"Error: (.*)"), file_parser=None
+    run_dir,
+    log_filename,
+    error_patterns=_DEFAULT_ERROR_PATTERNS,
+    file_parser=None,
 ):
     res = ""
     p = run_dir.join(log_filename)
