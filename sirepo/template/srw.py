@@ -2207,21 +2207,6 @@ def _machine_learning_percent_complete(run_dir, res):
     return res
 
 
-# def _parse_srw_log(run_dir):
-#     res = ""
-#     p = run_dir.join(template_common.RUN_LOG)
-#     if not p.exists():
-#         return res
-#     with pkio.open_text(p) as f:
-#         for line in f:
-#             m = re.search(r"Error: (.*)", line)
-#             if m:
-#                 res += m.group(1) + "\n"
-#     if res:
-#         return res
-#     return "An unknown error occurred"
-
-
 def _process_rsopt_elements(els):
     x = [e for e in els if e.enabled and e.enabled != "0"]
     names = []
