@@ -967,11 +967,8 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
     }
 
     function updateDetector() {
-        if ($scope.modelName == 'powerDensityReport') {
-            panelState.showTab($scope.modelName, 4, false);
-        }
-        if ($scope.modelName == 'coherentModesAnimation') {
-            panelState.showTab($scope.modelName, 5, false);
+        if ($scope.modelName == 'powerDensityReport' || $scope.modelName == 'coherentModesAnimation') {
+            panelState.showField($scope.modelName, 'useDetector', false);
         }
         const m = appState.models[modelKey];
         if (m.useDetector === '1') {
