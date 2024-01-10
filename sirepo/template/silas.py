@@ -64,9 +64,24 @@ def get_data_file(run_dir, model, frame, options):
 
 
 def post_execution_processing(success_exit, run_dir, **kwargs):
+    def _parse(f):
+        res = ""
+        for line in f:
+            m = re.search(r"^.*Error:\s+(.*)$", line)
+            if m:
+                err = m.group(1)
+                if re.search("Unable to evaluate function at point", err):
+                    return "Point evaulated outside of mesh boundary. Consider increasing Mesh Density or Boundary Tolerance."
+                res += err + "\n"
+        return res
+
     if success_exit:
         return None
-    return _parse_silas_log(run_dir)
+    return template_common.parse_log_file_for_errors(
+        run_dir,
+        template_common.RUN_LOG,
+        file_parser=_parse,
+    )
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -575,24 +590,6 @@ class _LaserPulsePlot(PKDict):
                 # Not asyncio.sleep: not in coroutine (job_cmd)
                 time.sleep(3)
         raise AssertionError("Report is unavailable")
-
-
-def _parse_silas_log(run_dir):
-    res = ""
-    path = run_dir.join(template_common.RUN_LOG)
-    if not path.exists():
-        return res
-    with pkio.open_text(str(path)) as f:
-        for line in f:
-            m = re.search(r"^.*Error:\s+(.*)$", line)
-            if m:
-                err = m.group(1)
-                if re.search("Unable to evaluate function at point", err):
-                    return "Point evaulated outside of mesh boundary. Consider increasing Mesh Density or Boundary Tolerance."
-                res += err + "\n"
-    if res:
-        return res
-    return "An unknown error occurred"
 
 
 def _convert_laser_pulse_units(laserPulse):

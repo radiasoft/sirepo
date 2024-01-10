@@ -569,7 +569,9 @@ def parse_enums(enum_schema):
     return res
 
 
-def parse_log_file_for_errors(run_dir, log_filename, error_patterns, file_parser=None):
+def parse_log_file_for_errors(
+    run_dir, log_filename, error_patterns=(r"Error: (.*)"), file_parser=None
+):
     res = ""
     p = run_dir.join(log_filename)
     if not p.exists():

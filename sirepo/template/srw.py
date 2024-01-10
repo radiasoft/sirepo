@@ -672,7 +672,6 @@ def post_execution_processing(
     return template_common.parse_log_file_for_errors(
         run_dir,
         template_common.RUN_LOG,
-        [r"Error: (.*)"]
     )
 
 

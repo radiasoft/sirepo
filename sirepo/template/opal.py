@@ -538,11 +538,8 @@ def read_frame_count(run_dir):
 
 
 def parse_opal_log(run_dir):
-    res = ""
-    p = run_dir.join((OPAL_OUTPUT_FILE))
-    if not p.exists():
-        return res
-    with pkio.open_text(p) as f:
+    def _parse(f):
+        res = ""
         visited = set()
         for line in f:
             if re.search(r"^Error.*?>\s*\w", line):
@@ -552,9 +549,13 @@ def parse_opal_log(run_dir):
                 if line and line not in visited:
                     res += line + "\n"
                     visited.add(line)
-    if res:
         return res
-    return "An unknown error occurred"
+
+    return template_common.parse_log_file_for_errors(
+        run_dir,
+        OPAL_OUTPUT_FILE,
+        file_parser=_parse,
+    )
 
 
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):

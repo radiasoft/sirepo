@@ -669,15 +669,13 @@ def _parse_run_log(run_dir):
             # ERROR: Cannot tally flux for an individual nuclide.
             m = re.match(r"^\s*Error:\s*(.*)$", line, re.IGNORECASE)
             if m:
-                res = m.group(1)
-                break
+                return m.group(1)
         return res
 
     res = template_common.parse_log_file_for_errors(
         run_dir,
         template_common.RUN_LOG,
-        [],
-        _parse,
+        file_parser=_parse,
     )
     if res == "An unknown error occurred":
         return res + ", check CloudMC log for details"
