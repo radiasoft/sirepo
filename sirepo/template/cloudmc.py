@@ -663,20 +663,25 @@ def _is_sbatch_run_mode(data):
 
 
 def _parse_run_log(run_dir):
-    res = ""
-    p = run_dir.join(template_common.RUN_LOG)
-    if not p.exists():
-        return res
-    with pkio.open_text(p) as f:
+    def _parse(f):
+        res = ""
         for line in f:
             # ERROR: Cannot tally flux for an individual nuclide.
             m = re.match(r"^\s*Error:\s*(.*)$", line, re.IGNORECASE)
             if m:
                 res = m.group(1)
                 break
-    if res:
         return res
-    return "An unknown error occurred, check CloudMC log for details"
+
+    res = template_common.parse_log_file_for_errors(
+        run_dir,
+        template_common.RUN_LOG,
+        [],
+        _parse,
+    )
+    if res == "An unknown error occurred":
+        return res + ", check CloudMC log for details"
+    return res
 
 
 def _statepoint_filename(data):
