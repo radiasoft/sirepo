@@ -4677,7 +4677,7 @@ SIREPO.app.service('plotToPNG', function() {
 
 });
 
-SIREPO.app.service('fileUpload', function(msgRouter) {
+SIREPO.app.service('fileUpload', function(authState, msgRouter) {
     this.uploadFileToUrl = function(file, args, uploadUrl, callback) {
         var fd = new FormData();
         fd.append('file', file);
@@ -4685,6 +4685,10 @@ SIREPO.app.service('fileUpload', function(msgRouter) {
             for (var k in args) {
                 fd.append(k, args[k]);
             }
+        }
+        if (file.size > authState.max_message_bytes) {
+            callback({error: `File of size=${file.size} bytes is greater than maximum allowable size=${authState.max_message_bytes} bytes`});
+            return;
         }
         //TODO(robnagler) formData needs to be handled properly
         msgRouter.send(uploadUrl, fd, {
@@ -4694,10 +4698,14 @@ SIREPO.app.service('fileUpload', function(msgRouter) {
             function(response) {
                 callback(response.data);
             },
-            function() {
-                //TODO(pjm): error handling
-                srlog('file upload failed');
-            });
+            function(response) {
+                callback(
+                    {
+                        error: `File upload failed due to server error (status=${response.status || 'unknown'})`
+                    }
+                );
+            },
+        );
     };
 });
 

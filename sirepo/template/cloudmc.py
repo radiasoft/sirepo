@@ -206,6 +206,7 @@ def sim_frame(frame_args):
         field_data=v.tolist(),
         min_field=v.min(),
         max_field=v.max(),
+        num_particles=frame_args.sim_in.models.settings.particles,
         summaryData=PKDict(
             tally=frame_args.tally,
             outlines=o[frame_args.tally] if frame_args.tally in o else {},
