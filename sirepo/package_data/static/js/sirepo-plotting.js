@@ -728,7 +728,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         getAspectRatio: function(modelName, json, defaultRatio) {
-            if (appState.isLoaded() && appState.applicationState()[modelName]) {
+            if (! json.aspectRatio && appState.isLoaded() && appState.applicationState()[modelName]) {
                 var ratioEnum = appState.applicationState()[modelName].aspectRatio;
                 if (ratioEnum) {
                     return parseFloat(ratioEnum);

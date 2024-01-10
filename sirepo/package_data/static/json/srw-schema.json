@@ -432,10 +432,10 @@
         }
     },
     "frameIdFields": {
-        "beamlineAnimation": ["characteristic", "polarization", "intensityPlotsWidth", "rotateAngle", "rotateReshape", "useIntensityLimits", "minIntensityLimit", "maxIntensityLimit", "usePlotRange", "horizontalSize", "verticalSize", "horizontalOffset", "verticalOffset", "useDetector", "d_rx", "d_nx", "d_x", "d_ry", "d_ny", "d_y"],
+        "beamlineAnimation": ["characteristic", "polarization", "intensityPlotsWidth", "rotateAngle", "rotateReshape", "useIntensityLimits", "minIntensityLimit", "maxIntensityLimit", "usePlotRange", "horizontalSize", "verticalSize", "horizontalOffset", "verticalOffset", "useDetector", "d_rx", "d_nx", "d_x", "d_ry", "d_ny", "d_y", "useDetectorAspectRatio"],
         "coherenceXAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"],
         "coherenceYAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"],
-        "coherentModesAnimation": ["characteristic", "polarization", "plotModesStart", "plotModesEnd", "intensityPlotsWidth", "rotateAngle", "rotateReshape", "useIntensityLimits", "minIntensityLimit", "maxIntensityLimit", "usePlotRange", "horizontalSize", "verticalSize", "horizontalOffset", "verticalOffset", "plotModesStart", "plotModesEnd", "useDetector", "d_rx", "d_nx", "d_x", "d_ry", "d_ny", "d_y"],
+        "coherentModesAnimation": ["characteristic", "polarization", "plotModesStart", "plotModesEnd", "intensityPlotsWidth", "rotateAngle", "rotateReshape", "useIntensityLimits", "minIntensityLimit", "maxIntensityLimit", "usePlotRange", "horizontalSize", "verticalSize", "horizontalOffset", "verticalOffset", "plotModesStart", "plotModesEnd", "useDetector", "d_rx", "d_nx", "d_x", "d_ry", "d_ny", "d_y", "useDetectorAspectRatio"],
         "fluxAnimation": [],
         "multiElectronAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"]
     },
@@ -486,6 +486,7 @@
             "d_y": ["Vertical Center Position [m]", "Float", 0],
             "d_ry": ["Vertical Detector Range [m]", "Float", 0.01],
             "d_ny": ["Vertical Pixel Count", "Integer", 1024],
+            "useDetectorAspectRatio": ["Use Detector Aspect Ratio", "Boolean", "0"],
             "notes": ["Notes", "Text", ""]
         },
         "aperture": {
@@ -1170,6 +1171,7 @@
                             "d_y"
                         ]]
                     ],
+                    "useDetectorAspectRatio",
                     "showPlotSize"
                 ]],
                 ["Other", [

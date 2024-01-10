@@ -974,11 +974,12 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
             panelState.showTab($scope.modelName, 5, false);
         }
         const m = appState.models[modelKey];
-        if (m.useDetector == '1') {
+        if (m.useDetector === '1') {
             m.usePlotRange = '0';
         }
-        panelState.showField($scope.modelName, 'intensityPlotsWidth', m.useDetector == '0');
-        panelState.showRow($scope.modelName, 'd_rx', m.useDetector == '1');
+        panelState.showField($scope.modelName, 'intensityPlotsWidth', m.useDetector === '0');
+        panelState.showField($scope.modelName, 'useDetectorAspectRatio', m.useDetector === '1');
+        panelState.showRow($scope.modelName, 'd_rx', m.useDetector === '1');
     }
 
     function updateIntensityLimit() {
