@@ -323,6 +323,7 @@ def background_percent_complete(report, run_dir, is_running):
             )
         else:
             error = _parse_zgoubi_log(run_dir)
+            pkdp("\n\n\n --error-- {}", error)
     res = PKDict(
         percentComplete=0,
         frameCount=0,
@@ -474,7 +475,9 @@ def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
     if not is_parallel:
-        return _parse_zgoubi_log(run_dir)
+        r = _parse_zgoubi_log(run_dir)
+        pkdp("\n\n\nr={}", r)
+        return r
     return None
 
 
