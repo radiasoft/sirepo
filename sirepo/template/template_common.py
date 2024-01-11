@@ -593,8 +593,6 @@ def parse_log_file_for_errors(
                     res += m.group(1) + "\n"
     if res:
         return res
-    # TODO (gurhar1133): default_msg can be used to
-    # convert parsers for zgoubi, epics and activait
     return default_msg
 
 

@@ -919,36 +919,48 @@ def _ipasses_for_data(col_names, rows):
 
 
 def _parse_zgoubi_log(run_dir):
-    path = run_dir.join(_ZGOUBI_LOG_FILE)
-    if not path.exists():
-        return ""
-    res = ""
-    element_by_num = PKDict()
-    text = pkio.read_text(str(path))
+    def _zgoubi_log_parser(f):
+        res = ""
+        element_by_num = PKDict()
+        for line in f:
+            match = re.search(r"^ (\'\w+\'.*?)\s+(\d+)$", line)
+            if match:
+                element_by_num[match.group(2)] = match.group(1)
+                continue
+            if re.search("all particles lost", line):
+                res += "{}\n".format(line)
+                continue
+            if re.search("charge found null", line):
+                res += "{}\n".format(line)
+            match = re.search(r"Enjob occured at element # (\d+)", line)
+            if match:
+                res += "{}\n".format(line)
+                num = match.group(1)
+                if num in element_by_num:
+                    res += "  element # {}: {}\n".format(num, element_by_num[num])
+        return res
 
-    for line in text.split("\n"):
-        match = re.search(r"^ (\'\w+\'.*?)\s+(\d+)$", line)
-        if match:
-            element_by_num[match.group(2)] = match.group(1)
-            continue
-        if re.search("all particles lost", line):
-            res += "{}\n".format(line)
-            continue
-        if re.search("charge found null", line):
-            res += "{}\n".format(line)
-        match = re.search(r"Enjob occured at element # (\d+)", line)
-        if match:
-            res += "{}\n".format(line)
-            num = match.group(1)
-            if num in element_by_num:
-                res += "  element # {}: {}\n".format(num, element_by_num[num])
-    path = run_dir.join(template_common.RUN_LOG)
-    if res == "" and path.exists():
-        text = pkio.read_text(str(path))
-        for line in text.split("\n"):
+    def _run_log_parser(f):
+        res = ""
+        for line in f:
             match = re.search(r"Fortran runtime error: (.*)", line)
             if match:
                 res += "{}\n".format(match.group(1))
+        return res
+
+    res = template_common.parse_log_file_for_errors(
+        run_dir,
+        _ZGOUBI_LOG_FILE,
+        default_msg="",
+        file_parser=_zgoubi_log_parser,
+    )
+    if res == "":
+        return template_common.parse_log_file_for_errors(
+            run_dir,
+            template_common.RUN_LOG,
+            default_msg="",
+            file_parser=_run_log_parser,
+        )
     return res
 
 

@@ -39,23 +39,13 @@ def analysis_job_read_epics_values(data, run_dir, **kwargs):
 
 
 def background_percent_complete(report, run_dir, is_running):
-    def _parse(f):
-        res = ""
-        for line in f:
-            m = re.match(
-                r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)", line
-            )
-            if m:
-                return m.group(1)
-        return res
-
     return PKDict(
         percentComplete=100,
         frameCount=0,
         alert=template_common.parse_log_file_for_errors(
             run_dir,
             template_common.RUN_LOG,
-            file_parser=_parse,
+            error_patterns=(r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)",),
             default_msg="",
         ),
         hasEpicsData=run_dir.join(_STATUS_FILE).exists(),
