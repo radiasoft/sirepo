@@ -113,11 +113,11 @@ def background_percent_complete(report, run_dir, is_running):
         res.error = error
     return res
 
-# TODO (gurhar1133): test this
+
 def _activait_log_parser(f):
     for line in f:
-        if re.search("AssertionError: Model training failed due to:", l):
-            return _range_error(l)
+        if re.search("AssertionError: Model training failed due to:", line):
+            return _range_error(line)
     return ""
 
 
