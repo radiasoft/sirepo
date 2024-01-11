@@ -576,6 +576,7 @@ def parse_log_file_for_errors(
     log_filename,
     error_patterns=_DEFAULT_ERROR_PATTERNS,
     file_parser=None,
+    default_msg="An unknown error occurred",
 ):
     res = ""
     p = run_dir.join(log_filename)
@@ -592,7 +593,9 @@ def parse_log_file_for_errors(
                     res += m.group(1) + "\n"
     if res:
         return res
-    return "An unknown error occurred"
+    # TODO (gurhar1133): default_msg can be used to
+    # convert parsers for zgoubi, epics and activait
+    return default_msg
 
 
 def parse_mpi_log(run_dir):
