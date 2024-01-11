@@ -590,6 +590,7 @@ def parse_log_file_for_errors(
                 for pattern in error_patterns:
                     m = re.search(pattern, line)
                 if m:
+                    pkdp("\n\n\n m.group(0)={}", m.group(0))
                     res += m.group(1) + "\n"
     if res:
         return res

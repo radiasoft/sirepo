@@ -103,22 +103,17 @@ def background_percent_complete(report, run_dir, is_running):
         max_frame = data.models.neuralNet.epochs
         res.frameCount = int(m.group(1)) + 1
         res.percentComplete = float(res.frameCount) * 100 / max_frame
-    error = template_common.parse_log_file_for_errors(
-        run_dir,
-        _LOG_FILE,
-        file_parser=_activait_log_parser,
-        default_msg="",
+    error = _range_error(
+        template_common.parse_log_file_for_errors(
+            run_dir,
+            _LOG_FILE,
+            error_patterns=(r"AssertionError: (Model training failed due to)",),
+            default_msg="",
+        )
     )
     if error:
         res.error = error
     return res
-
-
-def _activait_log_parser(f):
-    for line in f:
-        if re.search("AssertionError: Model training failed due to:", line):
-            return _range_error(line)
-    return ""
 
 
 def _range_error(error):
