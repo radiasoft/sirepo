@@ -103,14 +103,19 @@ def background_percent_complete(report, run_dir, is_running):
         max_frame = data.models.neuralNet.epochs
         res.frameCount = int(m.group(1)) + 1
         res.percentComplete = float(res.frameCount) * 100 / max_frame
-    error = _parse_activait_log_file(run_dir)
+    error = template_common.parse_log_file_for_errors(
+        run_dir,
+        _LOG_FILE,
+        file_parser=_activait_log_parser,
+        default_msg="",
+    )
     if error:
         res.error = error
     return res
 
-
-def _parse_activait_log_file(run_dir):
-    for l in pkio.read_text(run_dir.join(_LOG_FILE)).split("\n"):
+# TODO (gurhar1133): test this
+def _activait_log_parser(f):
+    for line in f:
         if re.search("AssertionError: Model training failed due to:", l):
             return _range_error(l)
     return ""
