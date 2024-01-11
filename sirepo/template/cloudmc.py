@@ -663,19 +663,11 @@ def _is_sbatch_run_mode(data):
 
 
 def _parse_run_log(run_dir):
-    def _parse(f):
-        res = ""
-        for line in f:
-            # ERROR: Cannot tally flux for an individual nuclide.
-            m = re.match(r"^\s*Error:\s*(.*)$", line, re.IGNORECASE)
-            if m:
-                return m.group(1)
-        return res
-
     res = template_common.parse_log_file_for_errors(
         run_dir,
         template_common.RUN_LOG,
-        file_parser=_parse,
+        # ERROR: Cannot tally flux for an individual nuclide.
+        error_patterns=(r"^\s*Error:\s*(.*)$", r"^\s*error:\s*(.*)$"),
     )
     if res == "An unknown error occurred":
         res += ", check CloudMC log for details"
