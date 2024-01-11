@@ -678,7 +678,7 @@ def _parse_run_log(run_dir):
         file_parser=_parse,
     )
     if res == "An unknown error occurred":
-        return res + ", check CloudMC log for details"
+        res += ", check CloudMC log for details"
     return res
 
 
