@@ -40,7 +40,7 @@ PARAMETERS_PYTHON_FILE = "parameters.py"
 #: stderr and stdout
 RUN_LOG = "run.log"
 
-_DEFAULT_ERROR_PATTERNS = (r"Error: (.*)")
+_DEFAULT_ERROR_PATTERNS = (r"Error: (.*)",)
 
 _HISTOGRAM_BINS_MAX = 500
 
