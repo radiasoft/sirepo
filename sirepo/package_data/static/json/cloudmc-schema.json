@@ -241,7 +241,8 @@
             "tally",
             "score",
             "aspect",
-            "energyRangeSum"
+            "energyRangeSum",
+            "numSampleSourceParticles"
         ]
     },
     "localRoutes": {

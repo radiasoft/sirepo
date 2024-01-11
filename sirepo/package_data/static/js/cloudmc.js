@@ -424,6 +424,14 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         );
     };
 
+    self.getMaxMeshExtent = () => {
+        let e = 0;
+        for (const r of self.getMeshRanges()) {
+            e = Math.max(e, Math.abs(r[1] - r[0]));
+        }
+        return e;
+    };
+
     self.getMeshRanges = () => {
         return SIREPO.GEOMETRY.GeometryUtils.BASIS().map(
             dim => SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim),
@@ -489,6 +497,19 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
 
     self.setSourceParticles = particles => {
         self.sourceParticles = particles;
+    };
+
+    self.sourceParticleMeanEnergy = () => {
+        let e = 0;
+        const p = self.getSourceParticles();
+        const n = p.length;
+        if (! n) {
+            return e;
+        }
+        for (const s of p) {
+            e += s.reduce((sum, x) => sum + x.energy, 0);
+        }
+        return e / (n * p[0].length);
     };
 
     self.tallyRange = (dim, useBinCenter=false) => {
@@ -755,10 +776,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 }
             );
 
-            function addSourceParticles() {
-                
-            }
-
             function buildTallyReport() {
                 if (! tallyService.mesh) {
                     return;
@@ -816,6 +833,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             function getOutlines(pos, range, dimIndex) {
                 const outlines = [];
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
+                const eMean = tallyService.sourceParticleMeanEnergy();
+                const sourceArrowLength = 0.1 * tallyService.getMaxMeshExtent();
                 for (const volId of cloudmcService.getNonGraveyardVolumes()) {
                     const v = cloudmcService.getVolumeById(volId);
                     if (! v.isVisibleWithTallies) {
@@ -838,14 +857,17 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         data: view.shapePoints(dim).map(p => p.toReversed()),
                         doClose: true,
                     });
-                    for (const p of tallyService.getParticlesForSource(i)) {
-                        srdbg(i, p);
-                        [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
-                        
-                        //outlines.push({
-                        //    name: `source-${p.particle}--${i}`,
-                        //});
-                    }
+                    tallyService.getParticlesForSource(i).forEach((p, n) => {
+                        const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
+                        const p1 = [p.position[j], p.position[k]];
+                        const r = sourceArrowLength * p.energy / eMean;
+                        const p2 = [p1[0] + r * p.direction[j], p1[1] + r * p.direction[k]];
+                        outlines.push({
+                            name: `source-${s.particle}-${i}-particle-${n}`,
+                            color: '#ff0000',
+                            data: [p1, p2],
+                        });
+                    });
                 });
                 return outlines;
             }

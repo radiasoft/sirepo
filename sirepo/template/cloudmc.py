@@ -168,6 +168,7 @@ def sim_frame(frame_args):
         if not num_samples:
             return []
         samples = []
+        #return [[]]
         # set up dummmy environment so the source sampling works
         with sim_run.tmp_dir() as d:
             os.environ["OPENMC_CROSS_SECTIONS"] = str(
@@ -181,6 +182,7 @@ def sim_frame(frame_args):
             settings.particles = 1
             settings.batches = 1
             for s in sources:
+                pkdp("SAMPLE {}", s)
                 particles = []
                 settings.source = [eval(_generate_source(s))]
                 settings.export_to_xml()
@@ -253,7 +255,7 @@ def sim_frame(frame_args):
             outlines=o[frame_args.tally] if frame_args.tally in o else {},
             sourceParticles=_sample_sources(
                 frame_args.sim_in.models.settings.sources,
-                frame_args.sim_in.models.openmcAnimation.numSampleSourceParticles,
+                frame_args.numSampleSourceParticles,
             ),
         ),
     )
@@ -562,7 +564,6 @@ def _generate_parameters_file(data, run_dir=None):
     v.sources = _generate_sources(data)
     v.tallies = _generate_tallies(data)
     v.hasGraveyard = _has_graveyard(data)
-    v.numSampleSources = data.models.openmcAnimation.numSourceParticles
     return template_common.render_jinja(
         SIM_TYPE,
         v,
