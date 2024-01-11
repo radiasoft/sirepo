@@ -164,17 +164,18 @@ def sim_frame(frame_args):
         import os
         from sirepo import sim_run
         from openmc import lib
+
         if not num_samples:
             return []
         samples = []
         # set up dummmy environment so the source sampling works
         with sim_run.tmp_dir() as d:
-            os.environ["OPENMC_CROSS_SECTIONS"] = str(_SIM_DATA.lib_file_abspath("cross_sections.xml"))
+            os.environ["OPENMC_CROSS_SECTIONS"] = str(
+                _SIM_DATA.lib_file_abspath("cross_sections.xml")
+            )
             openmc.Materials().export_to_xml()
             openmc.Geometry(
-                [openmc.Cell(
-                        region=-openmc.Sphere(r=1e9, boundary_type="vacuum")
-                    )]
+                [openmc.Cell(region=-openmc.Sphere(r=1e9, boundary_type="vacuum"))]
             ).export_to_xml()
             settings = openmc.Settings()
             settings.particles = 1
@@ -184,14 +185,19 @@ def sim_frame(frame_args):
                 settings.source = [eval(_generate_source(s))]
                 settings.export_to_xml()
                 openmc.lib.init(output=False)
-                samples.append([
-                    PKDict(
-                        direction=p.u,
-                        energy=p.E,
-                        position=p.r,
-                        type=p.particle,
-                    ) for p in openmc.lib.sample_external_source(n_samples=num_samples)
-                ])
+                samples.append(
+                    [
+                        PKDict(
+                            direction=p.u,
+                            energy=p.E,
+                            position=p.r,
+                            type=p.particle,
+                        )
+                        for p in openmc.lib.sample_external_source(
+                            n_samples=num_samples
+                        )
+                    ]
+                )
                 openmc.lib.finalize()
         return samples
 
@@ -247,7 +253,7 @@ def sim_frame(frame_args):
             outlines=o[frame_args.tally] if frame_args.tally in o else {},
             sourceParticles=_sample_sources(
                 frame_args.sim_in.models.settings.sources,
-                frame_args.sim_in.models.openmcAnimation.numSampleSourceParticles
+                frame_args.sim_in.models.openmcAnimation.numSampleSourceParticles,
             ),
         ),
     )
