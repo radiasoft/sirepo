@@ -160,6 +160,41 @@ def sim_frame(frame_args):
         f = [x for x in tallies if x.name == name]
         return f[0] if len(f) else None
 
+    def _sample_sources(sources, num_samples):
+        import os
+        from sirepo import sim_run
+        from openmc import lib
+        if not num_samples:
+            return []
+        samples = []
+        # set up dummmy environment so the source sampling works
+        with sim_run.tmp_dir() as d:
+            os.environ["OPENMC_CROSS_SECTIONS"] = str(_SIM_DATA.lib_file_abspath("cross_sections.xml"))
+            openmc.Materials().export_to_xml()
+            openmc.Geometry(
+                [openmc.Cell(
+                        region=-openmc.Sphere(r=1e9, boundary_type="vacuum")
+                    )]
+            ).export_to_xml()
+            settings = openmc.Settings()
+            settings.particles = 1
+            settings.batches = 1
+            for s in sources:
+                particles = []
+                settings.source = [eval(_generate_source(s))]
+                settings.export_to_xml()
+                openmc.lib.init(output=False)
+                samples.append([
+                    PKDict(
+                        direction=p.u,
+                        energy=p.E,
+                        position=p.r,
+                        type=p.particle,
+                    ) for p in openmc.lib.sample_external_source(n_samples=num_samples)
+                ])
+                openmc.lib.finalize()
+        return samples
+
     def _sum_energy_bins(values, mesh_filter, energy_filter, sum_range):
         f = (lambda x: x) if energy_filter.space == "linear" else numpy.log10
         bins = numpy.ceil(
@@ -210,6 +245,10 @@ def sim_frame(frame_args):
         summaryData=PKDict(
             tally=frame_args.tally,
             outlines=o[frame_args.tally] if frame_args.tally in o else {},
+            sourceParticles=_sample_sources(
+                frame_args.sim_in.models.settings.sources,
+                frame_args.sim_in.models.openmcAnimation.numSampleSourceParticles
+            ),
         ),
     )
 
@@ -517,6 +556,7 @@ def _generate_parameters_file(data, run_dir=None):
     v.sources = _generate_sources(data)
     v.tallies = _generate_tallies(data)
     v.hasGraveyard = _has_graveyard(data)
+    v.numSampleSources = data.models.openmcAnimation.numSourceParticles
     return template_common.render_jinja(
         SIM_TYPE,
         v,
