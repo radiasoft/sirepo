@@ -400,6 +400,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         minField: 0,
         maxField: 0,
         outlines: null,
+        sourceParticles: [],
     };
 
     function normalizer(score, numParticles) {
@@ -454,6 +455,8 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         return [];
     };
 
+    self.getSourceParticles = () => self.sourceParticles;
+
     self.initMesh = () => {
         const t = cloudmcService.findTally();
         for (let k = 1; k <= SIREPO.APP_SCHEMA.constants.maxFilters; k++) {
@@ -480,6 +483,10 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
                 [tally]: outlines,
             };
         }
+    };
+
+    self.setSourceParticles = particles => {
+        self.sourceParticles = particles;
     };
 
     self.tallyRange = (dim, useBinCenter=false) => {
@@ -701,6 +708,7 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                 if (summaryData.tally) {
                     tallyService.setOutlines(summaryData.tally, summaryData.outlines);
                 }
+                tallyService.setSourceParticles(summaryData.sourceParticles || []);
             });
 
         },
@@ -744,6 +752,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     },
                 }
             );
+
+            function addSourceParticles() {
+                
+            }
 
             function buildTallyReport() {
                 if (! tallyService.mesh) {
@@ -825,6 +837,13 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         doClose: true,
                     });
                 });
+                for (const s of tallyService.getSourceParticles()) {
+                    for (const p of s) {
+                        //outlines.push({
+                        //    name: `source-${p.particle}--${i}`,
+                        //});
+                    }
+                }
                 return outlines;
             }
 
@@ -2679,13 +2698,14 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
 
     $scope.watchFields = [
         [
-            'openmcAnimation.score',
             'openmcAnimation.aspect',
-            'openmcAnimation.energyRangeSum',
             'openmcAnimation.colorMap',
-            'openmcAnimation.threshold',
+            'openmcAnimation.energyRangeSum',
+            'openmcAnimation.numSampleSourceParticles',
             'openmcAnimation.opacity',
+            'openmcAnimation.score',
             'openmcAnimation.sourceNormalization',
+            'openmcAnimation.threshold',
         ], autoUpdate,
         ['openmcAnimation.tally'], validateTally,
         ['tallyReport.selectedGeometry', 'openmcAnimation.score'], showFields,
