@@ -85,6 +85,57 @@ class JobCmdFile(PKDict):
         )
 
 
+class LogParser:
+    def __init__(
+        self,
+        run_dir,
+        log_filename,
+        error_patterns=_DEFAULT_ERROR_PATTERNS,
+        multiline_error_pattern=r"^Traceback .*?^\w*Error: (.*?)\n",
+        default_msg="An unknown error occurred",
+    ):
+        self.run_dir = run_dir
+        self.log_filename = log_filename
+        self.error_patterns = error_patterns
+        self.multiline_error_pattern = multiline_error_pattern
+        self.default_msg = default_msg
+
+    def parse_log_file_for_errors(self):
+        res = ""
+        p = self.run_dir.join(self.log_filename)
+        if not p.exists():
+            return res
+        with pkio.open_text(p) as f:
+            res = self._parse_log(f, res)
+        if res:
+            return res
+        return self.default_msg
+
+    def parse_multiline(self):
+        e = None
+        f = self.run_dir.join(self.log_filename)
+        if f.exists():
+            m = re.search(
+                self.multiline_error_pattern,
+                pkio.read_text(f),
+                re.MULTILINE | re.DOTALL,
+            )
+            if m:
+                e = m.group(1)
+        return e
+
+    def _parse_log(self, file, result):
+        pkdp("\n\n\nself.error_patterns={}", self.error_patterns)
+        for line in file:
+            for pattern in self.error_patterns:
+                m = re.search(pattern, line)
+                pkdp("\n\n\n m={}", m)
+                if m:
+                    pkdp("\n\n\n m.group(1)={}", m.group(1))
+                    result += m.group(1) + "\n"
+        return result
+
+
 class ModelUnits:
     """Convert model fields from native to sirepo format, or from sirepo to native format.
 
@@ -569,57 +620,6 @@ def parse_enums(enum_schema):
         for v in enum_schema[k]:
             res[k][v[0]] = True
     return res
-
-
-class LogParser:
-    def __init__(
-        self,
-        run_dir,
-        log_filename,
-        error_patterns=_DEFAULT_ERROR_PATTERNS,
-        multiline_error_pattern=r"^Traceback .*?^\w*Error: (.*?)\n",
-        default_msg="An unknown error occurred",
-    ):
-        self.run_dir = run_dir
-        self.log_filename = log_filename
-        self.error_patterns = error_patterns
-        self.multiline_error_pattern = multiline_error_pattern
-        self.default_msg = default_msg
-
-    def parse_log_file_for_errors(self):
-        res = ""
-        p = self.run_dir.join(self.log_filename)
-        if not p.exists():
-            return res
-        with pkio.open_text(p) as f:
-            res = self._parse_log(f, res)
-        if res:
-            return res
-        return self.default_msg
-
-    def parse_multiline(self):
-        e = None
-        f = self.run_dir.join(self.log_filename)
-        if f.exists():
-            m = re.search(
-                self.multiline_error_pattern,
-                pkio.read_text(f),
-                re.MULTILINE | re.DOTALL,
-            )
-            if m:
-                e = m.group(1)
-        return e
-
-    def _parse_log(self, file, result):
-        pkdp("\n\n\nself.error_patterns={}", self.error_patterns)
-        for line in file:
-            for pattern in self.error_patterns:
-                m = re.search(pattern, line)
-                pkdp("\n\n\n m={}", m)
-                if m:
-                    pkdp("\n\n\n m.group(1)={}", m.group(1))
-                    result += m.group(1) + "\n"
-        return result
 
 
 def parse_mpi_log(run_dir):
