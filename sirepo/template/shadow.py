@@ -183,7 +183,6 @@ def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
         default_msg="",
     )
     res = p.parse_log_file_for_errors()
-    pkdp("\n\n\n res={}", res)
     if res:
         return "A mirror contains an invalid reflectivity material"
     p.error_patterns = error_patterns = (r"ValueError: (.*)?",)

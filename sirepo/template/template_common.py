@@ -125,13 +125,10 @@ class LogParser:
         return e
 
     def _parse_log(self, file, result):
-        pkdp("\n\n\nself.error_patterns={}", self.error_patterns)
         for line in file:
             for pattern in self.error_patterns:
                 m = re.search(pattern, line)
-                pkdp("\n\n\n m={}", m)
                 if m:
-                    pkdp("\n\n\n m.group(1)={}", m.group(1))
                     result += m.group(1) + "\n"
         return result
 
