@@ -56,6 +56,10 @@ class SimData(sirepo.sim_data.SimDataBase):
                 y = f._type
                 if y != "None":
                     cls.update_model_defaults(f, y)
+        if dm.geometryInput.dagmcFile == "utah_teapot.h5m":
+            # special handling for this example which now parses volume ids in a different order
+            if "iron" in dm.volumes:
+                dm.volumes.iron.volId = "2"
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
