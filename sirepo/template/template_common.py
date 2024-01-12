@@ -598,6 +598,9 @@ def parse_log_file_for_errors(
 
 
 def parse_mpi_log(run_dir):
+    # TODO (gurhar1133): when you make parse_log_file_for_errrors
+    # a class, make parse_mpi_log a function? maybe
+    # utilizing pkcli.job_cmd._parse_python_errors?
     e = None
     f = run_dir.join(sirepo.const.MPI_LOG)
     if f.exists():
