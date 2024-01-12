@@ -69,9 +69,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
             m = re.search(r"^.*Error:\s+(.*)$", line)
             if m:
                 err = m.group(1)
-                pkdp("\n\n\nerr ={}", err)
-                if re.search(r"Unable to evaluate function at point", err):
-                    pkdp("\n\n\n HIT \n\n\n")
+                if re.search("Unable to evaluate function at point", err):
                     return "Point evaulated outside of mesh boundary. Consider increasing Mesh Density or Boundary Tolerance."
                 result += err + "\n"
         return result
@@ -83,7 +81,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
         template_common.RUN_LOG,
     )
     p._parse_log = _parse
-    p.parse_log_file_for_errors()
+    return p.parse_log_file_for_errors()
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
