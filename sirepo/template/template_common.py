@@ -571,6 +571,39 @@ def parse_enums(enum_schema):
     return res
 
 
+class LogParser:
+    def __init__(
+        self,
+        run_dir,
+        log_filename,
+        error_patterns=_DEFAULT_ERROR_PATTERNS,
+        default_msg="An unknown error occured",
+    ):
+        self.run_dir = run_dir
+        self.log_filename = log_filename
+        self.error_patterns = error_patterns
+        self.default_msg = default_msg
+
+    def parse_log_file_for_errors(self):
+        res = ""
+        p = self.run_dir.join(self.log_filename)
+        if not p.exists():
+            return res
+        with pkio.open_text(p) as f:
+            self._parse_log(f, res)
+        if res:
+            return res
+        return self.default_msg
+
+    def _parse_log(self, file, result):
+        for line in file:
+            for pattern in self.error_patterns:
+                m = re.search(pattern, line)
+            if m:
+                result += m.group(1) + "\n"
+        return result
+
+
 def parse_log_file_for_errors(
     run_dir,
     log_filename,
