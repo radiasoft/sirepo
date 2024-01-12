@@ -174,22 +174,20 @@ def get_data_file(run_dir, model, frame, options):
 
 
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
-    def _parse(f):
-        res = ""
-        for line in f:
-            if re.search(r"invalid chemical formula", line):
-                return "A mirror contains an invalid reflectivity material"
-            m = re.search("ValueError: (.*)?", line)
-            if m:
-                return m.group(1)
-        return res
-
     if success_exit or is_parallel:
         return None
+    res = template_common.parse_log_file_for_errors(
+        run_dir,
+        template_common.RUN_LOG,
+        error_patterns=(r".*(invalid chemical formula)",),
+        default_msg="",
+    )
+    if res:
+        return "A mirror contains an invalid reflectivity material"
     return template_common.parse_log_file_for_errors(
         run_dir,
         template_common.RUN_LOG,
-        file_parser=_parse,
+        error_patterns=(r"ValueError: (.*)?",),
     )
 
 
