@@ -577,7 +577,7 @@ class LogParser:
         run_dir,
         log_filename,
         error_patterns=_DEFAULT_ERROR_PATTERNS,
-        default_msg="An unknown error occured",
+        default_msg="An unknown error occurred",
     ):
         self.run_dir = run_dir
         self.log_filename = log_filename
@@ -590,16 +590,18 @@ class LogParser:
         if not p.exists():
             return res
         with pkio.open_text(p) as f:
-            self._parse_log(f, res)
+            res = self._parse_log(f, res)
         if res:
             return res
         return self.default_msg
 
     def _parse_log(self, file, result):
+        pkdp("\n\n\nself.error_patterns={}", self.error_patterns)
         for line in file:
             for pattern in self.error_patterns:
                 m = re.search(pattern, line)
             if m:
+                pkdp("\n\n\n m.group(1)={}", m.group(1))
                 result += m.group(1) + "\n"
         return result
 
