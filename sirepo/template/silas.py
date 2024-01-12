@@ -64,24 +64,26 @@ def get_data_file(run_dir, model, frame, options):
 
 
 def post_execution_processing(success_exit, run_dir, **kwargs):
-    def _parse(f):
-        res = ""
-        for line in f:
+    def _parse(file, result):
+        for line in file:
             m = re.search(r"^.*Error:\s+(.*)$", line)
             if m:
                 err = m.group(1)
-                if re.search("Unable to evaluate function at point", err):
+                pkdp("\n\n\nerr ={}", err)
+                if re.search(r"Unable to evaluate function at point", err):
+                    pkdp("\n\n\n HIT \n\n\n")
                     return "Point evaulated outside of mesh boundary. Consider increasing Mesh Density or Boundary Tolerance."
-                res += err + "\n"
-        return res
+                result += err + "\n"
+        return result
 
     if success_exit:
         return None
-    return template_common.parse_log_file_for_errors(
+    p =  template_common.LogParser(
         run_dir,
         template_common.RUN_LOG,
-        file_parser=_parse,
     )
+    p._parse_log = _parse
+    p.parse_log_file_for_errors()
 
 
 def python_source_for_model(data, model, qcall, **kwargs):

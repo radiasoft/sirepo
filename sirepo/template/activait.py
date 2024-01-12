@@ -104,12 +104,12 @@ def background_percent_complete(report, run_dir, is_running):
         res.frameCount = int(m.group(1)) + 1
         res.percentComplete = float(res.frameCount) * 100 / max_frame
     error = _range_error(
-        template_common.parse_log_file_for_errors(
+        template_common.LogParser(
             run_dir,
             _LOG_FILE,
-            error_patterns=(r"AssertionError: (Model training failed due to)",),
+            error_patterns=(r"AssertionError: (Model training failed due to .*)",),
             default_msg="",
-        )
+        ).parse_log_file_for_errors()
     )
     if error:
         res.error = error
