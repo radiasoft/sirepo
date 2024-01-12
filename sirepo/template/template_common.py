@@ -577,11 +577,13 @@ class LogParser:
         run_dir,
         log_filename,
         error_patterns=_DEFAULT_ERROR_PATTERNS,
+        multiline_error_pattern=r"^Traceback .*?^\w*Error: (.*?)\n",
         default_msg="An unknown error occurred",
     ):
         self.run_dir = run_dir
         self.log_filename = log_filename
         self.error_patterns = error_patterns
+        self.multiline_error_pattern = multiline_error_pattern
         self.default_msg = default_msg
 
     def parse_log_file_for_errors(self):
@@ -594,6 +596,19 @@ class LogParser:
         if res:
             return res
         return self.default_msg
+
+    def parse_multiline(self):
+        e = None
+        f = self.run_dir.join(self.log_filename)
+        if f.exists():
+            m = re.search(
+                self.multiline_error_pattern,
+                pkio.read_text(f),
+                re.MULTILINE | re.DOTALL,
+            )
+            if m:
+                e = m.group(1)
+        return e
 
     def _parse_log(self, file, result):
         pkdp("\n\n\nself.error_patterns={}", self.error_patterns)
@@ -608,20 +623,7 @@ class LogParser:
 
 
 def parse_mpi_log(run_dir):
-    # TODO (gurhar1133): when you make parse_log_file_for_errrors
-    # a class, make parse_mpi_log a function? maybe
-    # utilizing pkcli.job_cmd._parse_python_errors?
-    e = None
-    f = run_dir.join(sirepo.const.MPI_LOG)
-    if f.exists():
-        m = re.search(
-            r"^Traceback .*?^\w*Error: (.*?)\n",
-            pkio.read_text(f),
-            re.MULTILINE | re.DOTALL,
-        )
-        if m:
-            e = m.group(1)
-    return e
+    return LogParser(run_dir, sirepo.const.MPI_LOG).parse_multiline()
 
 
 def read_dict_from_h5(file_path, h5_path=None):
