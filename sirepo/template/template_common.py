@@ -600,36 +600,11 @@ class LogParser:
         for line in file:
             for pattern in self.error_patterns:
                 m = re.search(pattern, line)
-            if m:
-                pkdp("\n\n\n m.group(1)={}", m.group(1))
-                result += m.group(1) + "\n"
-        return result
-
-
-def parse_log_file_for_errors(
-    run_dir,
-    log_filename,
-    error_patterns=_DEFAULT_ERROR_PATTERNS,
-    file_parser=None,
-    default_msg="An unknown error occurred",
-):
-    res = ""
-    p = run_dir.join(log_filename)
-    if not p.exists():
-        return res
-    with pkio.open_text(p) as f:
-        if file_parser:
-            res = file_parser(f)
-        else:
-            for line in f:
-                for pattern in error_patterns:
-                    m = re.search(pattern, line)
+                pkdp("\n\n\n m={}", m)
                 if m:
-                    pkdp("\n\n\n m.group(0)={}", m.group(0))
-                    res += m.group(1) + "\n"
-    if res:
-        return res
-    return default_msg
+                    pkdp("\n\n\n m.group(1)={}", m.group(1))
+                    result += m.group(1) + "\n"
+        return result
 
 
 def parse_mpi_log(run_dir):

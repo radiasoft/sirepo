@@ -538,24 +538,21 @@ def read_frame_count(run_dir):
 
 
 def parse_opal_log(run_dir):
-    def _parse(f):
-        res = ""
+    def _parse(file, result):
         visited = set()
-        for line in f:
+        for line in file:
             if re.search(r"^Error.*?>\s*\w", line):
                 line = re.sub(r"Error.*?>\s*", "", line.rstrip()).rstrip()
                 if re.search(r"1DPROFILE1-DEFAULT", line):
                     continue
                 if line and line not in visited:
-                    res += line + "\n"
+                    result += line + "\n"
                     visited.add(line)
-        return res
+        return result
 
-    return template_common.parse_log_file_for_errors(
-        run_dir,
-        OPAL_OUTPUT_FILE,
-        file_parser=_parse,
-    )
+    p = template_common.LogParser(run_dir, OPAL_OUTPUT_FILE)
+    p._parse_log = _parse
+    return p.parse_log_file_for_errors()
 
 
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):

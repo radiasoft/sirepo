@@ -368,24 +368,21 @@ async def import_file(req, **kwargs):
 
 
 def post_execution_processing(success_exit, run_dir, **kwargs):
-    def _parse(f):
-        res = ""
-        for line in f:
+    def _parse(file, result):
+        for line in file:
             if re.search(r"^\++ (error|warning):", line, re.IGNORECASE):
                 line = re.sub(r"^\++ ", "", line)
-                res += line + "\n"
+                result += line + "\n"
             elif re.search(r"^\+.*? fatal:", line, re.IGNORECASE):
                 line = re.sub(r"^.*? ", "", line)
-                res += line + "\n"
-        return res
+                result += line + "\n"
+        return result
 
     if success_exit:
         return None
-    return template_common.parse_log_file_for_errors(
-        run_dir,
-        MADX_LOG_FILE,
-        file_parser=_parse,
-    )
+    p = template_common.LogParser(run_dir, MADX_LOG_FILE)
+    p._parse_log = _parse
+    return p.parse_log_file_for_errors()
 
 
 def prepare_for_client(data, qcall, **kwargs):

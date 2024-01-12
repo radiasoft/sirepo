@@ -919,49 +919,41 @@ def _ipasses_for_data(col_names, rows):
 
 
 def _parse_zgoubi_log(run_dir):
-    def _zgoubi_log_parser(f):
-        res = ""
+    def _zgoubi_log_parser(file, result):
         element_by_num = PKDict()
-        for line in f:
+        for line in file:
             match = re.search(r"^ (\'\w+\'.*?)\s+(\d+)$", line)
             if match:
                 element_by_num[match.group(2)] = match.group(1)
                 continue
             if re.search("all particles lost", line):
-                res += "{}\n".format(line)
+                result += "{}\n".format(line)
                 continue
             if re.search("charge found null", line):
-                res += "{}\n".format(line)
+                result += "{}\n".format(line)
             match = re.search(r"Enjob occured at element # (\d+)", line)
             if match:
-                res += "{}\n".format(line)
+                result += "{}\n".format(line)
                 num = match.group(1)
                 if num in element_by_num:
-                    res += "  element # {}: {}\n".format(num, element_by_num[num])
-        return res
+                    result += "  element # {}: {}\n".format(num, element_by_num[num])
+        return result
 
-    def _run_log_parser(f):
-        res = ""
-        for line in f:
-            match = re.search(r"Fortran runtime error: (.*)", line)
-            if match:
-                res += "{}\n".format(match.group(1))
-        return res
-
-    res = template_common.parse_log_file_for_errors(
+    p = template_common.LogParser(
         run_dir,
         _ZGOUBI_LOG_FILE,
         default_msg="",
-        file_parser=_zgoubi_log_parser,
     )
-    if res == "":
-        return template_common.parse_log_file_for_errors(
-            run_dir,
-            template_common.RUN_LOG,
-            default_msg="",
-            file_parser=_run_log_parser,
-        )
-    return res
+    p._parse_log = _zgoubi_log_parser
+    res = p.parse_log_file_for_errors()
+    if res != "":
+        return res
+    return template_common.LogParser(
+        run_dir,
+        template_common.RUN_LOG,
+        error_patterns=(r"Fortran runtime error: (.*)",),
+        default_msg="",
+    ).parse_log_file_for_errors()
 
 
 def _particle_count(data):

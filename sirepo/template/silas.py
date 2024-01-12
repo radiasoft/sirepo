@@ -76,7 +76,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
 
     if success_exit:
         return None
-    p =  template_common.LogParser(
+    p = template_common.LogParser(
         run_dir,
         template_common.RUN_LOG,
     )
