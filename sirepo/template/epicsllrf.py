@@ -42,12 +42,12 @@ def background_percent_complete(report, run_dir, is_running):
     return PKDict(
         percentComplete=100,
         frameCount=0,
-        alert=template_common.parse_log_file_for_errors(
+        alert=template_common.LogParser(
             run_dir,
             template_common.RUN_LOG,
             error_patterns=(r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)",),
             default_msg="",
-        ),
+        ).parse_log_file_for_errors(),
         hasEpicsData=run_dir.join(_STATUS_FILE).exists(),
     )
 
