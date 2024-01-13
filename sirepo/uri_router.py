@@ -259,7 +259,8 @@ def start_tornado(ip, port, debug):
         def parse_msg(self, msg):
             import msgpack
 
-            assert isinstance(msg, bytes), f"incoming msg type={type(msg)}"
+            if not isinstance(msg, bytes):
+                raise AssertionError(f"incoming msg type={type(msg)}")
             u = msgpack.Unpacker(
                 max_buffer_size=sirepo.job.cfg().max_message_bytes,
                 object_pairs_hook=pkcollections.object_pairs_hook,
@@ -272,14 +273,11 @@ def start_tornado(ip, port, debug):
                 self.header.get("reqSeq"),
                 self.header.get("uri"),
             )
-            assert (
-                sirepo.const.SCHEMA_COMMON.websocketMsg.version == self.header.version
-            ), f"invalid header.version={self.header.version}"
+            if sirepo.const.SCHEMA_COMMON.websocketMsg.version != self.header.get("version"):
+		raise AssertionError(f"invalid header.version={self.header.get("version")}")
             # Ensures protocol conforms for all requests
-            assert (
-                sirepo.const.SCHEMA_COMMON.websocketMsg.kind.httpRequest
-                == self.header.kind
-            ), f"invalid header.kind={self.header.kind}"
+            if sirepo.const.SCHEMA_COMMON.websocketMsg.kind.httpRequest != self.header.get("kind"):
+                raise AssertionError(f"invalid header.kind={self.header.get("kind")}")
             self.req_seq = self.header.reqSeq
             self.uri = self.header.uri
             if u.tell() < len(msg):
