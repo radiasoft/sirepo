@@ -31,15 +31,6 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
             raise sirepo.tornado.error_not_found()
         self.write(pkio.read_binary(p))
 
-    async def post(self, unused_arg):
-        r = pkjson.load_any(self.request.body)
-        a = r.get("args")
-        a.path = self.__authenticated_path()
-        if not a or not isinstance(a, PKDict):
-            self.write({state: "error", error: "missing args in post"})
-            return
-        self.write(getattr(self, r.get("method", "missing_method"))(r.get("args"))
-
     def put(self, unused_arg):
         self.__authenticated_path().write_binary(self.request.body)
 
@@ -55,6 +46,3 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
             path=m.group(1),
             expect_uid=u,
         )
-
-    def _post_missing_method(self, args):
-        return PKDict({state: "error", error: "missing method in post"})

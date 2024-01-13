@@ -324,7 +324,7 @@ class _Dispatcher(PKDict):
                 )
                 and msg.jobCmd != "fastcgi"
             ):
-                return await self._fastcgi_op(pkdp(msg))
+                return await self._fastcgi_op(msg)
             p = self._get_cmd_type(msg)(
                 msg=msg, dispatcher=self, op_id=msg.opId, **kwargs
             )
@@ -443,7 +443,7 @@ class _Cmd(PKDict):
             pkio.mkdir_parent(self.run_dir)
         self._lib_file_uri = self.msg.get("libFileUri", "")
         self._lib_file_list_f = ""
-        if pkdp(self._lib_file_uri):
+        if self._lib_file_uri:
             f = self.run_dir.join("sirepo-lib-file-list.txt")
             pkio.write_text(f, "\n".join(self.msg.libFileList))
             self._lib_file_list_f = str(f)
