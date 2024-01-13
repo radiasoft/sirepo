@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
 """test simulation_db operations
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import pytest
 
 
 def test_last_modified(fc):
@@ -44,13 +41,13 @@ def test_uid():
 
     qcall = None
 
-    def _do(path, uid, expect=True):
+    def _do(uri, uid, expect=True):
         if expect:
             with pkexcept(AssertionError):
-                simulation_db.sim_db_file_uri_to_path(path, expect_uid=uid)
+                simulation_db.sim_db_file_uri_to_path(uri=uri, expect_uid=uid)
         else:
-            p = simulation_db.sim_db_file_uri_to_path(path, expect_uid=uid)
-            pkre(path + "$", str(p))
+            p = simulation_db.sim_db_file_uri_to_path(uri=uri, expect_uid=uid)
+            pkre(uri + "$", str(p))
 
     _do(
         "xxx/elegant/RrCoL7rQ/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
