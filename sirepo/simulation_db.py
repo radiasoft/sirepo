@@ -698,22 +698,49 @@ def sim_data_file(sim_type, sim_id, qcall=None):
     return simulation_dir(sim_type, sim_id, qcall=qcall).join(SIMULATION_DATA_FILE)
 
 
-def sim_db_file_uri(simulation_type, sid, basename):
+def sim_db_file_uri(sim_type, sid_or_lib, basename):
+    """Generate relative URI for path
+
+    Args:
+        sim_type (str): which code
+        sid_or_lib (str): simulation id. if None or `_LIB_DIR`, is library file
+        basename (str): file name with extension
+
+    Returns:
+        str: uri to be passed to sim_db_file functions
+    """
+
+    def _sid_or_lib():
+        return (
+            _LIB_DIR
+            if sid_or_lib is None or sid_or_lib == _LIB_DIR
+            else assert_sid(sid_or_lib)
+        )
+
     return "/".join(
         [
-            sirepo.template.assert_sim_type(simulation_type),
-            assert_sid(sid),
+            sirepo.template.assert_sim_type(sim_type),
+            _sid_or_lib(),
             assert_sim_db_file_path(basename),
         ]
     )
 
 
-def sim_db_file_uri_to_path(path, expect_uid):
-    p = path.split("/")
-    assert len(p) == 4, f"path={p} has too many parts"
+def sim_db_file_uri_to_path(uri, expect_uid):
+    """Generate absolute path for `uri`
+
+    Args:
+        uri (str): three component relative uri, e.g. srw/sid123/sirepo-data.json
+        except_uid (str): which user should be asserted
+    Returns:
+        py.path: absolute path to file (which may not exist)
+    """
+    p = uri.split("/")
+    assert len(p) == 4, f"uri={p} has too many parts"
     assert p[0] == expect_uid, f"uid={p[0]} is not expect_uid={expect_uid}"
     sirepo.template.assert_sim_type(p[1]),
-    assert_sid(p[2]),
+    if p[2] != _LIB:
+        assert_sid(p[2]),
     assert_sim_db_file_path(p[3]),
     return user_path_root().join(*p)
 
