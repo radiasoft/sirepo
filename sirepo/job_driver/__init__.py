@@ -152,7 +152,7 @@ class DriverBase(PKDict):
                         job.LIB_FILE_URI,
                         op.lib_dir_symlink.basename,
                     ),
-                    libFileList=[f.basename for f in d.listdir()],
+                    libFileList=pkdp([f.basename for f in d.listdir()]),
                 )
 
     def op_is_untimed(self, op):

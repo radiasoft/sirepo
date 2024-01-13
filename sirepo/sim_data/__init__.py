@@ -701,6 +701,12 @@ class SimDataBase(object):
         return int(m.group(1))
 
     @classmethod
+    def _assert_agent_side(cls):
+        assert (
+            _cfg.lib_file_uri
+        ), f"method={pkinspect.caller()} may only be called on the agent"
+
+    @classmethod
     def _assert_server_side(cls):
         assert (
             not _cfg.lib_file_uri
@@ -792,7 +798,7 @@ class SimDataBase(object):
         """
         if _cfg.lib_file_uri:
             # In agent
-            if basename in _cfg.lib_file_list:
+            if basename in cls._lib_file_list_user_dir_only():
                 if exists_only:
                     return True
                 # User generated lib file
@@ -853,6 +859,11 @@ class SimDataBase(object):
                 )
             )
         return res.values()
+
+    @classmethod
+    def _lib_file_list_user_dir_only(cls):
+        cls._assert_agent_side()
+        return pkdp(pkio.read_text(_cfg.lib_file_list).splitlines())
 
     @classmethod
     def _memoize(cls, value):
@@ -964,6 +975,13 @@ class SimDbFileNotFound(Exception):
     pass
 
 
+def _cfg_lib_file_list(value):
+    res = pkio.py_path(value)
+    if not res.check(file=1):
+        pkconfig.raise_error(f"{value} does not exist")
+    return res
+
+
 def _request(method, uri, data=None):
     r = sirepo.agent_supervisor_api.request(
         method, uri, _cfg.supervisor_sim_db_file_token, data=data
@@ -977,7 +995,7 @@ _cfg = pkconfig.init(
     lib_file_resource_only=(False, bool, "used by utility programs"),
     lib_file_list=(
         None,
-        lambda v: pkio.read_text(v).splitlines(),
+        _cfg_lib_file_list,
         "directory listing of remote lib",
     ),
     lib_file_uri=(None, str, "where to get files from when remote"),

@@ -1,4 +1,4 @@
-"""PyTest for :mod:`sirepo.template.zgoubi_importer`
+"""Basic api_importFile test for all codes
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html

@@ -21,17 +21,26 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
     _TOKEN_TO_UID = PKDict()
     _UID_TO_TOKEN = PKDict()
 
-    def delete(self, path):
+    def delete(self, unused_arg):
         for f in pkio.sorted_glob(f"{self.__authenticated_path()}*"):
             pkio.unchecked_remove(f)
 
-    def get(self, path):
+    def get(self, unused_arg):
         p = self.__authenticated_path()
         if not p.exists():
             raise sirepo.tornado.error_not_found()
         self.write(pkio.read_binary(p))
 
-    def put(self, path):
+    async def post(self, unused_arg):
+        r = pkjson.load_any(self.request.body)
+        a = r.get("args")
+        a.path = self.__authenticated_path()
+        if not a or not isinstance(a, PKDict):
+            self.write({state: "error", error: "missing args in post"})
+            return
+        self.write(getattr(self, r.get("method", "missing_method"))(r.get("args"))
+
+    def put(self, unused_arg):
         self.__authenticated_path().write_binary(self.request.body)
 
     def __authenticated_path(self):
@@ -46,3 +55,6 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
             path=m.group(1),
             expect_uid=u,
         )
+
+    def _post_missing_method(self, args):
+        return PKDict({state: "error", error: "missing method in post"})
