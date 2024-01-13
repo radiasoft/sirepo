@@ -664,7 +664,7 @@ class SimDataBase(object):
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
         for b in cls.sim_file_basenames(data):
-            cls._sim_file_to_run_dir(
+            cls._sim_db_file_get(
                 data.models.simulation.simulationId,
                 b.basename,
                 run_dir,
@@ -703,13 +703,13 @@ class SimDataBase(object):
     @classmethod
     def _assert_agent_side(cls):
         assert (
-            _cfg.lib_file_uri
+            _cfg.supervisor_sim_db_file_token
         ), f"method={pkinspect.caller()} may only be called on the agent"
 
     @classmethod
     def _assert_server_side(cls):
         assert (
-            not _cfg.lib_file_uri
+            not _cfg.supervisor_sim_db_file_token
         ), f"method={pkinspect.caller()} may only be called on server"
 
     @classmethod
@@ -783,7 +783,7 @@ class SimDataBase(object):
     ):
         """Absolute path of lib file
 
-        On agent (`cfg.lib_file_uri`) downloads file unless `exists_only`.
+        On agent (`cfg.supervisor_sim_db_file_uri`) downloads file unless `exists_only`.
 
         For utilities (`cfg.lib_file_resource_only`) only checks
         resources (not user library).
@@ -796,17 +796,17 @@ class SimDataBase(object):
         Returns:
             object: bool if `exists_only` else py.path
         """
-        if _cfg.lib_file_uri:
-            # In agent
-            if basename in cls._lib_file_list_user_dir_only():
-                if exists_only:
+        if _cfg.supervisor_sim_db_file_token:
+            # In agent, trying to find non-resource lib file
+            if exists_only:
+                if cls._sim_db_file_exists(_LIB_RESOURCE_DIR, basename):
                     return True
-                # User generated lib file
-                p = pkio.py_path(basename)
-                r = _request("GET", _cfg.lib_file_uri + basename)
-                r.raise_for_status()
-                p.write_binary(r.content)
-                return p
+            else:
+                try:
+                    return cls._sim_db_file_get(_LIB_RESOURCE_DIR, basename, pkio.py_path())
+                except SimDbFileNotFound:
+                    # try to find below
+                    pass
         elif not _cfg.lib_file_resource_only:
             from sirepo import simulation_db
 
@@ -941,30 +941,45 @@ class SimDataBase(object):
         return []
 
     @classmethod
-    def _sim_db_file_to_run_dir(cls, uri, run_dir, is_exe=False):
-        p = run_dir.join(uri.split("/")[-1])
+    def _sim_db_file_exists(cls, sid_or_lib, basename):
+        u = cls._sim_file_uri(sid_or_lib, basename)
+        r = cls._sim_db_file_post(
+            method="exists",
+            uri=u,
+            args=PKDict(),
+        )
+        if r.get("status") != "ok":
+            raise AssertionError("expected status=ok reply={} uri={}", r, u)
+        return r.result
+
+    @classmethod
+    def _sim_db_file_get(cls, sid_or_lib, basename, dest_dir, is_exe=False):
+        u = cls._sim_file_uri(sid_or_lib, basename),
         r = _request("GET", _cfg.supervisor_sim_db_file_uri + uri)
         r.raise_for_status()
+        p = dest_dir.join(uri.split("/")[-1])
         p.write_binary(r.content)
         if is_exe:
             p.chmod(cls._EXE_PERMISSIONS)
         return p
 
     @classmethod
-    def _sim_file_to_run_dir(cls, sim_id, basename, run_dir, is_exe=False):
-        return cls._sim_db_file_to_run_dir(
-            cls._sim_file_uri(sim_id, basename),
-            run_dir,
-            is_exe=is_exe,
+    def _sim_db_file_post(cls, method, uri, args):
+        r = _request(
+            "POST",nnn
+            _cfg.supervisor_sim_db_file_uri + uri,
+            data=PKDict(method=method, args=args),
         )
+        r.raise_for_status()
+        return r
 
     @classmethod
-    def _sim_file_uri(cls, sim_id, basename):
+    def _sim_file_uri(cls, sid_or_lib, basename):
         from sirepo import simulation_db
 
         return simulation_db.sim_db_file_uri(
             cls.sim_type(),
-            sim_id,
+            sid_or_lib,
             basename,
         )
 
@@ -993,12 +1008,6 @@ def _request(method, uri, data=None):
 
 _cfg = pkconfig.init(
     lib_file_resource_only=(False, bool, "used by utility programs"),
-    lib_file_list=(
-        None,
-        _cfg_lib_file_list,
-        "directory listing of remote lib",
-    ),
-    lib_file_uri=(None, str, "where to get files from when remote"),
     supervisor_sim_db_file_uri=(
         None,
         str,
