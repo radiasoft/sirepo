@@ -6,7 +6,7 @@
 """
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog
+from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import re
 import sirepo.agent_supervisor_api
 import sirepo.job
@@ -22,7 +22,10 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
     _UID_TO_TOKEN = PKDict()
 
     def delete(self, unused_arg):
+        # TODO(robnagler) This is too coarse change to a POST
         for f in pkio.sorted_glob(f"{self.__authenticated_path()}*"):
+            if not f.check(file=True):
+                raise sirepo.tornado.error_forbidden()
             pkio.unchecked_remove(f)
 
     def get(self, unused_arg):
@@ -30,6 +33,27 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
         if not p.exists():
             raise sirepo.tornado.error_not_found()
         self.write(pkio.read_binary(p))
+
+    async def post(self, unused_arg):
+        try:
+            r = pkjson.load_any(self.request.body)
+            a = r.get("args")
+            if not a or not isinstance(a, PKDict):
+                raise AssertionError("missing post args")
+            a.path = self.__authenticated_path()
+            self.write(("_post_" + getattr(self, r.get("method", "missing_method")))(a))
+        except Exception as e:
+            pkdlog(
+                "uri={} body={} exception={} stack={}",
+                self.request.path,
+                self.request.body,
+                e,
+                pkdexc(),
+            )
+            try:
+                self.write({state: "error"})
+            except Exception:
+                pass
 
     def put(self, unused_arg):
         self.__authenticated_path().write_binary(self.request.body)
@@ -43,6 +67,12 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
             )
             raise sirepo.tornado.error_forbidden()
         return sirepo.simulation_db.sim_db_file_uri_to_path(
-            path=m.group(1),
+            uri=m.group(1),
             expect_uid=u,
         )
+
+    def _post_exists(self, args):
+        return PKDict({state: "ok", result=args.path.check(file=True)})
+
+    def _post_missing_method(self, args):
+        raise AssertionError("missing method args={}", args)
