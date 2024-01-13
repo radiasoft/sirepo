@@ -372,7 +372,7 @@ class _SReply(sirepo.quest.Attr):
             c = a.content_type
             if self._mime_type_is_utf8(c):
                 c += '; charset="utf8"'
-            r.set_header("Content-Type", c)
+            resp.set_header("Content-Type", c)
 
         def _cookie(resp):
             # TODO(robnagler) http.cookies 3.8 introduced samesite and blows up otherwise.
