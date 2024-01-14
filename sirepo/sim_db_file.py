@@ -23,9 +23,13 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
 
     def delete(self, unused_arg):
         # TODO(robnagler) This is too coarse change to a POST
+        t = []
         for f in pkio.sorted_glob(f"{self.__authenticated_path()}*"):
             if not f.check(file=True):
+                pkdlog("path={} is a directory", f)
                 raise sirepo.tornado.error_forbidden()
+            t.append(f)
+        for f in t:
             pkio.unchecked_remove(f)
 
     def get(self, unused_arg):

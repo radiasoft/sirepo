@@ -1,13 +1,8 @@
-# -*- coding: utf-8 -*-
 """Test purging of free users "old" simulations.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import pytest
-import os
-import time
-
 _CACHE_AND_SIM_PURGE_PERIOD = 3
 _PURGE_FREE_AFTER_DAYS = 1
 
@@ -28,6 +23,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
     from pykern import pkunit, pkcollections, pkio, pkunit
     from pykern.pkdebug import pkdp
     from sirepo import auth_role, const, srdb
+    import time
 
     def _check_run_dir(should_exist=0):
         f = pkio.walk_tree(fc.sr_user_dir(), file_re=m)

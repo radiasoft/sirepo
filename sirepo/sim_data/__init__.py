@@ -945,10 +945,10 @@ class SimDataBase(object):
 
     @classmethod
     def _sim_db_file_get(cls, sid_or_lib, basename, dest_dir, is_exe=False):
-        u = (cls._sim_file_uri(sid_or_lib, basename),)
-        r = _request("GET", _cfg.supervisor_sim_db_file_uri + uri)
+        u = cls._sim_file_uri(sid_or_lib, basename)
+        r = _request("GET", _cfg.supervisor_sim_db_file_uri + u)
         r.raise_for_status()
-        p = dest_dir.join(uri.split("/")[-1])
+        p = dest_dir.join(u.split("/")[-1])
         p.write_binary(r.content)
         if is_exe:
             p.chmod(cls._EXE_PERMISSIONS)
@@ -979,13 +979,6 @@ class SimDbFileNotFound(Exception):
     """A sim db file could not be found"""
 
     pass
-
-
-def _cfg_lib_file_list(value):
-    res = pkio.py_path(value)
-    if not res.check(file=1):
-        pkconfig.raise_error(f"{value} does not exist")
-    return res
 
 
 def _request(method, uri, data=None, json=None):
