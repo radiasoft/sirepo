@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
 """Getting and putting simulation db files
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import re
@@ -38,10 +38,11 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
         try:
             r = pkjson.load_any(self.request.body)
             a = r.get("args")
-            if not a or not isinstance(a, PKDict):
-                raise AssertionError("missing post args")
+            # note that args may be empty, since uri has path
+            if not isinstance(a, PKDict):
+                raise AssertionError(f"invalid post args={a}")
             a.path = self.__authenticated_path()
-            self.write(("_post_" + getattr(self, r.get("method", "missing_method")))(a))
+            self.write(getattr(self, "_post_" + r.get("method", "missing_method"))(a))
         except Exception as e:
             pkdlog(
                 "uri={} body={} exception={} stack={}",
@@ -72,7 +73,7 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
         )
 
     def _post_exists(self, args):
-        return PKDict({state: "ok", result=args.path.check(file=True)})
+        return PKDict(state="ok", result=args.path.check(file=True))
 
     def _post_missing_method(self, args):
         raise AssertionError("missing method args={}", args)

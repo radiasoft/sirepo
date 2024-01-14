@@ -643,7 +643,7 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
 def remote_file_to_simulation_lib(sim_data, url, headers_only, model_name, field):
     _CHUNK_SIZE = 1024 * 1024
     filename = os.path.basename(urllib.parse.urlparse(url).path)
-    try:
+    try:n
         with urllib.request.urlopen(url) as r:
             if headers_only:
                 return PKDict(headers=_header_str_to_dict(r.headers))

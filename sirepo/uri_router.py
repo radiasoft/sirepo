@@ -273,11 +273,18 @@ def start_tornado(ip, port, debug):
                 self.header.get("reqSeq"),
                 self.header.get("uri"),
             )
-            if sirepo.const.SCHEMA_COMMON.websocketMsg.version != self.header.get("version"):
-		raise AssertionError(f"invalid header.version={self.header.get("version")}")
+            if sirepo.const.SCHEMA_COMMON.websocketMsg.version != self.header.get(
+                "version"
+            ):
+                raise AssertionError(
+                    f"invalid header.version={self.header.get('version')}"
+                )
             # Ensures protocol conforms for all requests
-            if sirepo.const.SCHEMA_COMMON.websocketMsg.kind.httpRequest != self.header.get("kind"):
-                raise AssertionError(f"invalid header.kind={self.header.get("kind")}")
+            if (
+                sirepo.const.SCHEMA_COMMON.websocketMsg.kind.httpRequest
+                != self.header.get("kind")
+            ):
+                raise AssertionError(f"invalid header.kind={self.header.get('kind')}")
             self.req_seq = self.header.reqSeq
             self.uri = self.header.uri
             if u.tell() < len(msg):

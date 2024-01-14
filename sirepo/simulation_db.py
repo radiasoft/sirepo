@@ -739,7 +739,7 @@ def sim_db_file_uri_to_path(uri, expect_uid):
     assert len(p) == 4, f"uri={p} has too many parts"
     assert p[0] == expect_uid, f"uid={p[0]} is not expect_uid={expect_uid}"
     sirepo.template.assert_sim_type(p[1]),
-    if p[2] != _LIB:
+    if p[2] != _LIB_DIR:
         assert_sid(p[2]),
     assert_sim_db_file_path(p[3]),
     return user_path_root().join(*p)
