@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Stateful compute test
 
 :copyright: Copyright (c) 2022-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import pytest
 
 
 def test_srw_sample_preview(fc):

@@ -76,13 +76,20 @@ class JobCmdFile(PKDict):
         super().__init__(**kwargs)
         self.pksetdefault(error=None)
         if self.error:
+            self.pksetdefault(state="error")
             return
-        self.pksetdefault(reply_uri=lambda: self.reply_path.basename).pksetdefault(
+        if not (self.get("reply_uri") or self.get("reply_path")):
+            raise AssertionError(
+                f"reply_uri or reply_path not in kwargs.keys={list(kwargs)}"
+            )
+        self.pksetdefault(
             reply_content=lambda: (
                 pkcompat.to_bytes(pkio.read_text(self.reply_path))
-                if self.reply_uri.endswith(_TEXT_SUFFIXES)
+                if self.reply_path.ext in _TEXT_SUFFIXES
                 else self.reply_path.read_binary()
             ),
+            reply_uri=lambda: self.reply_path.basename,
+            state="ok",
         )
 
 

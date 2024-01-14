@@ -95,14 +95,7 @@ def _dispatch_compute(msg, template):
                 state=job.ERROR,
                 error=f"method={template.SIM_TYPE}.{msg.jobCmd}_{msg.data.method} unexpected return=JobCmdFile reply_uri={r.get('reply_uri')}",
             )
-        if e := _error_if_response_too_large(r.reply_content):
-            return e
-        requests.put(
-            msg.dataFileUri + r.reply_uri,
-            data=r.reply_content,
-            verify=job.cfg().verify_tls,
-        ).raise_for_status()
-        return job.ok_reply()
+        return _file_reply(r, msg)
 
     try:
         x = sirepo.sim_data.get_class(
@@ -181,24 +174,7 @@ def _do_download_data_file(msg, template):
             elif not isinstance(r, pkconst.PY_PATH_LOCAL_TYPE):
                 raise AssertionError(f"unexpected return value type={type(r)}")
             r = template_common.JobCmdFile(reply_path=r)
-        u = r.get("reply_uri")
-        if u is None:
-            u = r.reply_path.basename
-        c = r.get("reply_content")
-        if e := _error_if_response_too_large(c if c else r.reply_path):
-            return e
-        if c is None:
-            c = (
-                pkcompat.to_bytes(pkio.read_text(r.reply_path))
-                if u.endswith((".py", ".txt", ".csv"))
-                else r.reply_path.read_binary()
-            )
-        requests.put(
-            msg.dataFileUri + u,
-            data=c,
-            verify=job.cfg().verify_tls,
-        ).raise_for_status()
-        return PKDict()
+        return _file_reply(r, msg)
     except Exception as e:
         return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
@@ -321,6 +297,17 @@ def _error_if_response_too_large(payload):
             errorCode=job.ERROR_CODE_RESPONSE_TOO_LARGE,
         )
     return None
+
+
+def _file_reply(resp, msg):
+    if e := _error_if_response_too_large(resp.reply_content):
+        return e
+    requests.put(
+        msg.dataFileUri + resp.reply_uri,
+        data=resp.reply_content,
+        verify=job.cfg().verify_tls,
+    ).raise_for_status()
+    return job.ok_reply()
 
 
 def _maybe_parse_user_alert(exception, error=None):
