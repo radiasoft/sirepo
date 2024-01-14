@@ -180,7 +180,7 @@ def _do_download_data_file(msg, template):
                 r = msg.runDir.join(r, abs=1)
             elif not isinstance(r, pkconst.PY_PATH_LOCAL_TYPE):
                 raise AssertionError(f"unexpected return value type={type(r)}")
-            r = JobCmdFile(reply_path=r)
+            r = template_common.JobCmdFile(reply_path=r)
         u = r.get("reply_uri")
         if u is None:
             u = r.reply_path.basename

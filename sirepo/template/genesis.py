@@ -55,14 +55,6 @@ _LATTICE_COL_LABEL = PKDict(
     yrms="rms y [m]",
 )
 
-_DATA_FILES = PKDict(
-    particleAnimation=_PARTICLE_OUTPUT_FILENAME,
-    fieldDistributionAnimation=_FIELD_DISTRIBUTION_OUTPUT_FILENAME,
-    parameterAnimation=_OUTPUT_FILENAME,
-    finalParticleAnimation=_FINAL_PARTICLE_OUTPUT_FILENAME,
-    finalFieldAnimation=_FINAL_FIELD_OUTPUT_FILENAME,
-)
-
 _LATTICE_DATA_FILENAME = "lattice{}.npy"
 
 _LATTICE_RE = re.compile(r"\bpower\b[\s\w]+\n(.*?)(\n\n|$)", flags=re.DOTALL)
@@ -87,6 +79,15 @@ _SLICE_DATA_FILENAME = "slice.npy"
 _SLICE_RE = re.compile(
     r"\s+z\[m\]\s+aw\s+qfld\s+\n(.*?)\n^\s*$\n\*",
     flags=re.DOTALL | re.MULTILINE,
+)
+
+
+_DATA_FILES = PKDict(
+    particleAnimation=_PARTICLE_OUTPUT_FILENAME,
+    fieldDistributionAnimation=_FIELD_DISTRIBUTION_OUTPUT_FILENAME,
+    parameterAnimation=_OUTPUT_FILENAME,
+    finalParticleAnimation=_FINAL_PARTICLE_OUTPUT_FILENAME,
+    finalFieldAnimation=_FINAL_FIELD_OUTPUT_FILENAME,
 )
 
 
