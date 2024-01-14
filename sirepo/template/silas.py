@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """SILAS execution template.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
@@ -45,10 +44,9 @@ def background_percent_complete(report, run_dir, is_running):
 
 def get_data_file(run_dir, model, frame, options):
     if model in ("tempProfileAnimation", "tempHeatMapAnimation"):
-        return PKDict(
-            tempProfileAnimation=_TEMP_PROFILE_FILE,
-            tempHeatMapAnimation=_TEMP_HEATMAP_FILE,
-        )[model]
+        return (
+            _TEMP_PROFILE_FILE if model == "tempProfileAnimation" else TEMP_HEATMAP_FILE
+        )
     if model == "crystal3dAnimation":
         return "intensity.npy"
     if model == "beamlineAnimation0" or model in _SIM_DATA.SOURCE_REPORTS:
@@ -60,7 +58,7 @@ def get_data_file(run_dir, model, frame, options):
         ).outputInfo:
             if r.modelKey == model:
                 return r.filename
-    raise AssertionError("unknown model={}".format(model))
+    raise AssertionError(f"unknown model={model}")
 
 
 def post_execution_processing(success_exit, run_dir, **kwargs):

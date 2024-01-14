@@ -107,9 +107,6 @@ class DriverBase(PKDict):
             x.free()
         if x := op.pkdel("op_slot"):
             x.free()
-        if "lib_dir_symlink" in op:
-            # lib_dir_symlink is unique_key so not dangerous to remove
-            pykern.pkio.unchecked_remove(op.pkdel("lib_dir_symlink"))
 
     async def free_resources(self, caller):
         """Remove holds on all resources and remove self from data structures"""
@@ -133,27 +130,6 @@ class DriverBase(PKDict):
         raise NotImplementedError(
             "DriverBase subclasses need to implement their own kill",
         )
-
-    def make_lib_dir_symlink(self, op):
-        import sirepo.auth
-
-        m = op.msg
-        with sirepo.quest.start() as qcall:
-            with qcall.auth.logged_in_user_set(m.uid):
-                d = sirepo.simulation_db.simulation_lib_dir(
-                    m.simulationType,
-                    qcall=qcall,
-                )
-                op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
-                op.lib_dir_symlink.mksymlinkto(d, absolute=True)
-                m.pkupdate(
-                    libFileUri=job.supervisor_file_uri(
-                        self.cfg.supervisor_uri,
-                        job.LIB_FILE_URI,
-                        op.lib_dir_symlink.basename,
-                    ),
-                    libFileList=[f.basename for f in d.listdir()],
-                )
 
     def op_is_untimed(self, op):
         return op.op_name in _UNTIMED_OPS

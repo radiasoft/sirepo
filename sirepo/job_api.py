@@ -461,8 +461,7 @@ class API(sirepo.quest.API):
 
 def init_apis(*args, **kwargs):
     # TODO(robnagler) if we recover connections with agents and running jobs remove this
-    pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT, sirepo.job.DATA_FILE_ROOT)
-    pykern.pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
+    pykern.pkio.unchecked_remove(sirepo.job.DATA_FILE_ROOT)
     pykern.pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
 
 

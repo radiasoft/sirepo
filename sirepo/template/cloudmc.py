@@ -114,7 +114,7 @@ def get_data_file(run_dir, model, frame, options):
         return _statepoint_filename(
             simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         )
-    raise AssertionError("no data file for model={model} and options={options}")
+    raise AssertionError(f"invalid model={model} options={options}")
 
 
 def post_execution_processing(

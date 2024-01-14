@@ -63,9 +63,6 @@ def default_command():
             (sirepo.job.GLOBAL_RESOURCES_URI, sirepo.global_resources.api.Req),
         ],
         debug=_cfg.debug,
-        static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
-        # tornado expects a trailing slash
-        static_url_prefix=sirepo.job.LIB_FILE_URI + "/",
         websocket_max_message_size=sirepo.job.cfg().max_message_bytes,
         websocket_ping_interval=sirepo.job.cfg().ping_interval_secs,
         websocket_ping_timeout=sirepo.job.cfg().ping_timeout_secs,

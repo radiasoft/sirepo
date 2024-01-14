@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """elegant execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
@@ -719,7 +718,8 @@ def generate_variables(data):
 def get_data_file(run_dir, model, frame, options):
     def _sdds(filename):
         path = run_dir.join(filename)
-        assert path.check(file=True, exists=True), "{}: not found".format(path)
+        if not path.check(file=True, exists=True):
+            raise AssertionError(f"not found path={path}")
         if not options.suffix:
             return path
         if options.suffix != "csv":
@@ -736,10 +736,13 @@ def get_data_file(run_dir, model, frame, options):
                 str(path),
             ],
         )
-        assert out, f"{path}: invalid or empty output from sddsprintout"
-        return PKDict(
-            uri=path.purebasename + ".csv",
-            content=out,
+        if not out:
+            raise AssertionError(
+                f"invalid or empty output from sddsprintout path={path}"
+            )
+        return template_common.JobCmdFile(
+            reply_uri=path.purebasename + ".csv",
+            reply_content=out,
         )
 
     if frame >= 0:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """FLASH execution template.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
@@ -127,18 +126,16 @@ def get_data_file(run_dir, model, frame, options):
     if n:
         # TODO(pjm): client does not know which log files exists
         if not run_dir.join(n).exists():
-            return PKDict(filename=run_dir.join(n), content="No file output available")
+            # TODO(robnagler) could this be "error=No file..." with reply_path?
+            return template_common.JobCmdFile(
+                reply_path=run_dir.join(n), reply_content="No file output available"
+            )
         return template_common.text_data_file(n, run_dir)
     if model == "gridEvolutionAnimation":
         return _GRID_EVOLUTION_FILE
     if model == "oneDimensionProfileAnimation" or model == "varAnimation":
         return str(_h5_file_list(run_dir)[frame])
-    raise AssertionError(
-        "unknown model for get_data_file: {} {}".format(
-            model,
-            frame,
-        ),
-    )
+    raise AssertionError(f"unknown model={model} frame={frame}")
 
 
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):

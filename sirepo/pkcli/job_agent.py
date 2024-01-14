@@ -441,12 +441,6 @@ class _Cmd(PKDict):
         if self._is_compute:
             pkio.unchecked_remove(self.run_dir)
             pkio.mkdir_parent(self.run_dir)
-        self._lib_file_uri = self.msg.get("libFileUri", "")
-        self._lib_file_list_f = ""
-        if self._lib_file_uri:
-            f = self.run_dir.join("sirepo-lib-file-list.txt")
-            pkio.write_text(f, "\n".join(self.msg.libFileList))
-            self._lib_file_list_f = str(f)
         self._in_file = self._create_in_file()
         self._process = _Process(self)
         self._terminating = False
@@ -481,8 +475,6 @@ class _Cmd(PKDict):
                 SIREPO_GLOBAL_RESOURCES_SUPERVISOR_TOKEN=_cfg.supervisor_global_resources_token,
                 SIREPO_GLOBAL_RESOURCES_SUPERVISOR_URI=_cfg.supervisor_global_resources_uri,
                 SIREPO_MPI_CORES=self.msg.get("mpiCores", 1),
-                SIREPO_SIM_DATA_LIB_FILE_LIST=self._lib_file_list_f,
-                SIREPO_SIM_DATA_LIB_FILE_URI=self._lib_file_uri,
                 SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_TOKEN=_cfg.supervisor_sim_db_file_token,
                 SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_URI=_cfg.supervisor_sim_db_file_uri,
             ),

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """OPAL execution template.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -494,7 +493,7 @@ def get_data_file(run_dir, model, frame, options):
                 frameReport=model,
             )
         )
-    raise AssertionError("unknown model={}".format(model))
+    raise AssertionError(f"unknown model={model}")
 
 
 def new_simulation(data, new_simulation_data, qcall, **kwargs):
@@ -951,7 +950,7 @@ def _file_name_for_element_animation(frame_args):
     for info in _output_info(frame_args.run_dir):
         if info.modelKey == r:
             return info.filename
-    raise AssertionError(f"no output file for frameReport={r}")
+    raise AssertionError(f"no output for frameReport={r}")
 
 
 def _find_run_method(commands):

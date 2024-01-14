@@ -87,19 +87,19 @@ def _dispatch_compute(msg, template):
         r = getattr(template_common, f"{msg.jobCmd}_dispatch")(
             msg.data, data_file_uri=msg.get("dataFileUri")
         )
-        if not isinstance(r, template_common.JobCmdFile):
-            # ok to not return JobCmdFile if there was an error
+        if not isinstance(r, template_common.JobCmdFile) or r.error:
+            # ok to not return JobCmdFile of if there was an error
             return r
         if not expect_file:
             return PKDict(
                 state=job.ERROR,
-                error=f"method={template.SIM_TYPE}.{msg.jobCmd}_{msg.data.method} unexpected return=JobCmdFile uri={r.uri}",
+                error=f"method={template.SIM_TYPE}.{msg.jobCmd}_{msg.data.method} unexpected return=JobCmdFile reply_uri={r.get('reply_uri')}",
             )
-        if e := _error_if_response_too_large(r.content):
+        if e := _error_if_response_too_large(r.reply_content):
             return e
         requests.put(
-            msg.dataFileUri + r.uri,
-            data=r.content,
+            msg.dataFileUri + r.reply_uri,
+            data=r.reply_content,
             verify=job.cfg().verify_tls,
         ).raise_for_status()
         return job.ok_reply()
@@ -175,21 +175,23 @@ def _do_download_data_file(msg, template):
             msg.frame,
             options=PKDict(suffix=msg.suffix),
         )
-        if not isinstance(r, PKDict):
+        if not isinstance(r, template_common.JobCmdFile):
             if isinstance(r, str):
                 r = msg.runDir.join(r, abs=1)
-            r = PKDict(filename=r)
-        u = r.get("uri")
+            elif not isinstance(r, pkconst.PY_PATH_LOCAL_TYPE):
+                raise AssertionError(f"unexpected return value type={type(r)}")
+            r = JobCmdFile(reply_path=r)
+        u = r.get("reply_uri")
         if u is None:
-            u = r.filename.basename
-        c = r.get("content")
-        if e := _error_if_response_too_large(c if c else r.filename):
+            u = r.reply_path.basename
+        c = r.get("reply_content")
+        if e := _error_if_response_too_large(c if c else r.reply_path):
             return e
         if c is None:
             c = (
-                pkcompat.to_bytes(pkio.read_text(r.filename))
+                pkcompat.to_bytes(pkio.read_text(r.reply_path))
                 if u.endswith((".py", ".txt", ".csv"))
-                else r.filename.read_binary()
+                else r.reply_path.read_binary()
             )
         requests.put(
             msg.dataFileUri + u,
@@ -263,8 +265,6 @@ def _do_get_simulation_frame(msg, template):
 
 
 def _do_prepare_simulation(msg, template):
-    if "libFileList" in msg:
-        msg.data.libFileList = msg.libFileList
     return PKDict(
         cmd=simulation_db.prepare_simulation(
             msg.data,

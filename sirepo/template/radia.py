@@ -258,10 +258,9 @@ def get_data_file(run_dir, model, frame, options):
             )
         return f
     if model == "kickMapReport":
-        _save_kick_map_sdds(
+        return _save_kick_map_sdds(
             name, f, _read_or_generate_kick_map(get_g_id(), data.models.kickMapReport)
         )
-        return f
     if model == "fieldLineoutAnimation":
         beam_axis = _rotate_axis(to_axis="z", from_axis=sim.beamAxis)
         f_type = rpt.fieldType
@@ -282,17 +281,17 @@ def get_data_file(run_dir, model, frame, options):
     if model == "optimizerAnimation":
         return template_common.text_data_file("optimize.out", run_dir)
     if model == "geometryReport":
-        return PKDict(
-            uri=f"{name}.{sfx}",
-            filename=pkio.py_path(_DMP_FILE),
+        return template_common.JobCmdFile(
+            reply_uri=f"{name}.{sfx}",
+            reply_path=pkio.py_path(_DMP_FILE),
         )
     if model == "fieldIntegralReport":
-        _save_field_integrals_csv(
+        return _save_field_integrals_csv(
             data.models.fieldPaths.paths,
             simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME)),
             f,
         )
-        return f
+    raise AssertionError(f"unknown model={model}")
 
 
 def get_g_id():
@@ -1567,8 +1566,7 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
         r = pts[j : j + 3]
         r = numpy.append(r, mags[i] * dirs[j : j + 3])
         data.append(",".join(map(str, r)))
-    pkio.write_text(path, "\n".join(data))
-    return path
+    return pkio.write_text(path, "\n".join(data))
 
 
 # zip file - data plus index.  This will likely be used to generate files for a range

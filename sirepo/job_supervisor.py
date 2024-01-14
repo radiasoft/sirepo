@@ -922,7 +922,6 @@ class _ComputeJob(_Supervisor):
                 _set_error(compute_job_serial, op.internal_error)
                 raise
             self.__db_update(driverDetails=op.driver.driver_details)
-            op.make_lib_dir_symlink()
             op.send()
             return True
 
@@ -991,8 +990,6 @@ class _ComputeJob(_Supervisor):
         internal_error = None
         try:
             await o.prepare_send()
-            if kwargs.get("jobCmd") == "stateful_compute":
-                o.make_lib_dir_symlink()
             o.send()
             r = await o.reply_get()
             # POSIT: any api_* that could run into runDirNotFound
@@ -1092,9 +1089,6 @@ class _Op(PKDict):
         self._supervisor.destroy_op(self)
         if "driver" in self:
             self.driver.destroy_op(self)
-
-    def make_lib_dir_symlink(self):
-        self.driver.make_lib_dir_symlink(self)
 
     def pkdebug_str(self):
         def _internal_error():

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Genesis execution template.
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
@@ -54,6 +53,14 @@ _LATTICE_COLS = (
 _LATTICE_COL_LABEL = PKDict(
     xrms="rms x [m]",
     yrms="rms y [m]",
+)
+
+_DATA_FILES = PKDict(
+    particleAnimation=_PARTICLE_OUTPUT_FILENAME,
+    fieldDistributionAnimation=_FIELD_DISTRIBUTION_OUTPUT_FILENAME,
+    parameterAnimation=_OUTPUT_FILENAME,
+    finalParticleAnimation=_FINAL_PARTICLE_OUTPUT_FILENAME,
+    finalFieldAnimation=_FINAL_FIELD_OUTPUT_FILENAME,
 )
 
 _LATTICE_DATA_FILENAME = "lattice{}.npy"
@@ -135,17 +142,9 @@ def genesis_success_exit(run_dir):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if model == "particleAnimation":
-        return _PARTICLE_OUTPUT_FILENAME
-    if model == "fieldDistributionAnimation":
-        return _FIELD_DISTRIBUTION_OUTPUT_FILENAME
-    if model == "parameterAnimation":
-        return _OUTPUT_FILENAME
-    if model == "finalParticleAnimation":
-        return _FINAL_PARTICLE_OUTPUT_FILENAME
-    if model == "finalFieldAnimation":
-        return _FINAL_FIELD_OUTPUT_FILENAME
-    raise AssertionError("unknown model={}".format(model))
+    if res := _DATA_FILES.get(model):
+        return res
+    raise AssertionError(f"unknown model={model}")
 
 
 def parse_genesis_error(run_dir):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Warp VND/WARP execution template.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.

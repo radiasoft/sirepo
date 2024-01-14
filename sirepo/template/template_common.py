@@ -56,6 +56,10 @@ _PLOT_LINE_COLOR = [
 ]
 
 
+#: for JobCmdFile replies
+_TEXT_SUFFIXES = (".py", ".txt", ".csv")
+
+
 class JobCmdFile(PKDict):
     """Returned by dispatched job commands
 
@@ -63,22 +67,21 @@ class JobCmdFile(PKDict):
     `stateful_compute_dispatch` support file returns.
 
     Args:
-        content (object): what to send [path.read()]
-        path (py.path): py.path of file to read
-        uri (str): what to call the file [path.basename]
+        reply_content (object): what to send [reply_path.read()]
+        reply_path (py.path): py.path of file to read
+        reply_uri (str): what to call the file [reply_path.basename]
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.pksetdefault(
-            error=None,
-            uri=lambda: self.path.basename,
-        )
-        self.pksetdefault(
-            content=lambda: (
-                pkcompat.to_bytes(pkio.read_text(self.path))
-                if self.uri.endswith((".py", ".txt", ".csv"))
-                else self.path.read_binary()
+        self.pksetdefault(error=None)
+        if self.error:
+            return
+        self.pksetdefault(reply_uri=lambda: self.reply_path.basename).pksetdefault(
+            reply_content=lambda: (
+                pkcompat.to_bytes(pkio.read_text(self.reply_path))
+                if self.reply_uri.endswith(_TEXT_SUFFIXES)
+                else self.reply_path.read_binary()
             ),
         )
 
@@ -767,9 +770,9 @@ def subprocess_output(cmd, env=None):
 
 def text_data_file(filename, run_dir):
     """Return a datafile with a .txt extension so the text/plain mimetype is used."""
-    return PKDict(
-        filename=run_dir.join(filename, abs=1),
-        uri=filename + ".txt",
+    return JobCmdFile(
+        reply_path=run_dir.join(filename, abs=1),
+        reply_uri=filename + ".txt",
     )
 
 

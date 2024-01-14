@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """SRW execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
@@ -914,7 +913,7 @@ def stateful_compute_sample_preview(data, **kwargs):
         )
         p = d.join(f"sample_processed.{m.outputImageFormat}")
         s.save(p.basename)
-    return template_common.JobCmdFile(path=p)
+    return template_common.JobCmdFile(reply_path=p)
 
 
 def stateful_compute_undulator_length(data, **kwargs):

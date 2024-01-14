@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """MAD-X execution template.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
@@ -352,7 +351,7 @@ def get_data_file(run_dir, model, frame, options):
             re.sub(r"elementAnimation", "", model),
             data,
         ).filename
-    assert False, f"no data file for model: {model}"
+    raise AssertionError(f"invalid model={model}")
 
 
 def post_execution_processing(success_exit, run_dir, **kwargs):
@@ -823,7 +822,7 @@ def _filename_for_report(run_dir, report):
             return info.filename
     if report == "matchSummaryAnimation":
         return MADX_LOG_FILE
-    assert False, f"no output file for report={report}"
+    raise AssertionError(f"no output file for report={report}")
 
 
 def first_beam_command(data):

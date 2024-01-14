@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 """Myapp execution template.
 
 :copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
+from pykern.pkcollections import PKDict
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
@@ -56,10 +54,9 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _generate_parameters_file(data):
     if "report" in data:
-        assert data["report"] == "heightWeightReport", "unknown report: {}".format(
-            data["report"]
-        )
-    v = copy.deepcopy(data["models"], pkcollections.Dict())
+        if data.report != "heightWeightReport":
+            raise AssertionError(f"unknown report: {data.report}")
+    v = copy.deepcopy(data.models, PKDict())
     v.input_name = INPUT_NAME
     v.output_name = OUTPUT_NAME
     return template_common.render_jinja(
