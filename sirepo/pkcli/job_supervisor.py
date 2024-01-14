@@ -50,7 +50,6 @@ def default_command():
     )
     sirepo.modules.import_and_init("sirepo.job_supervisor")
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
-    pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
     app = tornado.web.Application(
         [
             (sirepo.job.AGENT_URI, _AgentMsg),
