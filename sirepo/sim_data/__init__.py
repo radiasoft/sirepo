@@ -3,7 +3,9 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern import pkcompat
 from pykern import pkconfig
+from pykern import pkconst
 from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjson
@@ -447,7 +449,6 @@ class SimDataBase(object):
             path,
         )
 
-
     @classmethod
     def lib_file_read(cls, basename, qcall=None):
         """Get contents of `basename` from lib
@@ -460,7 +461,9 @@ class SimDataBase(object):
         """
         if cls._is_agent_side():
             return cls._sim_db_file_get(cls._LIB_DIR, basename)
-        return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(basename)
+        return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
+            basename
+        )
 
     @classmethod
     def lib_file_write(cls, basename, content, qcall=None):
@@ -471,6 +474,8 @@ class SimDataBase(object):
             content (str or bytes): what to save
             qcall (quest.API): logged in user
         """
+        from sirepo import simulation_db
+
         if cls._is_agent_side():
             return cls._sim_db_file_write(cls._LIB_DIR, basename, content)
         simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(basename)
@@ -728,7 +733,7 @@ class SimDataBase(object):
     @classmethod
     def _assert_server_side(cls):
         if cls._is_agent_side():
-            raise AssertionError(f"method={_caller()} not available in job_agent"),
+            raise AssertionError(f"method={_caller()} not available in job_agent")
 
     @classmethod
     def _compute_model(cls, analysis_model, resp):
@@ -975,7 +980,9 @@ class SimDataBase(object):
             ).content,
         )
         if res.get("state") != "ok":
-            raise AssertionError("expected state=ok reply={} uri={} basename={}", res, basename)
+            raise AssertionError(
+                "expected state=ok reply={} uri={} basename={}", res, basename
+            )
         return res.result
 
     @classmethod
@@ -995,11 +1002,10 @@ class SimDataBase(object):
         r.raise_for_status()
         return r
 
-
     @classmethod
     def _sim_db_file_write(cls, sid_or_lib, basename, path_or_content):
         def _data():
-            if isinstance(pkconst.PY_PATH_LOCAL_TYPE):
+            if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
                 return pkio.read_binary(path_or_content)
             return pkcompat.to_bytes(path_or_content)
 
@@ -1008,7 +1014,6 @@ class SimDataBase(object):
 
 def _caller():
     return inspect.currentframe().f_back.f_back.f_code.co_name
-
 
 
 _cfg = pkconfig.init(

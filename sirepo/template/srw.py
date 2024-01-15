@@ -5,6 +5,7 @@
 """
 from pykern import pkcompat
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import crystal
@@ -19,7 +20,6 @@ import math
 import numpy as np
 import os
 import pickle
-import pykern.pkjson
 import re
 import sirepo.mpi
 import sirepo.sim_data
@@ -826,7 +826,7 @@ def stateful_compute_model_list(data, **kwargs):
     if m == "electronBeam":
         res.extend(get_predefined_beams())
     res.extend(_load_user_model_list(m))
-    if model_name == "electronBeam":
+    if m == "electronBeam":
         for beam in res:
             srw_common.process_beam_parameters(beam)
     return PKDict(modelList=res)

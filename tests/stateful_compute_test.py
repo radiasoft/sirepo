@@ -51,18 +51,23 @@ def test_srw_sample_preview(fc):
 
 
 def test_srw_model_list(fc):
+    from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from pykern import pkunit
     from sirepo import srunit
 
     fc.sr_get_root()
+    fc.sr_post(
+        "listSimulations",
+        PKDict(simulationType=fc.sr_sim_type),
+    )
     r = fc.sr_post(
         "statefulCompute",
-        {
-            "method": "model_list",
-            "simulationType": fc.sr_sim_type,
-            "args": {"model_name": "electronBeam"},
-        },
+        PKDict(
+            method="model_list",
+            simulationType=fc.sr_sim_type,
+            args=PKDict(model_name="electronBeam"),
+        ),
     )
     pkunit.pkok(
         not r.get("error") or r.get("state", "ok") == "ok",
