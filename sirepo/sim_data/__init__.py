@@ -940,7 +940,9 @@ class SimDataBase(object):
 
     @classmethod
     def _sim_db_file_delete_glob(cls, sid_or_lib, path_prefix):
-        cls._sim_db_file_request("DELETE", sid_or_lib, path_prefix)
+        r = cls._sim_db_file_post("delete_glob", sid_or_lib, path_prefix)
+        if r.get("state") != "ok":
+            raise AssertionError("expected state=ok reply={} uri={}", r, u)
 
     @classmethod
     def _sim_db_file_exists(cls, sid_or_lib, basename):
@@ -976,7 +978,7 @@ class SimDataBase(object):
             data=data,
             json=json,
         )
-        if method == "GET" and r.status_code == 404:
+        if r.status_code == 404:
             raise FileNotFoundError(f"sim_db_file={u} not found")
         r.raise_for_status()
         return r

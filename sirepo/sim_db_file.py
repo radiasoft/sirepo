@@ -21,17 +21,6 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
     _TOKEN_TO_UID = PKDict()
     _UID_TO_TOKEN = PKDict()
 
-    def delete(self, unused_arg):
-        # TODO(robnagler) This is too coarse change to a POST
-        t = []
-        for f in pkio.sorted_glob(f"{self.__authenticated_path()}*"):
-            if not f.check(file=True):
-                pkdlog("path={} is a directory", f)
-                raise sirepo.tornado.error_forbidden()
-            t.append(f)
-        for f in t:
-            pkio.unchecked_remove(f)
-
     def get(self, unused_arg):
         p = self.__authenticated_path()
         if not p.exists():
@@ -75,6 +64,16 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
             uri=m.group(1),
             expect_uid=u,
         )
+
+    def _post_delete_glob(self, args):
+        t = []
+        for f in pkio.sorted_glob(f"{self.__authenticated_path()}*"):
+            if f.check(dir=True):
+                pkdlog("path={} is a directory", f)
+                raise sirepo.tornado.error_forbidden()
+            t.append(f)
+        for f in t:
+            pkio.unchecked_remove(f)
 
     def _post_exists(self, args):
         return PKDict(state="ok", result=args.path.check(file=True))
