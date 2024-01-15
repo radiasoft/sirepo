@@ -702,13 +702,13 @@ class SimDataBase(object):
     def _assert_agent_side(cls):
         assert (
             _cfg.supervisor_sim_db_file_token
-        ), f"method={pkinspect.caller()} may only be called on the agent"
+        ), f"method={_caller()} may only be called on the agent"
 
     @classmethod
     def _assert_server_side(cls):
         assert (
             not _cfg.supervisor_sim_db_file_token
-        ), f"method={pkinspect.caller()} may only be called on server"
+        ), f"method={_caller()} may only be called on server"
 
     @classmethod
     def _compute_model(cls, analysis_model, resp):
@@ -883,7 +883,7 @@ class SimDataBase(object):
 
         setattr(
             cls,
-            inspect.currentframe().f_back.f_code.co_name,
+            _caller(),
             wrap,
         )
         return value
@@ -979,6 +979,10 @@ class SimDbFileNotFound(Exception):
     """A sim db file could not be found"""
 
     pass
+
+
+def _caller():
+    return inspect.currentframe().f_back.f_back.f_code.co_name
 
 
 def _request(method, uri, data=None, json=None):

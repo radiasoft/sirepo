@@ -798,11 +798,11 @@ def stateful_compute_delete_user_models(data, **kwargs):
         model = electron_beam if model_name == "electronBeam" else tabulated_undulator
         if not model or "id" not in model:
             continue
-        user_model_list = _load_user_model_list(model_name, qcall=qcall)
+        user_model_list = _load_user_model_list(model_name)
         for i, m in enumerate(user_model_list):
             if m.id == model.id:
                 del user_model_list[i]
-                _save_user_model_list(model_name, user_model_list, qcall=qcall)
+                _save_user_model_list(model_name, user_model_list)
                 break
     return PKDict()
 
@@ -822,10 +822,10 @@ def stateful_compute_import_file(data, **kwargs):
 
 def stateful_compute_model_list(data, **kwargs):
     res = []
-    model_name = data.args["model_name"]
-    if model_name == "electronBeam":
+    m = data.args.model_name
+    if m == "electronBeam":
         res.extend(get_predefined_beams())
-    res.extend(_load_user_model_list(model_name))
+    res.extend(_load_user_model_list(m))
     if model_name == "electronBeam":
         for beam in res:
             srw_common.process_beam_parameters(beam)

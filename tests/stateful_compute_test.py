@@ -48,3 +48,21 @@ def test_srw_sample_preview(fc):
         f.write(d)
     # Validate image
     Image.open(p)
+
+
+def test_srw_model_list(fc):
+    from pykern.pkdebug import pkdp
+    from pykern import pkunit
+    from sirepo import srunit
+
+    fc.sr_get_root()
+    r = fc.sr_post(
+        "statefulCompute",
+        {
+            "method": "model_list",
+            "simulationType": fc.sr_sim_type,
+            "args": {"model_name": "electronBeam"},
+        },
+    )
+    pkdp(r)
+    raise AssertionError(f"")
