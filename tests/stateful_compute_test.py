@@ -64,5 +64,8 @@ def test_srw_model_list(fc):
             "args": {"model_name": "electronBeam"},
         },
     )
-    pkdp(r)
-    raise AssertionError(f"")
+    pkunit.pkok(
+        not r.get("error") or r.get("state", "ok") == "ok",
+        "error in reply={}",
+        r,
+    )

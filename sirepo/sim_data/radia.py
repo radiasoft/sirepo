@@ -359,7 +359,9 @@ class SimData(sirepo.sim_data.SimDataBase):
     def sim_files_to_run_dir(cls, data, run_dir, post_init=False):
         try:
             super().sim_files_to_run_dir(data, run_dir)
-        except sirepo.sim_data.SimDbFileNotFound as e:
+        except Exception as e:
+            if not pkio.exception_is_not_found(e):
+                raise
             if post_init:
                 raise e
 

@@ -1001,7 +1001,9 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
         try:
             # use the previous results
             _SIM_DATA.sim_files_to_run_dir(data, run_dir, post_init=True)
-        except sirepo.sim_data.SimDbFileNotFound:
+        except Exception as e:
+            if not pkio.exception_is_not_found(e):
+                raise
             do_generate = True
 
     if not do_generate:

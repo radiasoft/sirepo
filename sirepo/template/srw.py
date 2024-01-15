@@ -2120,16 +2120,12 @@ def _is_true(model, field):
 
 
 def _load_user_model_list(model_name, qcall=None):
-    f = _SIM_DATA.lib_file_write_path(
-        _USER_MODEL_LIST_FILENAME[model_name], qcall=qcall
-    )
+    b = _USER_MODEL_LIST_FILENAME[model_name]
     try:
-        if f.exists():
-            return simulation_db.read_json(f)
-    except Exception:
-        pkdlog("user list read failed, resetting contents: {}", f)
-    _save_user_model_list(model_name, [], qcall=qcall)
-    return _load_user_model_list(model_name, qcall=qcall)
+        return _SIM_DATA.lib_file_read(b, qcall=qcall)
+    except Exception as e:
+        pkdlog("resetting model_list={} due to lib_file_read error={}", b, e)
+    return _save_user_model_list(model_name, [], qcall=qcall)
 
 
 def _machine_learning_percent_complete(run_dir, res):
@@ -2353,13 +2349,12 @@ def _safe_beamline_item_name(name, names):
 
 
 def _save_user_model_list(model_name, beam_list, qcall):
-    pkdc("saving {} list", model_name)
-    simulation_db.write_json(
-        _SIM_DATA.lib_file_write_path(
-            _USER_MODEL_LIST_FILENAME[model_name], qcall=qcall
-        ),
-        beam_list,
+    _SIM_DATA.lib_file_write(
+        _USER_MODEL_LIST_FILENAME[model_name],
+        pkjson.dump_str(beam_list),
+        qcall=qcall,
     )
+    return beam_list
 
 
 def _set_magnetic_measurement_parameters(run_dir, v, qcall=None):
