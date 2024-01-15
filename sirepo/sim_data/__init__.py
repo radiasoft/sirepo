@@ -447,14 +447,6 @@ class SimDataBase(object):
             path,
         )
 
-    @classmethod
-    def lib_file_write_path(cls, basename, qcall=None):
-        cls._assert_server_side()
-        from sirepo import simulation_db
-
-        return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
-            basename
-        )
 
     @classmethod
     def lib_file_read(cls, basename, qcall=None):
@@ -469,6 +461,28 @@ class SimDataBase(object):
         if cls._is_agent_side():
             return cls._sim_db_file_get(cls._LIB_DIR, basename)
         return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(basename)
+
+    @classmethod
+    def lib_file_write(cls, basename, content, qcall=None):
+        """Save `content` to `basename` in lib
+
+        Args:
+            basename (str): full name including suffix
+            content (str or bytes): what to save
+            qcall (quest.API): logged in user
+        """
+        if cls._is_agent_side():
+            return cls._sim_db_file_write(cls._LIB_DIR, basename, content)
+        simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(basename)
+
+    @classmethod
+    def lib_file_write_path(cls, basename, qcall=None):
+        cls._assert_server_side()
+        from sirepo import simulation_db
+
+        return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
+            basename
+        )
 
     @classmethod
     def lib_files_for_export(cls, data, qcall=None):
@@ -640,8 +654,8 @@ class SimDataBase(object):
         return []
 
     @classmethod
-    def put_sim_file(cls, sim_id, file_path, basename):
-        return cls._put_sim_db_file(file_path, cls._sim_db_file_uri(sim_id, basename))
+    def put_sim_file(cls, sim_id, src_path, dest_basename):
+        return cls._sim_db_file_write(sim_id, dest_basename, src_path.read())
 
     @classmethod
     def react_format_data(cls, data):
@@ -675,7 +689,7 @@ class SimDataBase(object):
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
         for b in cls.sim_file_basenames(data):
-            cls._sim_db_file_copy(
+            cls._sim_db_file_get_and_save(
                 data.models.simulation.simulationId,
                 b.basename,
                 run_dir,
@@ -803,7 +817,7 @@ class SimDataBase(object):
                     return True
             else:
                 try:
-                    return cls._sim_db_file_copy(
+                    return cls._sim_db_file_get_and_save(
                         cls._LIB_DIR, basename, pkio.py_path()
                     )
                 except Exception as e:
@@ -931,7 +945,19 @@ class SimDataBase(object):
         return []
 
     @classmethod
-    def _sim_db_file_copy(cls, sid_or_lib, basename, dest_dir, is_exe=False):
+    def _sim_db_file_delete_glob(cls, sid_or_lib, path_prefix):
+        return cls._sim_db_file_post("delete_glob", sid_or_lib, path_prefix)
+
+    @classmethod
+    def _sim_db_file_exists(cls, sid_or_lib, basename):
+        return cls._sim_db_file_post("exists", sid_or_lib, basename)
+
+    @classmethod
+    def _sim_db_file_get(cls, sid_or_lib, basename):
+        return cls._sim_db_file_request("GET", sid_or_lib, basename)
+
+    @classmethod
+    def _sim_db_file_get_and_save(cls, sid_or_lib, basename, dest_dir, is_exe=False):
         p = dest_dir.join(basename)
         p.write_binary(cls._sim_db_file_get(sid_or_lib, basename))
         if is_exe:
@@ -939,25 +965,8 @@ class SimDataBase(object):
         return p
 
     @classmethod
-    def _sim_db_file_delete_glob(cls, sid_or_lib, path_prefix):
-        r = cls._sim_db_file_post("delete_glob", sid_or_lib, path_prefix)
-        if r.get("state") != "ok":
-            raise AssertionError("expected state=ok reply={} uri={}", r, u)
-
-    @classmethod
-    def _sim_db_file_exists(cls, sid_or_lib, basename):
-        r = cls._sim_db_file_post("exists", sid_or_lib, basename)
-        if r.get("state") != "ok":
-            raise AssertionError("expected state=ok reply={} uri={}", r, u)
-        return r.result
-
-    @classmethod
-    def _sim_db_file_get(cls, sid_or_lib, basename):
-        return cls._sim_db_file_request("GET", sid_or_lib, basename)
-
-    @classmethod
     def _sim_db_file_post(cls, method, sid_or_lib, basename, args=None):
-        return pkjson.load_any(
+        res = pkjson.load_any(
             cls._sim_db_file_request(
                 "POST",
                 sid_or_lib,
@@ -965,6 +974,9 @@ class SimDataBase(object):
                 json=PKDict(method=method, args=PKDict() if args is None else args),
             ).content,
         )
+        if res.get("state") != "ok":
+            raise AssertionError("expected state=ok reply={} uri={} basename={}", res, basename)
+        return res.result
 
     @classmethod
     def _sim_db_file_request(cls, method, sid_or_lib, basename, data=None, json=None):
@@ -991,7 +1003,7 @@ class SimDataBase(object):
                 return pkio.read_binary(path_or_content)
             return pkcompat.to_bytes(path_or_content)
 
-        cls._sim_db_file_request("PUT", sid_or_lib, basename, data=_data())
+        return cls._sim_db_file_request("PUT", sid_or_lib, basename, data=_data())
 
 
 def _caller():

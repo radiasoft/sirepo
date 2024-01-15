@@ -1190,6 +1190,8 @@ class _ImagePreview:
         plt.yticks(fontsize=14)
         p = _SIM_DATA.lib_file_write_path(self.data.args.imageFilename) + ".png"
         plt.tight_layout()
+        # TODO(robnagler) imgdata = StringIO.StringIO()
+        # fig.savefig(imgdata, format='png')
         plt.savefig(p)
         return PKDict(
             uris=[self._data_url(p)],
@@ -1333,6 +1335,8 @@ class _ImagePreview:
                     + f"_{int(k/25)}.png"
                 )
                 plt.tight_layout()
+                # TODO(robnagler) imgdata = StringIO.StringIO()
+                # fig.savefig(imgdata, format='png')
                 plt.savefig(p)
                 u.append(self._data_url(p))
                 k += i
