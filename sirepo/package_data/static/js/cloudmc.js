@@ -463,8 +463,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         return [];
     };
 
-    self.getParticlesForSource = index => self.getSourceParticles()[index];
-
     self.getSourceParticles = () => self.sourceParticles;
 
     self.initMesh = () => {
@@ -507,9 +505,9 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
             return e;
         }
         for (const s of p) {
-            e += s.reduce((sum, x) => sum + x.energy, 0);
+            e += s.energy;
         }
-        return e / (n * p[0].length);
+        return e / n;
     };
 
     self.tallyRange = (dim, useBinCenter=false) => {
@@ -857,16 +855,16 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         data: view.shapePoints(dim).map(p => p.toReversed()),
                         doClose: true,
                     });
-                    tallyService.getParticlesForSource(i).forEach((p, n) => {
-                        const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
-                        const p1 = [p.position[j], p.position[k]];
-                        const r = sourceArrowLength * p.energy / eMean;
-                        const p2 = [p1[0] + r * p.direction[j], p1[1] + r * p.direction[k]];
-                        outlines.push({
-                            name: `source-${s.particle}-${i}-particle-${n}`,
-                            color: '#ff0000',
-                            data: [p1, p2],
-                        });
+                });
+                tallyService.getSourceParticles().forEach((p, n) => {
+                    const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
+                    const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
+                    const r = sourceArrowLength * p.energy / eMean;
+                    const p2 = [p1[0] + r * p.direction[j], p1[1] + r * p.direction[k]];
+                    outlines.push({
+                        name: `particle-${p.particle}-${n}`,
+                        color: '#ff0000',
+                        data: [p1, p2].map(p => p.toReversed()),
                     });
                 });
                 return outlines;

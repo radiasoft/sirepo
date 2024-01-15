@@ -67,9 +67,22 @@ def create_settings():
         {{ sources }}
         {% endfilter %}
     ]
+    {% if settings_run_mode == "eigenvalue" %}
+    settings.sourcepoint = dict(
+        write=True,
+        separate=True,
+    )
+    {% endif %}
     settings.run_mode = "{{ settings_run_mode }}"
     settings.photon_transport = "{{ settings_photon_transport }}" == "1"
     settings.export_to_xml()
+    {% if settings_run_mode == "fixed source" %}
+    from openmc import lib
+    openmc.lib.init(output=False)
+    p = openmc.lib.sample_external_source(n_samples={{ settings_particles }})
+    openmc.source.write_source_file(p, "{{ sourceFile }}")
+    openmc.lib.finalize()
+    {% endif %}
 
 
 def create_tallies():

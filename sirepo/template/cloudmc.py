@@ -160,48 +160,23 @@ def sim_frame(frame_args):
         f = [x for x in tallies if x.name == name]
         return f[0] if len(f) else None
 
-    def _sample_sources(sources, num_samples):
-        import os
-        from sirepo import sim_run
-        from openmc import lib
-
-        if not num_samples:
-            return []
+    def _sample_sources(filename, num_samples):
         samples = []
-        #return [[]]
-        # set up dummmy environment so the source sampling works
-        with sim_run.tmp_dir() as d:
-            os.environ["OPENMC_CROSS_SECTIONS"] = str(
-                _SIM_DATA.lib_file_abspath("cross_sections.xml")
-            )
-            openmc.Materials().export_to_xml()
-            openmc.Geometry(
-                [openmc.Cell(region=-openmc.Sphere(r=1e9, boundary_type="vacuum"))]
-            ).export_to_xml()
-            settings = openmc.Settings()
-            settings.particles = 1
-            settings.batches = 1
-            for s in sources:
-                pkdp("SAMPLE {}", s)
-                particles = []
-                settings.source = [eval(_generate_source(s))]
-                settings.export_to_xml()
-                openmc.lib.init(output=False)
-                samples.append(
-                    [
-                        PKDict(
-                            direction=p.u,
-                            energy=p.E,
-                            position=p.r,
-                            type=p.particle,
-                        )
-                        for p in openmc.lib.sample_external_source(
-                            n_samples=num_samples
-                        )
-                    ]
-                )
-                openmc.lib.finalize()
+        try:
+            b = template_common.read_dict_from_h5(filename).get("source_bank", [])[:num_samples]
+            return [
+                PKDict(
+                        direction=p.u,
+                        energy=p.E,
+                        position=p.r,
+                        type=p.particle,
+                    )
+                for p in [openmc.SourceParticle(*p) for p in b]
+            ]
+        except:
+            pass
         return samples
+
 
     def _sum_energy_bins(values, mesh_filter, energy_filter, sum_range):
         f = (lambda x: x) if energy_filter.space == "linear" else numpy.log10
@@ -254,7 +229,7 @@ def sim_frame(frame_args):
             tally=frame_args.tally,
             outlines=o[frame_args.tally] if frame_args.tally in o else {},
             sourceParticles=_sample_sources(
-                frame_args.sim_in.models.settings.sources,
+                _source_filename(frame_args.sim_in),
                 frame_args.numSampleSourceParticles,
             ),
         ),
@@ -562,6 +537,7 @@ def _generate_parameters_file(data, run_dir=None):
 
     v.materials = _generate_materials(data)
     v.sources = _generate_sources(data)
+    v.sourceFile = _source_filename(data)
     v.tallies = _generate_tallies(data)
     v.hasGraveyard = _has_graveyard(data)
     return template_common.render_jinja(
@@ -724,6 +700,10 @@ def _parse_run_log(run_dir):
     if res:
         return res
     return "An unknown error occurred, check CloudMC log for details"
+
+
+def _source_filename(data):
+    return f"source.{data.models.settings.batches}.h5"
 
 
 def _statepoint_filename(data):
