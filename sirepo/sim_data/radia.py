@@ -31,7 +31,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         res = cls._prepare_import_file_name_args(req)
         if res.ext_lower != ".dat":
             raise sirepo.util.UserAlert(f"invalid file extension='{res.ext_lower}'")
-        p = req.sim_data.lib_file_name_with_type(
+        p = cls.lib_file_name_with_type(
             res.basename,
             cls.schema().constants.fileTypeRadiaDmp,
         )
@@ -39,9 +39,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             raise sirepo.util.UserAlert(
                 f"dump file='{res.basename}' already exists; import another file name"
             )
-        cls.lib_file_write_path(p, qcall=req.qcall).write_binary(
-            req.form_file.as_bytes(),
-        )
+        cls.lib_file_write(p, req.form_file.as_bytes(), qcall=req.qcall)
         # radia doesn't use import_file_arguments
         return res
 

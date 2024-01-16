@@ -4,6 +4,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkcollections import PKDict
+from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
@@ -29,6 +30,14 @@ def stateless_compute_global_resources(data, **kwargs):
     return sirepo.global_resources.for_simulation(
         data.simulationType, data.simulationId
     )
+
+
+def stateful_compute_sim_data(data, **kwargs):
+    assert pkconfig.channel_in_internal_test()
+    m = data.args.test_method
+    if m.startswith("[a-z]"):
+        raise AssertionError(f"invalid method={m}")
+    return getattr(sim_data, m)(**data.args.test_kwargs)
 
 
 def get_data_file(run_dir, model, frame, options):

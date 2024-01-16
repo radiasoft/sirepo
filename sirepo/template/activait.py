@@ -13,6 +13,7 @@ from sirepo.template import template_common
 from base64 import b64encode
 import csv
 import h5py
+import io
 import numpy
 import os
 import re
@@ -383,7 +384,22 @@ def stateless_compute_get_remote_data(data, **kwargs):
 
 
 def stateless_compute_remote_data_bytes_loaded(data, **kwargs):
-    return _remote_data_bytes_loaded(data.args.filename)
+    try:
+        return PKDict(
+            bytesLoaded=_SIM_DATA.lib_file_size(
+                _SIM_DATA.lib_file_name_with_model_field(
+                    "dataFile", "file", data.args.filename
+                ),
+            ),
+        )
+    except Exception as e:
+        pkdlog(
+            "error getting lib_file_size filename={} exc={} stack={}",
+            data.args.filename,
+            e,
+            pkdexc(),
+        )
+        return PKDict(error=e)
 
 
 def stateless_compute_get_archive_file_list(data, **kwargs):
@@ -1135,11 +1151,6 @@ class _ImagePreview:
         self.info = info
         self.io = io
 
-    def _data_url(self, filename):
-        with open(filename, "rb") as f:
-            r = "data:image/jpeg;base64," + pkcompat.from_bytes(b64encode(f.read()))
-        return r
-
     def _image_grid(self, num_images):
         num_pages = min(5, 1 + (num_images - 1) // 25)
         return [min(25, num_images - 25 * i) for i in range(num_pages)]
@@ -1160,6 +1171,19 @@ class _ImagePreview:
         if method == "segmentViewer" and not _param_to_image(self.info):
             return _read_file(self.run_dir, _OUTPUT_FILE.originalImageInFile)
         return None
+
+    def _pyplot_data_url(self):
+        import matplotlib.pyplot as plt
+
+        with io.BytesIO() as f:
+            plt.tight_layout()
+            plt.savefig(f)
+            plt.clf()
+            plt.cla()
+            plt.close()
+            return "data:image/jpeg;base64," + pkcompat.from_bytes(
+                b64encode(f.getvalue())
+            )
 
     def dice_coefficient_plot(self):
         import matplotlib.pyplot as plt
@@ -1182,20 +1206,13 @@ class _ImagePreview:
                 d.append(_dice_coefficient(pair[0], pair[1]))
             return d
 
-        plt.figure(figsize=[10, 10])
+        f = plt.figure(figsize=[10, 10])
         plt.hist(_dice())
         plt.xlabel("Dice Scores", fontsize=20)
         plt.ylabel("Counts", fontsize=20)
         plt.xticks(fontsize=14)
         plt.yticks(fontsize=14)
-        p = _SIM_DATA.lib_file_write_path(self.data.args.imageFilename) + ".png"
-        plt.tight_layout()
-        # TODO(robnagler) imgdata = StringIO.StringIO()
-        # fig.savefig(imgdata, format='png')
-        plt.savefig(p)
-        return PKDict(
-            uris=[self._data_url(p)],
-        )
+        return PKDict(uris=[self._pyplot_data_url()])
 
     def _output(self, info, io):
         if "output" in info.inputOutput:
@@ -1265,6 +1282,8 @@ class _ImagePreview:
         return a
 
     def _gen_image(self):
+        import matplotlib.pyplot as plt
+
         if (
             _param_to_image(self.info)
             and not self.data.args.method in _POST_TRAINING_PLOTS
@@ -1287,21 +1306,21 @@ class _ImagePreview:
             for i, column in enumerate(c):
                 self.axes[self.row, i].imshow(column)
             return
-        self.plt.subplot(_IMG_ROWS, _IMG_COLS, self.row + 1)
-        self.plt.xticks([])
-        self.plt.yticks([])
-        self.plt.imshow(self.input)
+        plt.subplot(_IMG_ROWS, _IMG_COLS, self.row + 1)
+        plt.xticks([])
+        plt.yticks([])
+        plt.imshow(self.input)
         if len(self.file[self.io.output.path].shape) == 1:
             if "label_path" in self.io.output:
-                self.plt.xlabel(
+                plt.xlabel(
                     pkcompat.from_bytes(
                         self.file[self.io.output.label_path][self.output]
                     )
                 )
             else:
-                self.plt.xlabel(self.output)
+                plt.xlabel(self.output)
         else:
-            self.plt.xlabel("\n".join([str(l) for l in self.output]))
+            plt.xlabel("\n".join([str(l) for l in self.output]))
 
     def images(self):
         import matplotlib.pyplot as plt
@@ -1328,17 +1347,8 @@ class _ImagePreview:
                     if self.io.input.kind == "f":
                         self.input = self.input.astype(float)
                     self.output = y[k + j]
-                    self.plt = plt
                     self._gen_image()
-                p = (
-                    _SIM_DATA.lib_file_write_path(self.data.args.imageFilename)
-                    + f"_{int(k/25)}.png"
-                )
-                plt.tight_layout()
-                # TODO(robnagler) imgdata = StringIO.StringIO()
-                # fig.savefig(imgdata, format='png')
-                plt.savefig(p)
-                u.append(self._data_url(p))
+                u.append(self._pyplot_data_url())
                 k += i
             return PKDict(
                 numPages=len(g),
@@ -1468,21 +1478,6 @@ def _read_file_with_history(run_dir, filename, report=None):
                 labels = numpy.array(clusters.group)
                 res = res[labels == action.clusterIndex, :]
     return res
-
-
-def _remote_data_bytes_loaded(filename):
-    try:
-        return PKDict(
-            bytesLoaded=os.path.getsize(
-                _SIM_DATA.lib_file_abspath(
-                    _SIM_DATA.lib_file_name_with_model_field(
-                        "dataFile", "file", filename
-                    )
-                )
-            )
-        )
-    except Exception as e:
-        return PKDict(error=e)
 
 
 def _report_info(x, plots, title="", fields=PKDict(), summary_data=PKDict()):

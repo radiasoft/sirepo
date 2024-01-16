@@ -37,6 +37,8 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
             a.path = self.__authenticated_path()
             self.write(getattr(self, "_post_" + r.get("method", "missing_method"))(a))
         except Exception as e:
+            if pkio.exception_is_not_found(e):
+                raise sirepo.tornado.error_not_found()
             pkdlog(
                 "uri={} body={} exception={} stack={}",
                 self.request.path,
@@ -77,6 +79,9 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
 
     def _post_exists(self, args):
         return PKDict(state="ok", result=args.path.check(file=True))
+
+    def _post_size(self, args):
+        return PKDict(state="ok", result=args.path.size())
 
     def _post_missing_method(self, args):
         raise AssertionError("missing method args={}", args)

@@ -476,6 +476,20 @@ class SimDataBase(object):
         return pkcompat.from_bytes(cls.lib_file_read_binary(*args, **kwargs))
 
     @classmethod
+    def lib_file_size(cls, basename, qcall=None):
+        """Get size of `basename` from lib
+
+        Args:
+            basename (str): full name including suffix
+            qcall (quest.API): logged in user
+        Returns:
+            int: size in bytes
+        """
+        if cls._is_agent_side():
+            return cls._sim_db_file_post("size", cls._LIB_DIR, basename)
+        return cls._lib_file_abspath(basename, qcall=qcall).size()
+
+    @classmethod
     def lib_file_write(cls, basename, path_or_content, qcall=None):
         """Save `content` to `basename` in lib
 
