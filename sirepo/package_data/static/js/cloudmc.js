@@ -843,11 +843,27 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             }
 
             function getOutlines(pos, range, dimIndex) {
+
+                function cloneMarker(baseId, newId, newAttrs) {
+                    const baseMarker = $(`defs marker#${baseId}`);
+                    let newMarker = $(`defs marker#${newId}`);
+                    if (newMarker[0]) {
+                        return;
+                    }
+                    newMarker = baseMarker.clone();
+                    newMarker.attr('id', newId);
+                    for (const a in newAttrs) {
+                        newMarker.children('path').attr(a, newAttrs[a]);
+                    }
+                    baseMarker.after(newMarker);
+                }
+
+                const baseMarkerId = 'arrow';
+                
                 const outlines = [];
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
-                const eMean = tallyService.sourceParticleMeanEnergy();
                 const eColors = tallyService.sourceParticleColorScale();
-                const sourceArrowLength = 0.1 * tallyService.getMaxMeshExtent();
+                const sourceArrowLength = 0.05 * tallyService.getMaxMeshExtent();
                 for (const volId of cloudmcService.getNonGraveyardVolumes()) {
                     const v = cloudmcService.getVolumeById(volId);
                     if (! v.isVisibleWithTallies) {
@@ -874,13 +890,18 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 tallyService.getSourceParticles().forEach((p, n) => {
                     const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                     const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
-                    const r = sourceArrowLength;  // * p.energy / eMean;
-                    const p2 = [p1[0] + r * p.direction[j], p1[1] + r * p.direction[k]];
+                    const r = sourceArrowLength;  // * p.energy / tallyService.sourceParticleMeanEnergy();
+                    // normalize in the plane
+                    const d = Math.hypot(p.direction[j], p.direction[k]);
+                    const p2 = [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d];
+                    const color = eColors(p.energy);
+                    const mId = `${baseMarkerId}-${color.slice(1)}`;
+                    cloneMarker(baseMarkerId, mId, {fill: color});
                     outlines.push({
-                        name: `${p.type}-${p.energy}-${n}`,
-                        color: eColors(p.energy),
+                        name: `${p.type}-${p.energy}eV-${n}`,
+                        color: color,
                         data: [p1, p2].map(p => p.toReversed()),
-                        marker: 'arrow',
+                        marker: mId,
                     });
                 });
                 return outlines;
