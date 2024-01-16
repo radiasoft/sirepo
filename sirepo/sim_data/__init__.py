@@ -52,6 +52,9 @@ _FRAME_ID_KEYS = (
     "computeJobSerial",
 )
 
+# POSIT: same as simulation_db._LIB_DIR
+_LIB_DIR = "lib"
+
 _TEMPLATE_RESOURCE_DIR = "template"
 
 
@@ -181,10 +184,7 @@ class SimDataBase(object):
 
     _EXAMPLE_RESOURCE_DIR = "examples"
 
-    _EXE_PERMISSIONS = 0o700
-
-    # POSIT: same as simulation_db._LIB_DIR
-    _LIB_DIR = "lib"
+    LIB_DIR = _LIB_DIR
 
     @classmethod
     def compute_job_hash(cls, data, qcall):
@@ -250,10 +250,6 @@ class SimDataBase(object):
         d = model_or_data if isinstance(model_or_data, dict) else None
         # TODO(robnagler) is this necesary since m is parsed?
         return cls.parse_model(cls._compute_model(m, d))
-
-    @classmethod
-    def delete_sim_file(cls, sim_id, basename):
-        return cls._delete_sim_db_file(cls._sim_db_file_uri(sim_id, basename))
 
     @classmethod
     def does_api_reply_with_file(cls, api, method):
@@ -445,7 +441,7 @@ class SimDataBase(object):
         return sirepo.resource.file_path(
             _TEMPLATE_RESOURCE_DIR,
             cls.sim_type(),
-            cls._LIB_DIR,
+            cls.LIB_DIR,
             path,
         )
 
@@ -460,7 +456,7 @@ class SimDataBase(object):
             bytes: contents of file
         """
         if cls._is_agent_side():
-            return cls._sim_db_file_get(cls._LIB_DIR, basename)
+            return cls.sim_db_client().get(cls.LIB_DIR, basename)
         return cls._lib_file_abspath(basename, qcall=qcall).read_binary()
 
     @classmethod
@@ -486,7 +482,7 @@ class SimDataBase(object):
             int: size in bytes
         """
         if cls._is_agent_side():
-            return cls._sim_db_file_post("size", cls._LIB_DIR, basename)
+            return cls.sim_db_client().size(cls.LIB_DIR, basename)
         return cls._lib_file_abspath(basename, qcall=qcall).size()
 
     @classmethod
@@ -506,7 +502,7 @@ class SimDataBase(object):
             )
 
         if cls._is_agent_side():
-            cls._sim_db_file_write(cls._LIB_DIR, basename, path_or_content)
+            cls.sim_db_client().write(cls.LIB_DIR, basename, path_or_content)
             return
         if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
             path_or_content.write_binary(_target())
@@ -693,7 +689,7 @@ class SimDataBase(object):
 
     @classmethod
     def put_sim_file(cls, sim_id, src_path, dest_basename):
-        return cls._sim_db_file_write(sim_id, dest_basename, src_path)
+        return cls.sim_db_client().write(sim_id, dest_basename, src_path)
 
     @classmethod
     def react_format_data(cls, data):
@@ -721,13 +717,17 @@ class SimDataBase(object):
         return cls._memoize(simulation_db.get_schema(cls.sim_type()))
 
     @classmethod
+    def sim_db_client(cls):
+        return cls._memoize(_SimDbClient(cls))
+
+    @classmethod
     def sim_file_basenames(cls, data):
         return cls._sim_file_basenames(data)
 
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
         for b in cls.sim_file_basenames(data):
-            cls._sim_db_file_get_and_save(
+            cls.sim_db_client().get_and_save(
                 data.models.simulation.simulationId,
                 b.basename,
                 run_dir,
@@ -844,7 +844,7 @@ class SimDataBase(object):
     ):
         """Absolute path of lib file
 
-        On agent (`cfg.supervisor_sim_db_file_uri`) downloads file unless `exists_only`.
+        On agent downloads file unless `exists_only`.
 
         For utilities (`cfg.lib_file_resource_only`) only checks
         resources (not user library).
@@ -859,12 +859,12 @@ class SimDataBase(object):
         """
         if cls._is_agent_side():
             if exists_only:
-                if cls._sim_db_file_exists(cls._LIB_DIR, basename):
+                if cls.sim_db_client().exists(cls.LIB_DIR, basename):
                     return True
             else:
                 try:
-                    return cls._sim_db_file_get_and_save(
-                        cls._LIB_DIR, basename, pkio.py_path()
+                    return cls.sim_db_client().get_and_save(
+                        cls.LIB_DIR, basename, pkio.py_path()
                     )
                 except Exception as e:
                     if not pkio.exception_is_not_found(e):
@@ -901,7 +901,7 @@ class SimDataBase(object):
                 for f in sirepo.resource.glob_paths(
                     _TEMPLATE_RESOURCE_DIR,
                     cls.sim_type(),
-                    cls._LIB_DIR,
+                    cls.LIB_DIR,
                     pat,
                 )
             )
@@ -983,34 +983,91 @@ class SimDataBase(object):
     def _sim_file_basenames(cls, data):
         return []
 
-    @classmethod
-    def _sim_db_file_delete_glob(cls, sid_or_lib, path_prefix):
-        return cls._sim_db_file_post("delete_glob", sid_or_lib, path_prefix)
 
-    @classmethod
-    def _sim_db_file_exists(cls, sid_or_lib, basename):
-        return cls._sim_db_file_post("exists", sid_or_lib, basename)
+class _SimDbClient:
+    """Client to be used from the job agent"""
+    _EXE_PERMISSIONS = 0o700
 
-    @classmethod
-    def _sim_db_file_get(cls, sid_or_lib, basename):
-        return cls._sim_db_file_request("GET", sid_or_lib, basename).content
+    def __init__(self, sim_data):
 
-    @classmethod
-    def _sim_db_file_get_and_save(cls, sid_or_lib, basename, dest_dir, is_exe=False):
+    """Singleton instance"""
+        self._sd = sim_data
+        self._stype = sim_data.sim_type()
+        self.LIB_DIR = sim_type.LIB_DIR
+
+    def copy(self, src_uri, dst_uri):
+        """Copy `src_uri` to `dst_uri`
+
+        Args:
+            src_uri (_SimDbUri): from file
+            dst_uri (_SimDbUri): to file
+        """
+        return self._post("copy", src_uri, basename=None, args=PKDict(dst_uri=dst_uri))
+
+    def delete_glob(self, lib_sid_uri, path_prefix, sim_type=None):
+        """deletes files that begin with `path_prefix`"""
+        return self._post("delete_glob", lib_sid_uri, path_prefix, sim_type=sim_type)
+
+    def exists(self, lib_sid_uri, basename=None, sim_type=None):
+        """Tests if file exists"""
+        return self._post("exists", lib_sid_uri, basename, sim_type=sim_type)
+
+    def get(self, lib_sid_uri, basename=None, sim_type=None):
+        return self._request("GET", lib_sid_uri, basename, sim_type=sim_type).content
+
+    def get_and_save(self, lib_sid_uri, basename, dest_dir, is_exe=False, sim_type=None):
         p = dest_dir.join(basename)
-        p.write_binary(cls._sim_db_file_get(sid_or_lib, basename))
+        p.write_binary(self.get(lib_sid_uri, basename, sim_type=sim_type))
         if is_exe:
-            p.chmod(cls._EXE_PERMISSIONS)
+            p.chmod(self._EXE_PERMISSIONS)
         return p
 
-    @classmethod
-    def _sim_db_file_post(cls, method, sid_or_lib, basename, args=None):
+    def move(self, src_uri, dst_uri):
+        """Rename `src_uri` to `dst_uri`
+
+        Args:
+            src_uri (_SimDbUri): from path
+            dst_uri (_SimDbUri): to path
+        """
+        return self._post("move", src_uri, basename=None, args=PKDict(dst_uri=dst_uri))
+
+    def size(self, lib_sid_uri, basename=None, sim_type=None):
+        return self._post("size", lib_sid_uri, basename, sim_type=sim_type)
+
+    def uri(self, lib_sid_uri, basename=None, sim_type=None):
+        """Create a `_SimDbUri`
+
+        ``lib_sid_uri`` may be `cls.LIB_DIR`, a simulation id, or a
+        `_SimDbUri`.  In the latter case, the uri must match ``sim_type``
+        (if supplied), and ``basename`` must be None.
+
+        Args:
+            lib_sid_uri (object): see above
+            basename (str): naem without directories (see above)
+            sim_type (str): valid code [sim_data.sim_type]
+        Returns:
+            _SimDbUri: valid in any string context
+        """
+        return _SimDbFileUri(sim_type or self._sd.sim_type(), lib_sid_uri, basename)
+
+    def write(self, lib_sid_uri, basename, path_or_content, sim_type=None):
+        def _data():
+            if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
+                return pkio.read_binary(path_or_content)
+            return pkcompat.to_bytes(path_or_content)
+
+        return self._request(
+            "PUT", lib_sid_uri, basename, data=_data(), sim_type=sim_type
+        )
+
+    def _post(self, method, lib_sid_uri, basename, args=None, sim_type=None):
         res = pkjson.load_any(
-            cls._sim_db_file_request(
+            self._request(
                 "POST",
-                sid_or_lib,
+                lib_sid_uri,
                 basename,
                 json=PKDict(method=method, args=PKDict() if args is None else args),
+                sim_type=sim_type,
             ).content,
         )
         if res.get("state") != "ok":
@@ -1019,11 +1076,12 @@ class SimDataBase(object):
             )
         return res.result
 
-    @classmethod
-    def _sim_db_file_request(cls, method, sid_or_lib, basename, data=None, json=None):
+    def _request(
+        self, method, lib_sid_uri, basename, data=None, json=None, sim_type=None
+    ):
         from sirepo import simulation_db
 
-        u = simulation_db.sim_db_file_uri(cls.sim_type(), sid_or_lib, basename)
+        u = self.uri(lib_sid_uri, basename, sim_type)
         r = sirepo.agent_supervisor_api.request(
             method,
             _cfg.supervisor_sim_db_file_uri + u,
@@ -1036,14 +1094,24 @@ class SimDataBase(object):
         r.raise_for_status()
         return r
 
-    @classmethod
-    def _sim_db_file_write(cls, sid_or_lib, basename, path_or_content):
-        def _data():
-            if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
-                return pkio.read_binary(path_or_content)
-            return pkcompat.to_bytes(path_or_content)
 
-        return cls._sim_db_file_request("PUT", sid_or_lib, basename, data=_data())
+class _SimDbUri(str):
+    def __new__(cls, sim_type, slu, basename):
+        from sirepo import simulation_db
+
+        if isinstance(slu, _SimDbFileUri):
+            if basename is not None:
+                raise AssertionError(
+                    f"basename={basename} must be none when uri={slu} supplied"
+                )
+            if sim_type != slu.__stype:
+                raise AssertionError(f"sim_type={sim_type} disagrees with uri={slu}")
+            return slu
+        self = super().__new__(
+            simulation_db.sim_db_file_uri(sim_type, sid_or_lib, basename)
+        )
+        self.__stype = sim_type
+        return self
 
 
 def _caller():

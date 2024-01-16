@@ -569,7 +569,7 @@ class _ComputeJob(_Supervisor):
     @classmethod
     def __db_file(cls, computeJid):
         return _DB_DIR.join(
-            sirepo.simulation_db.assert_sim_db_file_path(computeJid)
+            sirepo.simulation_db.assert_sim_db_basename(computeJid)
             + sirepo.const.JSON_SUFFIX,
         )
 

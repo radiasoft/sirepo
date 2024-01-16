@@ -405,20 +405,19 @@ def stateless_compute_get_archive_file(data, **kwargs):
 
 
 def stateless_compute_update_lib_file(data, **kwargs):
-    p = _SIM_DATA.lib_file_write_path(
-        _SIM_DATA.flash_app_lib_basename(data.args.simulationId),
-    )
+    c = _SIM_DATA.sim_db_client()
+    t = c.uri(c.LIB_DIR, _SIM_DATA.flash_app_lib_basename(data.args.simulationId))
     if data.args.get("archiveLibId"):
-        _SIM_DATA.lib_file_abspath(
-            _SIM_DATA.flash_app_lib_basename(data.args.archiveLibId),
-        ).copy(p)
+        c.copy(
+            c.uri(c.LIB_DIR, _SIM_DATA.flash_app_lib_basename(data.args.archiveLibId))
+            t,
+        )
     else:
-        simulation_db.simulation_dir(SIM_TYPE, data.args.simulationId,).join(
-            _SIM_DATA.flash_app_archive_basename()
-        ).rename(p)
-    return PKDict(
-        archiveLibId=data.args.simulationId,
-    )
+        c.move(
+            c.uri(data.args.simulationId, _SIM_DATA.flash_app_archive_basename()),
+            t,
+        )
+    return PKDict(archiveLibId=data.args.simulationId)
 
 
 def stateless_compute_replace_file_in_zip(data, **kwargs):

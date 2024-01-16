@@ -110,7 +110,8 @@ class API(sirepo.quest.API):
                 }
             )
 
-        # Will not remove resource (standard) lib files
+        # Will not remove resource (standard) lib files, because those
+        # live in the resource directoy.
         pkio.unchecked_remove(_lib_file_write_path(req))
         return self.reply_ok()
 

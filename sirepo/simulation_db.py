@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Simulation database
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
@@ -81,7 +79,7 @@ _SCHEMA_SUPERCLASS_FIELD = "_super"
 #: configuration
 _cfg = None
 
-_SIM_DB_FILE_PATH_RE = re.compile(r"^[a-zA-Z0-9-_\.]{1,128}$")
+_SIM_DB_BASENAME_RE = re.compile(r"^[a-zA-Z0-9-_\.]{1,128}$")
 
 #: For re-entrant `user_lock`
 _USER_LOCK = PKDict(paths=set())
@@ -107,8 +105,8 @@ def assert_sid(sid):
     raise AssertionError(f"invalid sid={sid}")
 
 
-def assert_sim_db_file_path(basename):
-    assert _SIM_DB_FILE_PATH_RE.search(basename), f"basename={basename} is invalid"
+def assert_sim_db_basename(basename):
+    assert _SIM_DB_BASENAME_RE.search(basename), f"basename={basename} is invalid"
     return basename
 
 
@@ -278,7 +276,7 @@ def get_schema(sim_type):
 
     """
     t = (
-        sirepo.template.assert_sim_type(sim_type)
+        util.assert_sim_type(sim_type)
         if sim_type is not None
         else list(feature_config.cfg().sim_types)[0]
     )
@@ -721,7 +719,7 @@ def sim_db_file_uri(sim_type, sid_or_lib, basename):
         [
             sirepo.template.assert_sim_type(sim_type),
             _sid_or_lib(),
-            assert_sim_db_file_path(basename),
+            assert_sim_db_basename(basename),
         ]
     )
 
@@ -741,7 +739,7 @@ def sim_db_file_uri_to_path(uri, expect_uid):
     sirepo.template.assert_sim_type(p[1]),
     if p[2] != _LIB_DIR:
         assert_sid(p[2]),
-    assert_sim_db_file_path(p[3]),
+    assert_sim_db_basename(p[3]),
     return user_path_root().join(*p)
 
 

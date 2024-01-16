@@ -13,7 +13,6 @@ import sirepo.job
 import sirepo.simulation_db
 import sirepo.tornado
 
-# TODO(robnagler) figure out how to do in tornado, e.g. get path_info
 _URI_RE = re.compile(f"^{sirepo.job.SIM_DB_FILE_URI}/(.+)")
 
 
@@ -22,7 +21,7 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
     _UID_TO_TOKEN = PKDict()
 
     def get(self, unused_arg):
-        p = self.__authenticated_path()
+        p = self.__authenticate_and_path()
         if not p.exists():
             raise sirepo.tornado.error_not_found()
         self.write(pkio.read_binary(p))
@@ -34,8 +33,10 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
             # note that args may be empty, since uri has path
             if not isinstance(a, PKDict):
                 raise AssertionError(f"invalid post args={a}")
-            a.path = self.__authenticated_path()
-            self.write(getattr(self, "_post_" + r.get("method", "missing_method"))(a))
+            self.__path = self.__authenticate_and_path()
+            self.write(
+                getattr(self, "_sr_post_" + r.get("method", "missing_method"))(a)
+            )
         except Exception as e:
             if pkio.exception_is_not_found(e):
                 raise sirepo.tornado.error_not_found()
@@ -52,24 +53,15 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
                 pass
 
     def put(self, unused_arg):
-        self.__authenticated_path().write_binary(self.request.body)
+        self.__authenticate_and_path().write_binary(self.request.body)
 
-    def __authenticated_path(self):
-        u = self._rs_authenticate()
-        m = _URI_RE.search(self.request.path)
-        if not m:
-            pkdlog(
-                "uri={} missing {sirepo.job.SIM_DB_FILE_URI} prefix", self.request.path
-            )
-            raise sirepo.tornado.error_forbidden()
-        return sirepo.simulation_db.sim_db_file_uri_to_path(
-            uri=m.group(1),
-            expect_uid=u,
-        )
+    def __authenticate_and_path(self):
+        self.__uid = self._rs_authenticate()
+        return self.__uri_to_path(self.request.path)
 
-    def _post_delete_glob(self, args):
+    def _sr_post_delete_glob(self, args):
         t = []
-        for f in pkio.sorted_glob(f"{self.__authenticated_path()}*"):
+        for f in pkio.sorted_glob(f"{self.__authenticate_and_path()}*"):
             if f.check(dir=True):
                 pkdlog("path={} is a directory", f)
                 raise sirepo.tornado.error_forbidden()
@@ -77,11 +69,29 @@ class FileReq(sirepo.agent_supervisor_api.ReqBase):
         for f in t:
             pkio.unchecked_remove(f)
 
-    def _post_exists(self, args):
-        return PKDict(state="ok", result=args.path.check(file=True))
+    def _sr_post_copy(self, args):
+        self._path.copy(self.__uri_to_path(self.args.dst_uri))
+        return PKDict(state="ok")
 
-    def _post_size(self, args):
-        return PKDict(state="ok", result=args.path.size())
+    def _sr_post_exists(self, args):
+        return PKDict(state="ok", result=self._path.check(file=True))
 
-    def _post_missing_method(self, args):
-        raise AssertionError("missing method args={}", args)
+    def _sr_post_move(self, args):
+        self._path.move(self.__uri_to_path(self.args.dst_uri))
+        return PKDict(state="ok")
+
+    def _sr_post_size(self, args):
+        return PKDict(state="ok", result=self._path.size())
+
+    def _sr_post_missing_method(self, args):
+        raise AssertionError("missing method path={} args={}", self._path, args)
+
+    def __uri_to_path(self, uri):
+        m = _URI_RE.search(uri)
+        if not m:
+            pkdlog("uri={} missing {sirepo.job.SIM_DB_FILE_URI} prefix", uri)
+            raise sirepo.tornado.error_forbidden()
+        return sirepo.simulation_db.sim_db_file_uri_to_path(
+            uri=m.group(1),
+            expect_uid=self.__uid,
+        )
