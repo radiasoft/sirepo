@@ -464,7 +464,7 @@ class SimDataBase(object):
         return cls._lib_file_abspath(basename, qcall=qcall).read_binary()
 
     @classmethod
-    def lib_file_read_text(cls, basename, qcall=None):
+    def lib_file_read_text(cls, *args, **kwargs):
         """Get contents of `basename` from lib as str
 
         Args:
@@ -473,24 +473,31 @@ class SimDataBase(object):
         Returns:
             str: contents of file
         """
-        if cls._is_agent_side():
-            return pkcompat.from_bytes(cls._sim_db_file_get(cls._LIB_DIR, basename))
-        return cls._lib_file_abspath(basename, qcall=qcall).read_text()
+        return pkcompat.from_bytes(cls.lib_file_read_binary(*args, **kwargs))
 
     @classmethod
-    def lib_file_write(cls, basename, content, qcall=None):
+    def lib_file_write(cls, basename, path_or_content, qcall=None):
         """Save `content` to `basename` in lib
 
         Args:
             basename (str): full name including suffix
-            content (str or bytes): what to save
+            path_or_content (str|bytes|py.path): what to save, may be text or binary
             qcall (quest.API): logged in user
         """
         from sirepo import simulation_db
 
+        def _target():
+            return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
+                basename
+            )
+
         if cls._is_agent_side():
-            return cls._sim_db_file_write(cls._LIB_DIR, basename, content)
-        simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(basename)
+            cls._sim_db_file_write(cls._LIB_DIR, basename, path_or_content)
+            return
+        if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
+            path_or_content.write_binary(_target())
+        else:
+            _target().write_binary(pkcompat.to_bytes(path_or_content))
 
     @classmethod
     def lib_file_write_path(cls, basename, qcall=None):
@@ -672,7 +679,7 @@ class SimDataBase(object):
 
     @classmethod
     def put_sim_file(cls, sim_id, src_path, dest_basename):
-        return cls._sim_db_file_write(sim_id, dest_basename, src_path.read())
+        return cls._sim_db_file_write(sim_id, dest_basename, src_path)
 
     @classmethod
     def react_format_data(cls, data):
@@ -808,6 +815,8 @@ class SimDataBase(object):
 
     @classmethod
     def _lib_file_abspath(cls, basename, qcall):
+        from sirepo import simulation_db
+
         cls._assert_server_side()
         return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
             basename

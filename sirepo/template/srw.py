@@ -2124,7 +2124,13 @@ def _load_user_model_list(model_name, qcall=None):
     try:
         return pkjson.load_any(_SIM_DATA.lib_file_read_text(b, qcall=qcall))
     except Exception as e:
-        pkdlog("resetting model_list={} due to lib_file_read error={}", b, e)
+        if not pkio.exception_is_not_found(e):
+            pkdlog(
+                "resetting model_list={} due to lib_file_read error={} stack={}",
+                b,
+                e,
+                pkdexc(),
+            )
     return _save_user_model_list(model_name, [], qcall=qcall)
 
 
@@ -2351,7 +2357,7 @@ def _safe_beamline_item_name(name, names):
 def _save_user_model_list(model_name, beam_list, qcall):
     _SIM_DATA.lib_file_write(
         _USER_MODEL_LIST_FILENAME[model_name],
-        pkjson.dump_str(beam_list),
+        pkjson.dump_bytes(beam_list),
         qcall=qcall,
     )
     return beam_list

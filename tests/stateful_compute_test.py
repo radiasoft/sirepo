@@ -75,8 +75,18 @@ def test_srw_model_list(fc):
         r,
     )
     pkunit.pkok(isinstance(r.get("modelList"), list), "model_list not in reply={}", r)
-    d.models.electronBeam.name = "hello"
-    fc.sr_post("saveSimulationData", data=d)
+    r = fc.sr_post(
+        "newSimulation",
+        PKDict(
+            name="howdy",
+            folder="/",
+            simulationType=fc.sr_sim_type,
+            sourceType=d.models.simulation.sourceType,
+        ),
+    )
+    d.models.electronBeam.pkupdate(name="xyzzy", isReadOnly=False)
+    d.models.simulation = r.models.simulation
+    fc.sr_post("saveSimulationData", d)
     r = fc.sr_post(
         "statefulCompute",
         PKDict(
@@ -85,9 +95,9 @@ def test_srw_model_list(fc):
             args=PKDict(model_name="electronBeam"),
         ),
     )
-    pkdp(pkdpretty(r))
+    # pkdp(pkdpretty(r))
     pkunit.pkok(
-        list(filter(lambda x: x.name == "hello", r.modelList)),
-        "no hello model in reply={}",
+        list(filter(lambda x: x.name == "xyzzy", r.modelList)),
+        "user model not in reply={}",
         r,
     )
