@@ -169,7 +169,7 @@ def sim_frame(frame_args):
                         direction=p.u,
                         energy=p.E,
                         position=p.r,
-                        type=p.particle,
+                        type=openmc.ParticleType(p.particle).name,
                     )
                 for p in [openmc.SourceParticle(*p) for p in b]
             ]

@@ -499,7 +499,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
 
     self.sourceParticleEnergyRange = () => {
         const e = self.getSourceParticles().map(x => x.energy);
-        srdbg(self.getSourceParticles());
         return [Math.min(...e), Math.max(...e)];
     };
 
@@ -839,7 +838,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
                 const eMean = tallyService.sourceParticleMeanEnergy();
                 const eRange = tallyService.sourceParticleEnergyRange();
-                srdbg(eRange);
                 const eColors = SIREPO.PLOTTING.Utils.colorScale(
                     eRange[0],
                     eRange[1],
@@ -875,8 +873,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     const r = sourceArrowLength * p.energy / eMean;
                     const p2 = [p1[0] + r * p.direction[j], p1[1] + r * p.direction[k]];
                     outlines.push({
-                        name: `particle-${p.type}-${n}`,
-                        color: '#ff0000',
+                        name: `${p.type}-${p.energy}-${n}`,
+                        color: eColors(p.energy),
                         data: [p1, p2].map(p => p.toReversed()),
                         marker: 'triangle',
                     });
