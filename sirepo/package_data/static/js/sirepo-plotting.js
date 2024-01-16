@@ -3392,6 +3392,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     .attr('stroke', d => d.color)
                     .attr('stroke-width', 2.0)
                     .attr('fill', 'none')
+                    .attr('marker-end', d => `url(#${d.marker})`)
                     .attr('d', d => {
                         // we don't use the SVGPath directly, but it is a convenient way to build
                         // a path string

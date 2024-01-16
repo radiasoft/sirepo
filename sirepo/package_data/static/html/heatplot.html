@@ -5,6 +5,9 @@
           <clipPath id="sr-plot-window">
             <rect ng-attr-width="{{ canvasSize.width }}" ng-attr-height="{{ canvasSize.height }}"></rect>
           </clipPath>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="4" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,8 L9,4 z" fill="#000" />
+          </marker>
         </defs>
         <text class="y-base" x="5" ng-attr-y="{{ margin.top - 10 }}"></text>
         <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
