@@ -792,18 +792,22 @@ def stateful_compute_create_shadow_simulation(data, **kwargs):
 
 def stateful_compute_delete_user_models(data, **kwargs):
     """Remove the beam and undulator user model list files"""
-    electron_beam = data.args.electron_beam
-    tabulated_undulator = data.args.tabulated_undulator
-    for model_name in _USER_MODEL_LIST_FILENAME.keys():
-        model = electron_beam if model_name == "electronBeam" else tabulated_undulator
-        if not model or "id" not in model:
-            continue
-        user_model_list = _load_user_model_list(model_name)
-        for i, m in enumerate(user_model_list):
-            if m.id == model.id:
-                del user_model_list[i]
-                _save_user_model_list(model_name, user_model_list)
-                break
+
+    def _delete(model_name, model):
+        if model and "id" in model:
+            # optimistic: model is very likely to be there
+            _save_user_model_list(
+                model_name,
+                list(
+                    filter(
+                        lambda m: m.id != model.id,
+                        _load_user_model_list(model_name),
+                    ),
+                ),
+            )
+
+    _delete("electronBeam", data.args.get("electron_beam"))
+    _delete("tabulatedUndulator", data.args.get("tabulated_undulator"))
     return PKDict()
 
 
@@ -2354,7 +2358,7 @@ def _safe_beamline_item_name(name, names):
     return current
 
 
-def _save_user_model_list(model_name, beam_list, qcall):
+def _save_user_model_list(model_name, beam_list, qcall=None):
     _SIM_DATA.lib_file_write(
         _USER_MODEL_LIST_FILENAME[model_name],
         pkjson.dump_bytes(beam_list),

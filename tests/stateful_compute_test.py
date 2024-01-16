@@ -95,9 +95,27 @@ def test_srw_model_list(fc):
             args=PKDict(model_name="electronBeam"),
         ),
     )
-    # pkdp(pkdpretty(r))
+    m = next(filter(lambda x: x.name == "xyzzy", r.modelList))
+    pkunit.pkok(m, "user model not in reply={}", r)
+    r = fc.sr_post(
+        "statefulCompute",
+        PKDict(
+            method="delete_user_models",
+            simulationType=fc.sr_sim_type,
+            args=PKDict(electron_beam=m),
+        ),
+    )
+    pkunit.pkeq("completed", r.state)
+    r = fc.sr_post(
+        "statefulCompute",
+        PKDict(
+            method="model_list",
+            simulationType=fc.sr_sim_type,
+            args=PKDict(model_name="electronBeam"),
+        ),
+    )
     pkunit.pkok(
-        list(filter(lambda x: x.name == "xyzzy", r.modelList)),
-        "user model not in reply={}",
+        not any(filter(lambda x: x.name == "xyzzy", r.modelList)),
+        "user model in reply={}",
         r,
     )
