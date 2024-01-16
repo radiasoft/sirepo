@@ -497,6 +497,15 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         self.sourceParticles = particles;
     };
 
+    self.sourceParticleColorScale = () => {
+        const r = self.sourceParticleEnergyRange();
+        return SIREPO.PLOTTING.Utils.colorScale(
+            r[0],
+            r[1],
+            SIREPO.PLOTTING.Utils.COLOR_MAP().jet,
+        );
+    };
+
     self.sourceParticleEnergyRange = () => {
         const e = self.getSourceParticles().map(x => x.energy);
         return [Math.min(...e), Math.max(...e)];
@@ -837,12 +846,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 const outlines = [];
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
                 const eMean = tallyService.sourceParticleMeanEnergy();
-                const eRange = tallyService.sourceParticleEnergyRange();
-                const eColors = SIREPO.PLOTTING.Utils.colorScale(
-                    eRange[0],
-                    eRange[1],
-                    SIREPO.PLOTTING.Utils.COLOR_MAP().jet,
-                );
+                const eColors = tallyService.sourceParticleColorScale();
                 const sourceArrowLength = 0.1 * tallyService.getMaxMeshExtent();
                 for (const volId of cloudmcService.getNonGraveyardVolumes()) {
                     const v = cloudmcService.getVolumeById(volId);
@@ -870,13 +874,13 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 tallyService.getSourceParticles().forEach((p, n) => {
                     const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                     const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
-                    const r = sourceArrowLength * p.energy / eMean;
+                    const r = sourceArrowLength;  // * p.energy / eMean;
                     const p2 = [p1[0] + r * p.direction[j], p1[1] + r * p.direction[k]];
                     outlines.push({
                         name: `${p.type}-${p.energy}-${n}`,
                         color: eColors(p.energy),
                         data: [p1, p2].map(p => p.toReversed()),
-                        marker: 'triangle',
+                        marker: 'arrow',
                     });
                 });
                 return outlines;
