@@ -9,7 +9,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
 import copy
-import dagmc.dagnav
+import dagmc
 import json
 import numpy
 import pymeshlab
@@ -49,7 +49,7 @@ class _MoabGroupCollector:
 
     def _groups_and_volumes(self):
         res = PKDict()
-        for g in dagmc.dagnav.groups_from_file(self.dagmc_filename).values():
+        for g in dagmc.DAGModel(self.dagmc_filename).groups.values():
             if not g.name.startswith("mat:"):
                 continue
             v = g.get_volumes()
@@ -152,9 +152,11 @@ class _MoabGroupExtractor:
         )
 
     def _extract_moab_vertices_and_triangles(self, item):
-        t, v = dagmc.dagnav.groups_from_file(item.dagmc_filename)[
-            item.name
-        ].get_triangle_conn_and_coords(True)
+        t, v = (
+            dagmc.DAGModel(item.dagmc_filename)
+            .groups[item.name]
+            .get_triangle_conn_and_coords(True)
+        )
         return (v, t)
 
     def _get_points_and_polys(self, points, polys):
