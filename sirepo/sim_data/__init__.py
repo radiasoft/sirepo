@@ -450,8 +450,8 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def lib_file_read(cls, basename, qcall=None):
-        """Get contents of `basename` from lib
+    def lib_file_read_binary(cls, basename, qcall=None):
+        """Get contents of `basename` from lib as bytes
 
         Args:
             basename (str): full name including suffix
@@ -461,9 +461,21 @@ class SimDataBase(object):
         """
         if cls._is_agent_side():
             return cls._sim_db_file_get(cls._LIB_DIR, basename)
-        return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
-            basename
-        )
+        return cls._lib_file_abspath(basename, qcall=qcall).read_binary()
+
+    @classmethod
+    def lib_file_read_text(cls, basename, qcall=None):
+        """Get contents of `basename` from lib as str
+
+        Args:
+            basename (str): full name including suffix
+            qcall (quest.API): logged in user
+        Returns:
+            str: contents of file
+        """
+        if cls._is_agent_side():
+            return pkcompat.from_bytes(cls._sim_db_file_get(cls._LIB_DIR, basename))
+        return cls._lib_file_abspath(basename, qcall=qcall).read_text()
 
     @classmethod
     def lib_file_write(cls, basename, content, qcall=None):
@@ -795,6 +807,12 @@ class SimDataBase(object):
         return bool(_cfg.supervisor_sim_db_file_token)
 
     @classmethod
+    def _lib_file_abspath(cls, basename, qcall):
+        cls._assert_server_side()
+        return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
+            basename
+        )
+
     def _lib_file_abspath_or_exists(
         cls,
         basename,
@@ -833,10 +851,7 @@ class SimDataBase(object):
             from sirepo import simulation_db
 
             # Command line utility or server
-            f = simulation_db.simulation_lib_dir(
-                cls.sim_type(),
-                qcall=qcall,
-            ).join(basename)
+            f = cls._lib_file_abspath(basename, qcall)
             if f.check(file=True):
                 return exists_only or f
         try:
@@ -874,11 +889,7 @@ class SimDataBase(object):
             # lib_dir overwrites resource_dir
             res.update(
                 (f.basename, f)
-                for f in pkio.sorted_glob(
-                    simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
-                        pat
-                    ),
-                )
+                for f in pkio.sorted_glob(cls._lib_file_abspath(pat, qcall))
             )
         return res.values()
 
@@ -959,7 +970,7 @@ class SimDataBase(object):
 
     @classmethod
     def _sim_db_file_get(cls, sid_or_lib, basename):
-        return cls._sim_db_file_request("GET", sid_or_lib, basename)
+        return cls._sim_db_file_request("GET", sid_or_lib, basename).content
 
     @classmethod
     def _sim_db_file_get_and_save(cls, sid_or_lib, basename, dest_dir, is_exe=False):

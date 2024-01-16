@@ -52,11 +52,11 @@ def test_srw_sample_preview(fc):
 
 def test_srw_model_list(fc):
     from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp
+    from pykern.pkdebug import pkdp, pkdpretty
     from pykern import pkunit
     from sirepo import srunit
 
-    fc.sr_get_root()
+    d = fc.sr_sim_data("Young's Double Slit Experiment")
     fc.sr_post(
         "listSimulations",
         PKDict(simulationType=fc.sr_sim_type),
@@ -72,5 +72,22 @@ def test_srw_model_list(fc):
     pkunit.pkok(
         not r.get("error") or r.get("state", "ok") == "ok",
         "error in reply={}",
+        r,
+    )
+    pkunit.pkok(isinstance(r.get("modelList"), list), "model_list not in reply={}", r)
+    d.models.electronBeam.name = "hello"
+    fc.sr_post("saveSimulationData", data=d)
+    r = fc.sr_post(
+        "statefulCompute",
+        PKDict(
+            method="model_list",
+            simulationType=fc.sr_sim_type,
+            args=PKDict(model_name="electronBeam"),
+        ),
+    )
+    pkdp(pkdpretty(r))
+    pkunit.pkok(
+        list(filter(lambda x: x.name == "hello", r.modelList)),
+        "no hello model in reply={}",
         r,
     )

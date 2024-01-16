@@ -2122,7 +2122,7 @@ def _is_true(model, field):
 def _load_user_model_list(model_name, qcall=None):
     b = _USER_MODEL_LIST_FILENAME[model_name]
     try:
-        return _SIM_DATA.lib_file_read(b, qcall=qcall)
+        return pkjson.load_any(_SIM_DATA.lib_file_read_text(b, qcall=qcall))
     except Exception as e:
         pkdlog("resetting model_list={} due to lib_file_read error={}", b, e)
     return _save_user_model_list(model_name, [], qcall=qcall)
