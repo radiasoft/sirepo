@@ -4,6 +4,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkconfig
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -12,7 +13,7 @@ import re
 import sirepo.agent_supervisor_api
 import sirepo.const
 import sirepo.job
-import sirepo.simulation_db
+import sirepo.template
 import sirepo.tornado
 
 _URI_RE = re.compile(f"^{sirepo.job.SIM_DB_FILE_URI}/(.+)")
@@ -27,9 +28,10 @@ class SimDbClient:
 
     _EXE_PERMISSIONS = 0o700
 
+    LIB_DIR = sirepo.const.LIB_DIR
+
     def __init__(self, sim_data):
-        self = super().__new__(cls)
-        self.LIB_DIR = sirepo.const.LIB_DIR
+        super().__init__()
         self._sim_data = sim_data
 
     def copy(self, src_uri, dst_uri):
@@ -225,9 +227,11 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
         return self.__uri_to_path_simple(*p[1:])
 
     def __uri_to_path_simple(self, stype, sid_or_lib, basename):
+        from sirepo import simulation_db
+
         sirepo.template.assert_sim_type(stype),
         _sid_or_lib(sid_or_lib),
-        sirepo.simulation_db.assert_sim_db_basename(basename),
+        simulation_db.assert_sim_db_basename(basename),
         return simulation_db.user_path_root().join(
             self.__uid, stype, sid_or_lib, basename
         )

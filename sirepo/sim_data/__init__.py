@@ -12,17 +12,13 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdformat
 import hashlib
-import inspect
 import os.path
 import re
-import requests
-import sirepo.agent_supervisor_api
 import sirepo.const
 import sirepo.feature_config
 import sirepo.job
 import sirepo.resource
 import sirepo.srdb
-import sirepo.template
 import sirepo.util
 import subprocess
 import uuid
@@ -51,8 +47,6 @@ _FRAME_ID_KEYS = (
     "computeJobHash",
     "computeJobSerial",
 )
-
-_LIB_DIR = sirepo.const.LIB_DIR
 
 _TEMPLATE_RESOURCE_DIR = "template"
 
@@ -183,7 +177,7 @@ class SimDataBase(object):
 
     _EXAMPLE_RESOURCE_DIR = "examples"
 
-    LIB_DIR = _LIB_DIR
+    LIB_DIR = sirepo.const.LIB_DIR
 
     @classmethod
     def compute_job_hash(cls, data, qcall):
@@ -440,7 +434,7 @@ class SimDataBase(object):
         return sirepo.resource.file_path(
             _TEMPLATE_RESOURCE_DIR,
             cls.sim_type(),
-            _LIB_DIR,
+            cls.LIB_DIR,
             path,
         )
 
@@ -455,7 +449,7 @@ class SimDataBase(object):
             bytes: contents of file
         """
         if cls._is_agent_side():
-            return cls.sim_db_client().get(_LIB_DIR, basename)
+            return cls.sim_db_client().get(cls.LIB_DIR, basename)
         return cls._lib_file_abspath(basename, qcall=qcall).read_binary()
 
     @classmethod
@@ -481,7 +475,7 @@ class SimDataBase(object):
             int: size in bytes
         """
         if cls._is_agent_side():
-            return cls.sim_db_client().size(_LIB_DIR, basename)
+            return cls.sim_db_client().size(cls.LIB_DIR, basename)
         return cls._lib_file_abspath(basename, qcall=qcall).size()
 
     @classmethod
@@ -501,7 +495,7 @@ class SimDataBase(object):
             )
 
         if cls._is_agent_side():
-            cls.sim_db_client().write(_LIB_DIR, basename, path_or_content)
+            cls.sim_db_client().write(cls.LIB_DIR, basename, path_or_content)
             return
         if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
             path_or_content.write_binary(_target())
@@ -780,12 +774,16 @@ class SimDataBase(object):
     @classmethod
     def _assert_agent_side(cls):
         if not cls._is_agent_side():
-            raise AssertionError(f"method={_caller()} only in job_agent")
+            raise AssertionError(
+                f"method={pkinspect.caller_func_name()} only in job_agent"
+            )
 
     @classmethod
     def _assert_server_side(cls):
         if cls._is_agent_side():
-            raise AssertionError(f"method={_caller()} not available in job_agent")
+            raise AssertionError(
+                f"method={pkinspect.caller_func_name()} not available in job_agent"
+            )
 
     @classmethod
     def _compute_model(cls, analysis_model, resp):
@@ -880,12 +878,12 @@ class SimDataBase(object):
         """
         if cls._is_agent_side():
             if exists_only:
-                if cls.sim_db_client().exists(_LIB_DIR, basename):
+                if cls.sim_db_client().exists(cls.LIB_DIR, basename):
                     return True
             else:
                 try:
                     return cls.sim_db_client().get_and_save(
-                        _LIB_DIR, basename, pkio.py_path()
+                        cls.LIB_DIR, basename, pkio.py_path()
                     )
                 except Exception as e:
                     if not pkio.exception_is_not_found(e):
@@ -920,7 +918,7 @@ class SimDataBase(object):
                 for f in sirepo.resource.glob_paths(
                     _TEMPLATE_RESOURCE_DIR,
                     cls.sim_type(),
-                    _LIB_DIR,
+                    cls.LIB_DIR,
                     pat,
                 )
             )
@@ -954,11 +952,7 @@ class SimDataBase(object):
         def wrap(cls):
             return value
 
-        setattr(
-            cls,
-            _caller(),
-            wrap,
-        )
+        setattr(cls, pkinspect.caller_func_name(), wrap)
         return value
 
     @classmethod
@@ -999,10 +993,6 @@ class SimDataBase(object):
     @classmethod
     def _sim_file_basenames(cls, data):
         return []
-
-
-def _caller():
-    return inspect.currentframe().f_back.f_back.f_code.co_name
 
 
 _cfg = pkconfig.init(

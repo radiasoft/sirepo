@@ -4,8 +4,6 @@ import pytest
 import requests
 import subprocess
 
-#: Convenience constant
-_LOCALHOST = "127.0.0.1"
 #: Maximum time an individual test case (function) can run
 MAX_CASE_RUN_SECS = int(os.getenv("SIREPO_CONFTEST_MAX_CASE_RUN_SECS", 120))
 
@@ -32,11 +30,12 @@ def fc(request, fc_module):
 @pytest.fixture(scope="module")
 def fc_module(request):
     from pykern.pkcollections import PKDict
+    from sirepo import srunit_servers
 
     a = _sirepo_args(request, "fc_module", PKDict())
     if "setup_func" in a:
         a.setup_func()
-    with _subprocess_start(request, fc_args=a) as c:
+    with srunit_servers.api_and_supervisor(request, fc_args=a) as c:
         yield c
 
 
@@ -140,6 +139,7 @@ def pytest_configure(config):
 @contextlib.contextmanager
 def _auth_client_module(request):
     from pykern.pkcollections import PKDict
+    from sirepo import srunit_servers
 
     cfg = PKDict(
         SIREPO_AUTH_BASIC_PASSWORD="pass",
@@ -164,37 +164,8 @@ def _auth_client_module(request):
 
     pkconfig.reset_state_for_testing(cfg)
 
-    with _subprocess_start(request, fc_args=PKDict(cfg=cfg)) as c:
+    with srunit_servers.api_and_supervisor(request, fc_args=PKDict(cfg=cfg)) as c:
         yield c
-
-
-def _config_sbatch_supervisor_env(env):
-    from pykern.pkcollections import PKDict
-    import os
-    import pykern.pkio
-    import pykern.pkunit
-    import re
-    import socket
-
-    h = socket.gethostname()
-    k = pykern.pkio.py_path("~/.ssh/known_hosts").read()
-    m = re.search("^{}.*$".format(h), k, re.MULTILINE)
-    assert bool(m), "You need to ssh into {} to get the host key".format(h)
-
-    env.pkupdate(
-        SIREPO_JOB_DRIVER_MODULES="local:sbatch",
-        SIREPO_JOB_DRIVER_SBATCH_CORES=os.getenv(
-            "SIREPO_JOB_DRIVER_SBATCH_CORES",
-            "2",
-        ),
-        SIREPO_JOB_DRIVER_SBATCH_HOST=h,
-        SIREPO_JOB_DRIVER_SBATCH_HOST_KEY=m.group(0),
-        SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD="sirepo",
-        SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT=str(
-            pykern.pkunit.work_dir().join("/{sbatch_user}/sirepo")
-        ),
-        SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS="2",
-    )
 
 
 def _fc(request, fc_module, new_user=False):
@@ -212,27 +183,6 @@ def _fc(request, fc_module, new_user=False):
     else:
         fc_module.sr_login_as_guest(sim_type=c)
     return fc_module
-
-
-def _port():
-    import random
-    from sirepo import const
-
-    def _check_port(port):
-        import socket
-
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((_LOCALHOST, int(port)))
-        return str(port)
-
-    for p in random.sample(const.TEST_PORT_RANGE, 100):
-        try:
-            return _check_port(p)
-        except Exception:
-            pass
-    raise AssertionError(
-        f"ip={_LOCALHOST} unable to bind to port in range={const.TEST_PORT_RANGE}"
-    )
 
 
 def _sim_type(request):
@@ -260,115 +210,3 @@ def _sirepo_args(request, name, default):
     if m and m.kwargs and name in m.kwargs:
         res = m.kwargs.get(name)
     return default if res is None else res
-
-
-def _subprocess_setup(request, fc_args):
-    """setup the supervisor"""
-    import os
-    from pykern.pkcollections import PKDict
-
-    sbatch_module = "sbatch" in request.module.__name__
-    env = PKDict(os.environ)
-    cfg = fc_args.cfg
-    from pykern import pkunit
-    from pykern import pkio
-
-    p = _port()
-    cfg.pkupdate(
-        PYKERN_PKDEBUG_WANT_PID_TIME="1",
-        SIREPO_PKCLI_JOB_SUPERVISOR_IP=_LOCALHOST,
-        SIREPO_PKCLI_JOB_SUPERVISOR_PORT=p,
-        SIREPO_PKCLI_SERVICE_IP=_LOCALHOST,
-        SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
-    )
-    cfg.SIREPO_PKCLI_SERVICE_PORT = _port()
-    for x in "DRIVER_LOCAL", "DRIVER_DOCKER", "API", "DRIVER_SBATCH":
-        cfg[f"SIREPO_JOB_{x}_SUPERVISOR_URI"] = f"http://{_LOCALHOST}:{p}"
-    if sbatch_module:
-        cfg.pkupdate(SIREPO_SIMULATION_DB_SBATCH_DISPLAY="testing@123")
-    env.pkupdate(**cfg)
-
-    from sirepo import srunit
-
-    c = None
-    u = [env.SIREPO_PKCLI_JOB_SUPERVISOR_PORT]
-    c = srunit.http_client(
-        env=env,
-        empty_work_dir=fc_args.empty_work_dir,
-        job_run_mode="sbatch" if sbatch_module else None,
-        sim_types=fc_args.sim_types,
-        port=env.SIREPO_PKCLI_SERVICE_PORT,
-    )
-    u.append(c.port)
-    t = fc_args.sim_types
-    if isinstance(t, (tuple, list)):
-        t = ":".join(t)
-    cfg.SIREPO_FEATURE_CONFIG_SIM_TYPES = t
-    for i in u:
-        subprocess.run(["kill -9 $(lsof -t -i :" + i + ") >& /dev/null"], shell=True)
-    if sbatch_module:
-        # must be performed after fc initialized so work_dir is configured
-        _config_sbatch_supervisor_env(env)
-    return (env, c)
-
-
-@contextlib.contextmanager
-def _subprocess_start(request, fc_args):
-    from pykern import pkunit, pkjson
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdlog, pkdp
-    from sirepo import srunit
-    import time
-
-    fc_args.pksetdefault(
-        cfg=PKDict,
-        sim_types=None,
-        append_package=None,
-        empty_work_dir=True,
-    )
-
-    def _ping_supervisor(uri):
-        l = None
-        for _ in range(100):
-            try:
-                r = requests.post(uri, json=None)
-                r.raise_for_status()
-                d = pkjson.load_any(r.text)
-                if d.state == "ok":
-                    return
-                raise RuntimeError(f"state={r.get('state')}")
-            except Exception as e:
-                l = e
-                time.sleep(0.3)
-        pkunit.restart_or_fail("start failed uri={} exception={}", uri, l)
-
-    def _subprocess(cmd):
-        p.append(subprocess.Popen(cmd, env=env, cwd=wd))
-
-    env, c = _subprocess_setup(request, fc_args)
-    wd = pkunit.work_dir()
-    p = []
-    try:
-        for k in sorted(env.keys()):
-            if k.endswith("_PORT"):
-                pkdlog("{}={}", k, env[k])
-        _subprocess(("sirepo", "service", "server"))
-        # allow db to be created
-        time.sleep(0.5)
-        _subprocess(("sirepo", "job_supervisor"))
-        _ping_supervisor(c.http_prefix + "/job-supervisor-ping")
-        from sirepo import template
-        from pykern import pkio
-
-        if template.is_sim_type("srw"):
-            pkio.unchecked_remove(
-                "~/src/radiasoft/sirepo/sirepo/package_data/template/srw/predefined.json"
-            )
-            template.import_module("srw").get_predefined_beams()
-        yield c
-    finally:
-        import sys
-
-        for x in p:
-            x.terminate()
-            x.wait()
