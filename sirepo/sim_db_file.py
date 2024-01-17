@@ -13,7 +13,6 @@ import re
 import sirepo.agent_supervisor_api
 import sirepo.const
 import sirepo.job
-import sirepo.template
 import sirepo.tornado
 
 _URI_RE = re.compile(f"^{sirepo.job.SIM_DB_FILE_URI}/(.+)")
@@ -227,9 +226,9 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
         return self.__uri_to_path_simple(*p[1:])
 
     def __uri_to_path_simple(self, stype, sid_or_lib, basename):
-        from sirepo import simulation_db
+        from sirepo import simulation_db, template
 
-        sirepo.template.assert_sim_type(stype),
+        template.assert_sim_type(stype),
         _sid_or_lib(sid_or_lib),
         simulation_db.assert_sim_db_basename(basename),
         return simulation_db.user_path_root().join(
@@ -248,7 +247,7 @@ class SimDbUri(str):
             if sim_type != slu._stype:
                 raise AssertionError(f"sim_type={sim_type} disagrees with uri={slu}")
             return slu
-        self = super(cls).__new__(cls.uri_from_parts(sim_type, sid_or_lib, basename))
+        self = super().__new__(cls, cls._uri_from_parts(sim_type, slu, basename))
         self._stype = sim_type
         return self
 
@@ -264,18 +263,23 @@ class SimDbUri(str):
         Returns:
             str: uri to be passed to SimDbClient functions
         """
+        from sirepo import simulation_db, template
 
         return "/".join(
             [
-                sirepo.template.assert_sim_type(sim_type),
+                template.assert_sim_type(sim_type),
                 _sid_or_lib(sid_or_lib),
-                assert_sim_db_basename(basename),
+                simulation_db.assert_sim_db_basename(basename),
             ]
         )
 
 
 def _sid_or_lib(value):
-    return _LIB_DIR if value is None or value == _LIB_DIR else assert_sid(value)
+    return (
+        sirepo.const.LIB_DIR
+        if value is None or value == sirepo.const.LIB_DIR
+        else assert_sid(value)
+    )
 
 
 _cfg = pkconfig.init(

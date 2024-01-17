@@ -13,7 +13,6 @@ def api_and_supervisor(pytest_req, fc_args):
     from pykern import pkunit, pkjson
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdlog, pkdp
-    from sirepo import srunit
     import time, requests, subprocess
 
     fc_args.pksetdefault(
@@ -67,16 +66,6 @@ def api_and_supervisor(pytest_req, fc_args):
                 time.sleep(0.3)
         pkunit.restart_or_fail("start failed uri={} exception={}", uri, l)
 
-    def _port():
-        from pykern import pkunit
-        from sirepo import const
-
-        return str(
-            pkunit.unbound_localhost_tcp_port(
-                const.TEST_PORT_RANGE.start, const.TEST_PORT_RANGE.stop
-            ),
-        )
-
     def _subprocess(cmd):
         p.append(subprocess.Popen(cmd, env=env, cwd=wd))
 
@@ -117,10 +106,7 @@ def api_and_supervisor(pytest_req, fc_args):
             port=env.SIREPO_PKCLI_SERVICE_PORT,
         )
         u.append(c.port)
-        t = fc_args.sim_types
-        if isinstance(t, (tuple, list)):
-            t = ":".join(t)
-        cfg.SIREPO_FEATURE_CONFIG_SIM_TYPES = t
+        cfg.SIREPO_FEATURE_CONFIG_SIM_TYPES = _sim_types(fc_args)
         for i in u:
             subprocess.run(
                 ["kill -9 $(lsof -t -i :" + i + ") >& /dev/null"], shell=True
@@ -157,3 +143,103 @@ def api_and_supervisor(pytest_req, fc_args):
         for x in p:
             x.terminate()
             x.wait()
+
+
+@contextlib.contextmanager
+def sim_db_file(pytest_req):
+    from pykern import pkunit, pkio, pkdebug, pkconfig
+    from pykern.pkcollections import PKDict
+    import os, signal, time
+
+    port = _port()
+    # must match job.unique.key
+    token = "a" * 32
+    # must be valid uid
+    uid = "simdbfil"
+    # test won't pass if this is different from job.SIM_DB_FILE_URI
+    uri = "/sim-db-file"
+
+    def _server():
+        from pykern import pkasyncio, pkunit
+        from pykern.pkcollections import PKDict
+        from tornado import websocket
+        from sirepo import job, sim_db_file
+
+        def _token_for_user(*args, **kwargs):
+            return token
+
+        _sim_dir()
+        setattr(sim_db_file.SimDbServer, "token_for_user", token)
+        setattr(sim_db_file.SimDbServer, "_TOKEN_TO_UID", PKDict({token: uid}))
+        l = pkasyncio.Loop()
+        l.http_server(
+            PKDict(
+                uri_map=((job.SIM_DB_FILE_URI + "/(.+)", sim_db_file.SimDbServer),),
+                tcp_port=port,
+                tcp_ip=pkunit.LOCALHOST_IP,
+            )
+        )
+        l.start()
+
+    def _setup(pytest_req):
+        """setup the supervisor"""
+        import os
+
+        c = PKDict(
+            PYKERN_PKDEBUG_WANT_PID_TIME="1",
+            SIREPO_AUTH_LOGGED_IN_USER=uid,
+            SIREPO_SIMULATION_DB_LOGGED_IN_USER=uid,
+            SIREPO_SIM_DB_FILE_SERVER_TOKEN=token,
+            SIREPO_SIM_DB_FILE_SERVER_URI=f"http://{pkunit.LOCALHOST_IP}:{port}{uri}/{uid}/",
+            SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
+        )
+        os.environ.update(**c)
+        pkconfig.reset_state_for_testing(c)
+
+    def _sim_dir():
+        from sirepo import simulation_db, quest, srunit
+
+        stype = srunit.SR_SIM_TYPE_DEFAULT
+        simulation_db.user_path_root().join(simulation_db._uid_arg()).ensure(dir=1)
+        with quest.start(in_pkcli=True) as qcall:
+            # create examples
+            simulation_db.simulation_dir(stype, qcall=qcall)
+        pkio.write_text(
+            simulation_db.simulation_lib_dir(stype).join("hello.txt"),
+            "xyzzy",
+        )
+
+    _setup(pytest_req)
+    p = os.fork()
+    if p == 0:
+        try:
+            pkdebug.pkdlog("start server")
+            _server()
+        except Exception as e:
+            pkdebug.pkdlog("server exception={} stack={}", e, pkdebug.pkdexc())
+        finally:
+            os._exit(0)
+    try:
+        time.sleep(1)
+        yield None
+
+    finally:
+        os.kill(p, signal.SIGKILL)
+
+
+def _port():
+    from pykern import pkunit
+    from sirepo import const
+
+    return str(
+        pkunit.unbound_localhost_tcp_port(
+            const.TEST_PORT_RANGE.start, const.TEST_PORT_RANGE.stop
+        ),
+    )
+
+
+def _sim_types(fc_args):
+    t = fc_args.sim_types
+    if isinstance(t, (tuple, list)):
+        return ":".join(t)
+    return t

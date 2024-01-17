@@ -6,7 +6,7 @@ For example, sim_db_file and global_resources.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdlog
+from pykern.pkdebug import pkdlog, pkdp, pkdexc
 import re
 import requests
 import sirepo.job
@@ -50,11 +50,17 @@ class ReqBase(tornado.web.RequestHandler):
         if not m:
             pkdlog("invalid auth header={}", t)
             raise sirepo.tornado.error_forbidden()
+        pkdp(self._TOKEN_TO_UID)
         u = self._TOKEN_TO_UID.get(m.group(1))
         if not u:
             pkdlog("token={} not found", m.group(1))
             raise sirepo.tornado.error_forbidden()
         return u
+
+    def write_error(self, *args, **kwargs):
+        if e := kwargs.get("exc_info"):
+            pkdlog("exception={} stack={}", e[1], pkdexc(e))
+        super().write_error(*args, **kwargs)
 
 
 def request(method, uri, token, data=None, json=None):

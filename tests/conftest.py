@@ -39,6 +39,14 @@ def fc_module(request):
         yield c
 
 
+@pytest.fixture(scope="module")
+def sim_db_file_server(request):
+    from sirepo import srunit_servers
+
+    with srunit_servers.sim_db_file(request):
+        yield None
+
+
 @pytest.fixture(scope="function")
 def new_user_fc(request, fc_module):
     return _fc(request, fc_module, new_user=True)
@@ -50,6 +58,13 @@ def pytest_collection_modifyitems(session, config, items):
     import importlib
     import os
     from sirepo import feature_config
+
+    def _slurm_not_installed():
+        try:
+            subprocess.check_output(("sbatch", "--help"))
+        except OSError:
+            return True
+        return False
 
     s = PKDict(
         elegant="sdds",
@@ -173,6 +188,17 @@ def _fc(request, fc_module, new_user=False):
 
     Defaults to myapp.
     """
+
+    def _sim_type(request):
+        from sirepo import feature_config
+
+        for c in feature_config.FOSS_CODES:
+            f = request.function
+            n = getattr(f, "func_name", None) or getattr(f, "__name__")
+            if c in n or c in str(request.fspath.purebasename):
+                return c
+        return "myapp"
+
     if fc_module.sr_uid and new_user:
         fc_module.sr_logout()
 
@@ -183,25 +209,6 @@ def _fc(request, fc_module, new_user=False):
     else:
         fc_module.sr_login_as_guest(sim_type=c)
     return fc_module
-
-
-def _sim_type(request):
-    from sirepo import feature_config
-
-    for c in feature_config.FOSS_CODES:
-        f = request.function
-        n = getattr(f, "func_name", None) or getattr(f, "__name__")
-        if c in n or c in str(request.fspath.purebasename):
-            return c
-    return "myapp"
-
-
-def _slurm_not_installed():
-    try:
-        subprocess.check_output(("sbatch", "--help"))
-    except OSError:
-        return True
-    return False
 
 
 def _sirepo_args(request, name, default):
