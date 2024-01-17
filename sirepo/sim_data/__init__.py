@@ -495,7 +495,7 @@ class SimDataBase(object):
             )
 
         if cls._is_agent_side():
-            cls.sim_db_client().write(cls.LIB_DIR, basename, path_or_content)
+            cls.sim_db_client().put(cls.LIB_DIR, basename, path_or_content)
             return
         if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
             path_or_content.write_binary(_target())
@@ -682,7 +682,7 @@ class SimDataBase(object):
 
     @classmethod
     def put_sim_file(cls, sim_id, src_path, dest_basename):
-        return cls.sim_db_client().write(sim_id, dest_basename, src_path)
+        return cls.sim_db_client().put(sim_id, dest_basename, src_path)
 
     @classmethod
     def react_format_data(cls, data):
@@ -735,7 +735,7 @@ class SimDataBase(object):
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
         for b in cls.sim_file_basenames(data):
-            cls.sim_db_client().get_and_save(
+            cls._read_binary_and_save(
                 data.models.simulation.simulationId,
                 b.basename,
                 run_dir,
@@ -883,7 +883,7 @@ class SimDataBase(object):
                     return True
             else:
                 try:
-                    return cls.sim_db_client().get_and_save(
+                    return cls.read_binary_and_save(
                         cls.LIB_DIR, basename, pkio.py_path()
                     )
                 except Exception as e:
@@ -990,6 +990,18 @@ class SimDataBase(object):
     @classmethod
     def _proprietary_code_tarball(cls):
         return f"{cls.sim_type()}.tar.gz"
+
+    @classmethod
+    def _read_binary_and_save(
+        cls, lib_sid_uri, basename, dest_dir, is_exe=False, sim_type=None
+    ):
+        p = dest_dir.join(basename)
+        p.write_binary(
+            cls.sim_db_client().get(lib_sid_uri, basename, sim_type=sim_type)
+        )
+        if is_exe:
+            p.chmod(self._EXE_PERMISSIONS)
+        return p
 
     @classmethod
     def _sim_file_basenames(cls, data):

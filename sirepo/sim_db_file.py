@@ -3,8 +3,9 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkconfig
 from pykern import pkcompat
+from pykern import pkconfig
+from pykern import pkconst
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -53,15 +54,6 @@ class SimDbClient:
     def get(self, lib_sid_uri, basename=None, sim_type=None):
         return self._request("GET", lib_sid_uri, basename, sim_type=sim_type).content
 
-    def get_and_save(
-        self, lib_sid_uri, basename, dest_dir, is_exe=False, sim_type=None
-    ):
-        p = dest_dir.join(basename)
-        p.write_binary(self.get(lib_sid_uri, basename, sim_type=sim_type))
-        if is_exe:
-            p.chmod(self._EXE_PERMISSIONS)
-        return p
-
     def move(self, src_uri, dst_uri):
         """Rename `src_uri` to `dst_uri`
 
@@ -90,7 +82,7 @@ class SimDbClient:
         """
         return SimDbUri(sim_type or self._sim_data.sim_type(), lib_sid_uri, basename)
 
-    def write(self, lib_sid_uri, basename, path_or_content, sim_type=None):
+    def put(self, lib_sid_uri, basename, path_or_content, sim_type=None):
         def _data():
             if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
                 return pkio.read_binary(path_or_content)
