@@ -89,7 +89,9 @@ class DriverBase(PKDict):
             _websocket_ready=sirepo.tornado.Event(),
             _websocket_ready_timeout=None,
         )
-        self._sim_db_file_token = sirepo.sim_db_file.FileReq.token_for_user(self.uid)
+        self._sim_db_file_token = sirepo.sim_db_file.SimDbServer.token_for_user(
+            self.uid
+        )
         self._global_resources_token = (
             sirepo.global_resources.api.Req.token_for_user(self.uid)
             # TODO(e-carlin): we need a more grangular system to decide when to add this information
@@ -219,11 +221,11 @@ class DriverBase(PKDict):
                     "SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS",
                     str(pkconfig.in_dev_mode()),
                 ),
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_GLOBAL_RESOURCES_TOKEN=self._global_resources_token,
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_GLOBAL_RESOURCES_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
+                SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_TOKEN=self._global_resources_token,
+                SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
                 SIREPO_PKCLI_JOB_AGENT_START_DELAY=str(op.get("_agent_start_delay", 0)),
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_URI=job.supervisor_file_uri(
+                SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_TOKEN=self._sim_db_file_token,
+                SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_URI=job.supervisor_file_uri(
                     self.cfg.supervisor_uri,
                     job.SIM_DB_FILE_URI,
                     self.uid,

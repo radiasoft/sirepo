@@ -725,12 +725,14 @@ class SimDataBase(object):
         operations are synchronous.
 
         Returns:
-            _SimDbClient: interface to `sirepo.sim_db_file`
+            SimDbClient: interface to `sirepo.sim_db_file`
         """
         # This assertion is sufficient even though memoized, because
         # it is executed once per process.
+        from sirepo import sim_db_file
+
         cls._assert_agent_side()
-        return cls._memoize(_SimDbClient(cls))
+        return cls._memoize(sim_db_file.SimDbClient(cls))
 
     @classmethod
     def sim_file_basenames(cls, data):
@@ -842,7 +844,9 @@ class SimDataBase(object):
 
     @classmethod
     def _is_agent_side(cls):
-        return bool(_cfg.supervisor_sim_db_file_token)
+        from sirepo import sim_db_file
+
+        return cls._memoize(bool(sim_db_file.in_job_agent()))
 
     @classmethod
     def _lib_file_abspath(cls, basename, qcall):
@@ -997,146 +1001,10 @@ class SimDataBase(object):
         return []
 
 
-class _SimDbClient:
-    """Client to be used from the job agent"""
-    _EXE_PERMISSIONS = 0o700
-
-    def __init__(self, sim_data):
-
-    """Singleton instance"""
-        self._sd = sim_data
-        self._stype = sim_data.sim_type()
-        self.LIB_DIR = sim_type.LIB_DIR
-
-    def copy(self, src_uri, dst_uri):
-        """Copy `src_uri` to `dst_uri`
-
-        Args:
-            src_uri (_SimDbUri): from file
-            dst_uri (_SimDbUri): to file
-        """
-        return self._post("copy", src_uri, basename=None, args=PKDict(dst_uri=dst_uri))
-
-    def delete_glob(self, lib_sid_uri, path_prefix, sim_type=None):
-        """deletes files that begin with `path_prefix`"""
-        return self._post("delete_glob", lib_sid_uri, path_prefix, sim_type=sim_type)
-
-    def exists(self, lib_sid_uri, basename=None, sim_type=None):
-        """Tests if file exists"""
-        return self._post("exists", lib_sid_uri, basename, sim_type=sim_type)
-
-    def get(self, lib_sid_uri, basename=None, sim_type=None):
-        return self._request("GET", lib_sid_uri, basename, sim_type=sim_type).content
-
-    def get_and_save(self, lib_sid_uri, basename, dest_dir, is_exe=False, sim_type=None):
-        p = dest_dir.join(basename)
-        p.write_binary(self.get(lib_sid_uri, basename, sim_type=sim_type))
-        if is_exe:
-            p.chmod(self._EXE_PERMISSIONS)
-        return p
-
-    def move(self, src_uri, dst_uri):
-        """Rename `src_uri` to `dst_uri`
-
-        Args:
-            src_uri (_SimDbUri): from path
-            dst_uri (_SimDbUri): to path
-        """
-        return self._post("move", src_uri, basename=None, args=PKDict(dst_uri=dst_uri))
-
-    def size(self, lib_sid_uri, basename=None, sim_type=None):
-        return self._post("size", lib_sid_uri, basename, sim_type=sim_type)
-
-    def uri(self, lib_sid_uri, basename=None, sim_type=None):
-        """Create a `_SimDbUri`
-
-        ``lib_sid_uri`` may be `sirepo.const.LIB_DIR`, a simulation id, or a
-        `_SimDbUri`.  In the latter case, the uri must match ``sim_type``
-        (if supplied), and ``basename`` must be None.
-
-        Args:
-            lib_sid_uri (object): see above
-            basename (str): naem without directories (see above)
-            sim_type (str): valid code [sim_data.sim_type]
-        Returns:
-            _SimDbUri: valid in any string context
-        """
-        return _SimDbFileUri(sim_type or self._sd.sim_type(), lib_sid_uri, basename)
-
-    def write(self, lib_sid_uri, basename, path_or_content, sim_type=None):
-        def _data():
-            if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
-                return pkio.read_binary(path_or_content)
-            return pkcompat.to_bytes(path_or_content)
-
-        return self._request(
-            "PUT", lib_sid_uri, basename, data=_data(), sim_type=sim_type
-        )
-
-    def _post(self, method, lib_sid_uri, basename, args=None, sim_type=None):
-        res = pkjson.load_any(
-            self._request(
-                "POST",
-                lib_sid_uri,
-                basename,
-                json=PKDict(method=method, args=PKDict() if args is None else args),
-                sim_type=sim_type,
-            ).content,
-        )
-        if res.get("state") != "ok":
-            raise AssertionError(
-                "expected state=ok reply={} uri={} basename={}", res, basename
-            )
-        return res.result
-
-    def _request(
-        self, method, lib_sid_uri, basename, data=None, json=None, sim_type=None
-    ):
-        u = self.uri(lib_sid_uri, basename, sim_type)
-        r = sirepo.agent_supervisor_api.request(
-            method,
-            _cfg.supervisor_sim_db_file_uri + u,
-            _cfg.supervisor_sim_db_file_token,
-            data=data,
-            json=json,
-        )
-        if r.status_code == 404:
-            raise FileNotFoundError(f"sim_db_file={u} not found")
-        r.raise_for_status()
-        return r
-
-
-class _SimDbUri(str):
-    def __new__(cls, sim_type, slu, basename):
-        if isinstance(slu, _SimDbFileUri):
-            if basename is not None:
-                raise AssertionError(
-                    f"basename={basename} must be none when uri={slu} supplied"
-                )
-            if sim_type != slu.__stype:
-                raise AssertionError(f"sim_type={sim_type} disagrees with uri={slu}")
-            return slu
-        self = super().__new__(
-            sim_db_file.uri_from_parts(sim_type, sid_or_lib, basename)
-        )
-        self.__stype = sim_type
-        return self
-
-
 def _caller():
     return inspect.currentframe().f_back.f_back.f_code.co_name
 
 
 _cfg = pkconfig.init(
     lib_file_resource_only=(False, bool, "used by utility programs"),
-    supervisor_sim_db_file_uri=(
-        None,
-        str,
-        "where to get/put simulation db files from/to supervisor",
-    ),
-    supervisor_sim_db_file_token=(
-        None,
-        str,
-        "token for supervisor simulation file access",
-    ),
 )

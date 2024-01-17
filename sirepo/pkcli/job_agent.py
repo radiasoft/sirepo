@@ -66,21 +66,21 @@ def start():
             "directory of fastcfgi socket, must be less than 50 chars",
         ),
         start_delay=(0, pkconfig.parse_seconds, "delay startup in internal_test mode"),
-        supervisor_global_resources_token=pkconfig.Required(
+        global_resources_server_token=pkconfig.Required(
             str,
-            "token for supervisor global resources access",
+            "credential for global resources server",
         ),
-        supervisor_global_resources_uri=pkconfig.Required(
+        global_resources_server_uri=pkconfig.Required(
             str,
-            "uri for accessing global resources api in supervisor",
+            "how to connect to global resources",
         ),
-        supervisor_sim_db_file_token=pkconfig.Required(
+        sim_db_file_server_token=pkconfig.Required(
             str,
-            "token for supervisor simulation db file access",
+            "credential for sim db files",
         ),
-        supervisor_sim_db_file_uri=pkconfig.Required(
+        sim_db_file_server_uri=pkconfig.Required(
             str,
-            "how to get/put simulation db files from/to supervisor",
+            "how to connect to sim db files",
         ),
         supervisor_uri=pkconfig.Required(
             str,
@@ -472,11 +472,11 @@ class _Cmd(PKDict):
     def job_cmd_env(self, env=None):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
-                SIREPO_GLOBAL_RESOURCES_SUPERVISOR_TOKEN=_cfg.supervisor_global_resources_token,
-                SIREPO_GLOBAL_RESOURCES_SUPERVISOR_URI=_cfg.supervisor_global_resources_uri,
+                SIREPO_GLOBAL_RESOURCES_SERVER_TOKEN=_cfg.global_resources_server_token,
+                SIREPO_GLOBAL_RESOURCES_SERVER_URI=_cfg.global_resources_server_uri,
                 SIREPO_MPI_CORES=self.msg.get("mpiCores", 1),
-                SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_TOKEN=_cfg.supervisor_sim_db_file_token,
-                SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_URI=_cfg.supervisor_sim_db_file_uri,
+                SIREPO_SIM_DATA_SIM_DB_FILE_SERVER_TOKEN=_cfg.sim_db_file_server_token,
+                SIREPO_SIM_DATA_SIM_DB_FILE_SERVER_URI=_cfg.sim_db_file_server_uri,
             ),
             uid=self._uid,
         )

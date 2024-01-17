@@ -58,7 +58,7 @@ def default_command():
             (sirepo.job.SERVER_PING_URI, _ServerPing),
             (sirepo.job.SERVER_SRTIME_URI, _ServerSrtime),
             (sirepo.job.DATA_FILE_URI + "/(.*)", _DataFileReq),
-            (sirepo.job.SIM_DB_FILE_URI + "/(.+)", sirepo.sim_db_file.FileReq),
+            (sirepo.job.SIM_DB_FILE_URI + "/(.+)", sirepo.sim_db_file.SimDbServer),
             (sirepo.job.GLOBAL_RESOURCES_URI, sirepo.global_resources.api.Req),
         ],
         debug=_cfg.debug,
