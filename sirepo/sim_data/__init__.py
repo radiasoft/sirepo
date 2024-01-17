@@ -52,8 +52,7 @@ _FRAME_ID_KEYS = (
     "computeJobSerial",
 )
 
-# POSIT: same as simulation_db._LIB_DIR
-_LIB_DIR = "lib"
+_LIB_DIR = sirepo.const.LIB_DIR
 
 _TEMPLATE_RESOURCE_DIR = "template"
 
@@ -441,7 +440,7 @@ class SimDataBase(object):
         return sirepo.resource.file_path(
             _TEMPLATE_RESOURCE_DIR,
             cls.sim_type(),
-            cls.LIB_DIR,
+            _LIB_DIR,
             path,
         )
 
@@ -456,7 +455,7 @@ class SimDataBase(object):
             bytes: contents of file
         """
         if cls._is_agent_side():
-            return cls.sim_db_client().get(cls.LIB_DIR, basename)
+            return cls.sim_db_client().get(_LIB_DIR, basename)
         return cls._lib_file_abspath(basename, qcall=qcall).read_binary()
 
     @classmethod
@@ -482,7 +481,7 @@ class SimDataBase(object):
             int: size in bytes
         """
         if cls._is_agent_side():
-            return cls.sim_db_client().size(cls.LIB_DIR, basename)
+            return cls.sim_db_client().size(_LIB_DIR, basename)
         return cls._lib_file_abspath(basename, qcall=qcall).size()
 
     @classmethod
@@ -502,7 +501,7 @@ class SimDataBase(object):
             )
 
         if cls._is_agent_side():
-            cls.sim_db_client().write(cls.LIB_DIR, basename, path_or_content)
+            cls.sim_db_client().write(_LIB_DIR, basename, path_or_content)
             return
         if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
             path_or_content.write_binary(_target())
@@ -718,6 +717,19 @@ class SimDataBase(object):
 
     @classmethod
     def sim_db_client(cls):
+        """Low-level for sim_db_file ops for job agents
+
+        Used to manipulate sim db files in job agent. Care should be
+        taken to avoid inefficiencies as these are remote requests.
+        Typically, these are done in job_cmd, not job_agent, because
+        operations are synchronous.
+
+        Returns:
+            _SimDbClient: interface to `sirepo.sim_db_file`
+        """
+        # This assertion is sufficient even though memoized, because
+        # it is executed once per process.
+        cls._assert_agent_side()
         return cls._memoize(_SimDbClient(cls))
 
     @classmethod
@@ -762,6 +774,11 @@ class SimDataBase(object):
         if not m:
             raise RuntimeError("invalid watchpoint report name: ", report)
         return int(m.group(1))
+
+    @classmethod
+    def _assert_agent_side(cls):
+        if not cls._is_agent_side():
+            raise AssertionError(f"method={_caller()} only in job_agent")
 
     @classmethod
     def _assert_server_side(cls):
@@ -859,20 +876,18 @@ class SimDataBase(object):
         """
         if cls._is_agent_side():
             if exists_only:
-                if cls.sim_db_client().exists(cls.LIB_DIR, basename):
+                if cls.sim_db_client().exists(_LIB_DIR, basename):
                     return True
             else:
                 try:
                     return cls.sim_db_client().get_and_save(
-                        cls.LIB_DIR, basename, pkio.py_path()
+                        _LIB_DIR, basename, pkio.py_path()
                     )
                 except Exception as e:
                     if not pkio.exception_is_not_found(e):
                         raise
                     # try to find below
         elif not _cfg.lib_file_resource_only:
-            from sirepo import simulation_db
-
             # Command line utility or server
             f = cls._lib_file_abspath(basename, qcall)
             if f.check(file=True):
@@ -901,14 +916,12 @@ class SimDataBase(object):
                 for f in sirepo.resource.glob_paths(
                     _TEMPLATE_RESOURCE_DIR,
                     cls.sim_type(),
-                    cls.LIB_DIR,
+                    _LIB_DIR,
                     pat,
                 )
             )
         )
         if want_user_lib_dir:
-            from sirepo import simulation_db
-
             # lib_dir overwrites resource_dir
             res.update(
                 (f.basename, f)
@@ -1037,7 +1050,7 @@ class _SimDbClient:
     def uri(self, lib_sid_uri, basename=None, sim_type=None):
         """Create a `_SimDbUri`
 
-        ``lib_sid_uri`` may be `cls.LIB_DIR`, a simulation id, or a
+        ``lib_sid_uri`` may be `sirepo.const.LIB_DIR`, a simulation id, or a
         `_SimDbUri`.  In the latter case, the uri must match ``sim_type``
         (if supplied), and ``basename`` must be None.
 
@@ -1079,8 +1092,6 @@ class _SimDbClient:
     def _request(
         self, method, lib_sid_uri, basename, data=None, json=None, sim_type=None
     ):
-        from sirepo import simulation_db
-
         u = self.uri(lib_sid_uri, basename, sim_type)
         r = sirepo.agent_supervisor_api.request(
             method,
@@ -1097,8 +1108,6 @@ class _SimDbClient:
 
 class _SimDbUri(str):
     def __new__(cls, sim_type, slu, basename):
-        from sirepo import simulation_db
-
         if isinstance(slu, _SimDbFileUri):
             if basename is not None:
                 raise AssertionError(
@@ -1108,7 +1117,7 @@ class _SimDbUri(str):
                 raise AssertionError(f"sim_type={sim_type} disagrees with uri={slu}")
             return slu
         self = super().__new__(
-            simulation_db.sim_db_file_uri(sim_type, sid_or_lib, basename)
+            sim_db_file.uri_from_parts(sim_type, sid_or_lib, basename)
         )
         self.__stype = sim_type
         return self

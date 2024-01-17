@@ -17,6 +17,9 @@ REACT_BUNDLE_FILE_PAT = rf"{STATIC_D}/(css|js)/main\."
 
 JSON_SUFFIX = ".json"
 
+#: where template resources and template non-sim user files live
+LIB_DIR = "lib"
+
 # matches requirements for uid and isn't actually put in the db
 MOCK_UID = "someuser"
 
