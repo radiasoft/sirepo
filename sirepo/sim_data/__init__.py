@@ -855,6 +855,7 @@ class SimDataBase(object):
             basename
         )
 
+    @classmethod
     def _lib_file_abspath_or_exists(
         cls,
         basename,
