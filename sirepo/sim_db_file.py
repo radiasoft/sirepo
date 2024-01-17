@@ -106,7 +106,7 @@ class SimDbClient:
             raise AssertionError(
                 "expected state=ok reply={} uri={} basename={}", res, basename
             )
-        return res.result
+        return res.get("result")
 
     def _request(
         self, method, lib_sid_uri, basename, data=None, json=None, sim_type=None
@@ -144,16 +144,14 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
             return value.pksetdefault(state="ok")
 
         try:
-            a = pkjson.load_any(self.request.body).get("args")
-            # note that args may be empty (but must be PKDict), since uri has path
-            if not isinstance(a, PKDict):
-                raise AssertionError(f"invalid post args={a}")
             self.__path = self.__authenticate_and_path()
-            self.write(
-                _result(
-                    getattr(self, "_sr_post_" + r.get("method", "missing_method"))(a),
-                ),
-            )
+            r = pkjson.load_any(self.request.body)
+            # note that args may be empty (but must be PKDict), since uri has path
+            if not isinstance(a := r.get("args"), PKDict):
+                raise AssertionError(f"invalid post path={self.__path} args={a}")
+            if not (m := r.get("method")):
+                raise AssertionError(f"missing method path={self.__path} args={a}")
+            self.write(_result(getattr(self, "_sr_post_" + m)(a)))
         except Exception as e:
             if pkio.exception_is_not_found(e):
                 raise sirepo.tornado.error_not_found()
@@ -183,19 +181,16 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
             pkio.unchecked_remove(f)
 
     def _sr_post_copy(self, args):
-        self._path.copy(self.__uri_to_path_simple(self.__uri_arg_to_path(args.dst_uri)))
+        self.__path.copy(self.__uri_arg_to_path(args.dst_uri))
 
     def _sr_post_exists(self, args):
         return self._path.check(file=True)
 
     def _sr_post_move(self, args):
-        self._path.move(self.__uri_to_path_simple(self.__uri_arg_to_path(args.dst_uri)))
+        self.__path.move(self.__uri_arg_to_path(args.dst_uri))
 
     def _sr_post_size(self, args):
-        return self._path.size()
-
-    def _sr_post_missing_method(self, args):
-        raise AssertionError("missing method path={} args={}", self._path, args)
+        return self.__path.size()
 
     def __authenticate_and_path(self):
         self.__uid = self._rs_authenticate()
