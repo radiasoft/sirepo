@@ -166,11 +166,11 @@ def sim_frame(frame_args):
             b = template_common.read_dict_from_h5(filename).get("source_bank", [])[:num_samples]
             return [
                 PKDict(
-                        direction=p.u,
-                        energy=p.E,
-                        position=p.r,
-                        type=openmc.ParticleType(p.particle).name,
-                    )
+                    direction=p.u,
+                    energy=p.E,
+                    position=p.r,
+                    type=openmc.ParticleType(p.particle).name,
+                )
                 for p in [openmc.SourceParticle(*p) for p in b]
             ]
         except:
