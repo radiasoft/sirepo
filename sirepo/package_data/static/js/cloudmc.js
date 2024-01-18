@@ -789,6 +789,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             );
 
             function buildTallyReport() {
+                srdbg('buildTallyReport');
                 if (! tallyService.mesh) {
                     return;
                 }
@@ -1132,7 +1133,14 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 sourceBundles.forEach(b => {
                     vtkScene.removeActor(b.actor);
                     vtkScene.addActor(b.actor);
-                })
+                });
+                const particles = tallyService.getSourceParticles();
+                const particleBundle = coordMapper.buildVectorField(
+                    particles.map(p => p.direction.map(x => p.energy * x)),
+                    particles.map(p => p.position),
+                    0.035 * tallyService.getMaxMeshExtent()
+                );
+                vtkScene.addActor(particleBundle.actor);
             }
 
             function buildVoxel(lowerLeft, wx, wy, wz, points, polys) {
@@ -1505,7 +1513,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 if (hasTallies) {
                     //TODO(pjm): this should only be enabled for hover, see #6039
                     // vtkScene.renderWindow.getInteractor().onMouseMove(showFieldInfo);
-                    addSources();
                 }
 
                 const vols = cloudmcService.getNonGraveyardVolumes();
@@ -1539,6 +1546,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     if (vtkScene) {
                         $rootScope.$broadcast('vtk.showLoader');
                         addTally(tallyService.fieldData);
+                        addSources();
                     }
                 });
             }

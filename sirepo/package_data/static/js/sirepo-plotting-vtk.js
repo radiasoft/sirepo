@@ -426,6 +426,116 @@ class VTKUtils {
     }
 }
 
+// used to create array of arrows (or other objects) for vector fields
+// change to use magnitudes and color locally
+class VTKVectorFormula {
+
+    static ARRAY_NAMES() {
+        return {
+            ...VTKVectorFormula.FLOAT_ARRAY_NAMES(),
+            scalars: 'scalars',
+        };
+    }
+
+    static FLOAT_ARRAY_NAMES() {
+        return {
+            linear: 'linear',
+            log: 'log',
+            orientation: 'orientation',
+        };
+    }
+
+    constructor(vectors, colorMapName='jet') {
+        this.vectors = vectors;
+        this.colorMapName = colorMapName;
+        this.colorMap = SIREPO.PLOTTING.Utils.COLOR_MAP()[colorMapName];
+
+        this.magnitudes = this.vectors.map(x => Math.hypot(...x));
+        this.directions = this.vectors.map((x, i) => x.map(y => y / this.magnitudes[i]));
+        this.norms = SIREPO.UTILS.normalize(this.magnitudes);
+
+        // get log values back into the original range, so that the extremes have the same
+        // size as a linear scale
+        const logMags = this.magnitudes.map(x =>  Math.log(x));
+        const minLogMag = Math.min(...logMags);
+        const maxLogMag = Math.max(...logMags);
+        const minMag = Math.min(...this.magnitudes);
+        const maxMag = Math.max(...this.magnitudes);
+
+        this.logMags = logMags.map(
+            n => minMag + (n - minLogMag) * (maxMag - minMag) / (maxLogMag - minLogMag)
+        );
+        this.colorScale = SIREPO.PLOTTING.Utils.colorScale(minMag, maxMag, this.colorMap);
+
+        this.arrays = {
+            input: [{
+                location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.COORDINATE,
+            }],
+            output: [{
+                location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.POINT,
+                name: 'scalars',
+                dataType: 'Uint8Array',
+                attribute: vtk.Common.DataModel.vtkDataSetAttributes.AttributeTypes.SCALARS,
+                numberOfComponents: 3,
+            }],
+        };
+        for (const n of Object.values(VTKVectorFormula.FLOAT_ARRAY_NAMES())) {
+            this.arrays.output.push({
+                location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.POINT,
+                name: n,
+                dataType: 'Float32Array',
+                numberOfComponents: 3,
+            });
+        }
+    }
+
+    getArrays(inputDataSets) {
+        return this.arrays;
+    }
+
+    evaluate(arraysIn, arraysOut) {
+
+        function getSubArrayOut(array, name) {
+            const o = arraysOut.map(d => d.getData());
+            for (const i in array) {
+                if (array[i].name === name) {
+                    return o[i];
+                }
+            }
+            return null;
+        }
+
+        const coords = arraysIn.map(d => d.getData())[0];
+        
+        // note these arrays already have the correct length, so we need to set elements, not append
+        const out = this.arrays.output;
+        const orientation = getSubArrayOut(out, VTKVectorFormula.ARRAY_NAMES().orientation);
+        const linScale = getSubArrayOut(out, VTKVectorFormula.ARRAY_NAMES().linear).fill(1.0);
+        const logScale = getSubArrayOut(out, VTKVectorFormula.ARRAY_NAMES().log).fill(1.0);
+        const scalars = getSubArrayOut(out, VTKVectorFormula.ARRAY_NAMES().scalars);
+
+        for (let i = 0; i < coords.length / 3; ++i) {
+            let c = [0, 0, 0];
+            if (this.colorMap.length) {
+                const rgb = d3.rgb(this.colorScale(this.norms[i]));
+                c = [rgb.r, rgb.g, rgb.b];
+            }
+            // scale arrow length (object-local x-direction) only
+            // this can stretch/squish the arrowhead though so the actor may have to adjust the ratio
+            linScale[3 * i] = this.magnitudes[i];
+            logScale[3 * i] = this.logMags[i];
+            for (let j = 0; j < 3; ++j) {
+                const k = 3 * i + j;
+                orientation[k] = this.directions[k];
+                scalars[k] = c[j];
+            }
+        }
+
+        arraysOut.forEach(x => {
+            x.modified();
+        });
+    }
+}
 
 /**
  * This class encapsulates various basic vtk elements such as the renderer, and supplies methods for using them.
@@ -904,7 +1014,7 @@ class PlaneBundle extends ActorBundle {
 }
 
 /**
- * A bundle for a line source defined by two points
+ * A bundle for generic polydata
  */
 class PolyDataBundle extends ActorBundle {
     /**
@@ -981,6 +1091,72 @@ class SphereBundle extends ActorBundle {
 }
 
 /**
+ * A bundle for a vector field
+ */
+class VectorFieldBundle extends ActorBundle {
+    /**
+     * @param {[[number]]} vectors - array of 3-dimensional arrays containing the vectors
+     * @param {[[number]]} positions - array of 3-dimensional arrays containing the coordinates of the vectors
+     * @param {number} scaleFactor - scales the length of the arrows
+     * @param {string} colormapName - name of a color map for the arrows
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(
+        vectors,
+        positions,
+        scaleFactor = 1.0,
+        colormapName = 'jet',
+        transform = new SIREPO.GEOMETRY.Transform(),
+        actorProperties = {}
+    ) {
+        super(
+            null,
+            transform,
+            actorProperties
+        );
+        this.formula = new VTKVectorFormula(vectors, colormapName);
+        this.scaleFactor = 100;  //scaleFactor;
+        this.polyData = vtk.Common.DataModel.vtkPolyData.newInstance();
+        this.polyData.getPoints().setData(
+            new window.Float32Array(positions.flat()), 
+            3
+        );
+
+        const vectorCalc = vtk.Filters.General.vtkCalculator.newInstance();
+        vectorCalc.setFormula(this.formula);
+        vectorCalc.setInputData(this.polyData);
+
+        const m = vtk.Rendering.Core.vtkGlyph3DMapper.newInstance();
+        m.setInputConnection(vectorCalc.getOutputPort(), 0);
+        m.setInputConnection(
+            vtk.Filters.Sources.vtkArrowSource.newInstance().getOutputPort(), 1
+        );
+        m.setOrientationArray(VTKVectorFormula.ARRAY_NAMES().orientation);
+
+        //m.setScaleArray(VTKVectorFormula.ARRAY_NAMES().linear);
+        //m.setScaleModeToScaleByComponents();
+
+        // this scales by a constant - the default is to use scalar data
+        m.setScaleFactor(this.scaleFactor);
+        m.setColorModeToDefault();
+        this.setMapper(m);
+        this.setScaling('uniform');
+    }
+
+    setScaling(scaleType) {
+        if (scaleType === 'uniform') {
+            this.mapper.setScaleModeToScaleByConstant();
+        }
+        else {
+            this.mapper.setScaleArray(VTKVectorFormula.FLOAT_ARRAY_NAMES()[scaleType]);
+            this.mapper.setScaleModeToScaleByComponents();
+        }
+    }
+}
+
+
+/**
  * Provides a mapping from "lab" coordinates to vtk's coordinates via a SIREPO.GEOMETRY.Transform.
  * Also wraps the creation of various Bundles so the transform gets applied automatically
  */
@@ -1054,6 +1230,18 @@ class CoordMapper {
      */
     buildSphere(labCenter, radius, actorProperties) {
         return new SphereBundle(labCenter, radius, this.transform, actorProperties);
+    }
+
+    /**
+     * Creates a Bundle from vectors
+     * @param {[[number]]} vectors - array of 3-dimensional arrays containing the vectors
+     * @param {[[number]]} positions - array of 3-dimensional arrays containing the coordinates of the vectors
+     * @param {number} scaleFactor - scales the length of the arrows
+     * @param {string} colormapName - name of a color map for the arrows
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    buildVectorField(vectors, positions, scaleFactor=1.0, colormapName='jet', actorProperties) {
+        return new VectorFieldBundle(vectors, positions, scaleFactor, colormapName, this.transform, actorProperties);
     }
 }
 
@@ -3332,6 +3520,8 @@ SIREPO.VTK = {
     RacetrackViews: RacetrackViews,
     SphereBundle: SphereBundle,
     SphereViews: SphereViews,
+    VectorFieldBundle: VectorFieldBundle,
     ViewPortBox: ViewPortBox,
     VTKUtils: VTKUtils,
+    VTKVectorFormula: VTKVectorFormula,
 };
