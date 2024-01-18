@@ -10,13 +10,17 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
+import aiofiles
+import aiohttp
 import re
 import sirepo.agent_supervisor_api
 import sirepo.const
 import sirepo.job
 import sirepo.tornado
+import sirepo.util
 
 _URI_RE = re.compile(f"^{sirepo.job.SIM_DB_FILE_URI}/(.+)")
+_CHUNK_SIZE = 1024 * 1024
 
 
 def in_job_agent():
@@ -63,6 +67,19 @@ class SimDbClient:
         """
         return self._post("move", src_uri, basename=None, args=PKDict(dst_uri=dst_uri))
 
+    def put(self, lib_sid_uri, basename, path_or_content, sim_type=None):
+        def _data():
+            if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
+                return pkio.read_binary(path_or_content)
+            return pkcompat.to_bytes(path_or_content)
+
+        return self._request(
+            "PUT", lib_sid_uri, basename, data=_data(), sim_type=sim_type
+        )
+
+    def save_from_url(self, src_url, dst_uri):
+        return self._post("size", dst_uri, args=PKDict(url=src_url))
+
     def size(self, lib_sid_uri, basename=None, sim_type=None):
         return self._post("size", lib_sid_uri, basename, sim_type=sim_type)
 
@@ -81,16 +98,6 @@ class SimDbClient:
             SimDbUri: valid in any string context
         """
         return SimDbUri(sim_type or self._sim_data.sim_type(), lib_sid_uri, basename)
-
-    def put(self, lib_sid_uri, basename, path_or_content, sim_type=None):
-        def _data():
-            if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
-                return pkio.read_binary(path_or_content)
-            return pkcompat.to_bytes(path_or_content)
-
-        return self._request(
-            "PUT", lib_sid_uri, basename, data=_data(), sim_type=sim_type
-        )
 
     def _post(self, method, lib_sid_uri, basename, args=None, sim_type=None):
         res = pkjson.load_any(
@@ -151,7 +158,7 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
                 raise AssertionError(f"invalid post path={self.__path} args={a}")
             if not (m := r.get("method")):
                 raise AssertionError(f"missing method path={self.__path} args={a}")
-            self.write(_result(getattr(self, "_sr_post_" + m)(a)))
+            self.write(_result(await getattr(self, "_sr_post_" + m)(a)))
         except Exception as e:
             if pkio.exception_is_not_found(e):
                 raise sirepo.tornado.error_not_found()
@@ -170,7 +177,7 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
     def put(self, unused_arg):
         self.__authenticate_and_path().write_binary(self.request.body)
 
-    def _sr_post_delete_glob(self, args):
+    async def _sr_post_delete_glob(self, args):
         t = []
         for f in pkio.sorted_glob(f"{self.__authenticate_and_path()}*"):
             if f.check(dir=True):
@@ -180,16 +187,44 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
         for f in t:
             pkio.unchecked_remove(f)
 
-    def _sr_post_copy(self, args):
+    async def _sr_post_copy(self, args):
         self.__path.copy(self.__uri_arg_to_path(args.dst_uri))
 
-    def _sr_post_exists(self, args):
+    async def _sr_post_exists(self, args):
         return self._path.check(file=True)
 
-    def _sr_post_move(self, args):
+    async def _sr_post_move(self, args):
         self.__path.move(self.__uri_arg_to_path(args.dst_uri))
 
-    def _sr_post_size(self, args):
+    async def _sr_post_save_from_url(self, args):
+        max_size = sirepo.job.cfg().max_message_bytes()
+        size = 0
+        ok = False
+        try:
+            async with aiohttp.ClientSession() as s:
+                async with s.get(args.src_url) as r:
+                    if r.status != 200:
+                        if r.status == 404:
+                            return PKDict(error="url not found")
+                        return PKDict(error=f"http_status={response.status}")
+                    async with aiofiles.open("output.txt", mode="wb") as f:
+                        async for c in response.content.iter_chunked(_CHUNK_SIZE):
+                            size += len(c)
+                            if size > max_size:
+                                return PKDict(error=f"url too large (max={max_size})")
+                            await f.write(c)
+            ok = True
+        except Exception as e:
+            pkdlog("url={} exc={} stack={}", args.src_url, e, pkdexc())
+            if isinstance(e, socket.gaierror):
+                return PKDict(error="invalid host in url")
+            return PKDict(error=e)
+        finally:
+            if not ok:
+                pkio.unchecked_remove(self.__path)
+        return PKDict(size=size)
+
+    async def _sr_post_size(self, args):
         return self.__path.size()
 
     def __authenticate_and_path(self):

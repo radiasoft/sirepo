@@ -50,7 +50,6 @@ class ReqBase(tornado.web.RequestHandler):
         if not m:
             pkdlog("invalid auth header={}", t)
             raise sirepo.tornado.error_forbidden()
-        pkdp(self._TOKEN_TO_UID)
         u = self._TOKEN_TO_UID.get(m.group(1))
         if not u:
             pkdlog("token={} not found", m.group(1))

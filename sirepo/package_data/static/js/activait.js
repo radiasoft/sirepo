@@ -2327,27 +2327,25 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
         );
     }
 
-    function getRemoteData(headersOnly, callback) {
+    function getRemoteData(callback) {
         requestSender.sendStatelessCompute(
             appState,
-            d => {
-                if (d.error) {
+            result => {
+                if (result.error) {
                     throw new Error(`Failed to retrieve remote data: ${d.error}`);
                 }
-                if (callback) {
-                    callback(d);
-                }
+                callback(result);
             },
             {
                 method: 'get_remote_data',
                 args: {
                     url: appState.models[modelName].url,
-                    headers_only: headersOnly
                 }
             },
+            //TODO(robnagler) what is supposed to be canceled?
             {
                 onError: data => {
-                    //TODO: cancel
+                    //TODO(mvkeilman): cancel
                 }
             }
         );
@@ -2380,23 +2378,14 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
             dataFile.file = '';
             dataFile.dataList = [];
             appState.saveQuietly(modelName);
-            //TODO(mvk): two stages now; should be a single background call but not a "simulation"
-            // write in chunks on server and send updates - can we use websockets?
-            getRemoteData(true, d => {
-                //TODO(mvk): use length for progress bar
-                dataFile.contentLength = parseInt(d.headers['Content-Length']);
+            getRemoteData(result => {
+                urlCache[dataFile.url] = {
+                    file: (dataFile.file = new URL(dataFile.url).pathname.split('/').pop()),
+                    size: (dataFile.contentLength = result.size),
+                };
+                appState.saveChanges('urlCache');
                 appState.saveQuietly(modelName);
-                getRemoteData(false, d => {
-                    dataFile.file = d.filename;
-                    dataFile.bytesLoaded = dataFile.contentLength;
-                    urlCache[dataFile.url] = {
-                        file: dataFile.file,
-                        size: dataFile.contentLength,
-                    };
-                    appState.saveChanges('urlCache');
-                    appState.saveQuietly(modelName);
-                    dataFileChanged();
-                });
+                dataFileChanged();
             });
         }
         else {

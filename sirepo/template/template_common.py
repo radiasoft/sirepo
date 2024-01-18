@@ -20,7 +20,6 @@ import sirepo.util
 import subprocess
 import sys
 import types
-import urllib
 
 
 DEFAULT_INTENSITY_DISTANCE = 20
@@ -647,39 +646,6 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
         else sirepo.sim_data.resource_path(b),
         v,
         jinja_env=jinja_env,
-    )
-
-
-def remote_file_to_simulation_lib(sim_data, url, headers_only, model_name, field):
-    _CHUNK_SIZE = 1024 * 1024
-    filename = os.path.basename(urllib.parse.urlparse(url).path)
-    try:
-        with urllib.request.urlopen(url) as r:
-            if headers_only:
-                return PKDict(headers=_header_str_to_dict(r.headers))
-            with open(
-                sim_data.lib_file_write_path(
-                    sim_data.lib_file_name_with_model_field(
-                        model_name,
-                        field,
-                        filename,
-                    )
-                ),
-                "wb",
-            ) as f:
-                while True:
-                    c = r.read(_CHUNK_SIZE)
-                    if not c:
-                        break
-                    f.write(c)
-    except urllib.error.URLError as e:
-        if e.code == 404:
-            return PKDict(error=f"File {filename} not found on data storage server")
-        return PKDict(error=e)
-    except Exception as e:
-        return PKDict(error=e)
-    return PKDict(
-        filename=filename,
     )
 
 

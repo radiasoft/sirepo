@@ -374,13 +374,7 @@ def stateful_compute_sample_images(data, **kwargs):
 
 
 def stateless_compute_get_remote_data(data, **kwargs):
-    return template_common.remote_file_to_simulation_lib(
-        _SIM_DATA,
-        data.args.url,
-        data.args.headers_only,
-        "dataFile",
-        "file",
-    )
+    return _SIM_DATA.lib_file_save_from_url(data.args.url, "dataFile", "file")
 
 
 def stateless_compute_remote_data_bytes_loaded(data, **kwargs):
@@ -1092,12 +1086,6 @@ def _get_fit_report(report, x_vals, y_vals):
         ),
     ]
     return param_vals, param_sigmas, plots
-
-
-# if this conversion is not done, the header gets returned as a newline-delimited string
-# EmailMessage headers pseduo-dicts and can have duplicated keys, which we ignore
-def _header_str_to_dict(h):
-    return {k: v for k, v in h.items()}
 
 
 def _histogram_plot(values, vrange):

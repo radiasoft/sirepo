@@ -21,6 +21,7 @@ import sirepo.resource
 import sirepo.srdb
 import sirepo.util
 import subprocess
+import urllib
 import uuid
 
 _cfg = None
@@ -463,6 +464,21 @@ class SimDataBase(object):
             str: contents of file
         """
         return pkcompat.from_bytes(cls.lib_file_read_binary(*args, **kwargs))
+
+    @classmethod
+    def lib_file_save_from_url(self, url, model_name, field):
+        c = cls.sim_db_client()
+        return c.save_from_url(
+            url,
+            c.uri(
+                cls.LIB_DIR,
+                cls.lib_file_name_with_model_field(
+                    model_name,
+                    field,
+                    os.path.basename(urllib.parse.urlparse(url).path),
+                ),
+            ),
+        )
 
     @classmethod
     def lib_file_size(cls, basename, qcall=None):
