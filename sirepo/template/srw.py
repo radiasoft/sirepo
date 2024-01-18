@@ -515,12 +515,24 @@ def sim_frame(frame_args):
             frame_args.sim_in.report = "initialIntensityReport"
             frame_args.sim_in.models.initialIntensityReport = m
             data_file = _OUTPUT_FOR_MODEL.initialIntensityReport.filename
+        detector = None
+        m = frame_args.sim_in.models[r]
+        if str(m.get("useDetector", "0")) == "1":
+            detector = srwpy.srwl_bl.SRWLBeamline().set_detector(
+                _x=float(m.d_x),
+                _y=float(m.d_y),
+                _nx=int(m.d_nx),
+                _ny=int(m.d_ny),
+                _rx=float(m.d_rx),
+                _ry=float(m.d_ry),
+            )
         srwpy.srwl_bl.SRWLBeamline().calc_int_from_wfr(
             wfr,
             _pol=int(frame_args.polarization),
             _int_type=int(frame_args.characteristic),
             _fname=data_file,
             _pr=False,
+            _det=detector,
         )
     if "beamlineAnimation" not in r:
         # some reports may be written at the same time as the reader
@@ -1941,6 +1953,10 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
         v.python_file = run_dir.join("user_python.py")
         pkio.write_text(v.python_file, dm.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, "import.py")
+    if report in dm and str(dm[report].get("useDetector", "0")) == "1":
+        v.useDetector = "1"
+        for f in ("d_x", "d_rx", "d_nx", "d_y", "d_ry", "d_ny"):
+            v[f"detector_{f}"] = dm[report][f]
     _set_parameters(v, data, plot_reports, run_dir, qcall=qcall)
     v.in_server = run_dir is not None
     return _trim(res + template_common.render_jinja(SIM_TYPE, v))
@@ -2191,7 +2207,7 @@ def _remap_3d(info, allrange, out, report):
         z_range = [report.minIntensityLimit, report.maxIntensityLimit]
     else:
         z_range = [np.min(ar2d), np.max(ar2d)]
-    return PKDict(
+    res = PKDict(
         x_range=x_range,
         y_range=y_range,
         x_label=info.x_label,
@@ -2203,6 +2219,13 @@ def _remap_3d(info, allrange, out, report):
         z_range=z_range,
         summaryData=info.summaryData,
     )
+    if (
+        str(report.get("useDetector", "0")) == "1"
+        and str(report.get("useDetectorAspectRatio", "0")) == "1"
+        and float(report.d_rx) != 0
+    ):
+        res.aspectRatio = float(report.d_ry) / float(report.d_rx)
+    return res
 
 
 def _reshape_3d(ar1d, allrange, report):
@@ -2224,7 +2247,7 @@ def _reshape_3d(ar1d, allrange, report):
 
 def _resize_report(report, ar2d, x_range, y_range):
     width_pixels = int(report.get("intensityPlotsWidth", 0))
-    if not width_pixels:
+    if not width_pixels or str(report.get("useDetector", "0")) == "1":
         # upper limit is browser's max html canvas size
         width_pixels = _CANVAS_MAX_SIZE
     # rescale width and height to maximum of width_pixels
