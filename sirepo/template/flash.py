@@ -409,7 +409,7 @@ def stateless_compute_update_lib_file(data, **kwargs):
     t = c.uri(c.LIB_DIR, _SIM_DATA.flash_app_lib_basename(data.args.simulationId))
     if data.args.get("archiveLibId"):
         c.copy(
-            c.uri(c.LIB_DIR, _SIM_DATA.flash_app_lib_basename(data.args.archiveLibId))
+            c.uri(c.LIB_DIR, _SIM_DATA.flash_app_lib_basename(data.args.archiveLibId)),
             t,
         )
     else:
