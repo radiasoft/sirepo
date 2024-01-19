@@ -1183,9 +1183,9 @@ def _beamline_animation_percent_complete(run_dir, res):
 
 def _best_data_file(primary):
     def _lines(path):
-        return len(pykern.pkio.open_text(path).readlines())
+        return len(pkio.open_text(path).readlines())
 
-    p = pykern.pkio.py_path(primary)
+    p = pkio.py_path(primary)
     s = p.new(ext="dat.bkp")
     if not s.check():
         return p.basename
