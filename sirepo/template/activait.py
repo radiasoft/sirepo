@@ -687,10 +687,10 @@ def _compute_clusters(report, plot_data):
         )
     x_scale = sirepo.analysis.ml.scale_data(
         plot_data[:, cols],
-        [
+        (
             report.clusterScaleMin,
             report.clusterScaleMax,
-        ],
+        ),
     )
     group = sirepo.analysis.ml.METHODS[report.clusterMethod](
         x_scale, method_params[report.clusterMethod]
