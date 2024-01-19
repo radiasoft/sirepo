@@ -369,36 +369,13 @@ def analysis_job_dice_coefficient(data, run_dir, **kwargs):
     return _ImagePreview(data, run_dir).dice_coefficient_plot()
 
 
-def stateful_compute_sample_images(data, **kwargs):
-    return _ImagePreview(data).images()
-
-
-def stateless_compute_get_remote_data(data, **kwargs):
+def stateful_compute_get_remote_data(data, **kwargs):
     _SIM_DATA.lib_file_save_from_url(data.args.url, "dataFile", "file")
     return PKDict()
 
 
-def stateless_compute_remote_data_bytes_loaded(data, **kwargs):
-    try:
-        return PKDict(
-            bytesLoaded=_SIM_DATA.lib_file_size(
-                _SIM_DATA.lib_file_name_with_model_field(
-                    "dataFile", "file", data.args.filename
-                ),
-            ),
-        )
-    except Exception as e:
-        pkdlog(
-            "error getting lib_file_size filename={} exc={} stack={}",
-            data.args.filename,
-            e,
-            pkdexc(),
-        )
-        return PKDict(error=e)
-
-
-def stateless_compute_get_archive_file_list(data, **kwargs):
-    return _archive_file_list(data.args.filename, data.args.data_type)
+def stateful_compute_sample_images(data, **kwargs):
+    return _ImagePreview(data).images()
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -406,16 +383,6 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
-
-
-def _archive_file_list(filename, data_type):
-    reader = sirepo.sim_data.activait.DataReaderFactory.build(_filepath(filename))
-
-    def _filter(item):
-        is_dir = reader.is_dir(item)
-        return is_dir if data_type == "image" else not is_dir
-
-    return PKDict(datalist=reader.get_data_list(_filter))
 
 
 def _build_model_py(v):

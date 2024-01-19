@@ -19,6 +19,7 @@ import sirepo.const
 import sirepo.job
 import sirepo.tornado
 import sirepo.util
+import socket
 
 _URI_RE = re.compile(f"^{sirepo.job.SIM_DB_FILE_URI}/(.+)")
 _CHUNK_SIZE = 1024 * 1024

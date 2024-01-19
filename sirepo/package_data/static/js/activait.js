@@ -2300,35 +2300,8 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
         );
     }
 
-    //TODO(mvk): call this when loading data from url to update status bar
-    // Not needed by files
-    function getBytesLoaded() {
-        const dataFile = appState.models[modelName];
-        if (dataFile.dataOrigin === 'file' || ! dataFile.file) {
-            return;
-        }
-        requestSender.sendStatelessCompute(
-            appState,
-            d => {
-                if (d.error) {
-                    throw new Error(`Failed to retrieve remote data: ${d.error}`);
-                }
-                if (d.bytesLoaded !== appState.models[modelName].bytesLoaded) {
-                    appState.models[modelName].bytesLoaded = d.bytesLoaded;
-                    appState.saveQuietly(modelName);
-                }
-            },
-            {
-                method: 'remote_data_bytes_loaded',
-                args: {
-                    filename: dataFile.file,
-                }
-            }
-        );
-    }
-
     function getRemoteData(callback) {
-        requestSender.sendStatelessCompute(
+        requestSender.sendStatefulCompute(
             appState,
             result => {
                 if (result.error) {

@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import sirepo.numpy
-import sirepo.sim_data.activait
+import sirepo.sim_data
 from sklearn.preprocessing import MinMaxScaler
 
 
@@ -89,7 +89,7 @@ def scale_file(data_reader, column_types, inputs_scaler, outputs_scaler):
 
 
 scaled, in_idx, out_idx = scale_file(
-    sirepo.sim_data.activait.DataReaderFactory.build('{{ dataFile }}', '{{ dataPath }}'),
+    sim_data.get_class("activait").activait_data_reader("('{{ dataFile }}', '{{ dataPath }}'),
     {{ columnTypes }},
     {{ dataFile_inputsScaler }},
 {% if dataFile_appMode == 'classification' %}
