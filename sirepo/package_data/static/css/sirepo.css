@@ -1,3 +1,8 @@
+    :root {
+      --sr-action: #367dba;
+      --sr-base-blue: #0061af;
+      --sr-base-green: #8fc741;
+    }
 
     /* bootstrap overrides */
     .modal-header {
@@ -272,6 +277,11 @@
         }
     }
 
+    .btn.sr-button-action {
+      background-color: var(--sr-action);
+      color: #fff;
+    }
+    
     ul.sr-button-menu {
         list-style: none;
     }
