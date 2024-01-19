@@ -262,6 +262,20 @@ varParam = [
     {% if beamline3DReport %}
     ['op_fno', 's', '{{beamline3DReportFilename}}', 'file name for saving orientations of optical elements in the lab frame'],
     {% endif %}
+{% if useDetector == '1' %}
+    #Detector parameters
+    ['d_x', 'f', {{detector_d_x}}, 'central horizontal position [m] of detector active area'],
+    ['d_rx', 'f', {{detector_d_rx}}, 'range of horizontal position [m] of detector active area (should be >0 to be taken into account)'],
+    ['d_nx', 'i', {{detector_d_nx}}, 'number of pixels vs horizontal position (should be >0 to be taken into account)'],
+    ['d_dx', 'f', 0., 'horizontal size of pixel [m]'],
+    ['d_y', 'f', {{detector_d_y}}, 'central vertical position [m] of detector active area'],
+    ['d_ry', 'f', {{detector_d_ry}}, 'range of vertical position [m] of detector active area (should be >0 to be taken into account)'],
+    ['d_ny', 'i', {{detector_d_ny}}, 'number of pixels vs vertical position (should be >0 to be taken into account)'],
+    ['d_dy', 'f', 0., 'vertical size of pixel [m]'],
+    ['d_or', 'f', 1, 'interpolation order (i.e. order of polynomials to be used at 2D interpolation)'],
+    ['d_ifn', 's', '', 'file name with detector spectral efficiency data (on 1D mesh vs photon energy: _eStart, _eFin, _ne)'],
+
+{% endif %}
     # Former appParam:
     ['rs_type', 's', '{{rs_type}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 {% if rs_type == 'm' %}

@@ -784,7 +784,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               <div data-ng-switch-when="Bool" class="col-sm-7">
                   <input type="checkbox" data-ng-model="model[field]">
               </div>
-               <div data-ng-switch-when="Boolean" class="fieldClass">
+               <div data-ng-switch-when="Boolean" data-ng-class="fieldClass">
                  <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
                </div>
               <div data-ng-switch-when="ColorMap" class="col-sm-7">
@@ -4677,7 +4677,7 @@ SIREPO.app.service('plotToPNG', function() {
 
 });
 
-SIREPO.app.service('fileUpload', function(msgRouter) {
+SIREPO.app.service('fileUpload', function(authState, msgRouter) {
     this.uploadFileToUrl = function(file, args, uploadUrl, callback) {
         var fd = new FormData();
         fd.append('file', file);
@@ -4685,6 +4685,10 @@ SIREPO.app.service('fileUpload', function(msgRouter) {
             for (var k in args) {
                 fd.append(k, args[k]);
             }
+        }
+        if (file.size > authState.max_message_bytes) {
+            callback({error: `File of size=${file.size} bytes is greater than maximum allowable size=${authState.max_message_bytes} bytes`});
+            return;
         }
         //TODO(robnagler) formData needs to be handled properly
         msgRouter.send(uploadUrl, fd, {
@@ -4694,10 +4698,14 @@ SIREPO.app.service('fileUpload', function(msgRouter) {
             function(response) {
                 callback(response.data);
             },
-            function() {
-                //TODO(pjm): error handling
-                srlog('file upload failed');
-            });
+            function(response) {
+                callback(
+                    {
+                        error: `File upload failed due to server error (status=${response.status || 'unknown'})`
+                    }
+                );
+            },
+        );
     };
 });
 

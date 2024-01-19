@@ -12,4 +12,4 @@ if ! conda info --envs | grep -q -E '{{ conda_env }}\s+\*\s+\/' ; then
     exit 1
 fi
 mkdir -p "$(dirname '{{ output_f }}')"
-papermill '{{ input_f }}'  '{{ output_f }}'  {{ papermill_args }}
+papermill {{ papermill_args }} '{{ input_f }}' '{{ output_f }}'

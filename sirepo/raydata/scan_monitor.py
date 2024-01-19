@@ -38,13 +38,13 @@ _CATALOG_MONITOR_TASKS = PKDict()
 _DEFAULT_COLUMNS = PKDict(
     start="time",
     stop="time",
-    suid="uid",
+    suid="rduid",
 )
 
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
 
-_NON_DISPLAY_SCAN_FIELDS = "uid"
+_NON_DISPLAY_SCAN_FIELDS = "rduid"
 
 _NUM_RECENTLY_EXECUTED_SCANS = 5
 
@@ -81,7 +81,7 @@ class _DbBase:
 
 class _Analysis(_DbBase):
     __tablename__ = "analysis_t"
-    uid = sqlalchemy.Column(sqlalchemy.String(36), nullable=False, primary_key=True)
+    rduid = sqlalchemy.Column(sqlalchemy.String(36), nullable=False, primary_key=True)
     catalog_name = sqlalchemy.Column(
         sqlalchemy.String(20), nullable=False, primary_key=True
     )
@@ -101,41 +101,34 @@ class _Analysis(_DbBase):
             .order_by(sqlalchemy.desc("last_updated"))
             .limit(num_scans)
         ):
-            r.append(PKDict(uid=x.uid, status=x.status, catalog_name=catalog_name))
+            r.append(PKDict(rduid=x.rduid, status=x.status, catalog_name=catalog_name))
         return r
 
     @classmethod
     def have_analyzed_scan(cls, scan_metadata):
         return bool(
             cls.search_by(
-                uid=scan_metadata.uid, catalog_name=scan_metadata.catalog_name
+                rduid=scan_metadata.rduid, catalog_name=scan_metadata.catalog_name
             )
         )
 
     @classmethod
     def init(cls, db_file):
-        def _fixup_running_statuses():
-            for x in cls.session.query(cls).filter(
-                cls.status.in_(_AnalysisStatus.NON_STOPPED)
-            ):
-                cls.set_scan_status(
-                    PKDict(uid=x.uid, catalog_name=x.catalog_name),
-                    _AnalysisStatus.ERROR,
-                )
-
         global engine
         if engine is None:
             engine = sqlalchemy.create_engine(f"sqlite:///{db_file}")
         cls.metadata.create_all(bind=engine)
         cls.session = sqlalchemy.orm.Session(bind=engine)
-        _fixup_running_statuses()
+        cls._db_upgrade()
 
     @classmethod
     def scans_with_status(cls, catalog_name, statuses):
         r = []
         for s in statuses:
             for x in cls.search_all_by(catalog_name=catalog_name, status=s):
-                r.append(PKDict(uid=x.uid, status=x.status, catalog_name=catalog_name))
+                r.append(
+                    PKDict(rduid=x.rduid, status=x.status, catalog_name=catalog_name)
+                )
         return r
 
     @classmethod
@@ -149,11 +142,11 @@ class _Analysis(_DbBase):
     @classmethod
     def set_scan_status(cls, analysis_driver, status):
         r = cls.search_by(
-            uid=analysis_driver.uid, catalog_name=analysis_driver.catalog_name
+            rduid=analysis_driver.rduid, catalog_name=analysis_driver.catalog_name
         )
         if not r:
             cls(
-                uid=analysis_driver.uid,
+                rduid=analysis_driver.rduid,
                 catalog_name=analysis_driver.catalog_name,
                 status=status,
             ).save()
@@ -162,12 +155,43 @@ class _Analysis(_DbBase):
         r.save()
 
     @classmethod
-    def statuses_for_scans(cls, catalog_name, uids):
+    def statuses_for_scans(cls, catalog_name, rduids):
         return (
-            cls.session.query(cls.uid, cls.status)
-            .filter(cls.catalog_name == catalog_name, cls.uid.in_(uids))
+            cls.session.query(cls.rduid, cls.status)
+            .filter(cls.catalog_name == catalog_name, cls.rduid.in_(rduids))
             .all()
         )
+
+    @classmethod
+    def _db_upgrade(cls):
+        def _fixup_running_statuses():
+            for x in cls.session.query(cls).filter(
+                cls.status.in_(_AnalysisStatus.NON_STOPPED)
+            ):
+
+                cls.set_scan_status(
+                    PKDict(rduid=x.rduid, catalog_name=x.catalog_name),
+                    _AnalysisStatus.ERROR,
+                )
+
+        def _rduid_in_schema():
+            for c in sqlalchemy.inspect(engine).get_columns(cls.__tablename__):
+                if c.get("name") == "rduid":
+                    return True
+            return False
+
+        def _rename_uid_column_to_rduid():
+            if _rduid_in_schema():
+                return
+            cls.session.execute(
+                sqlalchemy.text(
+                    f"ALTER TABLE {cls.__tablename__} RENAME COLUMN uid TO rduid"
+                )
+            )
+            cls.session.commit()
+
+        _rename_uid_column_to_rduid()
+        _fixup_running_statuses()
 
 
 # TODO(e-carlin): copied from sirepo
@@ -299,7 +323,7 @@ class _RequestHandler(_JsonPostRequestHandler):
             / req_data.pageSize
         )
         l = [
-            PKDict(uid=u)
+            PKDict(rduid=u)
             for u in c.search(
                 _search_params(req_data),
                 sort=_sort_params(req_data),
@@ -309,11 +333,11 @@ class _RequestHandler(_JsonPostRequestHandler):
         ]
         d = PKDict(
             _Analysis.statuses_for_scans(
-                catalog_name=req_data.catalogName, uids=[s.uid for s in l]
+                catalog_name=req_data.catalogName, rduids=[s.rduid for s in l]
             )
         )
         for s in l:
-            s.status = d.get(s.uid, _AnalysisStatus.NONE)
+            s.status = d.get(s.rduid, _AnalysisStatus.NONE)
         return l, pc
 
     def _request_analysis_output(self, req_data):
@@ -338,20 +362,20 @@ class _RequestHandler(_JsonPostRequestHandler):
         )
 
     def _request_download_analysis_pdfs(self, req_data):
-        def _all_pdfs(uids):
-            for u in uids:
+        def _all_pdfs(rduids):
+            for u in rduids:
                 p = sirepo.raydata.analysis_driver.get(
-                    PKDict(uid=u, **req_data)
+                    PKDict(rduid=u, **req_data)
                 ).get_analysis_pdf_paths()
                 if not p:
-                    raise AssertionError(f"no analysis pdfs found for uid={u}")
+                    raise AssertionError(f"no analysis pdfs found for rduid={u}")
                 yield u, p
 
         with io.BytesIO() as t:
             with zipfile.ZipFile(t, "w") as f:
-                for u, v in _all_pdfs(req_data.uids):
+                for u, v in _all_pdfs(req_data.rduids):
                     for p in v:
-                        f.write(p, pkio.py_path(f"/uids/{u}").join(p.basename))
+                        f.write(p, pkio.py_path(f"/rduids/{u}").join(p.basename))
             t.seek(0)
             requests.put(
                 req_data.dataFileUri + "analysis_pdfs.zip",
@@ -375,7 +399,9 @@ class _RequestHandler(_JsonPostRequestHandler):
             for s in _Analysis.scans_with_status(
                 req_data.catalogName, _AnalysisStatus.EXECUTED
             ):
-                m = sirepo.raydata.databroker.get_metadata(s.uid, req_data.catalogName)
+                m = sirepo.raydata.databroker.get_metadata(
+                    s.rduid, req_data.catalogName
+                )
                 if (
                     m.start() >= req_data.searchStartTime
                     and m.stop() <= req_data.searchStopTime
@@ -403,7 +429,7 @@ class _RequestHandler(_JsonPostRequestHandler):
 
     def _request_run_analysis(self, req_data):
         _queue_for_analysis(
-            sirepo.raydata.databroker.get_metadata(req_data.uid, req_data.catalogName)
+            sirepo.raydata.databroker.get_metadata(req_data.rduid, req_data.catalogName)
         )
         return PKDict(data="ok")
 
@@ -446,12 +472,12 @@ async def _init_analysis_processors():
                             r = await p.wait()
                             assert (
                                 r == 0
-                            ), f"error returncode={r} catalog={d.catalog_name} scan={d.uid} notebook={n} log={pkio.py_path().join('run.log')}"
+                            ), f"error returncode={r} catalog={d.catalog_name} scan={d.rduid} notebook={n} log={pkio.py_path().join('run.log')}"
                             s = _AnalysisStatus.COMPLETED
                     except Exception as e:
                         pkdlog(
                             "error analyzing scan={} error={} stack={}",
-                            d.uid,
+                            d.rduid,
                             e,
                             pkdexc(),
                         )
@@ -497,7 +523,7 @@ async def _poll_catalog_for_scans(catalog_name):
                 databroker.queries.TimeRange(since=last_known_scan_metadata.start())
             )
             .items()
-            if u != last_known_scan_metadata.uid
+            if u != last_known_scan_metadata.rduid
         ]
         l = last_known_scan_metadata
         r.sort(key=lambda x: x.start())
@@ -531,7 +557,7 @@ async def _poll_catalog_for_scans(catalog_name):
 
 def _queue_for_analysis(scan_metadata):
     s = PKDict(
-        uid=scan_metadata.uid,
+        rduid=scan_metadata.rduid,
         catalog_name=scan_metadata.catalog_name,
     )
     pkdlog("scan={}", s)
@@ -541,13 +567,13 @@ def _queue_for_analysis(scan_metadata):
         _Analysis.set_scan_status(s, _AnalysisStatus.PENDING)
 
 
-def _scan_info(uid, status, req_data, all_columns):
-    m = sirepo.raydata.databroker.get_metadata(uid, req_data.catalogName)
+def _scan_info(rduid, status, req_data, all_columns):
+    m = sirepo.raydata.databroker.get_metadata(rduid, req_data.catalogName)
     d = PKDict(
-        uid=uid,
+        rduid=rduid,
         status=status,
         pdf=sirepo.raydata.analysis_driver.get(
-            PKDict(uid=uid, **req_data)
+            PKDict(rduid=rduid, **req_data)
         ).has_analysis_pdfs(),
     )
     for c in _DEFAULT_COLUMNS.keys():
@@ -583,7 +609,7 @@ def _scan_info_result(scans, page_count, req_data):
         return -1 if v1 < v2 else 1
 
     all_columns = set()
-    s = [_scan_info(x.uid, x.status, req_data, all_columns) for x in scans]
+    s = [_scan_info(x.rduid, x.status, req_data, all_columns) for x in scans]
     if req_data.analysisStatus in ("recentlyExecuted", "queued"):
         s = sorted(
             s,
