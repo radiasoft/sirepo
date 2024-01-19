@@ -374,7 +374,8 @@ def stateful_compute_sample_images(data, **kwargs):
 
 
 def stateless_compute_get_remote_data(data, **kwargs):
-    return _SIM_DATA.lib_file_save_from_url(data.args.url, "dataFile", "file")
+    _SIM_DATA.lib_file_save_from_url(data.args.url, "dataFile", "file")
+    return PKDict()
 
 
 def stateless_compute_remote_data_bytes_loaded(data, **kwargs):
