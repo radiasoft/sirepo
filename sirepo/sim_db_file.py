@@ -312,10 +312,12 @@ class SimDbUri(str):
 
 
 def _sid_or_lib(value):
+    from sirepo import simulation_db
+
     return (
         sirepo.const.LIB_DIR
         if value is None or value == sirepo.const.LIB_DIR
-        else assert_sid(value)
+        else simulation_db.assert_sid(value)
     )
 
 

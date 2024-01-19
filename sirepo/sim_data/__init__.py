@@ -909,7 +909,7 @@ class SimDataBase(object):
                     return True
             else:
                 try:
-                    return cls.read_binary_and_save(
+                    return cls._read_binary_and_save(
                         cls.LIB_DIR, basename, pkio.py_path()
                     )
                 except Exception as e:
