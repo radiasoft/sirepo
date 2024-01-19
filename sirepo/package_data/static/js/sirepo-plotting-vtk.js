@@ -2543,7 +2543,7 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
                         <td style="text-align: right">
                           <div class="sr-button-bar-parent">
                             <div class="sr-button-bar sr-button-bar-active">
-                               <button data-ng-disabled="isAlignDisabled(o)" class="dropdown-toggle btn sr-button-action btn-xs" title="align" data-toggle="dropdown"><span class="glyphicon glyphicon-move"></span></button>
+                               <button data-ng-disabled="isAlignDisabled(o)" type="button" class="dropdown-toggle btn sr-button-action btn-xs" title="align" data-toggle="dropdown"><span class="glyphicon glyphicon-move"></span></button>
                                <ul class="dropdown-menu">
                                  <div class="container col-sm-8">
                                    <div class="row">
@@ -2555,11 +2555,11 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
                                    <div>
                                  <div>
                                </ul>
-                               <button class="btn sr-button-action btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)" title="move up"><span class="glyphicon glyphicon-arrow-up"></span></button>
-                               <button class="btn sr-button-action btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)" title="move down"><span class="glyphicon glyphicon-arrow-down"></span></button>
-                               <button data-ng-disabled="isGroup(o) || locked[o.id]" class="btn sr-button-action btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-duplicate"></span></button>
-                               <button data-ng-disabled="locked[o.id]" data-ng-click="editObject(o)" class="btn sr-button-action btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
-                               <button data-ng-disabled="locked[o.id]" data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
+                               <button type="button" class="btn sr-button-action btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)" title="move up"><span class="glyphicon glyphicon-arrow-up"></span></button>
+                               <button type="button" class="btn sr-button-action btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)" title="move down"><span class="glyphicon glyphicon-arrow-down"></span></button>
+                               <button data-ng-disabled="isGroup(o) || locked[o.id]" type="button" class="btn sr-button-action btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-duplicate"></span></button>
+                               <button data-ng-disabled="locked[o.id]" data-ng-click="editObject(o)" type="button" class="btn sr-button-action btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
+                               <button data-ng-disabled="locked[o.id]" data-ng-click="deleteObject(o)" type="button" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
                             </div>
                           </div>
                         </td>
