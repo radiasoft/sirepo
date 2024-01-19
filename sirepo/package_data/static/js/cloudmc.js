@@ -789,7 +789,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             );
 
             function buildTallyReport() {
-                srdbg('buildTallyReport');
                 if (! tallyService.mesh) {
                     return;
                 }
@@ -1097,6 +1096,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     },
                 }
             );
+            let particleBundle = null;
 
             let vtkScene = null;
 
@@ -1129,18 +1129,36 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 vtkScene.render();
             }
 
-            function addSources() {
+            function addSources() {  
                 sourceBundles.forEach(b => {
                     vtkScene.removeActor(b.actor);
                     vtkScene.addActor(b.actor);
                 });
+
+                if (particleBundle) {
+                    vtkScene.removeActor(particleBundle.actor);
+                }
                 const particles = tallyService.getSourceParticles();
-                const particleBundle = coordMapper.buildVectorField(
+                srdbg('p', particles);
+                particleBundle = coordMapper.buildVectorField(
+                    //[[1,1,1]],
+                    //[[0,0,-4]],
+                    //'jet',
+                    //{color: '#ff0000'}
                     particles.map(p => p.direction.map(x => p.energy * x)),
                     particles.map(p => p.position),
-                    0.035 * tallyService.getMaxMeshExtent()
+                    //0.035 * tallyService.getMaxMeshExtent()
                 );
+                //particleBundle.actor.getProperty().setColor('#ff0000');
+                //particleBundle.actor.getProperty().setEdgeVisibility(true);
+                //particleBundle.actor.getProperty().setLighting(true);
+                srdbg(particleBundle.actor.getUserMatrix());
                 vtkScene.addActor(particleBundle.actor);
+                //const tmp = coordMapper.buildActorBundle(vtk.Filters.Sources.vtkArrowSource.newInstance(), {color: '#ff0000'});
+                //vtkScene.addActor(tmp.actor);
+                //srdbg(tmp.actor.getBounds());
+                
+                vtkScene.render();
             }
 
             function buildVoxel(lowerLeft, wx, wy, wz, points, polys) {

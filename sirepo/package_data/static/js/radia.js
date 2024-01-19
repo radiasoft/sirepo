@@ -2480,6 +2480,7 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
                         if (gObj.members) {
                             gColor = null;
                         }
+                        
                         const pData = radiaVtkUtils.objToPolyData(sceneDatum, [t], gColor).data;
                         let bundle = null;
                         if (radiaVtkUtils.GEOM_OBJ_TYPES.includes(t)) {
@@ -2487,6 +2488,7 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
                             bundle.mapper.setInputData(pData);
                         }
                         else {
+                            /*
                             const vectorCalc = vtk.Filters.General.vtkCalculator.newInstance();
                             vectorCalc.setFormula(getVectFormula(d, appState.models.fieldDisplay.colorMap));
                             vectorCalc.setInputData(pData);
@@ -2504,6 +2506,16 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
                             mapper.setColorModeToDefault();
                             bundle = cm.buildActorBundle();
                             bundle.setMapper(mapper);
+                            */
+                           
+                            const s = [d.vertices.length / 3, 3];
+                            bundle = cm.buildVectorField(
+                                SIREPO.UTILS.reshape(d.directions.map((x, i) => x * d.magnitudes[i % 3]), s),
+                                SIREPO.UTILS.reshape(d.vertices, s),
+                                vectorScaleFactor(sceneData.bounds),
+                                appState.models.fieldDisplay.colorMap
+                            );
+                            srdbg(bundle.actor.getBounds());
                         }
                         bundle.actor.getProperty().setEdgeVisibility(isPoly);
                         bundle.actor.getProperty().setLighting(isPoly);

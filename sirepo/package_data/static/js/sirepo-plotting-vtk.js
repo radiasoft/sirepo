@@ -1116,7 +1116,6 @@ class VectorFieldBundle extends ActorBundle {
             actorProperties
         );
         this.formula = new VTKVectorFormula(vectors, colormapName);
-        this.scaleFactor = 100;  //scaleFactor;
         this.polyData = vtk.Common.DataModel.vtkPolyData.newInstance();
         this.polyData.getPoints().setData(
             new window.Float32Array(positions.flat()), 
@@ -1127,21 +1126,24 @@ class VectorFieldBundle extends ActorBundle {
         vectorCalc.setFormula(this.formula);
         vectorCalc.setInputData(this.polyData);
 
-        const m = vtk.Rendering.Core.vtkGlyph3DMapper.newInstance();
-        m.setInputConnection(vectorCalc.getOutputPort(), 0);
-        m.setInputConnection(
+        this.setMapper(vtk.Rendering.Core.vtkGlyph3DMapper.newInstance());
+        
+        this.mapper.setInputConnection(vectorCalc.getOutputPort(), 0);
+        this.mapper.setInputConnection(
             vtk.Filters.Sources.vtkArrowSource.newInstance().getOutputPort(), 1
         );
-        m.setOrientationArray(VTKVectorFormula.ARRAY_NAMES().orientation);
-
-        //m.setScaleArray(VTKVectorFormula.ARRAY_NAMES().linear);
-        //m.setScaleModeToScaleByComponents();
+        this.mapper.setOrientationArray(VTKVectorFormula.ARRAY_NAMES().orientation);
 
         // this scales by a constant - the default is to use scalar data
-        m.setScaleFactor(this.scaleFactor);
-        m.setColorModeToDefault();
-        this.setMapper(m);
+        this.setScaleFactor(scaleFactor);
+        this.mapper.setColorModeToDefault();
+        
         this.setScaling('uniform');
+    }
+
+    setScaleFactor(scaleFactor) {
+        this.scaleFactor = scaleFactor;
+        this.mapper.setScaleFactor(this.scaleFactor);
     }
 
     setScaling(scaleType) {
