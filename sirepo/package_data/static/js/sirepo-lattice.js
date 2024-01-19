@@ -634,7 +634,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
               <div data-ng-transclude=""></div>
             </div>
             <div data-confirmation-modal="" data-id="sr-delete-lattice-item-dialog" data-title="{{ latticeService.selectedItem.name }}" data-ok-text="Delete" data-ok-clicked="deleteSelectedItem()">Delete item <strong>{{ latticeService.selectedItem.name }}</strong>?</div>
-            <div data-confirmation-modal="" data-id="sr-beamline-from-elements-dialog" data-title="Create Beamline From Elements" data-ok-text="Save Changes" data-ok-clicked="createBeamlineFromElements()">
+            <div data-confirmation-modal="" data-id="sr-beamline-from-elements-dialog" data-title="Create Beamline From Elements" data-ok-text="Save" data-ok-clicked="createBeamlineFromElements()">
               <form class="form-horizontal" autocomplete="off">
                 <label class="col-sm-4 control-label">Beamline Name</label>
                 <div class="col-sm-8">
@@ -656,7 +656,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 <input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" style="text-align: right" data-lpignore="true" required />
               </div>
               <div class="text-center">
-                <button class="btn btn-primary" data-ng-click="setElementPosition()">Save Changes</button>
+                <button class="btn btn-primary" data-ng-click="setElementPosition()">Save</button>
                  <button class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>
               </div>
             </div>
@@ -2962,7 +2962,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                         </div>
                         <div class="row">
                           <div class="col-sm-6 pull-right">
-                            <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
+                            <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save</button>
                             <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
                           </div>
                         </div>
