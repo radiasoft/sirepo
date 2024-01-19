@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Operations run inside the report directory to extract data.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.

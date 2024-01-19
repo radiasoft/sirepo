@@ -28,11 +28,11 @@ class SimData(sirepo.sim_data.SimDataBase):
     def activait_data_reader(cls, file_path, data_path):
         def _reader():
             for k, v in _DATA_READERS.items():
-                if str(file_path).endswidth(k):
+                if str(file_path).endswith(k):
                     return v
             return DataReader
 
-        return _reader(file_path, data_path)
+        return _reader()(file_path, data_path)
 
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
