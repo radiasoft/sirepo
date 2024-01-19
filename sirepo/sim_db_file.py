@@ -221,7 +221,6 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
                         return PKDict(error=f"http_status={response.status}")
                     async with aiofiles.open(t, "wb") as f:
                         async for c in r.content.iter_chunked(_CHUNK_SIZE):
-                            pkdp(len(c))
                             size += len(c)
                             if size > max_size:
                                 return PKDict(error=f"too large (max={max_size})")

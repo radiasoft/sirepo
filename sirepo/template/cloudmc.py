@@ -137,7 +137,7 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def stateful_compute_download_remote_lib_file(data, **kwargs):
-    return _SIM_DATA.lib_file_save_from_url(
+    _SIM_DATA.lib_file_save_from_url(
         "{}/{}".format(
             sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
             data.args.exampleURL,
@@ -145,6 +145,7 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
         "geometryInput",
         "dagmcFile",
     )
+    return PKDict()
 
 
 def sim_frame(frame_args):

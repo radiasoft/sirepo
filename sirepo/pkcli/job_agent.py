@@ -475,8 +475,8 @@ class _Cmd(PKDict):
                 SIREPO_GLOBAL_RESOURCES_SERVER_TOKEN=_cfg.global_resources_server_token,
                 SIREPO_GLOBAL_RESOURCES_SERVER_URI=_cfg.global_resources_server_uri,
                 SIREPO_MPI_CORES=self.msg.get("mpiCores", 1),
-                SIREPO_SIM_DATA_SIM_DB_FILE_SERVER_TOKEN=_cfg.sim_db_file_server_token,
-                SIREPO_SIM_DATA_SIM_DB_FILE_SERVER_URI=_cfg.sim_db_file_server_uri,
+                SIREPO_SIM_DB_FILE_SERVER_TOKEN=_cfg.sim_db_file_server_token,
+                SIREPO_SIM_DB_FILE_SERVER_URI=_cfg.sim_db_file_server_uri,
             ),
             uid=self._uid,
         )

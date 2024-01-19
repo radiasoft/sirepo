@@ -466,7 +466,7 @@ class SimDataBase(object):
         return pkcompat.from_bytes(cls.lib_file_read_binary(*args, **kwargs))
 
     @classmethod
-    def lib_file_save_from_url(self, url, model_name, field):
+    def lib_file_save_from_url(cls, url, model_name, field):
         """Fetch `url` and save to lib
 
         Path to save to is `lib_file_name_with_model_field` is called
@@ -476,9 +476,6 @@ class SimDataBase(object):
             url (str): web address
             model_name (str): model name
             field (str): field of the model
-        Returns:
-
-
         """
         c = cls.sim_db_client()
         c.save_from_url(
@@ -1029,7 +1026,7 @@ class SimDataBase(object):
             cls.sim_db_client().get(lib_sid_uri, basename, sim_type=sim_type)
         )
         if is_exe:
-            p.chmod(self._EXE_PERMISSIONS)
+            p.chmod(cls._EXE_PERMISSIONS)
         return p
 
     @classmethod

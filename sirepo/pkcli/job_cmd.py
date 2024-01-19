@@ -83,18 +83,28 @@ def _background_percent_complete(msg, template, is_running):
 
 
 def _dispatch_compute(msg, template):
+    def _err(error, **kwargs):
+        pkdlog(
+            "method={}.{}_{} error={} {}",
+            template.SIM_TYPE,
+            msg.jobCmd,
+            msg.data.method,
+            error,
+            kwargs,
+        )
+        return PKDict(state=job.ERROR, error=error)
+
     def _op(expect_file):
         r = getattr(template_common, f"{msg.jobCmd}_dispatch")(
             msg.data, data_file_uri=msg.get("dataFileUri")
         )
+        if not isinstance(r, PKDict):
+            return _err("invalid return", res=r)
         if not isinstance(r, template_common.JobCmdFile) or r.error:
             # ok to not return JobCmdFile of if there was an error
             return r
         if not expect_file:
-            return PKDict(
-                state=job.ERROR,
-                error=f"method={template.SIM_TYPE}.{msg.jobCmd}_{msg.data.method} unexpected return=JobCmdFile reply_uri={r.get('reply_uri')}",
-            )
+            return _err("returned a file", reply_uri=r.get("reply_uri"))
         return _file_reply(r, msg)
 
     try:
@@ -218,7 +228,11 @@ def _do_fastcgi(msg, template):
                 r = globals()["_do_" + m.jobCmd](
                     m, sirepo.template.import_module(m.simulationType)
                 )
-            r = PKDict(r).pksetdefault(state=job.COMPLETED)
+            if isinstance(r, PKDict):
+                r = PKDict(r).pksetdefault(state=job.COMPLETED)
+            else:
+                pkdlog("fuction={} failed to return a PKDict", m.jobCmd)
+                r = PKDict(state=job.ERROR, error="invalid return value")
             c = 0
         except _AbruptSocketCloseError:
             return
