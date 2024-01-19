@@ -7,6 +7,11 @@
     .navbar-nav .nav-tabs {
       border-bottom: 0;
     }
+
+    .panel-info > .panel-heading {
+      color: #555;
+    }
+
     @media (min-width: 768px) {
       .modal-lg {
         width: 100%;
@@ -321,7 +326,7 @@
     }
 
     .sr-panel-heading {
-      font-weight: 300;
+      font-weight: 350;
       line-height: 1.4;
       font-size: 21px;
       margin-bottom: 0;
