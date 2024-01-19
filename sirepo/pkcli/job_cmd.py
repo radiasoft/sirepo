@@ -227,10 +227,13 @@ def _do_fastcgi(msg, template):
                 r = globals()["_do_" + m.jobCmd](
                     m, sirepo.template.import_module(m.simulationType)
                 )
+            if isinstance(r, dict):
+                # Backwards compatibility
+                r = PKDict(r)
             if isinstance(r, PKDict):
-                r = PKDict(r).pksetdefault(state=job.COMPLETED)
+                r.setdefault("state", job.COMPLETED)
             else:
-                pkdlog("fuction={} failed to return a PKDict", m.jobCmd)
+                pkdlog("func={} failed to return a PKDict", m.jobCmd)
                 r = PKDict(state=job.ERROR, error="invalid return value")
             c = 0
         except _AbruptSocketCloseError:
