@@ -2305,7 +2305,7 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
             appState,
             result => {
                 if (result.error) {
-                    throw new Error(`Failed to retrieve remote data: ${d.error}`);
+                    throw new Error(`Failed to retrieve remote data: ${result.error}`);
                 }
                 callback(result);
             },
