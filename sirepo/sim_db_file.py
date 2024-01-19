@@ -6,6 +6,7 @@
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkconst
+from pykern import pkinspect
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -45,15 +46,15 @@ class SimDbClient:
             src_uri (SimDbUri): from file
             dst_uri (SimDbUri): to file
         """
-        return self._post("copy", src_uri, basename=None, args=PKDict(dst_uri=dst_uri))
+        self._post(src_uri, basename=None, args=PKDict(dst_uri=dst_uri))
 
     def delete_glob(self, lib_sid_uri, path_prefix, sim_type=None):
         """deletes files that begin with `path_prefix`"""
-        return self._post("delete_glob", lib_sid_uri, path_prefix, sim_type=sim_type)
+        self._post(lib_sid_uri, path_prefix, sim_type=sim_type)
 
     def exists(self, lib_sid_uri, basename=None, sim_type=None):
         """Tests if file exists"""
-        return self._post("exists", lib_sid_uri, basename, sim_type=sim_type)
+        return self._post(lib_sid_uri, basename, sim_type=sim_type)
 
     def get(self, lib_sid_uri, basename=None, sim_type=None):
         return self._request("GET", lib_sid_uri, basename, sim_type=sim_type).content
@@ -65,7 +66,7 @@ class SimDbClient:
             src_uri (SimDbUri): from path
             dst_uri (SimDbUri): to path
         """
-        return self._post("move", src_uri, basename=None, args=PKDict(dst_uri=dst_uri))
+        self._post(src_uri, basename=None, args=PKDict(dst_uri=dst_uri))
 
     def put(self, lib_sid_uri, basename, path_or_content, sim_type=None):
         def _data():
@@ -73,15 +74,13 @@ class SimDbClient:
                 return pkio.read_binary(path_or_content)
             return pkcompat.to_bytes(path_or_content)
 
-        return self._request(
-            "PUT", lib_sid_uri, basename, data=_data(), sim_type=sim_type
-        )
+        self._request("PUT", lib_sid_uri, basename, data=_data(), sim_type=sim_type)
 
     def save_from_url(self, src_url, dst_uri):
-        return self._post("size", dst_uri, args=PKDict(url=src_url))
+        self._post(dst_uri, args=PKDict(src_url=src_url))
 
     def size(self, lib_sid_uri, basename=None, sim_type=None):
-        return self._post("size", lib_sid_uri, basename, sim_type=sim_type)
+        return self._post(lib_sid_uri, basename, sim_type=sim_type)
 
     def uri(self, lib_sid_uri, basename=None, sim_type=None):
         """Create a `SimDbUri`
@@ -99,13 +98,16 @@ class SimDbClient:
         """
         return SimDbUri(sim_type or self._sim_data.sim_type(), lib_sid_uri, basename)
 
-    def _post(self, method, lib_sid_uri, basename, args=None, sim_type=None):
+    def _post(self, lib_sid_uri, basename=None, args=None, sim_type=None):
         res = pkjson.load_any(
             self._request(
                 "POST",
                 lib_sid_uri,
                 basename,
-                json=PKDict(method=method, args=PKDict() if args is None else args),
+                json=PKDict(
+                    method=pkinspect.caller_func_name(),
+                    args=PKDict() if args is None else args,
+                ),
                 sim_type=sim_type,
             ).content,
         )
@@ -136,11 +138,12 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
     _TOKEN_TO_UID = PKDict()
     _UID_TO_TOKEN = PKDict()
 
-    def get(self, unused_arg):
+    async def get(self, unused_arg):
         p = self.__authenticate_and_path()
-        if not p.exists():
-            raise sirepo.tornado.error_not_found()
-        self.write(pkio.read_binary(p))
+        if p.exists():
+            self.write(pkio.read_binary(p))
+        else:
+            self.send_error(404)
 
     async def post(self, unused_arg):
         def _result(value):
@@ -161,7 +164,8 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
             self.write(_result(await getattr(self, "_sr_post_" + m)(a)))
         except Exception as e:
             if pkio.exception_is_not_found(e):
-                raise sirepo.tornado.error_not_found()
+                self.send_error(404)
+                return
             pkdlog(
                 "uri={} body={} exception={} stack={}",
                 self.request.path,
@@ -174,54 +178,65 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
             except Exception:
                 pass
 
-    def put(self, unused_arg):
-        self.__authenticate_and_path().write_binary(self.request.body)
+    async def put(self, unused_arg):
+        # TODO(robnagler) should this be atomic?
+        # check size
+        async with aiofiles.open(self.__authenticate_and_path(), "wb") as f:
+            await f.write(self.request.body)
 
     async def _sr_post_delete_glob(self, args):
         t = []
         for f in pkio.sorted_glob(f"{self.__authenticate_and_path()}*"):
             if f.check(dir=True):
                 pkdlog("path={} is a directory", f)
-                raise sirepo.tornado.error_forbidden()
+                self.send_error(403)
+                return
             t.append(f)
         for f in t:
             pkio.unchecked_remove(f)
 
     async def _sr_post_copy(self, args):
+        # TODO(robnagler) should this be atomic?
         self.__path.copy(self.__uri_arg_to_path(args.dst_uri))
 
     async def _sr_post_exists(self, args):
-        return self._path.check(file=True)
+        return self.__path.check(file=True)
 
     async def _sr_post_move(self, args):
         self.__path.move(self.__uri_arg_to_path(args.dst_uri))
 
     async def _sr_post_save_from_url(self, args):
-        max_size = sirepo.job.cfg().max_message_bytes()
+        max_size = sirepo.job.cfg().max_message_bytes
         size = 0
         ok = False
+        # so update is atomic
+        t = self.__path + ".tmp"
+        pkdp(t)
         try:
             async with aiohttp.ClientSession() as s:
                 async with s.get(args.src_url) as r:
                     if r.status != 200:
                         if r.status == 404:
-                            return PKDict(error="url not found")
+                            return PKDict(error="not found")
                         return PKDict(error=f"http_status={response.status}")
-                    async with aiofiles.open("output.txt", mode="wb") as f:
-                        async for c in response.content.iter_chunked(_CHUNK_SIZE):
+                    async with aiofiles.open(t, "wb") as f:
+                        async for c in r.content.iter_chunked(_CHUNK_SIZE):
+                            pkdp(len(c))
                             size += len(c)
                             if size > max_size:
-                                return PKDict(error=f"url too large (max={max_size})")
+                                return PKDict(error=f"too large (max={max_size})")
                             await f.write(c)
             ok = True
         except Exception as e:
             pkdlog("url={} exc={} stack={}", args.src_url, e, pkdexc())
             if isinstance(e, socket.gaierror):
-                return PKDict(error="invalid host in url")
+                return PKDict(error="invalid host")
             return PKDict(error=e)
         finally:
-            if not ok:
-                pkio.unchecked_remove(self.__path)
+            if ok:
+                t.move(self.__path)
+            else:
+                pkio.unchecked_remove(t)
         return PKDict(size=size)
 
     async def _sr_post_size(self, args):
@@ -241,7 +256,8 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
         m = _URI_RE.search(uri)
         if not m:
             pkdlog("uri={} missing {sirepo.job.SIM_DB_FILE_URI} prefix", uri)
-            raise sirepo.tornado.error_forbidden()
+            self.send_error(403)
+            return
         p = m.group(1).split("/")
         assert len(p) == 4, f"uri={p} must be 4 parts"
         assert p[0] == self.__uid, f"uid={p[0]} is not expect_uid={self.__uid}"

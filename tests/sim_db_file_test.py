@@ -32,16 +32,15 @@ def test_basic(sim_db_file_server):
     pkunit.pkeq(b"abc", c.get(c.LIB_DIR, "bye.txt"))
 
 
-def test_save_from_url(sim_db_file_server):
+def test_save_from_uri(sim_db_file_server):
     from pykern import pkdebug, pkunit
     from sirepo import sim_data, srunit
+    import requests
 
     stype = srunit.SR_SIM_TYPE_DEFAULT
     c = sim_data.get_class(stype).sim_db_client()
-    with pkunit.pkexcept(FileNotFoundError):
-        pkunit.pkeq(3, c.size(c.LIB_DIR, "favicon.ico"))
-    r = c.save_from_url(
-        "https://www.sirepo.com/static/img/favicon.ico",
-        c.uri(c.LIB_DIR, "favicon.ico"),
-    )
-    pkok(int, type(r.get("size")))
+    u = "https://www.sirepo.com/static/img/favicon.ico"
+    f = c.uri(c.LIB_DIR, "favicon.ico")
+    pkunit.pkok(not c.exists(f), "favicon.ico should not exist")
+    c.save_from_url(u, f)
+    pkunit.pkeq(requests.get(u).content, c.get(f))

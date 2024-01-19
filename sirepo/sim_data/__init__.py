@@ -467,8 +467,21 @@ class SimDataBase(object):
 
     @classmethod
     def lib_file_save_from_url(self, url, model_name, field):
+        """Fetch `url` and save to lib
+
+        Path to save to is `lib_file_name_with_model_field` is called
+        with the basename of `url`.
+
+        Args:
+            url (str): web address
+            model_name (str): model name
+            field (str): field of the model
+        Returns:
+
+
+        """
         c = cls.sim_db_client()
-        return c.save_from_url(
+        c.save_from_url(
             url,
             c.uri(
                 cls.LIB_DIR,
