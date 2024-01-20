@@ -707,8 +707,12 @@ class SimDataBase(object):
         return []
 
     @classmethod
-    def put_sim_file(cls, sim_id, src_path, dest_basename):
-        return cls.sim_db_client().put(sim_id, dest_basename, src_path)
+    def put_sim_file(cls, sim_id, src_file_name, dst_basename):
+        return cls.sim_db_client().put(
+            sim_id,
+            dst_basename,
+            pkio.read_binary(src_file_name),
+        )
 
     @classmethod
     def react_format_data(cls, data):
@@ -1019,9 +1023,9 @@ class SimDataBase(object):
 
     @classmethod
     def _read_binary_and_save(
-        cls, lib_sid_uri, basename, dest_dir, is_exe=False, sim_type=None
+        cls, lib_sid_uri, basename, dst_dir, is_exe=False, sim_type=None
     ):
-        p = dest_dir.join(basename)
+        p = dst_dir.join(basename)
         p.write_binary(
             cls.sim_db_client().get(lib_sid_uri, basename, sim_type=sim_type)
         )

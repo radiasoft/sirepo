@@ -9,6 +9,7 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import copy
 import os.path
 import re
+import pykern.pkio
 import sirepo.sim_data
 import sirepo.util
 
@@ -358,7 +359,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         try:
             super().sim_files_to_run_dir(data, run_dir)
         except Exception as e:
-            if not pkio.exception_is_not_found(e):
+            if not pykern.pkio.exception_is_not_found(e):
                 raise
             if post_init:
                 raise e
