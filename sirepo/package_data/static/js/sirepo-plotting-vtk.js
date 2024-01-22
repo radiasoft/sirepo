@@ -1242,7 +1242,7 @@ class CoordMapper {
      * @param {string} colormapName - name of a color map for the arrows
      * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
      */
-    buildVectorField(vectors, positions, scaleFactor=1.0, colormapName='jet', actorProperties) {
+    buildVectorField(vectors, positions, scaleFactor=1.0, colormapName='jet', actorProperties={}) {
         return new VectorFieldBundle(vectors, positions, scaleFactor, colormapName, this.transform, actorProperties);
     }
 }

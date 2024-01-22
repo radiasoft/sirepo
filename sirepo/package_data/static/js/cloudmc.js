@@ -497,12 +497,12 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
         self.sourceParticles = particles;
     };
 
-    self.sourceParticleColorScale = () => {
+    self.sourceParticleColorScale = colorMapName => {
         const r = self.sourceParticleEnergyRange();
         return SIREPO.PLOTTING.Utils.colorScale(
             r[0],
             r[1],
-            SIREPO.PLOTTING.Utils.COLOR_MAP().jet,
+            SIREPO.PLOTTING.Utils.COLOR_MAP()[colorMapName],
         );
     };
 
@@ -862,7 +862,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 
                 const outlines = [];
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
-                const eColors = tallyService.sourceParticleColorScale();
+                const eColors = tallyService.sourceParticleColorScale(appState.models.openmcAnimation.sourceColorMap);
                 const sourceArrowLength = 0.05 * tallyService.getMaxMeshExtent();
                 for (const volId of cloudmcService.getNonGraveyardVolumes()) {
                     const v = cloudmcService.getVolumeById(volId);
@@ -1139,25 +1139,17 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     vtkScene.removeActor(particleBundle.actor);
                 }
                 const particles = tallyService.getSourceParticles();
-                srdbg('p', particles);
-                particleBundle = coordMapper.buildVectorField(
-                    //[[1,1,1]],
-                    //[[0,0,-4]],
-                    //'jet',
-                    //{color: '#ff0000'}
-                    particles.map(p => p.direction.map(x => p.energy * x)),
-                    particles.map(p => p.position),
-                    //0.035 * tallyService.getMaxMeshExtent()
-                );
-                //particleBundle.actor.getProperty().setColor('#ff0000');
-                //particleBundle.actor.getProperty().setEdgeVisibility(true);
-                //particleBundle.actor.getProperty().setLighting(true);
-                srdbg(particleBundle.actor.getUserMatrix());
-                vtkScene.addActor(particleBundle.actor);
-                //const tmp = coordMapper.buildActorBundle(vtk.Filters.Sources.vtkArrowSource.newInstance(), {color: '#ff0000'});
-                //vtkScene.addActor(tmp.actor);
-                //srdbg(tmp.actor.getBounds());
-                
+                if (particles.length) {
+                    particleBundle = coordMapper.buildVectorField(
+                        particles.map(p => p.direction.map(x => p.energy * x)),
+                        particles.map(p => p.position),
+                        //0.035 * tallyService.getMaxMeshExtent()
+                        1.0,
+                        appState.models.openmcAnimation.sourceColorMap
+                    );
+                    vtkScene.addActor(particleBundle.actor);
+                }
+
                 vtkScene.render();
             }
 
@@ -2754,6 +2746,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         ]);
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
         panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
+        panelState.showField('openmcAnimation', 'sourceColorMap', appState.models.openmcAnimation.numSampleSourceParticles);
     }
 
     function updateEnergyRange() {
@@ -2791,10 +2784,15 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.opacity',
             'openmcAnimation.score',
             'openmcAnimation.sourceNormalization',
+            'openmcAnimation.sourceColorMap',
             'openmcAnimation.threshold',
         ], autoUpdate,
         ['openmcAnimation.tally'], validateTally,
-        ['tallyReport.selectedGeometry', 'openmcAnimation.score'], showFields,
+        [
+            'tallyReport.selectedGeometry',
+            'openmcAnimation.score',
+            'openmcAnimation.numSampleSourceParticles',
+        ], showFields,
     ];
 
 });

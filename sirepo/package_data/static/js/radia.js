@@ -2515,7 +2515,7 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
                                 vectorScaleFactor(sceneData.bounds),
                                 appState.models.fieldDisplay.colorMap
                             );
-                            srdbg(bundle.actor.getBounds());
+                            
                         }
                         bundle.actor.getProperty().setEdgeVisibility(isPoly);
                         bundle.actor.getProperty().setLighting(isPoly);
