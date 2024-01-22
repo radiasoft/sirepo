@@ -2036,6 +2036,10 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         return url.startsWith("/auth-");
     };
 
+    const _isOauth = (url, data) => {
+        return (data && "simulationType" in data) ? url === "/simulation-list" && data.simulationType === "flash" : false;
+    };
+
     const _protocolError = (header, content, wsreq, errorMsg) => {
         if (! errorMsg) {
             errorMsg = "invalid reply from server";
@@ -2232,8 +2236,9 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         _protocolError(null, null, wsreq, "request timed out");
     };
 
+
     self.send = (url, data, httpConfig) => {
-        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url)) {
+        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url) || _isOauth(url, data)) {
             // Might be auto logged out so close socket so can re-authenticate
             if (socket) {
                 socket.close();
