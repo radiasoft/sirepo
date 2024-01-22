@@ -207,7 +207,7 @@ def get_data_file(run_dir, model, frame, options):
     if options.suffix != "openpmd":
         raise AssertionError(f"unknown data type={options.suffix} requested")
     n = f"{s.stype}_openpmd.h5"
-    _particle_group(s.stype, f)
+    _particle_group(s.stype, f).write(n)
     return n
 
 
