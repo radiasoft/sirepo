@@ -116,6 +116,20 @@ class OpalElementIterator(lattice.ElementIterator):
         return field == "name" or field == self.IS_DISABLED_FIELD
 
 
+class OpalLogParser(template_common.LogParser):
+    def _parse_log(self, file, result):
+        visited = set()
+        for line in file:
+            if re.search(r"^Error.*?>\s*\w", line):
+                line = re.sub(r"Error.*?>\s*", "", line.rstrip()).rstrip()
+                if re.search(r"1DPROFILE1-DEFAULT", line):
+                    continue
+                if line and line not in visited:
+                    result += line + "\n"
+                    visited.add(line)
+        return result
+
+
 class OpalOutputFileIterator(lattice.ModelIterator):
     def __init__(self, preserve_output_filenames=False):
         self.result = PKDict(
@@ -538,21 +552,7 @@ def read_frame_count(run_dir):
 
 
 def parse_opal_log(run_dir):
-    def _parse(file, result):
-        visited = set()
-        for line in file:
-            if re.search(r"^Error.*?>\s*\w", line):
-                line = re.sub(r"Error.*?>\s*", "", line.rstrip()).rstrip()
-                if re.search(r"1DPROFILE1-DEFAULT", line):
-                    continue
-                if line and line not in visited:
-                    result += line + "\n"
-                    visited.add(line)
-        return result
-
-    p = template_common.LogParser(run_dir, OPAL_OUTPUT_FILE)
-    p._parse_log = _parse
-    return p.parse_log_file_for_errors()
+    return OpalLogParser(run_dir, OPAL_OUTPUT_FILE).parse_log_file_for_errors()
 
 
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):

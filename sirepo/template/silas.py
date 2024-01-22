@@ -28,6 +28,18 @@ _ABCD_DELTA = 1e-3
 _L_SCALE_EQUATION = "numpy.sqrt(numpy.pi) * numpy.sqrt(2) * pulse.sigx_waist"
 
 
+class SilasLogParser(template_common.LogParser):
+    def _parse_log(self, file, result):
+        for line in file:
+            m = re.search(r"^.*Error:\s+(.*)$", line)
+            if m:
+                err = m.group(1)
+                if re.search("Unable to evaluate function at point", err):
+                    return "Point evaulated outside of mesh boundary. Consider increasing Mesh Density or Boundary Tolerance."
+                result += err + "\n"
+        return result
+
+
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = PKDict(
@@ -64,24 +76,12 @@ def get_data_file(run_dir, model, frame, options):
 
 
 def post_execution_processing(success_exit, run_dir, **kwargs):
-    def _parse(file, result):
-        for line in file:
-            m = re.search(r"^.*Error:\s+(.*)$", line)
-            if m:
-                err = m.group(1)
-                if re.search("Unable to evaluate function at point", err):
-                    return "Point evaulated outside of mesh boundary. Consider increasing Mesh Density or Boundary Tolerance."
-                result += err + "\n"
-        return result
-
     if success_exit:
         return None
-    p = template_common.LogParser(
+    return SilasLogParser(
         run_dir,
         template_common.RUN_LOG,
-    )
-    p._parse_log = _parse
-    return p.parse_log_file_for_errors()
+    ).parse_log_file_for_errors()
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
