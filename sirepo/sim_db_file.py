@@ -224,7 +224,6 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
         ok = False
         # so update is atomic
         t = self.__path + ".tmp"
-        pkdp(t)
         try:
             async with aiohttp.ClientSession() as s:
                 async with s.get(args.src_url) as r:
