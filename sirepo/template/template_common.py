@@ -85,20 +85,14 @@ class JobCmdFile(PKDict):
         )
 
 
-class LogParser:
-    def __init__(
-        self,
-        run_dir,
-        log_filename,
-        error_patterns=_DEFAULT_ERROR_PATTERNS,
-        multiline_error_pattern=r"^Traceback .*?^\w*Error: (.*?)\n",
-        default_msg="An unknown error occurred",
-    ):
-        self.run_dir = run_dir
-        self.log_filename = log_filename
-        self.error_patterns = error_patterns
-        self.multiline_error_pattern = multiline_error_pattern
-        self.default_msg = default_msg
+class LogParser(PKDict):
+    def __init__(self, run_dir, log_filename, **kwargs):
+        super().__init__(run_dir=run_dir, log_filename=log_filename, **kwargs)
+        self.pksetdefault(
+            error_patterns=_DEFAULT_ERROR_PATTERNS,
+            multiline_error_pattern=r"^Traceback .*?^\w*Error: (.*?)\n",
+            default_msg="An unknown error occurred",
+        )
 
     def parse_log_file_for_errors(self):
         res = ""

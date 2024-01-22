@@ -288,6 +288,28 @@ _TWISS_SUMMARY_LABELS = PKDict(
 )
 
 
+class ZgoubiLogParser(template_common.LogParser):
+    def _parse_log(self, file, result):
+        element_by_num = PKDict()
+        for line in file:
+            match = re.search(r"^ (\'\w+\'.*?)\s+(\d+)$", line)
+            if match:
+                element_by_num[match.group(2)] = match.group(1)
+                continue
+            if re.search("all particles lost", line):
+                result += "{}\n".format(line)
+                continue
+            if re.search("charge found null", line):
+                result += "{}\n".format(line)
+            match = re.search(r"Enjob occured at element # (\d+)", line)
+            if match:
+                result += "{}\n".format(line)
+                num = match.group(1)
+                if num in element_by_num:
+                    result += "  element # {}: {}\n".format(num, element_by_num[num])
+        return result
+
+
 def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
     return template_common.compute_field_range(
         data,
@@ -919,34 +941,13 @@ def _ipasses_for_data(col_names, rows):
 
 
 def _parse_zgoubi_log(run_dir):
-    def _zgoubi_log_parser(file, result):
-        element_by_num = PKDict()
-        for line in file:
-            match = re.search(r"^ (\'\w+\'.*?)\s+(\d+)$", line)
-            if match:
-                element_by_num[match.group(2)] = match.group(1)
-                continue
-            if re.search("all particles lost", line):
-                result += "{}\n".format(line)
-                continue
-            if re.search("charge found null", line):
-                result += "{}\n".format(line)
-            match = re.search(r"Enjob occured at element # (\d+)", line)
-            if match:
-                result += "{}\n".format(line)
-                num = match.group(1)
-                if num in element_by_num:
-                    result += "  element # {}: {}\n".format(num, element_by_num[num])
-        return result
-
-    p = template_common.LogParser(
-        run_dir,
-        _ZGOUBI_LOG_FILE,
-        default_msg="",
-    )
-    p._parse_log = _zgoubi_log_parser
-    res = p.parse_log_file_for_errors()
-    if res != "":
+    if (
+        res := ZgoubiLogParser(
+            run_dir,
+            _ZGOUBI_LOG_FILE,
+            default_msg="",
+        ).parse_log_file_for_errors()
+    ) != "":
         return res
     return template_common.LogParser(
         run_dir,
