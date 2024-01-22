@@ -517,7 +517,7 @@ class VTKVectorFormula {
         for (let i = 0; i < coords.length / 3; ++i) {
             let c = [0, 0, 0];
             if (this.colorMap.length) {
-                const rgb = d3.rgb(this.colorScale(this.norms[i]));
+                const rgb = d3.rgb(this.colorScale(this.magnitudes[i]));
                 c = [rgb.r, rgb.g, rgb.b];
             }
             // scale arrow length (object-local x-direction) only
@@ -526,7 +526,7 @@ class VTKVectorFormula {
             logScale[3 * i] = this.logMags[i];
             for (let j = 0; j < 3; ++j) {
                 const k = 3 * i + j;
-                orientation[k] = this.directions[k];
+                orientation[k] = this.directions[i][j];
                 scalars[k] = c[j];
             }
         }
