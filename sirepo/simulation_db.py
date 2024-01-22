@@ -79,8 +79,8 @@ _SCHEMA_SUPERCLASS_FIELD = "_super"
 #: configuration
 _cfg = None
 
-#: begin/end with alnum, 128 chars max
-_SIM_DB_BASENAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_\.-]{1,126}[a-zA-Z0-9]$")
+#: begin alnum/under, end with alnum, 128 chars max
+_SIM_DB_BASENAME_RE = re.compile(r"^[a-zA-Z0-9_][a-zA-Z0-9_\.-]{1,126}[a-zA-Z0-9]$")
 
 #: For re-entrant `user_lock`
 _USER_LOCK = PKDict(paths=set())
