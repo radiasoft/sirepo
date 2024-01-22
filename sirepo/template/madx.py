@@ -160,6 +160,18 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
         return PKDict()
 
 
+class MadxLogParser(template_common.LogParser):
+    def _parse_log(self, file, result):
+        for line in file:
+            if re.search(r"^\++ (error|warning):", line, re.IGNORECASE):
+                line = re.sub(r"^\++ ", "", line)
+                result += line + "\n"
+            elif re.search(r"^\+.*? fatal:", line, re.IGNORECASE):
+                line = re.sub(r"^.*? ", "", line)
+                result += line + "\n"
+        return result
+
+
 class MadxOutputFileIterator(lattice.ModelIterator):
     def __init__(self):
         self.result = PKDict(
@@ -368,21 +380,9 @@ async def import_file(req, **kwargs):
 
 
 def post_execution_processing(success_exit, run_dir, **kwargs):
-    def _parse(file, result):
-        for line in file:
-            if re.search(r"^\++ (error|warning):", line, re.IGNORECASE):
-                line = re.sub(r"^\++ ", "", line)
-                result += line + "\n"
-            elif re.search(r"^\+.*? fatal:", line, re.IGNORECASE):
-                line = re.sub(r"^.*? ", "", line)
-                result += line + "\n"
-        return result
-
     if success_exit:
         return None
-    p = template_common.LogParser(run_dir, MADX_LOG_FILE)
-    p._parse_log = _parse
-    return p.parse_log_file_for_errors()
+    return MadxLogParser(run_dir, MADX_LOG_FILE).parse_log_file_for_errors()
 
 
 def prepare_for_client(data, qcall, **kwargs):
