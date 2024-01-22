@@ -44,3 +44,33 @@ def test_save_from_uri(sim_db_file_server):
     pkunit.pkok(not c.exists(f), "favicon.ico should not exist")
     c.save_from_url(u, f)
     pkunit.pkeq(requests.get(u).content, c.get(f))
+
+
+def test_uri():
+    from pykern import pkunit, pkdebug
+    from sirepo import srunit
+
+    def _full(uri, deviance=True):
+        r = sim_db_file._uri_parse(f"{job.SIM_DB_FILE_URI}/{uri}", uid)
+        if deviance:
+            pkunit.pkok(not r, "unexpected res={} uri={} uid={} ", r, uri, uid)
+        else:
+            pkunit.pkeq(simulation_db.user_path_root().join(uri), r)
+
+    srunit.setup_srdb_root()
+    from sirepo import simulation_db, sim_db_file, job
+
+    uid = simulation_db.user_create()
+    stype = srunit.SR_SIM_TYPE_DEFAULT
+    _full(
+        f"{uid}/{stype}/aValidId/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
+        deviance=False,
+    )
+    _full(f"{uid}/{stype}/invalid/valid-file")
+    _full(f"{uid}/invalid/aValidId/valid-file")
+    _full(f"notfound/{stype}/aValidId/valid-file")
+    _full(f"{uid}/{stype}/aValidId/{'too-long':x>129s}")
+    _full(f"{uid}/{stype}/aValidId/.invalid-part")
+    _full(f"{uid}/{stype}/aValidId/invalid-part.")
+    # too few parts
+    _full(f"{uid}/{stype}/aValidId")
