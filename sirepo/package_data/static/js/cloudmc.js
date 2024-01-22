@@ -1143,9 +1143,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     particleBundle = coordMapper.buildVectorField(
                         particles.map(p => p.direction.map(x => p.energy * x)),
                         particles.map(p => p.position),
-                        //0.035 * tallyService.getMaxMeshExtent()
-                        1.0,
-                        appState.models.openmcAnimation.sourceColorMap
+                        3.5 * tallyService.getMaxMeshExtent(),
+                        appState.models.openmcAnimation.sourceColorMap,
+                        {edgeVisibility: false, lighting: false}
                     );
                     vtkScene.addActor(particleBundle.actor);
                 }
