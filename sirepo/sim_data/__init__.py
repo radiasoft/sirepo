@@ -247,6 +247,14 @@ class SimDataBase(object):
 
     @classmethod
     def does_api_reply_with_file(cls, api, method):
+        """Identify which job_api calls expect files
+
+        Args:
+            api (str): job_api method, e.g. api_statelessCompute
+            method (str): template sub-method of `api`, e.g. sample_preview
+        Returns:
+            bool: True if `method` can return a file
+        """
         return False
 
     @classmethod
@@ -431,12 +439,19 @@ class SimDataBase(object):
         return re.sub(r"^.*?-.*?\.(.+\..+)$", r"\1", basename)
 
     @classmethod
-    def lib_file_resource_path(cls, path):
+    def lib_file_resource_path(cls, basename):
+        """Location of lib file in source distribution
+
+        Args:
+            basename (str): complete name of lib file
+        Returns:
+            py.path: Absolute path to file in source distribution
+        """
         return sirepo.resource.file_path(
             _TEMPLATE_RESOURCE_DIR,
             cls.sim_type(),
             cls.LIB_DIR,
-            path,
+            basename,
         )
 
     @classmethod
@@ -530,6 +545,7 @@ class SimDataBase(object):
 
     @classmethod
     def lib_file_write_path(cls, basename, qcall=None):
+        """DEPRECATED: Use `lib_file_write`"""
         cls._assert_server_side()
         from sirepo import simulation_db
 
@@ -708,6 +724,13 @@ class SimDataBase(object):
 
     @classmethod
     def put_sim_file(cls, sim_id, src_file_name, dst_basename):
+        """Write a file to the sim repo dir
+
+        Args:
+            sim_id (str): simulation id
+            src_file_name (str or py.path): local file to send to sim_db
+            dst_basename (str): name in sim repo dir
+        """
         return cls.sim_db_client().put(
             sim_id,
             dst_basename,
@@ -760,10 +783,23 @@ class SimDataBase(object):
 
     @classmethod
     def sim_file_basenames(cls, data):
+        """List of files needed for this simulation
+
+        Returns:
+            list: basenames of sim repo dir
+        """
         return cls._sim_file_basenames(data)
 
     @classmethod
     def sim_files_to_run_dir(cls, data, run_dir):
+        """Copy files from sim repo dir to `run_dir`
+
+        Calls `sim_file_basenames` to get list of sim files.
+
+        Args:
+            data (PKDict): used to identify simulation
+            run_dir (py.path): directory to write to
+        """
         for b in cls.sim_file_basenames(data):
             cls._read_binary_and_save(
                 data.models.simulation.simulationId,
@@ -878,6 +914,7 @@ class SimDataBase(object):
 
     @classmethod
     def _lib_file_abspath(cls, basename, qcall):
+        """Path in user lib directory for `basename`"""
         from sirepo import simulation_db
 
         cls._assert_server_side()
