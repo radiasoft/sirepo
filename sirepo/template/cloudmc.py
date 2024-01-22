@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """CloudMC execution template.
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
