@@ -176,18 +176,18 @@ def get_data_file(run_dir, model, frame, options):
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit or is_parallel:
         return None
-    p = template_common.LogParser(
+    if template_common.LogParser(
         run_dir,
         template_common.RUN_LOG,
         error_patterns=(r".*(invalid chemical formula)",),
         default_msg="",
-    )
-    res = p.parse_log_file_for_errors()
-    if res:
+    ).parse_log_file_for_errors():
         return "A mirror contains an invalid reflectivity material"
-    p.error_patterns = (r"ValueError: (.*)?",)
-    p.default_msg = "An unknown error occurred"
-    return p.parse_log_file_for_errors()
+    return template_common.LogParser(
+        run_dir,
+        template_common.RUN_LOG,
+        error_patterns=(r"ValueError: (.*)?",),
+    ).parse_log_file_for_errors()
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
