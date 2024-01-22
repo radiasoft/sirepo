@@ -1578,7 +1578,7 @@ SIREPO.app.directive('materialComponents', function(appState, panelState) {
                   <td>
                     <div class="sr-button-bar-parent pull-right">
                       <div class="sr-button-bar">
-                        <button data-ng-click="deleteComponent($index)"
+                        <button type="button" data-ng-click="deleteComponent($index)"
                           class="btn btn-danger btn-xs">
                           <span class="glyphicon glyphicon-remove"></span>
                         </button>
