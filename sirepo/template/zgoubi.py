@@ -289,25 +289,27 @@ _TWISS_SUMMARY_LABELS = PKDict(
 
 
 class _ZgoubiLogParser(template_common.LogParser):
-    def _parse_log(self, file, result):
+    def _parse_log(self, file_path):
+        res = ""
         element_by_num = PKDict()
-        for line in file:
-            match = re.search(r"^ (\'\w+\'.*?)\s+(\d+)$", line)
-            if match:
-                element_by_num[match.group(2)] = match.group(1)
-                continue
-            if re.search("all particles lost", line):
-                result += "{}\n".format(line)
-                continue
-            if re.search("charge found null", line):
-                result += "{}\n".format(line)
-            match = re.search(r"Enjob occured at element # (\d+)", line)
-            if match:
-                result += "{}\n".format(line)
-                num = match.group(1)
-                if num in element_by_num:
-                    result += "  element # {}: {}\n".format(num, element_by_num[num])
-        return result
+        with pkio.open_text(file_path) as f:
+            for line in f:
+                match = re.search(r"^ (\'\w+\'.*?)\s+(\d+)$", line)
+                if match:
+                    element_by_num[match.group(2)] = match.group(1)
+                    continue
+                if re.search("all particles lost", line):
+                    res += "{}\n".format(line)
+                    continue
+                if re.search("charge found null", line):
+                    res += "{}\n".format(line)
+                match = re.search(r"Enjob occured at element # (\d+)", line)
+                if match:
+                    res += "{}\n".format(line)
+                    num = match.group(1)
+                    if num in element_by_num:
+                        res += "  element # {}: {}\n".format(num, element_by_num[num])
+        return res
 
 
 def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):

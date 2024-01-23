@@ -88,41 +88,27 @@ class LogParser(PKDict):
         super().__init__(run_dir=run_dir, log_filename=log_filename, **kwargs)
         self.pksetdefault(
             error_patterns=(r"Error: (.*)",),
-            multiline_error_pattern=r"^Traceback .*?^\w*Error: (.*?)\n",
             default_msg="An unknown error occurred",
         )
 
     def parse_for_errors(self):
-        res = ""
         p = self.run_dir.join(self.log_filename)
         if not p.exists():
-            return res
-        with pkio.open_text(p) as f:
-            res = self._parse_log(f, res)
+            return ""
+        res = self._parse_log(p)
         if res:
             return res
         return self.default_msg
 
-    def parse_multiline(self):
-        e = None
-        f = self.run_dir.join(self.log_filename)
-        if f.exists():
-            m = re.search(
-                self.multiline_error_pattern,
-                pkio.read_text(f),
-                re.MULTILINE | re.DOTALL,
-            )
-            if m:
-                e = m.group(1)
-        return e
-
-    def _parse_log(self, file, result):
-        for line in file:
-            for pattern in self.error_patterns:
-                m = re.search(pattern, line)
-                if m:
-                    result += m.group(1) + "\n"
-        return result
+    def _parse_log(self, file_path):
+        r = ""
+        with pkio.open_text(file_path) as f:
+            for line in f:
+                for pattern in self.error_patterns:
+                    m = re.search(pattern, line)
+                    if m:
+                        r += m.group(1) + "\n"
+        return r
 
 
 class ModelUnits:
@@ -196,6 +182,20 @@ class ModelUnits:
                     model[field], self.unit_def[name][field], is_native
                 )
         return model
+
+
+class _MPILogParser(LogParser):
+    def _parse_log(self, file_path):
+        e = None
+        if file_path.exists():
+            m = re.search(
+                r"^Traceback .*?^\w*Error: (.*?)\n",
+                pkio.read_text(file_path),
+                re.MULTILINE | re.DOTALL,
+            )
+            if m:
+                e = m.group(1)
+        return e
 
 
 class NamelistParser:
@@ -612,7 +612,9 @@ def parse_enums(enum_schema):
 
 
 def parse_mpi_log(run_dir):
-    return LogParser(run_dir, sirepo.const.MPI_LOG).parse_multiline()
+    return _MPILogParser(
+        run_dir, sirepo.const.MPI_LOG, default_msg=None
+    ).parse_for_errors()
 
 
 def read_dict_from_h5(file_path, h5_path=None):
