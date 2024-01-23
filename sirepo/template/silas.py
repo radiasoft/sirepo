@@ -28,7 +28,7 @@ _ABCD_DELTA = 1e-3
 _L_SCALE_EQUATION = "numpy.sqrt(numpy.pi) * numpy.sqrt(2) * pulse.sigx_waist"
 
 
-class SilasLogParser(template_common.LogParser):
+class _SilasLogParser(template_common.LogParser):
     def _parse_log(self, file, result):
         for line in file:
             m = re.search(r"^.*Error:\s+(.*)$", line)
@@ -78,10 +78,10 @@ def get_data_file(run_dir, model, frame, options):
 def post_execution_processing(success_exit, run_dir, **kwargs):
     if success_exit:
         return None
-    return SilasLogParser(
+    return _SilasLogParser(
         run_dir,
         template_common.RUN_LOG,
-    ).parse_log_file_for_errors()
+    ).parse_for_errors()
 
 
 def python_source_for_model(data, model, qcall, **kwargs):

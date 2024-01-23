@@ -181,13 +181,13 @@ def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
         template_common.RUN_LOG,
         error_patterns=(r".*(invalid chemical formula)",),
         default_msg="",
-    ).parse_log_file_for_errors():
+    ).parse_for_errors():
         return "A mirror contains an invalid reflectivity material"
     return template_common.LogParser(
         run_dir,
         template_common.RUN_LOG,
         error_patterns=(r"ValueError: (.*)?",),
-    ).parse_log_file_for_errors()
+    ).parse_for_errors()
 
 
 def python_source_for_model(data, model, qcall, **kwargs):

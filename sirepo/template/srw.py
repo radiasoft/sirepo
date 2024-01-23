@@ -684,7 +684,7 @@ def post_execution_processing(
     return template_common.LogParser(
         run_dir,
         template_common.RUN_LOG,
-    ).parse_log_file_for_errors()
+    ).parse_for_errors()
 
 
 def prepare_for_client(data, qcall, **kwargs):

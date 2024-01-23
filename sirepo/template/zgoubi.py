@@ -288,7 +288,7 @@ _TWISS_SUMMARY_LABELS = PKDict(
 )
 
 
-class ZgoubiLogParser(template_common.LogParser):
+class _ZgoubiLogParser(template_common.LogParser):
     def _parse_log(self, file, result):
         element_by_num = PKDict()
         for line in file:
@@ -942,11 +942,11 @@ def _ipasses_for_data(col_names, rows):
 
 def _parse_zgoubi_log(run_dir):
     if (
-        res := ZgoubiLogParser(
+        res := _ZgoubiLogParser(
             run_dir,
             _ZGOUBI_LOG_FILE,
             default_msg="",
-        ).parse_log_file_for_errors()
+        ).parse_for_errors()
     ) != "":
         return res
     return template_common.LogParser(
@@ -954,7 +954,7 @@ def _parse_zgoubi_log(run_dir):
         template_common.RUN_LOG,
         error_patterns=(r"Fortran runtime error: (.*)",),
         default_msg="",
-    ).parse_log_file_for_errors()
+    ).parse_for_errors()
 
 
 def _particle_count(data):

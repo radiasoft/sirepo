@@ -109,7 +109,7 @@ def background_percent_complete(report, run_dir, is_running):
             _LOG_FILE,
             error_patterns=(r"AssertionError: (Model training failed due to .*)",),
             default_msg="",
-        ).parse_log_file_for_errors()
+        ).parse_for_errors()
     )
     if error:
         res.error = error

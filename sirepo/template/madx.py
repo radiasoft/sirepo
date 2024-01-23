@@ -160,7 +160,7 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
         return PKDict()
 
 
-class MadxLogParser(template_common.LogParser):
+class _MadxLogParser(template_common.LogParser):
     def _parse_log(self, file, result):
         for line in file:
             if re.search(r"^\++ (error|warning):", line, re.IGNORECASE):
@@ -382,7 +382,7 @@ async def import_file(req, **kwargs):
 def post_execution_processing(success_exit, run_dir, **kwargs):
     if success_exit:
         return None
-    return MadxLogParser(run_dir, MADX_LOG_FILE).parse_log_file_for_errors()
+    return _MadxLogParser(run_dir, MADX_LOG_FILE).parse_for_errors()
 
 
 def prepare_for_client(data, qcall, **kwargs):

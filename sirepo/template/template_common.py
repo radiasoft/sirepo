@@ -40,8 +40,6 @@ PARAMETERS_PYTHON_FILE = "parameters.py"
 #: stderr and stdout
 RUN_LOG = "run.log"
 
-_DEFAULT_ERROR_PATTERNS = (r"Error: (.*)",)
-
 _HISTOGRAM_BINS_MAX = 500
 
 _PLOT_LINE_COLOR = [
@@ -89,12 +87,12 @@ class LogParser(PKDict):
     def __init__(self, run_dir, log_filename, **kwargs):
         super().__init__(run_dir=run_dir, log_filename=log_filename, **kwargs)
         self.pksetdefault(
-            error_patterns=_DEFAULT_ERROR_PATTERNS,
+            error_patterns=(r"Error: (.*)",),
             multiline_error_pattern=r"^Traceback .*?^\w*Error: (.*?)\n",
             default_msg="An unknown error occurred",
         )
 
-    def parse_log_file_for_errors(self):
+    def parse_for_errors(self):
         res = ""
         p = self.run_dir.join(self.log_filename)
         if not p.exists():
