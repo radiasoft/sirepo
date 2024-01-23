@@ -542,6 +542,7 @@ def _generate_parameters_file(data, run_dir=None):
     v.materials = _generate_materials(data)
     v.sources = _generate_sources(data)
     v.sourceFile = _source_filename(data)
+    v.maxSampleSourceParticles = SCHEMA.model.openmcAnimation.numSampleSourceParticles[5]
     v.tallies = _generate_tallies(data)
     v.hasGraveyard = _has_graveyard(data)
     return template_common.render_jinja(
