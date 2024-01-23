@@ -334,7 +334,7 @@ class SphereViews extends ObjectViews {
                 );
             }
             this.addView(dim, new SIREPO.PLOTTING.PlotPolygon(id, name, pts));
-        })
+        });
     }
 
     shapePoints(dim) {

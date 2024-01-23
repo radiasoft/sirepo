@@ -187,7 +187,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
             }
         }
         return sources;
-    }
+    };
 
     self.getVolumeById = volId => {
         for (const n in appState.models.volumes) {
