@@ -844,25 +844,52 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             function getOutlines(pos, range, dimIndex) {
 
-                function cloneMarker(baseId, newId, newAttrs) {
-                    const baseMarker = $(`defs marker#${baseId}`);
-                    let newMarker = $(`defs marker#${newId}`);
-                    if (newMarker[0]) {
-                        return;
-                    }
-                    newMarker = baseMarker.clone();
-                    newMarker.attr('id', newId);
-                    for (const a in newAttrs) {
-                        newMarker.children('path').attr(a, newAttrs[a]);
-                    }
-                    baseMarker.after(newMarker);
+                const particleColors = SIREPO.UTILS.unique(
+                    tallyService.getSourceParticles().map(p => particleColor(p))
+                );
+
+                function particleColor(p) {
+                    return tallyService.sourceParticleColorScale(
+                        appState.models.openmcAnimation.sourceColorMap
+                    )(p.energy);
                 }
 
-                const baseMarkerId = 'arrow';
+                function particleId(p) {
+                    return particleIdFromColor(particleColor(p));
+                }
+
+                function particleIdFromColor(c) {
+                    return `arrow-${c.slice(1)}`;
+                }
+
+                function placeMarkers() {
+                    const ns = 'http://www.w3.org/2000/svg';
+                    let ds = d3.select('svg.sr-plot defs')
+                        .selectAll('marker')
+                        .data(particleColors);
+                    ds.exit().remove();
+                    ds.enter()
+                        .append(d => document.createElementNS(ns, 'marker'))
+                        .append('path')
+                        .attr('d', 'M0,0 L0,4 L9,2 z');
+                    ds.call(updateMarkers);
+                }
+
+                function updateMarkers(selection) {
+                    selection
+                        .attr('id', d => particleIdFromColor(d))
+                        .attr('markerHeight', 8)
+                        .attr('markerWidth', 8)
+                        .attr('refX', 4)
+                        .attr('refY', 2)
+                        .attr('orient', 'auto')
+                        .attr('markerUnits', 'strokeWidth')
+                        .select('path')
+                        .attr('fill', d => d);
+                }
                 
                 const outlines = [];
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
-                const eColors = tallyService.sourceParticleColorScale(appState.models.openmcAnimation.sourceColorMap);
                 const sourceArrowLength = 0.05 * tallyService.getMaxMeshExtent();
                 for (const volId of cloudmcService.getNonGraveyardVolumes()) {
                     const v = cloudmcService.getVolumeById(volId);
@@ -887,6 +914,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         doClose: true,
                     });
                 });
+                placeMarkers();
                 tallyService.getSourceParticles().forEach((p, n) => {
                     const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                     const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
@@ -894,14 +922,11 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     // normalize in the plane
                     const d = Math.hypot(p.direction[j], p.direction[k]);
                     const p2 = [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d];
-                    const color = eColors(p.energy);
-                    const mId = `${baseMarkerId}-${color.slice(1)}`;
-                    cloneMarker(baseMarkerId, mId, {fill: color});
                     outlines.push({
                         name: `${p.type}-${p.energy}eV-${n}`,
-                        color: color,
+                        color: particleColor(p),
                         data: [p1, p2].map(p => p.toReversed()),
-                        marker: mId,
+                        marker: particleId(p),
                     });
                 });
                 return outlines;
