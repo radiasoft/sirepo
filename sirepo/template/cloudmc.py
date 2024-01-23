@@ -166,7 +166,9 @@ def sim_frame(frame_args):
     def _sample_sources(filename, num_samples):
         samples = []
         try:
-            b = template_common.read_dict_from_h5(filename).get("source_bank", [])[:num_samples]
+            b = template_common.read_dict_from_h5(filename).get("source_bank", [])[
+                :num_samples
+            ]
             return [
                 PKDict(
                     direction=p.u,
@@ -179,7 +181,6 @@ def sim_frame(frame_args):
         except:
             pass
         return samples
-
 
     def _sum_energy_bins(values, mesh_filter, energy_filter, sum_range):
         f = (lambda x: x) if energy_filter.space == "linear" else numpy.log10
