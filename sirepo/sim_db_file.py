@@ -1,4 +1,4 @@
-"""Getting and putting simulation db files
+"""Operating on simulation db files via the job agent
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -30,7 +30,10 @@ def in_job_agent():
 
 
 class SimDbClient:
-    """Client to be used from the job agent"""
+    """Client to be used from the job agent.
+
+    An instance is created and is accessed via `SimData.sim_db_client`.
+    """
 
     _EXE_PERMISSIONS = 0o700
 
