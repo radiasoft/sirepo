@@ -1123,6 +1123,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             function addTally(data) {
                 tallyPolyData = vtk.Common.DataModel.vtkPolyData.newInstance();
                 buildVoxels();
+                addSources();
                 $rootScope.$broadcast('vtk.hideLoader');
                 initAxes();
                 buildAxes();
@@ -1130,7 +1131,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 vtkScene.render();
             }
 
-            function addSources() {  
+            function addSources() {
                 sourceBundles.forEach(b => {
                     vtkScene.removeActor(b.actor);
                     vtkScene.addActor(b.actor);
@@ -1558,7 +1559,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     if (vtkScene) {
                         $rootScope.$broadcast('vtk.showLoader');
                         addTally(tallyService.fieldData);
-                        addSources();
                     }
                 });
             }
