@@ -1083,7 +1083,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                         );
                         b.actorProperties.setRepresentationToWireframe();
                         return b;
-                    },
+                    },/*
                     point: space => {
                         const b = coordMapper.buildSphere(
                             space.xyz,
@@ -1094,6 +1094,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                         b.actorProperties.setRepresentationToWireframe();
                         return b;
                     },
+                    */
                 }
             );
             let particleBundle = null;
@@ -1144,6 +1145,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                         particles.map(p => p.direction.map(x => p.energy * x)),
                         particles.map(p => p.position),
                         3.5 * tallyService.getMaxMeshExtent(),
+                        true,
                         appState.models.openmcAnimation.sourceColorMap,
                         {edgeVisibility: false, lighting: false}
                     );

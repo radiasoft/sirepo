@@ -1106,6 +1106,7 @@ class VectorFieldBundle extends ActorBundle {
         vectors,
         positions,
         scaleFactor = 1.0,
+        useTailAsOrigin = false,
         colormapName = 'jet',
         transform = new SIREPO.GEOMETRY.Transform(),
         actorProperties = {}
@@ -1129,8 +1130,17 @@ class VectorFieldBundle extends ActorBundle {
         this.setMapper(vtk.Rendering.Core.vtkGlyph3DMapper.newInstance());
         
         this.mapper.setInputConnection(vectorCalc.getOutputPort(), 0);
+        const s = vtk.Filters.Sources.vtkArrowSource.newInstance();
+        if (useTailAsOrigin) {
+            // this undoes a translation in the arrowSource instantiation
+            vtk.Common.Core.vtkMatrixBuilder
+                .buildFromRadian()
+                .translate(0.5 - 0.5 * s.getTipLength(), 0.0, 0.0)
+                .apply(s.getOutputData().getPoints().getData());
+        }
+        
         this.mapper.setInputConnection(
-            vtk.Filters.Sources.vtkArrowSource.newInstance().getOutputPort(), 1
+            s.getOutputPort(), 1
         );
         this.mapper.setOrientationArray(VTKVectorFormula.ARRAY_NAMES().orientation);
 
@@ -1239,11 +1249,12 @@ class CoordMapper {
      * @param {[[number]]} vectors - array of 3-dimensional arrays containing the vectors
      * @param {[[number]]} positions - array of 3-dimensional arrays containing the coordinates of the vectors
      * @param {number} scaleFactor - scales the length of the arrows
+     * @param {boolean} useTailAsOrigin - when true, the origin is the vector's tail. Otherwise, the center
      * @param {string} colormapName - name of a color map for the arrows
      * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
      */
-    buildVectorField(vectors, positions, scaleFactor=1.0, colormapName='jet', actorProperties={}) {
-        return new VectorFieldBundle(vectors, positions, scaleFactor, colormapName, this.transform, actorProperties);
+    buildVectorField(vectors, positions, scaleFactor=1.0, useTailAsOrigin=false, colormapName='jet', actorProperties={}) {
+        return new VectorFieldBundle(vectors, positions, scaleFactor, useTailAsOrigin, colormapName, this.transform, actorProperties);
     }
 }
 
