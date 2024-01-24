@@ -60,7 +60,7 @@ def api_and_supervisor(pytest_req, fc_args):
                 d = pkjson.load_any(r.text)
                 if d.state == "ok":
                     return
-                raise RuntimeError(f"state={r.get('state')}")
+                raise RuntimeError(f"state={d.get('state')}")
             except Exception as e:
                 l = e
                 time.sleep(0.3)
