@@ -259,7 +259,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         sirepo.sim_db_file delete does a glob of the filename to delete. So, we
         will delete any file that starts with _FLASH_EXE_PREFIX
         """
-        cls._sim_db_file_delete_glob(
+        cls.sim_db_client().delete_glob(
             data.models.simulation.simulationId,
             cls._FLASH_EXE_PREFIX,
         )

@@ -35,8 +35,6 @@ class SimDbClient:
     An instance is created and is accessed via `SimData.sim_db_client`.
     """
 
-    _EXE_PERMISSIONS = 0o700
-
     LIB_DIR = sirepo.const.LIB_DIR
 
     def __init__(self, sim_data):
