@@ -2082,7 +2082,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             const n = content.routeName;
             const r = {data: {}};
             if (n === "httpException") {
-                r.status = content.status;
+                r.status = content.params.code;
             }
             else {
                 r.data.state = "srException";
