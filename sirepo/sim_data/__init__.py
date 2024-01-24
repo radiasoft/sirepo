@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Type-based simulation operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -275,14 +274,6 @@ class SimDataBase(object):
             data (dict): simulation
         """
         raise NotImplementedError()
-
-    @classmethod
-    def react_format_data(cls, data):
-        pass
-
-    @classmethod
-    def react_unformat_data(cls, data):
-        pass
 
     @classmethod
     def frame_id(cls, data, response, model, index):
