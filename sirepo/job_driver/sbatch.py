@@ -141,6 +141,8 @@ class SbatchDriver(job_driver.DriverBase):
         )
 
     async def _do_agent_start(self, op):
+        # must be saved, because op is only valid before first await
+        original_msg = op.msg
         log_file = "job_agent.log"
         agent_start_dir = self._srdb_root
         script = f"""#!/bin/bash
@@ -204,7 +206,7 @@ disown
         except asyncssh.misc.PermissionDenied:
             pkdlog("{}", pkdexc())
             self._srdb_root = None
-            self._raise_sbatch_login_srexception("invalid-creds", op.msg)
+            self._raise_sbatch_login_srexception("invalid-creds", original_msg)
         except asyncssh.misc.ProtocolError:
             pkdlog("{}", pkdexc())
             raise sirepo.util.UserAlert(
@@ -239,7 +241,7 @@ scancel -u $USER >& /dev/null || true
             PKDict(
                 host=self.cfg.host,
                 isModal=True,
-                isGeneral=True,
+                isSbatchLogin=True,
                 reason=reason,
                 computeModel=msg.computeModel,
                 simulationId=msg.simulationId,
