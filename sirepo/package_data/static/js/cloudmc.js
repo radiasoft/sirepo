@@ -862,6 +862,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     return `arrow-${c.slice(1)}`;
                 }
 
+                // we cannot set the color of an instance of a marker ref, so we will
+                // have to create them on the fly
                 function placeMarkers() {
                     const ns = 'http://www.w3.org/2000/svg';
                     let ds = d3.select('svg.sr-plot defs')
@@ -890,7 +892,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 
                 const outlines = [];
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
-                const sourceArrowLength = 0.05 * tallyService.getMaxMeshExtent();
                 for (const volId of cloudmcService.getNonGraveyardVolumes()) {
                     const v = cloudmcService.getVolumeById(volId);
                     if (! v.isVisibleWithTallies) {
@@ -918,7 +919,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 tallyService.getSourceParticles().forEach((p, n) => {
                     const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                     const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
-                    const r = sourceArrowLength;  // * p.energy / tallyService.sourceParticleMeanEnergy();
+                    const r = 0.05 * tallyService.getMaxMeshExtent();
                     // normalize in the plane
                     const d = Math.hypot(p.direction[j], p.direction[k]);
                     const p2 = [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d];
@@ -1095,7 +1096,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             const sourceProps = {
                 color: [255, 0, 0],
                 edgeVisibility: true,
-                lighting: false
+                lighting: false,
             };
             const sourceBundles = cloudmcService.getSources(
                 {
@@ -1108,7 +1109,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                         );
                         b.actorProperties.setRepresentationToWireframe();
                         return b;
-                    },/*
+                    },
                     point: space => {
                         const b = coordMapper.buildSphere(
                             space.xyz,
@@ -1119,7 +1120,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                         b.actorProperties.setRepresentationToWireframe();
                         return b;
                     },
-                    */
                 }
             );
             let particleBundle = null;
@@ -1159,6 +1159,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             function addSources() {
                 sourceBundles.forEach(b => {
                     vtkScene.removeActor(b.actor);
+                    if (b.source.setRadius) {
+                        b.source.setRadius(0.25 * vectorScaleFactor());
+                    }
                     vtkScene.addActor(b.actor);
                 });
 
@@ -1170,7 +1173,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     particleBundle = coordMapper.buildVectorField(
                         particles.map(p => p.direction.map(x => p.energy * x)),
                         particles.map(p => p.position),
-                        3.5 * tallyService.getMaxMeshExtent(),
+                        vectorScaleFactor(),
                         true,
                         appState.models.openmcAnimation.sourceColorMap,
                         {edgeVisibility: false, lighting: false}
@@ -1567,6 +1570,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             function renderAxes() {
                 buildAxes();
                 vtkScene.render();
+            }
+
+            function vectorScaleFactor() {
+                return 3.5 * tallyService.getMaxMeshExtent();
             }
 
             $scope.$on('sr-volume-visibility-toggle', (event, volume, isVisible, doUpdate) => {
