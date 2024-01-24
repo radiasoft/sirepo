@@ -908,6 +908,9 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 }
                 sources.forEach((view, i) => {
                     const s = appState.models.settings.sources[i];
+                    if (view instanceof SIREPO.VTK.SphereViews) {
+                        view.setRadius(25 * vectorScaleFactor());
+                    }
                     outlines.push({
                         name: `source-${s.particle}-${s.space._type}-${i}`,
                         color: '#ff0000',
@@ -919,7 +922,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 tallyService.getSourceParticles().forEach((p, n) => {
                     const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                     const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
-                    const r = 0.05 * tallyService.getMaxMeshExtent();
+                    const r = vectorScaleFactor();
                     // normalize in the plane
                     const d = Math.hypot(p.direction[j], p.direction[k]);
                     const p2 = [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d];
@@ -1033,6 +1036,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         appState.models.tallyReport.axis = Object.keys(v)[0];
                     }
                 });
+            }
+
+            function vectorScaleFactor() {
+                return 0.05 * tallyService.getMaxMeshExtent();
             }
 
             $scope.$on('sr-volume-visibility-toggle', (event, volume, isVisible, doUpdate) => {

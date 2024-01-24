@@ -320,25 +320,46 @@ class SphereViews extends ObjectViews {
         scale=1.0
     ) {
         super(id, name, center, [2 * radius, 2 * radius, 2 * radius], scale);
+        this.center = center;
+        this.numSides = numSides;
         this.radius = radius;
         SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
-            const pts = [];
-            const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
-            for (let n = 0; n < numSides; ++n) {
-                const t = 2 * n * Math.PI / numSides;
-                pts.push(
-                    [
-                        center[i] + 0.5 * Math.cos(t) * radius,
-                        center[j] + 0.5 * Math.sin(t) * radius,
-                    ]
-                );
-            }
-            this.addView(dim, new SIREPO.PLOTTING.PlotPolygon(id, name, pts));
+            this.addView(dim, new SIREPO.PLOTTING.PlotPolygon(id, name, this.buildPoints()));
         });
+    }
+
+    buildPoints(dim) {
+        const pts = [];
+        const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
+        for (let n = 0; n < this.numSides; ++n) {
+            const t = 2 * n * Math.PI / this.numSides;
+            pts.push(
+                [
+                    this.center[i] + 0.5 * Math.cos(t) * this.radius,
+                    this.center[j] + 0.5 * Math.sin(t) * this.radius,
+                ]
+            );
+        }
+        return pts;
+    }
+
+    setRadius(r) {
+        this.radius = r;
+        this.updateViews();
     }
 
     shapePoints(dim) {
         return this.shapes[dim].points.map(p => this.scaledArray(p.coords()));
+    }
+
+    updateView(dim) {
+        this.shapes[dim].setPoints(this.buildPoints(dim).map(x => new SIREPO.GEOMETRY.Point(...x)));
+    }
+
+    updateViews() {
+        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+            this.updateView(dim);
+        });
     }
 }
 
