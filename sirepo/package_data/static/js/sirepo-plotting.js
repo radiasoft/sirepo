@@ -3394,6 +3394,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     })
                     .attr('clip-path', 'url(#sr-plot-window)')
                     .attr('stroke', d => d.color)
+                    .attr('stroke-dasharray', d => d.dashes)
                     .attr('stroke-width', 2.0)
                     .attr('fill', 'none')
                     .attr('marker-end', d => `url(#${d.marker})`)

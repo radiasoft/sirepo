@@ -926,6 +926,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     outlines.push({
                         name: `${p.type}-${p.energy}eV-${n}`,
                         color: particleColor(p),
+                        dashes: p.type === 'PHOTON' ? '6 2' : '',
                         data: [p1, p2].map(p => p.toReversed()),
                         marker: particleId(p),
                     });
