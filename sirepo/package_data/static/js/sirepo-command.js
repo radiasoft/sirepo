@@ -105,7 +105,7 @@ SIREPO.app.directive('commandTab', function(latticeService, commandService) {
         template: `
             <div class="container-fluid">
               <div class="row">
-                <div class="col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">
+                <div class="col-md-10 col-md-offset-1 col-xl-8 col-xl-offset-2">
                   <div class="sr-command-panel panel panel-info">
                     <div class="panel-heading"><span class="sr-panel-heading">Commands</span></div>
                     <div class="panel-body">
