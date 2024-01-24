@@ -1189,12 +1189,12 @@ SIREPO.app.directive('colorPicker', function(appState, panelState) {
         },
         template: `
             <div>
-                <button class="dropdown-toggle sr-color-button" data-ng-style="bgColorStyle()" data-toggle="dropdown"></button>
+                <button type="button" class="dropdown-toggle sr-color-button" data-ng-style="bgColorStyle()" data-toggle="dropdown"></button>
                 <ul class="dropdown-menu">
                     <div class="container col-sm-8">
                         <div data-ng-repeat="r in range(rows) track by $index" class="row">
                             <li data-ng-repeat="c in range(cols) track by $index" style="display: inline-block">
-                                <button data-ng-if="pcIndex(r, c) < pickerColors.length" class="sr-color-button" data-ng-class="{\'selected\': getColor(model[field]).toUpperCase() == getPickerColor(r, c).toUpperCase()}" data-ng-style="bgColorStyle(getPickerColor(r, c))" data-ng-click="setColor(getPickerColor(r, c))"></button>
+                                <button type="button" data-ng-if="pcIndex(r, c) < pickerColors.length" class="sr-color-button" data-ng-class="{\'selected\': getColor(model[field]).toUpperCase() == getPickerColor(r, c).toUpperCase()}" data-ng-style="bgColorStyle(getPickerColor(r, c))" data-ng-click="setColor(getPickerColor(r, c))"></button>
                             </li>
                         <div>
                     <div>
@@ -4304,41 +4304,6 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
-        },
-    };
-});
-
-// use this to display a raw SVG string
-SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState) {
-    return {
-        restrict: 'A',
-        scope: {
-            reportId: '<',
-            modelName: '@',
-            reportCfg: '<',
-        },
-        template: `
-            <div class="sr-svg-plot">
-                <svg></svg>
-            </div>
-        `,
-        controller: function($scope, $element) {
-
-            function load() {
-                var reload = (($scope.reportCfg || {}).reload || function() {return true;})();
-                panelState.requestData($scope.modelName, function(data) {
-                    var svg = data.svg;
-                    if ($scope.reportCfg && $scope.reportCfg.process) {
-                        svg = $scope.reportCfg.process(svg);
-                    }
-                    $($element).find('.sr-svg-plot > svg').replaceWith(svg);
-                }, reload);
-            }
-
-            appState.whenModelsLoaded($scope, function() {
-                load();
-            });
-
         },
     };
 });
