@@ -2236,7 +2236,6 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         _protocolError(null, null, wsreq, "request timed out");
     };
 
-
     self.send = (url, data, httpConfig) => {
         if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url) || _isOauth(url, data)) {
             // Might be auto logged out so close socket so can re-authenticate
