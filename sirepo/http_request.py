@@ -53,9 +53,9 @@ def parse_post(qcall, kwargs):
     if r is None:
         r = parse_json(qcall)
     if kwargs.pkdel("is_sim_data"):
-        raise AssertionError(f"is_sim_data invalid parameter")
+        raise AssertionError("is_sim_data invalid parameter")
     if kwargs.get("fixup_old_data"):
-        raise AssertionError(f"fixup_old_data invalid parameter")
+        raise AssertionError("fixup_old_data invalid parameter")
     res.pkupdate(req_data=r)
     kwargs.pksetdefault(type=True)
 
