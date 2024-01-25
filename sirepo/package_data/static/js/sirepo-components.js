@@ -413,7 +413,7 @@ SIREPO.app.directive('confirmationModal', function() {
               <div class="modal-dialog">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
-                    <button data-ng-if="! isRequired" type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <button type="button" data-ng-if="! isRequired" class="close" data-dismiss="modal"><span>&times;</span></button>
                     <span class="lead modal-title text-info">{{ title }}</span>
                   </div>
                   <div class="modal-body">
@@ -579,8 +579,8 @@ SIREPO.app.directive('randomSeed', function() {
               <div class="col-sm-3">
                 <input data-string-to-number="integer" data-ng-model="model[field]" data-min="0" data-max="max" class="form-control" style="text-align: right" data-lpignore="true"/>
               </div>
-              <button class="btn btn-default" data-ng-click="setSeedRandom()" title="generate random seed"><span class="glyphicon glyphicon-random"></span></button>
-              <button class="btn btn-default" data-ng-click="setSeedTime()" title="use current time"><span class="glyphicon glyphicon-time"></span></button>
+              <button type="button" class="btn btn-default" data-ng-click="setSeedRandom()" title="generate random seed"><span class="glyphicon glyphicon-random"></span></button>
+              <button type="button" class="btn btn-default" data-ng-click="setSeedTime()" title="use current time"><span class="glyphicon glyphicon-time"></span></button>
             </div>
         `,
         controller: function($scope) {
@@ -627,6 +627,7 @@ SIREPO.app.directive('srTooltip', function(appState, mathRendering, utilities) {
         restrict: 'A',
         scope: {
             'tooltip': '@srTooltip',
+            'placement': '@',
         },
         template: `
             <span data-ng-show="hasTooltip()" class="glyphicon glyphicon-info-sign sr-info-pointer"></span>
@@ -650,7 +651,7 @@ SIREPO.app.directive('srTooltip', function(appState, mathRendering, utilities) {
                         return res;
                     },
                     html: true,
-                    placement: 'bottom',
+                    placement: $scope.placement || 'bottom',
                     container: 'body',
                 });
                 $scope.$on('$destroy', function() {
@@ -812,7 +813,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               ${SIREPO.appFieldEditors}
               <div data-ng-switch-default data-ng-class="fieldClass">
                 <div data-ng-if="wantEnumButtons" class="btn-group">
-                  <button class="btn sr-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>
+                  <button type="button" class="btn sr-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>
                 </div>
                 <select data-ng-if="! wantEnumButtons" number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
                 <div class="sr-input-warning"></div>
@@ -1398,7 +1399,7 @@ SIREPO.app.directive('helpButton', function(requestSender) {
             helpTopic: '@helpButton',
         },
         template: `
-            <button data-ng-if="::showHelp()" class="close sr-help-icon" title="{{ ::helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>
+            <button type="button" data-ng-if="::showHelp()" class="close sr-help-icon" title="{{ ::helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>
         `,
         controller: function($scope) {
             $scope.openHelp = function() {
@@ -1445,7 +1446,7 @@ SIREPO.app.directive('videoButton', function(appState, requestSender) {
             viewName: '@videoButton',
         },
         template: `
-            <div data-ng-if="showLink"><button class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>
+            <div data-ng-if="showLink"><button type="button" class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>
         `,
         controller: function($scope) {
             var viewInfo = appState.viewInfo($scope.viewName);
@@ -1995,10 +1996,10 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
     return {
         restrict: 'A',
         template: `
-            <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown"><span class="sr-color-map-indicator" data-ng-style="itemStyle[model[field]]"></span> {{ colorMapDescription(model[field]) }} <span class="caret"></span></button>
+            <button type="button" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown"><span class="sr-color-map-indicator" data-ng-style="itemStyle[model[field]]"></span> {{ colorMapDescription(model[field]) }} <span class="caret"></span></button>
             <ul class="dropdown-menu sr-button-menu">
                 <li data-ng-repeat="item in items" class="sr-button-menu">
-                    <button class="btn btn-block"  data-ng-class="{\'sr-button-menu-selected\': isSelectedMap(item[0]), \'sr-button-menu-unselected\': ! isSelectedMap(item[0])}" data-ng-click="setColorMap(item[0])">
+                    <button type="button" class="btn btn-block"  data-ng-class="{\'sr-button-menu-selected\': isSelectedMap(item[0]), \'sr-button-menu-unselected\': ! isSelectedMap(item[0])}" data-ng-click="setColorMap(item[0])">
                         <span class="sr-color-map-indicator" data-ng-style="itemStyle[item[0]]"></span> {{item[1]}} <span data-ng-if="isDefaultMap(item[0])" class="glyphicon glyphicon-star-empty"></span><span data-ng-if="isSelectedMap(item[0])" class="glyphicon glyphicon-ok"></span>
                     </button>
                 </li>
@@ -2356,7 +2357,6 @@ SIREPO.app.directive('reportContent', function(panelState) {
         scope: {
             reportId: '<',
             reportContent: '@',
-            reportCfg: '<',
             modelKey: '@',
         },
         template: `
@@ -2370,7 +2370,6 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 <div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
                 <div data-ng-switch-when="lattice" data-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="rawSVG" data-svg-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"></div>
                 ${SIREPO.appReportTypes || ''}
               </div>
               <div data-ng-transclude=""></div>
@@ -2387,7 +2386,6 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
         restrict: 'A',
         transclude: true,
         scope: {
-            reportCfg: '=',
             reportPanel: '@',
             modelName: '@',
             panelTitle: '@',
@@ -2398,8 +2396,8 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
         template: `
             <div class="panel panel-info" data-ng-attr-id="{{ ::reportId }}">
               <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1" data-report-id="reportId"></div>
-              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"><div data-ng-transclude=""></div></div>
-              <button data-ng-if="notes()" class="close sr-help-icon notes" title="{{ notes() }}"><span class="glyphicon glyphicon-question-sign"></span></button>
+              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId"><div data-ng-transclude=""></div></div>
+              <div data-ng-if="notes()"><span class="pull-right sr-notes" data-sr-tooltip="{{ notes() }}" data-placement="top"></span><div class="clearfix"></div></div>
         `,
         controller: function($scope) {
             // random id for the keypress service to track
@@ -3851,7 +3849,7 @@ SIREPO.app.directive('modelArray', function() {
                   </div>
                 </div>
                 <div class="col-sm-1">
-                  <button style="margin-left: -15px; margin-top: 5px"
+                  <button type="button" style="margin-left: -15px; margin-top: 5px"
                     data-ng-show="! isEmpty($index)" data-ng-click="deleteRow($index)"
                     class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span>
                   </button>
@@ -3979,7 +3977,7 @@ SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
             <div class="input-group input-group-sm">
               <input data-string-to-number="" data-ng-model="model[field]" data-min="min" data-max="max" class="form-control" style="text-align: right" data-lpignore="true" required />
               <div class="input-group-btn">
-                <button data-ng-attr-class="btn btn-{{ buttonName() }} dropdown-toggle" data-toggle="dropdown" type="button" title="Optimization Settings"><span class="glyphicon glyphicon-cog"></span></button>
+                <button type="button" data-ng-attr-class="btn btn-{{ buttonName() }} dropdown-toggle" data-toggle="dropdown" title="Optimization Settings"><span class="glyphicon glyphicon-cog"></span></button>
                 <ul class="dropdown-menu pull-right">
                   <li><a href data-ng-click="toggleCheck()" ><span data-ng-attr-class="glyphicon glyphicon-{{ checkedName() }}"></span> Select this field for optimization</a></li>
                 </ul>
