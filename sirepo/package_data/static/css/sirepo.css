@@ -2,6 +2,7 @@
       --sr-action: #367dba;
       --sr-base-blue: #0061af;
       --sr-base-green: #8fc741;
+      --sr-panel-color: #555;
     }
 
     /* bootstrap overrides */
@@ -9,12 +10,18 @@
       border-top-left-radius: 6px;
       border-top-right-radius: 6px;
     }
+
+    .modal-title {
+      color: var(--sr-panel-color);
+      font-weight: 350;
+    }
+
     .navbar-nav .nav-tabs {
       border-bottom: 0;
     }
 
     .panel-info > .panel-heading {
-      color: #555;
+      color: var(--sr-panel-color);
     }
 
     @media (min-width: 768px) {
