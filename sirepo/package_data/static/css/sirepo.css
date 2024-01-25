@@ -288,6 +288,10 @@
       background-color: var(--sr-action);
       color: #fff;
     }
+
+    .btn.sr-button-save-cancel {
+      min-width: 5em;
+    }
     
     ul.sr-button-menu {
         list-style: none;

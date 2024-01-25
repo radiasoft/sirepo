@@ -265,8 +265,8 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
               <div class="row">
                 <form>
                   <div class="col-md-6 col-sm-8 pull-right" data-ng-show="checkIfDirty()">
-                    <button data-ng-click="saveBeamlineChanges()" class="btn btn-primary" data-ng-show="beamlineService.isBeamlineValid()">Save</button>
-                    <button data-ng-click="cancelBeamlineChanges()" class="btn btn-default">Cancel</button>
+                    <button data-ng-click="saveBeamlineChanges()" class="btn btn-primary sr-button-save-cancel" data-ng-show="beamlineService.isBeamlineValid()">Save</button>
+                    <button data-ng-click="cancelBeamlineChanges()" class="btn btn-default sr-button-save-cancel">Cancel</button>
                   </div>
                 </form>
               </div>

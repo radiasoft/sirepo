@@ -656,8 +656,8 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 <input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" style="text-align: right" data-lpignore="true" required />
               </div>
               <div class="text-center">
-                <button class="btn btn-primary" data-ng-click="setElementPosition()">Save</button>
-                 <button class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>
+                <button class="btn btn-primary sr-button-save-cancel" data-ng-click="setElementPosition()">Save</button>
+                 <button class="btn btn-default sr-button-save-cancel" data-ng-click="clearPopover()">Cancel</button>
               </div>
             </div>
             </div>
