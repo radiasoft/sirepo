@@ -2036,6 +2036,11 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         return url.startsWith("/auth-");
     };
 
+    const _isOauth = (url, data) => {
+	// TODO(e-carlin): https://github.com/radiasoft/sirepo/issues/6689
+        return SIREPO.APP_SCHEMA.simulationType === 'flash';
+    };
+
     const _protocolError = (header, content, wsreq, errorMsg) => {
         if (! errorMsg) {
             errorMsg = "invalid reply from server";
@@ -2233,7 +2238,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     self.send = (url, data, httpConfig) => {
-        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url)) {
+        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url) || _isOauth(url, data)) {
             // Might be auto logged out so close socket so can re-authenticate
             if (socket) {
                 socket.close();
