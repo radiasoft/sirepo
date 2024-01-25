@@ -3324,16 +3324,24 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
-                var point = mouseMovePoint;
-                var xRange = getRange(axes.x.values);
-                var yRange = getRange(axes.y.values);
-                var x0 = axes.x.scale.invert(point[0] - 1);
-                var y0 = axes.y.scale.invert(point[1] - 1);
-                var x = Math.round((heatmap[0].length - 1) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
-                var y = Math.round((heatmap.length - 1) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
+                const point = mouseMovePoint;
+                const xRange = getRange(axes.x.values);
+                const yRange = getRange(axes.y.values);
+                const x0 = axes.x.scale.invert(point[0] - 1);
+                const y0 = axes.y.scale.invert(point[1] - 1);
+                const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - 1);
+                const dy = Math.abs((yRange[1] - yRange[0])) / (heatmap.length - 1);
+                const i = Math.round((x0 - xRange[0]) / dx);
+                const j = Math.round((y0 - yRange[0]) / dy);
+                const xr = xRange[0] + i * dx;
+                const yr = yRange[0] + j * dy;
+                const px = Math.round(axes.x.scale(xr));
+                const py = Math.round(axes.y.scale(yr));
+                const w = Math.abs(Math.round(axes.x.scale(xr + dx)) - px);
+                const h = Math.abs(Math.round(axes.y.scale(yr + dy)) - py);
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
-                    updateCellHighlight(d3.select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), px, py, w, h);
+                    //updateCellHighlight(d3.select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), px, py, w, h);
                 }
                 catch (err) {
                     // ignore range errors due to mouse move after heatmap is reset
