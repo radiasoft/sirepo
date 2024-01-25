@@ -84,11 +84,12 @@ class JobCmdFile(PKDict):
 
 
 class LogParser(PKDict):
-    def __init__(self, run_dir, log_filename, **kwargs):
-        super().__init__(run_dir=run_dir, log_filename=log_filename, **kwargs)
+    def __init__(self, run_dir, **kwargs):
+        super().__init__(run_dir=run_dir, **kwargs)
         self.pksetdefault(
-            error_patterns=(r"Error: (.*)",),
             default_msg="An unknown error occurred",
+            error_patterns=(r"Error: (.*)",),
+            log_filename=RUN_LOG,
         )
 
     def parse_for_errors(self):
@@ -613,7 +614,7 @@ def parse_enums(enum_schema):
 
 def parse_mpi_log(run_dir):
     return _MPILogParser(
-        run_dir, sirepo.const.MPI_LOG, default_msg=None
+        run_dir, log_filename=sirepo.const.MPI_LOG, default_msg=None
     ).parse_for_errors()
 
 

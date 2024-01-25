@@ -106,7 +106,7 @@ def background_percent_complete(report, run_dir, is_running):
     error = _range_error(
         template_common.LogParser(
             run_dir,
-            _LOG_FILE,
+            log_filename=_LOG_FILE,
             error_patterns=(r"AssertionError: (Model training failed due to .*)",),
             default_msg="",
         ).parse_for_errors()

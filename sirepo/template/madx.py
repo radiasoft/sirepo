@@ -384,7 +384,7 @@ async def import_file(req, **kwargs):
 def post_execution_processing(success_exit, run_dir, **kwargs):
     if success_exit:
         return None
-    return _MadxLogParser(run_dir, MADX_LOG_FILE).parse_for_errors()
+    return _MadxLogParser(run_dir, log_filename=MADX_LOG_FILE).parse_for_errors()
 
 
 def prepare_for_client(data, qcall, **kwargs):

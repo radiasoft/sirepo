@@ -178,14 +178,12 @@ def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
         return None
     if template_common.LogParser(
         run_dir,
-        template_common.RUN_LOG,
         error_patterns=(r".*(invalid chemical formula)",),
         default_msg="",
     ).parse_for_errors():
         return "A mirror contains an invalid reflectivity material"
     return template_common.LogParser(
         run_dir,
-        template_common.RUN_LOG,
         error_patterns=(r"ValueError: (.*)?",),
     ).parse_for_errors()
 

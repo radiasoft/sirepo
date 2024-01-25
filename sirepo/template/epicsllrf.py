@@ -44,7 +44,6 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=0,
         alert=template_common.LogParser(
             run_dir,
-            template_common.RUN_LOG,
             error_patterns=(r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)",),
             default_msg="",
         ).parse_for_errors(),

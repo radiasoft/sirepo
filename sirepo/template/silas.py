@@ -80,10 +80,7 @@ def get_data_file(run_dir, model, frame, options):
 def post_execution_processing(success_exit, run_dir, **kwargs):
     if success_exit:
         return None
-    return _SilasLogParser(
-        run_dir,
-        template_common.RUN_LOG,
-    ).parse_for_errors()
+    return _SilasLogParser(run_dir).parse_for_errors()
 
 
 def python_source_for_model(data, model, qcall, **kwargs):

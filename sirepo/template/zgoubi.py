@@ -946,14 +946,13 @@ def _parse_zgoubi_log(run_dir):
     if (
         res := _ZgoubiLogParser(
             run_dir,
-            _ZGOUBI_LOG_FILE,
+            log_filename=_ZGOUBI_LOG_FILE,
             default_msg="",
         ).parse_for_errors()
     ) != "":
         return res
     return template_common.LogParser(
         run_dir,
-        template_common.RUN_LOG,
         error_patterns=(r"Fortran runtime error: (.*)",),
         default_msg="",
     ).parse_for_errors()

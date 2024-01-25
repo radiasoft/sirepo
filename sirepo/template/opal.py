@@ -554,7 +554,7 @@ def read_frame_count(run_dir):
 
 
 def parse_opal_log(run_dir):
-    return _OpalLogParser(run_dir, OPAL_OUTPUT_FILE).parse_for_errors()
+    return _OpalLogParser(run_dir, log_filename=OPAL_OUTPUT_FILE).parse_for_errors()
 
 
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
