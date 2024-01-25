@@ -2037,6 +2037,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     const _isOauth = (url, data) => {
+	// TODO(e-carlin): https://github.com/radiasoft/sirepo/issues/6689
         return SIREPO.APP_SCHEMA.simulationType === 'flash';
     };
 
