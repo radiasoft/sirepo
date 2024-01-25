@@ -2037,7 +2037,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     const _isOauth = (url, data) => {
-        return (data && "simulationType" in data) ? SIREPO.APP_SCHEMA.simulationType : false;
+        return SIREPO.APP_SCHEMA.simulationType;
     };
 
     const _protocolError = (header, content, wsreq, errorMsg) => {
