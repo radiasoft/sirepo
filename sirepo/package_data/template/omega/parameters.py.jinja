@@ -75,26 +75,39 @@ def read_sim(sim_type, sim_id):
 
 
 def run_elegant(run_dir, elegant_id, prev_sim=None):
+    def _save_lib_files(tmp, filename):
+        s = sirepo.sim_data.get_class("elegant")
+        b = s.lib_file_name_with_model_field("bunchFile", "sourceFile", filename)
+        s.lib_file_write(b, tmp)
+        c.copy(
+            c.uri(c.LIB_DIR, b),
+            c.uri(
+                c.LIB_DIR, 
+                s.lib_file_name_with_model_field("command_run_setup", "expand_for", filename),
+            ),
+        )
+        tmp.remove()
+
     data = read_sim('elegant', elegant_id)
     if prev_sim:
         assert prev_sim.outfile_path
         filename = file_name_from_sim_name('elegant', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
         update_elegant_sim(data, filename, prev_sim)
-        out = pkio.py_path(sim_lib_file('elegant', 'bunchFile', 'sourceFile', filename))
+        t = run_dir.join("omega-elegant-bunch")
         if prev_sim.sim_type == 'elegant':
-            pkio.py_path(prev_sim.outfile_path).copy(out)
+            pkio.py_path(prev_sim.outfile_path).copy(t)
         elif prev_sim.sim_type == 'genesis':
             import pmd_beamphysics.interfaces.elegant
 
             pmd_beamphysics.interfaces.elegant.write_elegant(
                 genesis_to_pmd(prev_sim),
-                str(out),
+                str(t),
             )
         else:
             sw = switchyard.Switchyard()
             sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
-            sw.write(str(out), 'elegant')
-        out.copy(sim_lib_file('elegant', 'command_run_setup', 'expand_for', filename))
+            sw.write(str(t), 'elegant')
+        _save_lib_files(t, filename)
     data.computeModel = 'animation'
     if 'report' in data:
         del data['report']
@@ -110,14 +123,14 @@ def run_genesis(run_dir, genesis_id, prev_sim=None):
         filename = file_name_from_sim_name(
             "genesis", f"{_OMEGA_SIM_NAME}-{run_dir.basename}"
         )
-        lib_file = sim_lib_file("genesis", "io", "partfile", filename)
+        t = run_dir.join("omega-genesis-partfile")
         if prev_sim.sim_type == "genesis":
             # center longitudinal
             with open(prev_sim.outfile_path, 'rb') as f:
                 d = numpy.fromfile(f, dtype=numpy.float64)
             d = d.reshape((_GENESIS_PARTICLE_COLUMN_COUNT, int(len(d) / _GENESIS_PARTICLE_COLUMN_COUNT)))
             d[1,:] -= numpy.mean(d[1,:])
-            with open(lib_file, 'wb') as f:
+            with open(t, 'wb') as f:
                 d.tofile(f)
         else:
             if prev_sim.sim_type == "elegant":
@@ -131,9 +144,9 @@ def run_genesis(run_dir, genesis_id, prev_sim=None):
             #TODO(pjm): [0] should be gamma not momentum
             particle_data[1] *= 2 * numpy.pi / data.models.radiation.xlamds
             particle_data[1] -= numpy.mean(particle_data[1])
-            with open(lib_file, "wb") as f:
+            with open(t, "wb") as f:
                 particle_data.tofile(f)
-        update_genesis_sim(data, filename, lib_file)
+        update_genesis_sim(data, filename, t)
     data.computeModel = 'animation'
     if 'report' in data:
         del data['report']
@@ -185,7 +198,7 @@ def run_sims(sim_list):
 
 def sim_lib_file(sim_type, model, field, filename):
     s = sirepo.sim_data.get_class(sim_type)
-    return s.lib_file_write_path(
+    return s.libz_file_write_path(
         s.lib_file_name_with_model_field(model, field, filename),
     )
 
@@ -203,20 +216,27 @@ def update_elegant_sim(data, filename, prev_sim):
     write_sim(data)
 
 
-def update_genesis_sim(data, filename, lib_file):
+def update_genesis_sim(data, filename, tmp):
+    def _save_lib_file(tmp, filename):
+        s = sirepo.sim_data.get_class("genesis")
+        b = s.lib_file_name_with_model_field("io", "partfile", filename)
+        s.lib_file_write(b, tmp)
+        tmp.remove()
+
     io = data.models.io
     io.partfile = filename
     io.ippart = 0
     io.ipradi = 0
-    d = numpy.fromfile(lib_file, dtype=numpy.float64)
+    d = numpy.fromfile(tmp, dtype=numpy.float64)
     n = len(d) / _GENESIS_PARTICLE_COLUMN_COUNT
     factor = 4 * data.models.particleLoading.nbins
     data.models.electronBeam.npart = int(n / factor) * factor
     # clip particle count to match npart
     d = d.reshape(_GENESIS_PARTICLE_COLUMN_COUNT, int(n))
     d = d[:, :data.models.electronBeam.npart]
-    with open(lib_file, 'wb') as f:
+    with open(tmp, 'wb') as f:
         d.tofile(f)
+    _save_lib_file(tmp, filename)
     write_sim(data)
 
 
@@ -257,11 +277,6 @@ def write_sim(data):
         sirepo.simulation_db.sim_data_file(data.simulationType, data.models.simulation.simulationId),
         data,
     )
-
-
-#TODO(pjm): need an API to add/update lib files
-if 'lib_file_uri' in sirepo.sim_data._cfg:
-    sirepo.sim_data._cfg.lib_file_uri = ''
 
 
 run_sims([
