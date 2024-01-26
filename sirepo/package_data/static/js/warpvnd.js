@@ -23,9 +23,6 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="ZCell" data-ng-class="fieldClass">
           <div data-cell-selector=""></div>
         </div>
-        <div data-ng-switch-when="Color" data-ng-class="fieldClass">
-          <div data-color-picker="" data-model="model" data-field="field" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>
-        </div>
         <div data-ng-switch-when="OptimizationField" data-ng-class="fieldClass">
           <div data-optimization-field-picker="" field="field" data-model="model"></div>
         </div>

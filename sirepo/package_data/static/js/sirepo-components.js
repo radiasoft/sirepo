@@ -785,9 +785,12 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               <div data-ng-switch-when="Bool" class="col-sm-7">
                   <input type="checkbox" data-ng-model="model[field]">
               </div>
-               <div data-ng-switch-when="Boolean" data-ng-class="fieldClass">
-                 <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
-               </div>
+              <div data-ng-switch-when="Boolean" data-ng-class="fieldClass">
+                <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
+              </div>
+              <div data-ng-switch-when="Color" data-ng-class="fieldClass">
+                <input type="color" data-ng-model="model[field]" class="sr-color-button">
+              </div>
               <div data-ng-switch-when="ColorMap" class="col-sm-7">
                 <div data-color-map-menu="" class="dropdown"></div>
               </div>

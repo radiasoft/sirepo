@@ -11,9 +11,6 @@ SIREPO.app.config(() => {
     `;
     //TODO(pjm): OptionalFloat should be standard
     SIREPO.appFieldEditors = `
-        <div data-ng-switch-when="Color" data-ng-class="fieldClass">
-          <input type="color" data-ng-model="model[field]" class="sr-color-button">
-        </div>
         <div data-ng-switch-when="Point3D" class="col-sm-7">
           <div data-point3d="" data-model="model" data-field="field"></div>
         </div>
