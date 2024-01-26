@@ -1,0 +1,134 @@
+isotopes ['Ar36', 'Ar38', 'Ar40', 'Cu63', 'Cu65', 'N14', 'N15', 'O16']
+Searching libraries with the following priority {'ENDFB-7.1-NNDC': 1}
+Isotopes found matching library requirements 423
+Isotopes found matching particle requirements 1789
+Isotopes found matching isotope requirements 32
+Isotopes found matching all requirements 8
+elements ['N', 'O', 'Cu', 'Ar']
+Searching libraries with the following priority {'ENDFB-7.1-NNDC': 1}
+Elements found matching library requirements 100
+Elements found matching particle requirements 259
+Elements found matching element requirements 12
+Elements found matching all requirements 4
+            library remote_file  ... element priority
+645  ENDFB-7.1-NNDC     Ar36.h5  ...      Ar        1
+646  ENDFB-7.1-NNDC     Ar38.h5  ...      Ar        1
+647  ENDFB-7.1-NNDC     Ar40.h5  ...      Ar        1
+730  ENDFB-7.1-NNDC     Cu63.h5  ...      Cu        1
+731  ENDFB-7.1-NNDC     Cu65.h5  ...      Cu        1
+837  ENDFB-7.1-NNDC      N14.h5  ...       N        1
+838  ENDFB-7.1-NNDC      N15.h5  ...       N        1
+864  ENDFB-7.1-NNDC      O16.h5  ...       O        1
+6    ENDFB-7.1-NNDC        N.h5  ...       N        1
+7    ENDFB-7.1-NNDC        O.h5  ...       O        1
+17   ENDFB-7.1-NNDC       Ar.h5  ...      Ar        1
+28   ENDFB-7.1-NNDC       Cu.h5  ...      Cu        1
+
+[12 rows x 8 columns]
+Skipping /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1-NNDC_Ar36.h5, already downloaded
+Skipping /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1-NNDC_Ar38.h5, already downloaded
+Skipping /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1-NNDC_Ar40.h5, already downloaded
+Skipping /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1-NNDC_Cu63.h5, already downloaded
+Skipping /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1-NNDC_Cu65.h5, already downloaded
+Skipping /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1-NNDC_N14.h5, already downloaded
+Skipping /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1-NNDC_N15.h5, already downloaded
+Skipping /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1-NNDC_O16.h5, already downloaded
+Skipping /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1-NNDC_N.h5, already downloaded
+Skipping /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1-NNDC_O.h5, already downloaded
+Skipping /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1-NNDC_Ar.h5, already downloaded
+Skipping /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1-NNDC_Cu.h5, already downloaded
+written cross sections xml file to /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/cross_sections.xml
+setting OPENMC_CROSS_SECTIONS to /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/cross_sections.xml
+/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/openmc/source.py:388: FutureWarning: This class is deprecated in favor of 'IndependentSource'
+  warnings.warn("This class is deprecated in favor of 'IndependentSource'", FutureWarning)
+                                %%%%%%%%%%%%%%%
+                           %%%%%%%%%%%%%%%%%%%%%%%%
+                        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                                    %%%%%%%%%%%%%%%%%%%%%%%%
+                                     %%%%%%%%%%%%%%%%%%%%%%%%
+                 ###############      %%%%%%%%%%%%%%%%%%%%%%%%
+                ##################     %%%%%%%%%%%%%%%%%%%%%%%
+                ###################     %%%%%%%%%%%%%%%%%%%%%%%
+                ####################     %%%%%%%%%%%%%%%%%%%%%%
+                #####################     %%%%%%%%%%%%%%%%%%%%%
+                ######################     %%%%%%%%%%%%%%%%%%%%
+                #######################     %%%%%%%%%%%%%%%%%%
+                 #######################     %%%%%%%%%%%%%%%%%
+                 ######################     %%%%%%%%%%%%%%%%%
+                  ####################     %%%%%%%%%%%%%%%%%
+                    #################     %%%%%%%%%%%%%%%%%
+                     ###############     %%%%%%%%%%%%%%%%
+                       ############     %%%%%%%%%%%%%%%
+                          ########     %%%%%%%%%%%%%%
+                                      %%%%%%%%%%%
+
+                 | The OpenMC Monte Carlo Code
+       Copyright | 2011-2023 MIT, UChicago Argonne LLC, and contributors
+         License | https://docs.openmc.org/en/latest/license.html
+         Version | 0.13.4-dev
+        Git SHA1 | eea52238dac0162a8b7924b81800af4a3c78798e
+       Date/Time | 2024-01-26 20:16:33
+   MPI Processes | 1
+  OpenMP Threads | 6
+
+ Reading settings XML file...
+ Reading cross sections XML file...
+ Reading materials XML file...
+ Reading geometry XML file...
+Loading file geometryInput-dagmcFile.aurora.h5m
+Initializing the GeomQueryTool...
+Using faceting tolerance: 0.0001
+Building acceleration data structures...
+ Reading Cu63 from
+ /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1
+ -NNDC_Cu63.h5
+ Reading Cu65 from
+ /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1
+ -NNDC_Cu65.h5
+ Reading N14 from
+ /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1
+ -NNDC_N14.h5
+ Reading N15 from
+ /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1
+ -NNDC_N15.h5
+ Reading O16 from
+ /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1
+ -NNDC_O16.h5
+ Reading Ar36 from
+ /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1
+ -NNDC_Ar36.h5
+ WARNING: Negative value(s) found on probability table for nuclide Ar36 at 294K
+ Reading Ar38 from
+ /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1
+ -NNDC_Ar38.h5
+ Reading Ar40 from
+ /home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/tmp/cloudmc-cache/ENDFB-7.1
+ -NNDC_Ar40.h5
+ Minimum neutron data temperature: 294 K
+ Maximum neutron data temperature: 294 K
+ Reading tallies XML file...
+ Preparing distributed cell instances...
+ Reading plot XML file...
+ Maximum neutron transport energy: 20000000 eV for N15
+ Initializing source particles...
+
+ ====================>     K EIGENVALUE SIMULATION     <====================
+
+  Bat./Gen.      k            Average k
+  =========   ========   ====================
+ ERROR: No fission sites banked on MPI rank 0
+application called MPI_Abort(MPI_COMM_WORLD, -1) - process 0
+[unset]: write_line error; fd=-1 buf=:cmd=abort exitcode=-1
+:
+system msg for write_line failure : Bad file descriptor
+Traceback (most recent call last):
+  File "/home/vagrant/src/radiasoft/sirepo/run/user/deXWKOcN/cloudmc/W1IkrT8i/openmcAnimation/parameters.py", line 85, in <module>
+    openmc.run(threads=6)
+  File "/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/openmc/executor.py", line 314, in run
+    _run(args, output, cwd)
+  File "/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/openmc/executor.py", line 125, in _run
+    raise RuntimeError(error_msg)
+RuntimeError: No fission sites banked on MPI rank 0 application called MPI_Abort(MPI_COMM_WORLD, -1) - process 0 [unset]: write_line error; fd=-1 buf=:cmd=abort exitcode=-1 : system msg for write_line failure : Bad file descriptor
