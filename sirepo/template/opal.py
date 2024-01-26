@@ -122,7 +122,7 @@ class _OpalLogParser(template_common.LogParser):
         visited = set()
         with pkio.open_text(file_path) as f:
             for line in f:
-                if re.search(r"^Error.*?>\s*\w", line):
+                if re.search(r"^Error.*?>\s*[\w\"]", line):
                     line = re.sub(r"Error.*?>\s*", "", line.rstrip()).rstrip()
                     if re.search(r"1DPROFILE1-DEFAULT", line):
                         continue
