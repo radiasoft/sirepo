@@ -432,7 +432,7 @@ class _TestClient:
                         r,
                     )
                     r = self.sr_post("runStatus", r.nextRequest)
-                pkdlog(r.state)
+                pkdlog("reply.state={}", r.get("state"))
                 if r.state in ("completed", "error"):
                     cancel = None
                     break
@@ -441,7 +441,7 @@ class _TestClient:
             else:
                 pkunit.pkok(not expect_completed, "did not complete: runStatus={}", r)
             if expect_completed:
-                pkunit.pkeq("completed", r.state)
+                pkunit.pkeq("completed", r.state, "reply={}", r)
             return r
         finally:
             if cancel:

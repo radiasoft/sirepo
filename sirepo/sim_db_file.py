@@ -78,8 +78,23 @@ class SimDbClient:
 
         self._request("PUT", lib_sid_uri, basename, data=_data(), sim_type=sim_type)
 
+    def read_sim(self, lib_sid_uri, sim_type=None):
+        return self._post(
+            lib_sid_uri,
+            basename=sirepo.const.SIM_DATA_BASENAME,
+            sim_type=sim_type,
+        )
+
     def save_from_url(self, src_url, dst_uri):
         self._post(dst_uri, args=PKDict(src_url=src_url))
+
+    def save_sim(self, sdata):
+        return self._post(
+            sdata.models.simulation.simulationId,
+            basename=sirepo.const.SIM_DATA_BASENAME,
+            sim_type=sdata.simulationType,
+            args=PKDict(sdata=sdata),
+        )
 
     def size(self, lib_sid_uri, basename=None, sim_type=None):
         return self._post(lib_sid_uri, basename, sim_type=sim_type)
@@ -150,11 +165,7 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
 
     async def post(self, unused_arg):
         def _result(value):
-            if value is None:
-                value = PKDict()
-            elif not isinstance(value, PKDict):
-                value = PKDict(result=value)
-            return value.pksetdefault(state="ok")
+            return PKDict(result=value).pksetdefault(state="ok")
 
         try:
             if not self.__authenticate_and_path():
@@ -167,7 +178,9 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
                 raise AssertionError(f"missing method path={self.__path} args={a}")
             self.write(_result(await getattr(self, "_sr_post_" + m)(a)))
         except Exception as e:
-            if pkio.exception_is_not_found(e):
+            if pkio.exception_is_not_found(e) or isinstance(
+                e, sirepo.util.SPathNotFound
+            ):
                 self.send_error(404)
                 return
             pkdlog(
@@ -219,6 +232,17 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
             return
         self.__path.move(p)
 
+    async def _sr_post_read_sim(self, args):
+        from sirepo import quest, simulation_db
+
+        with quest.start() as qcall:
+            with qcall.auth.logged_in_user_set(self.__uid):
+                return simulation_db.read_simulation_json(
+                    self.__uri_parts.sim_type,
+                    self.__uri_parts.sid_or_lib,
+                    qcall=qcall,
+                )
+
     async def _sr_post_save_from_url(self, args):
         max_size = sirepo.job.cfg().max_message_bytes
         size = 0
@@ -251,15 +275,29 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
                 pkio.unchecked_remove(t)
         return PKDict(size=size)
 
+    async def _sr_post_save_sim(self, args):
+        from sirepo import quest, simulation_db
+
+        with quest.start() as qcall:
+            with qcall.auth.logged_in_user_set(self.__uid):
+                return simulation_db.save_simulation_json(
+                    args.sdata,
+                    fixup=True,
+                    qcall=qcall,
+                    modified=True,
+                )
+
     async def _sr_post_size(self, args):
         return self.__path.size()
 
     def __authenticate_and_path(self):
         self.__uid = self._rs_authenticate()
-        self.__path = _uri_parse(self.request.path, uid=self.__uid)
-        if self.__path is None:
+        p = _uri_parse(self.request.path, uid=self.__uid)
+        if p is None:
             self.send_error(403)
             return False
+        self.__path = p.path
+        self.__uri_parts = p
         return self.__path
 
     def __uri_arg_to_path(self, uri):
@@ -267,22 +305,23 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
         if res is None:
             self.send_error(403)
             return None
-        return res
+        return res.path
 
 
 class SimDbUri(str):
     def __new__(cls, sim_type, slu, basename):
 
         if isinstance(slu, cls):
-            if basename is not None:
+            if basename is None or basename == slu._basename:
                 raise AssertionError(
-                    f"basename={basename} must be none when uri={slu} supplied"
+                    f"basename={basename} must be None or same as when uri={slu} supplied"
                 )
             if sim_type != slu._stype:
                 raise AssertionError(f"sim_type={sim_type} disagrees with uri={slu}")
             return slu
         self = super().__new__(cls, cls._uri_from_parts(sim_type, slu, basename))
         self._stype = sim_type
+        self._basename = basename
         return self
 
     @classmethod
@@ -328,17 +367,24 @@ def _uri_parse(uri, uid, is_arg_uri=False):
         uid (str): expected user
         is_arg_uri (bool): True then do not test uid
     Returns:
-        str: validated relative path to sim_db. None if error
+        PKDict: parts (path, sid_or_lib, sim_type, basename). None if error
     """
 
-    def _path_join(stype, sid_or_lib, basename):
+    def _result(stype, sid_or_lib, basename):
         from sirepo import simulation_db, template
 
         try:
-            return simulation_db.user_path(uid=uid, check=True).join(
-                template.assert_sim_type(stype),
-                _sid_or_lib(sid_or_lib),
-                simulation_db.assert_sim_db_basename(basename),
+            res = PKDict(
+                basename=simulation_db.assert_sim_db_basename(basename),
+                sid_or_lib=_sid_or_lib(sid_or_lib),
+                sim_type=template.assert_sim_type(stype),
+            )
+            return res.pkupdate(
+                path=simulation_db.user_path(uid=uid, check=True).join(
+                    res.sim_type,
+                    res.sid_or_lib,
+                    res.basename,
+                ),
             )
         except Exception as e:
             pkdlog(
@@ -369,7 +415,7 @@ def _uri_parse(uri, uid, is_arg_uri=False):
     if len(p) != 3:
         pkdlog("uri={} invalid part count is_arg_uri={}", uri, is_arg_uri)
         return
-    return _path_join(*p)
+    return _result(*p)
 
 
 _cfg = pkconfig.init(

@@ -40,8 +40,8 @@ JOB_RUN_MODE_MAP = None
 #: Schema common values, e.g. version
 SCHEMA_COMMON = None
 
-#: Simulation file name is globally unique to avoid collisions with simulation output
-SIMULATION_DATA_FILE = "sirepo-data" + sirepo.const.JSON_SUFFIX
+#: DEPRECATED use sirepo.const.SIM_DATA_BASENAME
+SIMULATION_DATA_FILE = sirepo.const.SIM_DATA_BASENAME
 
 #: where users live under db_dir
 USER_ROOT_DIR = "user"
@@ -304,7 +304,7 @@ def init_module():
 def iterate_simulation_datafiles(simulation_type, op, search=None, qcall=None):
     res = []
     sim_dir = simulation_dir(simulation_type, qcall=qcall)
-    for p in pkio.sorted_glob(sim_dir.join("*", SIMULATION_DATA_FILE)):
+    for p in pkio.sorted_glob(sim_dir.join("*", sirepo.const.SIM_DATA_BASENAME)):
         try:
             data = open_json_file(
                 simulation_type,
@@ -392,7 +392,7 @@ def migrate_guest_to_persistent_user(guest_uid, to_uid, qcall):
     with user_lock(uid=guest_uid, qcall=qcall) as g:
         with user_lock(uid=to_uid, qcall=qcall):
             for p in glob.glob(
-                str(g.join("*", "*", SIMULATION_DATA_FILE)),
+                str(g.join("*", "*", sirepo.const.SIM_DATA_BASENAME)),
             ):
                 if read_json(p).models.simulation.get("isExample"):
                     continue

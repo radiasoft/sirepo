@@ -530,11 +530,12 @@ class SimDataBase(object):
             path_or_content (str|bytes|py.path): what to save, may be text or binary
             qcall (quest.API): logged in user
         """
-        from sirepo import simulation_db
 
         def _target():
-            return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
-                basename
+            return (
+                cls._simulation_db()
+                .simulation_lib_dir(cls.sim_type(), qcall=qcall)
+                .join(basename)
             )
 
         if cls._is_agent_side():
@@ -548,11 +549,11 @@ class SimDataBase(object):
     @classmethod
     def lib_file_write_path(cls, basename, qcall=None):
         """DEPRECATED: Use `lib_file_write`"""
-        cls._assert_server_side()
-        from sirepo import simulation_db
 
-        return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
-            basename
+        return (
+            cls._simulation_db()
+            .simulation_lib_dir(cls.sim_type(), qcall=qcall)
+            .join(basename)
         )
 
     @classmethod
@@ -575,10 +576,7 @@ class SimDataBase(object):
             data (dict): simulation db
             other_lib_dir (py.path): source directory
         """
-        cls._assert_server_side()
-        from sirepo import simulation_db
-
-        t = simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall)
+        t = cls._simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall)
         for f in cls._lib_file_basenames(data):
             s = other_lib_dir.join(f)
             if s.exists():
@@ -684,8 +682,6 @@ class SimDataBase(object):
         Returns:
             str: simulation id
         """
-        from sirepo import simulation_db
-
         if isinstance(obj, pkconfig.STRING_TYPES):
             res = obj
         elif isinstance(obj, dict):
@@ -694,7 +690,7 @@ class SimDataBase(object):
             )
         else:
             raise AssertionError("obj={} is unsupported type={}", obj, type(obj))
-        return simulation_db.assert_sid(res)
+        return cls._simulation_db().assert_sid(res)
 
     @classmethod
     def poll_seconds(cls, data):
@@ -760,6 +756,13 @@ class SimDataBase(object):
 
     @classmethod
     def schema(cls):
+        """Get schema for code
+
+        Returns:
+            PKDict: schema
+        """
+        # TODO(robnagler) cannot use cls._simulation_db, because needed in templates
+        # schema should be available so move out of simulation_db.
         from sirepo import simulation_db
 
         return cls._memoize(simulation_db.get_schema(cls.sim_type()))
@@ -782,6 +785,49 @@ class SimDataBase(object):
 
         cls._assert_agent_side()
         return cls._memoize(sim_db_file.SimDbClient(cls))
+
+    @classmethod
+    def sim_db_read_sim(cls, sim_id, sim_type=None, qcall=None):
+        """Read simulation sdata for `sim_id`
+
+        Calls `simulation_db.read_simulation_json`
+
+        Args:
+            sim_id (str): which simulation
+            sim_type (str): simulation type [`cls.sim_type()`]
+            qcall (quest.API): quest [None]
+        Returns:
+            PKDict: sdata
+        """
+        if cls._is_agent_side():
+            return cls.sim_db_client().read_sim(sim_id, sim_type=sim_type)
+        return cls._simulation_db().read_simulation_json(
+            sim_type or cls.sim_type(), sim_id, qcall=qcall
+        )
+
+    @classmethod
+    def sim_db_save_sim(cls, sdata, qcall=None):
+        """Save `sdata` to simulation db.
+
+        Calls `simulation_db.save_simulation_json`
+
+        Args:
+            sdata (PKDict): what to write
+            qcall (quest.API): quest [None]
+        Returns:
+            PKDict: updated sdata
+        """
+        if not isinstance(sdata, PKDict):
+            raise AssertionError(f"sdata unexpected type={type(sdata)}")
+        if cls._is_agent_side():
+            return cls.sim_db_client().save_sim(sdata)
+        # TODO(robnagler) normalize so that same code is used
+        return cls._simulation_db().save_simulation_json(
+            sdata,
+            fixup=True,
+            qcall=qcall,
+            modified=True,
+        )
 
     @classmethod
     def sim_file_basenames(cls, data):
@@ -917,11 +963,10 @@ class SimDataBase(object):
     @classmethod
     def _lib_file_abspath(cls, basename, qcall):
         """Path in user lib directory for `basename`"""
-        from sirepo import simulation_db
-
-        cls._assert_server_side()
-        return simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall).join(
-            basename
+        return (
+            cls._simulation_db()
+            .simulation_lib_dir(cls.sim_type(), qcall=qcall)
+            .join(basename)
         )
 
     @classmethod
@@ -1075,6 +1120,13 @@ class SimDataBase(object):
     @classmethod
     def _sim_file_basenames(cls, data):
         return []
+
+    @classmethod
+    def _simulation_db(cls):
+        cls._assert_server_side()
+        from sirepo import simulation_db
+
+        return simulation_db
 
 
 _cfg = pkconfig.init(

@@ -22,14 +22,42 @@ def test_basic(sim_db_file_server):
     pkunit.pkeq(3, c.size(c.LIB_DIR, "hello.txt"))
     c.delete_glob(c.LIB_DIR, "bye")
     with pkunit.pkexcept(FileNotFoundError):
-        pkunit.pkeq(3, c.size(c.LIB_DIR, "bye.txt"))
+        c.size(c.LIB_DIR, "bye.txt")
     c.move(
         c.uri(c.LIB_DIR, "hello.txt"),
         c.uri(c.LIB_DIR, "bye.txt"),
     )
     with pkunit.pkexcept(FileNotFoundError):
-        pkunit.pkeq(3, c.size(c.LIB_DIR, "hello.txt"))
+        c.size(c.LIB_DIR, "hello.txt")
     pkunit.pkeq(b"abc", c.get(c.LIB_DIR, "bye.txt"))
+
+
+def test_sim_data(sim_db_file_server):
+    from pykern import pkunit
+    from sirepo import srunit, sim_data, simulation_db
+
+    with srunit.quest_start() as qcall:
+        stype = srunit.SR_SIM_TYPE_DEFAULT
+        uid = qcall.auth.logged_in_user()
+        sid = simulation_db.iterate_simulation_datafiles(
+            stype,
+            simulation_db.process_simulation_list,
+            None,
+            qcall=qcall,
+        )[0].simulationId
+        c = sim_data.get_class(stype).sim_db_client()
+        d = c.read_sim(sid)
+        pkunit.pkeq(srunit.SR_SIM_NAME_DEFAULT, d.models.simulation.name)
+        d.models.dog.weight = 192000
+        n = c.save_sim(d)
+        pkunit.pkne(
+            n.models.simulation.simulationSerial,
+            d.models.simulation.simulationSerial,
+        )
+        d = c.read_sim(sid)
+        pkunit.pkeq(192000, d.models.dog.weight)
+        with pkunit.pkexcept(FileNotFoundError):
+            c.read_sim("12345678")
 
 
 def test_save_from_uri(sim_db_file_server):

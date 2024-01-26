@@ -226,21 +226,20 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
         if not s.stype or not s.sid:
             continue
         sim_dir = _sim_dir(run_dir, idx + 1)
-        sim_template = _template_for_sim_type(sim_type)
-        res = f"{sim_type.upper()} failed\n"
+        sim_template = _template_for_sim_type(s.stype)
+        res = f"{s.stype.upper()} failed\n"
         if success_exit:
             # no error
             return
-        if sim_type and sim_id:
-            if sim_dir.exists():
-                if sim_type == "opal":
-                    return res + sim_template.parse_opal_log(sim_dir)
-                if sim_type == "elegant":
-                    return res + sim_template.parse_elegant_log(sim_dir)
-                if sim_type == "genesis":
-                    # genesis gets error from main run.log
-                    return res + sim_template.parse_genesis_error(run_dir)
-                return res
+        if s.stype and s.sid and sim_dir.exists():
+            if s.stype == "opal":
+                return res + sim_template.parse_opal_log(sim_dir)
+            if s.stype == "elegant":
+                return res + sim_template.parse_elegant_log(sim_dir)
+            if s.stype == "genesis":
+                # genesis gets error from main run.log
+                return res + sim_template.parse_genesis_error(run_dir)
+            return res
 
     return "An unknown error occurred"
 
