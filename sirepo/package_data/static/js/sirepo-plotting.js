@@ -3527,7 +3527,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             var includeForDomain = [];
             var childPlots = {};
             var scaleFunction;
-            var plotVisibilty = {};
+            var plotVisibility = {};
             let dynamicYLabel = false;
 
             // for built-in d3 symbols - the units are *pixels squared*
@@ -3600,12 +3600,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return true;
             }
 
-            function cachedPlotVisibilty(pIndex, modelName) {
-                plotVisibilty[modelName] = plotVisibilty[modelName] || {};
-                if (! plotVisibilty[modelName].hasOwnProperty(pIndex)) {
-                    plotVisibilty[modelName][pIndex] = false;
+            function cachedPlotVisibility(pIndex, modelName) {
+                plotVisibility[modelName] = plotVisibility[modelName] || {};
+                if (! plotVisibility[modelName].hasOwnProperty(pIndex)) {
+                    plotVisibility[modelName][pIndex] = false;
                   }
-                return plotVisibilty[modelName][pIndex];
+                return plotVisibility[modelName][pIndex];
             }
 
             function createLegend() {
@@ -3760,8 +3760,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             function togglePlot(pIndex, modelName) {
                 setPlotVisible(pIndex, ! isPlotVisible(pIndex));
                 updateYLabel();
-                if (plotVisibilty) {
-                    plotVisibilty[modelName][pIndex] = ! plotVisibilty[modelName][pIndex];
+                if (plotVisibility) {
+                    plotVisibility[modelName][pIndex] = ! plotVisibility[modelName][pIndex];
                 }
             }
 
@@ -4088,18 +4088,38 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 });
                 updateYLabel();
                 plots.forEach(function(plot, i) {
-                    if (cachedPlotVisibilty(i, $scope.modelName)) {
+                    if (cachedPlotVisibility(i, $scope.modelName)) {
                         setPlotVisible(i, ! isPlotVisible(i));
                     }
                 });
+                // srdbg("$scope.modelname", $scope.modelName);
+                $scope.$on("axes.changed", () => {
+                    srdbg("axis change");
+                });
 
+                function _labels(plots) {
+                    var res = [];
+                    for (var plot of plots) {
+                        res.push(plot.label);
+                    }
+                    return res;
+                }
+
+                const l = _labels(plots);
                 $scope.$on(
                     $scope.modelName + '.changed',
-                    () => {
-                        plots.forEach((plot, i) => {
-                            plotVisibilty[$scope.modelName][i] = false;
-                        });
-                    }
+                        () => {
+                            const n = _labels(plots);
+                            srdbg(l, n);
+                            // TODO (gurhar1133): why is labels in changed the old ones?
+                            // need to figure out
+                            if (JSON.stringify(l) != JSON.stringify(n)) {
+                                srdbg("DIFF", l, n);
+                            }
+                            plots.forEach((plot, i) => {
+                                plotVisibility[$scope.modelName][i] = false;
+                            });
+                        }
                 );
             };
 
