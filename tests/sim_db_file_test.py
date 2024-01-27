@@ -83,7 +83,7 @@ def test_uri():
         if deviance:
             pkunit.pkok(not r, "unexpected res={} uri={} uid={} ", r, uri, uid)
         else:
-            pkunit.pkeq(simulation_db.user_path_root().join(uri), r)
+            pkunit.pkeq(simulation_db.user_path_root().join(uri), r.path)
 
     srunit.setup_srdb_root()
     from sirepo import simulation_db, sim_db_file, job
