@@ -141,8 +141,11 @@ def api_and_supervisor(pytest_req, fc_args):
         import sys
 
         for x in p:
-            x.terminate()
-            x.wait()
+            try:
+                x.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                x.kill()
+                x.wait(timeout=2)
 
 
 @contextlib.contextmanager
