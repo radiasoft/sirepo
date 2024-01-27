@@ -104,7 +104,7 @@ class SimDbClient:
 
         ``lib_sid_uri`` may be `sirepo.const.LIB_DIR`, a simulation id, or a
         `SimDbUri`.  In the latter case, the uri must match ``sim_type``
-        (if supplied), and ``basename`` must be None.
+        (if supplied), and ``basename`` must be None (or match uri).
 
         Args:
             lib_sid_uri (object): see above
@@ -312,7 +312,7 @@ class SimDbUri(str):
     def __new__(cls, sim_type, slu, basename):
 
         if isinstance(slu, cls):
-            if basename is None or basename == slu._basename:
+            if basename is not None and basename != slu._basename:
                 raise AssertionError(
                     f"basename={basename} must be None or same as when uri={slu} supplied"
                 )

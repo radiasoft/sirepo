@@ -73,6 +73,7 @@ def run_elegant(run_dir, elegant_id, prev_sim=None):
         s = sirepo.sim_data.get_class("elegant")
         b = s.lib_file_name_with_model_field("bunchFile", "sourceFile", filename)
         s.lib_file_write(b, tmp)
+        c = s.sim_db_client()
         c.copy(
             c.uri(c.LIB_DIR, b),
             c.uri(
@@ -93,7 +94,6 @@ def run_elegant(run_dir, elegant_id, prev_sim=None):
         cmd.reverse_t_sign = '1' if prev_sim.sim_type == 'genesis' else '0'
         LatticeUtil.find_first_command(data, "run_setup").expand_for = filename
         write_sim(data)
-
 
     data = read_sim('elegant', elegant_id)
     if prev_sim:
@@ -124,15 +124,15 @@ def run_elegant(run_dir, elegant_id, prev_sim=None):
 
 
 def run_genesis(run_dir, genesis_id, prev_sim=None):
-    def _update_sim(data, filename, tmp):
-        def _save_lib_file(tmp, filename):
-            s = sirepo.sim_data.get_class("genesis")
-            s.lib_file_write(
-                s.lib_file_name_with_model_field("io", "partfile", filename),
-                tmp,
-            )
-            tmp.remove()
+    def _save_lib_file(tmp, filename):
+        s = sirepo.sim_data.get_class("genesis")
+        s.lib_file_write(
+            s.lib_file_name_with_model_field("io", "partfile", filename),
+            tmp,
+        )
+        tmp.remove()
 
+    def _update_sim(data, filename, tmp):
         io = data.models.io
         io.partfile = filename
         io.ippart = 0
@@ -188,16 +188,15 @@ def run_genesis(run_dir, genesis_id, prev_sim=None):
 
 
 def run_opal(run_dir, opal_id, prev_sim=None):
+    def _save_lib_file(tmp, filename):
+        s = sirepo.sim_data.get_class("opal")
+        s.lib_file_write(
+            s.lib_file_name_with_model_field("command_distribution", "fname", filename),
+            tmp,
+        )
+        tmp.remove()
+
     def _update_sim(data, filename, tmp):
-        def _save_lib_file(tmp, filename):
-            s = sirepo.sim_data.get_class("opal")
-            s.lib_file_write(
-                s.lib_file_name_with_model_field("command_distribution", "fname", filename),
-                tmp,
-            )
-            tmp.remove()
-
-
         d = LatticeUtil.find_first_command(data, "distribution")
         d.type = "FROMFILE"
         d.fname = filename
