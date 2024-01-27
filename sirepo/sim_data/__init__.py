@@ -576,7 +576,7 @@ class SimDataBase(object):
             data (dict): simulation db
             other_lib_dir (py.path): source directory
         """
-        t = cls._simulation_db.simulation_lib_dir(cls.sim_type(), qcall=qcall)
+        t = cls._simulation_db().simulation_lib_dir(cls.sim_type(), qcall=qcall)
         for f in cls._lib_file_basenames(data):
             s = other_lib_dir.join(f)
             if s.exists():
