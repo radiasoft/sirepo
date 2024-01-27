@@ -10,6 +10,7 @@ from pykern import pkinspect
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+import asyncio
 import contextlib
 import importlib
 import inspect
@@ -213,8 +214,6 @@ def start_tornado(ip, port, debug):
 
     class _WebSocket(websocket.WebSocketHandler):
         async def on_message(self, msg):
-            import asyncio
-
             # WebSocketHandler only allows one on_message at a time.
             asyncio.ensure_future(self.__on_message(msg))
 

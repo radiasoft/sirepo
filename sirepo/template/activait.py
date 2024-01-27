@@ -1162,7 +1162,7 @@ class _ImagePreview:
                 d.append(_dice_coefficient(pair[0], pair[1]))
             return d
 
-        f = plt.figure(figsize=[10, 10])
+        plt.figure(figsize=[10, 10])
         plt.hist(_dice())
         plt.xlabel("Dice Scores", fontsize=20)
         plt.ylabel("Counts", fontsize=20)

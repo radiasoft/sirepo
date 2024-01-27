@@ -722,7 +722,7 @@ class SimDataBase(object):
 
     @classmethod
     def put_sim_file(cls, sim_id, src_file_name, dst_basename):
-        """Write a file to the sim repo dir
+        """Write a file to the simulation's database directory
 
         Args:
             sim_id (str): simulation id

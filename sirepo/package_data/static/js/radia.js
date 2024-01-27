@@ -1406,7 +1406,7 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
             };
             $scope.fileUploadError = '';
             $scope.isUploading = false;
-            $scope.importDmpFile = function (inputFile) {
+            $scope.importDmpFile = function(inputFile) {
                 if (! inputFile) {
                     return;
                 }

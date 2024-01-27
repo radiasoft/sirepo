@@ -12,10 +12,9 @@ def test_import():
 
     for d in pkunit.case_dirs(group_prefix="conformance"):
         for f in pkio.sorted_glob("*.csv"):
-            _ = csv.read_as_number_list(f)
-        pass
+            csv.read_as_number_list(f)
 
     for d in pkunit.case_dirs(group_prefix="deviance"):
         for f in pkio.sorted_glob("*.csv"):
             with pkunit.pkexcept("invalid file"):
-                _ = csv.read_as_number_list(f)
+                csv.read_as_number_list(f)

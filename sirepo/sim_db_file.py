@@ -309,18 +309,30 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
 
 
 class SimDbUri(str):
-    def __new__(cls, sim_type, slu, basename):
+    """Identifies the relative path to a file in the simulation db.
 
+    The value is a URI comprised of parts: sim_type, sim_id or
+    `LIB_DIR` and basename.
+
+    If `slu` is a `SimDbUri`, `basename` must match it or be None. `sim_type` must match the SimDbUri.
+
+    Args:
+        sim_type (str): simulation code
+        slu (object): a SimDbUri, `LIB_DIR`, or a sim_id
+        basename (str): valid simple file name
+    """
+
+    def __new__(cls, sim_type, slu, basename):
         if isinstance(slu, cls):
             if basename is not None and basename != slu._basename:
                 raise AssertionError(
                     f"basename={basename} must be None or same as when uri={slu} supplied"
                 )
-            if sim_type != slu._stype:
+            if sim_type != slu._sim_type:
                 raise AssertionError(f"sim_type={sim_type} disagrees with uri={slu}")
             return slu
         self = super().__new__(cls, cls._uri_from_parts(sim_type, slu, basename))
-        self._stype = sim_type
+        self._sim_type = sim_type
         self._basename = basename
         return self
 
@@ -330,7 +342,7 @@ class SimDbUri(str):
 
         Args:
             sim_type (str): which code
-            sid_or_lib (str): simulation id. if None or `_LIB_DIR`, is library file
+            sid_or_lib (str): simulation id. if None or `LIB_DIR`, is library file
             basename (str): file name with extension
 
         Returns:
@@ -370,14 +382,14 @@ def _uri_parse(uri, uid, is_arg_uri=False):
         PKDict: parts (path, sid_or_lib, sim_type, basename). None if error
     """
 
-    def _result(stype, sid_or_lib, basename):
+    def _result(sim_type, sid_or_lib, basename):
         from sirepo import simulation_db, template
 
         try:
             res = PKDict(
                 basename=simulation_db.assert_sim_db_basename(basename),
                 sid_or_lib=_sid_or_lib(sid_or_lib),
-                sim_type=template.assert_sim_type(stype),
+                sim_type=template.assert_sim_type(sim_type),
             )
             return res.pkupdate(
                 path=simulation_db.user_path(uid=uid, check=True).join(
@@ -388,10 +400,10 @@ def _uri_parse(uri, uid, is_arg_uri=False):
             )
         except Exception as e:
             pkdlog(
-                "error={} uid={} stype={} sid_or_lib={} basename={}",
+                "error={} uid={} sim_type={} sid_or_lib={} basename={}",
                 e,
                 uid,
-                stype,
+                sim_type,
                 sid_or_lib,
                 basename,
             )
@@ -399,22 +411,22 @@ def _uri_parse(uri, uid, is_arg_uri=False):
 
     if len(uri) <= 0:
         # no point in logging anything
-        return
+        return None
     if is_arg_uri:
         p = uri.split("/")
     else:
         m = _URI_RE.search(uri)
         if not m:
             pkdlog("uri={} missing prefix={}", uri, sirepo.job.SIM_DB_FILE_URI)
-            return
+            return None
         p = m.group(1).split("/")
         if p[0] != uid:
             pkdlog("uri={} does not match expect_uid={}", p[0], uid)
-            return
+            return None
         p.pop(0)
     if len(p) != 3:
         pkdlog("uri={} invalid part count is_arg_uri={}", uri, is_arg_uri)
-        return
+        return None
     return _result(*p)
 
 

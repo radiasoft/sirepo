@@ -480,7 +480,7 @@ class API(sirepo.quest.API):
         def _not_found(req):
             if not simulation_db.find_global_simulation(req.type, req.id):
                 raise sirepo.util.NotFound(
-                    "stype={} sid={} global simulation not found", req.type, req.id
+                    "sim_type={} sid={} global simulation not found", req.type, req.id
                 )
             return self.headers_for_no_cache(self.reply_dict(_redirect(req)))
 

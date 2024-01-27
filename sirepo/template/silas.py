@@ -45,7 +45,9 @@ def background_percent_complete(report, run_dir, is_running):
 def get_data_file(run_dir, model, frame, options):
     if model in ("tempProfileAnimation", "tempHeatMapAnimation"):
         return (
-            _TEMP_PROFILE_FILE if model == "tempProfileAnimation" else TEMP_HEATMAP_FILE
+            _TEMP_PROFILE_FILE
+            if model == "tempProfileAnimation"
+            else _TEMP_HEATMAP_FILE
         )
     if model == "crystal3dAnimation":
         return "intensity.npy"

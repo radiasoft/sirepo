@@ -163,7 +163,7 @@ def get_data_file(run_dir, model, frame, options):
             ).models,
             i - 1,
         )
-        return (pkio.py_path(f"run{i}").join(_SUCCESS_OUTPUT_FILE[s.stype]), s)
+        return (pkio.py_path(f"run{i}").join(_SUCCESS_OUTPUT_FILE[s.sim_type]), s)
 
     def _particle_group(sim_type, particle_file):
         if sim_type == "elegant":
@@ -206,8 +206,8 @@ def get_data_file(run_dir, model, frame, options):
         return f
     if options.suffix != "openpmd":
         raise AssertionError(f"unknown data type={options.suffix} requested")
-    n = f"{s.stype}_openpmd.h5"
-    _particle_group(s.stype, f).write(n)
+    n = f"{s.sim_type}_openpmd.h5"
+    _particle_group(s.sim_type, f).write(n)
     return n
 
 
@@ -223,20 +223,20 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
     for idx in reversed(range(len(dm.simWorkflow.coupledSims))):
         s = _sim_info(dm, idx)
-        if not s.stype or not s.sid:
+        if not s.sim_type or not s.sid:
             continue
         sim_dir = _sim_dir(run_dir, idx + 1)
-        sim_template = _template_for_sim_type(s.stype)
-        res = f"{s.stype.upper()} failed\n"
+        sim_template = _template_for_sim_type(s.sim_type)
+        res = f"{s.sim_type.upper()} failed\n"
         if success_exit:
             # no error
             return
-        if s.stype and s.sid and sim_dir.exists():
-            if s.stype == "opal":
+        if s.sim_type and s.sid and sim_dir.exists():
+            if s.sim_type == "opal":
                 return res + sim_template.parse_opal_log(sim_dir)
-            if s.stype == "elegant":
+            if s.sim_type == "elegant":
                 return res + sim_template.parse_elegant_log(sim_dir)
-            if s.stype == "genesis":
+            if s.sim_type == "genesis":
                 # genesis gets error from main run.log
                 return res + sim_template.parse_genesis_error(run_dir)
             return res
@@ -328,10 +328,10 @@ def _generate_parameters_file(data):
     sim_list = []
     for idx in range(len(dm.simWorkflow.coupledSims)):
         s = _sim_info(dm, idx)
-        if s.stype and s.sid:
+        if s.sim_type and s.sid:
             sim_list.append(
                 PKDict(
-                    sim_type=s.stype,
+                    sim_type=s.sim_type,
                     sim_id=s.sid,
                 )
             )
@@ -396,7 +396,7 @@ def _is_genesis(run_dir, index):
                 run_dir.join(template_common.INPUT_BASE_NAME)
             ).models,
             index,
-        ).stype
+        ).sim_type
     )
 
 
@@ -469,9 +469,9 @@ def _sim_dir(run_dir, sim_count):
 def _sim_info(dm, idx):
     s = dm.simWorkflow.coupledSims
     if len(s) > idx:
-        return PKDict(stype=s[idx].simulationType, sid=s[idx].simulationId)
+        return PKDict(sim_type=s[idx].simulationType, sid=s[idx].simulationId)
     # TODO(robnagler) could this return None instead PKDict
-    return PKDict(stype=None, sid=None)
+    return PKDict(sim_type=None, sid=None)
 
 
 def _sim_list(sim_type):

@@ -2414,7 +2414,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         if (! map[n]) {
             throw new Error(`routeName=${n} not found in map=${map._name}`);
         }
-        let r = map[n];
+        const r = map[n];
         let u = r.baseUri ? '/' + r.baseUri : '';
         let v = null;
         for (p of r.params) {
