@@ -52,11 +52,10 @@ def parse_post(qcall, kwargs):
     r = kwargs.pkdel("req_data")
     if r is None:
         r = parse_json(qcall)
-    assert not kwargs.get("fixup_old_data")
     if kwargs.pkdel("is_sim_data"):
-        s = sirepo.sim_data.get_class(r)
-        if sirepo.feature_config.is_react_sim_type(s.sim_type()) and r.get("models"):
-            s.react_unformat_data(r)
+        raise AssertionError("is_sim_data invalid parameter")
+    if kwargs.get("fixup_old_data"):
+        raise AssertionError("fixup_old_data invalid parameter")
     res.pkupdate(req_data=r)
     kwargs.pksetdefault(type=True)
 

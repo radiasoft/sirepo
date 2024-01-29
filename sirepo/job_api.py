@@ -180,7 +180,7 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user")
     async def api_runSimulation(self):
-        r = self._request_content(PKDict(is_sim_data=True))
+        r = self._request_content(PKDict())
         if r.isParallel:
             r.isPremiumUser = self.auth.is_premium_user()
         return await self._request_api(_request_content=r)
@@ -188,9 +188,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user")
     async def api_runStatus(self):
         # runStatus receives models when an animation status if first queried
-        return await self._request_api(
-            _request_content=self._request_content(PKDict(is_sim_data=True))
-        )
+        return await self._request_api(_request_content=self._request_content(PKDict()))
 
     @sirepo.quest.Spec("require_user")
     async def api_sbatchLogin(self):
@@ -368,7 +366,6 @@ class API(sirepo.quest.API):
             # of the used values are modified by parse_post. If we have files (e.g. file_type, filename),
             # we need to use those values from parse_post
             d = self.parse_post(
-                is_sim_data=kwargs.pkdel("is_sim_data", False),
                 id=True,
                 model=True,
                 check_sim_exists=True,
