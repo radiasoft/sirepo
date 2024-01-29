@@ -181,6 +181,7 @@ async def _incoming(content, handler):
             handler.sr_on_exception()
         except Exception as e:
             pkdlog("sr_on_exception: exception={}", e)
+        return PKDict(state=job.ERROR, error="unexpected error")
 
 
 def _sigterm(signum, frame):
