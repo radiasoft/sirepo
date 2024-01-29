@@ -4092,10 +4092,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         setPlotVisible(i, ! isPlotVisible(i));
                     }
                 });
-                // srdbg("$scope.modelname", $scope.modelName);
-                $scope.$on("axes.changed", () => {
-                    srdbg("axis change");
-                });
 
                 function _labels(plots) {
                     var res = [];
@@ -4105,20 +4101,22 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     return res;
                 }
 
-                const l = _labels(plots);
+                function handlePlotSelection() {
+                    const currentSelection = _labels(plots);
+                    const previousSelection = appState.models[$scope.modelName + 'SelectedPlots'] || currentSelection;
+                    if (JSON.stringify(currentSelection) != JSON.stringify(previousSelection)) {
+                        plots.forEach((plot, i) => {
+                            plotVisibility[$scope.modelName][i] = false;
+                        });
+                        appState.saveChanges($scope.modelName);
+                    }
+                }
+
+                handlePlotSelection();
                 $scope.$on(
                     $scope.modelName + '.changed',
                         () => {
-                            const n = _labels(plots);
-                            srdbg(l, n);
-                            // TODO (gurhar1133): why is labels in changed the old ones?
-                            // need to figure out
-                            if (JSON.stringify(l) != JSON.stringify(n)) {
-                                srdbg("DIFF", l, n);
-                            }
-                            plots.forEach((plot, i) => {
-                                plotVisibility[$scope.modelName][i] = false;
-                            });
+                            appState.models[$scope.modelName + 'SelectedPlots'] = _labels(plots);
                         }
                 );
             };
