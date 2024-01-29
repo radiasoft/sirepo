@@ -586,7 +586,7 @@ class _ComputeJob(_Supervisor):
     @classmethod
     def __db_file(cls, computeJid):
         return _DB_DIR.join(
-            sirepo.simulation_db.assert_sim_db_file_path(computeJid)
+            sirepo.simulation_db.assert_sim_db_basename(computeJid)
             + sirepo.const.JSON_SUFFIX,
         )
 
@@ -950,7 +950,6 @@ class _ComputeJob(_Supervisor):
             if not _is_run_op(f"prepare_send success"):
                 return False
             self.__db_update(driverDetails=op.driver.driver_details)
-            op.make_lib_dir_symlink()
             op.send()
             return True
 
@@ -1115,9 +1114,6 @@ class _Op(PKDict):
                 self.driver.destroy_op(self)
         except Exception as e:
             pkdlog("ignore exception={} stack={}", e, pkdexc())
-
-    def make_lib_dir_symlink(self):
-        self.driver.make_lib_dir_symlink(self)
 
     def pkdebug_str(self):
         def _internal_error():
