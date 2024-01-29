@@ -89,7 +89,9 @@ class DriverBase(PKDict):
             _websocket_ready=sirepo.tornado.Event(),
             _websocket_ready_timeout=None,
         )
-        self._sim_db_file_token = sirepo.sim_db_file.FileReq.token_for_user(self.uid)
+        self._sim_db_file_token = sirepo.sim_db_file.SimDbServer.token_for_user(
+            self.uid
+        )
         self._global_resources_token = (
             sirepo.global_resources.api.Req.token_for_user(self.uid)
             # TODO(e-carlin): we need a more grangular system to decide when to add this information
@@ -107,9 +109,6 @@ class DriverBase(PKDict):
             x.free()
         if x := op.pkdel("op_slot"):
             x.free()
-        if "lib_dir_symlink" in op:
-            # lib_dir_symlink is unique_key so not dangerous to remove
-            pykern.pkio.unchecked_remove(op.pkdel("lib_dir_symlink"))
 
     async def free_resources(self, caller):
         """Remove holds on all resources and remove self from data structures"""
@@ -133,27 +132,6 @@ class DriverBase(PKDict):
         raise NotImplementedError(
             "DriverBase subclasses need to implement their own kill",
         )
-
-    def make_lib_dir_symlink(self, op):
-        import sirepo.auth
-
-        m = op.msg
-        with sirepo.quest.start() as qcall:
-            with qcall.auth.logged_in_user_set(m.uid):
-                d = sirepo.simulation_db.simulation_lib_dir(
-                    m.simulationType,
-                    qcall=qcall,
-                )
-                op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
-                op.lib_dir_symlink.mksymlinkto(d, absolute=True)
-                m.pkupdate(
-                    libFileUri=job.supervisor_file_uri(
-                        self.cfg.supervisor_uri,
-                        job.LIB_FILE_URI,
-                        op.lib_dir_symlink.basename,
-                    ),
-                    libFileList=[f.basename for f in d.listdir()],
-                )
 
     def op_is_untimed(self, op):
         return op.op_name in _UNTIMED_OPS
@@ -243,11 +221,11 @@ class DriverBase(PKDict):
                     "SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS",
                     str(pkconfig.in_dev_mode()),
                 ),
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_GLOBAL_RESOURCES_TOKEN=self._global_resources_token,
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_GLOBAL_RESOURCES_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
+                SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_TOKEN=self._global_resources_token,
+                SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
                 SIREPO_PKCLI_JOB_AGENT_START_DELAY=str(op.get("_agent_start_delay", 0)),
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_URI=job.supervisor_file_uri(
+                SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_TOKEN=self._sim_db_file_token,
+                SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_URI=job.supervisor_file_uri(
                     self.cfg.supervisor_uri,
                     job.SIM_DB_FILE_URI,
                     self.uid,

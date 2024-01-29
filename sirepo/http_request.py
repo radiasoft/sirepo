@@ -45,6 +45,7 @@ def parse_post(qcall, kwargs):
         model (object): `parse_model`
         name (object): `parse_name`
         template (object): `sirepo.template.import_module`
+        is_sim_data (bool): if True, process through `react_unformat_data`
     Returns:
         PKDict: with arg names set to parsed values
     """

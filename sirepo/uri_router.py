@@ -10,6 +10,7 @@ from pykern import pkinspect
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+import asyncio
 import contextlib
 import importlib
 import inspect
@@ -198,6 +199,26 @@ def start_tornado(ip, port, debug):
 
     class _WebSocket(websocket.WebSocketHandler):
         async def on_message(self, msg):
+            # WebSocketHandler only allows one on_message at a time.
+            asyncio.ensure_future(self.__on_message(msg))
+
+        def open(self):
+            nonlocal ws_count
+
+            # self.get_compression_options
+            self.set_nodelay(True)
+            r = self.request
+            self.__headers = PKDict(r.headers)
+            self.remote_addr = r.remote_ip
+            self.http_server_uri = f"{r.protocol}://{r.host}/"
+            ws_count += 1
+            self.ws_id = ws_count
+
+        def sr_get_log_user(self):
+            """Needed for initial websocket creation call"""
+            return None
+
+        async def __on_message(self, msg):
             w = _WebSocketRequest(handler=self, headers=self.__headers)
             try:
                 w.parse_msg(msg)
@@ -218,28 +239,12 @@ def start_tornado(ip, port, debug):
                     w.get("log_user"),
                 )
 
-        def open(self):
-            nonlocal ws_count
-
-            # self.get_compression_options
-            self.set_nodelay(True)
-            r = self.request
-            self.__headers = PKDict(r.headers)
-            self.remote_addr = r.remote_ip
-            self.http_server_uri = f"{r.protocol}://{r.host}/"
-            self.msg_count = 0
-            ws_count += 1
-            self.ws_id = ws_count
-
-        def sr_get_log_user(self):
-            """Needed for initial websocket creation call"""
-            return None
-
     class _WebSocketRequest(PKDict):
         def parse_msg(self, msg):
             import msgpack
 
-            assert isinstance(msg, bytes), f"incoming msg type={type(msg)}"
+            if not isinstance(msg, bytes):
+                raise AssertionError(f"incoming msg type={type(msg)}")
             u = msgpack.Unpacker(
                 max_buffer_size=sirepo.job.cfg().max_message_bytes,
                 object_pairs_hook=pkcollections.object_pairs_hook,
@@ -252,14 +257,18 @@ def start_tornado(ip, port, debug):
                 self.header.get("reqSeq"),
                 self.header.get("uri"),
             )
-            assert (
-                sirepo.const.SCHEMA_COMMON.websocketMsg.version == self.header.version
-            ), f"invalid header.version={self.header.version}"
+            if sirepo.const.SCHEMA_COMMON.websocketMsg.version != self.header.get(
+                "version"
+            ):
+                raise AssertionError(
+                    f"invalid header.version={self.header.get('version')}"
+                )
             # Ensures protocol conforms for all requests
-            assert (
+            if (
                 sirepo.const.SCHEMA_COMMON.websocketMsg.kind.httpRequest
-                == self.header.kind
-            ), f"invalid header.kind={self.header.kind}"
+                != self.header.get("kind")
+            ):
+                raise AssertionError(f"invalid header.kind={self.header.get('kind')}")
             self.req_seq = self.header.reqSeq
             self.uri = self.header.uri
             if u.tell() < len(msg):

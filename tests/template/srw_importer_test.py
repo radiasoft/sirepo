@@ -4,8 +4,6 @@
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import pytest
 
 
 def test_srw_1():
@@ -61,7 +59,6 @@ def _t(tests):
                 code = pkio.read_text(pkunit.data_dir().join(base_py))
                 actual = import_python(
                     code,
-                    tmp_dir=".",
                     user_filename=r"c:\anything\{}.anysuffix".format(tests[b][0]),
                     arguments=tests[b][1],
                     qcall=qcall,

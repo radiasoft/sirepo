@@ -4,18 +4,13 @@
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import pytest
 
 
 def test_import_json(fc):
-    from sirepo import srunit
-
     _do(fc, "json", lambda f: f.read(mode="rb"))
 
 
 def test_import_python(fc):
-    from sirepo import srunit
-
     _do(fc, "py", lambda f: f.read(mode="rb"))
 
 
@@ -41,7 +36,7 @@ def _do(fc, file_ext, parse):
     from pykern import pkunit
     from pykern import pkcollections
     from pykern.pkdebug import pkdp, pkdlog
-    from pykern.pkunit import pkeq, pkfail, pkok, pkre
+    from pykern.pkunit import pkeq, pkok, pkre
     import re
 
     for suffix in ("",) if file_ext == "py" else ("", " 2", " 3"):
@@ -67,5 +62,5 @@ def _do(fc, file_ext, parse):
                 sim_name = f.purebasename
             else:
                 sim_name = pkcollections.json_load_any(json).models.simulation.name
-            assert "models" in res, f"file={f} res={res}"
+            pkok("models" in res, "no models file={} res={}", f, res)
             pkeq(sim_name + suffix, res.models.simulation.name)

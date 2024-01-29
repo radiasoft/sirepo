@@ -569,7 +569,7 @@ class _ComputeJob(_Supervisor):
     @classmethod
     def __db_file(cls, computeJid):
         return _DB_DIR.join(
-            sirepo.simulation_db.assert_sim_db_file_path(computeJid)
+            sirepo.simulation_db.assert_sim_db_basename(computeJid)
             + sirepo.const.JSON_SUFFIX,
         )
 
@@ -922,7 +922,6 @@ class _ComputeJob(_Supervisor):
                 _set_error(compute_job_serial, op.internal_error)
                 raise
             self.__db_update(driverDetails=op.driver.driver_details)
-            op.make_lib_dir_symlink()
             op.send()
             return True
 
@@ -1090,9 +1089,6 @@ class _Op(PKDict):
         self._supervisor.destroy_op(self)
         if "driver" in self:
             self.driver.destroy_op(self)
-
-    def make_lib_dir_symlink(self):
-        self.driver.make_lib_dir_symlink(self)
 
     def pkdebug_str(self):
         def _internal_error():

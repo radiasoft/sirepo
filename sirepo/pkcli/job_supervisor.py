@@ -50,7 +50,6 @@ def default_command():
     )
     sirepo.modules.import_and_init("sirepo.job_supervisor")
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
-    pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
     app = tornado.web.Application(
         [
             (sirepo.job.AGENT_URI, _AgentMsg),
@@ -58,13 +57,10 @@ def default_command():
             (sirepo.job.SERVER_PING_URI, _ServerPing),
             (sirepo.job.SERVER_SRTIME_URI, _ServerSrtime),
             (sirepo.job.DATA_FILE_URI + "/(.*)", _DataFileReq),
-            (sirepo.job.SIM_DB_FILE_URI + "/(.+)", sirepo.sim_db_file.FileReq),
+            (sirepo.job.SIM_DB_FILE_URI + "/(.+)", sirepo.sim_db_file.SimDbServer),
             (sirepo.job.GLOBAL_RESOURCES_URI, sirepo.global_resources.api.Req),
         ],
         debug=_cfg.debug,
-        static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
-        # tornado expects a trailing slash
-        static_url_prefix=sirepo.job.LIB_FILE_URI + "/",
         websocket_max_message_size=sirepo.job.cfg().max_message_bytes,
         websocket_ping_interval=sirepo.job.cfg().ping_interval_secs,
         websocket_ping_timeout=sirepo.job.cfg().ping_timeout_secs,

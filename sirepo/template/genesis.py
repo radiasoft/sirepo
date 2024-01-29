@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Genesis execution template.
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
@@ -83,6 +82,15 @@ _SLICE_RE = re.compile(
 )
 
 
+_DATA_FILES = PKDict(
+    particleAnimation=_PARTICLE_OUTPUT_FILENAME,
+    fieldDistributionAnimation=_FIELD_DISTRIBUTION_OUTPUT_FILENAME,
+    parameterAnimation=_OUTPUT_FILENAME,
+    finalParticleAnimation=_FINAL_PARTICLE_OUTPUT_FILENAME,
+    finalFieldAnimation=_FINAL_FIELD_OUTPUT_FILENAME,
+)
+
+
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return PKDict(percentComplete=0, frameCount=0)
@@ -135,27 +143,9 @@ def genesis_success_exit(run_dir):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if model == "particleAnimation":
-        return _PARTICLE_OUTPUT_FILENAME
-    if model == "fieldDistributionAnimation":
-        return _FIELD_DISTRIBUTION_OUTPUT_FILENAME
-    if model == "parameterAnimation":
-        return _OUTPUT_FILENAME
-    if model == "finalParticleAnimation":
-        return _FINAL_PARTICLE_OUTPUT_FILENAME
-    if model == "finalFieldAnimation":
-        return _FINAL_FIELD_OUTPUT_FILENAME
-    raise AssertionError("unknown model={}".format(model))
-
-
-async def import_file(req, **kwargs):
-    text = req.form_file.as_str()
-    if not bool(re.search(r"\.in$", req.filename, re.IGNORECASE)):
-        raise AssertionError("invalid file extension, expecting .in")
-    res = sirepo.simulation_db.default_data(SIM_TYPE)
-    p = pkio.py_path(req.filename)
-    res.models.simulation.name = p.purebasename
-    return _parse_namelist(res, text, req)
+    if res := _DATA_FILES.get(model):
+        return res
+    raise AssertionError(f"unknown model={model}")
 
 
 def parse_genesis_error(run_dir):
@@ -247,6 +237,17 @@ def sim_frame_finalParticleAnimation(frame_args):
 
 def sim_frame_particleAnimation(frame_args):
     return _particle_plot(frame_args, _PARTICLE_OUTPUT_FILENAME)
+
+
+def stateful_compute_import_file(data, **kwargs):
+    text = data.args.file_as_str
+    if data.args.ext_lower != ".in":
+        raise AssertionError(
+            "invalid file={data.args.basename} extension, expecting .in",
+        )
+    res = sirepo.simulation_db.default_data(SIM_TYPE)
+    res.models.simulation.name = data.args.purebasename
+    return PKDict(imported_data=_parse_namelist(res, text))
 
 
 def validate_file(file_type, path):
@@ -389,7 +390,7 @@ def _is_text_file(path):
         return False
 
 
-def _parse_namelist(data, text, req):
+def _parse_namelist(data, text):
     dm = data.models
     nls = template_common.NamelistParser().parse_text(text)
     if "newrun" not in nls:
@@ -411,7 +412,7 @@ def _parse_namelist(data, text, req):
             t = SCHEMA.model[m][f][1]
             if t == "InputFile":
                 if not _SIM_DATA.lib_file_exists(
-                    _SIM_DATA.lib_file_name_with_model_field(m, f, v), qcall=req.qcall
+                    _SIM_DATA.lib_file_name_with_model_field(m, f, v),
                 ):
                     missing_files.append(
                         PKDict(

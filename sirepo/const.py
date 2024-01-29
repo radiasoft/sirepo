@@ -13,6 +13,9 @@ STATIC_D = "static"
 
 JSON_SUFFIX = ".json"
 
+#: where template resources and template non-sim user files live
+LIB_DIR = "lib"
+
 # matches requirements for uid and isn't actually put in the db
 MOCK_UID = "someuser"
 
@@ -40,6 +43,9 @@ SCHEMA_COMMON = PKDict(
     ),
 )
 
-TEST_PORT_RANGE = range(10000, 11000)
+#: Simulation file name saved both in sim db and run directory
+SIM_DATA_BASENAME = "sirepo-data" + JSON_SUFFIX
 
 SRUNIT_USER_AGENT = "srunit/1.0"
+
+TEST_PORT_RANGE = range(10000, 11000)

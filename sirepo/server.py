@@ -8,8 +8,9 @@ from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import simulation_db
+import os.path
 import re
 import sirepo.const
 import sirepo.feature_config
@@ -100,7 +101,8 @@ class API(sirepo.quest.API):
                 }
             )
 
-        # Will not remove resource (standard) lib files
+        # Will not remove resource (standard) lib files, because those
+        # live in the resource directoy.
         pkio.unchecked_remove(_lib_file_write_path(req))
         return self.reply_ok()
 
@@ -260,9 +262,46 @@ class API(sirepo.quest.API):
         """
         from sirepo import importer
 
+        async def _import_file(req):
+            if not hasattr(req.template, "import_file"):
+                raise sirepo.util.Error(
+                    "Only zip files are supported",
+                    "no import_file in template req={}",
+                    req,
+                )
+            with sirepo.sim_run.tmp_dir(qcall=self) as d:
+                return await req.template.import_file(
+                    req,
+                    tmp_dir=d,
+                    qcall=self,
+                    # SRW needs a simulation created to be able to start
+                    # a background import.
+                    srw_save_sim=lambda data: _save_sim(req, data),
+                )
+
+        def _save_sim(req, data):
+            data.models.simulation.folder = req.folder
+            data.models.simulation.isExample = False
+            return self._save_new_and_reply(req, data)
+
+        async def _stateful_compute(req):
+            r = await self.call_api(
+                "statefulCompute",
+                data=PKDict(
+                    method="import_file",
+                    args=req.sim_data.prepare_import_file_args(req=req),
+                    simulationType=req.type,
+                ),
+            )
+            try:
+                res = r.content_as_object().imported_data
+                r.destroy()
+                return res
+            except Exception:
+                raise sirepo.util.SReplyExc(r)
+
         error = None
         f = None
-
         try:
             f = self.sreq.form_file_get()
             req = self.parse_params(
@@ -274,44 +313,24 @@ class API(sirepo.quest.API):
             )
             req.form_file = f
             req.import_file_arguments = self.sreq.form_get("arguments", "")
-
-            def _save_sim(data):
-                data.models.simulation.folder = req.folder
-                data.models.simulation.isExample = False
-                return self._save_new_and_reply(req, data)
-
             if pkio.has_file_extension(req.filename, "json"):
                 data = importer.read_json(req.form_file.as_bytes(), self, req.type)
-            # TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
-            # (dicom input is normally a zip file)
             elif pkio.has_file_extension(req.filename, "zip"):
-                data = importer.read_zip(
+                data = await importer.read_zip(
                     req.form_file.as_bytes(), self, sim_type=req.type
                 )
+            elif hasattr(req.template, "stateful_compute_import_file"):
+                data = await _stateful_compute(req)
             else:
-                if not hasattr(req.template, "import_file"):
-                    raise sirepo.util.Error(
-                        "Only zip files are supported",
-                        "no import_file in template req={}",
-                        req,
-                    )
-                with sirepo.sim_run.tmp_dir(qcall=self) as d:
-                    data = await req.template.import_file(
-                        req,
-                        tmp_dir=d,
-                        qcall=self,
-                        # SRW needs a simulation created to be able to start
-                        # a background import.
-                        srw_save_sim=_save_sim,
-                    )
-                if "error" in data:
-                    return self.reply_dict(data)
-            return _save_sim(data)
+                data = await _import_file(req)
+            if "error" in data:
+                return self.reply_dict(data)
+            return _save_sim(req, data)
         except sirepo.util.ReplyExc:
             raise
         except Exception as e:
             pkdlog("{}: exception: {}", f and f.filename, pkdexc())
-            # TODO(robnagler) security issue here. Really don't want to report errors to user
+            # TODO(robnagler) security issue here. Really don't want to report all errors to user
             if hasattr(e, "args"):
                 if len(e.args) == 1:
                     error = str(e.args[0])
@@ -319,11 +338,7 @@ class API(sirepo.quest.API):
                     error = str(e.args)
             else:
                 error = str(e)
-        return self.reply_dict(
-            {
-                "error": error if error else "An unknown error occurred",
-            }
-        )
+        return self.reply_dict(PKDict(error=error or "An unknown error occurred"))
 
     @sirepo.quest.Spec("allow_visitor", path_info="PathInfo optional")
     async def api_homePage(self, path_info=None):
@@ -455,7 +470,7 @@ class API(sirepo.quest.API):
         def _not_found(req):
             if not simulation_db.find_global_simulation(req.type, req.id):
                 raise sirepo.util.NotFound(
-                    "stype={} sid={} global simulation not found", req.type, req.id
+                    "sim_type={} sid={} global simulation not found", req.type, req.id
                 )
             return self.headers_for_no_cache(self.reply_dict(_redirect(req)))
 

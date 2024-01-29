@@ -8,7 +8,6 @@ def main():
     global parsed_data
     parsed_data = srw_importer.import_python(
         pkio.read_text('{{ python_file }}'),
-        tmp_dir='{{ tmp_dir }}',
         user_filename='''{{ backgroundImport_userFilename }}''',
         arguments='''{{ backgroundImport_arguments }}''',
     )
