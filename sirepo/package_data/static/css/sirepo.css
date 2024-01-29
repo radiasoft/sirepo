@@ -796,10 +796,9 @@ input.ng-invalid.ng-invalid-email {
   color: #286090;
   opacity: 1;
 }
-.sr-help-icon.notes {
-  position: absolute;
-  bottom: 1em;
-  right: 0.5em;
+
+.sr-notes {
+  margin-right: 5px;
 }
 
 input[type='color'].sr-color-button {
