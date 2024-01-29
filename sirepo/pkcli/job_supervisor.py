@@ -55,7 +55,6 @@ def default_command():
         [
             (sirepo.job.AGENT_URI, _AgentMsg),
             (sirepo.job.SERVER_URI, _ServerReq),
-            (sirepo.job.SERVER_RUN_MULTI_URI, _ServerReqRunMulti),
             (sirepo.job.SERVER_PING_URI, _ServerPing),
             (sirepo.job.SERVER_SRTIME_URI, _ServerSrtime),
             (sirepo.job.DATA_FILE_URI + "/(.*)", _DataFileReq),
@@ -165,40 +164,6 @@ class _ServerSrtime(_JsonPostRequestHandler):
         ), "You can only adjust time in internal test"
         sirepo.srtime.adjust_time(pkjson.load_any(self.request.body).days)
         self.write(PKDict())
-
-
-class _ServerReqRunMulti(_ServerReq):
-    async def post(self):
-        async def _await_reply(content, handler):
-            r = copy.deepcopy(content.data)
-            del r["models"]
-            return PKDict(
-                # OPTIMIZATION: return just a few details of the
-                # reuqest (ex computeModel) so we know which request
-                # the response is for. But, not the whole thing which
-                # may be a lot (all of models) and is not used
-                request=r,
-                response=await _incoming(content, handler),
-            )
-
-        b = pkjson.load_any(self.request.body)
-        futures = []
-        for m in b.data:
-            i = functools.partial(
-                _await_reply,
-                m.pkupdate(serverSecret=b.serverSecret, api=m.data.api),
-                self,
-            )
-            if m.data.get("awaitReply"):
-                futures.append(i())
-                continue
-            tornado.ioloop.IOLoop.current().add_callback(i)
-        r = PKDict()
-        if futures:
-            r.pkupdate(
-                data=await asyncio.gather(*futures, return_exceptions=True),
-            )
-        self.write(r)
 
 
 async def _incoming(content, handler):
