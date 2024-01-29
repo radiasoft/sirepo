@@ -72,8 +72,6 @@ def local_route(sim_type, route_name=None, params=None, query=None):
             if not params or p not in params:
                 continue
         u += "/" + _to_uri(params[p])
-    if sirepo.feature_config.is_react_sim_type(sim_type):
-        return app_root(sim_type) + u + _query(query)
     return app_root(sim_type) + "#" + u + _query(query)
 
 

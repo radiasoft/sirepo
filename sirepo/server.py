@@ -37,15 +37,6 @@ _ROBOTS_TXT = None
 #: Global app value (only here so instance not lost)
 _app = None
 
-#: See `_proxy_react`
-_PROXY_REACT_URI_SET = None
-
-#: See `_proxy_react`
-_PROXY_REACT_URI_RE = None
-
-#: See `_proxy_react`
-_REACT_SERVER_BUILD = "build"
-
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", sid="SimId")
@@ -444,7 +435,6 @@ class API(sirepo.quest.API):
     async def api_root(self, path_info=None):
         from sirepo import template
 
-        self._proxy_react(path_info)
         if path_info is None:
             return self.reply_redirect(_cfg.home_page_uri)
         if template.is_sim_type(path_info):
@@ -457,7 +447,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", sid="SimId", data="SimData all_input")
     async def api_saveSimulationData(self):
         # do not fixup_old_data yet
-        req = self.parse_post(id=True, template=True, is_sim_data=True)
+        req = self.parse_post(id=True, template=True)
         return self._simulation_data_reply(
             req,
             simulation_db.save_simulation_json(
@@ -556,7 +546,6 @@ class API(sirepo.quest.API):
         """
         if not path_info:
             raise sirepo.util.NotFound("empty path info")
-        self._proxy_react(f"{sirepo.const.STATIC_D}/" + path_info)
         p = sirepo.resource.static(sirepo.util.validate_path(path_info))
         if re.match(r"^(html|en)/[^/]+html$", path_info):
             return self.reply_html(p)
@@ -648,43 +637,6 @@ class API(sirepo.quest.API):
             }
         )
 
-    def _proxy_react(self, path):
-        import requests
-
-        def _build():
-            p = path
-            m = re.search(r"^(\w+)(?:$|/)", p)
-            if m and m.group(1) in sirepo.feature_config.cfg().sim_types:
-                p = "index.html"
-            # do not call api_staticFile due to recursion of proxy_react()
-            r = self.reply_file(
-                sirepo.resource.static(sirepo.util.validate_path(f"react/{p}")),
-            )
-            if p == "index.html":
-                # Ensures latest react is always returned, because index.html contains
-                # version-tagged values but index.html does not. It's likely that
-                # a check would be made on a refresh, this ensures no caching.
-                r.headers_for_no_cache()
-            raise sirepo.util.SReplyExc(r)
-
-        def _dev():
-            r = requests.get(_cfg.react_server + path)
-            # We want to throw an exception here, because it shouldn't happen
-            r.raise_for_status()
-            raise sirepo.util.SReplyExc(
-                self.reply_as_proxy(
-                    content=r.content,
-                    content_type=r.headers["Content-Type"],
-                ),
-            )
-
-        if (
-            path
-            and _cfg.react_server
-            and (path in _PROXY_REACT_URI_SET or _PROXY_REACT_URI_RE.search(path))
-        ):
-            _build() if _cfg.react_server == _REACT_SERVER_BUILD else _dev()
-
     def _render_root_page(self, page, values):
         values.update(
             PKDict(
@@ -704,8 +656,6 @@ class API(sirepo.quest.API):
     def _simulation_data_reply(self, req, data):
         if hasattr(req.template, "prepare_for_client"):
             d = req.template.prepare_for_client(data, qcall=self)
-        if sirepo.feature_config.is_react_sim_type(req.type):
-            req.sim_data.react_format_data(data)
         return self.headers_for_no_cache(self.reply_dict(data))
 
 
@@ -715,7 +665,6 @@ def init_apis(*args, **kwargs):
 
 def init_tornado(use_reloader=False, is_server=False):
     """Initialize globals and create/upgrade db"""
-    _init_proxy_react()
     from sirepo import auth_db
 
     with sirepo.quest.start() as qcall:
@@ -724,43 +673,6 @@ def init_tornado(use_reloader=False, is_server=False):
 
 def init_module(**imports):
     pass
-
-
-def _cfg_react_server(value):
-    if value is None:
-        return None
-    # if not pkconfig.channel_in("dev"):
-    #     pkconfig.raise_error("invalid channel={}; must be dev", pkconfig.cfg.channel)
-    if value == _REACT_SERVER_BUILD:
-        return value
-    u = urllib.parse.urlparse(value)
-    if (
-        u.scheme
-        and u.netloc
-        and u.path == "/"
-        and len(u.params + u.query + u.fragment) == 0
-    ):
-        return value
-    pkconfig.raise_error(f"invalid url={value}, must be http://netloc/")
-
-
-def _init_proxy_react():
-    if not _cfg.react_server:
-        return
-    global _PROXY_REACT_URI_RE, _PROXY_REACT_URI_SET
-    p = [
-        "asset-manifest.json",
-        "manifest.json",
-        f"{sirepo.const.STATIC_D}/js/bundle.js",
-        f"{sirepo.const.STATIC_D}/js/bundle.js.map",
-    ]
-    _PROXY_REACT_URI_SET = set(p)
-    r = f"^{sirepo.const.REACT_ROOT_D}/"
-    for x in sirepo.feature_config.cfg().react_sim_types:
-        r += rf"|^{x}(?:\/|$)"
-    if _cfg.react_server == _REACT_SERVER_BUILD:
-        r += f"|^{sirepo.const.REACT_BUNDLE_FILE_PAT}"
-    _PROXY_REACT_URI_RE = re.compile(r)
 
 
 def _lib_file_write_path(req):
@@ -811,10 +723,4 @@ _cfg = pkconfig.init(
         "enable source cache key, disable to allow local file edits in Chrome",
     ),
     home_page_uri=("/en/landing.html", str, "home page to redirect to"),
-    react_server=(
-        None if pkconfig.in_dev_mode() else _REACT_SERVER_BUILD,
-        _cfg_react_server,
-        "Base URL of npm start server",
-    ),
-    react_sim_types=pkconfig.ReplacedBy("sirepo.feature_config.react_sim_types"),
 )
