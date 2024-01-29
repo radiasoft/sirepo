@@ -192,8 +192,8 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
             )
             try:
                 self.write({state: "error"})
-            except Exception:
-                pass
+            except Exception as e:
+                pkdlog("unable to reply error exception={} stack={}", e, pkdexc())
 
     async def put(self, unused_arg):
         # TODO(robnagler) should this be atomic?
