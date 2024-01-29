@@ -3891,16 +3891,18 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     });
             };
 
-            $scope._labels = (plots) => {
-                var res = [];
-                for (var plot of plots) {
+            $scope.plotLabels = (plots) => {
+                let res = [];
+                if (plots == null) {
+                    return res;
+                }
+                for (let plot of plots) {
                     res.push(plot.label);
                 }
                 return res;
             }
 
             $scope.load = function(json) {
-                srdbg('loading');
                 if (! json.plots && ! json.points) {
                     //TODO(pjm): plot may be loaded with { state: 'canceled' }?
                     return;
@@ -4103,39 +4105,23 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 });
 
                 function handlePlotSelection() {
-                    srdbg('handling selection');
-                    const currentSelection = $scope._labels(plots);
-                    const previousSelection = appState.models[$scope.modelName + 'SelectedPlots'] || currentSelection;
-                    srdbg(currentSelection, previousSelection);
-                    if (JSON.stringify(currentSelection) != JSON.stringify(previousSelection)) {
+                    const c = $scope.plotLabels(plots);
+                    const p = appState.models[$scope.modelName].selectedPlots || c;
+                    if (JSON.stringify(c) != JSON.stringify(p)) {
                         plots.forEach((plot, i) => {
                             plotVisibility[$scope.modelName][i] = false;
                         });
-                        appState.models[$scope.modelName + 'SelectedPlots'] = currentSelection;
+                        appState.models[$scope.modelName].selectedPlots = c;
                         appState.saveChanges($scope.modelName);
                     }
                 }
-
                 handlePlotSelection();
-                // $scope.$on(
-                //     // TODO (gurhar123): Looks like we call the all the previously defined listeners
-                //     // when we trigger this from the saveChanges. If this can be moved out of .load()
-                //     // then it solves a lot of problems
-                //     $scope.modelName + '.changed',
-                //         () => {
-                //             const l = _labels(plots);
-                //             srdbg('caching l=', l);
-                //             appState.models[$scope.modelName + 'SelectedPlots'] = l;
-                //         }
-                // );
             };
 
-            $scope.$on($scope.modelName + '.changed',
-                () => {
-                    const l = $scope._labels($scope.axes.y.plots);
-                    srdbg('caching l=', l);
-                    appState.models[$scope.modelName + 'SelectedPlots'] = l;
-
+            $scope.$on($scope.modelName + '.changed', () => {
+                    // $scope.axes.y.plots is actually the plot selection prior to .changed
+                    // caching them here allows handlePlotSelection to check previous vs current
+                    appState.models[$scope.modelName].selectedPlots = $scope.plotLabels($scope.axes.y.plots);;
                 }
             )
 
