@@ -178,28 +178,6 @@ class API(sirepo.quest.API):
         # Always true from the client's perspective
         return self.reply_dict({"state": "canceled"})
 
-    @sirepo.quest.Spec("require_user", data="RunMultiSpec")
-    async def api_runMulti(self):
-        def _api(api):
-            # SECURITY: Make sure we have permission to call API
-            sirepo.uri_router.assert_api_name_and_auth(
-                self,
-                api,
-                ("runSimulation", "runStatus"),
-            )
-            # Necessary so dispatch to job supervisor works correctly
-            return "api_" + api
-
-        r = []
-        for m in self.parse_json():
-            c = self._request_content(PKDict(req_data=m))
-            c.data.pkupdate(api=_api(c.data.api), asyncReply=m.awaitReply)
-            r.append(c)
-        return await self._request_api(
-            _request_content=PKDict(data=r),
-            _request_uri=self._supervisor_uri(sirepo.job.SERVER_RUN_MULTI_URI),
-        )
-
     @sirepo.quest.Spec("require_user")
     async def api_runSimulation(self):
         r = self._request_content(PKDict())

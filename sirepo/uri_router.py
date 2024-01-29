@@ -61,21 +61,6 @@ _api_modules = []
 _api_funcs = PKDict()
 
 
-def assert_api_name_and_auth(qcall, name, allowed):
-    """Check if `name` is executable and in allowed
-
-    Args:
-        qcall (sirepo.quest.API)
-        name (str): name of the api
-        allowed (tuple): names that are allowed to be called
-    Returns:
-        str: api name
-    """
-    _check_route(qcall, _api_to_route[name])
-    if name not in allowed:
-        raise AssertionError(f"api={name} not in allowed={allowed}")
-
-
 async def call_api(qcall, name, kwargs=None, data=None):
     """Should not be called outside of Base.call_api(). Use self.call_api() to call API.
 
