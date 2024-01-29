@@ -219,7 +219,7 @@ class _Supervisor(PKDict):
     @classmethod
     def get_compute_job_or_self(cls, req):
         if not (j := req.content.get("computeJid")):
-            # no a compute job
+            # not a compute job
             return cls(req=req)
         self = _ComputeJob.instances.pksetdefault(j, lambda: _ComputeJob.create(req))[j]
         # SECURITY: must only return instances for authorized user
@@ -383,11 +383,14 @@ class _Supervisor(PKDict):
         c = None
         try:
             c = self._create_op(job.OP_BEGIN_SESSION, req, job.SEQUENTIAL, "sequential")
+            # This "if" documents the prepare_send protocol
             if not await c.prepare_send():
+                # c is destroyed, do nothing
                 pass
         finally:
             if c:
                 c.destroy()
+        # Always successful return, since spa_session ignores the reply
         return PKDict()
 
     async def _receive_api_globalResources(self, req):
@@ -943,7 +946,7 @@ class _ComputeJob(_Supervisor):
                     status=job.ERROR,
                 )
                 return False
-
+            # prepare_send may have awaited so need to see if op is still run_op
             if not _is_run_op(f"prepare_send success"):
                 return False
             self.__db_update(driverDetails=op.driver.driver_details)

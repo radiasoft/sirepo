@@ -98,7 +98,7 @@ class DriverBase(PKDict):
         pkdlog("{}", self)
 
     def destroy_op(self, op):
-        """Clear our op and (possibly) free cpu slot"""
+        """Remove op from our list of sends"""
         self._prepared_sends.pkdel(op.op_id)
         if "lib_dir_symlink" in op:
             # lib_dir_symlink is unique_key so not dangerous to remove
@@ -182,6 +182,8 @@ class DriverBase(PKDict):
         if r == job_supervisor.SlotAllocStatus.HAD_TO_AWAIT:
             if not await self._agent_ready(op):
                 return False
+        elif r != job_supervisor.SlotAllocStatus.DID_NOT_AWAIT:
+            raise AssertionError(f"slots_ready invalid return={r}")
         self._prepared_sends[op.op_id] = op
         return True
 
@@ -225,11 +227,12 @@ class DriverBase(PKDict):
 
     async def _websocket_ready_timeout_handler(self):
         try:
-            if self._websocket_ready_timeout or self._websocket_ready.is_set():
-                pkdlog("ignore timeout {}, is ready", self)
+            if not self._websocket_ready_timeout or self._websocket_ready.is_set():
+                pkdlog("ignore timeout {}, is canceled or ready", self)
                 return
+            self._websocket_ready_timeout = None
             pkdlog("{} timeout={}", self, self.cfg.agent_starting_secs)
-            await self._start_free_resources(caller="_websocket_ready_timeout_handler")
+            self._start_free_resources(caller="_websocket_ready_timeout_handler")
         except Exception as e:
             pkdlog("exception={} stack={}", e, pkdexc())
 
@@ -340,10 +343,12 @@ class DriverBase(PKDict):
 
     async def _agent_start(self, op):
         if self._websocket_ready_timeout:
+            # agent is already starting
             return
         try:
             async with self._agent_life_change_lock:
                 if self._websocket_ready_timeout or self._websocket_ready.is_set():
+                    # agent is starting or ready
                     return
                 pkdlog("{} {} await=_do_agent_start", self, op)
                 # All awaits must be after this. If a call hangs the timeout
