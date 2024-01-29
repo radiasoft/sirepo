@@ -3900,7 +3900,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     res.push(plot.label);
                 }
                 return res;
-            }
+            };
 
             $scope.load = function(json) {
                 if (! json.plots && ! json.points) {
@@ -4121,9 +4121,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             $scope.$on($scope.modelName + '.changed', () => {
                     // $scope.axes.y.plots is actually the plot selection prior to .changed
                     // caching them here allows handlePlotSelection to check previous vs current
-                    appState.models[$scope.modelName].selectedPlots = $scope.plotLabels($scope.axes.y.plots);;
+                    appState.models[$scope.modelName].selectedPlots = $scope.plotLabels($scope.axes.y.plots);
                 }
-            )
+            );
 
             $scope.recalculateYDomain = function() {
                 var ydom;
