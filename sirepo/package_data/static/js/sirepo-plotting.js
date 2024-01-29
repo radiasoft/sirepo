@@ -3891,7 +3891,16 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     });
             };
 
+            $scope._labels = (plots) => {
+                var res = [];
+                for (var plot of plots) {
+                    res.push(plot.label);
+                }
+                return res;
+            }
+
             $scope.load = function(json) {
+                srdbg('loading');
                 if (! json.plots && ! json.points) {
                     //TODO(pjm): plot may be loaded with { state: 'canceled' }?
                     return;
@@ -4093,33 +4102,42 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     }
                 });
 
-                function _labels(plots) {
-                    var res = [];
-                    for (var plot of plots) {
-                        res.push(plot.label);
-                    }
-                    return res;
-                }
-
                 function handlePlotSelection() {
-                    const currentSelection = _labels(plots);
+                    srdbg('handling selection');
+                    const currentSelection = $scope._labels(plots);
                     const previousSelection = appState.models[$scope.modelName + 'SelectedPlots'] || currentSelection;
+                    srdbg(currentSelection, previousSelection);
                     if (JSON.stringify(currentSelection) != JSON.stringify(previousSelection)) {
                         plots.forEach((plot, i) => {
                             plotVisibility[$scope.modelName][i] = false;
                         });
+                        appState.models[$scope.modelName + 'SelectedPlots'] = currentSelection;
                         appState.saveChanges($scope.modelName);
                     }
                 }
 
                 handlePlotSelection();
-                $scope.$on(
-                    $scope.modelName + '.changed',
-                        () => {
-                            appState.models[$scope.modelName + 'SelectedPlots'] = _labels(plots);
-                        }
-                );
+                // $scope.$on(
+                //     // TODO (gurhar123): Looks like we call the all the previously defined listeners
+                //     // when we trigger this from the saveChanges. If this can be moved out of .load()
+                //     // then it solves a lot of problems
+                //     $scope.modelName + '.changed',
+                //         () => {
+                //             const l = _labels(plots);
+                //             srdbg('caching l=', l);
+                //             appState.models[$scope.modelName + 'SelectedPlots'] = l;
+                //         }
+                // );
             };
+
+            $scope.$on($scope.modelName + '.changed',
+                () => {
+                    const l = $scope._labels($scope.axes.y.plots);
+                    srdbg('caching l=', l);
+                    appState.models[$scope.modelName + 'SelectedPlots'] = l;
+
+                }
+            )
 
             $scope.recalculateYDomain = function() {
                 var ydom;
