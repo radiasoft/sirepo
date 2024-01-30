@@ -32,10 +32,6 @@ def read_json(text, qcall, sim_type=None):
             data=simulation_db.json_load(text),
             qcall=qcall,
         )[0],
-        # this data should not go through react_unformat_data, because
-        # it has come from a disk via exportArchive, and not gone through
-        # reacts data management.
-        is_sim_data=False,
     ).req_data
     assert (
         not sim_type or d.simulationType == sim_type
