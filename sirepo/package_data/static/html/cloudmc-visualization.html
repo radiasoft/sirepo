@@ -58,4 +58,9 @@
       </div>
     </div>
   </div>
+  <div class="row" data-ng-if="visualization.simState.isStateCompleted() && visualization.simState.hasFrames()">
+    <div class="col-sm-8">
+    <div data-report-panel="parameter" data-model-name="energyReport"></div>
+    </div>
+  </div>
 </div>

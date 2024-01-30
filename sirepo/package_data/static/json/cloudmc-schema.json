@@ -306,6 +306,9 @@
             "num": ["Number of samples", "Integer", 50]
         },
         "energyReport": {
+            "x": ["X", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.5, "space": "linear"}],
+            "y": ["Y", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.5, "space": "linear"}],
+            "z": ["Z", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.5, "space": "linear"}]
         },
         "filter": {
             "_type": ["", "TallyFilter"],
@@ -1118,6 +1121,14 @@
                 "stop",
                 "num"
             ]
+        },
+        "energyReport": {
+            "basic": [
+                "x",
+                "y",
+                "z"
+            ],
+            "advanced": []
         },
         "geometryInput": {
             "title": "Geometry Input",

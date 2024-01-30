@@ -2312,6 +2312,20 @@ SIREPO.app.directive('tallyAspects', function() {
     };
 });
 
+SIREPO.viewLogic('energyReportView', function(appState, panelState, $scope) {
+
+    srdbg('ERV');
+    function updateEditor() {
+    }
+
+    $scope.whenSelected = updateEditor;
+
+    //$scope.watchFields = [
+    //    [`${$scope.modelName}.run_mode`, 'reflectivePlanes.useReflectivePlanes'], updateEditor,
+    //];
+
+});
+
 SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
 
     function updateEditor() {
