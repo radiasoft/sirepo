@@ -1167,6 +1167,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             function addSources() {
                 sourceBundles.forEach(b => {
                     vtkScene.removeActor(b.actor);
+                    if (appState.models.openmcAnimation.showSources !== '1') {
+                        return;
+                    }
                     if (b.source.setRadius) {
                         b.source.setRadius(0.25 * vectorScaleFactor());
                     }
@@ -1176,19 +1179,20 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 if (particleBundle) {
                     vtkScene.removeActor(particleBundle.actor);
                 }
-                const particles = tallyService.getSourceParticles();
-                if (particles.length) {
-                    particleBundle = coordMapper.buildVectorField(
-                        particles.map(p => p.direction.map(x => p.energy * x)),
-                        particles.map(p => p.position),
-                        vectorScaleFactor(),
-                        true,
-                        appState.models.openmcAnimation.sourceColorMap,
-                        {edgeVisibility: false, lighting: false}
-                    );
-                    vtkScene.addActor(particleBundle.actor);
+                if (appState.models.openmcAnimation.showSources === '1') {
+                    const particles = tallyService.getSourceParticles();
+                    if (particles.length) {
+                        particleBundle = coordMapper.buildVectorField(
+                            particles.map(p => p.direction.map(x => p.energy * x)),
+                            particles.map(p => p.position),
+                            vectorScaleFactor(),
+                            true,
+                            appState.models.openmcAnimation.sourceColorMap,
+                            {edgeVisibility: false, lighting: false}
+                        );
+                        vtkScene.addActor(particleBundle.actor);
+                    }
                 }
-
                 vtkScene.render();
             }
 
@@ -1580,10 +1584,16 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 vtkScene.render();
             }
 
+            function showSources() {
+                addSources();
+                appState.saveQuietly($scope.modelName);
+                appState.autoSave();
+            }
+
             function vectorScaleFactor() {
                 return 3.5 * tallyService.getMaxMeshExtent();
             }
-
+            
             $scope.$on('sr-volume-visibility-toggle', (event, volume, isVisible, doUpdate) => {
                 setVolumeVisible(volume.volId, isVisible);
                 if (doUpdate) {
@@ -1595,6 +1605,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             $scope.$on($scope.modelName + '.changed', setGlobalProperties);
 
             if (hasTallies) {
+                appState.watchModelFields($scope, [`${$scope.modelName}.showSources`], showSources, true);
                 $scope.$on('openmcAnimation.summaryData', () => {
                     if (vtkScene) {
                         $rootScope.$broadcast('vtk.showLoader');
@@ -2779,6 +2790,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     }, SIREPO.debounce_timeout);
 
     function showFields() {
+        srdbg($('.sr-overlay-data'));
         const is2D = appState.models.tallyReport.selectedGeometry === '2D';
         panelState.showFields('openmcAnimation', [
             'opacity', ! is2D,
@@ -2833,6 +2845,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         [
             'tallyReport.selectedGeometry',
             'openmcAnimation.score',
+            'openmcAnimation.showSources',
             'openmcAnimation.numSampleSourceParticles',
         ], showFields,
     ];
