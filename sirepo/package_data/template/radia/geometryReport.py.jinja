@@ -1,3 +1,7 @@
+def _put_sim_files():
+    for f in ("{{ dataFile }}", "{{ dmpOutputFile }}"):
+        sirepo.mpi.restrict_op_to_first_rank(lambda: sirepo.sim_data.get_class("radia").put_sim_file("{{ simId }}", f, f))
+
 with radia_util.MPI() as m:
 {% if solverMode == "reset" %}
     radia_util.reset()
@@ -27,4 +31,3 @@ with radia_util.MPI() as m:
 {% endif %}
     sirepo.mpi.restrict_op_to_first_rank(lambda: _write_dmp(g_id, "{{ dmpOutputFile }}"))
     _put_sim_files()
-

@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
-"""Test background processes
+"""Test sequential reports
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern.pkcollections import PKDict
-import pytest
 
 
 def test_controls(fc):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """CloudMC execution template.
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
@@ -121,7 +120,7 @@ def get_data_file(run_dir, model, frame, options):
         return _statepoint_filename(
             simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         )
-    raise AssertionError("no data file for model={model} and options={options}")
+    raise AssertionError(f"invalid model={model} options={options}")
 
 
 def post_execution_processing(
@@ -141,16 +140,15 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def stateful_compute_download_remote_lib_file(data, **kwargs):
-    return template_common.remote_file_to_simulation_lib(
-        _SIM_DATA,
+    _SIM_DATA.lib_file_save_from_url(
         "{}/{}".format(
             sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
             data.args.exampleURL,
         ),
-        False,
         "geometryInput",
         "dagmcFile",
     )
+    return PKDict()
 
 
 def sim_frame(frame_args):
@@ -166,6 +164,25 @@ def sim_frame(frame_args):
     def _get_tally(tallies, name):
         f = [x for x in tallies if x.name == name]
         return f[0] if len(f) else None
+
+    def _sample_sources(filename, num_samples):
+        samples = []
+        try:
+            b = template_common.read_dict_from_h5(filename).get("source_bank", [])[
+                :num_samples
+            ]
+            return [
+                PKDict(
+                    direction=p.u,
+                    energy=p.E,
+                    position=p.r,
+                    type=openmc.ParticleType(p.particle).name,
+                )
+                for p in [openmc.SourceParticle(*p) for p in b]
+            ]
+        except:
+            pass
+        return samples
 
     def _sum_energy_bins(values, mesh_filter, energy_filter, sum_range):
         f = (lambda x: x) if energy_filter.space == "linear" else numpy.log10
@@ -217,6 +234,10 @@ def sim_frame(frame_args):
         summaryData=PKDict(
             tally=frame_args.tally,
             outlines=o[frame_args.tally] if frame_args.tally in o else {},
+            sourceParticles=_sample_sources(
+                _source_filename(frame_args.sim_in),
+                frame_args.numSampleSourceParticles,
+            ),
         ),
     )
 
@@ -526,6 +547,10 @@ def _generate_parameters_file(data, run_dir=None):
 
     v.materials = _generate_materials(data)
     v.sources = _generate_sources(data)
+    v.sourceFile = _source_filename(data)
+    v.maxSampleSourceParticles = SCHEMA.model.openmcAnimation.numSampleSourceParticles[
+        5
+    ]
     v.tallies = _generate_tallies(data)
     v.hasGraveyard = _has_graveyard(data)
     return template_common.render_jinja(
@@ -547,8 +572,8 @@ def _generate_range(filter):
 
 def _generate_source(source):
     if source.get("type") == "file" and source.get("file"):
-        return f"openmc.Source(filename=\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
-    return f"""openmc.Source(
+        return f"openmc.IndependentSource(filename=\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
+    return f"""openmc.IndependentSource(
         space={_generate_space(source.space)},
         angle={_generate_angle(source.angle)},
         energy={_generate_distribution(source.energy)},
@@ -688,6 +713,10 @@ def _parse_run_log(run_dir):
     if res:
         return res
     return "An unknown error occurred, check CloudMC log for details"
+
+
+def _source_filename(data):
+    return f"source.{data.models.settings.batches}.h5"
 
 
 def _statepoint_filename(data):
