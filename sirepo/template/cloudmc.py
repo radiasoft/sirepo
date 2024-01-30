@@ -396,7 +396,19 @@ sirepo.simulation_db.write_json(
 
 
 def _energy_plot():
-    return PKDict(x_range=[], summaryData={})
+    plots = PKDict(points[0, 2, 4], label=None, style="line")
+    return template_common.parameter_plot(
+        [0, 1, 2],
+        plots,
+        PKDict(),
+        PKDict(
+            title="Energy Spectrum",
+            y_label=f"Dunno",
+            x_label=f"Energy [MeV]",
+            summaryData=PKDict(),
+        ),
+    )
+    #return PKDict(x_range=[], summaryData={})
 
 
 def _generate_angle(angle):

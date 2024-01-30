@@ -753,6 +753,23 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
     };
 });
 
+SIREPO.app.directive('energySpectrum', function(appState, cloudmcService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div data-ng-if="! ! energyFilter" data-report-panel="parameter" data-model-name="energyReport">
+                <div data-advanced-editor-pane="" data-view-name="'energyReport'" data-want-buttons="" data-field-def="basic"></div>
+            </div>
+        `,
+        controller: function($scope) {
+
+            $scope.energyFilter = cloudmcService.findFilter('energyFilter');
+            
+        },
+    };
+});
+
 SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache, panelState, tallyService) {
     return {
         restrict: 'A',
@@ -2312,10 +2329,16 @@ SIREPO.app.directive('tallyAspects', function() {
     };
 });
 
-SIREPO.viewLogic('energyReportView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('energyReportView', function(appState, panelState, tallyService, $scope) {
 
-    srdbg('ERV');
     function updateEditor() {
+        $scope.modelData = appState.models[$scope.modelName];
+        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(x => {
+            const r = tallyService.tallyRange(x, true);
+            $scope.modelData[x].min = r.min;
+            $scope.modelData[x].max = r.max;
+            $scope.modelData[x].step = r.step;
+        });
     }
 
     $scope.whenSelected = updateEditor;

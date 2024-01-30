@@ -34,6 +34,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             dm,
             (
                 "dagmcAnimation",
+                "energyReport",
                 "geometry3DReport",
                 "geometryInput",
                 "openmcAnimation",
