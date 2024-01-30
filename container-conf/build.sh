@@ -33,11 +33,6 @@ build_as_run_user() {
     pip install .
     cd ../sirepo
     pip install -e .
-    cd react
-    npm install
-    npm run-script build
-    mv build ../sirepo/package_data/static/react
-    cd ..
     sirepo srw create_predefined
     pip uninstall -y sirepo
     pip install .
