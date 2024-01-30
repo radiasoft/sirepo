@@ -2420,6 +2420,7 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
                         if (gObj.members) {
                             gColor = null;
                         }
+                        
                         const pData = radiaVtkUtils.objToPolyData(sceneDatum, [t], gColor).data;
                         let bundle = null;
                         if (radiaVtkUtils.GEOM_OBJ_TYPES.includes(t)) {
