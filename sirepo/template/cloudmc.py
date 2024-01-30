@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """CloudMC execution template.
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
@@ -117,7 +116,7 @@ def get_data_file(run_dir, model, frame, options):
         return _statepoint_filename(
             simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         )
-    raise AssertionError("no data file for model={model} and options={options}")
+    raise AssertionError(f"invalid model={model} options={options}")
 
 
 def post_execution_processing(
@@ -137,16 +136,15 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def stateful_compute_download_remote_lib_file(data, **kwargs):
-    return template_common.remote_file_to_simulation_lib(
-        _SIM_DATA,
+    _SIM_DATA.lib_file_save_from_url(
         "{}/{}".format(
             sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
             data.args.exampleURL,
         ),
-        False,
         "geometryInput",
         "dagmcFile",
     )
+    return PKDict()
 
 
 def sim_frame(frame_args):

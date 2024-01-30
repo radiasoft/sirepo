@@ -46,46 +46,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def react_format_data(cls, data):
-        dm = data.models
-        assert isinstance(dm.beamline, list)
-        dm.beamline = PKDict(
-            elements=list(map(lambda i: PKDict(model=i.type, item=i), dm.beamline))
-        )
-        assert not dm.get("watchpointReports")
-        dm.watchpointReports = PKDict(reports=[])
-        n = []
-        for m in dm:
-            if cls.is_watchpoint(m) and m != "watchpointReports":
-                cls.update_model_defaults(dm[m], "watchpointReport")
-                i = cls.watchpoint_id(m)
-                dm[m].id = i
-                dm.watchpointReports.reports.append(
-                    PKDict(model="watchpointReport", item=dm[m])
-                )
-                n.append(m)
-        for i in n:
-            del dm[i]
-
-    @classmethod
-    def react_unformat_data(cls, data):
-        dm = data.models
-        # assert not isinstance(dm.beamline, list)
-        if isinstance(dm.beamline, list):
-            return
-        dm.beamline = [e.item for e in dm.beamline.elements]
-        assert "watchpointReports" in dm
-        names = []
-        for r in dm.watchpointReports.reports:
-            n = f"watchpointReport{r.item.id}"
-            assert not dm.get(n)
-            dm[n] = r.item
-            names.append(n)
-        del dm["watchpointReports"]
-        if data.get("report") and cls.is_watchpoint(data.report):
-            data.report = names[cls.watchpoint_id(data.report)]
-
-    @classmethod
     def shadow_simulation_files(cls, data):
         m = data.models
         if m.simulation.sourceType == "wiggler" and m.wiggler.b_from in ("1", "2"):

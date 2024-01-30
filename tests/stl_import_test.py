@@ -5,9 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from ast import AsyncFunctionDef
-
-
 _RAW_VERTICES = [[0, 0, 0], [1, 1, 0], [0, 1, 0], [0.5, 0.5, 1]]
 _RAW_FACES = [[1, 2, 3], [1, 2, 4], [1, 4, 3], [4, 2, 3]]
 
