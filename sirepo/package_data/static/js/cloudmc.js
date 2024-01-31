@@ -178,7 +178,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
     self.getSourceVisualizations = builders => {
         const sources = [];
         const noop = () => {};
-        for (const s of appState.models.settings.sources.filter(x => x.space && x.space.is_fissionalble === '1')) {
+        for (const s of appState.models.settings.sources.filter(x => x.space && x.space.only_fissionable !== '1')) {
             let b = null;
             const space = s.space;
             b = (builders[space._type] || noop)(space);
