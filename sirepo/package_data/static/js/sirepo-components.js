@@ -3304,9 +3304,12 @@ SIREPO.app.directive('commonFooter', function() {
             <div data-modal-editor="" view-name="simulation" modal-title="simulationModalTitle"></div>
             <div data-sbatch-login-modal=""></div>
             <div data-jobs-list-modal="" data-title="Jobs" data-id="sr-jobsListModal-editor"></div>
+            <div data-confirmation-modal="" data-is-required="true" data-id="sr-newRelease" data-title="Server Upgraded" data-ok-text="Refresh" data-ok-clicked="refreshPage()">Sirepo has been upgraded. Select <b>Refresh</b> to update this simulation.</div>
+            <div data-confirmation-modal="" data-is-required="true" data-id="sr-invalidSimulationSerial" data-title="Simulation Conflict" data-ok-text="Refresh" data-ok-clicked="refreshPage()">This simulation has been updated outside of this browser. Select <b>Refresh</b> to update this simulation.</div>
         `,
         controller: function($scope, appState, stringsService) {
             $scope.simulationModalTitle = stringsService.formatKey('simulationDataType');
+            $scope.refreshPage = () => window.location.reload();
         }
     };
 });
