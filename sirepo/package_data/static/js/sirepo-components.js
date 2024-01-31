@@ -5415,10 +5415,10 @@ SIREPO.app.directive('srDroppable', function() {
 
             function updateCount(newCount) {
                 dragCount = newCount;
-                if (dragCount == 0) {
+                if (dragCount === 0) {
                     $element.removeClass('sr-drag-over');
                 }
-                else if (dragCount == 1) {
+                else if (dragCount === 1) {
                     $element.addClass('sr-drag-over');
                 }
             }
