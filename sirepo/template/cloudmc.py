@@ -129,7 +129,7 @@ def post_execution_processing(
             for f in ply_files:
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
         return None
-    return _parse_run_log(run_dir)
+    return _parse_cloudmc_log(run_dir)
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -665,12 +665,13 @@ def _is_sbatch_run_mode(data):
     return data.models.openmcAnimation.jobRunMode == "sbatch"
 
 
-def _parse_run_log(run_dir):
+def _parse_cloudmc_log(run_dir, log_filename="run.log"):
     return template_common.LogParser(
         run_dir,
+        log_filename=log_filename,
         default_msg="An unknown error occurred, check CloudMC log for details",
         # ERROR: Cannot tally flux for an individual nuclide.
-        error_patterns=(r"^\s*Error:\s*(.*)$", r"^\s*error:\s*(.*)$"),
+        error_patterns=(re.compile(r"^\s*error:\s*(.*)$", re.IGNORECASE),),
     ).parse_for_errors()
 
 

@@ -24,7 +24,6 @@ import sirepo.numpy
 import sirepo.sim_data
 import sirepo.util
 
-_LOG_FILE = "run.log"
 
 _SEGMENT_ROWS = 3
 
@@ -103,17 +102,23 @@ def background_percent_complete(report, run_dir, is_running):
         max_frame = data.models.neuralNet.epochs
         res.frameCount = int(m.group(1)) + 1
         res.percentComplete = float(res.frameCount) * 100 / max_frame
-    error = _range_error(
-        template_common.LogParser(
-            run_dir,
-            log_filename=_LOG_FILE,
-            error_patterns=(r"AssertionError: (Model training failed due to .*)",),
-            default_msg="",
-        ).parse_for_errors()
-    )
+    error = _range_error(_parse_activate_log(run_dir))
     if error:
         res.error = error
     return res
+
+
+def _parse_activate_log(run_dir, log_filename="run.log"):
+    return template_common.LogParser(
+        run_dir,
+        log_filename=log_filename,
+        error_patterns=(
+            r"AssertionError: (Model training failed due to .*)",
+            r"TypeError: (.*)",
+        ),
+        default_msg="",
+    ).parse_for_errors()
+
 
 
 def _range_error(error):

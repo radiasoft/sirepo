@@ -176,16 +176,7 @@ def get_data_file(run_dir, model, frame, options):
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit or is_parallel:
         return None
-    if template_common.LogParser(
-        run_dir,
-        error_patterns=(r".*(invalid chemical formula)",),
-        default_msg="",
-    ).parse_for_errors():
-        return "A mirror contains an invalid reflectivity material"
-    return template_common.LogParser(
-        run_dir,
-        error_patterns=(r"ValueError: (.*)?",),
-    ).parse_for_errors()
+    return _parse_shadow_log(run_dir)
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -948,6 +939,21 @@ def _is_disabled(item):
 
 def _item_field(item, fields):
     return _fields("oe", item, fields)
+
+
+def _parse_shadow_log(run_dir, log_filename="run.log"):
+    if template_common.LogParser(
+        run_dir,
+        log_filename=log_filename,
+        error_patterns=(r".*(invalid chemical formula)",),
+        default_msg="",
+    ).parse_for_errors():
+        return "A mirror contains an invalid reflectivity material"
+    return template_common.LogParser(
+        run_dir,
+        log_filename=log_filename,
+        error_patterns=(r"ValueError: (.*)?",),
+    ).parse_for_errors()
 
 
 def _photon_energy(models):
