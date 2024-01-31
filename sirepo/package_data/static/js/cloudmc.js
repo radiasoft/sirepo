@@ -2791,6 +2791,11 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         panelState.showField('openmcAnimation', 'sourceColorMap', appState.models.openmcAnimation.numSampleSourceParticles);
     }
 
+    function updateDisplay() {
+        appState.saveQuietly('openmcAnimation');
+        appState.autoSave();
+    }
+
     function updateEnergyRange() {
         const e = cloudmcService.findFilter('energyFilter');
         $scope.energyFilter = e;
@@ -2820,15 +2825,17 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     $scope.watchFields = [
         [
             'openmcAnimation.aspect',
-            'openmcAnimation.colorMap',
             'openmcAnimation.energyRangeSum',
             'openmcAnimation.numSampleSourceParticles',
-            'openmcAnimation.opacity',
             'openmcAnimation.score',
             'openmcAnimation.sourceNormalization',
-            'openmcAnimation.sourceColorMap',
             'openmcAnimation.threshold',
         ], autoUpdate,
+        [
+            'openmcAnimation.colorMap',
+            'openmcAnimation.sourceColorMap',
+            'openmcAnimation.opacity',
+        ], updateDisplay,
         ['openmcAnimation.tally'], validateTally,
         [
             'tallyReport.selectedGeometry',
