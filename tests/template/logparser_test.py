@@ -19,6 +19,19 @@ def test_activait_logparser():
     )
 
 
+def test_epicsllrf_logparser():
+    from sirepo.template import epicsllrf
+
+    pkunit.pkeq(
+        epicsllrf._parse_epics_log(pkunit.data_dir(), log_filename="epicsllrf1.txt"),
+        "a test EpicsDisconnectError\n",
+    )
+    pkunit.pkeq(
+        epicsllrf._parse_epics_log(pkunit.data_dir(), log_filename="unknown_case.txt"),
+        "",
+    )
+
+
 def test_cloudmc_logparser():
     from sirepo.template import cloudmc
 
@@ -26,6 +39,14 @@ def test_cloudmc_logparser():
         cloudmc._parse_cloudmc_log(pkunit.data_dir(), log_filename="cloudmc1.txt"),
         "No fission sites banked on MPI rank 0\n",
     )
+    pkunit.pkeq(
+        cloudmc._parse_cloudmc_log(pkunit.data_dir(), log_filename="unknown_case.txt"),
+        "An unknown error occurred, check CloudMC log for details",
+    )
+
+
+def test_madx_logparser():
+    pass
 
 
 def test_opal_logparser():
@@ -82,7 +103,7 @@ def test_silas_logparser():
     pkunit.pkeq(
         silas._SilasLogParser(
             pkunit.data_dir(),
-            log_filename="silas2.txt",
+            log_filename="unknown_case.txt",
         ).parse_for_errors(),
         "An unknown error occurred",
     )
@@ -104,4 +125,7 @@ def test_srw_logparser():
         ).parse_for_errors(),
         "SRW can not compute this case. Longitudinal position of the Observation Plane is within the Integration limits.\n"
     )
-# TODO (gurhar1133): add more test cases/data
+
+
+def test_zgoubi_logparser():
+    pass

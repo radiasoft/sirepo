@@ -42,11 +42,7 @@ def background_percent_complete(report, run_dir, is_running):
     return PKDict(
         percentComplete=100,
         frameCount=0,
-        alert=template_common.LogParser(
-            run_dir,
-            error_patterns=(r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)",),
-            default_msg="",
-        ).parse_for_errors(),
+        alert=_parse_epics_log(run_dir),
         hasEpicsData=run_dir.join(_STATUS_FILE).exists(),
     )
 
@@ -172,6 +168,15 @@ def _read_epics_data(run_dir, computed_values):
             _calculate_computed_values(d, computed_values)
         return d
     return PKDict()
+
+
+def _parse_epics_log(run_dir, log_filename="run.log"):
+    return template_common.LogParser(
+        run_dir,
+        log_filename=log_filename,
+        error_patterns=(r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)",),
+        default_msg="",
+    ).parse_for_errors()
 
 
 def _set_zcu_signal(server_address, model):
