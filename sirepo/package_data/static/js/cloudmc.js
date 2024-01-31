@@ -1598,7 +1598,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             function vectorScaleFactor() {
                 return 3.5 * tallyService.getMaxMeshExtent();
             }
-            
+
             $scope.$on('sr-volume-visibility-toggle', (event, volume, isVisible, doUpdate) => {
                 setVolumeVisible(volume.volId, isVisible);
                 if (doUpdate) {
