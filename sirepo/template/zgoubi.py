@@ -939,7 +939,7 @@ def _ipasses_for_data(col_names, rows):
     return res
 
 
-def _parse_zgoubi_log(run_dir):
+def _parse_zgoubi_log(run_dir, log_filename="run.log"):
     if (
         res := _ZgoubiLogParser(
             run_dir,
@@ -950,6 +950,7 @@ def _parse_zgoubi_log(run_dir):
         return res
     return template_common.LogParser(
         run_dir,
+        log_filename=log_filename,
         error_patterns=(r"Fortran runtime error: (.*)",),
         default_msg="",
     ).parse_for_errors()
