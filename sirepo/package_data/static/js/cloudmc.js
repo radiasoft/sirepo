@@ -993,12 +993,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             function updateSlice() {
                 tallyService.updateTallyDisplay();
-                //appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
                 buildTallyReport();
-                // save quietly but immediately
-                //appState.saveQuietly('openmcAnimation');
-                //appState.saveQuietly('tallyReport');
-                //appState.autoSave();
             }
 
             function updateSliceAxis() {
@@ -1588,6 +1583,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             }
 
             function updateDisplay() {
+                // opcacity can change before we're ready
+                if (! vtkScene) {
+                    return;
+                }
                 tallyService.updateTallyDisplay();
                 setTallyColors();
                 addSources();
@@ -1610,6 +1609,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             if (hasTallies) {
                 appState.watchModelFields($scope, [
                     `${$scope.modelName}.colorMap`,
+                    `${$scope.modelName}.opacity`,
                     `${$scope.modelName}.sourceColorMap`,
                 ], updateDisplay);
                 $scope.$on('openmcAnimation.summaryData', () => {
