@@ -980,6 +980,11 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 return SIREPO.GEOMETRY.GeometryUtils.axisIndices(appState.models.tallyReport.axis);
             }
 
+            function updateDisplay() {
+                tallyService.updateTallyDisplay();
+                updateSlice();
+            }
+
             function updateDisplayRange() {
                 if (! tallyService.initMesh()) {
                     return;
@@ -992,7 +997,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             }
 
             function updateSlice() {
-                tallyService.updateTallyDisplay();
                 buildTallyReport();
             }
 
@@ -1054,7 +1058,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             $scope.$on('tallyReport.summaryData', updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
-            appState.watchModelFields($scope, ['tallyReport.planePos', 'openmcAnimation.colorMap', 'openmcAnimation.sourceColorMap'], updateSlice, true);
+            appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
+            appState.watchModelFields($scope, ['openmcAnimation.colorMap', 'openmcAnimation.sourceColorMap'], updateDisplay);
             $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
             if (frameCache.hasFrames('openmcAnimation')) {
                 panelState.waitForUI(updateDisplayRange);
