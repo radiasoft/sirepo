@@ -733,11 +733,11 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
             };
             $scope.is2D = () => appState.applicationState().tallyReport.selectedGeometry === '2D';
             $scope.is3D = () => ! $scope.is2D();
-            $scope.$on('openmcAnimation.changed', () => {
-                // keep colorMap synchronized
-                appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
-                appState.saveQuietly('tallyReport');
-            });
+            //$scope.$on('openmcAnimation.changed', () => {
+            //    // keep colorMap synchronized
+            //    appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
+            //    appState.saveQuietly('tallyReport');
+            //});
 
             $scope.$on('openmcAnimation.summaryData', (e, summaryData) => {
                 if (summaryData.tally) {
@@ -988,8 +988,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             }
 
             function updateSlice() {
+                appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
                 buildTallyReport();
                 // save quietly but immediately
+                appState.saveQuietly('openmcAnimation');
                 appState.saveQuietly('tallyReport');
                 appState.autoSave();
             }
@@ -1052,7 +1054,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             $scope.$on('tallyReport.summaryData', updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
-            appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
+            appState.watchModelFields($scope, ['tallyReport.planePos', 'openmcAnimation.colorMap', 'openmcAnimation.sourceColorMap'], updateSlice, true);
             $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
             if (frameCache.hasFrames('openmcAnimation')) {
                 panelState.waitForUI(updateDisplayRange);
@@ -1580,6 +1582,15 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 vtkScene.render();
             }
 
+            function updateDisplay() {
+                appState.models.tallyReport.colorMap = appState.models[$scope.modelName].colorMap;
+                appState.saveQuietly($scope.modelName);
+                appState.saveQuietly('tallyReport');
+                appState.autoSave();
+                setTallyColors();
+                addSources();
+            }
+
             function vectorScaleFactor() {
                 return 3.5 * tallyService.getMaxMeshExtent();
             }
@@ -1595,6 +1606,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             $scope.$on($scope.modelName + '.changed', setGlobalProperties);
 
             if (hasTallies) {
+                appState.watchModelFields($scope, [
+                    `${$scope.modelName}.colorMap`,
+                    `${$scope.modelName}.sourceColorMap`,
+                ], updateDisplay);
                 $scope.$on('openmcAnimation.summaryData', () => {
                     if (vtkScene) {
                         $rootScope.$broadcast('vtk.showLoader');
@@ -2791,11 +2806,6 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         panelState.showField('openmcAnimation', 'sourceColorMap', appState.models.openmcAnimation.numSampleSourceParticles);
     }
 
-    function updateDisplay() {
-        appState.saveQuietly('openmcAnimation');
-        appState.autoSave();
-    }
-
     function updateEnergyRange() {
         const e = cloudmcService.findFilter('energyFilter');
         $scope.energyFilter = e;
@@ -2831,11 +2841,6 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.sourceNormalization',
             'openmcAnimation.threshold',
         ], autoUpdate,
-        [
-            'openmcAnimation.colorMap',
-            'openmcAnimation.sourceColorMap',
-            'openmcAnimation.opacity',
-        ], updateDisplay,
         ['openmcAnimation.tally'], validateTally,
         [
             'tallyReport.selectedGeometry',
