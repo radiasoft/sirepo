@@ -175,10 +175,10 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
     };
 
 
-    self.getSources = builders => {
+    self.getSourceVisualizations = builders => {
         const sources = [];
         const noop = () => {};
-        for (const s of appState.models.settings.sources.filter(x => x.space)) {
+        for (const s of appState.models.settings.sources.filter(x => x.space && x.space.is_fissionalble === '1')) {
             let b = null;
             const space = s.space;
             b = (builders[space._type] || noop)(space);
@@ -763,7 +763,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
             const displayRanges = {};
-            const sources = cloudmcService.getSources(
+            const sources = cloudmcService.getSourceVisualizations(
                 {
                     box: space => {
                         const d = cloudmcService.boxDimensions(space);
@@ -1111,7 +1111,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 edgeVisibility: true,
                 lighting: false,
             };
-            const sourceBundles = cloudmcService.getSources(
+            const sourceBundles = cloudmcService.getSourceVisualizations(
                 {
                     box: space => {
                         const d = cloudmcService.boxDimensions(space);
