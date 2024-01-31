@@ -85,3 +85,4 @@ def test_srw_logparser():
         ).parse_for_errors(),
         "SRW can not compute this case. Longitudinal position of the Observation Plane is within the Integration limits.\n"
     )
+# TODO (gurhar1133): add more test cases/data
