@@ -349,6 +349,8 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         const a = appState.models.openmcAnimation;
         return `Tally Results - ${a.tally} - ${a.score} - ${a.aspect}`;
     };
+
+
     return self;
 });
 
@@ -536,6 +538,14 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
             max: r[1] - f * s,
             step: s,
         };
+    };
+
+    self.updateTallyDisplay = () => {
+        appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
+        // save quietly but immediately
+        appState.saveQuietly('openmcAnimation');
+        appState.saveQuietly('tallyReport');
+        appState.autoSave();
     };
 
     $rootScope.$on('modelsUnloaded', self.clearMesh);
@@ -733,12 +743,6 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
             };
             $scope.is2D = () => appState.applicationState().tallyReport.selectedGeometry === '2D';
             $scope.is3D = () => ! $scope.is2D();
-            //$scope.$on('openmcAnimation.changed', () => {
-            //    // keep colorMap synchronized
-            //    appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
-            //    appState.saveQuietly('tallyReport');
-            //});
-
             $scope.$on('openmcAnimation.summaryData', (e, summaryData) => {
                 if (summaryData.tally) {
                     tallyService.setOutlines(summaryData.tally, summaryData.outlines);
@@ -988,12 +992,13 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             }
 
             function updateSlice() {
-                appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
+                tallyService.updateTallyDisplay();
+                //appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
                 buildTallyReport();
                 // save quietly but immediately
-                appState.saveQuietly('openmcAnimation');
-                appState.saveQuietly('tallyReport');
-                appState.autoSave();
+                //appState.saveQuietly('openmcAnimation');
+                //appState.saveQuietly('tallyReport');
+                //appState.autoSave();
             }
 
             function updateSliceAxis() {
@@ -1583,10 +1588,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             }
 
             function updateDisplay() {
-                appState.models.tallyReport.colorMap = appState.models[$scope.modelName].colorMap;
-                appState.saveQuietly($scope.modelName);
-                appState.saveQuietly('tallyReport');
-                appState.autoSave();
+                tallyService.updateTallyDisplay();
                 setTallyColors();
                 addSources();
             }
