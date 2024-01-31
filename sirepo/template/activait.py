@@ -119,7 +119,6 @@ def _parse_activate_log(run_dir, log_filename="run.log"):
     ).parse_for_errors()
 
 
-
 def _range_error(error):
     e = re.search(re.compile("Received a label value of (.*?) (is .*?[\]\)])"), error)
     if e:

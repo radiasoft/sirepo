@@ -696,7 +696,7 @@ def _parse_cloudmc_log(run_dir, log_filename="run.log"):
         log_filename=log_filename,
         default_msg="An unknown error occurred, check CloudMC log for details",
         # ERROR: Cannot tally flux for an individual nuclide.
-        error_patterns=(re.compile(r"^\s*error:\s*(.*)$", re.IGNORECASE),),
+        error_patterns=(re.compile(r"^\s*Error:\s*(.*)$", re.IGNORECASE),),
     ).parse_for_errors()
 
 
