@@ -133,11 +133,8 @@ def test_srw_logparser():
 def test_zgoubi_logparser():
     from sirepo.template import zgoubi
 
-    pkunit.pkeq(
-        "",
-        zgoubi._parse_zgoubi_log(pkunit.data_dir(), "unknown_case.txt")
-    )
+    pkunit.pkeq("", zgoubi._parse_zgoubi_log(pkunit.data_dir(), "unknown_case.txt"))
     pkunit.pkeq(
         "example fortran runtime error\n",
-        zgoubi._parse_zgoubi_log(pkunit.data_dir(), "zgoubi1.txt")
+        zgoubi._parse_zgoubi_log(pkunit.data_dir(), "zgoubi1.txt"),
     )
