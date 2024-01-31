@@ -56,13 +56,6 @@ def http():
         finally:
             [signal.signal(x[0], x[1]) for x in o]
 
-    def _install_react():
-        p = pkio.py_path("../react/node_modules")
-        if p.exists():
-            return
-        pkdlog("Need to install react (takes a few minutes)...")
-        os.system(f"cd '{p.dirname}' && npm install")
-
     def _kill(*args):
         for p in processes:
             try:
@@ -109,15 +102,6 @@ def http():
             (signal.SIGINT, signal.SIGTERM)
         ):
             e = PKDict()
-            if _cfg().react_port:
-                _install_react()
-                _start(
-                    ("npm", "start"),
-                    cwd="../react",
-                    want_prefix=False,
-                    extra_environ=PKDict(PORT=str(_cfg().react_port)),
-                )
-                e.SIREPO_SERVER_REACT_SERVER = f"http://127.0.0.1:{_cfg().react_port}/"
             _start(("service", "server"), extra_environ=e)
             # Avoid race condition on creating auth db
             # Not asyncio.sleep: at server startup
@@ -217,13 +201,6 @@ def _cfg():
                 sirepo.const.PORT_DEFAULTS.http,
                 _cfg_port,
                 "port on which http listens",
-            ),
-            react_port=(
-                sirepo.const.PORT_DEFAULTS.react
-                if sirepo.feature_config.cfg().ui_react and pkconfig.in_dev_mode()
-                else None,
-                _cfg_port,
-                "port on which react listens",
             ),
             run_dir=(None, str, "where to run the program (defaults db_dir)"),
             use_reloader=(pkconfig.in_dev_mode(), bool, "use the server reloader"),

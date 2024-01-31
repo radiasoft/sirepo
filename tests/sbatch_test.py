@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
 """test running of animations through sbatch
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern.pkcollections import PKDict
-import pytest
-
 
 # If you see: _timeout MAX_CASE_RUN_SECS=120 exceeded
 # Run sinfo to see if slurmd is down for this node.
@@ -18,6 +14,7 @@ import pytest
 
 
 def test_srw_data_file(new_user_fc):
+    from pykern.pkcollections import PKDict
     from pykern.pkunit import pkeq
 
     a = "Young's Double Slit Experiment"
@@ -70,6 +67,7 @@ def test_warppba_no_creds(new_user_fc):
 
 
 def _warppba_login(fc, username, password):
+    from pykern.pkcollections import PKDict
     from pykern import pkunit
     from sirepo import util
 
