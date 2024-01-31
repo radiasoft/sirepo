@@ -887,7 +887,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         .attr('orient', 'auto')
                         .attr('markerUnits', 'strokeWidth')
                         .select('path')
-                        .attr('fill', d => d);
+                        .attr('fill', d => sourceColor(d));
                 }
                 
                 const outlines = [];
@@ -913,7 +913,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     }
                     outlines.push({
                         name: `source-${s.particle}-${s.space._type}-${i}`,
-                        color: '#ff0000',
+                        color: sourceColor('#ff0000'),
                         data: view.shapePoints(dim).map(p => p.toReversed()),
                         doClose: true,
                     });
@@ -928,7 +928,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     const p2 = [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d];
                     outlines.push({
                         name: `${p.type}-${p.energy}eV-${n}`,
-                        color: particleColor(p),
+                        color: sourceColor(particleColor(p)),
                         dashes: p.type === 'PHOTON' ? '6 2' : '',
                         data: [p1, p2].map(p => p.toReversed()),
                         marker: particleId(p),
@@ -965,6 +965,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 return ff;
             }
 
+            function sourceColor(color) {
+                return appState.models.openmcAnimation.showSources === '1' ? color : 'none';
+            }
+
             function tallyReportAxes() {
                 return [
                     appState.models.tallyReport.axis,
@@ -991,6 +995,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 buildTallyReport();
                 // save quietly but immediately
                 appState.saveQuietly('tallyReport');
+                appState.saveQuietly('openmcAnimation');
                 appState.autoSave();
             }
 
@@ -1052,7 +1057,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             $scope.$on('tallyReport.summaryData', updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
-            appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
+            appState.watchModelFields($scope, ['tallyReport.planePos', 'openmcAnimation.showSources'], updateSlice, true);
             $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
             if (frameCache.hasFrames('openmcAnimation')) {
                 panelState.waitForUI(updateDisplayRange);
@@ -2790,8 +2795,8 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     }, SIREPO.debounce_timeout);
 
     function showFields() {
-        srdbg($('.sr-overlay-data'));
         const is2D = appState.models.tallyReport.selectedGeometry === '2D';
+        const showSources = appState.models.openmcAnimation.showSources === '1';
         panelState.showFields('openmcAnimation', [
             'opacity', ! is2D,
         ]);
@@ -2800,7 +2805,8 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         ]);
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
         panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
-        panelState.showField('openmcAnimation', 'sourceColorMap', appState.models.openmcAnimation.numSampleSourceParticles);
+        panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);
+        panelState.showField('openmcAnimation', 'sourceColorMap', showSources && appState.models.openmcAnimation.numSampleSourceParticles);
     }
 
     function updateEnergyRange() {
