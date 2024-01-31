@@ -736,14 +736,6 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def react_format_data(cls, data):
-        pass
-
-    @classmethod
-    def react_unformat_data(cls, data):
-        pass
-
-    @classmethod
     def resource_path(cls, filename):
         """Static resource (package_data) file for simulation
 
