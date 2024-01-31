@@ -37,27 +37,25 @@ def test_from_elegant_to_madx_and_back():
                 )
 
 
-def test_import_elegant_export_madx(import_req):
-    from pykern import pkunit
-    from pykern.pkunit import pkeq, file_eq
+def test_import_elegant_export_madx():
+    from pykern import pkunit, pkdebug, pkjson
+    from pykern.pkcollections import PKDict
     from sirepo import srunit
     from sirepo.template import elegant
-    from sirepo.template.elegant import ElegantMadxConverter
-    import asyncio
 
-    data = asyncio.run(
-        elegant.import_file(import_req(pkunit.data_dir().join("test1.ele")))
-    )
-    data = asyncio.run(
-        elegant.import_file(
-            import_req(pkunit.data_dir().join("test1.lte")), test_data=data
-        )
-    )
+    r = srunit.template_import_file("elegant", "test1.ele")
+    pkunit.pkeq("needLattice", r.get("importState"))
+    data = srunit.template_import_file(
+        "elegant",
+        "test1.lte",
+        arguments=pkjson.dump_pretty(r.eleData, pretty=False),
+    ).imported_data
+    pkdebug.pkdp(data.models.simulation)
     # this is updated from javascript unfortunately
     data.models.bunch.longitudinalMethod = "3"
     with srunit.quest_start() as qcall:
-        actual = ElegantMadxConverter(qcall=qcall).to_madx_text(data)
-        file_eq(
+        actual = elegant.ElegantMadxConverter(qcall=qcall).to_madx_text(data)
+        pkunit.file_eq(
             "test1.madx",
             actual=actual,
         )
@@ -82,16 +80,16 @@ def test_elegant_from_madx():
         )
 
 
-def test_import_opal_export_madx(import_req):
-    _opal_to_madx(import_req, "test2")
+def test_import_opal_export_madx():
+    _opal_to_madx("test2")
 
 
-def test_import_opal_export_madx02(import_req):
-    _opal_to_madx(import_req, "test4")
+def test_import_opal_export_madx02():
+    _opal_to_madx("test4")
 
 
-def test_import_opal_export_madx_pow(import_req):
-    _opal_to_madx(import_req, "test3")
+def test_import_opal_export_madx_pow():
+    _opal_to_madx("test3")
 
 
 def _example_data(simulation_name):
@@ -104,22 +102,17 @@ def _example_data(simulation_name):
     raise AssertionError(f"failed to find example={simulation_name}")
 
 
-def _opal_to_madx(import_req, basename):
+def _opal_to_madx(basename):
     from pykern import pkunit
     from pykern.pkunit import pkeq, file_eq
     from sirepo import srunit
     from sirepo.template import opal
     from sirepo.template.opal import OpalMadxConverter
-    import asyncio
 
     with srunit.quest_start() as qcall:
         file_eq(
             f"{basename}.madx",
             actual=OpalMadxConverter(qcall=qcall).to_madx_text(
-                asyncio.run(
-                    opal.import_file(
-                        import_req(pkunit.data_dir().join(f"{basename}.in"))
-                    )
-                )
+                srunit.template_import_file("opal", f"{basename}.in").imported_data,
             ),
         )

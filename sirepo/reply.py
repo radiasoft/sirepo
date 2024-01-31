@@ -372,7 +372,7 @@ class _SReply(sirepo.quest.Attr):
             c = a.content_type
             if self._mime_type_is_utf8(c):
                 c += '; charset="utf8"'
-            r.set_header("Content-Type", c)
+            resp.set_header("Content-Type", c)
 
         def _cookie(resp):
             # TODO(robnagler) http.cookies 3.8 introduced samesite and blows up otherwise.
@@ -497,7 +497,7 @@ class _SReply(sirepo.quest.Attr):
             self._assert_no_cookie_ops()
             await _send(*_content())
         except Exception as e:
-            pkdlog("error={} in reply={}", e, self)
+            pkdlog("error={} in reply={} stack={}", e, self, pkdexc())
             await _send(
                 PKDict(routeName=SERVER_ERROR_ROUTE, params=PKDict()),
                 sirepo.const.SCHEMA_COMMON.websocketMsg.kind.srException,

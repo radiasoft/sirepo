@@ -20,7 +20,6 @@ import sirepo.util
 import subprocess
 import sys
 import types
-import urllib
 
 
 DEFAULT_INTENSITY_DISTANCE = 20
@@ -56,6 +55,10 @@ _PLOT_LINE_COLOR = [
 ]
 
 
+#: for JobCmdFile replies
+_TEXT_SUFFIXES = (".py", ".txt", ".csv")
+
+
 class JobCmdFile(PKDict):
     """Returned by dispatched job commands
 
@@ -63,23 +66,29 @@ class JobCmdFile(PKDict):
     `stateful_compute_dispatch` support file returns.
 
     Args:
-        content (object): what to send [path.read()]
-        path (py.path): py.path of file to read
-        uri (str): what to call the file [path.basename]
+        reply_content (object): what to send [reply_path.read()]
+        reply_path (py.path): py.path of file to read
+        reply_uri (str): what to call the file [reply_path.basename]
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.pksetdefault(error=None)
+        if self.error:
+            self.pksetdefault(state="error")
+            return
+        if not (self.get("reply_uri") or self.get("reply_path")):
+            raise AssertionError(
+                f"reply_uri or reply_path not in kwargs.keys={list(kwargs)}"
+            )
         self.pksetdefault(
-            error=None,
-            uri=lambda: self.path.basename,
-        )
-        self.pksetdefault(
-            content=lambda: (
-                pkcompat.to_bytes(pkio.read_text(self.path))
-                if self.uri.endswith((".py", ".txt", ".csv"))
-                else self.path.read_binary()
+            reply_content=lambda: (
+                pkcompat.to_bytes(pkio.read_text(self.reply_path))
+                if self.reply_path.ext in _TEXT_SUFFIXES
+                else self.reply_path.read_binary()
             ),
+            reply_uri=lambda: self.reply_path.basename,
+            state="ok",
         )
 
 
@@ -675,39 +684,6 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     )
 
 
-def remote_file_to_simulation_lib(sim_data, url, headers_only, model_name, field):
-    _CHUNK_SIZE = 1024 * 1024
-    filename = os.path.basename(urllib.parse.urlparse(url).path)
-    try:
-        with urllib.request.urlopen(url) as r:
-            if headers_only:
-                return PKDict(headers=_header_str_to_dict(r.headers))
-            with open(
-                sim_data.lib_file_write_path(
-                    sim_data.lib_file_name_with_model_field(
-                        model_name,
-                        field,
-                        filename,
-                    )
-                ),
-                "wb",
-            ) as f:
-                while True:
-                    c = r.read(_CHUNK_SIZE)
-                    if not c:
-                        break
-                    f.write(c)
-    except urllib.error.URLError as e:
-        if e.code == 404:
-            return PKDict(error=f"File {filename} not found on data storage server")
-        return PKDict(error=e)
-    except Exception as e:
-        return PKDict(error=e)
-    return PKDict(
-        filename=filename,
-    )
-
-
 async def sim_frame(frame_id, op, qcall):
     f, s = sirepo.sim_data.parse_frame_id(frame_id)
     # document parsing the request
@@ -756,6 +732,7 @@ def stateful_compute_dispatch(data, **kwargs):
     t = sirepo.template.import_module(data.simulationType)
     m = _validate_method(t, data)
     k = PKDict(data=data)
+    # TODO(robnagler) polymorphism needed; templates should be classes
     if re.search(r"(?:^rpn|_rpn)_", m):
         k.schema = getattr(t, "SCHEMA")
         t = getattr(t, "code_var")(data.variables)
@@ -801,9 +778,9 @@ def subprocess_output(cmd, env=None):
 
 def text_data_file(filename, run_dir):
     """Return a datafile with a .txt extension so the text/plain mimetype is used."""
-    return PKDict(
-        filename=run_dir.join(filename, abs=1),
-        uri=filename + ".txt",
+    return JobCmdFile(
+        reply_path=run_dir.join(filename, abs=1),
+        reply_uri=filename + ".txt",
     )
 
 
