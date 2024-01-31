@@ -69,6 +69,25 @@ def test_shadow_logparser():
     )
 
 
+def test_silas_logparser():
+    from sirepo.template import silas
+
+    pkunit.pkeq(
+        silas._SilasLogParser(
+            pkunit.data_dir(),
+            log_filename="silas1.txt",
+        ).parse_for_errors(),
+        "Point evaulated outside of mesh boundary. Consider increasing Mesh Density or Boundary Tolerance.",
+    )
+    pkunit.pkeq(
+        silas._SilasLogParser(
+            pkunit.data_dir(),
+            log_filename="silas2.txt",
+        ).parse_for_errors(),
+        "An unknown error occurred",
+    )
+
+
 def test_srw_logparser():
     from sirepo.template import template_common
 
