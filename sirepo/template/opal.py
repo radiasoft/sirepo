@@ -117,19 +117,14 @@ class OpalElementIterator(lattice.ElementIterator):
 
 
 class _OpalLogParser(template_common.LogParser):
-    def __init__(self, run_dir, **kwargs):
-        super().__init__(run_dir, **kwargs)
-        self.visited = set()
-
     def _parse_log_line(self, line):
         res = ""
         if re.search(r"^Error.*?>\s*[\w\"]", line):
             line = re.sub(r"Error.*?>\s*", "", line.rstrip()).rstrip()
             if re.search(r"1DPROFILE1-DEFAULT", line):
                 return ""
-            if line and line not in self.visited:
+            if line:
                 res += line + "\n"
-                self.visited.add(line)
         return res
 
 

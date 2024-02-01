@@ -7,82 +7,67 @@ from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 
 
 def test_activait_logparser():
-    from pykern import pkunit
     from sirepo.template import activait
 
-    pkunit.pkeq(
+    _case(
         "Descriptors cannot be created directly.\n",
-        activait._parse_activate_log(pkunit.data_dir(), log_filename="activait1.txt"),
+        "activait1.txt",
+        parser_function=activait._parse_activate_log,
     )
 
 
 def test_epicsllrf_logparser():
-    from pykern import pkunit
     from sirepo.template import epicsllrf
 
-    pkunit.pkeq(
+    _case(
         "a test EpicsDisconnectError\n",
-        epicsllrf._parse_epics_log(pkunit.data_dir(), log_filename="epicsllrf1.txt"),
+        "epicsllrf1.txt",
+        parser_function=epicsllrf._parse_epics_log,
     )
-    pkunit.pkeq(
+    _case(
         "",
-        epicsllrf._parse_epics_log(pkunit.data_dir(), log_filename="unknown_case.txt"),
+        "unknown_error_case.txt",
+        parser_function=epicsllrf._parse_epics_log,
     )
 
 
 def test_cloudmc_logparser():
-    from pykern import pkunit
     from sirepo.template import cloudmc
 
-    pkunit.pkeq(
+    _case(
         "No fission sites banked on MPI rank 0\n",
-        cloudmc._parse_cloudmc_log(pkunit.data_dir(), log_filename="cloudmc1.txt"),
+        "cloudmc1.txt",
+        parser_function=cloudmc._parse_cloudmc_log,
     )
-    pkunit.pkeq(
+    _case(
         "An unknown error occurred, check CloudMC log for details",
-        cloudmc._parse_cloudmc_log(pkunit.data_dir(), log_filename="unknown_case.txt"),
+        "unknown_error_case.txt",
+        parser_function=cloudmc._parse_cloudmc_log,
     )
 
 
 def test_madx_logparser():
-    from pykern import pkunit
     from sirepo.template import madx
 
-    pkunit.pkeq(
-        "Error: Test error\n\n",
-        madx._MadxLogParser(
-            pkunit.data_dir(), log_filename="madx1.txt"
-        ).parse_for_errors(),
-    )
+    _case("Error: Test error\n\n", "madx1.txt", parser_object=madx._MadxLogParser)
 
 
 def test_mpi_logparser():
-    from pykern import pkunit
     from sirepo.template import template_common
 
-    pkunit.pkeq(
+    _case(
         "Message from the error.",
-        template_common._MPILogParser(
-            pkunit.data_dir(), log_filename="mpi1.txt"
-        ).parse_for_errors(),
+        "mpi1.txt",
+        parser_object=template_common._MPILogParser,
     )
 
 
 def test_opal_logparser():
-    from pykern import pkunit
     from sirepo.template import opal
 
-    d = pkunit.data_dir()
-    e = '"NPART" must be set.\n'
-    pkunit.pkeq(
-        e,
-        opal._OpalLogParser(d, log_filename=f"opal1.txt").parse_for_errors(),
-    )
-    pkunit.pkeq(
-        e,
-        opal._OpalLogParser(d, log_filename=f"opal2.txt").parse_for_errors(),
-    )
-    pkunit.pkeq(
+    _case('"NPART" must be set.\n', "opal1.txt", parser_object=opal._OpalLogParser)
+    _case('"NPART" must be set.\n', "opal2.txt", parser_object=opal._OpalLogParser)
+    _case(
         """The z-momentum of the particle distribution
 1958.907713
 is different from the momentum given in the "BEAM" command
@@ -92,66 +77,76 @@ When using a "FROMFILE" type distribution
 the momentum in the "BEAM" command should be
 the same as the momentum of the particles in the file.
 }>     When using a "FROMFILE" type distribution\n""",
-        opal._OpalLogParser(d, log_filename=f"opal3.txt").parse_for_errors(),
+        "opal3.txt",
+        parser_object=opal._OpalLogParser,
     )
-    pkunit.pkeq(
+    _case(
         """OpalWake::initWakefunction for element D2#0
 "DISTRIBUTION" must be set in "RUN" command.\n""",
-        opal._OpalLogParser(d, log_filename=f"opal4.txt").parse_for_errors(),
+        "opal4.txt",
+        parser_object=opal._OpalLogParser,
     )
 
 
 def test_shadow_logparser():
-    from pykern import pkunit
     from sirepo.template import shadow
 
-    pkunit.pkeq(
+    _case(
         "Compound is not a valid chemical formula and is not present in the NIST compound database\n",
-        shadow._parse_shadow_log(pkunit.data_dir(), log_filename="shadow1.txt"),
+        "shadow1.txt",
+        parser_function=shadow._parse_shadow_log,
     )
 
 
 def test_silas_logparser():
-    from pykern import pkunit
     from sirepo.template import silas
 
-    pkunit.pkeq(
+    _case(
         "Point evaulated outside of mesh boundary. Consider increasing Mesh Density or Boundary Tolerance.",
-        silas._SilasLogParser(
-            pkunit.data_dir(),
-            log_filename="silas1.txt",
-        ).parse_for_errors(),
+        "silas1.txt",
+        parser_object=silas._SilasLogParser,
     )
-    pkunit.pkeq(
+    _case(
         "An unknown error occurred",
-        silas._SilasLogParser(
-            pkunit.data_dir(),
-            log_filename="unknown_case.txt",
-        ).parse_for_errors(),
+        "unknown_error_case.txt",
+        parser_object=silas._SilasLogParser,
     )
 
 
 def test_srw_logparser():
-    from pykern import pkunit
     from sirepo.template import template_common
 
-    d = pkunit.data_dir()
-    pkunit.pkeq(
-        "An unknown error occurred",
-        template_common.LogParser(d, log_filename=f"srw1.txt").parse_for_errors(),
+    _case(
+        "An unknown error occurred", "srw1.txt", parser_object=template_common.LogParser
     )
-    pkunit.pkeq(
+    _case(
         "SRW can not compute this case. Longitudinal position of the Observation Plane is within the Integration limits.\n",
-        template_common.LogParser(d, log_filename=f"srw2.txt").parse_for_errors(),
+        "srw2.txt",
+        parser_object=template_common.LogParser,
     )
 
 
 def test_zgoubi_logparser():
-    from pykern import pkunit
     from sirepo.template import zgoubi
 
-    pkunit.pkeq("", zgoubi._parse_zgoubi_log(pkunit.data_dir(), "unknown_case.txt"))
-    pkunit.pkeq(
+    _case("", "unknown_error_case.txt", parser_function=zgoubi._parse_zgoubi_log)
+    _case(
         "example fortran runtime error\n",
-        zgoubi._parse_zgoubi_log(pkunit.data_dir(), "zgoubi1.txt"),
+        "zgoubi1.txt",
+        parser_function=zgoubi._parse_zgoubi_log,
     )
+
+
+def _case(expect, filename, parser_object=None, parser_function=None):
+    from pykern import pkunit
+
+    if parser_function:
+        pkunit.pkeq(expect, parser_function(pkunit.data_dir(), log_filename=filename))
+        return
+    if parser_object:
+        pkunit.pkeq(
+            expect,
+            parser_object(pkunit.data_dir(), log_filename=filename).parse_for_errors(),
+        )
+        return
+    raise AssertionError("No parser provided for _case()")

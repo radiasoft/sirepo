@@ -106,9 +106,13 @@ class LogParser(PKDict):
         if not p.exists():
             return ""
         res = ""
+        e = set()
         with pkio.open_text(p) as f:
             for line in f:
-                res += self._parse_log_line(line)
+                if m := self._parse_log_line(line):
+                    if m not in e:
+                        res += m
+                        e.add(m)
         if res:
             return res
         return self.default_msg
