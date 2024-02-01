@@ -1,0 +1,2 @@
+++ Error: Test error
+Error: This line does not start with a plus

@@ -92,6 +92,40 @@ class JobCmdFile(PKDict):
         )
 
 
+class LogParser(PKDict):
+    def __init__(self, run_dir, **kwargs):
+        super().__init__(run_dir=run_dir, **kwargs)
+        self.pksetdefault(
+            default_msg="An unknown error occurred",
+            error_patterns=(r"Error: (.*)",),
+            log_filename=RUN_LOG,
+        )
+
+    def parse_for_errors(self):
+        p = self.run_dir.join(self.log_filename)
+        if not p.exists():
+            return ""
+        res = ""
+        e = set()
+        with pkio.open_text(p) as f:
+            for line in f:
+                if m := self._parse_log_line(line):
+                    if m not in e:
+                        res += m
+                        e.add(m)
+        if res:
+            return res
+        return self.default_msg
+
+    def _parse_log_line(self, line):
+        res = ""
+        for pattern in self.error_patterns:
+            m = re.search(pattern, line)
+            if m:
+                res += m.group(1) + "\n"
+        return res
+
+
 class ModelUnits:
     """Convert model fields from native to sirepo format, or from sirepo to native format.
 
@@ -163,6 +197,21 @@ class ModelUnits:
                     model[field], self.unit_def[name][field], is_native
                 )
         return model
+
+
+class _MPILogParser(LogParser):
+    def parse_for_errors(self):
+        p = self.run_dir.join(self.log_filename)
+        e = None
+        if p.exists():
+            m = re.search(
+                r"^Traceback .*?^\w*Error: (.*?)\n",
+                pkio.read_text(p),
+                re.MULTILINE | re.DOTALL,
+            )
+            if m:
+                e = m.group(1)
+        return e
 
 
 class NamelistParser:
@@ -579,17 +628,7 @@ def parse_enums(enum_schema):
 
 
 def parse_mpi_log(run_dir):
-    e = None
-    f = run_dir.join(sirepo.const.MPI_LOG)
-    if f.exists():
-        m = re.search(
-            r"^Traceback .*?^\w*Error: (.*?)\n",
-            pkio.read_text(f),
-            re.MULTILINE | re.DOTALL,
-        )
-        if m:
-            e = m.group(1)
-    return e
+    return _MPILogParser(run_dir, log_filename=sirepo.const.MPI_LOG).parse_for_errors()
 
 
 def read_dict_from_h5(file_path, h5_path=None):
