@@ -10,7 +10,6 @@ from pykern.pkdebug import pkdp
 from pykern import pkcompat
 from pykern import pkio
 import base64
-import pykern.pkio
 import sirepo.util
 import six
 import zipfile
@@ -79,7 +78,7 @@ def read_zip(zip_bytes, qcall, sim_type=None):
         zipped = PKDict()
         with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as z:
             for i in z.infolist():
-                b = pykern.pkio.py_path(i.filename).basename
+                b = pkio.py_path(i.filename).basename
                 c = z.read(i)
                 if b.lower() == simulation_db.SIMULATION_DATA_FILE:
                     assert not data, "too many db files {} in archive".format(b)
@@ -117,7 +116,7 @@ def _import_related_sims(data, zip_bytes, tmp_dir, qcall=None):
 
     with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as zip_obj:
         for i in zip_obj.infolist():
-            p = pykern.pkio.py_path(i.filename)
+            p = pkio.py_path(i.filename)
             b = p.basename
             if "related_sim" in b:
                 d = simulation_db.json_load(zip_obj.read(i))
@@ -150,13 +149,16 @@ def _sim_index(path):
 
 
 def _write_lib_file_from_zip(lib_file, lib_dir, zip_obj, tmp_dir):
+    # TODO (gurhar1133): maybe do util.is_pure_text to simplify?
     zip_obj.extract(lib_file, path=tmp_dir)
-    p = lib_dir.join(pykern.pkio.py_path(lib_file).basename)
+    p = lib_dir.join(pkio.py_path(lib_file).basename)
     c = zip_obj.read(lib_file)
-    if pkio.is_binary(tmp_dir.join(lib_file)):
-        pykern.pkio.write_binary(p, c)
+    is_text = pkio.is_pure_text(tmp_dir.join(lib_file))
+    pkdp("\n\n\n {} is_text={}", lib_file, is_text)
+    if not is_text:
+        pkio.write_binary(p, c)
         return
-    pykern.pkio.write_text(
+    pkio.write_text(
         p,
         pkcompat.from_bytes(c),
     )
