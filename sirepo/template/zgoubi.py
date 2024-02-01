@@ -293,7 +293,7 @@ class _ZgoubiLogParser(template_common.LogParser):
 
     def _parse_log_line(self, line):
         res = ""
-        match = re.search(r"^ (\‘\w+\‘.*?)\s+(\d+)$", line)
+        match = re.search(r"^ (\'\w+\'.*?)\s+(\d+)$", line)
         if match:
             self.element_by_num[match.group(2)] = match.group(1)
             return

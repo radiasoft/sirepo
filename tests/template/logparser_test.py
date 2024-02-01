@@ -4,13 +4,11 @@
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkio
-from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
-import pytest
 
 
 def test_activait_logparser():
+    from pykern import pkunit
     from sirepo.template import activait
 
     pkunit.pkeq(
@@ -20,6 +18,7 @@ def test_activait_logparser():
 
 
 def test_epicsllrf_logparser():
+    from pykern import pkunit
     from sirepo.template import epicsllrf
 
     pkunit.pkeq(
@@ -33,6 +32,7 @@ def test_epicsllrf_logparser():
 
 
 def test_cloudmc_logparser():
+    from pykern import pkunit
     from sirepo.template import cloudmc
 
     pkunit.pkeq(
@@ -46,6 +46,7 @@ def test_cloudmc_logparser():
 
 
 def test_madx_logparser():
+    from pykern import pkunit
     from sirepo.template import madx
 
     pkunit.pkeq(
@@ -57,6 +58,7 @@ def test_madx_logparser():
 
 
 def test_opal_logparser():
+    from pykern import pkunit
     from sirepo.template import opal
 
     d = pkunit.data_dir()
@@ -89,6 +91,7 @@ the same as the momentum of the particles in the file.
 
 
 def test_shadow_logparser():
+    from pykern import pkunit
     from sirepo.template import shadow
 
     pkunit.pkeq(
@@ -98,6 +101,7 @@ def test_shadow_logparser():
 
 
 def test_silas_logparser():
+    from pykern import pkunit
     from sirepo.template import silas
 
     pkunit.pkeq(
@@ -117,6 +121,7 @@ def test_silas_logparser():
 
 
 def test_srw_logparser():
+    from pykern import pkunit
     from sirepo.template import template_common
 
     d = pkunit.data_dir()
@@ -131,6 +136,7 @@ def test_srw_logparser():
 
 
 def test_zgoubi_logparser():
+    from pykern import pkunit
     from sirepo.template import zgoubi
 
     pkunit.pkeq("", zgoubi._parse_zgoubi_log(pkunit.data_dir(), "unknown_case.txt"))
