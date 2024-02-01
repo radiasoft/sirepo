@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """PyTest for `sirepo.template.template_common.LogParser`
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
@@ -53,6 +52,18 @@ def test_madx_logparser():
         "Error: Test error\n\n",
         madx._MadxLogParser(
             pkunit.data_dir(), log_filename="madx1.txt"
+        ).parse_for_errors(),
+    )
+
+
+def test_mpi_logparser():
+    from pykern import pkunit
+    from sirepo.template import template_common
+
+    pkunit.pkeq(
+        "Message from the error.",
+        template_common._MPILogParser(
+            pkunit.data_dir(), log_filename="mpi1.txt"
         ).parse_for_errors(),
     )
 

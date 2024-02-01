@@ -196,12 +196,13 @@ class ModelUnits:
 
 
 class _MPILogParser(LogParser):
-    def _parse_log(self, file_path):
+    def parse_for_errors(self):
+        p = self.run_dir.join(self.log_filename)
         e = None
-        if file_path.exists():
+        if p.exists():
             m = re.search(
                 r"^Traceback .*?^\w*Error: (.*?)\n",
-                pkio.read_text(file_path),
+                pkio.read_text(p),
                 re.MULTILINE | re.DOTALL,
             )
             if m:
@@ -623,9 +624,7 @@ def parse_enums(enum_schema):
 
 
 def parse_mpi_log(run_dir):
-    return _MPILogParser(
-        run_dir, log_filename=sirepo.const.MPI_LOG, default_msg=None
-    ).parse_for_errors()
+    return _MPILogParser(run_dir, log_filename=sirepo.const.MPI_LOG).parse_for_errors()
 
 
 def read_dict_from_h5(file_path, h5_path=None):
