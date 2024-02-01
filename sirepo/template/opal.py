@@ -117,18 +117,19 @@ class OpalElementIterator(lattice.ElementIterator):
 
 
 class _OpalLogParser(template_common.LogParser):
-    def _parse_log(self, file_path):
+    def __init__(self, run_dir, **kwargs):
+        super().__init__(run_dir, **kwargs)
+        self.visited = set()
+
+    def _parse_log_line(self, line):
         res = ""
-        visited = set()
-        with pkio.open_text(file_path) as f:
-            for line in f:
-                if re.search(r"^Error.*?>\s*[\w\"]", line):
-                    line = re.sub(r"Error.*?>\s*", "", line.rstrip()).rstrip()
-                    if re.search(r"1DPROFILE1-DEFAULT", line):
-                        continue
-                    if line and line not in visited:
-                        res += line + "\n"
-                        visited.add(line)
+        if re.search(r"^Error.*?>\s*[\w\"]", line):
+            line = re.sub(r"Error.*?>\s*", "", line.rstrip()).rstrip()
+            if re.search(r"1DPROFILE1-DEFAULT", line):
+                return ""
+            if line and line not in self.visited:
+                res += line + "\n"
+                self.visited.add(line)
         return res
 
 

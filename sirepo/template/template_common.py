@@ -105,20 +105,21 @@ class LogParser(PKDict):
         p = self.run_dir.join(self.log_filename)
         if not p.exists():
             return ""
-        res = self._parse_log(p)
+        res = ""
+        with pkio.open_text(p) as f:
+            for line in f:
+                res += self._parse_log_line(line)
         if res:
             return res
         return self.default_msg
 
-    def _parse_log(self, file_path):
-        r = ""
-        with pkio.open_text(file_path) as f:
-            for line in f:
-                for pattern in self.error_patterns:
-                    m = re.search(pattern, line)
-                    if m:
-                        r += m.group(1) + "\n"
-        return r
+    def _parse_log_line(self, line):
+        res = ""
+        for pattern in self.error_patterns:
+            m = re.search(pattern, line)
+            if m:
+                res += m.group(1) + "\n"
+        return res
 
 
 class ModelUnits:
