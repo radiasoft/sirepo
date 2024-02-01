@@ -161,14 +161,11 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
 
 class _MadxLogParser(template_common.LogParser):
     def _parse_log_line(self, line):
-        res = ""
         if re.search(r"^\++ (error|warning):", line, re.IGNORECASE):
-            line = re.sub(r"^\++ ", "", line)
-            res += line + "\n"
+            return re.sub(r"^\++ ", "", line) + "\n"
         elif re.search(r"^\+.*? fatal:", line, re.IGNORECASE):
-            line = re.sub(r"^.*? ", "", line)
-            res += line + "\n"
-        return res
+            return re.sub(r"^.*? ", "", line) + "\n"
+        return None
 
 
 class MadxOutputFileIterator(lattice.ModelIterator):

@@ -292,7 +292,6 @@ class _ZgoubiLogParser(template_common.LogParser):
         self.elements_by_num = PKDict()
 
     def _parse_log_line(self, line):
-        res = ""
         match = re.search(r"^ (\'\w+\'.*?)\s+(\d+)$", line)
         if match:
             self.element_by_num[match.group(2)] = match.group(1)
@@ -308,7 +307,7 @@ class _ZgoubiLogParser(template_common.LogParser):
             if num in element_by_num:
                 res = "  element # {}: {}\n".format(num, self.element_by_num[num])
             return res
-        return res
+        return None
 
 
 def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):

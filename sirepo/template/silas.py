@@ -29,13 +29,12 @@ _L_SCALE_EQUATION = "numpy.sqrt(numpy.pi) * numpy.sqrt(2) * pulse.sigx_waist"
 
 class _SilasLogParser(template_common.LogParser):
     def _parse_log_line(self, line):
-        res = ""
         if m := re.search(r"^.*Error:\s+(.*)$", line):
             err = m.group(1)
             if re.search("Unable to evaluate function at point", err):
                 return "Point evaulated outside of mesh boundary. Consider increasing Mesh Density or Boundary Tolerance."
-            res += err + "\n"
-        return res
+            return err + "\n"
+        return None
 
 
 def background_percent_complete(report, run_dir, is_running):
