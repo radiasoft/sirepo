@@ -396,7 +396,7 @@ sirepo.simulation_db.write_json(
 
 
 def _energy_plot():
-    plots = PKDict(points[0, 2, 4], label=None, style="line")
+    plots = [PKDict(points[0, 2, 4], label=None, style="line")]
     return template_common.parameter_plot(
         [0, 1, 2],
         plots,

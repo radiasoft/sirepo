@@ -681,7 +681,7 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
             reportId: '<',
         },
         template: `
-            <div style="height: 90vh">
+            <div style="height: 90%">
                 <ul class="nav nav-tabs">
                     <li role="presentation" data-ng-class="{active: is2D()}">
                         <a href data-ng-click="setSelectedGeometry('2D')">2D</a>
@@ -753,18 +753,28 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
     };
 });
 
-SIREPO.app.directive('energySpectrum', function(appState, cloudmcService) {
+SIREPO.app.directive('energySpectrum', function(appState, cloudmcService, utilities) {
     return {
         restrict: 'A',
         scope: {},
         template: `
-            <div data-ng-if="! ! energyFilter" data-report-panel="parameter" data-model-name="energyReport">
+        <div data-ng-if="! ! energyFilter" >
+        <div class="panel panel-info" id="sr-magnetDisplay-basicEditor">
+            <div class="panel-heading clearfix" data-panel-heading="Energy Spectrum" data-view-name="'energyReport'" data-is-report="true" data-model-key="'energyReport'" data-report-id="reportId"></div>
+            <div class="panel-body" data-ng-if="! panelState.isHidden(modelName)">
                 <div data-advanced-editor-pane="" data-view-name="'energyReport'" data-want-buttons="" data-field-def="basic"></div>
+                <div data-report-content="parameter" data-model-name="energyReport" ></div>
             </div>
+        </div>
+    </div>
+            
+                
+            
         `,
         controller: function($scope) {
-
+            $scope.reportId = utilities.reportId();
             $scope.energyFilter = cloudmcService.findFilter('energyFilter');
+            srdbg($scope.energyFilter);
             
         },
     };
