@@ -131,7 +131,10 @@ def _import_related_sims(data, zip_bytes, qcall=None):
                     lib_dir = simulation_db.simulation_lib_dir(
                         d.simulationType, qcall=qcall
                     )
-                    _write_lib_file_from_zip(lib_file, lib_dir, zip_obj)
+                    _write_lib_file(
+                        lib_dir.join(pkio.py_path(lib_file).basename),
+                        zip_obj.read(lib_file)
+                    )
                 data.models.simWorkflow.coupledSims[
                     _sim_index(p)
                 ].simulationId = s.models.simulation.simulationId
@@ -149,13 +152,11 @@ def _sim_index(path):
     return int(path.purebasename[-1])
 
 
-def _write_lib_file_from_zip(lib_file, lib_dir, zip_obj):
-    p = lib_dir.join(pkio.py_path(lib_file).basename)
-    c = zip_obj.read(lib_file)
-    if util.is_pure_text(c):
+def _write_lib_file(dest_path, bytes_data):
+    if util.is_pure_text(bytes_data):
         pkio.write_text(
-            p,
-            pkcompat.from_bytes(c),
+            dest_path,
+            pkcompat.from_bytes(bytes_data),
         )
         return
-    pkio.write_binary(p, c)
+    pkio.write_binary(dest_path, bytes_data)
