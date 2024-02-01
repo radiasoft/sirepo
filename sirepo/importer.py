@@ -9,6 +9,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from pykern import pkcompat
 from pykern import pkio
+from pykern import util
 import base64
 import sirepo.util
 import six
@@ -93,7 +94,7 @@ def read_zip(zip_bytes, qcall, sim_type=None):
                 zipped[b] = tmp.join(b)
                 zipped[b].write(c, "wb")
         assert data, "missing {} in archive".format(simulation_db.SIMULATION_DATA_FILE)
-        _import_related_sims(data, zip_bytes, tmp, qcall=qcall)
+        _import_related_sims(data, zip_bytes, qcall=qcall)
         needed = set()
         s = sim_data.get_class(data.simulationType)
         u = qcall.auth.logged_in_user()
@@ -111,7 +112,7 @@ def read_zip(zip_bytes, qcall, sim_type=None):
         return data
 
 
-def _import_related_sims(data, zip_bytes, tmp_dir, qcall=None):
+def _import_related_sims(data, zip_bytes, qcall=None):
     from sirepo import simulation_db
 
     with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as zip_obj:
@@ -130,7 +131,7 @@ def _import_related_sims(data, zip_bytes, tmp_dir, qcall=None):
                     lib_dir = simulation_db.simulation_lib_dir(
                         d.simulationType, qcall=qcall
                     )
-                    _write_lib_file_from_zip(lib_file, lib_dir, zip_obj, tmp_dir)
+                    _write_lib_file_from_zip(lib_file, lib_dir, zip_obj)
                 data.models.simWorkflow.coupledSims[
                     _sim_index(p)
                 ].simulationId = s.models.simulation.simulationId
@@ -148,17 +149,13 @@ def _sim_index(path):
     return int(path.purebasename[-1])
 
 
-def _write_lib_file_from_zip(lib_file, lib_dir, zip_obj, tmp_dir):
-    # TODO (gurhar1133): maybe do util.is_pure_text to simplify?
-    zip_obj.extract(lib_file, path=tmp_dir)
+def _write_lib_file_from_zip(lib_file, lib_dir, zip_obj):
     p = lib_dir.join(pkio.py_path(lib_file).basename)
     c = zip_obj.read(lib_file)
-    is_text = pkio.is_pure_text(tmp_dir.join(lib_file))
-    pkdp("\n\n\n {} is_text={}", lib_file, is_text)
-    if not is_text:
-        pkio.write_binary(p, c)
+    if util.is_pure_text(c):
+        pkio.write_text(
+            p,
+            pkcompat.from_bytes(c),
+        )
         return
-    pkio.write_text(
-        p,
-        pkcompat.from_bytes(c),
-    )
+    pkio.write_binary(p, c)
