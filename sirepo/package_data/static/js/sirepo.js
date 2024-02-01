@@ -2562,6 +2562,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             self.globalRedirect(e.params.uri, undefined);
             return;
         }
+        if (e.routeName == "serverUpgraded" && e.params
+            && ['invalidSimulationSerial', 'newRelease'].includes(e.params.reason)) {
+            $(`#sr-${e.params.reason}`).modal('show');
+            return;
+        }
         const u = $location.url();
         if (e.routeName == LOGIN_ROUTE_NAME && u != LOGIN_URI) {
             saveCookieRedirect(u);
