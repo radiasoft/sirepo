@@ -97,7 +97,7 @@ async def read_zip(zip_bytes, qcall, sim_type=None):
 def _import_related_sims(data, zip_bytes, qcall=None):
     from sirepo import simulation_db
 
-    with zipfile.ZipFile(six.BytesIO(zip_bytes), "r") as zip_obj:
+    with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as zip_obj:
         for i in zip_obj.infolist():
             p = pkio.py_path(i.filename)
             b = p.basename
