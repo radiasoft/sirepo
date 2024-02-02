@@ -438,7 +438,7 @@ class SVGPath extends UIElement {
      * The string assigned to the 'd' attrribute
      * @returns {string} - the string
      */
-    pathString() {
+    pathString(doClose) {
         let c = this.pathPointAt(0);
         this.corners = [c];
         this.lines = [];
@@ -449,7 +449,7 @@ class SVGPath extends UIElement {
             this.corners.push(c);
             p += `L${c[0]},${c[1]} `;
         }
-        if (this.doClose) {
+        if (doClose || this.doClose) {
             this.lines.push([this.corners[this.corners.length - 1], this.corners[0]]);
             p += 'z';
         }

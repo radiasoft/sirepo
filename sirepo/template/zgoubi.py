@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """zgoubi execution template.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
@@ -288,6 +286,30 @@ _TWISS_SUMMARY_LABELS = PKDict(
 )
 
 
+class _ZgoubiLogParser(template_common.LogParser):
+    def __init__(self, run_dir, **kwargs):
+        super().__init__(run_dir, **kwargs)
+        self.elements_by_num = PKDict()
+
+    def _parse_log_line(self, line):
+        match = re.search(r"^ (\'\w+\'.*?)\s+(\d+)$", line)
+        if match:
+            self.element_by_num[match.group(2)] = match.group(1)
+            return
+        if re.search("all particles lost", line):
+            return line
+        if re.search("charge found null", line):
+            return line
+        match = re.search(r"Enjob occured at element # (\d+)", line)
+        if match:
+            res = "{}\n".format(line)
+            num = match.group(1)
+            if num in element_by_num:
+                res = "  element # {}: {}\n".format(num, self.element_by_num[num])
+            return res
+        return None
+
+
 def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
     return template_common.compute_field_range(
         data,
@@ -450,26 +472,6 @@ def get_data_file(run_dir, model, frame, options):
     return _ZGOUBI_FAI_DATA_FILE
 
 
-def sim_frame(frame_args):
-    r = frame_args.frameReport
-    if "bunchAnimation" in r or r in ("energyAnimation", "elementStepAnimation"):
-        return _extract_animation(frame_args)
-    if r == "particleAnimation":
-        return _extract_spin_3d(frame_args)
-    return None
-
-
-def stateful_compute_tosca_info(data, **kwargs):
-    return zgoubi_importer.tosca_info(data.args.tosca)
-
-
-async def import_file(req, unit_test_mode=False, **kwargs):
-    return zgoubi_importer.import_file(
-        req.form_file.as_str(),
-        unit_test_mode=unit_test_mode,
-    )
-
-
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
     if success_exit:
         return None
@@ -564,6 +566,25 @@ def save_sequential_report_data(data, run_dir):
     else:
         raise AssertionError("unknown report: {}".format(report_name))
     template_common.write_sequential_result(res, run_dir=run_dir)
+
+
+def sim_frame(frame_args):
+    r = frame_args.frameReport
+    if "bunchAnimation" in r or r in ("energyAnimation", "elementStepAnimation"):
+        return _extract_animation(frame_args)
+    if r == "particleAnimation":
+        return _extract_spin_3d(frame_args)
+    return None
+
+
+def stateful_compute_import_file(data, **kwargs):
+    return PKDict(
+        imported_data=zgoubi_importer.import_file(data.args.file_as_str),
+    )
+
+
+def stateful_compute_tosca_info(data, **kwargs):
+    return zgoubi_importer.tosca_info(data.args.tosca)
 
 
 def write_parameters(
@@ -918,38 +939,21 @@ def _ipasses_for_data(col_names, rows):
     return res
 
 
-def _parse_zgoubi_log(run_dir):
-    path = run_dir.join(_ZGOUBI_LOG_FILE)
-    if not path.exists():
-        return ""
-    res = ""
-    element_by_num = PKDict()
-    text = pkio.read_text(str(path))
-
-    for line in text.split("\n"):
-        match = re.search(r"^ (\'\w+\'.*?)\s+(\d+)$", line)
-        if match:
-            element_by_num[match.group(2)] = match.group(1)
-            continue
-        if re.search("all particles lost", line):
-            res += "{}\n".format(line)
-            continue
-        if re.search("charge found null", line):
-            res += "{}\n".format(line)
-        match = re.search(r"Enjob occured at element # (\d+)", line)
-        if match:
-            res += "{}\n".format(line)
-            num = match.group(1)
-            if num in element_by_num:
-                res += "  element # {}: {}\n".format(num, element_by_num[num])
-    path = run_dir.join(template_common.RUN_LOG)
-    if res == "" and path.exists():
-        text = pkio.read_text(str(path))
-        for line in text.split("\n"):
-            match = re.search(r"Fortran runtime error: (.*)", line)
-            if match:
-                res += "{}\n".format(match.group(1))
-    return res
+def _parse_zgoubi_log(run_dir, log_filename="run.log"):
+    if (
+        res := _ZgoubiLogParser(
+            run_dir,
+            log_filename=_ZGOUBI_LOG_FILE,
+            default_msg="",
+        ).parse_for_errors()
+    ) != "":
+        return res
+    return template_common.LogParser(
+        run_dir,
+        log_filename=log_filename,
+        error_patterns=(r"Fortran runtime error: (.*)",),
+        default_msg="",
+    ).parse_for_errors()
 
 
 def _particle_count(data):

@@ -81,11 +81,6 @@ def _build_radia_geom():
 {% endif %}
     return g_id, id_map
 
-def _put_sim_files():
-    for f in ("{{ dataFile }}", "{{ dmpOutputFile }}"):
-        sirepo.mpi.restrict_op_to_first_rank(lambda: sirepo.sim_data.get_class("radia").put_sim_file("{{ simId }}", f, f))
-
-
 def _write_dict_to_h5(data, h5_path):
     sirepo.mpi.restrict_op_to_first_rank(
         lambda: template_common.write_dict_to_h5(data, "{{ dataFile }}", h5_path=h5_path)
@@ -95,5 +90,3 @@ def _write_dict_to_h5(data, h5_path):
 def _write_dmp(g_id, f_path):
     with open(f_path, "wb") as f:
         f.write(radia_util.dump_bin(g_id))
-
-

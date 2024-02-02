@@ -1,10 +1,40 @@
-.sr-command-table table tr td.drag-enter {
-  background-color: #d9edf7;
+[draggable] {
+  user-select: none;
 }
-.sr-command-table table tr td.drag-enter div.sr-command-icon-holder {
-  transition: padding 0.5s ease 0s;
-  padding-top: 2em;
+.sr-item-holder {
+  border: 3px solid transparent;
+  min-height: 40px;
+  border-radius: 10px;
 }
-.sr-command-table table tr td.drag-enter div.dragging {
-  padding-top: 0;
+.sr-item-holder.sr-drag-over {
+  border: solid 3px lightgray;
+}
+.sr-item.sr-dragging {
+  visibility: hidden;
+}
+.sr-item-holder.sr-drag-over .sr-item {
+  opacity: 0.7;
+}
+.sr-item-holder.sr-drag-over .sr-move-after {
+  transition: margin 0.5s ease 0s;
+  margin-top: -4ex;
+  margin-bottom: 4ex;
+}
+.sr-item-holder.sr-drag-over .sr-move-before {
+  transition: margin 0.5s ease 0s;
+  margin-top: 4ex;
+  margin-bottom: -4ex;
+}
+tr:hover .sr-item.sr-hide-menu .sr-button-bar-parent {
+  display: none;
+}
+.sr-item-badge {
+  cursor: move;
+  font-size: 14px;
+}
+div.sr-command-panel.panel {
+  background-color: transparent;
+}
+.sr-button-bar {
+  background-color: transparent;
 }

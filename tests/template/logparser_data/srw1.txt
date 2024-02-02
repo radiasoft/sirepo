@@ -1,0 +1,7 @@
+Before setting up multipole
+Single-electron SR calculation ... Warning: Computation of terminating terms of radiation integrals WAS NOT PERFORMED for some values of input parameters  because asymptotic expansion validity criterion was not satisfied. This may influence the accuracy of the computation.  One can try to fix the problem by modifying Magnetic Field definition range and/or Integration limits.
+completed (lasted 10.51 s)
+Extracting intensity and saving it to a file ... completed (lasted 0.079 s)
+Saving initial wavefront data to a file ... completed (lasted 0.025 s)
+Propagation ... completed (lasted 1.007 s)
+Saving propagated wavefront data to a file ... completed (lasted 0.018 s)

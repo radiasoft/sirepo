@@ -70,6 +70,11 @@ def create_settings():
     settings.run_mode = "{{ settings_run_mode }}"
     settings.photon_transport = "{{ settings_photon_transport }}" == "1"
     settings.export_to_xml()
+    from openmc import lib
+    openmc.lib.init(output=False)
+    p = openmc.lib.sample_external_source(n_samples={{ maxSampleSourceParticles }})
+    openmc.source.write_source_file(p, "{{ sourceFile }}")
+    openmc.lib.finalize()
 
 
 def create_tallies():

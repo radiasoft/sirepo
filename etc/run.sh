@@ -144,32 +144,6 @@ _op_no_smtp_mail() {
     _exec_all
 }
 
-_op_react() {
-    export SIREPO_FEATURE_CONFIG_UI_REACT=1
-    # Only one auth method allowed
-    export SIREPO_AUTH_METHODS=email
-    # Websockets don't work
-    export SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=0
-    _op_mail
-}
-
-_op_react_build() {
-    if [[ ! ${run_react_build_no_compile:-} ]]; then
-        cd "$(dirname "$0")"/../react
-        rm -rf build
-        npm run-script build
-        (
-            # These aren't likely to fail so run in subshell
-            cd ..
-            rm -f sirepo/package_data/static/react
-            ln -s ../../../react/build sirepo/package_data/static/react
-        )
-    fi
-    export SIREPO_PKCLI_SERVICE_REACT_PORT=
-    export SIREPO_SERVER_REACT_SERVER=build
-    _op_react
-}
-
 _op_server_status() {
     declare u=$(cd "$(dirname "$0")"/../run/user && ls -d ???????? 2>/dev/null | head -1)
     if [[ ! $u ]]; then
