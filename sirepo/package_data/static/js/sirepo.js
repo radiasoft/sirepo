@@ -84,7 +84,7 @@ SIREPO.viewLogic = function(name, init) {
                     for (var idx = 0; idx < scope.watchFields.length; idx += 2) {
                         var fields = scope.watchFields[idx];
                         var callback = utilities.debounce(scope.watchFields[idx + 1], SIREPO.debounce_timeout);
-                        appState.watchModelFields(scope, fields, callback);
+                        appState.watchModelFields(scope, fields, callback, true);
                     }
                 }
             },
@@ -1187,21 +1187,27 @@ SIREPO.app.service('validationService', function(utilities) {
     };
 
     // html5 validation
-    this.validateField = function (model, field, inputType, isValid, msg) {
-        const mfId = utilities.modelFieldID(model, field);
-        const r = $(`.${mfId} ${inputType}`);
-        const f = r[0];
+    this.validateField = function(model, field, inputType, isValid, msg) {
+        this.validateInputSelectorString(`.${utilities.modelFieldID(model, field)} ${inputType}`, isValid, msg);
+    };
+
+    this.validateInputSelectorString = function(str, isValid, msg) {
+        this.validateInputSelector($(str), isValid, msg);
+    };
+
+    this.validateInputSelector = function(sel, isValid, msg) {
+        const f = sel[0];
         if (! f) {
             return;
         }
-        const fWarn = $(`.${mfId} .sr-input-warning`);
+        const fWarn = sel.siblings('.sr-input-warning').eq(0);
         const invalidClass = 'ng-invalid ng-dirty';
         fWarn.text(msg);
         fWarn.hide();
         f.setCustomValidity('');
-        r.removeClass(invalidClass);
+        sel.removeClass(invalidClass);
         if (! isValid) {
-            r.addClass(invalidClass);
+            sel.addClass(invalidClass);
             f.setCustomValidity(msg);
             fWarn.show();
         }
@@ -1245,6 +1251,13 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     self.modelToCurrentFrame = {};
 
     self.frameId = function(frameReport, frameIndex) {
+        function fieldToFrameParam(field) {
+            if (angular.isObject(field)) {
+                return JSON.stringify(field);
+            }
+            return `${field}`;
+        }
+
         var c = appState.appService.computeModel(frameReport);
         var s = appState.models.simulationStatus[c];
         if (! s) {
@@ -1268,7 +1281,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         }
         // POSIT: same as sirepo.sim_data._FRAME_ID_SEP
         return v.concat(
-            f.map(function (a) {return m[a];})
+            f.map(a => fieldToFrameParam(m[a]))
         ).join('*');
     };
 
@@ -2023,6 +2036,11 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         return url.startsWith("/auth-");
     };
 
+    const _isOauth = (url, data) => {
+	// TODO(e-carlin): https://github.com/radiasoft/sirepo/issues/6689
+        return SIREPO.APP_SCHEMA.simulationType === 'flash';
+    };
+
     const _protocolError = (header, content, wsreq, errorMsg) => {
         if (! errorMsg) {
             errorMsg = "invalid reply from server";
@@ -2065,7 +2083,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             const n = content.routeName;
             const r = {data: {}};
             if (n === "httpException") {
-                r.status = content.status;
+                r.status = content.params.code;
             }
             else {
                 r.data.state = "srException";
@@ -2220,7 +2238,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     self.send = (url, data, httpConfig) => {
-        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url)) {
+        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url) || _isOauth(url, data)) {
             // Might be auto logged out so close socket so can re-authenticate
             if (socket) {
                 socket.close();
@@ -2377,7 +2395,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     }
 
     function formatUrl(map, routeOrParams, params) {
-        var n = routeOrParams;
+        let n = routeOrParams;
         if (angular.isObject(routeOrParams)) {
             n = routeOrParams.routeName;
             if (! n) {
@@ -2401,11 +2419,15 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         if (! map[n]) {
             throw new Error(`routeName=${n} not found in map=${map._name}`);
         }
-        var r = map[n];
-        var u = r.baseUri ? '/' + r.baseUri : '';
+        const r = map[n];
+        let u = r.baseUri ? '/' + r.baseUri : '';
+        let v = null;
         for (p of r.params) {
             if (p.name in params) {
-                u = u + '/' + encodeURIComponent(serializeValue(params[p.name], p.name));
+                v = params[p.name];
+            }
+            else if (p.name === "simulation_type") {
+                v = SIREPO.APP_SCHEMA.simulationType;
             }
             else if (p.isOptional) {
                 break;
@@ -2413,6 +2435,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             else {
                 throw new Error(`param=${p.name} param missing map=${map._name} route=${r.name}`);
             }
+            u = u + '/' + encodeURIComponent(serializeValue(v, p.name));
         }
         return u;
     }
@@ -2537,6 +2560,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         const e = srException;
         if (e.routeName == "httpRedirect") {
             self.globalRedirect(e.params.uri, undefined);
+            return;
+        }
+        if (e.routeName == "serverUpgraded" && e.params
+            && ['invalidSimulationSerial', 'newRelease'].includes(e.params.reason)) {
+            $(`#sr-${e.params.reason}`).modal('show');
             return;
         }
         const u = $location.url();

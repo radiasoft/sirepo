@@ -788,6 +788,11 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
         $scope.$on('simulation.changed', syncDistanceFromSourceToFirstElementPosition);
         $scope.$on('multiElectronAnimation.changed', updateMultiElectronWatchpoint);
         $scope.$on('beamlineAnimation0.changed', copyIntensityReportCharacteristics);
+        $scope.$on('modelChanged', (event, modelName) => {
+            if (modelName.indexOf('beamlineAnimation') >= 0) {
+                updateWatchpointReports();
+            }
+        });
         srwService.addSummaryDataListener($scope);
         var search = $location.search();
         if (search) {
@@ -955,14 +960,31 @@ var srwGrazingAngleLogic = function(panelState, srwService, $scope) {
 
 var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) {
 
+    const modelKey = $scope.modelData ? $scope.modelData.modelKey : $scope.modelName;
+
     function hasSamplingMethod() {
         return $scope.modelName == 'sourceIntensityReport' || $scope.modelName == 'coherentModesAnimation';
     }
+
+    function updateDetector() {
+        if ($scope.modelName == 'powerDensityReport' || $scope.modelName == 'coherentModesAnimation') {
+            panelState.showField($scope.modelName, 'useDetector', false);
+        }
+        const m = appState.models[modelKey];
+        if (m.useDetector === '1') {
+            m.usePlotRange = '0';
+        }
+        panelState.showField($scope.modelName, 'intensityPlotsWidth', m.useDetector === '0');
+        panelState.showField($scope.modelName, 'useDetectorAspectRatio', m.useDetector === '1');
+        panelState.showRow($scope.modelName, 'd_rx', m.useDetector === '1');
+    }
+
     function updateIntensityLimit() {
         srwService.updateIntensityLimit(
             $scope.modelName,
             $scope.modelData ? $scope.modelData.modelKey : null);
     }
+
     function updatePlotRange() {
         srwService.updatePlotRange(
             $scope.modelName,
@@ -972,6 +994,7 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
     function updateSelected() {
         updateIntensityLimit();
         updatePlotRange();
+        updateDetector();
         var schemaModel = SIREPO.APP_SCHEMA.model[$scope.modelName];
         if (schemaModel.fieldUnits) {
             panelState.showField($scope.modelName, 'fieldUnits', srwService.isGaussianBeam());
@@ -1004,7 +1027,6 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
         ]);
         panelState.showField('simulation', 'photonEnergy', isSource);
     }
-    var modelKey = $scope.modelData ? $scope.modelData.modelKey : $scope.modelName;
     $scope.whenSelected = updateSelected;
     $scope.watchFields = [
         [
@@ -1014,6 +1036,9 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
             ($scope.modelData ? $scope.modelData.modelKey : $scope.modelName)
                 + '.usePlotRange',
         ], updatePlotRange,
+        [
+            modelKey + '.useDetector',
+        ], updateDetector,
     ];
     if (hasSamplingMethod()) {
         $scope.watchFields.push(
@@ -2518,9 +2543,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
            </div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <div data-canceled-due-to-timeout-alert="simState"></div>
-              <div class="progress" data-ng-if="simState.isProcessing()">
-                <div class="progress-bar" data-ng-class="{ 'progress-bar-striped active': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>
-              </div>
+              <div data-ng-if="simState.isProcessing()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
               <div data-ng-if="simState.isProcessing()">
                 <div class="col-sm-6">
                   <div data-pending-link-to-simulations="" data-sim-state="simState"></div>

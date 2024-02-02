@@ -438,7 +438,7 @@ class SVGPath extends UIElement {
      * The string assigned to the 'd' attrribute
      * @returns {string} - the string
      */
-    pathString() {
+    pathString(doClose) {
         let c = this.pathPointAt(0);
         this.corners = [c];
         this.lines = [];
@@ -449,7 +449,7 @@ class SVGPath extends UIElement {
             this.corners.push(c);
             p += `L${c[0]},${c[1]} `;
         }
-        if (this.doClose) {
+        if (doClose || this.doClose) {
             this.lines.push([this.corners[this.corners.length - 1], this.corners[0]]);
             p += 'z';
         }
@@ -471,21 +471,7 @@ class SVGPath extends UIElement {
     }
 
     update() {
-        let c = this.pathPoint(0);
-        this.corners = [c];
-        this.lines = [];
-        let p = `M${c[0]},${c[1]} `;
-        for (let i = 1; i < this.points.length; ++i) {
-            c = this.pathPoint(i);
-            this.lines.push([c, this.corners[this.corners.length - 1]]);
-            this.corners.push(c);
-            p += `L${c[0]},${c[1]} `;
-        }
-        if (this.doClose) {
-            this.lines.push([this.corners[this.corners.length - 1], this.corners[0]]);
-            p += 'z';
-        }
-        this.getAttr('d').setValue(p);
+        this.getAttr('d').setValue(this.pathString());
     }
 
 }

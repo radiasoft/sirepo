@@ -4,12 +4,14 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import copy
+import os.path
+import re
+import pykern.pkio
 import sirepo.sim_data
+import sirepo.util
 
 
 class SimData(sirepo.sim_data.SimDataBase):
@@ -26,6 +28,23 @@ class SimData(sirepo.sim_data.SimDataBase):
     )
 
     @classmethod
+    def prepare_import_file_args(cls, req):
+        res = cls._prepare_import_file_name_args(req)
+        if res.ext_lower != ".dat":
+            raise sirepo.util.UserAlert(f"invalid file extension='{res.ext_lower}'")
+        p = cls.lib_file_name_with_type(
+            res.basename,
+            cls.schema().constants.fileTypeRadiaDmp,
+        )
+        if cls.lib_file_exists(p, qcall=req.qcall):
+            raise sirepo.util.UserAlert(
+                f"dump file='{res.basename}' already exists; import another file name"
+            )
+        cls.lib_file_write(p, req.form_file.as_bytes(), qcall=req.qcall)
+        # radia doesn't use import_file_arguments
+        return res
+
+    @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         res = cls._non_analysis_fields(data, r) + []
         return res
@@ -36,6 +55,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             return "fieldLineoutAnimation"
         elif analysis_model in ("solverAnimation", "reset"):
             return "solverAnimation"
+        elif analysis_model == "optimizerAnimation":
+            return "optimizerAnimation"
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
@@ -97,6 +118,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             if dm.get(m):
                 dm[m].type = m
         for o in dm.geometryReport.objects:
+            if o.get("model") and not o.get("type"):
+                o.type = o.get("model")
             for f in (
                 "model",
                 "type",
@@ -137,6 +160,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                     "end",
                 ):
                     _fixup_number_string_field(p, f)
+                if p.type == "fieldMapPath":
+                    if p.numPoints < sch.model.fieldMapPath.numPoints[4]:
+                        p.numPoints = sch.model.fieldMapPath.numPoints[4]
+                    if p.numPoints > sch.model.fieldMapPath.numPoints[5]:
+                        p.numPoints = sch.model.fieldMapPath.numPoints[5]
 
         def _fixup_number_string_field(model, field, to_type=float):
             if field not in model:
@@ -171,6 +199,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
         def _fixup_geom_objects(objects):
             for o in objects:
+                o.name = re.sub(r"\s", "_", o.name)
                 if o.get("points") is not None and not o.get("triangulationLevel"):
                     o.triangulationLevel = 0.5
                 if not o.get("bevels"):
@@ -329,7 +358,9 @@ class SimData(sirepo.sim_data.SimDataBase):
     def sim_files_to_run_dir(cls, data, run_dir, post_init=False):
         try:
             super().sim_files_to_run_dir(data, run_dir)
-        except sirepo.sim_data.SimDbFileNotFound as e:
+        except Exception as e:
+            if not pykern.pkio.exception_is_not_found(e):
+                raise
             if post_init:
                 raise e
 

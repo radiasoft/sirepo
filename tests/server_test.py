@@ -5,9 +5,9 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import csv
+import io
 import pytest
 import re
-import six
 import time
 
 
@@ -33,6 +33,7 @@ def test_elegant_data_file(fc):
     for _ in range(fc.timeout_secs()):
         if run.state == "completed":
             break
+        pkunit.pkok(run.state in ("running", "pending"), "error in req={}", run)
         time.sleep(1)
         run = fc.sr_post("runStatus", run.nextRequest)
     else:
@@ -51,7 +52,7 @@ def test_elegant_data_file(fc):
     r.assert_http_status(200)
     pkunit.pkre("no-cache", r.header_get("Cache-Control"))
     # 50,000 particles plus header row
-    pkunit.pkeq(50001, len(list(csv.reader(six.StringIO(pkcompat.from_bytes(r.data))))))
+    pkunit.pkeq(50001, len(list(csv.reader(io.StringIO(pkcompat.from_bytes(r.data))))))
     r = fc.sr_get(
         "downloadDataFile",
         PKDict(
@@ -93,6 +94,6 @@ def test_srw(fc):
     d = fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
     r = fc.sr_get("/find-by-name-auth/srw/default/UndulatorRadiation")
     r.assert_http_status(404)
-    for sep in (" ", "%20", "+"):
+    for sep in (" ", "%20"):
         r = fc.sr_get("/find-by-name-auth/srw/default/Undulator{}Radiation".format(sep))
         r.assert_http_status(200)

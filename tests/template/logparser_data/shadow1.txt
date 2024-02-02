@@ -1,0 +1,291 @@
+ File with slit boundaries read succesfully.
+ File SRSPEC not found: Creating it!
+ File written to disk: SRDISTR
+ File written to disk: SRSPEC
+ File written to disk: SRANG
+       50000    rays have been rejected so far.
+         587                   accepted.
+      100000    rays have been rejected so far.
+        1173                   accepted.
+      150000    rays have been rejected so far.
+        1723                   accepted.
+      200000    rays have been rejected so far.
+        2264                   accepted.
+ Generated         2500  rays out of        50000
+      250000    rays have been rejected so far.
+        2845                   accepted.
+      300000    rays have been rejected so far.
+        3407                   accepted.
+      350000    rays have been rejected so far.
+        3952                   accepted.
+      400000    rays have been rejected so far.
+        4548                   accepted.
+                   5000
+      450000    rays have been rejected so far.
+        5121                   accepted.
+      500000    rays have been rejected so far.
+        5741                   accepted.
+      550000    rays have been rejected so far.
+        6252                   accepted.
+      600000    rays have been rejected so far.
+        6798                   accepted.
+      650000    rays have been rejected so far.
+        7405                   accepted.
+                   7500
+      700000    rays have been rejected so far.
+        8030                   accepted.
+      750000    rays have been rejected so far.
+        8586                   accepted.
+      800000    rays have been rejected so far.
+        9149                   accepted.
+      850000    rays have been rejected so far.
+        9669                   accepted.
+                  10000
+      900000    rays have been rejected so far.
+       10222                   accepted.
+      950000    rays have been rejected so far.
+       10787                   accepted.
+     1000000    rays have been rejected so far.
+       11367                   accepted.
+     1050000    rays have been rejected so far.
+       11947                   accepted.
+                  12500
+     1100000    rays have been rejected so far.
+       12502                   accepted.
+     1150000    rays have been rejected so far.
+       13086                   accepted.
+     1200000    rays have been rejected so far.
+       13601                   accepted.
+     1250000    rays have been rejected so far.
+       14153                   accepted.
+     1300000    rays have been rejected so far.
+       14708                   accepted.
+                  15000
+     1350000    rays have been rejected so far.
+       15309                   accepted.
+     1400000    rays have been rejected so far.
+       15887                   accepted.
+     1450000    rays have been rejected so far.
+       16445                   accepted.
+     1500000    rays have been rejected so far.
+       17046                   accepted.
+                  17500
+     1550000    rays have been rejected so far.
+       17615                   accepted.
+     1600000    rays have been rejected so far.
+       18163                   accepted.
+     1650000    rays have been rejected so far.
+       18699                   accepted.
+     1700000    rays have been rejected so far.
+       19284                   accepted.
+     1750000    rays have been rejected so far.
+       19814                   accepted.
+                  20000
+     1800000    rays have been rejected so far.
+       20359                   accepted.
+     1850000    rays have been rejected so far.
+       20923                   accepted.
+     1900000    rays have been rejected so far.
+       21501                   accepted.
+     1950000    rays have been rejected so far.
+       22066                   accepted.
+                  22500
+     2000000    rays have been rejected so far.
+       22627                   accepted.
+     2050000    rays have been rejected so far.
+       23208                   accepted.
+     2100000    rays have been rejected so far.
+       23793                   accepted.
+     2150000    rays have been rejected so far.
+       24374                   accepted.
+     2200000    rays have been rejected so far.
+       24977                   accepted.
+                  25000
+     2250000    rays have been rejected so far.
+       25585                   accepted.
+     2300000    rays have been rejected so far.
+       26174                   accepted.
+     2350000    rays have been rejected so far.
+       26723                   accepted.
+     2400000    rays have been rejected so far.
+       27286                   accepted.
+                  27500
+     2450000    rays have been rejected so far.
+       27866                   accepted.
+     2500000    rays have been rejected so far.
+       28470                   accepted.
+     2550000    rays have been rejected so far.
+       29065                   accepted.
+     2600000    rays have been rejected so far.
+       29616                   accepted.
+                  30000
+     2650000    rays have been rejected so far.
+       30223                   accepted.
+     2700000    rays have been rejected so far.
+       30769                   accepted.
+     2750000    rays have been rejected so far.
+       31362                   accepted.
+     2800000    rays have been rejected so far.
+       31926                   accepted.
+     2850000    rays have been rejected so far.
+       32472                   accepted.
+                  32500
+     2900000    rays have been rejected so far.
+       33071                   accepted.
+     2950000    rays have been rejected so far.
+       33634                   accepted.
+     3000000    rays have been rejected so far.
+       34218                   accepted.
+     3050000    rays have been rejected so far.
+       34745                   accepted.
+                  35000
+     3100000    rays have been rejected so far.
+       35329                   accepted.
+     3150000    rays have been rejected so far.
+       35846                   accepted.
+     3200000    rays have been rejected so far.
+       36420                   accepted.
+     3250000    rays have been rejected so far.
+       36937                   accepted.
+                  37500
+     3300000    rays have been rejected so far.
+       37542                   accepted.
+     3350000    rays have been rejected so far.
+       38083                   accepted.
+     3400000    rays have been rejected so far.
+       38637                   accepted.
+     3450000    rays have been rejected so far.
+       39191                   accepted.
+     3500000    rays have been rejected so far.
+       39748                   accepted.
+                  40000
+     3550000    rays have been rejected so far.
+       40362                   accepted.
+     3600000    rays have been rejected so far.
+       40935                   accepted.
+     3650000    rays have been rejected so far.
+       41494                   accepted.
+     3700000    rays have been rejected so far.
+       42031                   accepted.
+                  42500
+     3750000    rays have been rejected so far.
+       42618                   accepted.
+     3800000    rays have been rejected so far.
+       43185                   accepted.
+     3850000    rays have been rejected so far.
+       43779                   accepted.
+     3900000    rays have been rejected so far.
+       44332                   accepted.
+     3950000    rays have been rejected so far.
+       44895                   accepted.
+                  45000
+     4000000    rays have been rejected so far.
+       45453                   accepted.
+     4050000    rays have been rejected so far.
+       46032                   accepted.
+     4100000    rays have been rejected so far.
+       46596                   accepted.
+     4150000    rays have been rejected so far.
+       47170                   accepted.
+                  47500
+     4200000    rays have been rejected so far.
+       47720                   accepted.
+     4250000    rays have been rejected so far.
+       48313                   accepted.
+Traceback (most recent call last):
+  File "/home/vagrant/.pyenv/versions/py3/bin/sirepo", line 33, in <module>
+    sys.exit(load_entry_point('sirepo', 'console_scripts', 'sirepo')())
+  File "/home/vagrant/src/radiasoft/sirepo/sirepo/sirepo_console.py", line 18, in main
+    return pkcli.main("sirepo")
+  File "/home/vagrant/src/radiasoft/pykern/pykern/pkcli/__init__.py", line 165, in main
+    res = argh.dispatch(parser, argv=argv)
+  File "/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/argh/dispatching.py", line 179, in dispatch
+    for line in lines:
+  File "/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/argh/dispatching.py", line 290, in _execute_command
+    for line in result:
+  File "/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/argh/dispatching.py", line 273, in _call
+    result = function(*positional, **keywords)
+  File "/home/vagrant/src/radiasoft/sirepo/sirepo/pkcli/shadow.py", line 57, in run
+    res = _run_shadow(cfg_dir, data)
+  File "/home/vagrant/src/radiasoft/sirepo/sirepo/pkcli/shadow.py", line 121, in _run_shadow
+    beam = template_common.exec_parameters().beam
+  File "/home/vagrant/src/radiasoft/sirepo/sirepo/template/template_common.py", line 420, in exec_parameters
+    return pkrunpy.run_path_as_module(path or PARAMETERS_PYTHON_FILE)
+  File "/home/vagrant/src/radiasoft/pykern/pykern/pkrunpy.py", line 28, in run_path_as_module
+    exec(code, m.__dict__)
+  File "parameters.py", line 85, in <module>
+    prerefl(interactive=False, SYMBOL='Rhj', DENSITY=12.4, FILE='mirror-prerefl-6.txt', E_MIN=5000.0, E_MAX=55000.0, E_STEP=100.0)
+  File "/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/Shadow/ShadowPreprocessorsXraylib.py", line 102, in prerefl
+    tmp = 2e0*(1e0-xraylib.Refractive_Index_Re(iMaterial,energy,density))
+  File "/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/xraylib.py", line 4984, in Refractive_Index_Re
+    return _xraylib.Refractive_Index_Re(compound, E, density)
+ValueError: Compound is not a valid chemical formula and is not present in the NIST compound database
+     4300000    rays have been rejected so far.
+       48845                   accepted.
+     4350000    rays have been rejected so far.
+       49413                   accepted.
+                  50000
+ ----------------------------------------------------------------
+   source optimization (rejection, variance reduction) used: 
+     4449523    total number of rays have been created.
+       50000                   accepted (stored).
+     4399523                   rejected.
+   88.9904633           created/accepted ratio.
+ ----------------------------------------------------------------
+ Exit from SOURCE
+ Call to RESET
+ Exit from RESET
+ Call to SETSOUR
+ Exit from SETSOUR
+ Call to IMREF
+ Exit from IMREF
+ Call to OPTAXIS
+ Exit from OPTAXIS
+ Call to MSETUP
+ Exit from MSETUP
+ Call to RESTART
+ Exit from RESTART
+ Call to MIRROR
+ MIRROR1: Warning: Empty element (no mirr.xx file)
+ Call to SCREEN
+ Exit from SCREEN
+ Call to IMAGE
+ Exit from IMAGE
+ Call to DEALLOC
+ Exit from DEALLOC
+ Call to RESET
+ Exit from RESET
+ Call to SETSOUR
+ Exit from SETSOUR
+ Call to IMREF
+ Exit from IMREF
+ Call to OPTAXIS
+ Exit from OPTAXIS
+ Call to MSETUP
+ Exit from MSETUP
+ Call to RESTART
+ Exit from RESTART
+ Call to MIRROR
+ MIRROR1: Warning: Empty element (no mirr.xx file)
+ Call to IMAGE
+ Exit from IMAGE
+ Call to DEALLOC
+ Exit from DEALLOC
+ Call to RESET
+ Exit from RESET
+ Call to SETSOUR
+ Exit from SETSOUR
+ Call to IMREF
+ Exit from IMREF
+ Call to OPTAXIS
+ Exit from OPTAXIS
+ Call to MSETUP
+ Exit from MSETUP
+ Call to RESTART
+ Exit from RESTART
+ Call to MIRROR
+ MIRROR1: Warning: Empty element (no mirr.xx file)
+ Call to IMAGE
+ Exit from IMAGE
+ Call to DEALLOC
+ Exit from DEALLOC
