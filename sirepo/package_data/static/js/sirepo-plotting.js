@@ -4077,13 +4077,21 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     plotVisibility = {};
                     selectedPlotLabels = getPlotLabels();
                 }
+                // initially set all states visible
                 plots.forEach(function(plot, ip) {
                     includeDomain(ip, true);
+                    setPlotVisible(ip, true);
+                });
+                // hide previously hidden plots
+                plots.forEach(function(plot, ip) {
                     if (! plotVisibility.hasOwnProperty(ip)) {
                         plotVisibility[ip] = true;
                     }
-                    setPlotVisible(ip, plotVisibility[ip]);
+                    if (! plotVisibility[ip]) {
+                        setPlotVisible(ip, false);
+                    }
                 });
+                console.log('plotVisibility:', plotVisibility);
                 updateYLabel();
             };
 
