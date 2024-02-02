@@ -3524,11 +3524,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
-            var includeForDomain = [];
-            var childPlots = {};
-            var scaleFunction;
-            var plotVisibility = {};
+            let childPlots = {};
             let dynamicYLabel = false;
+            let includeForDomain = [];
+            let plotVisibility = {};
+            let scaleFunction;
+            let selectedPlotLabels = [];
 
             // for built-in d3 symbols - the units are *pixels squared*
             var symbolSize = 144.0;
@@ -3600,14 +3601,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return true;
             }
 
-            function cachedPlotVisibility(pIndex, modelName) {
-                plotVisibility[modelName] = plotVisibility[modelName] || {};
-                if (! plotVisibility[modelName].hasOwnProperty(pIndex)) {
-                    plotVisibility[modelName][pIndex] = false;
-                  }
-                return plotVisibility[modelName][pIndex];
-            }
-
             function createLegend() {
                 const plots = $scope.axes.y.plots;
                 var legend = $scope.select('.sr-plot-legend');
@@ -3631,7 +3624,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         .attr('y', 17 + count * 20)
                         .text(vIconText(true))
                         .on('click', function() {
-                            togglePlot(i, $scope.modelName);
+                            togglePlot(i);
                             $scope.$applyAsync();
                         });
                     itemWidth = item.node().getBBox().width;
@@ -3757,12 +3750,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 });
             }
 
-            function togglePlot(pIndex, modelName) {
+            function togglePlot(pIndex) {
                 setPlotVisible(pIndex, ! isPlotVisible(pIndex));
                 updateYLabel();
-                if (plotVisibility) {
-                    plotVisibility[modelName][pIndex] = ! plotVisibility[modelName][pIndex];
-                }
+                plotVisibility[pIndex] = ! plotVisibility[pIndex];
             }
 
             function updateYLabel() {
@@ -3889,17 +3880,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     .y(function(d) {
                         return $scope.axes.y.scale(scaleFunction ? scaleFunction(d) : d);
                     });
-            };
-
-            $scope.plotLabels = (plots) => {
-                let res = [];
-                if (plots == null) {
-                    return res;
-                }
-                for (let plot of plots) {
-                    res.push(plot.label);
-                }
-                return res;
             };
 
             $scope.load = function(json) {
@@ -4092,38 +4072,20 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         : 20;
                 $scope.margin.bottom = 50 + 20 * legendCount;
                 $scope.updatePlot(json);
+
+                if (! appState.deepEquals(getPlotLabels(), selectedPlotLabels)) {
+                    plotVisibility = {};
+                    selectedPlotLabels = getPlotLabels();
+                }
                 plots.forEach(function(plot, ip) {
-                    // make sure everything is visible when reloading
                     includeDomain(ip, true);
-                    setPlotVisible(ip, true);
+                    if (! plotVisibility.hasOwnProperty(ip)) {
+                        plotVisibility[ip] = true;
+                    }
+                    setPlotVisible(ip, plotVisibility[ip]);
                 });
                 updateYLabel();
-                plots.forEach(function(plot, i) {
-                    if (cachedPlotVisibility(i, $scope.modelName)) {
-                        setPlotVisible(i, ! isPlotVisible(i));
-                    }
-                });
-
-                function handlePlotSelection() {
-                    const c = $scope.plotLabels(plots);
-                    const p = appState.models[$scope.modelName].selectedPlots || c;
-                    if (JSON.stringify(c) != JSON.stringify(p)) {
-                        plots.forEach((plot, i) => {
-                            plotVisibility[$scope.modelName][i] = false;
-                        });
-                        appState.models[$scope.modelName].selectedPlots = c;
-                        appState.saveChanges($scope.modelName);
-                    }
-                }
-                handlePlotSelection();
             };
-
-            $scope.$on($scope.modelName + '.changed', () => {
-                    // $scope.axes.y.plots is actually the plot selection prior to .changed
-                    // caching them here allows handlePlotSelection to check previous vs current
-                    appState.models[$scope.modelName].selectedPlots = $scope.plotLabels($scope.axes.y.plots);
-                }
-            );
 
             $scope.recalculateYDomain = function() {
                 var ydom;
