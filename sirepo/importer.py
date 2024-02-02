@@ -115,7 +115,7 @@ def _import_related_sims(data, zip_bytes, qcall=None):
                     )
                     _write_lib_file(
                         lib_dir.join(pkio.py_path(lib_file).basename),
-                        zip_obj.read(lib_file)
+                        zip_obj.read(lib_file),
                     )
                 data.models.simWorkflow.coupledSims[
                     _sim_index(p)
