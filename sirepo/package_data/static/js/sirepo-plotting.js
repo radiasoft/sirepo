@@ -4091,7 +4091,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         setPlotVisible(ip, false);
                     }
                 });
-                console.log('plotVisibility:', plotVisibility);
                 updateYLabel();
             };
 
