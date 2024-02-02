@@ -104,7 +104,7 @@ def extract_report_data(run_dir, sim_in):
         template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
     if sim_in.report == "energyReport":
         template_common.write_sequential_result(
-            _energy_plot()
+            _energy_plot(run_dir, sim_in)
         )
 
 
@@ -131,6 +131,11 @@ def post_execution_processing(
             ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
             for f in ply_files:
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
+        if compute_model == "openmcAnimation":
+            f = _statepoint_filename(
+                simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+            )
+            _SIM_DATA.put_sim_file(sim_id, f, f)
         return None
     return _parse_run_log(run_dir)
 
@@ -160,10 +165,6 @@ def sim_frame(frame_args):
             if f._type == type:
                 return f
         return None
-
-    def _get_tally(tallies, name):
-        f = [x for x in tallies if x.name == name]
-        return f[0] if len(f) else None
 
     def _sample_sources(filename, num_samples):
         samples = []
@@ -395,8 +396,29 @@ sirepo.simulation_db.write_json(
 """
 
 
-def _energy_plot():
-    plots = [PKDict(points[0, 2, 4], label=None, style="line")]
+def _energy_plot(run_dir, data):
+
+    #_SIM_DATA.sim_files_to_run_dir(data, run_dir)
+
+    plots = []
+    tally_name = data.models.tallySettings.tally
+    t = openmc.StatePoint(
+        frame_args.run_dir.join(_statepoint_filename(data))
+    ).get_tally(name=tally_name)
+    try:
+        e = t.find_filter(openmc.EnergyFilter)
+        pkdp("E {}", e)
+    except ValueError:
+        return PKDict(error="No energy filter defined for tally {tally_name}")
+
+    for score in _get_tally(data.models.settings.tallies, tally_name).scores:
+        mean = getattr(t, "mean")[:, :, t.get_score_index(score)].ravel()
+        std_dev = getattr(t, "std_dev")[:, :, t.get_score_index(score)].ravel()
+    
+    plots = [
+        PKDict(points=[0, 2, 4], label="t1", style="line"),
+        PKDict(points=[0, 3, 6], label="t2", style="line"),
+    ]
     return template_common.parameter_plot(
         [0, 1, 2],
         plots,
@@ -408,7 +430,6 @@ def _energy_plot():
             summaryData=PKDict(),
         ),
     )
-    #return PKDict(x_range=[], summaryData={})
 
 
 def _generate_angle(angle):
@@ -543,6 +564,8 @@ def _generate_parameters_file(data, run_dir=None):
     if report == "dagmcAnimation":
         return _dagmc_animation_python(_SIM_DATA.dagmc_filename(data))
     if report == "tallyReport":
+        return ""
+    if report == "energyReport":
         return ""
     res, v = template_common.generate_parameters_file(data)
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
@@ -697,6 +720,10 @@ t{tally._index + 1}.scores = [{','.join(["'" + s.score + "'" for s in tally.scor
 t{tally._index + 1}.nuclides = [{','.join(["'" + s.nuclide + "'" for s in tally.nuclides if s.nuclide])}]
 """
     return res
+
+def _get_tally(tallies, name):
+    f = [x for x in tallies if x.name == name]
+    return f[0] if len(f) else None
 
 
 def _has_graveyard(data):

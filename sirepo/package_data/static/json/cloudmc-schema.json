@@ -306,9 +306,9 @@
             "num": ["Number of samples", "Integer", 50]
         },
         "energyReport": {
-            "x": ["X", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.5, "space": "linear"}],
-            "y": ["Y", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.5, "space": "linear"}],
-            "z": ["Z", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.5, "space": "linear"}]
+            "x": ["x", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.5, "space": "linear"}],
+            "y": ["y", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.5, "space": "linear"}],
+            "z": ["z", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.5, "space": "linear"}]
         },
         "filter": {
             "_type": ["", "TallyFilter"],
@@ -1123,12 +1123,17 @@
             ]
         },
         "energyReport": {
+            "title": "Energy Spectrum",
             "basic": [
                 "x",
                 "y",
                 "z"
             ],
-            "advanced": []
+            "advanced": [
+                "x",
+                "y",
+                "z"                
+            ]
         },
         "geometryInput": {
             "title": "Geometry Input",

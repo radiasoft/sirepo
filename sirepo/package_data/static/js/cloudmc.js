@@ -756,26 +756,15 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
 SIREPO.app.directive('energySpectrum', function(appState, cloudmcService, utilities) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            modelName: '@',
+        },
         template: `
-        <div data-ng-if="! ! energyFilter" >
-        <div class="panel panel-info" id="sr-magnetDisplay-basicEditor">
-            <div class="panel-heading clearfix" data-panel-heading="Energy Spectrum" data-view-name="'energyReport'" data-is-report="true" data-model-key="'energyReport'" data-report-id="reportId"></div>
-            <div class="panel-body" data-ng-if="! panelState.isHidden(modelName)">
-                <div data-advanced-editor-pane="" data-view-name="'energyReport'" data-want-buttons="" data-field-def="basic"></div>
-                <div data-report-content="parameter" data-model-name="energyReport" ></div>
-            </div>
-        </div>
-    </div>
-            
-                
-            
+            <div  data-ng-if="! ! energyFilter" class="col-sm-8" data-report-panel="parameter" data-model-name="modelName" data-panel-title="Energy Spectrum"></div>
         `,
         controller: function($scope) {
-            $scope.reportId = utilities.reportId();
             $scope.energyFilter = cloudmcService.findFilter('energyFilter');
-            srdbg($scope.energyFilter);
-            
+            srdbg($scope);
         },
     };
 });
@@ -2343,14 +2332,15 @@ SIREPO.viewLogic('energyReportView', function(appState, panelState, tallyService
 
     function updateEditor() {
         $scope.modelData = appState.models[$scope.modelName];
-        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(x => {
-            const r = tallyService.tallyRange(x, true);
-            $scope.modelData[x].min = r.min;
-            $scope.modelData[x].max = r.max;
-            $scope.modelData[x].step = r.step;
-        });
+        for (const dim in $scope.modelData) {
+            const r = tallyService.tallyRange(dim, true);
+            ['min', 'max', 'step'].forEach(x => {
+                $scope.modelData[dim][x] = r[x];
+            });
+        }
     }
 
+    srdbg('ERV');
     $scope.whenSelected = updateEditor;
 
     //$scope.watchFields = [
@@ -2816,7 +2806,7 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
         scope: {},
         template: `
             <div data-tally-volume-picker=""></div>
-            <div data-advanced-editor-pane="" data-view-name="'tallySettings'" data-want-buttons="" data-field-def="basic"></div>
+            <div data-advanced-editor-pane="" data-view-name="'tallySettings'" data-want-buttons="0" data-field-def="basic"></div>
             <div data-ng-if="is2D()">
                 <div plane-position-slider=""></div>
             </div>

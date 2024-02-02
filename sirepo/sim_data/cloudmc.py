@@ -27,6 +27,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         ]
 
     @classmethod
+    def statepoint_filename(cls, data):
+        return f"statepoint.{data.models.settings.batches}.h5"
+
+    @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         sch = cls.schema()
         dm = data.models
@@ -82,4 +86,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         if data.report == "openmcAnimation":
             for v in data.models.volumes:
                 res.append(PKDict(basename=f"{data.models.volumes[v].volId}.ply"))
+        if data.report == "energyReport":
+            res.extend([
+                PKDict(basename=cls.statepoint_filename(data)),
+            ])
         return res
