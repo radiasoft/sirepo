@@ -747,7 +747,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             viewName: '=',
         },
         template: `
-            <div data-ng-class="utilities.modelFieldID(modelName, field)">
+            <div data-ng-if="model" data-ng-class="utilities.modelFieldID(modelName, field)">
             <div data-ng-show="showLabel" data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>
             <div data-ng-switch="info[1]">
               <div data-ng-switch-when="Integer" data-ng-class="fieldClass">
