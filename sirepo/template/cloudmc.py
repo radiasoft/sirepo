@@ -159,13 +159,6 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
 def sim_frame(frame_args):
     import openmc
 
-    def _get_filter(tally, type):
-        for i in range(1, SCHEMA.constants.maxFilters + 1):
-            f = tally[f"filter{i}"]
-            if f._type == type:
-                return f
-        return None
-
     def _sample_sources(filename, num_samples):
         samples = []
         try:
@@ -384,6 +377,12 @@ def write_volume_outlines():
     simulation_db.write_json(_OUTLINES_FILE, all_outlines)
 
 
+def _bin(val, num_bins, min_val, max_val):
+    return numpy.ceil(
+        num_bins * abs(val - min_val) / abs(max_val - min_val)
+    ).astype(int)
+
+
 def _dagmc_animation_python(filename):
     return f"""
 import sirepo.pkcli.cloudmc
@@ -397,23 +396,32 @@ sirepo.simulation_db.write_json(
 
 
 def _energy_plot(run_dir, data):
-
-    #_SIM_DATA.sim_files_to_run_dir(data, run_dir)
+    import openmc
 
     plots = []
-    tally_name = data.models.tallySettings.tally
+    tally_name = data.models.openmcAnimation.tally
     t = openmc.StatePoint(
-        frame_args.run_dir.join(_statepoint_filename(data))
+        run_dir.join(_statepoint_filename(data))
     ).get_tally(name=tally_name)
     try:
-        e = t.find_filter(openmc.EnergyFilter)
-        pkdp("E {}", e)
+        t.find_filter(openmc.EnergyFilter)
     except ValueError:
         return PKDict(error="No energy filter defined for tally {tally_name}")
 
-    for score in _get_tally(data.models.settings.tallies, tally_name).scores:
-        mean = getattr(t, "mean")[:, :, t.get_score_index(score)].ravel()
-        std_dev = getattr(t, "std_dev")[:, :, t.get_score_index(score)].ravel()
+    tally = _get_tally(data.models.settings.tallies, tally_name)
+    mesh = _get_filter(tally, "meshFilter")
+    e = _get_filter(tally, "energyFilter")
+    r = data.models.energyReport
+    for s in [s.score for s in tally.scores]:
+        mean = numpy.reshape(
+            getattr(t, "mean")[:, :, t.get_score_index(s)].ravel(),
+            (*mesh.dimension, -1)
+        )
+        bins = [
+            _bin(r[dim].val, mesh.dimension[i], r[dim].min, r[dim].max) for i, dim in enumerate(('x', 'y', 'z'))
+        ]
+        pkdp("M {}", mean[bins[0]][bins[1]][bins[2]])
+        std_dev = getattr(t, "std_dev")[:, :, t.get_score_index(s)].ravel()
     
     plots = [
         PKDict(points=[0, 2, 4], label="t1", style="line"),
@@ -720,6 +728,15 @@ t{tally._index + 1}.scores = [{','.join(["'" + s.score + "'" for s in tally.scor
 t{tally._index + 1}.nuclides = [{','.join(["'" + s.nuclide + "'" for s in tally.nuclides if s.nuclide])}]
 """
     return res
+
+
+def _get_filter(tally, type):
+    for i in range(1, SCHEMA.constants.maxFilters + 1):
+        f = tally[f"filter{i}"]
+        if f._type == type:
+            return f
+    return None
+
 
 def _get_tally(tallies, name):
     f = [x for x in tallies if x.name == name]
