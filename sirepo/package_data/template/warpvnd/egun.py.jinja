@@ -72,11 +72,11 @@ if can_write_files:
         particles[0][2].append(yvals)
 
     update_status_file(ITERATIONS + 1)
-    with h5py.File('{{ particleFile }}', 'w') as hf:
-        dict_to_h5(
-            {
-                'kept': particles[0],
-                'lost': particles[1]
-            },
-            hf, path='particle'
+    with open("{{ particleFile }}", "wb") as f:
+        pickle.dump(
+            dict(
+                kept=particles[0],
+                lost=particles[1],
+            ),
+            f,
         )
