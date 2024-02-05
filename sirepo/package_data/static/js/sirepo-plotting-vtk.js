@@ -478,10 +478,10 @@ class VTKVectorFormula {
         // get log values back into the original range, so that the extremes have the same
         // size as a linear scale
         const logMags = this.magnitudes.map(x =>  Math.log(x));
-        const minLogMag = Math.min(...logMags);
-        const maxLogMag = Math.max(...logMags);
-        const minMag = Math.min(...this.magnitudes);
-        const maxMag = Math.max(...this.magnitudes);
+        const minLogMag = SIREPO.UTILS.arrayMin(logMags);
+        const maxLogMag = SIREPO.UTILS.arrayMax(logMags);
+        const minMag = SIREPO.UTILS.arrayMin(this.magnitudes);
+        const maxMag = SIREPO.UTILS.arrayMax(this.magnitudes);
 
         this.logMags = logMags.map(
             n => minMag + (n - minLogMag) * (maxMag - minMag) / (maxLogMag - minLogMag)

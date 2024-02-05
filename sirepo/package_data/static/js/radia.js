@@ -313,7 +313,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.updateExtrudedSize = o => {
         [o.widthAxis, o.heightAxis].forEach((dim, i) => {
             const p = o.referencePoints.map(x => x[i]);
-            o.size[self.axisIndex(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
+            o.size[self.axisIndex(dim)] = Math.abs(SIREPO.UTILS.arrayMax(p) - SIREPO.UTILS.arrayMin(p));
         });
     };
 

@@ -138,12 +138,8 @@ class SirepoUtils {
         return uniqueArr;
     }
 
-    static maxForIndex(arr, i) {
-        return Math.max(...arr.map(x => x[i]));
-    }
-
     static minForIndex(arr, i) {
-        return Math.min(...arr.map(x => x[i]));
+        return SirepoUtils.arrayMin(arr.map(x => x[i]));
     }
 
     static reshape(arr, dims) {
