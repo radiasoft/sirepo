@@ -1176,102 +1176,6 @@ SIREPO.app.directive('animationButtons', function() {
     };
 });
 
-SIREPO.app.directive('colorPicker', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        scope: {
-            color: '<',
-            defaultColor: '<',
-            field: '=',
-            modelName: '<',
-            model: '=',
-            form: '<',
-        },
-        template: `
-            <div>
-                <button type="button" class="dropdown-toggle sr-color-button" data-ng-style="bgColorStyle()" data-toggle="dropdown"></button>
-                <ul class="dropdown-menu">
-                    <div class="container col-sm-8">
-                        <div data-ng-repeat="r in range(rows) track by $index" class="row">
-                            <li data-ng-repeat="c in range(cols) track by $index" style="display: inline-block">
-                                <button type="button" data-ng-if="pcIndex(r, c) < pickerColors.length" class="sr-color-button" data-ng-class="{\'selected\': getColor(model[field]).toUpperCase() == getPickerColor(r, c).toUpperCase()}" data-ng-style="bgColorStyle(getPickerColor(r, c))" data-ng-click="setColor(getPickerColor(r, c))"></button>
-                            </li>
-                        <div>
-                    <div>
-                </ul>
-            </div>
-        `,
-        controller: function($scope) {
-
-            var origColor = null;
-            $scope.pickerColors = [
-                '#000000', '#222222', '#444444', '#666666', '#888888', '#aaaaaa', '#cccccc', '#ffffff',
-                '#0000ff', '#337777', '#3377bf', '#6992ff', '#33bb33', '#33ff33', '#00ff00', '#bbff77',
-                '#ffff00', '#fff44f', '#ffbb77', '#ffa500', '#ff0000', '#bb33ff', '#ff77ff', '#f3d4c8',
-            ];
-
-            $scope.cols = 8;
-            $scope.rows = Math.ceil($scope.pickerColors.length / $scope.cols);
-            $scope.range = function(n) {
-                var arr = [];
-                for (var i = 0; i < n; ++i) {
-                    arr.push(i);
-                }
-                return arr;
-            };
-            $scope.pcIndex = function(row, col) {
-                return $scope.cols * row + col;
-            };
-
-            $scope.getPickerColor = function(row, col) {
-                return $scope.pickerColors[$scope.pcIndex(row, col)];
-            };
-            $scope.getColor = function(color) {
-                //return color || $scope.color || $scope.defaultColor;
-                return color || ($scope.model || {})[$scope.field] || $scope.defaultColor;
-            };
-
-            $scope.bgColorStyle = function(c) {
-                return {
-                    'background-color': $scope.getColor(c)
-                };
-            };
-
-            $scope.setColor = function(color) {
-                $scope.model[$scope.field] = color;
-                // emit change for immediate feedback
-                $scope.$emit($scope.modelName + '.' + $scope.field, color);
-                if ($scope.form) {
-                    $scope.form.$setDirty();
-                }
-                //TODO(mvk): since this is not a normal control we need to store the original state somehow
-                /*
-                if (color !== origColor) {
-                    $scope.form.$setDirty();
-                }
-                else {
-                    if ($scope.form.$$controls.filter(function (c) {
-                            return c.$dirty;
-                        }).length) {
-                        $scope.form.$setDirty();
-                    }
-                    else {
-                        $scope.form.$setPristine();
-                    }
-                }
-                 */
-            };
-
-            appState.whenModelsLoaded($scope, function () {
-                if (! $scope.model) {
-                    return;
-                }
-                origColor = $scope.model[$scope.field];
-            });
-        },
-    };
-});
-
 SIREPO.app.service('plot2dService', function(appState, layoutService, panelState, plotting, utilities) {
 
     this.init2dPlot = function($scope, attrs) {
@@ -3394,15 +3298,17 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     })
                     .attr('clip-path', 'url(#sr-plot-window)')
                     .attr('stroke', d => d.color)
+                    .attr('stroke-dasharray', d => d.dashes)
                     .attr('stroke-width', 2.0)
                     .attr('fill', 'none')
+                    .attr('marker-end', d => `url(#${d.marker})`)
                     .attr('d', d => {
                         // we don't use the SVGPath directly, but it is a convenient way to build
                         // a path string
                         return new SIREPO.DOM.SVGPath(
                             null,
                             d.data.map(c => [axes.x.scale(c[0]), axes.y.scale(c[1])])
-                        ).pathString();
+                        ).pathString(d.doClose);
                     })
                     .select('title').text(d => d.name);
             }

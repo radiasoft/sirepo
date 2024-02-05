@@ -25,6 +25,16 @@ class SimData(sirepo.sim_data.SimDataBase):
     ]
 
     @classmethod
+    def activait_data_reader(cls, file_path, data_path):
+        def _reader():
+            for k, v in _DATA_READERS.items():
+                if str(file_path).endswith(k):
+                    return v
+            return DataReader
+
+        return _reader()(file_path, data_path)
+
+    @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         if data.simulationType == "ml":
             data.simulationType = "activait"
@@ -112,22 +122,9 @@ class DataReader:
         self.path = pkio.py_path(file_path)
         self.data_path = data_path
 
-    def is_archive(self):
-        return False
-
-    def is_dir(self, item):
-        return False
-
     @contextlib.contextmanager
     def data_context_manager(self):
         yield self.file_ctx(self.path, mode="r")
-
-    def get_data_list(self, item_filter):
-        return None
-
-    def read(self):
-        with self.data_context_manager() as f:
-            f.read()
 
     def csv_generator(self):
         import csv
@@ -146,9 +143,6 @@ class ArchiveDataReader(DataReader):
     def file_context_manager(self):
         yield self.file_ctx(self.path, mode="r")
 
-    def is_archive(self):
-        return True
-
 
 class HDF5DataReader(ArchiveDataReader):
     import h5py
@@ -159,19 +153,10 @@ class HDF5DataReader(ArchiveDataReader):
         super().__init__(file_path, data_path=data_path)
         self.file_ctx = HDF5DataReader.h5py.File
 
-    def is_dir(self, item):
-        return isinstance(item, HDF5DataReader.h5py.Dataset)
-
     @contextlib.contextmanager
     def data_context_manager(self):
         with self.file_context_manager() as f:
             yield f[self.data_path]
-
-    def get_data_list(self, item_filter):
-        keys = []
-        with self.file_context_manager() as f:
-            f.visit(lambda x: keys.append(x) if self.is_dir(f[x]) else None)
-            return keys
 
 
 class TarDataReader(ArchiveDataReader):
@@ -184,13 +169,6 @@ class TarDataReader(ArchiveDataReader):
         with self.file_context_manager() as f:
             yield io.TextIOWrapper(f.extractfile(self.data_path))
 
-    def get_data_list(self, item_filter):
-        with self.file_context_manager() as f:
-            return [x.name for x in f.getmembers() if item_filter(x)]
-
-    def is_dir(self, item):
-        return item.isdir()
-
 
 class ZipDataReader(ArchiveDataReader):
     def __init__(self, file_path, data_path):
@@ -202,38 +180,12 @@ class ZipDataReader(ArchiveDataReader):
         with self.file_context_manager() as f:
             yield io.TextIOWrapper(f.open(self.data_path))
 
-    def get_data_list(self, item_filter):
-        with self.file_context_manager() as f:
-            return [x.filename for x in f.infolist() if item_filter(x)]
 
-    def is_dir(self, item):
-        return item.is_dir()
-
-
-class DataReaderFactory:
-    _SUPPORTED_ARCHIVES = PKDict(
-        {
-            ".h5": HDF5DataReader,
-            ".tar": TarDataReader,
-            ".tar.gz": TarDataReader,
-            ".zip": ZipDataReader,
-        }
-    )
-
-    _SUPPORTED_ARCHIVE_EXTENSIONS = _SUPPORTED_ARCHIVES.keys()
-
-    @classmethod
-    def get_archive_extension(cls, file_path):
-        x = list(
-            filter(
-                lambda s: str(file_path).endswith(s),
-                cls._SUPPORTED_ARCHIVE_EXTENSIONS,
-            )
-        )
-        return x[0] if x else None
-
-    @classmethod
-    def build(cls, file_path, data_path=None):
-        return cls._SUPPORTED_ARCHIVES.get(
-            cls.get_archive_extension(file_path), DataReader
-        )(file_path, data_path)
+_DATA_READERS = PKDict(
+    {
+        ".h5": HDF5DataReader,
+        ".tar": TarDataReader,
+        ".tar.gz": TarDataReader,
+        ".zip": ZipDataReader,
+    }
+)

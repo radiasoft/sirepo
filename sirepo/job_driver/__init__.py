@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Base for drivers
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -21,10 +20,8 @@ import sirepo.sim_db_file
 import sirepo.simulation_db
 import sirepo.tornado
 import sirepo.util
-import tornado.gen
 import tornado.ioloop
 import tornado.locks
-import tornado.queues
 
 
 KILL_TIMEOUT_SECS = 3
@@ -89,7 +86,9 @@ class DriverBase(PKDict):
             _websocket_ready=sirepo.tornado.Event(),
             _websocket_ready_timeout=None,
         )
-        self._sim_db_file_token = sirepo.sim_db_file.FileReq.token_for_user(self.uid)
+        self._sim_db_file_token = sirepo.sim_db_file.SimDbServer.token_for_user(
+            self.uid
+        )
         self._global_resources_token = (
             sirepo.global_resources.api.Req.token_for_user(self.uid)
             # TODO(e-carlin): we need a more grangular system to decide when to add this information
@@ -101,15 +100,8 @@ class DriverBase(PKDict):
         pkdlog("{}", self)
 
     def destroy_op(self, op):
-        """Clear our op and (possibly) free cpu slot"""
+        """Remove op from our list of sends"""
         self._prepared_sends.pkdel(op.op_id)
-        if x := op.pkdel("cpu_slot"):
-            x.free()
-        if x := op.pkdel("op_slot"):
-            x.free()
-        if "lib_dir_symlink" in op:
-            # lib_dir_symlink is unique_key so not dangerous to remove
-            pykern.pkio.unchecked_remove(op.pkdel("lib_dir_symlink"))
 
     async def free_resources(self, caller):
         """Remove holds on all resources and remove self from data structures"""
@@ -125,35 +117,14 @@ class DriverBase(PKDict):
                     w.sr_close()
                 e = f"job_driver.free_resources caller={caller}"
                 for o in list(self._prepared_sends.values()):
-                    o.destroy(cancel_task=True, internal_error=e)
+                    o.destroy(internal_error=e)
         except Exception as e:
-            pkdlog("{} error={} stack={}", self, e, pkdexc())
+            pkdlog("{} caller={} error={} stack={}", self, caller, e, pkdexc())
 
     async def kill(self):
         raise NotImplementedError(
             "DriverBase subclasses need to implement their own kill",
         )
-
-    def make_lib_dir_symlink(self, op):
-        import sirepo.auth
-
-        m = op.msg
-        with sirepo.quest.start() as qcall:
-            with qcall.auth.logged_in_user_set(m.uid):
-                d = sirepo.simulation_db.simulation_lib_dir(
-                    m.simulationType,
-                    qcall=qcall,
-                )
-                op.lib_dir_symlink = job.LIB_FILE_ROOT.join(job.unique_key())
-                op.lib_dir_symlink.mksymlinkto(d, absolute=True)
-                m.pkupdate(
-                    libFileUri=job.supervisor_file_uri(
-                        self.cfg.supervisor_uri,
-                        job.LIB_FILE_URI,
-                        op.lib_dir_symlink.basename,
-                    ),
-                    libFileList=[f.basename for f in d.listdir()],
-                )
 
     def op_is_untimed(self, op):
         return op.op_name in _UNTIMED_OPS
@@ -172,16 +143,27 @@ class DriverBase(PKDict):
         """Awaits agent ready and slots for sending.
 
         Agent is guaranteed to be ready and all slots are allocated
-        upon return.
+        upon return, if True.
+
+        Returns:
+            bool: False, op is destroyed
         """
 
         # If the agent is not ready after awaiting on slots, we need
         # to recheck the agent, because agent can die (asynchronously) at any point
         # while waiting for slots.
-        await self._agent_ready(op)
-        if await self._slots_ready(op) == job_supervisor.SlotAllocStatus.HAD_TO_AWAIT:
-            await self._agent_ready(op)
+        if not await self._agent_ready(op):
+            return False
+        r = await self._slots_ready(op)
+        if r == job_supervisor.SlotAllocStatus.OP_IS_DESTROYED:
+            return False
+        if r == job_supervisor.SlotAllocStatus.HAD_TO_AWAIT:
+            if not await self._agent_ready(op):
+                return False
+        elif r != job_supervisor.SlotAllocStatus.DID_NOT_AWAIT:
+            raise AssertionError(f"slots_ready invalid return={r}")
         self._prepared_sends[op.op_id] = op
+        return True
 
     @classmethod
     def receive(cls, msg):
@@ -222,8 +204,15 @@ class DriverBase(PKDict):
             self._websocket_ready_timeout = None
 
     async def _websocket_ready_timeout_handler(self):
-        pkdlog("{} timeout={}", self, self.cfg.agent_starting_secs)
-        await self._start_free_resources(caller="_websocket_ready_timeout_handler")
+        try:
+            if not self._websocket_ready_timeout or self._websocket_ready.is_set():
+                pkdlog("ignore timeout {}, is canceled or ready", self)
+                return
+            self._websocket_ready_timeout = None
+            pkdlog("{} timeout={}", self, self.cfg.agent_starting_secs)
+            self._start_free_resources(caller="_websocket_ready_timeout_handler")
+        except Exception as e:
+            pkdlog("exception={} stack={}", e, pkdexc())
 
     def _agent_cmd_stdin_env(self, op, **kwargs):
         return job.agent_cmd_stdin_env(
@@ -243,11 +232,11 @@ class DriverBase(PKDict):
                     "SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS",
                     str(pkconfig.in_dev_mode()),
                 ),
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_GLOBAL_RESOURCES_TOKEN=self._global_resources_token,
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_GLOBAL_RESOURCES_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
+                SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_TOKEN=self._global_resources_token,
+                SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
                 SIREPO_PKCLI_JOB_AGENT_START_DELAY=str(op.get("_agent_start_delay", 0)),
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_TOKEN=self._sim_db_file_token,
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_SIM_DB_FILE_URI=job.supervisor_file_uri(
+                SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_TOKEN=self._sim_db_file_token,
+                SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_URI=job.supervisor_file_uri(
                     self.cfg.supervisor_uri,
                     job.SIM_DB_FILE_URI,
                     self.uid,
@@ -268,11 +257,18 @@ class DriverBase(PKDict):
 
     async def _agent_ready(self, op):
         if self._websocket_ready.is_set():
-            return
+            return True
         await self._agent_start(op)
+        if op.is_destroyed:
+            pkdlog("after agent_start op={} destroyed", op)
+            return False
         pkdlog("{} {} await _websocket_ready", self, op)
         await self._websocket_ready.wait()
         pkdlog("{} {} websocket alive", self, op)
+        if op.is_destroyed:
+            pkdlog("after websocket_ready op={} destroyed", op)
+            return False
+        return True
 
     def _agent_receive(self, msg):
         c = msg.content
@@ -325,10 +321,12 @@ class DriverBase(PKDict):
 
     async def _agent_start(self, op):
         if self._websocket_ready_timeout:
+            # agent is already starting
             return
         try:
             async with self._agent_life_change_lock:
                 if self._websocket_ready_timeout or self._websocket_ready.is_set():
+                    # agent is starting or ready
                     return
                 pkdlog("{} {} await=_do_agent_start", self, op)
                 # All awaits must be after this. If a call hangs the timeout
@@ -339,9 +337,8 @@ class DriverBase(PKDict):
                         self._websocket_ready_timeout_handler,
                     )
                 )
-                # POSIT: Canceled errors aren't smothered by any of the below calls
                 await self._do_agent_start(op)
-        except (Exception, sirepo.const.ASYNC_CANCELED_ERROR) as e:
+        except Exception as e:
             pkdlog("{} error={} stack={}", self, e, pkdexc())
             self._start_free_resources(caller="_agent_start")
             raise
@@ -375,13 +372,21 @@ class DriverBase(PKDict):
         outside this op so it needs to be rechecked when
         `HAD_TO_AWAIT` is returned.
 
+        If `OP_IS_DESTROYED` is encountered, slot is not ready
+
         Return:
-            job_supervisor.SlotAllocStatus: whether coroutine had to yield
+            job_supervisor.SlotAllocStatus: whether coroutine had to yield or op is destroyed
         """
 
-        def _alloc_check(alloc_res):
-            if alloc_res == job_supervisor.SlotAllocStatus.HAD_TO_AWAIT:
-                return job_supervisor.SlotAllocStatus.DID_NOT_AWAIT
+        async def _alloc_check(alloc, msg):
+            """Possibly call `alloc` and check `res`"""
+            nonlocal res
+            if res == job_supervisor.SlotAllocStatus.OP_IS_DESTROYED:
+                pkdlog("op={} is destroyed", op)
+                return res
+            r = await alloc(msg)
+            if r != job_supervisor.SlotAllocStatus.DID_NOT_AWAIT:
+                res = r
             return res
 
         n = op.op_name
@@ -394,24 +399,21 @@ class DriverBase(PKDict):
                     f"received op={op} but have _prepared_sends={self._prepared_sends}",
                 )
             return res
-        res = _alloc_check(
-            await op.op_slot.alloc(
-                "Waiting for another simulation to complete await=op_slot"
-            ),
+        await _alloc_check(
+            op.op_slot.alloc, "Waiting for another simulation to complete await=op_slot"
         )
-        res = _alloc_check(
-            await op.run_dir_slot.alloc(
-                "Waiting for access to simulation state await=run_dir_slot"
-            ),
+        await _alloc_check(
+            op.run_dir_slot.alloc,
+            "Waiting for access to simulation state await=run_dir_slot",
         )
         if n not in _CPU_SLOT_OPS:
             return res
         # once job-op relative resources are acquired, ask for global resources
         # so we only acquire on global resources, once we know we are ready to go.
-        res = _alloc_check(
-            await op.cpu_slot.alloc("Waiting for CPU resources await=cpu_slot"),
+        return await _alloc_check(
+            op.cpu_slot.alloc,
+            "Waiting for CPU resources await=cpu_slot",
         )
-        return res
 
     def _start_free_resources(self, caller):
         pkdlog("{} caller={}", self, caller)
@@ -419,12 +421,15 @@ class DriverBase(PKDict):
 
     def _start_idle_timeout(self):
         async def _kill_if_idle():
-            self._idle_timer = None
-            if self._agent_is_idle():
-                pkdlog("{}", self)
-                self._start_free_resources(caller="_kill_if_idle")
-            else:
-                self._start_idle_timeout()
+            try:
+                self._idle_timer = None
+                if self._agent_is_idle():
+                    pkdlog("{}", self)
+                    self._start_free_resources(caller="_kill_if_idle")
+                else:
+                    self._start_idle_timeout()
+            except Exception as e:
+                pkdlog("{} error={} stack={}", self, e, pkdexc())
 
         if not self._idle_timer:
             self._idle_timer = tornado.ioloop.IOLoop.current().call_later(

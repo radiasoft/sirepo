@@ -23,9 +23,6 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="ZCell" data-ng-class="fieldClass">
           <div data-cell-selector=""></div>
         </div>
-        <div data-ng-switch-when="Color" data-ng-class="fieldClass">
-          <div data-color-picker="" data-model="model" data-field="field" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>
-        </div>
         <div data-ng-switch-when="OptimizationField" data-ng-class="fieldClass">
           <div data-optimization-field-picker="" field="field" data-model="model"></div>
         </div>
@@ -2129,8 +2126,8 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndS
               <div data-model-field="\'objective\'" data-model-name="\'optimizer\'"></div>
             </div>
             <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
-              <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
-              <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
+              <button data-ng-click="saveChanges()" class="btn btn-primary sr-button-save-cancel" data-ng-disabled="! form.$valid">Save</button>
+              <button data-ng-click="cancelChanges()" class="btn btn-default sr-button-save-cancel">Cancel</button>
             </div>
             </form>
         `,

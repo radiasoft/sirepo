@@ -14,6 +14,8 @@ pykern.pksetup.setup(
     install_requires=[
         "SQLAlchemy>=1.4,<2",
         "aenum",
+        "aiofiles",
+        "aiohttp",
         "asyncssh",
         "cryptography>=2.8",
         "matplotlib",
