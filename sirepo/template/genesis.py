@@ -204,10 +204,14 @@ def sim_frame_parameterAnimation(frame_args):
         y = frame_args[f]
         if not y or y == "none":
             continue
+        p = l[:, _LATTICE_COLS.index(y)].tolist()
+        pkdp("\n\n\np={}", p)
+        pkdp("\n\n field={}", y)
+        pkdp("\n\n x_points={}", s[:, _SLICE_COLS.index(x)].tolist())
         plots.append(
             PKDict(
                 field=y,
-                points=l[:, _LATTICE_COLS.index(y)].tolist(),
+                points=p,
                 label=_LATTICE_COL_LABEL.get(y, y),
             )
         )
@@ -247,6 +251,31 @@ def sim_frame_finalParticleAnimation(frame_args):
 
 def sim_frame_particleAnimation(frame_args):
     return _particle_plot(frame_args, _PARTICLE_OUTPUT_FILENAME)
+
+
+def stateful_compute_magin_plot(data, **kwargs):
+    pkdp("\n\n\ndata={}", data)
+    p = _SIM_DATA.lib_file_abspath(
+        _SIM_DATA.lib_file_name_with_model_field("io", "maginfile", data.args.maginFileName)
+    )
+    pkdp("\n\n\n p={}", p)
+    x_points = []
+    plots = [
+        PKDict(
+            field="magin field (AW/QF)?",
+            points=[],
+            label="plot label"
+        )
+    ]
+    return template_common.parameter_plot(
+        x_points,
+        plots,
+        PKDict(),
+        PKDict(
+            title="Magin Plot",
+            x_label="x",
+        ),
+    )
 
 
 def validate_file(file_type, path):

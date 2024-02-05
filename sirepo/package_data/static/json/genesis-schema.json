@@ -23,6 +23,10 @@
             ["xrms", "xrms"],
             ["yrms", "yrms"]
         ],
+        "MaginParameter": [
+            ["none", "None"],
+            ["y", "y"]
+        ],
         "ParticleColumn": [
             ["gamma", "gamma"],
             ["psi", "psi"],
@@ -274,6 +278,7 @@
                 98.0,
                 "FL, DL: Length of the F-quadrupoles in measures of the undulator period. The integration step size DELZ must resolve the quadrupole length."
             ],
+            "maginPlot": ["", "MaginPlot", "maginPlot"],
             "qfdx": [
                 "Quadrupole misalignment [m]",
                 "Float",
@@ -686,6 +691,9 @@
             "y1": ["Y Value", "OutputParameter", "xrms"],
             "y2": ["Y Value", "OutputParameter", "yrms"],
             "y3": ["Y Value", "OutputParameter", "none"]
+        },
+        "maginPlot": {
+            "y1": ["Y Value", "MaginParameter", ""]
         },
         "particleAnimation": {
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
@@ -1182,6 +1190,7 @@
             "basic": [
                 ["Quadrupoles", [
                     "io.maginfile",
+                    "maginPlot",
                     [
                         ["Focus", [
                             "quadf",
@@ -1261,6 +1270,10 @@
                 "y2",
                 "y3"
             ]
+        },
+        "maginPlot": {
+            "title": "Magin Parameter Report",
+            "advanced": []
         },
         "particleAnimation": {
             "title": "Particle Distribution over Time",

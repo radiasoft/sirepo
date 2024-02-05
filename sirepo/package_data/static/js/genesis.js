@@ -4,11 +4,14 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="Integer19StringArray" class="col-sm-7">',
-          '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="19"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="Integer19StringArray" class="col-sm-7">
+          <div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="19"></div>
+        </div>
+        <div data-ng-switch-when="MaginPlot">
+            <div data-magin-file-plot="" data-model-name="modelName">
+        </div>
+    `;
 });
 
 SIREPO.app.factory('genesisService', function(appState) {
@@ -54,6 +57,30 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
+SIREPO.app.directive('maginFilePlot', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            modelName: '=',
+        },
+        template: `
+            <div data-ng-if="_check()">
+              <div class="sr-plot sr-screenshot" data-parameter-plot="" data-model-name="modelName"></div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope._check = () => {
+                if (appState.models.io.maginfile) {
+                    return true;
+                }
+                return false;
+            }
+        }
+    };
+});
+
 SIREPO.app.directive('appHeader', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -92,11 +119,30 @@ SIREPO.viewLogic('electronBeamView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('focusingView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('focusingView', function(appState, panelState, requestSender, $scope) {
     $scope.$on('io.changed', () => {
-        // TODO (gurhar1133): probably needs to more specifically
-        // check if io.maginfile changed
-        srdbg('magin changed');
+        if (appState.models.io.maginfile) {
+            const currentMaginFile = appState.models.io.maginfile;
+            srdbg("appState.models.prevMaginFile", appState.models.prevMaginFile, "currentMaginFile", currentMaginFile);
+            if (currentMaginFile !== appState.models.prevMaginFile) {
+                requestSender.sendStatefulCompute(
+                    appState,
+                    data => {
+                        srdbg("data in reply", data);
+                        appState.models.prevMaginFile = currentMaginFile;
+                    },
+                    {
+                        method: 'magin_plot',
+                        args: {
+                            maginFileName: appState.models.io.maginfile,
+                        }
+                    }
+                )
+            }
+        } else {
+            srdbg("null file case");
+        }
+
     });
 });
 
