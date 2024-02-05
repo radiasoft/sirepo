@@ -527,7 +527,7 @@ class VTKVectorFormula {
         }
 
         const coords = arraysIn.map(d => d.getData())[0];
-        
+
         // note these arrays already have the correct length, so we need to set elements, not append
         const out = this.arrays.output;
         const orientation = getSubArrayOut(out, VTKVectorFormula.ARRAY_NAMES().orientation);
@@ -1140,7 +1140,7 @@ class VectorFieldBundle extends ActorBundle {
         this.formula = new VTKVectorFormula(vectors, colormapName);
         this.polyData = vtk.Common.DataModel.vtkPolyData.newInstance();
         this.polyData.getPoints().setData(
-            new window.Float32Array(positions.flat()), 
+            new window.Float32Array(positions.flat()),
             3
         );
 
@@ -1149,7 +1149,7 @@ class VectorFieldBundle extends ActorBundle {
         vectorCalc.setInputData(this.polyData);
 
         this.setMapper(vtk.Rendering.Core.vtkGlyph3DMapper.newInstance());
-        
+
         this.mapper.setInputConnection(vectorCalc.getOutputPort(), 0);
         const s = vtk.Filters.Sources.vtkArrowSource.newInstance();
         if (useTailAsOrigin) {
@@ -1159,7 +1159,7 @@ class VectorFieldBundle extends ActorBundle {
                 .translate(0.5 - 0.5 * s.getTipLength(), 0.0, 0.0)
                 .apply(s.getOutputData().getPoints().getData());
         }
-        
+
         this.mapper.setInputConnection(
             s.getOutputPort(), 1
         );
@@ -1168,7 +1168,7 @@ class VectorFieldBundle extends ActorBundle {
         // this scales by a constant - the default is to use scalar data
         this.setScaleFactor(scaleFactor);
         this.mapper.setColorModeToDefault();
-        
+
         this.setScaling('uniform');
     }
 
@@ -1313,8 +1313,8 @@ class ViewPortObject {
             });
         });
         return new SIREPO.GEOMETRY.Rect(
-            new SIREPO.GEOMETRY.Point(Math.min.apply(null, xCoords), Math.min.apply(null, yCoords)),
-            new SIREPO.GEOMETRY.Point(Math.max.apply(null, xCoords), Math.max.apply(null, yCoords))
+            new SIREPO.GEOMETRY.Point(SIREPO.UTILS.arrayMin(xCoords), SIREPO.UTILS.arrayMin(yCoords)),
+            new SIREPO.GEOMETRY.Point(SIREPO.UTILS.arrayMax(xCoords), SIREPO.UTILS.arrayMax(yCoords))
         );
     }
 

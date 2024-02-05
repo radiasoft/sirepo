@@ -390,7 +390,7 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope) {
+SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities, $rootScope) {
     const self = {
         mesh: null,
         fieldData: null,
@@ -505,7 +505,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
 
     self.sourceParticleEnergyRange = () => {
         const e = self.getSourceParticles().map(x => x.energy);
-        return [Math.min(...e), Math.max(...e)];
+        return [utilities.arrayMin(e), utilities.arrayMax(e)];
     };
 
     self.sourceParticleMeanEnergy = () => {
@@ -886,7 +886,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         .select('path')
                         .attr('fill', d => d);
                 }
-                
+
                 const outlines = [];
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
                 for (const volId of cloudmcService.getNonGraveyardVolumes()) {

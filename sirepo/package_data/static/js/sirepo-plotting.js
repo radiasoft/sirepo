@@ -496,8 +496,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
     function noOp() {}
 
     function normalizeValues(yValues, shift) {
-        var yMin = Math.min.apply(Math, yValues);
-        var yMax = Math.max.apply(Math, yValues);
+        var yMin = utilities.arrayMin(yValues);
+        var yMax = utilities.arrayMax(yValues);
         var yRange = yMax - yMin;
         for (var i = 0; i < yValues.length; i++) {
             yValues[i] = (yValues[i] - yMin) / yRange - shift;  // roots are at Y=0
@@ -3421,7 +3421,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
     };
 });
 
-SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, mathRendering, plotting, plot2dService) {
+SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, mathRendering, plotting, plot2dService, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -3743,14 +3743,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             // get the broadest domain from the visible plots
             function visibleDomain() {
-                var ydomMin = Math.min.apply(null,
+                var ydomMin = utilities.arrayMin(
                     includeForDomain.map(function(index) {
-                        return Math.min.apply(null, $scope.axes.y.plots[index].points);
+                        return utilities.arrayMin($scope.axes.y.plots[index].points);
                     })
                 );
-                var ydomMax = Math.max.apply(null,
+                var ydomMax = utilities.arrayMax(
                     includeForDomain.map(function(index) {
-                        return Math.max.apply(null, $scope.axes.y.plots[index].points);
+                        return utilities.arrayMax($scope.axes.y.plots[index].points);
                     })
                 );
                 return plotting.ensureDomain([ydomMin, ydomMax], scaleFunction);
