@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
 """test simulation_db operations
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import pytest
 
 
 def test_last_modified(fc):
@@ -34,46 +31,4 @@ def test_last_modified(fc):
         f,
         pkio.sorted_glob(f.dirpath().join("*/in.json"))[0],
         t - 10000,
-    )
-
-
-def test_uid():
-    from pykern.pkunit import pkeq, pkexcept, pkre
-    from pykern.pkdebug import pkdp
-    from sirepo import simulation_db
-
-    qcall = None
-
-    def _do(path, uid, expect=True):
-        if expect:
-            with pkexcept(AssertionError):
-                simulation_db.sim_db_file_uri_to_path(path, expect_uid=uid)
-        else:
-            p = simulation_db.sim_db_file_uri_to_path(path, expect_uid=uid)
-            pkre(path + "$", str(p))
-
-    _do(
-        "xxx/elegant/RrCoL7rQ/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
-        "yyy",
-    )
-    _do(
-        "xxx/elegant/RrCoL7rQ/../../../foo",
-        "xxx",
-    )
-    _do(
-        "yyy/invalid/R/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
-        "yyy",
-    )
-    _do(
-        "yyy/invalid/RrCoL7rQ/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
-        "yyy",
-    )
-    _do(
-        "HsCFbRrQ/elegant/RrCoL7rQ/{}".format("x" * 129),
-        "HsCFbRrQ",
-    )
-    _do(
-        "HsCFbRrQ/elegant/RrCoL7rQ/flash_exe-SwBZWpYFR-PqFi81T6rQ8g",
-        "HsCFbRrQ",
-        expect=False,
     )

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Warp VND/WARP execution template.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
@@ -19,6 +18,7 @@ import py.path
 import re
 import sirepo.sim_data
 import sirepo.util
+import sirepo.sim_run
 
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -289,11 +289,14 @@ def remove_last_frame(run_dir):
 
 
 def stateful_compute_save_stl_polys(data, **kwargs):
-    assert "polys" in data
-    p = _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.filename))
-    # write once
-    if not p.exists():
-        template_common.write_dict_to_h5(data, p, h5_path="/")
+    if "polys" not in data:
+        return PKDict(error='"polys" must be supplied')
+    b = _stl_polygon_file(data.filename)
+    if not _SIM_DATA.lib_file_exists(b):
+        with sirepo.sim_run.tmp_dir() as t:
+            p = t.join(b)
+            template_common.write_dict_to_h5(data, p, h5_path="/")
+            _SIM_DATA.lib_file_write(b, p)
     return PKDict()
 
 

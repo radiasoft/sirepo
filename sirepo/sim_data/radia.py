@@ -7,8 +7,11 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import copy
+import os.path
 import re
+import pykern.pkio
 import sirepo.sim_data
+import sirepo.util
 
 
 class SimData(sirepo.sim_data.SimDataBase):
@@ -23,6 +26,23 @@ class SimData(sirepo.sim_data.SimDataBase):
             "scaling",
         )
     )
+
+    @classmethod
+    def prepare_import_file_args(cls, req):
+        res = cls._prepare_import_file_name_args(req)
+        if res.ext_lower != ".dat":
+            raise sirepo.util.UserAlert(f"invalid file extension='{res.ext_lower}'")
+        p = cls.lib_file_name_with_type(
+            res.basename,
+            cls.schema().constants.fileTypeRadiaDmp,
+        )
+        if cls.lib_file_exists(p, qcall=req.qcall):
+            raise sirepo.util.UserAlert(
+                f"dump file='{res.basename}' already exists; import another file name"
+            )
+        cls.lib_file_write(p, req.form_file.as_bytes(), qcall=req.qcall)
+        # radia doesn't use import_file_arguments
+        return res
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
@@ -338,7 +358,9 @@ class SimData(sirepo.sim_data.SimDataBase):
     def sim_files_to_run_dir(cls, data, run_dir, post_init=False):
         try:
             super().sim_files_to_run_dir(data, run_dir)
-        except sirepo.sim_data.SimDbFileNotFound as e:
+        except Exception as e:
+            if not pykern.pkio.exception_is_not_found(e):
+                raise
             if post_init:
                 raise e
 

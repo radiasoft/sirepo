@@ -1,12 +1,29 @@
+    :root {
+      --sr-action: #367dba;
+      --sr-base-blue: #0061af;
+      --sr-base-green: #8fc741;
+      --sr-panel-color: #555;
+    }
 
     /* bootstrap overrides */
     .modal-header {
       border-top-left-radius: 6px;
       border-top-right-radius: 6px;
     }
+
+    .modal-title {
+      color: var(--sr-panel-color);
+      font-weight: 350;
+    }
+
     .navbar-nav .nav-tabs {
       border-bottom: 0;
     }
+
+    .panel-info > .panel-heading {
+      color: var(--sr-panel-color);
+    }
+
     @media (min-width: 768px) {
       .modal-lg {
         width: 100%;
@@ -267,6 +284,15 @@
         }
     }
 
+    .btn.sr-button-action {
+      background-color: var(--sr-action);
+      color: #fff;
+    }
+
+    .btn.sr-button-save-cancel {
+      min-width: 6em;
+    }
+
     ul.sr-button-menu {
         list-style: none;
     }
@@ -321,7 +347,7 @@
     }
 
     .sr-panel-heading {
-      font-weight: 300;
+      font-weight: 350;
       line-height: 1.4;
       font-size: 21px;
       margin-bottom: 0;

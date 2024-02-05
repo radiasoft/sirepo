@@ -1,0 +1,52 @@
+OPAL{0}>                ____  _____       ___ 
+OPAL{0}>               / __ \|  __ \ /\   | | 
+OPAL{0}>              | |  | | |__) /  \  | |
+OPAL{0}>              | |  | |  ___/ /\ \ | |
+OPAL{0}>              | |__| | |  / ____ \| |____
+OPAL{0}>               \____/|_| /_/    \_\______|
+OPAL{0}> 
+OPAL{0}> This is OPAL (Object Oriented Parallel Accelerator Library) Version 2022.1.0
+OPAL{0}>                              git rev. unknown
+OPAL{0}> 
+OPAL{0}> 
+OPAL{0}>                      (c) PSI, http://amas.web.psi.ch
+OPAL{0}> 
+OPAL{0}> 
+OPAL{0}> The optimiser (former opt-Pilot) is integrated 
+OPAL{0}> 
+OPAL{0}> Please send cookies, goodies or other motivations (wine and beer ... ) 
+OPAL{0}> to the OPAL developers opal@lists.psi.ch
+OPAL{0}> 
+OPAL{0}> Time: 21:42:40 date: 26/01/2024
+OPAL{0}> 
+OPAL{0}> * Reading input stream 'opal.in'
+Error{1}> Error{2}> 
+Error{2}> *** User error detected by function "Beam::execute()"Error{3}> 
+Error{3}> *** User error detected by function "Beam::execute()"
+Error{3}>     "NPART" must be set.Error{4}> 
+Error{4}> *** User error detected by function "Beam::execute()"
+Error{4}>     "NPART" must be set.
+Error{4}> Error{5}> 
+Error{5}> *** User error detected by function "Beam::execute()"
+Error{5}>     "NPART" must be set.
+Error{5}>     "NPART" must be set.
+
+Error{1}> *** User error detected by function "Beam::execute()"
+Error{1}>     "NPART" must be set.
+Error{1}>     "NPART" must be set.
+
+Error{2}>     "NPART" must be set.
+Error{2}>     "NPART" must be set.
+application called MPI_Abort(MPI_COMM_WORLD, -100) - process 2
+
+Error{3}>     "NPART" must be set.
+application called MPI_Abort(MPI_COMM_WORLD, -100) - process 3
+    "NPART" must be set.
+application called MPI_Abort(MPI_COMM_WORLD, -100) - process 4
+Error{0}> 
+Error{0}> *** User error detected by function "Beam::execute()"
+Error{0}>     "NPART" must be set.
+Error{0}>     "NPART" must be set.
+application called MPI_Abort(MPI_COMM_WORLD, -100) - process 0
+application called MPI_Abort(MPI_COMM_WORLD, -100) - process 1
+application called MPI_Abort(MPI_COMM_WORLD, -100) - process 5
