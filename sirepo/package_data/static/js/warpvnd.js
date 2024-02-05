@@ -2126,8 +2126,8 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndS
               <div data-model-field="\'objective\'" data-model-name="\'optimizer\'"></div>
             </div>
             <div class="col-sm-6 pull-right" data-ng-show="hasChanges()">
-              <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
-              <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
+              <button data-ng-click="saveChanges()" class="btn btn-primary sr-button-save-cancel" data-ng-disabled="! form.$valid">Save</button>
+              <button data-ng-click="cancelChanges()" class="btn btn-default sr-button-save-cancel">Cancel</button>
             </div>
             </form>
         `,

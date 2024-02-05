@@ -298,8 +298,8 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
         },
         template: `
             <div data-ng-show="isFormDirty()">
-              <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! isFormValid()">Save Changes</button>
-              <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
+              <button data-ng-click="saveChanges()" class="btn btn-primary sr-button-save-cancel" data-ng-disabled="! isFormValid()">Save</button>
+              <button data-ng-click="cancelChanges()" class="btn btn-default sr-button-save-cancel">Cancel</button>
             </div>
         `,
         controller: function($scope) {
@@ -1273,8 +1273,8 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         <div class="clearfix"></div>
                         <div class="col-sm-6 pull-right">
                           <button data-ng-show="isConfirming" data-ng-click="uploadFile(inputFile)" class="btn btn-warning" data-ng-disabled="isUploading">Replace File</button>
-                          <button data-ng-hide="isConfirming" data-ng-click="uploadFile(inputFile)" class="btn btn-primary" data-ng-disabled="isUploading">Save Changes</button>
-                           <button data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>
+                          <button data-ng-hide="isConfirming" data-ng-click="uploadFile(inputFile)" class="btn btn-primary sr-button-save-cancel" data-ng-disabled="isUploading">Save</button>
+                          <button data-dismiss="modal" class="btn btn-default sr-button-save-cancel" data-ng-disabled="isUploading">Cancel</button>
                         </div>
                       </form>
                     </div>
@@ -3307,9 +3307,12 @@ SIREPO.app.directive('commonFooter', function() {
             <div data-modal-editor="" view-name="simulation" modal-title="simulationModalTitle"></div>
             <div data-sbatch-login-modal=""></div>
             <div data-jobs-list-modal="" data-title="Jobs" data-id="sr-jobsListModal-editor"></div>
+            <div data-confirmation-modal="" data-is-required="true" data-id="sr-newRelease" data-title="Server Upgraded" data-ok-text="Refresh" data-ok-clicked="refreshPage()">Sirepo has been upgraded. Select <b>Refresh</b> to update this simulation.</div>
+            <div data-confirmation-modal="" data-is-required="true" data-id="sr-invalidSimulationSerial" data-title="Simulation Conflict" data-ok-text="Refresh" data-ok-clicked="refreshPage()">This simulation has been updated outside of this browser. Select <b>Refresh</b> to update this simulation.</div>
         `,
         controller: function($scope, appState, stringsService) {
             $scope.simulationModalTitle = stringsService.formatKey('simulationDataType');
+            $scope.refreshPage = () => window.location.reload();
         }
     };
 });
@@ -5331,4 +5334,132 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         return uniqueArr;
     };
 
+});
+
+SIREPO.app.directive('srItemHolder', function() {
+    return {
+        transclude: true,
+        scope: {
+            handleDrop: '&',
+            handleDragenter: '&',
+        },
+        template: `
+            <div class="sr-item-holder" data-sr-droppable=""
+              data-handle-drop="drop(item)" data-handle-dragenter="dragenter()">
+              <div data-ng-transclude=""></div>
+             </div>
+         `,
+        controller: function($scope) {
+            $scope.drop = item => {
+                $scope.handleDrop({
+                    item: item,
+                });
+            };
+            $scope.dragenter = () => {
+                $scope.handleDragenter();
+            };
+        },
+    };
+});
+
+SIREPO.srDragEffect = 'move';
+
+SIREPO.app.directive('srDraggable', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            item: '=srDraggable',
+            handleSelected: '&',
+        },
+        controller: function ($scope, $element) {
+            $scope.item.isDragging = false;
+            $element[0].draggable = true;
+
+            function setSelected() {
+                $scope.handleSelected({
+                    item: $scope.item,
+                });
+                $scope.$applyAsync();
+            }
+
+            $element.on('dragstart', e => {
+                e.dataTransfer.effectAllowed = SIREPO.srDragEffect;
+                e.dataTransfer.setData('text', JSON.stringify($scope.item));
+                $element.addClass('sr-hide-menu');
+            });
+            $element.on('drag', e => {
+                if (! $scope.item.isDragging) {
+                    $scope.item.isDragging = true;
+                    $element.addClass('sr-dragging');
+                    setSelected();
+                }
+            });
+            $element.on('dragend', e => {
+                $scope.item.isDragging = false;
+                $element.removeClass('sr-dragging');
+                $element.removeClass('sr-hide-menu');
+            });
+            // need handlers for both to support desktop and tablet
+            $element.on('click', setSelected);
+            $element.on('mousedown', setSelected);
+            $scope.$on('$destroy', () => {
+                $element.off();
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('srDroppable', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            handleDrop: '&',
+            handleDragenter: '&',
+        },
+        controller: function($scope, $element) {
+            let dragCount = 0;
+
+            function updateCount(newCount) {
+                dragCount = newCount;
+                if (dragCount === 0) {
+                    $element.removeClass('sr-drag-over');
+                }
+                else if (dragCount === 1) {
+                    $element.addClass('sr-drag-over');
+                }
+            }
+
+            $element.on('dragenter', e => {
+                e.preventDefault();
+                $scope.handleDragenter();
+                if (e.currentTarget == $element[0]) {
+                    updateCount(dragCount + 1);
+                }
+                $scope.$applyAsync();
+            });
+            $element.on('dragover', e => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = SIREPO.srDragEffect;
+            });
+            $element.on('dragleave', e => {
+                if (e.currentTarget == $element[0]) {
+                    updateCount(dragCount - 1);
+                }
+            });
+            $element.on('drop', e => {
+                e.preventDefault();
+                updateCount(0);
+                const item = JSON.parse(e.dataTransfer.getData('text'));
+                if (item) {
+                    $scope.handleDrop({
+                        item: item,
+                    });
+                    $scope.$applyAsync();
+                }
+            });
+            $scope.$on('$destroy', () => {
+                $element.off();
+            });
+        },
+    };
 });

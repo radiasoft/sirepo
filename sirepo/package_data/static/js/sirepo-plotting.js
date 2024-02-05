@@ -3298,15 +3298,17 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     })
                     .attr('clip-path', 'url(#sr-plot-window)')
                     .attr('stroke', d => d.color)
+                    .attr('stroke-dasharray', d => d.dashes)
                     .attr('stroke-width', 2.0)
                     .attr('fill', 'none')
+                    .attr('marker-end', d => `url(#${d.marker})`)
                     .attr('d', d => {
                         // we don't use the SVGPath directly, but it is a convenient way to build
                         // a path string
                         return new SIREPO.DOM.SVGPath(
                             null,
                             d.data.map(c => [axes.x.scale(c[0]), axes.y.scale(c[1])])
-                        ).pathString();
+                        ).pathString(d.doClose);
                     })
                     .select('title').text(d => d.name);
             }

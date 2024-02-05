@@ -27,7 +27,9 @@ import timeit;
 print(round(100 * timeit.timeit("str().join(str(i) for i in range(1000000))", number=2)))
 EOF
     )
+    echo 'SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=1'
     SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=1 pykern test
+    echo 'SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=0'
     SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=0 pykern ci run
 }
 
