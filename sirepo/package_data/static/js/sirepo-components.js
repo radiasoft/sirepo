@@ -747,7 +747,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             viewName: '=',
         },
         template: `
-            <div data-ng-if="model" data-ng-class="utilities.modelFieldID(modelName, field)">
+            <div data-ng-class="utilities.modelFieldID(modelName, field)">
             <div data-ng-show="showLabel" data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>
             <div data-ng-switch="info[1]">
               <div data-ng-switch-when="Integer" data-ng-class="fieldClass">
@@ -789,7 +789,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
               </div>
               <div data-ng-switch-when="Color" data-ng-class="fieldClass">
-                <input type="color" data-ng-model="model[field]" class="sr-color-button">
+                <input data-ng-if="model" type="color" data-ng-model="model[field]" class="sr-color-button">
               </div>
               <div data-ng-switch-when="ColorMap" class="col-sm-7">
                 <div data-color-map-menu="" class="dropdown"></div>
