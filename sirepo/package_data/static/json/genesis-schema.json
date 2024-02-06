@@ -692,9 +692,7 @@
             "y2": ["Y Value", "OutputParameter", "yrms"],
             "y3": ["Y Value", "OutputParameter", "none"]
         },
-        "maginPlot": {
-            "y1": ["Y Value", "MaginParameter", ""]
-        },
+        "maginPlotReport": {},
         "particleAnimation": {
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -1271,7 +1269,7 @@
                 "y3"
             ]
         },
-        "maginPlot": {
+        "maginPlotReport": {
             "title": "Magin Parameter Report",
             "advanced": []
         },

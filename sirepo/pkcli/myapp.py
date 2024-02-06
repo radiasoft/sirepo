@@ -22,6 +22,7 @@ def run(cfg_dir):
         [sys.executable, template_common.PARAMETERS_PYTHON_FILE],
     )
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    pkdp("\n\n\n data={}", data)
     if data.report == "heightWeightReport":
         res = _report(
             "Dog Height and Weight Over Time",
@@ -30,6 +31,7 @@ def run(cfg_dir):
         )
     else:
         raise AssertionError("unknown report: {}".format(data.report))
+    pkdp("\n\n\nres ={}", res)
     template_common.write_sequential_result(res)
 
 
@@ -57,6 +59,7 @@ def _plot(dog, field, cols):
 
 
 def _report(title, fields, data):
+    pkdp("\n\n\n calling report")
     dog = data.models.dog
     cols = _csv_to_cols()
     x_points = cols["year"]

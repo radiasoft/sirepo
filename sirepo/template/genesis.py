@@ -254,9 +254,12 @@ def sim_frame_particleAnimation(frame_args):
 
 
 def stateful_compute_magin_plot(data, **kwargs):
-    pkdp("\n\n\ndata={}", data)
+    return plot_magin(data.args.maginFileName)
+
+
+def plot_magin(magin_filename):
     p = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_model_field("io", "maginfile", data.args.maginFileName)
+        _SIM_DATA.lib_file_name_with_model_field("io", "maginfile", magin_filename)
     )
     pkdp("\n\n\n p={}", p)
     x_points = []

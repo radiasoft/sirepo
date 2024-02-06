@@ -67,7 +67,7 @@ SIREPO.app.directive('maginFilePlot', function(appState) {
         },
         template: `
             <div data-ng-if="_check()">
-              <div data-report-panel="parameter" data-model-name="{{ modelName }}"></div>
+              <div data-report-panel="parameter" data-model-name="maginPlotReport"></div>
             </div>
         `,
         controller: function($scope) {
