@@ -12,9 +12,9 @@ from scipy import constants
 from sirepo import simulation_db
 from sirepo.template import template_common
 import h5py
+import msgpack
 import numpy as np
 import os.path
-import pickle
 import py.path
 import re
 import sirepo.sim_data
@@ -40,7 +40,7 @@ _OPTIMIZER_RESULT_FILE = "opt.json"
 _OPTIMIZER_STATUS_FILE = "opt-run.out"
 _OPTIMIZE_PARAMETER_FILE = "parameters-optimize.py"
 _OPT_RESULT_INDEX = 3
-_PARTICLE_FILE = "particles.pkl"
+_PARTICLE_FILE = "particles.msgpack"
 _PARTICLE_PERIOD = 100
 _POTENTIAL_FILE = "potential.h5"
 _STL_POLY_FILE = "polygons.h5"
@@ -531,7 +531,7 @@ def _extract_current_results(data, curr, data_time):
 
 
 def _extract_egun_current(data, data_file, frame_index):
-    v = np.load(str(data_file), allow_pickle=True)
+    v = np.load(str(data_file))
     if frame_index >= len(v):
         frame_index = -1
     # the first element in the array is the time, the rest are the current measurements
@@ -696,7 +696,7 @@ def _extract_optimization_results(run_dir, data, args):
 def _extract_particle(run_dir, model_name, data, args):
     limit = int(args.renderCount)
     with open(_PARTICLE_FILE, "rb") as f:
-        d = pickle.load(f)
+        d = msgpack.unpackb(f.read())
         kept_electrons = d["kept"]
         lost_electrons = d["lost"]
     grid = data["models"]["simulationGrid"]
@@ -1144,7 +1144,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
                 percent_complete = float(m.group(1)) / int(m.group(2))
         egun_current_file = run_dir.join(_EGUN_CURRENT_FILE)
         if egun_current_file.exists():
-            v = np.load(str(egun_current_file), allow_pickle=True)
+            v = np.load(str(egun_current_file))
             res.egunCurrentFrameCount = len(v)
     else:
         percent_complete = (

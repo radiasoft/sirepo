@@ -78,10 +78,7 @@ if can_write_files:
         electron_tracker_0, electron_tracker_0.nn
     )
     with open("{{ particleFile }}", "wb") as f:
-        pickle.dump(
-            dict(
-                kept=kept_electrons,
-                lost=lost_electrons,
-            ),
-            f,
-        )
+        f.write(msgpack.packb(dict(
+            kept=array_to_list(kept_electrons),
+            lost=array_to_list(lost_electrons),
+        )))

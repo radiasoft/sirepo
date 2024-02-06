@@ -10,13 +10,14 @@ from scipy.interpolate import interp1d as scipy_interp1d
 import h5py
 import json
 import math
+import msgpack
 import numpy as np
 import os
-import pickle
 import rswarp
 import scipy
 import sys
 import time
+import array
 
 from rswarp.cathode import injectors
 from rswarp.cathode import sources
@@ -483,6 +484,17 @@ for r_idx, r in enumerate(reflectors):
 #------
 
 can_write_files = wp.comm_world.rank == 0
+
+
+def array_to_list(value):
+    if isinstance(value, array.array):
+        return list(value)
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, list):
+        return [array_to_list(v) for v in value]
+    return value
+
 
 def dict_to_h5(d, hf, path=None):
     if path is None:

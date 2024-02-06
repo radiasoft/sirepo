@@ -45,7 +45,7 @@ def update_status_file(num, save_current=False):
         else:
             v = np.load(current_file)
             v = np.append(v, [curr], axis=0)
-        np.save(tmp_file, v, allow_pickle=True)
+        np.save(tmp_file, v)
         os.rename(tmp_file + '.npy', current_file)
 
 update_status_file(0.25)
@@ -73,10 +73,7 @@ if can_write_files:
 
     update_status_file(ITERATIONS + 1)
     with open("{{ particleFile }}", "wb") as f:
-        pickle.dump(
-            dict(
-                kept=particles[0],
-                lost=particles[1],
-            ),
-            f,
-        )
+        f.write(msgpack.packb(dict(
+            kept=array_to_list(particles[0]),
+            lost=array_to_list(particles[1]),
+        )))
