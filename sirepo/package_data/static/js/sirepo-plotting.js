@@ -3213,8 +3213,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 }
                 //return;
                 selection
-                    .attr('x', x)
-                    .attr('y', y)
+                    .attr('x', x - cellHighlight.strokeWidth)
+                    .attr('y', y - cellHighlight.strokeWidth)
                     .attr('width', w)
                     .attr('height', h);
             }
@@ -3245,7 +3245,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const h = Math.abs(Math.round(axes.y.scale(yr + dy)) - py);
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
-                    //updateCellHighlight(d3.select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), px, py, w, h);
+                    updateCellHighlight(d3.select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), px, py, w, h);
                 }
                 catch (err) {
                     // ignore range errors due to mouse move after heatmap is reset

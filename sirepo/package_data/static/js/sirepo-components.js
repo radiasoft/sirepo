@@ -2360,6 +2360,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
         scope: {
             reportId: '<',
             reportContent: '@',
+            reportCfg: '<',
             modelKey: '@',
         },
         template: `
