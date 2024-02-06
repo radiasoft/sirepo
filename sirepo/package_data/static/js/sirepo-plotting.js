@@ -3539,6 +3539,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             $scope.latexTitle = '';
             $scope.wantLegend = true;
 
+            srdbg('$scope in paramPlot', $scope);
             function build2dPointsForPlot(plotIndex) {
                 var pts = [];
                 var xPoints = $scope.axes.y.plots[plotIndex].x_points || $scope.axes.x.points;
@@ -3864,6 +3865,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             };
 
             $scope.init = function() {
+                srdbg("calling init");
                 plot2dService.init2dPlot($scope, {
                     margin: {top: 50, right: 23, bottom: 50, left: 75}
                 });
@@ -3888,8 +3890,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             };
 
             $scope.load = function(json) {
+                srdbg("calling $scope.load()");
                 if (! json.plots && ! json.points) {
                     //TODO(pjm): plot may be loaded with { state: 'canceled' }?
+                    srdbg("no json");
                     return;
                 }
                 $scope.firstRefresh = true;
@@ -3914,6 +3918,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         color: '#ff7f0e',
                     },
                 ];
+                srdbg("plots", plots);
                 if (plots[0].x_points) {
                     $scope.noOverlay = true;
                 }
