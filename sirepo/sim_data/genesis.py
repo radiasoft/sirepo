@@ -29,3 +29,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             if io[f]:
                 res.append(cls.lib_file_name_with_model_field("io", f, io[f]))
         return res
+
+    @classmethod
+    def _compute_job_fields(cls, data, r, compute_model):
+        pkdp("\n\n\n compute_job_fields data={} r={} compute_model={}", data, r, compute_model)
+        return []
