@@ -159,6 +159,15 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
         return PKDict()
 
 
+class _MadxLogParser(template_common.LogParser):
+    def _parse_log_line(self, line):
+        if re.search(r"^\++ (error|warning):", line, re.IGNORECASE):
+            return re.sub(r"^\++ ", "", line) + "\n"
+        elif re.search(r"^\+.*? fatal:", line, re.IGNORECASE):
+            return re.sub(r"^.*? ", "", line) + "\n"
+        return None
+
+
 class MadxOutputFileIterator(lattice.ModelIterator):
     def __init__(self):
         self.result = PKDict(
@@ -357,7 +366,7 @@ def get_data_file(run_dir, model, frame, options):
 def post_execution_processing(success_exit, run_dir, **kwargs):
     if success_exit:
         return None
-    return _parse_madx_log(run_dir)
+    return _MadxLogParser(run_dir, log_filename=MADX_LOG_FILE).parse_for_errors()
 
 
 def prepare_for_client(data, qcall, **kwargs):
@@ -974,22 +983,6 @@ def _output_info(run_dir):
     if res:
         res[0]["_version"] = _OUTPUT_INFO_VERSION
     simulation_db.write_json(info_file, res)
-    return res
-
-
-def _parse_madx_log(run_dir):
-    path = run_dir.join(MADX_LOG_FILE)
-    if not path.exists():
-        return ""
-    res = ""
-    with pkio.open_text(str(path)) as f:
-        for line in f:
-            if re.search(r"^\++ (error|warning):", line, re.IGNORECASE):
-                line = re.sub(r"^\++ ", "", line)
-                res += line + "\n"
-            elif re.search(r"^\+.*? fatal:", line, re.IGNORECASE):
-                line = re.sub(r"^.*? ", "", line)
-                res += line + "\n"
     return res
 
 
