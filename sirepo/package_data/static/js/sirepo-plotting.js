@@ -3430,11 +3430,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
-            var includeForDomain = [];
-            var childPlots = {};
-            var scaleFunction;
-            var plotVisibilty = {};
+            let childPlots = {};
             let dynamicYLabel = false;
+            let includeForDomain = [];
+            let plotVisibility = {};
+            let scaleFunction;
+            let selectedPlotLabels = [];
 
             // for built-in d3 symbols - the units are *pixels squared*
             var symbolSize = 144.0;
@@ -3506,14 +3507,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return true;
             }
 
-            function cachedPlotVisibilty(pIndex, modelName) {
-                plotVisibilty[modelName] = plotVisibilty[modelName] || {};
-                if (! plotVisibilty[modelName].hasOwnProperty(pIndex)) {
-                    plotVisibilty[modelName][pIndex] = false;
-                  }
-                return plotVisibilty[modelName][pIndex];
-            }
-
             function createLegend() {
                 const plots = $scope.axes.y.plots;
                 var legend = $scope.select('.sr-plot-legend');
@@ -3537,7 +3530,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         .attr('y', 17 + count * 20)
                         .text(vIconText(true))
                         .on('click', function() {
-                            togglePlot(i, $scope.modelName);
+                            togglePlot(i);
                             $scope.$applyAsync();
                         });
                     itemWidth = item.node().getBBox().width;
@@ -3663,12 +3656,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 });
             }
 
-            function togglePlot(pIndex, modelName) {
+            function togglePlot(pIndex) {
                 setPlotVisible(pIndex, ! isPlotVisible(pIndex));
                 updateYLabel();
-                if (plotVisibilty) {
-                    plotVisibilty[modelName][pIndex] = ! plotVisibilty[modelName][pIndex];
-                }
+                plotVisibility[pIndex] = ! plotVisibility[pIndex];
             }
 
             function updateYLabel() {
@@ -3987,26 +3978,26 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         : 20;
                 $scope.margin.bottom = 50 + 20 * legendCount;
                 $scope.updatePlot(json);
+
+                if (! appState.deepEquals(getPlotLabels(), selectedPlotLabels)) {
+                    plotVisibility = {};
+                    selectedPlotLabels = getPlotLabels();
+                }
+                // initially set all states visible
                 plots.forEach(function(plot, ip) {
-                    // make sure everything is visible when reloading
                     includeDomain(ip, true);
                     setPlotVisible(ip, true);
                 });
-                updateYLabel();
-                plots.forEach(function(plot, i) {
-                    if (cachedPlotVisibilty(i, $scope.modelName)) {
-                        setPlotVisible(i, ! isPlotVisible(i));
+                // hide previously hidden plots
+                plots.forEach(function(plot, ip) {
+                    if (! plotVisibility.hasOwnProperty(ip)) {
+                        plotVisibility[ip] = true;
+                    }
+                    if (! plotVisibility[ip]) {
+                        setPlotVisible(ip, false);
                     }
                 });
-
-                $scope.$on(
-                    $scope.modelName + '.changed',
-                    () => {
-                        plots.forEach((plot, i) => {
-                            plotVisibilty[$scope.modelName][i] = false;
-                        });
-                    }
-                );
+                updateYLabel();
             };
 
             $scope.recalculateYDomain = function() {
