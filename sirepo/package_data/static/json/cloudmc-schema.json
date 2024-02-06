@@ -981,9 +981,9 @@
             "plane2b": ["Plane 2 B", "Float", 0]
         },
         "settings": {
-            "batches": ["Number of batches to simulation", "Integer", 1],
+            "batches": ["Number of batches to simulate", "Integer", 1, "", 1],
             "eigenvalueHistory": ["Eigenvalue History", "Integer", 5],
-            "inactive": ["Number of inactive batches", "Integer", 0],
+            "inactive": ["Number of inactive batches", "Integer", 0, "These batches will be used to converge the eigenvalue before calculations begin"],
             "particles": ["Number of particles per generation", "Integer", 5000],
             "photon_transport": ["Photon transport", "Boolean", "0", "Simulate the passage of photons through matter"],
             "sources": ["", "SourcesOrTallies", []],

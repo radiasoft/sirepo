@@ -2299,25 +2299,47 @@ SIREPO.app.directive('tallyAspects', function() {
     };
 });
 
-SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('settingsView', function(appState, panelState, validationService, $scope) {
 
     function updateEditor() {
+        const m = appState.models[$scope.modelName];
+        const isRunModeEigenvalue = m.run_mode === 'eigenvalue';
+
+        function activeBatches() {
+            return m.batches - (isRunModeEigenvalue ? m.inactive : 0);
+        }
+
         panelState.showFields('reflectivePlanes', [
             ['plane1a', 'plane1b', 'plane2a', 'plane2b'],
             appState.models.reflectivePlanes.useReflectivePlanes === '1',
         ]);
 
-        panelState.showField(
+        panelState.showFields(
             $scope.modelName,
-            'eigenvalueHistory',
-            appState.models[$scope.modelName].run_mode === 'eigenvalue'
+            [
+                ['eigenvalueHistory', 'inactive'], isRunModeEigenvalue,
+            ],
         );
+
+        validationService.validateField(
+            $scope.modelName,
+            'batches',
+            'input',
+            activeBatches() > 0,
+            `Must have at least one active batch (currently ${activeBatches()})`
+        );
+
     }
 
     $scope.whenSelected = updateEditor;
 
     $scope.watchFields = [
-        [`${$scope.modelName}.run_mode`, 'reflectivePlanes.useReflectivePlanes'], updateEditor,
+        [
+            `${$scope.modelName}.run_mode`,
+            `${$scope.modelName}.batches`,
+            `${$scope.modelName}.inactive`,
+            'reflectivePlanes.useReflectivePlanes'
+        ], updateEditor,
     ];
 
 });
