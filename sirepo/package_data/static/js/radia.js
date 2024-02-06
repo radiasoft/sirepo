@@ -17,9 +17,6 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="BevelEdge" class="col-sm-12">
           <div data-bevel-edge="" data-model="model" data-model-name="modelName" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="Color" data-ng-class="fieldClass">
-          <input type="color" data-ng-model="model[field]" class="sr-color-button">
-        </div>
         <div data-ng-switch-when="FieldPaths" class="col-sm-7">
           <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
         </div>

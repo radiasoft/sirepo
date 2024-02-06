@@ -116,6 +116,17 @@ class OpalElementIterator(lattice.ElementIterator):
         return field == "name" or field == self.IS_DISABLED_FIELD
 
 
+class _OpalLogParser(template_common.LogParser):
+    def _parse_log_line(self, line):
+        if re.search(r"^Error.*?>\s*[\w\"]", line):
+            l = re.sub(r"Error.*?>\s*", "", line.rstrip()).rstrip()
+            if re.search(r"1DPROFILE1-DEFAULT", l):
+                return None
+            if l:
+                return l + "\n"
+        return None
+
+
 class OpalOutputFileIterator(lattice.ModelIterator):
     def __init__(self, preserve_output_filenames=False):
         self.result = PKDict(
@@ -513,23 +524,7 @@ def read_frame_count(run_dir):
 
 
 def parse_opal_log(run_dir):
-    res = ""
-    p = run_dir.join((OPAL_OUTPUT_FILE))
-    if not p.exists():
-        return res
-    with pkio.open_text(p) as f:
-        visited = set()
-        for line in f:
-            if re.search(r"^Error.*?>\s*\w", line):
-                line = re.sub(r"Error.*?>\s*", "", line.rstrip()).rstrip()
-                if re.search(r"1DPROFILE1-DEFAULT", line):
-                    continue
-                if line and line not in visited:
-                    res += line + "\n"
-                    visited.add(line)
-    if res:
-        return res
-    return "An unknown error occurred"
+    return _OpalLogParser(run_dir, log_filename=OPAL_OUTPUT_FILE).parse_for_errors()
 
 
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):

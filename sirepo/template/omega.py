@@ -134,6 +134,7 @@ def copy_related_sims(data, qcall=None):
                 simulation_db.find_global_simulation(
                     sim_obj.simulationType,
                     sim_obj.simulationId,
+                    checked=True,
                 )
             ).join("sirepo-data.json")
             c = pkjson.load_any(p)
