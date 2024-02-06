@@ -404,7 +404,7 @@ def _energy_plot(run_dir, data):
         run_dir.join(_statepoint_filename(data))
     ).get_tally(name=tally_name)
     try:
-        t.find_filter(openmc.EnergyFilter)
+        e_f = t.find_filter(openmc.EnergyFilter)
     except ValueError:
         return PKDict(error="No energy filter defined for tally {tally_name}")
 
@@ -420,21 +420,23 @@ def _energy_plot(run_dir, data):
         bins = [
             _bin(r[dim].val, mesh.dimension[i], r[dim].min, r[dim].max) for i, dim in enumerate(('x', 'y', 'z'))
         ]
-        pkdp("M {}", mean[bins[0]][bins[1]][bins[2]])
-        std_dev = getattr(t, "std_dev")[:, :, t.get_score_index(s)].ravel()
+        plots.append(
+            PKDict(
+                points=mean[bins[0]][bins[1]][bins[2]].tolist(),
+                label=s,
+                style="line",
+            ),
+        )
+        #std_dev = getattr(t, "std_dev")[:, :, t.get_score_index(s)].ravel()
     
-    plots = [
-        PKDict(points=[0, 2, 4], label="t1", style="line"),
-        PKDict(points=[0, 3, 6], label="t2", style="line"),
-    ]
     return template_common.parameter_plot(
-        [0, 1, 2],
+        e_f.values.tolist(),
         plots,
         PKDict(),
         PKDict(
             title="Energy Spectrum",
-            y_label=f"Dunno",
-            x_label=f"Energy [MeV]",
+            y_label=f"Score",
+            x_label=f"Energy [eV]",
             summaryData=PKDict(),
         ),
     )
