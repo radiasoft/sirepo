@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
 """Shadow execution template.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
@@ -941,16 +938,19 @@ def _item_field(item, fields):
     return _fields("oe", item, fields)
 
 
-def _parse_shadow_log(run_dir):
-    if run_dir.join(template_common.RUN_LOG).exists():
-        text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
-        for line in text.split("\n"):
-            if re.search(r"invalid chemical formula", line):
-                return "A mirror contains an invalid reflectivity material"
-            m = re.search("ValueError: (.*)?", line)
-            if m:
-                return m.group(1)
-    return "an unknown error occurred"
+def _parse_shadow_log(run_dir, log_filename="run.log"):
+    if template_common.LogParser(
+        run_dir,
+        log_filename=log_filename,
+        error_patterns=(r".*(invalid chemical formula)",),
+        default_msg="",
+    ).parse_for_errors():
+        return "A mirror contains an invalid reflectivity material"
+    return template_common.LogParser(
+        run_dir,
+        log_filename=log_filename,
+        error_patterns=(r"ValueError: (.*)?",),
+    ).parse_for_errors()
 
 
 def _photon_energy(models):

@@ -241,7 +241,8 @@
             "tally",
             "score",
             "aspect",
-            "energyRangeSum"
+            "energyRangeSum",
+            "numSampleSourceParticles"
         ]
     },
     "localRoutes": {
@@ -925,11 +926,13 @@
         "openmcAnimation": {
             "aspect": ["Aspect", "TallyAspect", "mean"],
             "bgColor": ["Background color", "Color", "#fff9ed"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "colorMap": ["Tally Color Map", "ColorMap", "viridis"],
             "energyRangeSum": ["Sum over energies [MeV]", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": [0, 1], "space": "linear"}],
+            "numSampleSourceParticles": ["Source Particles to Display", "Integer", 10, "", 0, 100],
             "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
+            "sourceColorMap": ["Source Energy Color Map", "ColorMap", "jet"],
             "tally": ["Tally", "TallyList"],
             "threshold": ["Threshold", "Float", 0.0, "Tally cells with a value below this will not be displayed"],
             "score": ["Score", "ScoreList"],
@@ -998,6 +1001,7 @@
             "time": ["Time distribution", "Univariate", {"_type": "None"}],
             "type": ["Source Settings", "SourceSettings", "manual"]
         },
+        "sources": [],
         "spatial": {
             "_type": ["", "SpatialDistribution"]
         },
@@ -1006,7 +1010,7 @@
             "r": ["R distribution", "Univariate", {"_type": "None"}],
             "theta": ["Theta distribution", "Univariate", {"_type": "None"}, "Distribution of theta-coordinates (angle relative to the z-axis) in a reference frame specified by the origin parameter"],
             "phi": ["Phi distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
-            "origin": ["Origin [cm]", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the spherical reference frame for the source."]
+            "origin": ["Origin [cm]", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the spherical reference frame for the source"]
         },
         "tabular": {
             "_super": [ "_", "model", "univariate"],
@@ -1202,8 +1206,9 @@
                 "tally",
                 "score",
                 "aspect",
-                "sourceNormalization",
                 "energyRangeSum",
+                "numSampleSourceParticles",
+                "sourceColorMap",
                 "colorMap",
                 "threshold",
                 "opacity",
