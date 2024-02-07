@@ -249,22 +249,6 @@ def sim_frame_particleAnimation(frame_args):
     return _particle_plot(frame_args, _PARTICLE_OUTPUT_FILENAME)
 
 
-def _parse_maginfile(filepath):
-    if not pkio.is_pure_text(filepath):
-        raise AssertionError(f"{filepath.basename} for maginfile should be text file")
-    p = []
-    u = 1
-    with pkio.open_text(filepath) as f:
-        for line in f:
-            row = line.split()
-            if row:
-                if row[0] == _MAGIN_PLOT_FIELD:
-                    p.append(row[1])
-                if row[0] == "?" and "UNITLENGTH" in row[1]:
-                    u = row[2]
-    return PKDict(unit_length=u, points=p)
-
-
 def plot_magin(magin_filename):
     def _x_points(data):
         if data.unit_length == 1:
@@ -427,6 +411,22 @@ def _get_frame_counts(run_dir):
                 if m.group(1) == "field":
                     break
     return res
+
+
+def _parse_maginfile(filepath):
+    if not pkio.is_pure_text(filepath):
+        raise AssertionError(f"{filepath.basename} for maginfile should be text file")
+    p = []
+    u = 1
+    with pkio.open_text(filepath) as f:
+        for line in f:
+            row = line.split()
+            if row:
+                if row[0] == _MAGIN_PLOT_FIELD:
+                    p.append(row[1])
+                if row[0] == "?" and "UNITLENGTH" in row[1]:
+                    u = row[2]
+    return PKDict(unit_length=u, points=p)
 
 
 def _parse_namelist(data, text, req):
