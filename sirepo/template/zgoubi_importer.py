@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -23,13 +22,9 @@ import zipfile
 MODEL_UNITS = None
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals("zgoubi")
-_UNIT_TEST_MODE = False
 
 
-def import_file(text, unit_test_mode=False):
-    if unit_test_mode:
-        global _UNIT_TEST_MODE
-        _UNIT_TEST_MODE = unit_test_mode
+def import_file(text):
     data = simulation_db.default_data(SIM_TYPE)
     # TODO(pjm): need a common way to clean-up/uniquify a simulation name from imported text
     title, elements, unhandled_elements = zgoubi_parser.parse_file(text, 1)
@@ -479,45 +474,12 @@ def _validate_field(model, field, model_info):
 
 
 def _validate_file_names(model, file_names):
-    if _UNIT_TEST_MODE:
-        return
-    # TODO(pjm): currently specific to TOSCA element, but could be generalizaed on model.type
-    # flatten filenames, search indiviual and zip files which contains all files, set magnetFile if found
-    for idx in range(len(file_names)):
-        file_names[idx] = os.path.basename(file_names[idx])
-    file_type = "{}-{}".format(model.type, "magnetFile")
-    magnet_file = None
-    if len(file_names) == 1:
-        name = file_names[0]
-        target = _SIM_DATA.lib_file_name_with_model_field(
-            model.type, "magnetFile", name
-        )
-        if _SIM_DATA.lib_file_exists(target):
-            magnet_file = name
-    for f in _SIM_DATA.zgoubi_lib_files_with_zip():
-        zip_has_files = True
-        zip_names = []
-        with zipfile.ZipFile(str(f), "r") as z:
-            for info in z.infolist():
-                zip_names.append(info.filename)
-        for name in file_names:
-            if name not in zip_names:
-                zip_has_files = False
-                break
-        if zip_has_files:
-            magnet_file = os.path.basename(str(f))[len(file_type) + 1 :]
-            break
-    if magnet_file:
-        model.magnetFile = magnet_file
-        info = tosca_info(model)
-        if "toscaInfo" in info:
-            model.l = info.toscaInfo.toscaLength
-        return
-    return PKDict(
-        {
-            model.type: sorted(file_names),
-        }
-    )
+    """UNIMPLEMENTED. Was removed because didn't work on the agent.
+
+    Returns:
+        PKDict: indicating an error
+    """
+    return PKDict({model.type: sorted(file_names)})
 
 
 def _validate_model(model_type, model, missing_files):

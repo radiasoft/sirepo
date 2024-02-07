@@ -31,6 +31,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     self.simScope = $scope;
     self.simComputeModel = 'animation';
     self.simHandleStatus = function (data) {
+        self.errorMessage = data.error;
         if (data.reports) {
             frameCache.setFrameCount(1);
             for (const r of data.reports) {
@@ -39,6 +40,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         }
     };
     self.simState = persistentSimulation.initSimulationState(self);
+    self.simState.errorMessage = () => self.errorMessage;
     return self;
 });
 

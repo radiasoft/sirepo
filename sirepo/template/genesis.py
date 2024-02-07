@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Genesis execution template.
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
@@ -83,6 +82,15 @@ _SLICE_RE = re.compile(
 )
 
 
+_DATA_FILES = PKDict(
+    particleAnimation=_PARTICLE_OUTPUT_FILENAME,
+    fieldDistributionAnimation=_FIELD_DISTRIBUTION_OUTPUT_FILENAME,
+    parameterAnimation=_OUTPUT_FILENAME,
+    finalParticleAnimation=_FINAL_PARTICLE_OUTPUT_FILENAME,
+    finalFieldAnimation=_FINAL_FIELD_OUTPUT_FILENAME,
+)
+
+
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return PKDict(percentComplete=0, frameCount=0)
@@ -135,27 +143,9 @@ def genesis_success_exit(run_dir):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if model == "particleAnimation":
-        return _PARTICLE_OUTPUT_FILENAME
-    if model == "fieldDistributionAnimation":
-        return _FIELD_DISTRIBUTION_OUTPUT_FILENAME
-    if model == "parameterAnimation":
-        return _OUTPUT_FILENAME
-    if model == "finalParticleAnimation":
-        return _FINAL_PARTICLE_OUTPUT_FILENAME
-    if model == "finalFieldAnimation":
-        return _FINAL_FIELD_OUTPUT_FILENAME
-    raise AssertionError("unknown model={}".format(model))
-
-
-async def import_file(req, **kwargs):
-    text = req.form_file.as_str()
-    if not bool(re.search(r"\.in$", req.filename, re.IGNORECASE)):
-        raise AssertionError("invalid file extension, expecting .in")
-    res = sirepo.simulation_db.default_data(SIM_TYPE)
-    p = pkio.py_path(req.filename)
-    res.models.simulation.name = p.purebasename
-    return _parse_namelist(res, text, req)
+    if res := _DATA_FILES.get(model):
+        return res
+    raise AssertionError(f"unknown model={model}")
 
 
 def parse_genesis_error(run_dir):
@@ -166,6 +156,38 @@ def parse_genesis_error(run_dir):
                 pkio.read_text(run_dir.join(template_common.RUN_LOG))
             )
         ],
+    )
+
+
+def plot_magin(magin_filename):
+    def _x_points(data):
+        if data.unit_length == 1:
+            return [x for x in range(len(data.points))]
+        x = []
+        c = 0
+        for i in range(len(data.points)):
+            x.append(str(c))
+            c += float(data.unit_length)
+        return x
+
+    d = _parse_maginfile(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_model_field("io", "maginfile", magin_filename)
+        )
+    )
+    return template_common.parameter_plot(
+        _x_points(d),
+        [
+            PKDict(
+                points=d.points,
+                label=f"{_MAGIN_PLOT_FIELD} Value",
+            )
+        ],
+        PKDict(),
+        PKDict(
+            title="MAGINFILE",
+            x_label="length (m)",
+        ),
     )
 
 
@@ -249,36 +271,15 @@ def sim_frame_particleAnimation(frame_args):
     return _particle_plot(frame_args, _PARTICLE_OUTPUT_FILENAME)
 
 
-def plot_magin(magin_filename):
-    def _x_points(data):
-        if data.unit_length == 1:
-            return [x for x in range(len(data.points))]
-        x = []
-        c = 0
-        for i in range(len(data.points)):
-            x.append(str(c))
-            c += float(data.unit_length)
-        return x
-
-    d = _parse_maginfile(
-        _SIM_DATA.lib_file_abspath(
-            _SIM_DATA.lib_file_name_with_model_field("io", "maginfile", magin_filename)
+def stateful_compute_import_file(data, **kwargs):
+    text = data.args.file_as_str
+    if data.args.ext_lower != ".in":
+        raise AssertionError(
+            "invalid file={data.args.basename} extension, expecting .in",
         )
-    )
-    return template_common.parameter_plot(
-        _x_points(d),
-        [
-            PKDict(
-                points=d.points,
-                label=f"{_MAGIN_PLOT_FIELD} Value",
-            )
-        ],
-        PKDict(),
-        PKDict(
-            title="MAGINFILE",
-            x_label="length (m)",
-        ),
-    )
+    res = sirepo.simulation_db.default_data(SIM_TYPE)
+    res.models.simulation.name = data.args.purebasename
+    return PKDict(imported_data=_parse_namelist(res, text))
 
 
 def validate_file(file_type, path):
@@ -429,7 +430,7 @@ def _parse_maginfile(filepath):
     return PKDict(unit_length=u, points=p)
 
 
-def _parse_namelist(data, text, req):
+def _parse_namelist(data, text):
     dm = data.models
     nls = template_common.NamelistParser().parse_text(text)
     if "newrun" not in nls:
@@ -451,7 +452,7 @@ def _parse_namelist(data, text, req):
             t = SCHEMA.model[m][f][1]
             if t == "InputFile":
                 if not _SIM_DATA.lib_file_exists(
-                    _SIM_DATA.lib_file_name_with_model_field(m, f, v), qcall=req.qcall
+                    _SIM_DATA.lib_file_name_with_model_field(m, f, v),
                 ):
                     missing_files.append(
                         PKDict(

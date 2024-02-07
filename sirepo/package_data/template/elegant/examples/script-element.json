@@ -5,7 +5,7 @@
             {
                 "angle": 0,
                 "count": 1,
-                "distance": 1,
+                "distance": 2,
                 "id": 7,
                 "items": [
                     8,
@@ -13,7 +13,7 @@
                     8
                 ],
                 "l": 0,
-                "length": 1,
+                "length": 2,
                 "name": "BL1"
             }
         ],
@@ -28,6 +28,8 @@
             "distribution_cutoff": "3, 3, 3",
             "distribution_type": "shell, shell, gaussian",
             "dp_s_coupling": "0.0",
+            "emit_nx": 0,
+            "emit_ny": 0,
             "emit_x": 4.6e-08,
             "emit_y": 4.6e-08,
             "emit_z": 0,
@@ -80,10 +82,12 @@
         "commands": [
             {
                 "_id": 2,
+                "_super": "_COMMAND",
                 "_type": "run_setup",
                 "acceptance": "",
                 "always_change_p0": "0",
-                "centroid": "1",
+                "back_tracking": "0",
+                "centroid": "",
                 "combine_bunch_statistics": "0",
                 "concat_order": 0,
                 "correction_iterations": "1",
@@ -93,9 +97,12 @@
                 "expand_for": "",
                 "final": "",
                 "final_pass": "0",
+                "isDisabled": "0",
                 "lattice": "Lattice",
                 "load_balancing_on": "0",
                 "losses": "",
+                "losses_include_global_coordinates": "0",
+                "losses_s_limit": "-1.79E308, 1.79E308",
                 "magnets": "",
                 "monitor_memory_usage": "0",
                 "output": "1",
@@ -104,17 +111,21 @@
                 "parameters": "1",
                 "print_statistics": "0",
                 "random_number_seed": "987654321",
+                "rfc_reference_output": "",
                 "show_element_timing": "0",
-                "sigma": "",
+                "sigma": "1",
+                "suppress_parameter_defaults": "0",
                 "tracking_updates": "1",
                 "use_beamline": 7,
                 "wrap_around": "1"
             },
             {
                 "_id": 3,
+                "_super": "_COMMAND",
                 "_type": "run_control",
                 "bunch_frequency": "0.0",
                 "first_is_fiducial": "0",
+                "isDisabled": "0",
                 "n_indices": "0",
                 "n_passes": "1",
                 "n_passes_fiducial": "0",
@@ -125,6 +136,7 @@
             {
                 "Po": "0.0",
                 "_id": 5,
+                "_super": "_COMMAND",
                 "_type": "bunched_beam",
                 "alpha_x": 1,
                 "alpha_y": 1,
@@ -150,6 +162,7 @@
                 "first_is_fiducial": "0",
                 "halton_radix": "0, 0, 0, 0, 0, 0",
                 "halton_sequence": "0, 0, 0",
+                "isDisabled": "0",
                 "limit_in_4d": "0",
                 "limit_invariants": "0",
                 "matched_to_cell": "",
@@ -168,9 +181,12 @@
             },
             {
                 "_id": 6,
+                "_super": "_COMMAND",
                 "_type": "track",
                 "center_momentum_also": "1",
                 "center_on_orbit": "0",
+                "check_beam_structure": "0",
+                "isDisabled": "0",
                 "longitudinal_ring_only": "0",
                 "offset_by_orbit": "0",
                 "offset_momentum_also": "1",
@@ -179,16 +195,19 @@
                 "use_linear_chromatic_matrix": "0"
             }
         ],
-        "elementAnimation": {
-            "histogramBins": 200,
-            "x": "x",
-            "y": "xp"
-        },
-        "elementAnimation2-18": {
+        "elementAnimation2-21": {
+            "aspectRatio": "1",
+            "colorMap": "afmhot",
             "fileId": "2-18",
             "framesPerSecond": 2,
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "0",
+            "latticeId": 7,
+            "notes": "",
             "panelTitle": "run_setup.output",
+            "plotRangeType": "none",
             "valueList": {
                 "x": [
                     "x",
@@ -199,7 +218,10 @@
                     "p",
                     "particleID"
                 ],
-                "y": [
+                "xFile": [
+                    "run_setup.output.sdds"
+                ],
+                "y1": [
                     "x",
                     "xp",
                     "y",
@@ -208,22 +230,66 @@
                     "p",
                     "particleID"
                 ],
-                "yFile": [
+                "y1File": [
+                    "run_setup.output.sdds"
+                ],
+                "y2": [
+                    "None",
+                    "x",
+                    "xp",
+                    "y",
+                    "yp",
+                    "t",
+                    "p",
+                    "particleID"
+                ],
+                "y2File": [
+                    "run_setup.output.sdds"
+                ],
+                "y3": [
+                    "None",
+                    "x",
+                    "xp",
+                    "y",
+                    "yp",
+                    "t",
+                    "p",
+                    "particleID"
+                ],
+                "y3File": [
                     "run_setup.output.sdds"
                 ]
             },
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "x",
             "xFile": "run_setup.output.sdds",
-            "xFileId": "2-18",
+            "xFileId": "2-21",
             "y": "xp",
+            "y1": "xp",
+            "y1File": "run_setup.output.sdds",
+            "y1FileId": "2-21",
+            "y2": "None",
+            "y2File": "run_setup.output.sdds",
+            "y2FileId": "2-21",
+            "y3": "None",
+            "y3File": "run_setup.output.sdds",
+            "y3FileId": "2-21",
             "yFile": "run_setup.output.sdds",
             "yFileId": "2-18"
         },
-        "elementAnimation2-25": {
-            "fileId": "2-25",
-            "framesPerSecond": 2,
+        "elementAnimation2-29": {
+            "aspectRatio": "1",
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "1",
+            "latticeId": 7,
+            "notes": "",
             "panelTitle": "run_setup.sigma",
+            "plotRangeType": "none",
             "valueList": {
                 "x": [
                     "s",
@@ -297,7 +363,10 @@
                     "betayBeam",
                     "alphayBeam"
                 ],
-                "y": [
+                "xFile": [
+                    "run_setup.sigma.sdds"
+                ],
+                "y1": [
                     "s",
                     "ElementOccurence",
                     "s1",
@@ -369,114 +438,176 @@
                     "betayBeam",
                     "alphayBeam"
                 ],
-                "yFile": [
-                    "run_setup.centroid.sdds",
+                "y1File": [
+                    "run_setup.sigma.sdds"
+                ],
+                "y2": [
+                    "None",
+                    "s",
+                    "ElementOccurence",
+                    "s1",
+                    "s12",
+                    "s13",
+                    "s14",
+                    "s15",
+                    "s16",
+                    "s17",
+                    "s2",
+                    "s23",
+                    "s24",
+                    "s25",
+                    "s26",
+                    "s27",
+                    "s3",
+                    "s34",
+                    "s35",
+                    "s36",
+                    "s37",
+                    "s4",
+                    "s45",
+                    "s46",
+                    "s47",
+                    "s5",
+                    "s56",
+                    "s57",
+                    "s6",
+                    "s67",
+                    "s7",
+                    "ma1",
+                    "ma2",
+                    "ma3",
+                    "ma4",
+                    "ma5",
+                    "ma6",
+                    "ma7",
+                    "minimum1",
+                    "minimum2",
+                    "minimum3",
+                    "minimum4",
+                    "minimum5",
+                    "minimum6",
+                    "minimum7",
+                    "maximum1",
+                    "maximum2",
+                    "maximum3",
+                    "maximum4",
+                    "maximum5",
+                    "maximum6",
+                    "maximum7",
+                    "Sx",
+                    "Sxp",
+                    "Sy",
+                    "Syp",
+                    "Ss",
+                    "Sdelta",
+                    "St",
+                    "ex",
+                    "enx",
+                    "ecx",
+                    "ecnx",
+                    "ey",
+                    "eny",
+                    "ecy",
+                    "ecny",
+                    "betaxBeam",
+                    "alphaxBeam",
+                    "betayBeam",
+                    "alphayBeam"
+                ],
+                "y2File": [
+                    "run_setup.sigma.sdds"
+                ],
+                "y3": [
+                    "None",
+                    "s",
+                    "ElementOccurence",
+                    "s1",
+                    "s12",
+                    "s13",
+                    "s14",
+                    "s15",
+                    "s16",
+                    "s17",
+                    "s2",
+                    "s23",
+                    "s24",
+                    "s25",
+                    "s26",
+                    "s27",
+                    "s3",
+                    "s34",
+                    "s35",
+                    "s36",
+                    "s37",
+                    "s4",
+                    "s45",
+                    "s46",
+                    "s47",
+                    "s5",
+                    "s56",
+                    "s57",
+                    "s6",
+                    "s67",
+                    "s7",
+                    "ma1",
+                    "ma2",
+                    "ma3",
+                    "ma4",
+                    "ma5",
+                    "ma6",
+                    "ma7",
+                    "minimum1",
+                    "minimum2",
+                    "minimum3",
+                    "minimum4",
+                    "minimum5",
+                    "minimum6",
+                    "minimum7",
+                    "maximum1",
+                    "maximum2",
+                    "maximum3",
+                    "maximum4",
+                    "maximum5",
+                    "maximum6",
+                    "maximum7",
+                    "Sx",
+                    "Sxp",
+                    "Sy",
+                    "Syp",
+                    "Ss",
+                    "Sdelta",
+                    "St",
+                    "ex",
+                    "enx",
+                    "ecx",
+                    "ecnx",
+                    "ey",
+                    "eny",
+                    "ecy",
+                    "ecny",
+                    "betaxBeam",
+                    "alphaxBeam",
+                    "betayBeam",
+                    "alphayBeam"
+                ],
+                "y3File": [
                     "run_setup.sigma.sdds"
                 ]
             },
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "s",
             "xFile": "run_setup.sigma.sdds",
-            "xFileId": "2-25",
-            "y": "s1",
-            "yFile": "run_setup.sigma.sdds",
-            "yFileId": "2-25"
-        },
-        "elementAnimation2-3": {
-            "fileId": "2-3",
-            "framesPerSecond": 2,
-            "histogramBins": 200,
-            "panelTitle": "run_setup.centroid",
-            "valueList": {
-                "x": [
-                    "s",
-                    "ElementOccurence",
-                    "Cx",
-                    "Cxp",
-                    "Cy",
-                    "Cyp",
-                    "Cs",
-                    "Cdelta",
-                    "Particles",
-                    "pCentral",
-                    "Charge"
-                ],
-                "y": [
-                    "s",
-                    "ElementOccurence",
-                    "Cx",
-                    "Cxp",
-                    "Cy",
-                    "Cyp",
-                    "Cs",
-                    "Cdelta",
-                    "Particles",
-                    "pCentral",
-                    "Charge"
-                ],
-                "yFile": [
-                    "run_setup.centroid.sdds"
-                ]
-            },
-            "x": "s",
-            "xFile": "run_setup.centroid.sdds",
-            "xFileId": "2-3",
-            "y": "Particles",
-            "yFile": "run_setup.centroid.sdds",
-            "yFileId": "2-3"
-        },
-        "elementAnimation4-13": {
-            "fileId": "4-13",
-            "framesPerSecond": 2,
-            "histogramBins": 200,
-            "includeLattice": "1",
-            "panelTitle": "twiss_output",
-            "valueList": {
-                "x": [
-                    "s",
-                    "betax",
-                    "alphax",
-                    "psix",
-                    "etax",
-                    "etaxp",
-                    "xAperture",
-                    "betay",
-                    "alphay",
-                    "psiy",
-                    "etay",
-                    "etayp",
-                    "yAperture",
-                    "pCentral0",
-                    "ElementOccurence"
-                ],
-                "y": [
-                    "s",
-                    "betax",
-                    "alphax",
-                    "psix",
-                    "etax",
-                    "etaxp",
-                    "xAperture",
-                    "betay",
-                    "alphay",
-                    "psiy",
-                    "etay",
-                    "etayp",
-                    "yAperture",
-                    "pCentral0",
-                    "ElementOccurence"
-                ],
-                "yFile": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds",
-                    "twiss_output.filename.sdds"
-                ]
-            },
-            "x": "s",
-            "xFile": "twiss_output.filename.sdds",
-            "xFileId": "4-13",
-            "y": "betax",
-            "yFile": "twiss_output.filename.sdds",
-            "yFileId": "4-13"
+            "xFileId": "2-29",
+            "y1": "Sx",
+            "y1File": "run_setup.sigma.sdds",
+            "y1FileId": "2-29",
+            "y2": "Sy",
+            "y2File": "run_setup.sigma.sdds",
+            "y2FileId": "2-29",
+            "y3": "None",
+            "y3File": "run_setup.sigma.sdds",
+            "y3FileId": "2-29"
         },
         "elements": [
             {
@@ -540,13 +671,18 @@
             ]
         },
         "parameterTable": {
-            "file": "run_setup.centroid.sdds",
+            "file": "run_setup.output.sdds",
             "page": 0,
             "valueList": {
                 "file": [
-                    "run_setup.centroid.sdds",
                     "run_setup.output.sdds",
-                    "run_setup.parameters.sdds"
+                    "run_setup.parameters.sdds",
+                    "run_setup.sigma.sdds"
+                ],
+                "modelKey": [
+                    "elementAnimation2-21",
+                    "elementAnimation2-24",
+                    "elementAnimation2-29"
                 ],
                 "page": [
                     0
@@ -563,7 +699,12 @@
             "name": "Script Element Example",
             "notes": "",
             "simulationMode": "serial",
+            "simulationSerial": 1702676936445392,
             "visualizationBeamlineId": 7
+        },
+        "treeMap": {
+            "DRIF": false,
+            "SCRIPT": false
         },
         "twissReport": {
             "includeLattice": "1",
@@ -572,6 +713,5 @@
             "y3": "etax"
         }
     },
-    "report": "bunchReport4",
     "simulationType": "elegant"
 }

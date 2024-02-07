@@ -69,6 +69,6 @@
           <rect class="mouse-rect-x mouse-zoom" data-interactive-overlay="" data-report-id="reportId" data-focus-points="[focusPointX]" ng-attr-y="{{ canvasSize.height }}" ng-attr-width="{{ canvasSize.width }}" ng-attr-height="{{ bottomPanelHeight }}" style="pointer-events: all; fill: none;"></rect>
         </g>
       </svg></div>
-      <div style="display: flex; justify-content: flex-end">{{width}}x{{height}}</div>
+      <div data-ng-show="showPlotSize()" style="display: flex; justify-content: flex-end">plot resolution: {{width}}x{{height}}</div>
       <div data-animation-buttons=""></div>
     </div>

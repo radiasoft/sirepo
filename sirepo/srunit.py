@@ -97,6 +97,35 @@ def setup_srdb_root(cfg=None):
     )
 
 
+def template_import_file(sim_type, path, arguments=None):
+    """Call `stateful_compute_import_file`
+
+    Args:
+        sim_type (str): template name
+        path (object): if path is a str, will be joined with `data_dir`,
+        arguments (object): literal passed as import_file_arguments
+    Returns:
+        PKDict: imported_data if successful; otherwise, error state
+    """
+    from pykern import pkio, pkunit
+    from sirepo import template
+
+    if isinstance(path, str):
+        path = pkunit.data_dir().join(path)
+    return template.import_module(sim_type).stateful_compute_import_file(
+        data=PKDict(
+            args=PKDict(
+                basename=path.basename,
+                ext_lower=path.ext.lower(),
+                file_as_str=pkio.read_text(path),
+                folder="/import_test",
+                import_file_arguments=arguments,
+                purebasename=path.purebasename,
+            ),
+        ),
+    )
+
+
 class _TestClient:
     def __init__(self, env, job_run_mode, port):
         from sirepo import feature_config
@@ -403,15 +432,16 @@ class _TestClient:
                         r,
                     )
                     r = self.sr_post("runStatus", r.nextRequest)
-                pkdlog(r.state)
+                pkdlog("reply.state={}", r.get("state"))
                 if r.state in ("completed", "error"):
                     cancel = None
                     break
+                # not asyncio.sleep: in a synchronous unit test
                 time.sleep(1)
             else:
                 pkunit.pkok(not expect_completed, "did not complete: runStatus={}", r)
             if expect_completed:
-                pkunit.pkeq("completed", r.state)
+                pkunit.pkeq("completed", r.state, "reply={}", r)
             return r
         finally:
             if cancel:
@@ -859,6 +889,7 @@ class _WebSocket:
         self._connection.send(_WebSocketRequest(msg).buf)
         return _WebSocketResponse(
             self._connection.recv(timeout=self._test_client.timeout_secs()),
+            self.req_seq,
         )
 
     def start(self):
@@ -890,7 +921,7 @@ class _WebSocketRequest:
 
 
 class _WebSocketResponse(_Response):
-    def __init__(self, msg):
+    def __init__(self, msg, req_seq):
         from pykern.pkdebug import pkdp
         from sirepo import const
         import msgpack
@@ -901,6 +932,8 @@ class _WebSocketResponse(_Response):
         assert (
             const.SCHEMA_COMMON.websocketMsg.version == h.version
         ), f"invalid msg.version={h.version}"
+        # Good enough for now, since _send() is synchronous
+        assert req_seq == h.reqSeq, f"invalid msg.reqSeq={h.reqSeq} expect={req_seq}"
         self._headers = PKDict()
         self.data = u.unpack() if u.tell() < len(msg) else None
         self.mimetype = "application/octet"
@@ -972,7 +1005,7 @@ def _cfg():
     from pykern import pkconfig
 
     __cfg = pkconfig.init(
-        # 25 is based on the speed of a MacBook Pro 2019.
-        cpu_div=(25, int, "cpu speed divisor to compute timeouts"),
+        # 50 is based on a 2.2 GHz server
+        cpu_div=(50, int, "cpu speed divisor to compute timeouts"),
     )
     return __cfg

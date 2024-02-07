@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """WARP execution template.
 
 :copyright: Copyright (c) 2015-2019 RadiaSoft LLC.  All Rights Reserved.

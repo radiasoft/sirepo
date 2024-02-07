@@ -624,7 +624,7 @@ SIREPO.viewLogic('problemFilesView', function(appState, flashService, panelState
 
     function updateLibFile() {
         setProcessing(true);
-        return requestSender.sendStatelessCompute(
+        return requestSender.sendStatefulCompute(
             appState,
             (data) => {
                 if (data.archiveLibId) {
@@ -782,7 +782,7 @@ SIREPO.app.directive('archiveFileList', function() {
             $scope.selectedFileName = '';
 
             function replaceFile() {
-                serverRequest('replace_file_in_zip', data => {
+                statefulCompute('replace_file_in_zip', data => {
                     if (data.archiveFiles) {
                         appState.models.problemFiles.archiveFiles =
                             data.archiveFiles;
@@ -819,8 +819,8 @@ SIREPO.app.directive('archiveFileList', function() {
                 $('#sr-flash-text-iframe').contents().find('html').html(html);
             }
 
-            function serverRequest(method, callback) {
-                requestSender.sendStatelessCompute(
+            function statefulCompute(method, callback) {
+                requestSender.sendStatefulCompute(
                     appState,
                     data => callback(data),
                     {
@@ -850,7 +850,7 @@ SIREPO.app.directive('archiveFileList', function() {
                     && name != 'Makefile';
             };
             $scope.deleteFile = () => {
-                serverRequest('delete_archive_file', data => {
+                statefulCompute('delete_archive_file', data => {
                     if (data.error) {
                         return;
                     }
@@ -867,7 +867,7 @@ SIREPO.app.directive('archiveFileList', function() {
             };
             $scope.downloadFile = name => {
                 $scope.selectedFileName = name;
-                serverRequest('get_archive_file', data => {
+                statefulCompute('get_archive_file', data => {
                     if (! data.error) {
                         fetch(
                             `data:application/octet-stream;base64,${data.encoded}`
@@ -905,7 +905,7 @@ SIREPO.app.directive('archiveFileList', function() {
                     '<div style="text-align: center; padding: 1em">Loading '
                         + name + '</div>');
                 $('#sr-flash-text-view').modal('show');
-                serverRequest('format_text_file', data => setIFrameHTML(data.html));
+                statefulCompute('format_text_file', data => setIFrameHTML(data.html));
             };
             $scope.$watch('inputFile', () => {
                 if ($scope.inputFile) {
