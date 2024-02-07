@@ -261,12 +261,20 @@ def plot_magin(magin_filename):
     p = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_model_field("io", "maginfile", magin_filename)
     )
-    pkdp("\n\n\n p={}", p)
-    x_points = []
+    points = []
+    with pkio.open_text(p) as f:
+        for line in f:
+            row = line.split()
+            if row:
+                pkdp("\n\n\n row={}", row)
+                if row[0] == 'AW':
+                    points.append(row[1])
+
+    x_points = [x for x in range(len(points))]
     plots = [
         PKDict(
             field="magin field (AW/QF)?",
-            points=[],
+            points=points,
             label="plot label"
         )
     ]
