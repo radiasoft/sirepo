@@ -4,7 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
-    SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = false;
+    SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
         <div data-ng-switch-when="tallyViewer" data-tally-viewer="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
@@ -780,10 +780,18 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     color: 'red',
                     strokeWidth: '2.0',
                 },
-                crosshairs: {
-                    color: 'red',
-                    strokeWidth: '2.0',                    
-                },
+                crosshairs: [
+                    {
+                        dim: 'x',
+                        color: 'red',
+                        strokeWidth: '1.0',  
+                    },
+                    {
+                        dim: 'y',
+                        color: 'red',
+                        strokeWidth: '1.0',  
+                    },                  
+                ],
             };
             const displayRanges = {};
             const sources = cloudmcService.getSourceVisualizations(
