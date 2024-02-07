@@ -66,20 +66,27 @@ SIREPO.app.directive('maginFilePlot', function(appState) {
             modelName: '=',
         },
         template: `
-            <div data-ng-if="_check()">
-              <div data-parameter-plot="parameter" data-model-name="maginPlotReport"></div>
+            <div data-ng-if="check">
+              <div data-show-loading-and-error="" data-model-key="maginPlotReport">
+                <div data-parameter-plot="parameter" data-model-name="maginPlotReport"></div>
+              </div>
             </div>
         `,
         controller: function($scope) {
             // <div class="sr-plot sr-screenshot" data-parameter-plot="" data-model-name="{{modelName}}"></div>
             srdbg("modelname", $scope.modelName);
+            srdbg("appState.models", appState.models);
             // TODO (gurhar1133): better check here and loading bar or widget?
-            $scope._check = () => {
-                if (appState.models.io.maginfile) {
-                    return true;
-                }
-                return false;
-            }
+            $scope.check = Boolean(appState.models.io.maginfile);
+            $scope.$on('io.changed', ()=> {
+                $scope.check = Boolean(appState.models.io.maginfile);
+            })
+            // $scope._check = () => {
+            //     if (! appState.models.io.maginfile) {
+            //         return false;
+            //     }
+            //     return true;
+            // }
         }
     };
 });

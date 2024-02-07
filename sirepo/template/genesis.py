@@ -59,7 +59,7 @@ _LATTICE_COL_LABEL = PKDict(
 _LATTICE_DATA_FILENAME = "lattice{}.npy"
 
 _LATTICE_RE = re.compile(r"\bpower\b[\s\w]+\n(.*?)(\n\n|$)", flags=re.DOTALL)
-
+_MAGIN_PLOT_FIELD = "AW"
 _OUTPUT_FILENAME = "genesis.out"
 _FIELD_DISTRIBUTION_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".fld"
 _PARTICLE_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".par"
@@ -260,7 +260,7 @@ def plot_magin(magin_filename):
             row = line.split()
             if row:
                 pkdp("\n\n\n row={}", row)
-                if row[0] == 'AW':
+                if row[0] == _MAGIN_PLOT_FIELD:
                     points.append(row[1])
                 if row[0] == "?":
                     if "UNITLENGTH" in row[1]:
@@ -277,15 +277,14 @@ def plot_magin(magin_filename):
         x_points,
         [
             PKDict(
-                field="magin field (AW/QF)?",
                 points=points,
-                label="plot label"
+                label=f"{_MAGIN_PLOT_FIELD} Value",
             )
         ],
         PKDict(),
         PKDict(
-            title="Magin Plot",
-            x_label="x",
+            title="MAGINFILE",
+            x_label="length (m)",
         ),
     )
 
