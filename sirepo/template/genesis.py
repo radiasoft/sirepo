@@ -204,14 +204,10 @@ def sim_frame_parameterAnimation(frame_args):
         y = frame_args[f]
         if not y or y == "none":
             continue
-        p = l[:, _LATTICE_COLS.index(y)].tolist()
-        pkdp("\n\n\np={}", p)
-        pkdp("\n\n field={}", y)
-        pkdp("\n\n x_points={}", s[:, _SLICE_COLS.index(x)].tolist())
         plots.append(
             PKDict(
                 field=y,
-                points=p,
+                points=l[:, _LATTICE_COLS.index(y)].tolist(),
                 label=_LATTICE_COL_LABEL.get(y, y),
             )
         )

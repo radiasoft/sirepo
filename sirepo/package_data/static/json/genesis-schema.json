@@ -23,10 +23,6 @@
             ["xrms", "xrms"],
             ["yrms", "yrms"]
         ],
-        "MaginParameter": [
-            ["none", "None"],
-            ["y", "y"]
-        ],
         "ParticleColumn": [
             ["gamma", "gamma"],
             ["psi", "psi"],

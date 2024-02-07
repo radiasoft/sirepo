@@ -133,7 +133,7 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
               <div class="col-md-5 col-xxl-3">
                 <div class="row">
                   <div class="col-sm-12">
-                    <div data-ng-repeat="report in sim[0] track by $index">ppppp
+                    <div data-ng-repeat="report in sim[0] track by $index">
                       <div data-report-panel="parameter" data-model-data="omegaService.modelAccess(report.modelKey)" data-model-name="{{ report.modelName }}" data-panel-title="{{ title(report) }}"></div>
                     </div>
                   </div>

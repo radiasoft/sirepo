@@ -122,34 +122,6 @@ SIREPO.viewLogic('electronBeamView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('focusingView', function(appState, panelState, requestSender, $scope) {
-    $scope.$on('io.changed', () => {
-        // if (appState.models.io.maginfile) {
-        //     const currentMaginFile = appState.models.io.maginfile;
-        //     srdbg("appState.models.prevMaginFile", appState.models.prevMaginFile, "currentMaginFile", currentMaginFile);
-        //     if (currentMaginFile !== appState.models.prevMaginFile) {
-        //         requestSender.sendStatefulCompute(
-        //             appState,
-        //             data => {
-        //                 srdbg("data in reply", data);
-        //                 appState.models.prevMaginFile = currentMaginFile;
-        //                 srdbg("appsState.models", appState.models);
-        //             },
-        //             {
-        //                 method: 'magin_plot',
-        //                 args: {
-        //                     maginFileName: appState.models.io.maginfile,
-        //                 }
-        //             }
-        //         )
-        //     }
-        // } else {
-            // srdbg("null file case");
-        // }
-
-    });
-});
-
 SIREPO.viewLogic('meshView', function(appState, panelState, $scope) {
 
     function updateSpaceCharge() {
