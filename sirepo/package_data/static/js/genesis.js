@@ -73,7 +73,7 @@ SIREPO.app.directive('maginFilePlot', function(appState) {
         controller: function($scope) {
             // <div class="sr-plot sr-screenshot" data-parameter-plot="" data-model-name="{{modelName}}"></div>
             srdbg("modelname", $scope.modelName);
-            // TODO (gurhar1133): better check here
+            // TODO (gurhar1133): better check here and loading bar or widget?
             $scope._check = () => {
                 if (appState.models.io.maginfile) {
                     return true;

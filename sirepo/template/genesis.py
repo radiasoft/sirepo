@@ -253,10 +253,6 @@ def sim_frame_particleAnimation(frame_args):
     return _particle_plot(frame_args, _PARTICLE_OUTPUT_FILENAME)
 
 
-def stateful_compute_magin_plot(data, **kwargs):
-    return plot_magin(data.args.maginFileName)
-
-
 def plot_magin(magin_filename):
     p = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_model_field("io", "maginfile", magin_filename)
