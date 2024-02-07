@@ -3177,7 +3177,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             const cellHighlight = ($scope.reportCfg || {}).cellHighlight;
             const cellHighlightClass = 'sr-cell-highlight';
             const crosshairs = ($scope.reportCfg || {}).crosshairs;
-            srdbg(crosshairs);
             const crosshairClass = 'sr-crosshair';
             let overlayData = null;
 
@@ -3297,7 +3296,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                     updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), px, py, sz.x, sz.y);
-                    updateCrosshairs(select(overlaySelector).selectAll(`line.${crosshairClass}`), px, py, Math.round(axes.x.scale(xRange[1])), Math.round(axes.x.scale(yRange[1])));
+                    updateCrosshairs(select(overlaySelector).selectAll(`line.${crosshairClass}`), px, py, Math.round(axes.x.scale(xRange[1])), Math.round(axes.y.scale(yRange[0])));
                 }
                 catch (err) {
                     // ignore range errors due to mouse move after heatmap is reset
