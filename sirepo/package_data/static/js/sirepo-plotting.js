@@ -3178,6 +3178,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             const cellHighlightClass = 'sr-cell-highlight';
             const crosshairs = ($scope.reportCfg || {}).crosshairs;
             const crosshairClass = 'sr-crosshair';
+            const onClick = ($scope.reportCfg || {}).onClick || (() => {});
             let overlayData = null;
 
             function colorbarSize() {
@@ -3274,7 +3275,14 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return [values[0], values[values.length - 1]];
             }
 
-            var mouseMove = utilities.debounce(() => {
+            function mouseClick() {
+                onClick(
+                    axes.x.scale.invert(mouseMovePoint[0] - 1),
+                    axes.y.scale.invert(mouseMovePoint[1] - 1)
+                );
+            }
+
+            const mouseMove = utilities.debounce(() => {
                 /*jshint validthis: true*/
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
@@ -3413,6 +3421,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             $scope.destroy = function() {
                 select('.mouse-rect').on('mousemove', null);
+                select('.mouse-rect').on('click', null);
                 zoom.on('zoom', null);
                 document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
@@ -3429,6 +3438,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     mouseMovePoint = d3.mouse(this);
                     mouseMove();
                 });
+                select('.mouse-rect').on('click', mouseClick);
                 ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
                 colorbar = Colorbar()

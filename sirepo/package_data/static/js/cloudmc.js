@@ -694,7 +694,7 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                     <div data-report-content="geometry3d" data-model-key="{{ modelName }}"></div>
                 </div>
                 <div data-ng-if="is2D()">
-                    <div data-geometry-2d=""></div>
+                    <div data-geometry-2d="" data-energy-filter="energyFilter()"></div>
                 </div>
             </div>
         `,
@@ -769,9 +769,12 @@ SIREPO.app.directive('energySpectrum', function(appState, cloudmcService, utilit
 SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache, panelState, tallyService) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            energyFilter: '=',
+        },
         template: `
              <div data-report-content="heatmap" data-model-key="{{ modelName }}" data-report-cfg="reportCfg"></div>
+             <div data-ng-if="energyFilter" data-report-content="parameter" data-model-key="energyReport"></div>
         `,
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
@@ -792,6 +795,9 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         strokeWidth: '1.0',  
                     },                  
                 ],
+                onClick: (x, y) => {
+                    setBins(x, y);
+                },
             };
             const displayRanges = {};
             const sources = cloudmcService.getSourceVisualizations(
@@ -818,6 +824,14 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     },
                 }
             );
+
+            function setBins(hVal, vVal) {
+                const [z, x, y] = tallyReportAxes();
+                appState.models.energyReport[x].val = hVal;
+                appState.models.energyReport[y].val = vVal;
+                appState.models.energyReport[z].val = appState.models.tallyReport.planePos;
+                appState.saveChanges('energyReport');
+            }
 
             function buildTallyReport() {
                 if (! tallyService.mesh) {

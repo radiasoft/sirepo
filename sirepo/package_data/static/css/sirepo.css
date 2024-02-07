@@ -616,6 +616,15 @@
         cursor: pointer;
         font-size: 16px;
     }
+
+    .sr-plot .sr-cell-highlight {
+        pointer-events: none;
+    }
+
+    .sr-plot .sr-crosshair {
+        pointer-events: none;
+    }
+    
     .sr-download-png .plot-visibility {
       visibility: hidden;
     }
