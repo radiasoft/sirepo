@@ -969,7 +969,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 for (const idx of inds) {
                     N *= (idx[1] - idx[0] + 1);
                 }
-                srdbg('INDS', inds, 'N', N);
                 const ff = SIREPO.UTILS.reshape(
                     new Array(N),
                     [(inds[n][1] - inds[n][0] + 1), (inds[m][1] - inds[m][0] + 1), (inds[l][1] - inds[l][0] + 1)]

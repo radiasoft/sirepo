@@ -655,7 +655,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             canvas.height = height;
             var xPixelSize = alignOnPixel ? ((xDomain[1] - xDomain[0]) / zoomWidth * width / xValues.length) : 0;
             var yPixelSize = alignOnPixel ? ((yDomain[1] - yDomain[0]) / zoomHeight * height / yValues.length) : 0;
-            srdbg('xp', xPixelSize, 'yp', yPixelSize);
             var ctx = canvas.getContext('2d');
             ctx.imageSmoothingEnabled = false;
             ctx.msImageSmoothingEnabled = false;
@@ -891,16 +890,16 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             });
         },
 
-        pixelSize: function(xAxisScale, yAxisScale, width, height, numX, numY, alignOnPixel) {
-            var xZoomDomain = xAxisScale.domain();
-            var xDomain = [xValues[0], xValues[xValues.length - 1]];
-            var yZoomDomain = yAxisScale.domain();
-            var yDomain = [yValues[0], yValues[yValues.length - 1]];
-            var zoomWidth = xZoomDomain[1] - xZoomDomain[0];
-            var zoomHeight = yZoomDomain[1] - yZoomDomain[0];
+        pixelSize: function(xAxisScale, yAxisScale, width, height, xValues, yValues) {
+            const xZoomDomain = xAxisScale.domain();
+            const xDomain = [xValues[0], xValues[xValues.length - 1]];
+            const yZoomDomain = yAxisScale.domain();
+            const yDomain = [yValues[0], yValues[yValues.length - 1]];
+            const zoomWidth = xZoomDomain[1] - xZoomDomain[0];
+            const zoomHeight = yZoomDomain[1] - yZoomDomain[0];
             return {
-                x: alignOnPixel ? ((xDomain[1] - xDomain[0]) / zoomWidth * width / numX) : 0,
-                y: alignOnPixel ? ((yDomain[1] - yDomain[0]) / zoomHeight * height / numY) : 0
+                x: Math.round(((xDomain[1] - xDomain[0]) / zoomWidth * width / xValues.length)),
+                y: Math.round(((yDomain[1] - yDomain[0]) / zoomHeight * height / yValues.length)),
             };
         },
 
@@ -3218,8 +3217,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     .data(overlayData);
                 ds.exit().remove();
                 ds.enter()
-                    .append(d => document.createElementNS(ns, 'path'))
-                    .append(d => document.createElementNS(ns, 'title'));
+                    .append((d) => document.createElementNS(ns, 'path'))
+                    .append((d) => document.createElementNS(ns, 'title'));
                 ds.call(updateOverlay);
             }
 
@@ -3232,6 +3231,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     return;
                 }
                 selection
+                    .attr('clip-path', 'url(#sr-plot-window)')
                     .attr('stroke', cellHighlight.color)
                     .attr('x', x - w / 2)
                     .attr('y', y - h / 2)
@@ -3243,7 +3243,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return [values[0], values[values.length - 1]];
             }
 
-            var mouseMove = utilities.debounce(function() {
+            var mouseMove = utilities.debounce(() => {
                 /*jshint validthis: true*/
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
@@ -3251,19 +3251,20 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const point = mouseMovePoint;
                 const xRange = getRange(axes.x.values);
                 const yRange = getRange(axes.y.values);
-                const x0 = axes.x.scale.invert(point[0] - 1);
-                const y0 = axes.y.scale.invert(point[1] - 1);
+                const x = axes.x.scale.invert(point[0] - 1);
+                const y = axes.y.scale.invert(point[1] - 1);
                 const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - 1);
                 const dy = Math.abs((yRange[1] - yRange[0])) / (heatmap.length - 1);
-                const i = Math.round((x0 - xRange[0]) / dx);
-                const j = Math.round((y0 - yRange[0]) / dy);
+                const i = Math.round((x - xRange[0]) / dx);
+                const j = Math.round((y - yRange[0]) / dy);
                 const xr = xRange[0] + i * dx;
                 const yr = yRange[0] + j * dy;
                 const px = Math.round(axes.x.scale(xr));
                 const py = Math.round(axes.y.scale(yr));
-                const w = Math.abs(Math.round(axes.x.scale(xr + dx)) - px);
-                const h = Math.abs(Math.round(axes.y.scale(yr + dy)) - py);
-                srdbg('w', w, 'h', h);
+                const pix = plotting.pixelSize(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values);
+                const w = pix.x;  //Math.abs(Math.round(axes.x.scale(xr + dx)) - px);
+                const h = pix.y;  //Math.abs(Math.round(axes.y.scale(yr + dy)) - py);
+                srdbg('w', w, 'h', h, pix);
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                     updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), px, py, w, h);
