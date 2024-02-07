@@ -249,35 +249,43 @@ def sim_frame_particleAnimation(frame_args):
     return _particle_plot(frame_args, _PARTICLE_OUTPUT_FILENAME)
 
 
-def plot_magin(magin_filename):
-    p = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_model_field("io", "maginfile", magin_filename)
-    )
-    points = []
-    with pkio.open_text(p) as f:
-        u = 1
+def _parse_maginfile(filepath):
+    if not pkio.is_pure_text(filepath):
+        raise AssertionError(f"{filepath.basename} for maginfile should be text file")
+    p = []
+    u = 1
+    with pkio.open_text(filepath) as f:
         for line in f:
             row = line.split()
             if row:
-                pkdp("\n\n\n row={}", row)
                 if row[0] == _MAGIN_PLOT_FIELD:
-                    points.append(row[1])
-                if row[0] == "?":
-                    if "UNITLENGTH" in row[1]:
-                        u = row[2]
-    if u != 1:
-        x_points = []
-        cur = 0
-        for x in range(len(points)):
-            x_points.append(str(cur))
-            cur += float(u)
-    else:
-        x_points = [x for x in range(len(points))]
+                    p.append(row[1])
+                if row[0] == "?" and "UNITLENGTH" in row[1]:
+                    u = row[2]
+    return PKDict(unit_length=u, points=p)
+
+
+def plot_magin(magin_filename):
+    def _x_points(data):
+        if data.unit_length == 1:
+            return [x for x in range(len(data.points))]
+        x = []
+        c = 0
+        for i in range(len(data.points)):
+            x.append(str(c))
+            c += float(data.unit_length)
+        return x
+
+    d = _parse_maginfile(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_model_field("io", "maginfile", magin_filename)
+        )
+    )
     return template_common.parameter_plot(
-        x_points,
+        _x_points(d),
         [
             PKDict(
-                points=points,
+                points=d.points,
                 label=f"{_MAGIN_PLOT_FIELD} Value",
             )
         ],
@@ -291,10 +299,10 @@ def plot_magin(magin_filename):
 
 def validate_file(file_type, path):
     if file_type == "io-partfile":
-        if _is_text_file(path):
+        if pkio.is_pure_text(path):
             return "The PARTFILE should be a binary file. Use the DISTFILE to import a text file."
     elif file_type == "io-distfile":
-        if not _is_text_file(path):
+        if not pkio.is_pure_text(path):
             return "The DISTFILE should be a text file with columns: X PX Y PY T P."
     return None
 
@@ -419,14 +427,6 @@ def _get_frame_counts(run_dir):
                 if m.group(1) == "field":
                     break
     return res
-
-
-def _is_text_file(path):
-    try:
-        pkio.read_text(path)
-        return True
-    except UnicodeDecodeError:
-        return False
 
 
 def _parse_namelist(data, text, req):
