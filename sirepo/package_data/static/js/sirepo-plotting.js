@@ -655,6 +655,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             canvas.height = height;
             var xPixelSize = alignOnPixel ? ((xDomain[1] - xDomain[0]) / zoomWidth * width / xValues.length) : 0;
             var yPixelSize = alignOnPixel ? ((yDomain[1] - yDomain[0]) / zoomHeight * height / yValues.length) : 0;
+            srdbg('xp', xPixelSize, 'yp', yPixelSize);
             var ctx = canvas.getContext('2d');
             ctx.imageSmoothingEnabled = false;
             ctx.msImageSmoothingEnabled = false;
@@ -888,6 +889,19 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     return d3.max(col);
                 });
             });
+        },
+
+        pixelSize: function(xAxisScale, yAxisScale, width, height, numX, numY, alignOnPixel) {
+            var xZoomDomain = xAxisScale.domain();
+            var xDomain = [xValues[0], xValues[xValues.length - 1]];
+            var yZoomDomain = yAxisScale.domain();
+            var yDomain = [yValues[0], yValues[yValues.length - 1]];
+            var zoomWidth = xZoomDomain[1] - xZoomDomain[0];
+            var zoomHeight = yZoomDomain[1] - yZoomDomain[0];
+            return {
+                x: alignOnPixel ? ((xDomain[1] - xDomain[0]) / zoomWidth * width / numX) : 0,
+                y: alignOnPixel ? ((yDomain[1] - yDomain[0]) / zoomHeight * height / numY) : 0
+            };
         },
 
         // create a 2d shape for d3 to plot - note that x, y are required because d3 looks for those
@@ -3140,6 +3154,10 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             };
             $scope.dataCleared = true;
             $scope.margin = {top: 50, left: 70, right: 100, bottom: 50};
+            const ch = {
+                color: 'red',
+                strokeWidth: '2.0',
+            };
 
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
@@ -3157,7 +3175,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             let cacheCanvas, imageData;
             let colorbar, hideColorBar;
             const overlaySelector = 'svg.sr-plot g.sr-overlay-data-group';
-            const cellHighlight = ($scope.reportCfg || {}).cellHighlight;
+            const cellHighlight = ch;  //($scope.reportCfg || {}).cellHighlight;
             const cellHighlightClass = 'sr-cell-highlight';
             const crosshairs = [{dim: 'x'}, {dim: 'y'}];
             const crosshairClass = 'sr-crosshair';
@@ -3179,16 +3197,23 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             function drawOverlay() {
                 const ns = 'http://www.w3.org/2000/svg';
+                const overlay = select(overlaySelector);
                 if (cellHighlight) {
-                    const c = d3.select(overlaySelector)
+                    const c = overlay
                         .selectAll(`rect.${cellHighlightClass}`)
                         .data([cellHighlight]);
                     c.enter()
-                        .append(d => document.createElementNS(ns, 'rect'))
+                        .append((d) => document.createElementNS(ns, 'rect'))
+                        .attr('class', cellHighlightClass)
+                        .attr('stroke', cellHighlight.color)
+                        .attr('fill', 'none')
+                        .attr('stroke-width', cellHighlight.strokeWidth);
                     c.call(updateCellHighlight);
                 }
-                d3.select(overlaySelector)
-                let ds = d3.select(overlaySelector)
+                if (! overlayData) {
+                    return;
+                }
+                let ds = overlay
                     .selectAll(`path.${overlayDataClass}`)
                     .data(overlayData);
                 ds.exit().remove();
@@ -3199,22 +3224,17 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             }
 
             function updateCellHighlight(selection, x, y, w, h) {
-
                 if (! cellHighlight) {
                     return;
                 }
-                selection
-                    .attr('class', cellHighlightClass)
-                    .attr('stroke', cellHighlight.color)
-                    .attr('fill', 'none')
-                    .attr('stroke-width', cellHighlight.strokeWidth);
-                if (! mouseMovePoint) {
+                if (! mouseMovePoint || x === undefined) {
+                    selection.attr('stroke', 'none');
                     return;
                 }
-                //return;
                 selection
-                    .attr('x', x - cellHighlight.strokeWidth)
-                    .attr('y', y - cellHighlight.strokeWidth)
+                    .attr('stroke', cellHighlight.color)
+                    .attr('x', x - w / 2)
+                    .attr('y', y - h / 2)
                     .attr('width', w)
                     .attr('height', h);
             }
@@ -3243,9 +3263,10 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const py = Math.round(axes.y.scale(yr));
                 const w = Math.abs(Math.round(axes.x.scale(xr + dx)) - px);
                 const h = Math.abs(Math.round(axes.y.scale(yr + dy)) - py);
+                srdbg('w', w, 'h', h);
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
-                    updateCellHighlight(d3.select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), px, py, w, h);
+                    updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), px, py, w, h);
                 }
                 catch (err) {
                     // ignore range errors due to mouse move after heatmap is reset
@@ -3293,9 +3314,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     $scope.margin.right = 20;
                 }
 
-                if (overlayData) {
-                    drawOverlay();
-                }
+                drawOverlay();
             }
 
             function resetZoom() {
