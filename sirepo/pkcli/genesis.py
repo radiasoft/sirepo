@@ -13,12 +13,10 @@ import sirepo.template.genesis
 
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    # pkdp("\n\n\n data={}", data)
     if data.report == "maginPlotReport":
-        pkdp("\n\n\n hit on the maginPlotReport")
-        pkdp("\n\n\n\n {}", data.models.io.maginfile)
-        res = sirepo.template.genesis.plot_magin(data.models.io.maginfile)
-        template_common.write_sequential_result(res)
+        template_common.write_sequential_result(
+            sirepo.template.genesis.plot_magin(data.models.io.maginfile)
+        )
 
 
 def run_background(cfg_dir):

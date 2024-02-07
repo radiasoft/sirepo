@@ -66,17 +66,20 @@ SIREPO.app.directive('maginFilePlot', function(appState) {
             modelName: '=',
         },
         template: `
-            <div data-ng-if="check">
+            <div data-ng-if="hasMaginfile">
               <div data-show-loading-and-error="" data-model-key="maginPlotReport">
                 <div data-parameter-plot="parameter" data-model-name="maginPlotReport"></div>
               </div>
             </div>
         `,
         controller: function($scope) {
-            $scope.check = Boolean(appState.models.io.maginfile);
+            const checkForMaginfile = () => {
+                return  appState.models.io.maginfile || false;
+            };
 
+            $scope.hasMaginfile = checkForMaginfile();
             $scope.$on('io.changed', ()=> {
-                $scope.check = Boolean(appState.models.io.maginfile);
+                $scope.hasMaginfile = checkForMaginfile();
             });
         }
     };

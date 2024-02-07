@@ -32,5 +32,4 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        pkdp("\n\n\n compute_job_fields data={} r={} compute_model={}", data, r, compute_model)
         return []
