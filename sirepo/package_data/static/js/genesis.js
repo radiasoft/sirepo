@@ -67,12 +67,13 @@ SIREPO.app.directive('maginFilePlot', function(appState) {
         },
         template: `
             <div data-ng-if="_check()">
-              <div data-report-panel="parameter" data-model-name="maginPlotReport"></div>
+              <div data-parameter-plot="parameter" data-model-name="maginPlotReport"></div>
             </div>
         `,
         controller: function($scope) {
             // <div class="sr-plot sr-screenshot" data-parameter-plot="" data-model-name="{{modelName}}"></div>
             srdbg("modelname", $scope.modelName);
+            // TODO (gurhar1133): better check here
             $scope._check = () => {
                 if (appState.models.io.maginfile) {
                     return true;
@@ -123,28 +124,28 @@ SIREPO.viewLogic('electronBeamView', function(appState, panelState, $scope) {
 
 SIREPO.viewLogic('focusingView', function(appState, panelState, requestSender, $scope) {
     $scope.$on('io.changed', () => {
-        if (appState.models.io.maginfile) {
-            const currentMaginFile = appState.models.io.maginfile;
-            srdbg("appState.models.prevMaginFile", appState.models.prevMaginFile, "currentMaginFile", currentMaginFile);
-            if (currentMaginFile !== appState.models.prevMaginFile) {
-                requestSender.sendStatefulCompute(
-                    appState,
-                    data => {
-                        srdbg("data in reply", data);
-                        appState.models.prevMaginFile = currentMaginFile;
-                        srdbg("appsState.models", appState.models);
-                    },
-                    {
-                        method: 'magin_plot',
-                        args: {
-                            maginFileName: appState.models.io.maginfile,
-                        }
-                    }
-                )
-            }
-        } else {
-            srdbg("null file case");
-        }
+        // if (appState.models.io.maginfile) {
+        //     const currentMaginFile = appState.models.io.maginfile;
+        //     srdbg("appState.models.prevMaginFile", appState.models.prevMaginFile, "currentMaginFile", currentMaginFile);
+        //     if (currentMaginFile !== appState.models.prevMaginFile) {
+        //         requestSender.sendStatefulCompute(
+        //             appState,
+        //             data => {
+        //                 srdbg("data in reply", data);
+        //                 appState.models.prevMaginFile = currentMaginFile;
+        //                 srdbg("appsState.models", appState.models);
+        //             },
+        //             {
+        //                 method: 'magin_plot',
+        //                 args: {
+        //                     maginFileName: appState.models.io.maginfile,
+        //                 }
+        //             }
+        //         )
+        //     }
+        // } else {
+            // srdbg("null file case");
+        // }
 
     });
 });

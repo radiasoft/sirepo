@@ -263,24 +263,33 @@ def plot_magin(magin_filename):
     )
     points = []
     with pkio.open_text(p) as f:
+        u = 1
         for line in f:
             row = line.split()
             if row:
                 pkdp("\n\n\n row={}", row)
                 if row[0] == 'AW':
                     points.append(row[1])
-
-    x_points = [x for x in range(len(points))]
-    plots = [
-        PKDict(
-            field="magin field (AW/QF)?",
-            points=points,
-            label="plot label"
-        )
-    ]
+                if row[0] == "?":
+                    if "UNITLENGTH" in row[1]:
+                        u = row[2]
+    if u != 1:
+        x_points = []
+        cur = 0
+        for x in range(len(points)):
+            x_points.append(str(cur))
+            cur += float(u)
+    else:
+        x_points = [x for x in range(len(points))]
     return template_common.parameter_plot(
         x_points,
-        plots,
+        [
+            PKDict(
+                field="magin field (AW/QF)?",
+                points=points,
+                label="plot label"
+            )
+        ],
         PKDict(),
         PKDict(
             title="Magin Plot",
