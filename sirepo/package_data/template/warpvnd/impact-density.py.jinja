@@ -174,7 +174,7 @@ if can_write_files and not density_results:
         v = c.scraped_particles[:, c.pids]
         all_particles[0] += v[0].tolist()
         all_particles[1] += v[1].tolist()
-    np.save('all-particles.npy', all_particles)
+    np.save('{{ allParticlesFile }}', all_particles)
     {% endif %}
 
     density_results = {
