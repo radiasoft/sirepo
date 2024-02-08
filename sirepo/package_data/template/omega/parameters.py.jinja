@@ -59,9 +59,9 @@ def genesis_to_pmd(sim):
     return v
 
 
-def prep_run_dir(run_dir, data):
-    sirepo.simulation_db.prepare_simulation(data, run_dir)
-    return pkio.save_chdir(run_dir)
+#def prep_run_dir(run_dir, data):
+#    sirepo.simulation_db.prepare_simulation(data, run_dir)
+#    return pkio.save_chdir(run_dir)
 
 
 def read_sim(sim_type, sim_id):
@@ -77,7 +77,7 @@ def run_elegant(run_dir, elegant_id, prev_sim=None):
         c.copy(
             c.uri(c.LIB_DIR, b),
             c.uri(
-                c.LIB_DIR, 
+                c.LIB_DIR,
                 s.lib_file_name_with_model_field("command_run_setup", "expand_for", filename),
             ),
         )
@@ -188,65 +188,67 @@ def run_genesis(run_dir, genesis_id, prev_sim=None):
 
 
 def run_opal(run_dir, opal_id, prev_sim=None):
-    def _save_lib_file(tmp, filename):
-        s = sirepo.sim_data.get_class("opal")
-        s.lib_file_write(
-            s.lib_file_name_with_model_field("command_distribution", "fname", filename),
-            tmp,
-        )
-        tmp.remove()
-
-    def _update_sim(data, filename, tmp):
-        d = LatticeUtil.find_first_command(data, "distribution")
-        d.type = "FROMFILE"
-        d.fname = filename
-        n = 0
-        zsum = 0
-        psum = 0
-        # calculate z offset
-        with pkio.open_text(tmp) as f:
-            for line in f:
-                if not n:
-                    n = int(line)
-                    continue
-                r = [v for v in re.split(r"\s+", line.strip())]
-                zsum += float(r[4])
-                psum += float(r[5])
-        d.offsetz = -zsum / n
-
-        b = LatticeUtil.find_first_command(data, "beam")
-        b.npart = n
-        b.gamma = 0
-        b.energy = 0
-        #TODO(pjm): handle other particle types
-        mass_and_charge = PKDict(
-            ELECTRON=0.51099895000e-03,
-            PROTON=0.93827208816,
-        )
-        b.pc = psum / n * mass_and_charge[b.particle]
-        _save_lib_file(tmp, filename)
-        write_sim(data)
-
-    data = read_sim('opal', opal_id)
-    if prev_sim:
-        filename = file_name_from_sim_name('opal', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
-        t = run_dir.join("opal-command_distribution")
-        if prev_sim.sim_type == 'genesis':
-            import pmd_beamphysics.interfaces.opal
-
-            pmd_beamphysics.interfaces.opal.write_opal(
-                genesis_to_pmd(prev_sim),
-                str(t),
-            )
-        else:
-            assert prev_sim.outfile_path
-            sw = switchyard.Switchyard()
-            sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
-            sw.write(str(t), "opal")
-        _update_sim(data, filename, t)
-    data.computeModel = 'animation'
-    LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
-    with prep_run_dir(run_dir, data):
+#    def _save_lib_file(tmp, filename):
+#        s = sirepo.sim_data.get_class("opal")
+#        s.lib_file_write(
+#            s.lib_file_name_with_model_field("command_distribution", "fname", filename),
+#            tmp,
+#        )
+#        tmp.remove()
+#
+#    def _update_sim(data, filename, tmp):
+#        d = LatticeUtil.find_first_command(data, "distribution")
+#        d.type = "FROMFILE"
+#        d.fname = filename
+#        n = 0
+#        zsum = 0
+#        psum = 0
+#        # calculate z offset
+#        with pkio.open_text(tmp) as f:
+#            for line in f:
+#                if not n:
+#                    n = int(line)
+#                    continue
+#                r = [v for v in re.split(r"\s+", line.strip())]
+#                zsum += float(r[4])
+#                psum += float(r[5])
+#        d.offsetz = -zsum / n
+#
+#        b = LatticeUtil.find_first_command(data, "beam")
+#        b.npart = n
+#        b.gamma = 0
+#        b.energy = 0
+#        #TODO(pjm): handle other particle types
+#        mass_and_charge = PKDict(
+#            ELECTRON=0.51099895000e-03,
+#            PROTON=0.93827208816,
+#        )
+#        b.pc = psum / n * mass_and_charge[b.particle]
+#        _save_lib_file(tmp, filename)
+#        write_sim(data)
+#
+#    data = read_sim('opal', opal_id)
+#    if prev_sim:
+#        filename = file_name_from_sim_name('opal', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
+#        t = run_dir.join("opal-command_distribution")
+#        if prev_sim.sim_type == 'genesis':
+#            import pmd_beamphysics.interfaces.opal
+#
+#            pmd_beamphysics.interfaces.opal.write_opal(
+#                genesis_to_pmd(prev_sim),
+#                str(t),
+#            )
+#        else:
+#            assert prev_sim.outfile_path
+#            sw = switchyard.Switchyard()
+#            sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
+#            sw.write(str(t), "opal")
+#        _update_sim(data, filename, t)
+#    data.computeModel = 'animation'
+#    LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
+#    with prep_run_dir(run_dir, data):
+    with pkio.save_chdir(run_dir):
+        print("run dir", run_dir)
         sirepo.pkcli.opal.run_opal(with_mpi=True)
     return f'{run_dir}/{sirepo.template.opal._OPAL_H5_FILE}'
 
@@ -255,8 +257,6 @@ def run_sims(sim_list):
     prev = None
     for idx in range(len(sim_list)):
         run_dir = pkio.py_path(f'run{idx + 1}')
-        pkio.unchecked_remove(run_dir)
-        pkio.mkdir_parent(run_dir)
         s = sim_list[idx]
         if s.sim_type == 'opal':
             s.outfile_path = run_opal(run_dir, s.sim_id, prev)

@@ -9,6 +9,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+from sirepo.template.lattice import LatticeUtil
 import h5py
 import numpy
 import pmd_beamphysics
@@ -281,10 +282,103 @@ def stateful_compute_get_opal_sim_list(**kwargs):
 
 
 def write_parameters(data, run_dir, is_parallel):
+    prev = None
+    sim_list = _coupled_sims_list(data)
+    pkdp("\n\n\n sim_list={}", sim_list)
+    for idx in range(len(sim_list)):
+        s = sim_list[idx]
+        if s.sim_type == "opal":
+            d = run_dir.join(f'run{idx + 1}')
+            pkio.unchecked_remove(d)
+            pkio.mkdir_parent(d)
+            _prepare_opal(d, s.sim_id, prev)
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
+
+
+def read_sim(sim_type, sim_id):
+    return sirepo.sim_data.get_class(sim_type).sim_db_read_sim(sim_id)
+
+
+def write_sim(data):
+    sirepo.sim_data.get_class(data.simulationType).sim_db_save_sim(data)
+
+
+def file_name_from_sim_name(sim_type, sim_name):
+    res = re.sub(r'[^0-9a-zA-Z]', '_', sim_name)
+    res = re.sub(r'^\_+|\_+$', '', res)
+    res = re.sub(r'\_+', '_', res)
+    ext = "sdds" if sim_type == "elegant" else "dat"
+    return f"{res}.{ext}"
+
+
+def _prepare_opal(run_dir, opal_id, prev_sim=None):
+    def _save_lib_file(tmp, filename):
+        s = sirepo.sim_data.get_class("opal")
+        s.lib_file_write(
+            s.lib_file_name_with_model_field("command_distribution", "fname", filename),
+            tmp,
+        )
+        tmp.remove()
+
+    def _update_sim(data, filename, tmp):
+        d = LatticeUtil.find_first_command(data, "distribution")
+        d.type = "FROMFILE"
+        d.fname = filename
+        n = 0
+        zsum = 0
+        psum = 0
+        # calculate z offset
+        with pkio.open_text(tmp) as f:
+            for line in f:
+                if not n:
+                    n = int(line)
+                    continue
+                r = [v for v in re.split(r"\s+", line.strip())]
+                zsum += float(r[4])
+                psum += float(r[5])
+        d.offsetz = -zsum / n
+
+        b = LatticeUtil.find_first_command(data, "beam")
+        b.npart = n
+        b.gamma = 0
+        b.energy = 0
+        #TODO(pjm): handle other particle types
+        mass_and_charge = PKDict(
+            ELECTRON=0.51099895000e-03,
+            PROTON=0.93827208816,
+        )
+        b.pc = psum / n * mass_and_charge[b.particle]
+        _save_lib_file(tmp, filename)
+        write_sim(data)
+
+    data = read_sim('opal', opal_id)
+    if prev_sim:
+        filename = file_name_from_sim_name('opal', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
+        t = run_dir.join("opal-command_distribution")
+        if prev_sim.sim_type == 'genesis':
+            import pmd_beamphysics.interfaces.opal
+
+            pmd_beamphysics.interfaces.opal.write_opal(
+                genesis_to_pmd(prev_sim),
+                str(t),
+            )
+        else:
+            assert prev_sim.outfile_path
+            sw = switchyard.Switchyard()
+            sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
+            sw.write(str(t), "opal")
+        _update_sim(data, filename, t)
+    data.computeModel = 'animation'
+    LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
+    sirepo.simulation_db.prepare_simulation(data, run_dir)
+    # pkio.save_chdir(run_dir)
+    # with prep_run_dir(run_dir, data):
+    #     sirepo.pkcli.opal.run_opal(with_mpi=True)
+    # return f'{run_dir}/{sirepo.template.opal._OPAL_H5_FILE}'
+
 
 
 def _extract_elegant_beam_plot(frame_args):
@@ -323,9 +417,8 @@ def _extract_elegant_beam_plot(frame_args):
     return res
 
 
-def _generate_parameters_file(data):
+def _coupled_sims_list(data):
     dm = data.models
-    res, v = template_common.generate_parameters_file(data)
     sim_list = []
     for idx in range(len(dm.simWorkflow.coupledSims)):
         s = _sim_info(dm, idx)
@@ -340,6 +433,12 @@ def _generate_parameters_file(data):
             break
     if not sim_list:
         raise AssertionError("No simulations selected")
+    return sim_list
+
+
+def _generate_parameters_file(data):
+    res, v = template_common.generate_parameters_file(data)
+    sim_list = _coupled_sims_list(data)
     v.simList = sim_list
     return res + template_common.render_jinja(SIM_TYPE, v)
 
