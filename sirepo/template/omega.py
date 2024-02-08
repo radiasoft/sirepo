@@ -7,6 +7,7 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
+from rsbeams.rsdata import switchyard
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
@@ -19,7 +20,7 @@ import pmd_beamphysics.interfaces.opal
 import re
 import sirepo.sim_data
 import sirepo.template
-# TODO (gurhar1133): need to alphabetical sort functions
+
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _PHASE_PLOT_COUNT = 4
 _PHASE_PLOTS = PKDict(
@@ -107,6 +108,7 @@ _ELEGANT_BEAM_PARAMETER_FILE = PKDict(
     Cx="run_setup.centroid.sdds",
     Cy="run_setup.centroid.sdds",
 )
+_GENESIS_PARTICLE_COLUMN_COUNT = 6
 _RELATED_SIMS_FOLDER = "/Omega"
 _SUCCESS_OUTPUT_FILE = PKDict(
     elegant="run_setup.output.sdds",
@@ -282,149 +284,12 @@ def stateful_compute_get_opal_sim_list(**kwargs):
 
 
 def write_parameters(data, run_dir, is_parallel):
-    prev = None
-    sim_list = _coupled_sims_list(data)
-    pkdp("\n\n\n sim_list={}", sim_list)
-    for idx in range(len(sim_list)):
-        s = sim_list[idx]
-        d = run_dir.join(f'run{idx + 1}')
-        pkio.unchecked_remove(d)
-        pkio.mkdir_parent(d)
-        if s.sim_type == "opal":
-            _prepare_opal(d, s.sim_id, prev)
-        elif s.sim_type == "elegant":
-            _prepare_elegant(d, s.sim_id, prev)
+    pkdp("\n\n\n data.simulation_name={}", data.models.simulation.name)
+    _prepare_subsims(data, run_dir, data.models.simulation.name)
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
-
-
-def _prepare_opal(run_dir, opal_id, prev_sim=None):
-    def _save_lib_file(tmp, filename):
-        s = sirepo.sim_data.get_class("opal")
-        s.lib_file_write(
-            s.lib_file_name_with_model_field("command_distribution", "fname", filename),
-            tmp,
-        )
-        tmp.remove()
-
-    def _update_sim(data, filename, tmp):
-        d = LatticeUtil.find_first_command(data, "distribution")
-        d.type = "FROMFILE"
-        d.fname = filename
-        n = 0
-        zsum = 0
-        psum = 0
-        # calculate z offset
-        with pkio.open_text(tmp) as f:
-            for line in f:
-                if not n:
-                    n = int(line)
-                    continue
-                r = [v for v in re.split(r"\s+", line.strip())]
-                zsum += float(r[4])
-                psum += float(r[5])
-        d.offsetz = -zsum / n
-
-        b = LatticeUtil.find_first_command(data, "beam")
-        b.npart = n
-        b.gamma = 0
-        b.energy = 0
-        #TODO(pjm): handle other particle types
-        mass_and_charge = PKDict(
-            ELECTRON=0.51099895000e-03,
-            PROTON=0.93827208816,
-        )
-        b.pc = psum / n * mass_and_charge[b.particle]
-        _save_lib_file(tmp, filename)
-        write_sim(data)
-
-    data = _read_sim('opal', opal_id)
-    if prev_sim:
-        # TODO (gurhar1133): figure out _OMEGA_SIM_NAME
-        filename = _file_name_from_sim_name('opal', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
-        t = run_dir.join("opal-command_distribution")
-        if prev_sim.sim_type == 'genesis':
-            import pmd_beamphysics.interfaces.opal
-
-            pmd_beamphysics.interfaces.opal.write_opal(
-                _genesis_to_pmd(prev_sim),
-                str(t),
-            )
-        else:
-            assert prev_sim.outfile_path
-            sw = switchyard.Switchyard()
-            sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
-            sw.write(str(t), "opal")
-        _update_sim(data, filename, t)
-    data.computeModel = 'animation'
-    LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
-    sirepo.simulation_db.prepare_simulation(data, run_dir)
-    # pkio.save_chdir(run_dir)
-    # with prep_run_dir(run_dir, data):
-    #     sirepo.pkcli.opal.run_opal(with_mpi=True)
-    # return f'{run_dir}/{sirepo.template.opal._OPAL_H5_FILE}'
-
-
-
-def _prepare_elegant(run_dir, elegant_id, prev_sim=None):
-    def _save_lib_files(tmp, filename):
-        s = sirepo.sim_data.get_class("elegant")
-        b = s.lib_file_name_with_model_field("bunchFile", "sourceFile", filename)
-        s.lib_file_write(b, tmp)
-        c = s.sim_db_client()
-        c.copy(
-            c.uri(c.LIB_DIR, b),
-            c.uri(
-                c.LIB_DIR,
-                s.lib_file_name_with_model_field("command_run_setup", "expand_for", filename),
-            ),
-        )
-        tmp.remove()
-
-    def _update_sim(data, filename, prev_sim):
-        if data.models.bunchSource.inputSource == 'bunched_beam':
-            _convert_bunched_beam_to_sdds_beam(data, filename)
-        assert data.models.bunchSource.inputSource == 'sdds_beam'
-        cmd = LatticeUtil.find_first_command(data, "sdds_beam")
-        cmd.input = filename
-        cmd.center_arrival_time = '1'
-        cmd.center_transversely = '1'
-        cmd.reverse_t_sign = '1' if prev_sim.sim_type == 'genesis' else '0'
-        LatticeUtil.find_first_command(data, "run_setup").expand_for = filename
-        write_sim(data)
-
-    data = _read_sim('elegant', elegant_id)
-    if prev_sim:
-        assert prev_sim.outfile_path
-        # TODO (gurhar1133): figure out _OMEGA_SIM_NAME
-        filename = _file_name_from_sim_name('elegant', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
-        _update_sim(data, filename, prev_sim)
-        t = run_dir.join("omega-elegant-bunch")
-        if prev_sim.sim_type == 'elegant':
-            pkio.py_path(prev_sim.outfile_path).copy(t)
-        elif prev_sim.sim_type == 'genesis':
-            import pmd_beamphysics.interfaces.elegant
-
-            pmd_beamphysics.interfaces.elegant.write_elegant(
-                _genesis_to_pmd(prev_sim),
-                str(t),
-            )
-        else:
-            sw = switchyard.Switchyard()
-            sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
-            sw.write(str(t), 'elegant')
-        _save_lib_files(t, filename)
-    data.computeModel = 'animation'
-    if 'report' in data:
-        del data['report']
-    sirepo.simulation_db.prepare_simulation(data, run_dir)
-    # pkio.save_chdir(run_dir)
-    # with prep_run_dir(run_dir, data):
-    #     sirepo.pkcli.opal.run_opal(with_mpi=True)
-    # return f'{run_dir}/{sirepo.template.opal._OPAL_H5_FILE}'
-
 
 
 def _extract_elegant_beam_plot(frame_args):
@@ -648,6 +513,211 @@ def _plot_phase(sim_type, frame_args):
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
 
 
+def _prepare_elegant(run_dir, elegant_id, omega_sim_name, prev_sim=None):
+    def _save_lib_files(tmp, filename):
+        s = sirepo.sim_data.get_class("elegant")
+        b = s.lib_file_name_with_model_field("bunchFile", "sourceFile", filename)
+        s.lib_file_write(b, tmp)
+        c = s.sim_db_client()
+        c.copy(
+            c.uri(c.LIB_DIR, b),
+            c.uri(
+                c.LIB_DIR,
+                s.lib_file_name_with_model_field("command_run_setup", "expand_for", filename),
+            ),
+        )
+        tmp.remove()
+
+    def _update_sim(data, filename, prev_sim):
+        if data.models.bunchSource.inputSource == 'bunched_beam':
+            _convert_bunched_beam_to_sdds_beam(data, filename)
+        assert data.models.bunchSource.inputSource == 'sdds_beam'
+        cmd = LatticeUtil.find_first_command(data, "sdds_beam")
+        cmd.input = filename
+        cmd.center_arrival_time = '1'
+        cmd.center_transversely = '1'
+        cmd.reverse_t_sign = '1' if prev_sim.sim_type == 'genesis' else '0'
+        LatticeUtil.find_first_command(data, "run_setup").expand_for = filename
+        _write_sim(data)
+
+    data = _read_sim('elegant', elegant_id)
+    if prev_sim:
+        assert prev_sim.outfile_path
+        filename = _file_name_from_sim_name('elegant', f'{omega_sim_name}-{run_dir.basename}')
+        _update_sim(data, filename, prev_sim)
+        t = run_dir.join("omega-elegant-bunch")
+        if prev_sim.sim_type == 'elegant':
+            pkio.py_path(prev_sim.outfile_path).copy(t)
+        elif prev_sim.sim_type == 'genesis':
+            import pmd_beamphysics.interfaces.elegant
+
+            pmd_beamphysics.interfaces.elegant.write_elegant(
+                _genesis_to_pmd(prev_sim),
+                str(t),
+            )
+        else:
+            # TODO (gurhar1133): this read/write from the output of a previous sim stuff needs to be done in parameters.py
+            sw = switchyard.Switchyard()
+            sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
+            sw.write(str(t), 'elegant')
+        _save_lib_files(t, filename)
+    data.computeModel = 'animation'
+    if 'report' in data:
+        del data['report']
+    sirepo.simulation_db.prepare_simulation(data, run_dir)
+    return f'{run_dir}/run_setup.output.sdds'
+
+
+def _prepare_genesis(run_dir, genesis_id, omega_sim_name, prev_sim=None):
+    def _save_lib_file(tmp, filename):
+        s = sirepo.sim_data.get_class("genesis")
+        s.lib_file_write(
+            s.lib_file_name_with_model_field("io", "partfile", filename),
+            tmp,
+        )
+        tmp.remove()
+
+    def _update_sim(data, filename, tmp):
+        io = data.models.io
+        io.partfile = filename
+        io.ippart = 0
+        io.ipradi = 0
+        d = numpy.fromfile(tmp, dtype=numpy.float64)
+        n = len(d) / _GENESIS_PARTICLE_COLUMN_COUNT
+        factor = 4 * data.models.particleLoading.nbins
+        data.models.electronBeam.npart = int(n / factor) * factor
+        # clip particle count to match npart
+        d = d.reshape(_GENESIS_PARTICLE_COLUMN_COUNT, int(n))
+        d = d[:, :data.models.electronBeam.npart]
+        with open(tmp, 'wb') as f:
+            d.tofile(f)
+        _save_lib_file(tmp, filename)
+        _write_sim(data)
+
+    data = _read_sim('genesis', genesis_id)
+    if prev_sim:
+        assert prev_sim.outfile_path
+        filename = file_name_from_sim_name(
+            "genesis", f"{omega_sim_name}-{run_dir.basename}"
+        )
+        t = run_dir.join("omega-genesis-partfile")
+        if prev_sim.sim_type == "genesis":
+            # center longitudinal
+            with open(prev_sim.outfile_path, 'rb') as f:
+                d = numpy.fromfile(f, dtype=numpy.float64)
+            d = d.reshape((_GENESIS_PARTICLE_COLUMN_COUNT, int(len(d) / _GENESIS_PARTICLE_COLUMN_COUNT)))
+            d[1,:] -= numpy.mean(d[1,:])
+            with open(t, 'wb') as f:
+                d.tofile(f)
+        else:
+            if prev_sim.sim_type == "elegant":
+                p = switchyard.read_elegant(f"{prev_sim.outfile_path}")
+            else:
+                assert prev_sim.sim_type == "opal"
+                p = switchyard.read_opal(f"{prev_sim.outfile_path}")
+            particle_data = numpy.zeros([_GENESIS_PARTICLE_COLUMN_COUNT, len(p.x)])
+            for i, col in enumerate(['pt', 'ct', 'x', 'y', 'ux', 'uy']):
+                particle_data[i, :] = getattr(p, col)
+            #TODO(pjm): [0] should be gamma not momentum
+            particle_data[1] *= 2 * numpy.pi / data.models.radiation.xlamds
+            particle_data[1] -= numpy.mean(particle_data[1])
+            with open(t, "wb") as f:
+                particle_data.tofile(f)
+        _update_sim(data, filename, t)
+    data.computeModel = 'animation'
+    if 'report' in data:
+        del data['report']
+    sirepo.simulation_db.prepare_simulation(data, run_dir)
+    return f"{run_dir}/genesis.out.dpa"
+
+
+def _prepare_opal(run_dir, opal_id, omega_sim_name, prev_sim=None):
+    def _save_lib_file(tmp, filename):
+        s = sirepo.sim_data.get_class("opal")
+        s.lib_file_write(
+            s.lib_file_name_with_model_field("command_distribution", "fname", filename),
+            tmp,
+        )
+        tmp.remove()
+
+    def _update_sim(data, filename, tmp):
+        d = LatticeUtil.find_first_command(data, "distribution")
+        d.type = "FROMFILE"
+        d.fname = filename
+        n = 0
+        zsum = 0
+        psum = 0
+        # calculate z offset
+        with pkio.open_text(tmp) as f:
+            for line in f:
+                if not n:
+                    n = int(line)
+                    continue
+                r = [v for v in re.split(r"\s+", line.strip())]
+                zsum += float(r[4])
+                psum += float(r[5])
+        d.offsetz = -zsum / n
+
+        b = LatticeUtil.find_first_command(data, "beam")
+        b.npart = n
+        b.gamma = 0
+        b.energy = 0
+        #TODO(pjm): handle other particle types
+        mass_and_charge = PKDict(
+            ELECTRON=0.51099895000e-03,
+            PROTON=0.93827208816,
+        )
+        b.pc = psum / n * mass_and_charge[b.particle]
+        _save_lib_file(tmp, filename)
+        _write_sim(data)
+
+    data = _read_sim('opal', opal_id)
+    if prev_sim:
+        filename = _file_name_from_sim_name('opal', f'{omega_sim_name}-{run_dir.basename}')
+        t = run_dir.join("opal-command_distribution")
+        if prev_sim.sim_type == 'genesis':
+            import pmd_beamphysics.interfaces.opal
+
+            pmd_beamphysics.interfaces.opal.write_opal(
+                _genesis_to_pmd(prev_sim),
+                str(t),
+            )
+        else:
+            assert prev_sim.outfile_path
+            sw = switchyard.Switchyard()
+            sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
+            sw.write(str(t), "opal")
+        _update_sim(data, filename, t)
+    data.computeModel = 'animation'
+    LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
+    sirepo.simulation_db.prepare_simulation(data, run_dir)
+    return f'{run_dir}/{sirepo.template.opal._OPAL_H5_FILE}'
+
+
+def _prepare_subsims(data, run_dir, omega_sim_name):
+    prev = None
+    sim_list = _coupled_sims_list(data)
+    pkdp("\n\n\n sim_list={}", sim_list)
+    for idx in range(len(sim_list)):
+        s = sim_list[idx]
+        d = run_dir.join(f'run{idx + 1}')
+        pkio.unchecked_remove(d)
+        pkio.mkdir_parent(d)
+        if s.sim_type == "opal":
+            s.outfile_path = _prepare_opal(d, s.sim_id, omega_sim_name, prev_sim=prev)
+        elif s.sim_type == "elegant":
+            s.outfile_path = _prepare_elegant(d, s.sim_id, omega_sim_name, prev_sim=prev)
+        elif s.sim_type == "genesis":
+            s.outfile_path = _prepare_genesis(d, s.sim_id, omega_sim_name, prev_sim=prev)
+        else:
+            raise AssertionError(f"unhandled sim_type={s.sim_type}")
+        prev = s
+
+
+def _read_sim(sim_type, sim_id):
+    return sirepo.sim_data.get_class(sim_type).sim_db_read_sim(sim_id)
+
+
 def _sim_dir(run_dir, sim_count):
     return run_dir.join(f"run{sim_count}")
 
@@ -674,10 +744,6 @@ def _sim_list(sim_type):
 
 def _template_for_sim_type(sim_type):
     return sirepo.template.import_module(sim_type)
-
-
-def _read_sim(sim_type, sim_id):
-    return sirepo.sim_data.get_class(sim_type).sim_db_read_sim(sim_id)
 
 
 def _write_sim(data):
