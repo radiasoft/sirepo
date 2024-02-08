@@ -2032,7 +2032,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             }
             self.updateCookies();
         }
-        return rv
+        return rv;
     };
 
     const _protocolError = (header, content, wsreq, errorMsg) => {
