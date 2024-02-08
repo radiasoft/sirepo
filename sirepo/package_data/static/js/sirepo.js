@@ -177,7 +177,10 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 }]);
 
 // Add "log-broadcasts" in dependencies if you want to see all broadcasts
-SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'ngCookies', 'ngSanitize']);
+SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'ngCookies', 'ngSanitize']).run(
+    // Initialize factories not otherwise linked into dependency tree
+    (asyncMsgSetCookies) => {}
+);
 
 SIREPO.app.value('localRoutes', {});
 
@@ -243,7 +246,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
 });
 
-SIREPO.app.factory('authState', function(appDataService, appState, errorService, requestSender, $rootScope) {
+SIREPO.app.factory('authState', function(appDataService, appState, errorService, requestSender, $rootScope, $cookies) {
     var self = appState.clone(SIREPO.authState);
 
     if (SIREPO.authState.isGuestUser
@@ -1998,10 +2001,13 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
 // cannot import authState factory, because of circular import with requestSender
 SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) => {
+    let asyncMsgMethods = {};
+    let cookies = "";
     let needReply = {};
     let reqSeq = 1;
     const self = {};
     let socket = null;
+    let socketRetryBackoff = 0;
     const toSend = [];
 
     const _appendBuffers = (wsreq, buffers) => {
@@ -2015,45 +2021,26 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         wsreq.msg = f;
     };
 
-    const _error = (event) => {
-        // close: event.code : short, event.reason : str, wasClean : bool
-        // error: app specific
-        socket = null;
-        srlog("WebSocket failed: event=", event);
-        if (! event.wasClean) {
-            toSend.unshift(...Object.values(needReply));
-            needReply = {};
-        }
-        //TODO(robnagler) backoff timer and set status
-        $interval(_socket, 1000, 1);
-    };
-
-    const _isAuthenticated = () =>  {
-        return SIREPO.authState.isLoggedIn && ! SIREPO.authState.needCompleteRegistration;
-    };
-
-    const _isAuthUrl = (url) =>  {
-        return url.startsWith("/auth-");
-    };
-
-    const _isOauth = (url, data) => {
-	// TODO(e-carlin): https://github.com/radiasoft/sirepo/issues/6689
-        return SIREPO.APP_SCHEMA.simulationType === 'flash';
+    const _cookiesChanged = () => {
+        return cookies != document.cookie;
     };
 
     const _protocolError = (header, content, wsreq, errorMsg) => {
-        if (! errorMsg) {
-            errorMsg = "invalid reply from server";
-        }
+        const e = "sirepo.msgRouter protocolError=" + (errorMsg || "invalid reply from server");
         srlog(
-            `wsreq#${wsreq && wsreq.header && wsreq.header.reqSeq} protocolError:`,
-            errorMsg,
+            e,
+            header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.asyncMsg
+                ? ` asyncMsgMethod={header.method}`
+                : wsreq && wsreq.header ? ` wsreq={wsreq.header.reqSeq}`
+                : "wsreq=null",
+            " header=",
             header,
+            " content=",
             content
         );
         if (wsreq) {
             wsreq.deferred.reject({
-                data: {state: "error", error: errorMsg},
+                data: {state: "error", error: e},
                 status: 500,
             });
         }
@@ -2062,6 +2049,22 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     const _reply = (blob) => {
         let [header, content] = msgpack.decodeMulti(blob);
         const wsreq = needReply[header.reqSeq];
+        if (header.version !== SIREPO.APP_SCHEMA.websocketMsg.version) {
+            _protocolError(header, content, wsreq, "invalid version");
+            return;
+        }
+        if (header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.asyncMsg) {
+            if (! header.method) {
+                _protocolError(header, content, wsreq, "missing method in content");
+            }
+            else if (! (header.method in asyncMsgMethods) ){
+                _protocolError(header, content, wsreq, `unregistered asyncMsg method={header.method}`);
+            }
+            else {
+                asyncMsgMethods[header.method](content);
+            }
+            return;
+        }
         const _replyError = (reply) => {
             if (SIREPO.traceWS) {
                 srlog(`wsreq#${wsreq.header.reqSeq} replyError:`, reply);
@@ -2069,16 +2072,10 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             wsreq.deferred.reject(reply);
         };
         if (! wsreq) {
-            srlog("wsreq not found reqSeq=", header.reqSeq, " header=", header);
-            _protocolError(header, content, null);
+            _protocolError(header, content, null, "reqSeq not found");
             return;
         }
         delete needReply[header.reqSeq];
-        if (header.version !== SIREPO.APP_SCHEMA.websocketMsg.version) {
-            srlog("WebSocket msg invalid version in header=", header, " req=", wsreq);
-            _protocolError(header, content, wsreq);
-            return;
-        }
         if (header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.srException) {
             const n = content.routeName;
             const r = {data: {}};
@@ -2093,15 +2090,13 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             return;
         }
         if (header.kind !== SIREPO.APP_SCHEMA.websocketMsg.kind.httpReply) {
-            srlog("WebSocket msg invalid kind in header=", header, " req=", wsreq);
-            _protocolError(header, content, wsreq);
+            _protocolError(header, content, wsreq, "invalid websocketMsg.kind");
             return;
         }
         const b = wsreq.responseType === "blob";
         if (content instanceof Uint8Array) {
             if (! b) {
-                srlog("WebSocket not expecting blob header=", header, " wsreq=", wsreq);
-                _protocolError(header, content, wsreq);
+                _protocolError(header, content, wsreq, "unexpected blob content");
                 return;
             }
             content = new Blob([content]);
@@ -2111,8 +2106,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
                 _replyError({data: content});
                 return;
             }
-            srlog("WebSocket expecting blob header=", header, " wsreq=", wsreq, " content=", content);
-            _protocolError(header, content, wsreq);
+            _protocolError(header, content, wsreq, "expected blob content");
             return;
         }
         else if (wsreq.responseType === "json") {
@@ -2215,16 +2209,42 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         const s = new WebSocket(
             new URL($window.location.href).origin.replace(/^http/i, "ws") + "/ws",
         );
-        s.onclose = (event) => {_error(event);};
-        s.onerror = (event) => {_error(event);};
-        s.onmessage = (event) => {
-            event.data.arrayBuffer().then(
-                (blob) => {_reply(blob);},
-                (error) => {srlog("WebSocket.onmessage error=", error, " event=", event);}
-            );
-        };
-        s.onopen = (event) => {_send();};
+        s.onclose = _socketError;
+        s.onerror = _socketError;
+        s.onmessage = _socketOnMessage;
+        s.onopen = _socketOnOpen;
         socket = s;
+    };
+
+    const _socketError = (event) => {
+        // close: event.code : short, event.reason : str, wasClean : bool
+        // error: app specific
+        socket = null;
+        if (socketRetryBackoff <= 0) {
+            socketRetryBackoff = 1;
+            srlog("WebSocket failed: event=", event);
+            if (! event.wasClean) {
+                toSend.unshift(...Object.values(needReply));
+                needReply = {};
+            }
+        }
+        //TODO(robnagler) some type of set status to communicate connection lost
+        $interval(_socket, socketRetryBackoff * 1000, 1);
+        if (socketRetryBackoff < 60) {
+            socketRetryBackoff *= 2;
+        }
+    };
+
+    const _socketOnMessage = (event) => {
+        event.data.arrayBuffer().then(
+            (blob) => {_reply(blob);},
+            (error) => {srlog("WebSocket.onmessage error=", error, " event=", event);}
+        );
+    };
+
+    const _socketOnOpen = (event) => {
+        socketRetryBackoff = 0;
+        _send();
     };
 
     const _timeout = (wsreq) => {
@@ -2237,10 +2257,17 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         _protocolError(null, null, wsreq, "request timed out");
     };
 
+    self.registerAsyncMsg = (methodName, callback) => {
+        if (methodName in asyncMsgMethods) {
+            throw new Error(`duplicate registerAsyncMsg methodName="{methodName}"`);
+        }
+        asyncMsgMethods[methodName] = callback;
+    };
+
     self.send = (url, data, httpConfig) => {
-        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url) || _isOauth(url, data)) {
-            // Might be auto logged out so close socket so can re-authenticate
+        if (! SIREPO.authState.uiWebSocket || _cookiesChanged()) {
             if (socket) {
+                // Close socket so can re-authenticate
                 socket.close();
                 socket = null;
             }
@@ -2281,6 +2308,10 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             _reqData(data, wsreq, c);
         }
         return wsreq.deferred.promise;
+    };
+
+    self.updateCookies = () => {
+        cookies = document.cookie;
     };
 
     return self;
@@ -4647,4 +4678,17 @@ SIREPO.app.factory('cookieService', function($cookies) {
     checkFirstVisit();
 
     return svc;
+});
+
+SIREPO.app.factory('asyncMsgSetCookies', ($cookies, msgRouter) => {
+    const self = {};
+    const asyncMsgMethod = (content) => {
+        for (let c of content) {
+            document.cookie = c;
+        }
+        msgRouter.updateCookies()
+    };
+
+    msgRouter.registerAsyncMsg('setCookies', asyncMsgMethod);
+    return self;
 });

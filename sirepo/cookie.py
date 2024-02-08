@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """User state management via an HTTP cookie
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
@@ -9,6 +8,7 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import base64
+import copy
 import cryptography.fernet
 import itertools
 import re
@@ -16,13 +16,24 @@ import sirepo.events
 import sirepo.quest
 import sirepo.util
 
-_MAX_AGE_SECONDS = 10 * 365 * 24 * 3600
-
 #: Identifies if the cookie has been returned at least once by the client
 _COOKIE_SENTINEL = "srk"
 
 #: Unique, truthy that can be asserted on decrypt
-_COOKIE_SENTINEL_VALUE = "z"
+_COOKIE_SENTINEL_V2 = "2"
+
+#: Old value, which will get rewritten on first request, removing httponlya
+_COOKIE_SENTINEL_V1 = "z"
+
+#: Valid sentinel values
+_COOKIE_SENTINEL_VERSIONS = frozenset((_COOKIE_SENTINEL_V1, _COOKIE_SENTINEL_V2))
+
+_HTTP_HEADER_ADD_FMT = None
+
+_HTTP_HEADER_ADD_BASE = f"Max-Age={10 * 365 * 24 * 3600}; Path=/; SameSite=Lax"
+
+#: See description in `reply.delete_third_party_cookies`
+_HTTP_HEADER_DELETE_FMT = "{key}=; Max-Age=0; Path={path}"
 
 _SERIALIZER_SEP = " "
 
@@ -31,25 +42,54 @@ _cfg = None
 
 def init_quest(qcall):
     c = _Cookie(qcall)
-    qcall.attr_set("cookie", c)
     if qcall.bucket_unchecked_get("in_pkcli"):
         c.set_sentinel()
 
 
 class _Cookie(sirepo.quest.Attr):
-    def __init__(self, qcall):
-        super().__init__()
-        self.__incoming_serialized = ""
-        self._from_cookie_header(qcall)
+    _INIT_QUEST_FOR_CHILD_KEYS = frozenset(("_values",))
+
+    _QUEST_KEY = "cookie"
+
+    def __init__(self, qcall, *args, **kwargs):
+        super().__init__(qcall, *args, **kwargs)
+        self._modified = False
+        if kwargs.get("init_quest_for_child"):
+            return
+        s = qcall.sreq.cookie_state
+        if isinstance(s, PKDict):
+            self._values = s
+        else:
+            # Also handles case where state is None (_SRequestCLI)
+            self._from_http_header(qcall, s)
 
     def get_value(self, key):
-        return self.__values[key]
+        return self._values[key]
 
     def has_key(self, key):
-        return key in self.__values
+        return key in self._values
 
     def has_sentinel(self):
-        return _COOKIE_SENTINEL in self.__values
+        return _COOKIE_SENTINEL in self._values
+
+    def http_header_values(self, to_delete=tuple()):
+        """Returns values to be used in http cookie set headers
+
+        Always returns `self` serialized. Also returns serialized
+        `to_delete`.
+
+        This call only happens if `save_to_reply` has called `_SReply.cookie_set`.
+
+        Args:
+            cookies_to_delete (iter): optional headers to create
+
+        Returns:
+            tuple: values to be passed to Set-Cookie
+
+        """
+        return (_HTTP_HEADER_ADD_FMT.format(self._encrypt(self._serialize())),) + tuple(
+            _HTTP_HEADER_DELETE_FMT.format(**v) for v in to_delete
+        )
 
     def reset_state(self, error):
         """Clear all values and log `error` with values.
@@ -58,24 +98,19 @@ class _Cookie(sirepo.quest.Attr):
             error (str): to be logged
         """
         pkdlog("resetting cookie: error={} values={}", error, _state())
-        self.__values.clear()
+        self._modified = True
+        self._values.clear()
 
-    def save_to_cookie(self, resp):
-        self.set_sentinel()
-        s = self._serialize()
-        if s == self.__incoming_serialized:
+    def save_to_reply(self, resp):
+        if not self._modified:
             return
-        resp.cookie_set(
-            key=_cfg.http_name,
-            value=self._encrypt(s),
-            max_age=_MAX_AGE_SECONDS,
-            httponly=True,
-            secure=_cfg.is_secure,
-            samesite="Lax",
-        )
+        self._modified = False
+        self.set_sentinel()
+        resp.cookie_set(self)
 
     def set_sentinel(self):
-        self.__values[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
+        self._modified = True
+        self._values[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_V2
 
     def set_value(self, key, value):
         v = str(value)
@@ -86,15 +121,25 @@ class _Cookie(sirepo.quest.Attr):
             key != _COOKIE_SENTINEL
         ), f"key={key} is _COOKIE_SENTINEL={_COOKIE_SENTINEL}"
         assert (
-            _COOKIE_SENTINEL in self.__values
-        ), f"_COOKIE_SENTINEL not set self keys={sorted(self.__values.keys())} for key={key}"
-        self.__values[key] = v
+            _COOKIE_SENTINEL in self._values
+        ), f"_COOKIE_SENTINEL not set self keys={sorted(self._values.keys())} for key={key}"
+        self._modified = True
+        self._values[key] = v
+
+    def state_for_websocket(self):
+        """Persistent state for next websocket call
+
+        Returns:
+            object: anonymous values to be passed to init_quest
+        """
+        return self._values
 
     def unchecked_get_value(self, key, default=None):
-        return self.__values.get(key, default)
+        return self._values.get(key, default)
 
     def unchecked_remove(self, key):
-        return self.__values.pkdel(key)
+        self._modified = True
+        return self._values.pkdel(key)
 
     def _crypto(self):
         if "_crypto_alg" not in self:
@@ -118,10 +163,14 @@ class _Cookie(sirepo.quest.Attr):
 
     def _deserialize(self, value):
         v = value.split(_SERIALIZER_SEP)
-        v = dict(zip(v[::2], v[1::2]))
-        assert (
-            v[_COOKIE_SENTINEL] == _COOKIE_SENTINEL_VALUE
-        ), "cookie sentinel value is not correct"
+        v = PKDict(zip(v[::2], v[1::2]))
+        if v[_COOKIE_SENTINEL] not in _COOKIE_SENTINEL_VERSIONS:
+            raise AssertionError(
+                f"cookie sentinel value={v[_COOKIE_SENTINEL]} is invalid",
+            )
+        if v[_COOKIE_SENTINEL] in _COOKIE_SENTINEL_V1:
+            self._modified = True
+            v[_COOKIE_SENTINEL_V1] = _COOKIE_SENTINEL_V2
         return v
 
     def _encrypt(self, text):
@@ -131,37 +180,38 @@ class _Cookie(sirepo.quest.Attr):
             ),
         )
 
-    def _from_cookie_header(self, qcall):
-        header = qcall.sreq.header_uget("Cookie")
-        self.__values = PKDict()
-        if not header:
+    def _from_http_header(self, qcall, header):
+        def _parse():
+            s = None
+            try:
+                m = re.search(
+                    rf"\b{_cfg.http_name}=([^;]+)",
+                    header,
+                )
+                if m:
+                    s = self._decrypt(m.group(1))
+                    self._values, self._modified = qcall.auth.cookie_cleaner(
+                        self._deserialize(s)
+                    )
+                    return True
+            except Exception as e:
+                if "crypto" in type(e).__module__:
+                    # cryptography module exceptions serialize to empty string
+                    # so just report the type.
+                    e = type(e)
+                pkdc("{}", pkdexc())
+                pkdlog("Cookie decoding error={} value={}", e, s)
+            return False
+
+        if header and _parse():
             return
-        s = None
-        err = None
-        try:
-            match = re.search(
-                r"\b{}=([^;]+)".format(_cfg.http_name),
-                header,
-            )
-            if match:
-                s = self._decrypt(match.group(1))
-                self.__values.update(qcall.auth.cookie_cleaner(self._deserialize(s)))
-                self.__incoming_serialized = s
-                return
-        except Exception as e:
-            if "crypto" in type(e).__module__:
-                # cryptography module exceptions serialize to empty string
-                # so just report the type.
-                e = type(e)
-            err = e
-            pkdc("{}", pkdexc())
-        if err:
-            pkdlog("Cookie decoding failed: {} value={}", err, s)
+        self._modified = True
+        self._values = PKDict()
 
     def _serialize(self):
         return _SERIALIZER_SEP.join(
             itertools.chain.from_iterable(
-                [(k, self.__values[k]) for k in sorted(self.__values.keys())],
+                [(k, self._values[k]) for k in sorted(self._values.keys())],
             ),
         )
 
@@ -175,11 +225,11 @@ def _cfg_http_name(value):
 
 
 def _end_api_call(qcall, kwargs):
-    qcall.cookie.save_to_cookie(kwargs.resp)
+    qcall.cookie.save_to_reply(kwargs.resp)
 
 
 def init_module():
-    global _cfg
+    global _cfg, _HTTP_HEADER_ADD_FMT
 
     if _cfg:
         return
@@ -195,5 +245,14 @@ def init_module():
             pkconfig.parse_bool,
             "Add secure attribute to Set-Cookie",
         ),
+    )
+
+    # SECURITY: We set cookies via Javascript so httponly must be false.
+    # We do not inject second party HTML. XSS is unlikely.
+    _HTTP_HEADER_ADD_FMT = (
+        _cfg.http_name
+        + "={}; "
+        + _HTTP_HEADER_ADD_BASE
+        + ("; Secure" if _cfg.is_secure else "")
     )
     sirepo.events.register(PKDict(end_api_call=_end_api_call))
