@@ -4686,7 +4686,7 @@ SIREPO.app.factory('asyncMsgSetCookies', ($cookies, msgRouter) => {
         for (let c of content) {
             document.cookie = c;
         }
-        msgRouter.updateCookies()
+        msgRouter.updateCookies();
     };
 
     msgRouter.registerAsyncMsg('setCookies', asyncMsgMethod);
