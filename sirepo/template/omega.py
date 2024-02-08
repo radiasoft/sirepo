@@ -19,7 +19,7 @@ import pmd_beamphysics.interfaces.opal
 import re
 import sirepo.sim_data
 import sirepo.template
-
+# TODO (gurhar1133): need to alphabetical sort functions
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _PHASE_PLOT_COUNT = 4
 _PHASE_PLOTS = PKDict(
@@ -300,22 +300,6 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def read_sim(sim_type, sim_id):
-    return sirepo.sim_data.get_class(sim_type).sim_db_read_sim(sim_id)
-
-
-def write_sim(data):
-    sirepo.sim_data.get_class(data.simulationType).sim_db_save_sim(data)
-
-
-def file_name_from_sim_name(sim_type, sim_name):
-    res = re.sub(r'[^0-9a-zA-Z]', '_', sim_name)
-    res = re.sub(r'^\_+|\_+$', '', res)
-    res = re.sub(r'\_+', '_', res)
-    ext = "sdds" if sim_type == "elegant" else "dat"
-    return f"{res}.{ext}"
-
-
 def _prepare_opal(run_dir, opal_id, prev_sim=None):
     def _save_lib_file(tmp, filename):
         s = sirepo.sim_data.get_class("opal")
@@ -356,15 +340,16 @@ def _prepare_opal(run_dir, opal_id, prev_sim=None):
         _save_lib_file(tmp, filename)
         write_sim(data)
 
-    data = read_sim('opal', opal_id)
+    data = _read_sim('opal', opal_id)
     if prev_sim:
-        filename = file_name_from_sim_name('opal', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
+        # TODO (gurhar1133): figure out _OMEGA_SIM_NAME
+        filename = _file_name_from_sim_name('opal', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
         t = run_dir.join("opal-command_distribution")
         if prev_sim.sim_type == 'genesis':
             import pmd_beamphysics.interfaces.opal
 
             pmd_beamphysics.interfaces.opal.write_opal(
-                genesis_to_pmd(prev_sim),
+                _genesis_to_pmd(prev_sim),
                 str(t),
             )
         else:
@@ -400,7 +385,7 @@ def _prepare_elegant(run_dir, elegant_id, prev_sim=None):
 
     def _update_sim(data, filename, prev_sim):
         if data.models.bunchSource.inputSource == 'bunched_beam':
-            convert_bunched_beam_to_sdds_beam(data, filename)
+            _convert_bunched_beam_to_sdds_beam(data, filename)
         assert data.models.bunchSource.inputSource == 'sdds_beam'
         cmd = LatticeUtil.find_first_command(data, "sdds_beam")
         cmd.input = filename
@@ -410,10 +395,11 @@ def _prepare_elegant(run_dir, elegant_id, prev_sim=None):
         LatticeUtil.find_first_command(data, "run_setup").expand_for = filename
         write_sim(data)
 
-    data = read_sim('elegant', elegant_id)
+    data = _read_sim('elegant', elegant_id)
     if prev_sim:
         assert prev_sim.outfile_path
-        filename = file_name_from_sim_name('elegant', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
+        # TODO (gurhar1133): figure out _OMEGA_SIM_NAME
+        filename = _file_name_from_sim_name('elegant', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
         _update_sim(data, filename, prev_sim)
         t = run_dir.join("omega-elegant-bunch")
         if prev_sim.sim_type == 'elegant':
@@ -422,7 +408,7 @@ def _prepare_elegant(run_dir, elegant_id, prev_sim=None):
             import pmd_beamphysics.interfaces.elegant
 
             pmd_beamphysics.interfaces.elegant.write_elegant(
-                genesis_to_pmd(prev_sim),
+                _genesis_to_pmd(prev_sim),
                 str(t),
             )
         else:
@@ -494,6 +480,46 @@ def _coupled_sims_list(data):
     if not sim_list:
         raise AssertionError("No simulations selected")
     return sim_list
+
+
+def _convert_bunched_beam_to_sdds_beam(data, filename):
+    s = sirepo.sim_data.get_class('elegant')
+    cmd = LatticeUtil.find_first_command(data, "bunched_beam")
+    for k in list(cmd.keys()):
+        if k != '_id':
+            del cmd[k]
+    s.update_model_defaults(cmd, 'command_sdds_beam')
+    cmd._type = 'sdds_beam'
+    data.models.bunchSource.inputSource = 'sdds_beam'
+
+
+def _file_name_from_sim_name(sim_type, sim_name):
+    res = re.sub(r'[^0-9a-zA-Z]', '_', sim_name)
+    res = re.sub(r'^\_+|\_+$', '', res)
+    res = re.sub(r'\_+', '_', res)
+    ext = "sdds" if sim_type == "elegant" else "dat"
+    return f"{res}.{ext}"
+
+
+def _genesis_to_pmd(sim):
+    import pmd_beamphysics.interfaces.genesis
+    import pmd_beamphysics.particles
+
+    g = _read_sim("genesis", sim.sim_id)
+    d = numpy.fromfile(sim.outfile_path, dtype=numpy.float64)
+    d = d.reshape(int(len(d) / _GENESIS_PARTICLE_COLUMN_COUNT / g.models.electronBeam.npart), _GENESIS_PARTICLE_COLUMN_COUNT, g.models.electronBeam.npart)
+    # phase must be > 0 to avoid wrapping
+    d[:,1,:] -= numpy.min(d[:,1,:])
+    v = pmd_beamphysics.particles.ParticleGroup(
+        data=pmd_beamphysics.interfaces.genesis.genesis2_dpa_to_data(
+            d, xlamds=g.models.radiation.xlamds, current=numpy.array([g.models.electronBeam.curpeak]),
+            # compute required wavelengths to hold the whole beam
+            zsep=numpy.max(d[:,1,:]) / (2 * numpy.pi),
+        )
+    )
+    # center psi
+    v.t -= numpy.mean(v.t)
+    return v
 
 
 def _generate_parameters_file(data):
@@ -648,3 +674,11 @@ def _sim_list(sim_type):
 
 def _template_for_sim_type(sim_type):
     return sirepo.template.import_module(sim_type)
+
+
+def _read_sim(sim_type, sim_id):
+    return sirepo.sim_data.get_class(sim_type).sim_db_read_sim(sim_id)
+
+
+def _write_sim(data):
+    sirepo.sim_data.get_class(data.simulationType).sim_db_save_sim(data)

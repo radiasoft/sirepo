@@ -13,59 +13,15 @@ import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.opal
 
-
+# TODO (gurhar1133): figure out move this to template
 _OMEGA_SIM_NAME = '{{ simulation_name }}'
 _GENESIS_PARTICLE_COLUMN_COUNT = 6
 assert os.environ['SIREPO_SIMULATION_DB_LOGGED_IN_USER'], 'missing user id env var'
 
 
-def convert_bunched_beam_to_sdds_beam(data, filename):
-    s = sirepo.sim_data.get_class('elegant')
-    cmd = LatticeUtil.find_first_command(data, "bunched_beam")
-    for k in list(cmd.keys()):
-        if k != '_id':
-            del cmd[k]
-    s.update_model_defaults(cmd, 'command_sdds_beam')
-    cmd._type = 'sdds_beam'
-    data.models.bunchSource.inputSource = 'sdds_beam'
-
-
-def file_name_from_sim_name(sim_type, sim_name):
-    res = re.sub(r'[^0-9a-zA-Z]', '_', sim_name)
-    res = re.sub(r'^\_+|\_+$', '', res)
-    res = re.sub(r'\_+', '_', res)
-    ext = "sdds" if sim_type == "elegant" else "dat"
-    return f"{res}.{ext}"
-
-
-def genesis_to_pmd(sim):
-    import pmd_beamphysics.interfaces.genesis
-    import pmd_beamphysics.particles
-
-    g = read_sim("genesis", sim.sim_id)
-    d = numpy.fromfile(sim.outfile_path, dtype=numpy.float64)
-    d = d.reshape(int(len(d) / _GENESIS_PARTICLE_COLUMN_COUNT / g.models.electronBeam.npart), _GENESIS_PARTICLE_COLUMN_COUNT, g.models.electronBeam.npart)
-    # phase must be > 0 to avoid wrapping
-    d[:,1,:] -= numpy.min(d[:,1,:])
-    v = pmd_beamphysics.particles.ParticleGroup(
-        data=pmd_beamphysics.interfaces.genesis.genesis2_dpa_to_data(
-            d, xlamds=g.models.radiation.xlamds, current=numpy.array([g.models.electronBeam.curpeak]),
-            # compute required wavelengths to hold the whole beam
-            zsep=numpy.max(d[:,1,:]) / (2 * numpy.pi),
-        )
-    )
-    # center psi
-    v.t -= numpy.mean(v.t)
-    return v
-
-
 #def prep_run_dir(run_dir, data):
 #    sirepo.simulation_db.prepare_simulation(data, run_dir)
 #    return pkio.save_chdir(run_dir)
-
-
-def read_sim(sim_type, sim_id):
-    return sirepo.sim_data.get_class(sim_type).sim_db_read_sim(sim_id)
 
 
 def run_elegant(run_dir, elegant_id, prev_sim=None):
@@ -158,11 +114,6 @@ def run_sims(sim_list):
         else:
             raise AssertionError(f"unhandled sim_type={s.sim_type}")
         prev = s
-
-
-
-def write_sim(data):
-    sirepo.sim_data.get_class(data.simulationType).sim_db_save_sim(data)
 
 
 run_sims([
