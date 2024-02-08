@@ -2002,7 +2002,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 // cannot import authState factory, because of circular import with requestSender
 SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) => {
     let asyncMsgMethods = {};
-    let cookies = "";
+    let cookies = null;
     let needReply = {};
     let reqSeq = 1;
     const self = {};
@@ -2022,7 +2022,17 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     const _cookiesChanged = () => {
-        return cookies != document.cookie;
+        let rv = cookies !== document.cookie;
+        if (rv) {
+            if (cookies === null) {
+                rv = false;
+            }
+            else {
+                srlog("cookies changed, reopening websocket");
+            }
+            self.updateCookies();
+        }
+        return rv
     };
 
     const _protocolError = (header, content, wsreq, errorMsg) => {
@@ -2209,6 +2219,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         const s = new WebSocket(
             new URL($window.location.href).origin.replace(/^http/i, "ws") + "/ws",
         );
+        self.updateCookies();
         s.onclose = _socketError;
         s.onerror = _socketError;
         s.onmessage = _socketOnMessage;
@@ -4527,7 +4538,7 @@ SIREPO.app.filter('simulationName', function() {
 //
 // The client cookie then has the format
 //  <name 1>:v=<value 1>;t=<timeout 1>;|...
-SIREPO.app.factory('cookieService', function($cookies) {
+SIREPO.app.factory('cookieService', function($cookies, msgRouter) {
 
     var svc = {};
 
@@ -4617,6 +4628,7 @@ SIREPO.app.factory('cookieService', function($cookies) {
             if(angular.isDefined(c)) {
                 svc.addCookie(cookieMap[cname]);
                 $cookies.remove(cname);
+                msgRouter.updateCookies();
             }
         }
     }
@@ -4672,6 +4684,7 @@ SIREPO.app.factory('cookieService', function($cookies) {
             pack(cobj),
             {expires: new Date(new Date().getTime() + fiveYearsMillis)}
         );
+        msgRouter.updateCookies();
     }
 
     fixupOldCookies();
