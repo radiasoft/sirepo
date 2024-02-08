@@ -160,15 +160,15 @@ SIREPO.appDefaultSimulationValues = {
 };
 
 SIREPO.refreshModalMap = {
-    newRelease: {
-        modal: "sr-newRelease",
-        msg: 'Sirepo has been upgraded',
-        title: 'Server Upgraded',
-    },
     invalidSimulationSerial: {
         modal: "sr-invalidSimulationSerial",
         msg: 'This simulation has been updated outside of this browser',
         title: 'Simulation Conflict',
+    },
+    newRelease: {
+        modal: "sr-newRelease",
+        msg: 'Sirepo has been upgraded',
+        title: 'Server Upgraded',
     },
 };
 
@@ -259,7 +259,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
 });
 
-SIREPO.app.factory('authState', function(appDataService, appState, errorService, requestSender, $rootScope, $cookies) {
+SIREPO.app.factory('authState', function(appDataService, appState, errorService, uri, $rootScope, $cookies) {
     var self = appState.clone(SIREPO.authState);
 
     if (SIREPO.authState.isGuestUser
@@ -291,7 +291,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
                 SIREPO.authState = data.authState;
                 $.extend(self, SIREPO.authState);
             }
-            requestSender.globalRedirectRoot();
+            uri.globalRedirectRoot();
             return;
         }
         controller.showWarning = true;
@@ -1446,7 +1446,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     return self;
 });
 
-SIREPO.app.factory('authService', function(authState, requestSender, stringsService) {
+SIREPO.app.factory('authService', function(authState, uri, stringsService) {
     var self = {};
 
     function label(method) {
@@ -1460,15 +1460,15 @@ SIREPO.app.factory('authService', function(authState, requestSender, stringsServ
         function (method) {
             return {
                 'label': 'Sign in ' + label(method),
-                'url': requestSender.formatUrlLocal(
+                'url': uri.formatLocal(
                     'loginWith',
                     {':method': method}
                 )
             };
         }
     );
-    self.loginUrl = requestSender.formatUrlLocal('login');
-    self.logoutUrl = requestSender.formatUrl(
+    self.loginUrl = uri.formatLocal('login');
+    self.logoutUrl = uri.format(
         'authLogout',
         {simulation_type: SIREPO.APP_SCHEMA.simulationType}
     );
@@ -1491,7 +1491,7 @@ SIREPO.app.factory('authService', function(authState, requestSender, stringsServ
  *     return self;
  * });
  * */
-SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, utilities, $compile, $rootScope, $timeout, $window) {
+SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilities, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -1639,7 +1639,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             simulation_id: simulationId,
             simulation_type: SIREPO.APP_SCHEMA.simulationType,
         };
-        return requestSender.formatUrl(route, {...a, ...args});
+        return uri.format(route, {...a, ...args});
     }
 
     self.addPendingRequest = function(name, requestFunction) {
@@ -2012,8 +2012,241 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
+SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
+    const self = {};
+    const globalMap = {_name: 'global'};
+    const localMap = {_name: 'local'};
+
+    const _format = (map, routeOrParams, params) => {
+        let n = routeOrParams;
+        if (angular.isObject(routeOrParams)) {
+            n = routeOrParams.routeName;
+            if (! n) {
+                throw new Error(routeOrParams + ': routeName must be supplied');
+            }
+            if (angular.isDefined(params)) {
+                srlog(arguments);
+                throw new Error(params + ': params must be null if routeOrParams is an object: ' + routeOrParams);
+            }
+            params = angular.copy(routeOrParams);
+            delete params.routeName;
+        }
+        var p = {};
+        if (params) {
+            for (var k in params) {
+                // Deprecated params values: <simulationId> and :simulationId
+                p[k.replace(/\W+/g, '')] = params[k];
+            }
+        }
+        params = p;
+        if (! map[n]) {
+            throw new Error(`routeName=${n} not found in map=${map._name}`);
+        }
+        const r = map[n];
+        let u = r.baseUri ? '/' + r.baseUri : '';
+        let v = null;
+        for (p of r.params) {
+            if (p.name in params) {
+                v = params[p.name];
+            }
+            else if (p.name === "simulation_type") {
+                v = SIREPO.APP_SCHEMA.simulationType;
+            }
+            else if (p.isOptional) {
+                break;
+            }
+            else {
+                throw new Error(`param=${p.name} param missing map=${map._name} route=${r.name}`);
+            }
+            u = u + '/' + encodeURIComponent(_serializeValue(v, p.name));
+        }
+        return u;
+    };
+
+    // we can trust that the Python has validated the schema
+    // so no need for complicated checks like in sirepo.uri_router.
+    const _globalIterator = (p) => {
+        var m = p.match(/^([\?\*]?)<(\w+)>$/);
+        if (! m) {
+            throw new Error(`param=${p} invalid syntax global route`);
+        }
+        return {
+            name: m[2],
+            isOptional: !! m[1],
+        };
+    };
+
+    const _init = () => {
+        for (let n in SIREPO.APP_SCHEMA.route) {
+            let u = SIREPO.APP_SCHEMA.route[n].split('/');
+            u.shift();
+            globalMap[n] = {
+                name: n,
+                // root route has /*<path_info> so check for a non-param element
+                baseUri: u[0].match(/^[^\*\?<]/) ? u.shift() : '',
+                params: u.map(_globalIterator),
+            };
+        }
+
+        for (let n in SIREPO.APP_SCHEMA.localRoutes) {
+            localMap[n] = _routeMapLocal(n, SIREPO.APP_SCHEMA.localRoutes[n].route);
+        }
+    };
+
+    const _localIterator = (p) => {
+        var m = p.match(/^:(\w+)(\??)$/);
+        if (! m) {
+            throw new Error(`param=${p} invalid syntax local route`);
+        }
+        return {
+            name: m[1],
+            isOptional: !! m[2],
+        };
+    };
+
+    const _routeMapLocal = (name, route) => {
+        const u = route.split('/');
+        u.shift();
+        return {
+            name: name,
+            baseUri: u.shift(),
+            params: u.map(_localIterator),
+        };
+    };
+
+    const _routeNameOrUri = (routeNameOrUri, params) => {
+        if (routeNameOrUri.indexOf('/') >= 0) {
+            return routeNameOrUri;
+        }
+        return self.format(routeNameOrUri, params);
+    };
+
+    // Started from serializeValue in angular, but need more specialization.
+    // https://github.com/angular/angular.js/blob/2420a0a77e27b530dbb8c41319b2995eccf76791/src/ng/http.js#L12
+    const _serializeValue = (v, param) => {
+        if (v === null) {
+            throw new Error(param + ': may not be null');
+        }
+        if (typeof v == 'boolean') {
+            //TODO(robnagler) probably needs to be true/false with test
+            return v ? '1' : '0';
+        }
+        if (angular.isString(v)) {
+            if (v === '') {
+                throw new Error(param + ': may not be empty string');
+            }
+            return v;
+        }
+        if (angular.isNumber(v)) {
+            return v.toString();
+        }
+        if (angular.isDate(v)) {
+            return v.toISOString();
+        }
+        throw new Error(param + ': ' + (typeof v) + ' type cannot be serialized');
+    };
+
+    self.defaultRouteName = (appMode=null) => {
+        return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
+    };
+
+    self.format = (routeName, params) => {
+        return _format(globalMap, routeName, params);
+    };
+
+    self.formatLocal = (routeName, params, app, routeMap=localMap) => {
+        var u = '#' + _format(routeMap, routeName, params);
+        return app ? '/' + app + u : u;
+    };
+
+    self.globalRedirect = (routeNameOrUri, params) => {
+        var u = _routeNameOrUri(routeNameOrUri, params);
+        var i = u.indexOf('#');
+        // https://github.com/radiasoft/sirepo/issues/2160
+        // hash is persistent even if setting href so explicitly
+        // set hash before href to avoid loops (e.g. #/server-upgraded)
+        if (i >= 0) {
+            $window.location.hash = u.substring(i);
+            u = u.substring(0, i);
+        }
+        else {
+            $location.hash('#');
+        }
+        $window.location.href = u;
+        // The whole app will reload.
+        // Don't respond to additional location change events from the current app.
+        $rootScope.$on('$locationChangeStart', function (event) {
+            event.preventDefault();
+        });
+    };
+
+    self.globalRedirectRoot = () => {
+        self.globalRedirect(
+            'root',
+            {path_info: SIREPO.APP_SCHEMA.simulationType}
+        );
+    };
+
+    self.isRouteParameter = (routeName, paramName) => {
+        var r = localMap[routeName] || globalMap[routeName];
+        if (! r) {
+            throw new Error('Invalid routeName: ' + routeName);
+        }
+        return r.params.some(function(p) {
+            return p.name == paramName;
+        });
+    };
+
+    self.localRedirect = (routeNameOrUri, params) => {
+        var u = routeNameOrUri;
+        if (u.indexOf('/') < 0) {
+            u = self.formatLocal(u, params);
+        }
+        if (u.charAt(0) == '#') {
+            u = u.slice(1);
+        }
+        // needs to handle query params from calls using complete url differently
+        u = u.split("?");
+
+        if(u.length > 1 && u[1].trim()) {
+            $location.path(u[0]).search(u[1]);
+        } else {
+            $location.path(u[0]);
+        }
+    };
+
+    self.localRedirectHome = (simulationId, appMode=null) => {
+        self.localRedirect(
+            self.defaultRouteName(appMode),
+            {':simulationId': simulationId}
+        );
+    };
+
+    self.newLocalWindow = (routeName, params, app) => {
+        $window.open(self.formatLocal(routeName, params, app), '_blank');
+    };
+
+    self.newWindow = (routeNameOrUri, params) => {
+        $window.open(_routeNameOrUri(routeNameOrUri, params), '_blank');
+    };
+
+    self.openSimulation = (app, localRoute, simId) => {
+        self.newWindow(
+            'simulationRedirect',
+            {
+                simulation_type: app,
+                local_route: localRoute,
+                simulation_id: simId,
+            },
+        );
+    };
+
+    _init();
+    return self;
+});
+
 // cannot import authState factory, because of circular import with requestSender
-SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) => {
+SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, uri) => {
     let asyncMsgMethods = {};
     let cookies = null;
     let needReply = {};
@@ -2035,17 +2268,16 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     const _cookiesChanged = () => {
-        let rv = cookies !== document.cookie;
-        if (rv) {
-            if (cookies === null) {
-                rv = false;
-            }
-            else {
-                srlog("cookies changed, reopening websocket");
-            }
-            self.updateCookies();
+        if (cookies !== document.cookie) {
+            return false;
         }
-        return rv;
+        if (cookies === null) {
+            self.updateCookies();
+            return false;
+        }
+        srlog("cookies changed, reloading");
+        uri.globalRedirect('authLogout');
+        return true;
     };
 
     const _protocolError = (header, content, wsreq, errorMsg) => {
@@ -2289,7 +2521,11 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     self.send = (url, data, httpConfig) => {
-        if (! SIREPO.authState.uiWebSocket || _cookiesChanged()) {
+        if (_cookiesChanged()) {
+            // app will reload
+            return;
+        }
+        if (! SIREPO.authState.uiWebSocket) {
             if (socket) {
                 // Close socket so can re-authenticate
                 socket.close();
@@ -2342,72 +2578,15 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
 
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, msgRouter, $location, $injector, $interval, $q, $rootScope, $window) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, msgRouter, uri, $location, $injector, $interval, $q, $rootScope) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
-    var LOGIN_ROUTE_NAME = 'login';
-    var LOGIN_URI = null;
+    const LOGIN_ROUTE_NAME = 'login';
+    let LOGIN_URI = null;
     var REDIRECT_RE = new RegExp('window.location = "([^"]+)";', 'i');
     var SR_EXCEPTION_RE = new RegExp('/\\*sr_exception=(.+)\\*/');
     var listFilesData = {};
-    var globalMap = {_name: 'global'};
-    var localMap = {_name: 'local'};
-
-    // we can trust that the Python has validated the schema
-    // so no need for complicated checks like in sirepo.uri_router.
-    function _globalIterator(p) {
-        var m = p.match(/^([\?\*]?)<(\w+)>$/);
-        if (! m) {
-            throw new Error(`param=${p} invalid syntax global route`);
-        }
-        return {
-            name: m[2],
-            isOptional: !! m[1],
-        };
-    }
-
-    for (let n in SIREPO.APP_SCHEMA.route) {
-        let u = SIREPO.APP_SCHEMA.route[n].split('/');
-        u.shift();
-        globalMap[n] = {
-            name: n,
-            // root route has /*<path_info> so check for a non-param element
-            baseUri: u[0].match(/^[^\*\?<]/) ? u.shift() : '',
-            params: u.map(_globalIterator),
-        };
-    }
-    function _localIterator(p) {
-        var m = p.match(/^:(\w+)(\??)$/);
-        if (! m) {
-            throw new Error(`param=${p} invalid syntax local route`);
-        }
-        return {
-            name: m[1],
-            isOptional: !! m[2],
-        };
-    }
-
-    for (let n in SIREPO.APP_SCHEMA.localRoutes) {
-        localMap[n] = routeMapLocal(n, SIREPO.APP_SCHEMA.localRoutes[n].route);
-    }
-
-    const _routeNameOrUrl = (routeNameOrUrl, params) => {
-        if (routeNameOrUrl.indexOf('/') >= 0) {
-            return routeNameOrUrl;
-        }
-        return self.formatUrl(routeNameOrUrl, params);
-    };
-
-    function routeMapLocal(name, route) {
-        const u = route.split('/');
-        u.shift();
-        return {
-            name: name,
-            baseUri: u.shift(),
-            params: u.map(_localIterator),
-        };
-    }
 
     function checkCookieRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn
@@ -2430,69 +2609,18 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         var r = decodeURIComponent(p[1]);
         if ($location.path() != r) {
             event.preventDefault();
-            self.localRedirect(r);
+            uri.localRedirect(r);
         }
     }
 
     function defaultErrorCallback(data, status) {
         const err = SIREPO.APP_SCHEMA.customErrors[status];
         if (err && err.route) {
-            self.localRedirect(err.route);
+            uri.localRedirect(err.route);
         }
         else {
             errorService.alertText('Request failed: ' + data.error);
         }
-    }
-
-    function isFirefox() {
-        // https://stackoverflow.com/a/9851769
-        return typeof InstallTrigger !== 'undefined';
-    }
-
-    function formatUrl(map, routeOrParams, params) {
-        let n = routeOrParams;
-        if (angular.isObject(routeOrParams)) {
-            n = routeOrParams.routeName;
-            if (! n) {
-                throw new Error(routeOrParams + ': routeName must be supplied');
-            }
-            if (angular.isDefined(params)) {
-                srlog(arguments);
-                throw new Error(params + ': params must be null if routeOrParams is an object: ' + routeOrParams);
-            }
-            params = angular.copy(routeOrParams);
-            delete params.routeName;
-        }
-        var p = {};
-        if (params) {
-            for (var k in params) {
-                // Deprecated params values: <simulationId> and :simulationId
-                p[k.replace(/\W+/g, '')] = params[k];
-            }
-        }
-        params = p;
-        if (! map[n]) {
-            throw new Error(`routeName=${n} not found in map=${map._name}`);
-        }
-        const r = map[n];
-        let u = r.baseUri ? '/' + r.baseUri : '';
-        let v = null;
-        for (p of r.params) {
-            if (p.name in params) {
-                v = params[p.name];
-            }
-            else if (p.name === "simulation_type") {
-                v = SIREPO.APP_SCHEMA.simulationType;
-            }
-            else if (p.isOptional) {
-                break;
-            }
-            else {
-                throw new Error(`param=${p.name} param missing map=${map._name} route=${r.name}`);
-            }
-            u = u + '/' + encodeURIComponent(serializeValue(v, p.name));
-        }
-        return u;
     }
 
     function saveCookieRedirect(route) {
@@ -2506,41 +2634,12 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         self.sendRequest(url, successCallback, data, errorCb);
     }
 
-    // Started from serializeValue in angular, but need more specialization.
-    // https://github.com/angular/angular.js/blob/2420a0a77e27b530dbb8c41319b2995eccf76791/src/ng/http.js#L12
-    function serializeValue(v, param) {
-        if (v === null) {
-            throw new Error(param + ': may not be null');
-        }
-        if (typeof v == 'boolean') {
-            //TODO(robnagler) probably needs to be true/false with test
-            return v ? '1' : '0';
-        }
-        if (angular.isString(v)) {
-            if (v === '') {
-                throw new Error(param + ': may not be empty string');
-            }
-            return v;
-        }
-        if (angular.isNumber(v)) {
-            return v.toString();
-        }
-        if (angular.isDate(v)) {
-            return v.toISOString();
-        }
-        throw new Error(param + ': ' + (typeof v) + ' type cannot be serialized');
-    }
-
     self.clearListFilesData = function() {
         listFilesData = {};
     };
 
-    self.defaultRouteName = function(appMode=null) {
-        return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
-    };
-
     self.downloadDataFileUrl = (appState, params) => {
-        return self.formatUrl(
+        return uri.format(
             'downloadDataFile',
             {
                 simulation_id: appState.models.simulation.simulationId,
@@ -2551,70 +2650,14 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         );
     };
 
-    self.formatUrlLocal = function(routeName, params, app, routeMap=localMap) {
-        var u = '#' + formatUrl(routeMap, routeName, params);
-        return app ? '/' + app + u : u;
-    };
-
-    self.formatUrl = function(routeName, params) {
-        return formatUrl(globalMap, routeName, params);
-    };
-
     self.getListFilesData = function(name) {
         return listFilesData[name];
-    };
-
-    self.newLocalWindow = function(routeName, params, app) {
-        $window.open(self.formatUrlLocal(routeName, params, app), '_blank');
-    };
-
-    self.newWindow = function(routeNameOrUrl, params) {
-        $window.open(_routeNameOrUrl(routeNameOrUrl, params), '_blank');
-    };
-
-    self.openSimulation = (app, localRoute, simId) => {
-        self.newWindow(
-            'simulationRedirect',
-            {
-                simulation_type: app,
-                local_route: localRoute,
-                simulation_id: simId,
-            },
-        );
-    };
-
-    self.globalRedirect = function(routeNameOrUrl, params) {
-        var u = _routeNameOrUrl(routeNameOrUrl, params);
-        var i = u.indexOf('#');
-        // https://github.com/radiasoft/sirepo/issues/2160
-        // hash is persistent even if setting href so explicitly
-        // set hash before href to avoid loops (e.g. #/server-upgraded)
-        if (i >= 0) {
-            $window.location.hash = u.substring(i);
-            u = u.substring(0, i);
-        }
-        else {
-            $location.hash('#');
-        }
-        $window.location.href = u;
-        // The whole app will reload.
-        // Don't respond to additional location change events from the current app.
-        $rootScope.$on('$locationChangeStart', function (event) {
-            event.preventDefault();
-        });
-    };
-
-    self.globalRedirectRoot = function() {
-        self.globalRedirect(
-            'root',
-            {path_info: SIREPO.APP_SCHEMA.simulationType}
-        );
     };
 
     self.handleSRException = function(srException, errorCallback) {
         const e = srException;
         if (e.routeName == "httpRedirect") {
-            self.globalRedirect(e.params.uri, undefined);
+            uri.globalRedirect(e.params.uri, undefined);
             return;
         }
         if (e.routeName == "serverUpgraded" && e.params && e.params.reason in SIREPO.refreshModalMap) {
@@ -2640,37 +2683,12 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             // if redirecting to login, but the app thinks it is already logged in,
             // then force a logout to avoid a login loop
             if (SIREPO.authState.isLoggedIn) {
-                self.globalRedirect('authLogout');
+                uri.globalRedirect('authLogout');
                 return;
             }
         }
-        self.localRedirect(e.routeName, e.params);
+        uri.localRedirect(e.routeName, e.params);
         return;
-    };
-
-    self.localRedirect = function(routeNameOrUrl, params) {
-        var u = routeNameOrUrl;
-        if (u.indexOf('/') < 0) {
-            u = self.formatUrlLocal(u, params);
-        }
-        if (u.charAt(0) == '#') {
-            u = u.slice(1);
-        }
-        // needs to handle query params from calls using complete url differently
-        u = u.split("?");
-
-        if(u.length > 1 && u[1].trim()) {
-            $location.path(u[0]).search(u[1]);
-        } else {
-            $location.path(u[0]);
-        }
-    };
-
-    self.localRedirectHome = function(simulationId, appMode=null) {
-        self.localRedirect(
-            self.defaultRouteName(appMode),
-            {':simulationId': simulationId}
-        );
     };
 
     self.loadListFiles = function(name, params, callback) {
@@ -2682,7 +2700,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         }
         listFilesData[name + ".loading"] = true;
         msgRouter.send(
-            self.formatUrl('listFiles'),
+            uri.format('listFiles'),
             params,
             {}
         ).then(
@@ -2704,17 +2722,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             },
         );
     };
-
-    self.isRouteParameter = function(routeName, paramName) {
-        var r = localMap[routeName] || globalMap[routeName];
-        if (! r) {
-            throw new Error('Invalid routeName: ' + routeName);
-        }
-        return r.params.some(function(p) {
-            return p.name == paramName;
-        });
-    };
-
     self.sendAnalysisJob = function(appState, callback, data) {
         sendWithSimulationFields('analysisJob', appState, callback, data);
     };
@@ -2761,7 +2768,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         }
         var url = angular.isString(urlOrParams) && urlOrParams.indexOf('/') >= 0
             ? urlOrParams
-            : self.formatUrl(urlOrParams);
+            : uri.format(urlOrParams);
         var timeout = $q.defer();
         var interval, t;
         var timed_out = false;
@@ -2815,7 +2822,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                 if (m) {
                     if (m[1].indexOf('#/error') <= -1) {
                         srlog('javascriptRedirectDocument', m[1]);
-                        self.globalRedirect(m[1], undefined);
+                        uri.globalRedirect(m[1], undefined);
                         return;
                     }
                     srlog('javascriptRedirectDocument: staying on page', m[1]);
@@ -2924,8 +2931,21 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         );
     };
 
+    // Deprecated interface
+    self.defaultRouteName = uri.defaultRouteName;
+    self.formatUrlLocal = uri.formatLocal;
+    self.formatUrl = uri.format;
+    self.newLocalWindow = uri.newLocalWindow;
+    self.newWindow = uri.newWindow;
+    self.openSimulation = uri.openSimulation;
+    self.globalRedirect = uri.globalRedirect;
+    self.globalRedirectRoot = uri.globalRedirectRoot;
+    self.localRedirect = uri.localRedirect;
+    self.localRedirectHome = uri.localRedirectHome;
+    self.isRouteParameter = uri.isRouteParameter;
+
     $rootScope.$on('$routeChangeStart', checkCookieRedirect);
-    LOGIN_URI = self.formatUrlLocal(LOGIN_ROUTE_NAME).slice(1);
+    LOGIN_URI = uri.formatLocal(LOGIN_ROUTE_NAME).slice(1);
     return self;
 });
 
