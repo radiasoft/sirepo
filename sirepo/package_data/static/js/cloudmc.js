@@ -1611,7 +1611,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 addSources();
             }, 100);
             
-
             function vectorScaleFactor() {
                 return 3.5 * tallyService.getMaxMeshExtent();
             }
