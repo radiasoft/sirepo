@@ -3297,7 +3297,7 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
 
 SIREPO.app.directive('commonFooter', function() {
     const _refreshModals = () => {
-        return Object.keys(SIREPO.refreshModalMap).reduce(_refreshTemplate, '')
+        return Object.keys(SIREPO.refreshModalMap).reduce(_refreshTemplate, '');
     };
 
     const _refreshTemplate = (rv, id) => {
