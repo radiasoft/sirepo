@@ -3296,6 +3296,18 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
 });
 
 SIREPO.app.directive('commonFooter', function() {
+    const _refreshModals = () => {
+        return Object.keys(SIREPO.refreshModalMap).reduce(_refreshTemplate, '')
+    };
+
+    const _refreshTemplate = (rv, id) => {
+        const x = SIREPO.refreshModalMap[id];
+        if (! x) {
+            throw new Error(`not found id=${id} in refreshModalMap`);
+        }
+        return rv + `<div data-confirmation-modal="" data-is-required="true" data-id="${x.modal}" data-title="${x.title}" data-ok-text="Refresh" data-ok-clicked="refreshPage()">${x.msg}. Select <b>Refresh</b> to update this simulation.</div>\n`;
+    };
+
     return {
         restrict: 'A',
         scope: {
@@ -3307,9 +3319,7 @@ SIREPO.app.directive('commonFooter', function() {
             <div data-modal-editor="" view-name="simulation" modal-title="simulationModalTitle"></div>
             <div data-sbatch-login-modal=""></div>
             <div data-jobs-list-modal="" data-title="Jobs" data-id="sr-jobsListModal-editor"></div>
-            <div data-confirmation-modal="" data-is-required="true" data-id="sr-newRelease" data-title="Server Upgraded" data-ok-text="Refresh" data-ok-clicked="refreshPage()">Sirepo has been upgraded. Select <b>Refresh</b> to update this simulation.</div>
-            <div data-confirmation-modal="" data-is-required="true" data-id="sr-invalidSimulationSerial" data-title="Simulation Conflict" data-ok-text="Refresh" data-ok-clicked="refreshPage()">This simulation has been updated outside of this browser. Select <b>Refresh</b> to update this simulation.</div>
-        `,
+        ` + _refreshModals(),
         controller: function($scope, appState, stringsService) {
             $scope.simulationModalTitle = stringsService.formatKey('simulationDataType');
             $scope.refreshPage = () => window.location.reload();
@@ -3471,7 +3481,7 @@ SIREPO.app.directive('splitPanels', function($window) {
     var MIN_TOP_PERCENT = 15;
     var TOP_PAD = 12;
     return {
-        controller: function($scope) {
+                    controller: function($scope) {
 
             function totalHeight() {
                 return $($window).height() - $scope.el.offset().top;

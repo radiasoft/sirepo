@@ -159,6 +159,19 @@ SIREPO.appDefaultSimulationValues = {
     simFolder: {},
 };
 
+SIREPO.refreshModalMap = {
+    newRelease: {
+        modal: "sr-newRelease",
+        msg: 'Sirepo has been upgraded',
+        title: 'Server Upgraded',
+    },
+    invalidSimulationSerial: {
+        modal: "sr-invalidSimulationSerial",
+        msg: 'This simulation has been updated outside of this browser',
+        title: 'Simulation Conflict',
+    },
+};
+
 angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
     $provide.decorator('$rootScope', function ($delegate) {
         var _emit = $delegate.$emit;
@@ -2604,9 +2617,8 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             self.globalRedirect(e.params.uri, undefined);
             return;
         }
-        if (e.routeName == "serverUpgraded" && e.params
-            && ['invalidSimulationSerial', 'newRelease'].includes(e.params.reason)) {
-            $(`#sr-${e.params.reason}`).modal('show');
+        if (e.routeName == "serverUpgraded" && e.params && e.params.reason in SIREPO.refreshModalMap) {
+            $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
             return;
         }
         const u = $location.url();
