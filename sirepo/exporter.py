@@ -58,6 +58,25 @@ def _create_zip(sim, out_dir, qcall):
             else:
                 n = f.basename
             z.write(str(f), n)
+        if hasattr(sim.template, "copy_related_sims"):
+            for idx, sim_obj in enumerate(data.models.simWorkflow.coupledSims):
+                if sim_obj.simulationType and sim_obj.simulationId:
+                    d = simulation_db.open_json_file(
+                        sim_obj.simulationType, sid=sim_obj.simulationId, qcall=qcall
+                    )
+                    z.writestr(
+                        f"related_sim{idx}.json",
+                        pkjson.dump_pretty(d, pretty=True),
+                    )
+                    for lib_file in sim_data.get_class(
+                        sim_obj.simulationType
+                    ).lib_file_basenames(d):
+                        z.write(
+                            sim_data.get_class(sim_obj.simulationType).lib_file_abspath(
+                                lib_file, qcall=qcall
+                            ),
+                            arcname=f"related_sim_{idx}_lib/{lib_file}",
+                        )
         z.writestr(
             simulation_db.SIMULATION_DATA_FILE,
             pkjson.dump_pretty(data, pretty=True),

@@ -11,9 +11,6 @@ SIREPO.app.config(() => {
     `;
     //TODO(pjm): OptionalFloat should be standard
     SIREPO.appFieldEditors = `
-        <div data-ng-switch-when="Color" data-ng-class="fieldClass">
-          <input type="color" data-ng-model="model[field]" class="sr-color-button">
-        </div>
         <div data-ng-switch-when="Point3D" class="col-sm-7">
           <div data-point3d="" data-model="model" data-field="field"></div>
         </div>
@@ -175,10 +172,10 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
     };
 
 
-    self.getSources = builders => {
+    self.getSourceVisualizations = builders => {
         const sources = [];
         const noop = () => {};
-        for (const s of appState.models.settings.sources.filter(x => x.space)) {
+        for (const s of appState.models.settings.sources.filter(x => x.space && x.space.only_fissionable !== '1')) {
             let b = null;
             const space = s.space;
             b = (builders[space._type] || noop)(space);
@@ -767,7 +764,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
             const displayRanges = {};
-            const sources = cloudmcService.getSources(
+            const sources = cloudmcService.getSourceVisualizations(
                 {
                     box: space => {
                         const d = cloudmcService.boxDimensions(space);
@@ -891,7 +888,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         .attr('orient', 'auto')
                         .attr('markerUnits', 'strokeWidth')
                         .select('path')
-                        .attr('fill', d => d);
+                        .attr('fill', d => sourceColor(d));
                 }
                 
                 const outlines = [];
@@ -917,7 +914,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     }
                     outlines.push({
                         name: `source-${s.particle}-${s.space._type}-${i}`,
-                        color: '#ff0000',
+                        color: sourceColor('#ff0000'),
                         data: view.shapePoints(dim).map(p => p.toReversed()),
                         doClose: true,
                     });
@@ -932,7 +929,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     const p2 = [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d];
                     outlines.push({
                         name: `${p.type}-${p.energy}eV-${n}`,
-                        color: particleColor(p),
+                        color: sourceColor(particleColor(p)),
                         dashes: p.type === 'PHOTON' ? '6 2' : '',
                         data: [p1, p2].map(p => p.toReversed()),
                         marker: particleId(p),
@@ -969,6 +966,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 return ff;
             }
 
+            function sourceColor(color) {
+                return appState.models.openmcAnimation.showSources === '1' ? color : 'none';
+            }
+
             function tallyReportAxes() {
                 return [
                     appState.models.tallyReport.axis,
@@ -998,6 +999,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             function updateSlice() {
                 buildTallyReport();
+                // save quietly but immediately
+                appState.saveQuietly('tallyReport');
+                appState.saveQuietly('openmcAnimation');
+                appState.autoSave();
             }
 
             function updateSliceAxis() {
@@ -1058,8 +1063,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             $scope.$on('tallyReport.summaryData', updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
-            appState.watchModelFields($scope, ['tallyReport.planePos'], updateSlice, true);
             appState.watchModelFields($scope, ['openmcAnimation.colorMap', 'openmcAnimation.sourceColorMap'], updateDisplay);
+            appState.watchModelFields($scope, ['tallyReport.planePos', 'openmcAnimation.showSources'], updateSlice, true);
             $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
             if (frameCache.hasFrames('openmcAnimation')) {
                 panelState.waitForUI(updateDisplayRange);
@@ -1113,7 +1118,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 edgeVisibility: true,
                 lighting: false,
             };
-            const sourceBundles = cloudmcService.getSources(
+            const sourceBundles = cloudmcService.getSourceVisualizations(
                 {
                     box: space => {
                         const d = cloudmcService.boxDimensions(space);
@@ -1174,6 +1179,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             function addSources() {
                 sourceBundles.forEach(b => {
                     vtkScene.removeActor(b.actor);
+                    if (appState.models.openmcAnimation.showSources !== '1') {
+                        return;
+                    }
                     if (b.source.setRadius) {
                         b.source.setRadius(0.25 * vectorScaleFactor());
                     }
@@ -1183,19 +1191,20 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 if (particleBundle) {
                     vtkScene.removeActor(particleBundle.actor);
                 }
-                const particles = tallyService.getSourceParticles();
-                if (particles.length) {
-                    particleBundle = coordMapper.buildVectorField(
-                        particles.map(p => p.direction.map(x => p.energy * x)),
-                        particles.map(p => p.position),
-                        vectorScaleFactor(),
-                        true,
-                        appState.models.openmcAnimation.sourceColorMap,
-                        {edgeVisibility: false, lighting: false}
-                    );
-                    vtkScene.addActor(particleBundle.actor);
+                if (appState.models.openmcAnimation.showSources === '1') {
+                    const particles = tallyService.getSourceParticles();
+                    if (particles.length) {
+                        particleBundle = coordMapper.buildVectorField(
+                            particles.map(p => p.direction.map(x => p.energy * x)),
+                            particles.map(p => p.position),
+                            vectorScaleFactor(),
+                            true,
+                            appState.models.openmcAnimation.sourceColorMap,
+                            {edgeVisibility: false, lighting: false}
+                        );
+                        vtkScene.addActor(particleBundle.actor);
+                    }
                 }
-
                 vtkScene.render();
             }
 
@@ -1597,6 +1606,12 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 addSources();
             }
 
+            function showSources() {
+                addSources();
+                appState.saveQuietly($scope.modelName);
+                appState.autoSave();
+            }
+
             function vectorScaleFactor() {
                 return 3.5 * tallyService.getMaxMeshExtent();
             }
@@ -1617,6 +1632,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     `${$scope.modelName}.opacity`,
                     `${$scope.modelName}.sourceColorMap`,
                 ], updateDisplay);
+                appState.watchModelFields($scope, [`${$scope.modelName}.showSources`], showSources, true);
                 $scope.$on('openmcAnimation.summaryData', () => {
                     if (vtkScene) {
                         $rootScope.$broadcast('vtk.showLoader');
@@ -2324,25 +2340,47 @@ SIREPO.app.directive('tallyAspects', function() {
     };
 });
 
-SIREPO.viewLogic('settingsView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('settingsView', function(appState, panelState, validationService, $scope) {
 
     function updateEditor() {
+        const m = appState.models[$scope.modelName];
+        const isRunModeEigenvalue = m.run_mode === 'eigenvalue';
+
+        function activeBatches() {
+            return m.batches - (isRunModeEigenvalue ? m.inactive : 0);
+        }
+
         panelState.showFields('reflectivePlanes', [
             ['plane1a', 'plane1b', 'plane2a', 'plane2b'],
             appState.models.reflectivePlanes.useReflectivePlanes === '1',
         ]);
 
-        panelState.showField(
+        panelState.showFields(
             $scope.modelName,
-            'eigenvalueHistory',
-            appState.models[$scope.modelName].run_mode === 'eigenvalue'
+            [
+                ['eigenvalueHistory', 'inactive'], isRunModeEigenvalue,
+            ],
         );
+
+        validationService.validateField(
+            $scope.modelName,
+            'batches',
+            'input',
+            activeBatches() > 0,
+            `Must have at least one active batch (currently ${activeBatches()})`
+        );
+
     }
 
     $scope.whenSelected = updateEditor;
 
     $scope.watchFields = [
-        [`${$scope.modelName}.run_mode`, 'reflectivePlanes.useReflectivePlanes'], updateEditor,
+        [
+            `${$scope.modelName}.run_mode`,
+            `${$scope.modelName}.batches`,
+            `${$scope.modelName}.inactive`,
+            'reflectivePlanes.useReflectivePlanes'
+        ], updateEditor,
     ];
 
 });
@@ -2802,6 +2840,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
 
     function showFields() {
         const is2D = appState.models.tallyReport.selectedGeometry === '2D';
+        const showSources = appState.models.openmcAnimation.showSources === '1';
         panelState.showFields('openmcAnimation', [
             'opacity', ! is2D,
         ]);
@@ -2810,7 +2849,8 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         ]);
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
         panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
-        panelState.showField('openmcAnimation', 'sourceColorMap', appState.models.openmcAnimation.numSampleSourceParticles);
+        panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);
+        panelState.showField('openmcAnimation', 'sourceColorMap', showSources && appState.models.openmcAnimation.numSampleSourceParticles);
     }
 
     function updateEnergyRange() {
@@ -2852,6 +2892,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         [
             'tallyReport.selectedGeometry',
             'openmcAnimation.score',
+            'openmcAnimation.showSources',
             'openmcAnimation.numSampleSourceParticles',
         ], showFields,
     ];

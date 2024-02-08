@@ -1,0 +1,28 @@
+Traceback (most recent call last):
+  File "/home/vagrant/.pyenv/versions/py3/bin/sirepo", line 33, in <module>
+    sys.exit(load_entry_point('sirepo', 'console_scripts', 'sirepo')())
+  File "/home/vagrant/src/radiasoft/sirepo/sirepo/sirepo_console.py", line 18, in main
+    return pkcli.main("sirepo")
+  File "/home/vagrant/src/radiasoft/pykern/pykern/pkcli/__init__.py", line 165, in main
+    res = argh.dispatch(parser, argv=argv)
+  File "/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/argh/dispatching.py", line 179, in dispatch
+    for line in lines:
+  File "/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/argh/dispatching.py", line 290, in _execute_command
+    for line in result:
+  File "/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/argh/dispatching.py", line 273, in _call
+    result = function(*positional, **keywords)
+  File "/home/vagrant/src/radiasoft/sirepo/sirepo/pkcli/srw.py", line 111, in run
+    r = template_common.exec_parameters()
+  File "/home/vagrant/src/radiasoft/sirepo/sirepo/template/template_common.py", line 420, in exec_parameters
+    return pkrunpy.run_path_as_module(path or PARAMETERS_PYTHON_FILE)
+  File "/home/vagrant/src/radiasoft/pykern/pykern/pkrunpy.py", line 28, in run_path_as_module
+    exec(code, m.__dict__)
+  File "parameters.py", line 219, in <module>
+    main()
+  File "parameters.py", line 217, in main
+    srwpy.srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
+  File "/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/srwpy/srwl_bl.py", line 3225, in calc_all
+    _v.w_res, _v.si_res, mesh_si = self.calc_sr_se( #OC16102017
+  File "/home/vagrant/.pyenv/versions/3.9.15/envs/py3/lib/python3.9/site-packages/srwpy/srwl_bl.py", line 1111, in calc_sr_se
+    srwl.CalcElecFieldSR(wfr, 0, magToUse, arPrecPar) #calculate SR
+RuntimeError: Message from the error.

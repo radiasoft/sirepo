@@ -596,7 +596,7 @@ def post_execution_processing(
             f = _SIM_DATA.ML_OUTPUT
             _SIM_DATA.put_sim_file(sim_id, run_dir.join(f), f)
         return None
-    return _parse_srw_log(run_dir)
+    return template_common.LogParser(run_dir).parse_for_errors()
 
 
 def prepare_for_client(data, qcall, **kwargs):
@@ -2165,21 +2165,6 @@ def _machine_learning_percent_complete(run_dir, res):
     res.frameCount = count
     res.percentComplete = 100 * count / dm.exportRsOpt.totalSamples
     return res
-
-
-def _parse_srw_log(run_dir):
-    res = ""
-    p = run_dir.join(template_common.RUN_LOG)
-    if not p.exists():
-        return res
-    with pkio.open_text(p) as f:
-        for line in f:
-            m = re.search(r"Error: (.*)", line)
-            if m:
-                res += m.group(1) + "\n"
-    if res:
-        return res
-    return "An unknown error occurred"
 
 
 def _process_rsopt_elements(els):

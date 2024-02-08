@@ -95,7 +95,9 @@ def _dispatch_compute(msg, template):
 
     def _op(expect_file):
         r = getattr(template_common, f"{msg.jobCmd}_dispatch")(
-            msg.data, data_file_uri=msg.get("dataFileUri")
+            msg.data,
+            data_file_uri=msg.get("dataFileUri"),
+            run_dir=msg.get("runDir", pkio.py_path()),
         )
         if not isinstance(r, PKDict):
             return _err("invalid return", res=r)
