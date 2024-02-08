@@ -1073,7 +1073,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, plotToPNG, tallyService, volumeLoadingService, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, plotToPNG, tallyService, utilities, volumeLoadingService, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -1596,20 +1596,22 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 vtkScene.render();
             }
 
+            function showSources() {
+                addSources();
+                appState.saveQuietly($scope.modelName);
+                appState.autoSave();
+            }
+
+            const updateOpacity = utilities.debounce(updateDisplay, 100);
+            
             function updateDisplay() {
-                // opcacity can change before we're ready
-                if (! vtkScene) {
+                // values can change before we're ready
+                if (! tallyService.fieldData || ! vtkScene) {
                     return;
                 }
                 tallyService.updateTallyDisplay();
                 setTallyColors();
                 addSources();
-            }
-
-            function showSources() {
-                addSources();
-                appState.saveQuietly($scope.modelName);
-                appState.autoSave();
             }
 
             function vectorScaleFactor() {
@@ -1629,9 +1631,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             if (hasTallies) {
                 appState.watchModelFields($scope, [
                     `${$scope.modelName}.colorMap`,
-                    `${$scope.modelName}.opacity`,
                     `${$scope.modelName}.sourceColorMap`,
                 ], updateDisplay);
+                appState.watchModelFields($scope, [
+                    `${$scope.modelName}.opacity`,
+                ], updateOpacity);
                 appState.watchModelFields($scope, [`${$scope.modelName}.showSources`], showSources, true);
                 $scope.$on('openmcAnimation.summaryData', () => {
                     if (vtkScene) {
