@@ -99,6 +99,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
+    pkdp("EXTR {}", sim_in.report)
     # dummy result
     if sim_in.report == "tallyReport":
         template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
@@ -434,7 +435,7 @@ def _energy_plot(run_dir, data):
         plots,
         PKDict(),
         PKDict(
-            title=f"Energy Spectrum at ({r.x.val}, {r.y.val}, {r.z.val})",
+            title=f"Energy Spectrum at ({round(r.x.val, ndigits=6)}, {round(r.y.val, ndigits=6)}, {round(r.z.val, ndigits=6)})",
             y_label="Score",
             x_label="Energy [eV]",
             summaryData=PKDict(),
