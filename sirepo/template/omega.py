@@ -287,11 +287,13 @@ def write_parameters(data, run_dir, is_parallel):
     pkdp("\n\n\n sim_list={}", sim_list)
     for idx in range(len(sim_list)):
         s = sim_list[idx]
+        d = run_dir.join(f'run{idx + 1}')
+        pkio.unchecked_remove(d)
+        pkio.mkdir_parent(d)
         if s.sim_type == "opal":
-            d = run_dir.join(f'run{idx + 1}')
-            pkio.unchecked_remove(d)
-            pkio.mkdir_parent(d)
             _prepare_opal(d, s.sim_id, prev)
+        elif s.sim_type == "elegant":
+            _prepare_elegant(d, s.sim_id, prev)
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
@@ -373,6 +375,64 @@ def _prepare_opal(run_dir, opal_id, prev_sim=None):
         _update_sim(data, filename, t)
     data.computeModel = 'animation'
     LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
+    sirepo.simulation_db.prepare_simulation(data, run_dir)
+    # pkio.save_chdir(run_dir)
+    # with prep_run_dir(run_dir, data):
+    #     sirepo.pkcli.opal.run_opal(with_mpi=True)
+    # return f'{run_dir}/{sirepo.template.opal._OPAL_H5_FILE}'
+
+
+
+def _prepare_elegant(run_dir, elegant_id, prev_sim=None):
+    def _save_lib_files(tmp, filename):
+        s = sirepo.sim_data.get_class("elegant")
+        b = s.lib_file_name_with_model_field("bunchFile", "sourceFile", filename)
+        s.lib_file_write(b, tmp)
+        c = s.sim_db_client()
+        c.copy(
+            c.uri(c.LIB_DIR, b),
+            c.uri(
+                c.LIB_DIR,
+                s.lib_file_name_with_model_field("command_run_setup", "expand_for", filename),
+            ),
+        )
+        tmp.remove()
+
+    def _update_sim(data, filename, prev_sim):
+        if data.models.bunchSource.inputSource == 'bunched_beam':
+            convert_bunched_beam_to_sdds_beam(data, filename)
+        assert data.models.bunchSource.inputSource == 'sdds_beam'
+        cmd = LatticeUtil.find_first_command(data, "sdds_beam")
+        cmd.input = filename
+        cmd.center_arrival_time = '1'
+        cmd.center_transversely = '1'
+        cmd.reverse_t_sign = '1' if prev_sim.sim_type == 'genesis' else '0'
+        LatticeUtil.find_first_command(data, "run_setup").expand_for = filename
+        write_sim(data)
+
+    data = read_sim('elegant', elegant_id)
+    if prev_sim:
+        assert prev_sim.outfile_path
+        filename = file_name_from_sim_name('elegant', f'{_OMEGA_SIM_NAME}-{run_dir.basename}')
+        _update_sim(data, filename, prev_sim)
+        t = run_dir.join("omega-elegant-bunch")
+        if prev_sim.sim_type == 'elegant':
+            pkio.py_path(prev_sim.outfile_path).copy(t)
+        elif prev_sim.sim_type == 'genesis':
+            import pmd_beamphysics.interfaces.elegant
+
+            pmd_beamphysics.interfaces.elegant.write_elegant(
+                genesis_to_pmd(prev_sim),
+                str(t),
+            )
+        else:
+            sw = switchyard.Switchyard()
+            sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
+            sw.write(str(t), 'elegant')
+        _save_lib_files(t, filename)
+    data.computeModel = 'animation'
+    if 'report' in data:
+        del data['report']
     sirepo.simulation_db.prepare_simulation(data, run_dir)
     # pkio.save_chdir(run_dir)
     # with prep_run_dir(run_dir, data):
