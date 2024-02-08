@@ -64,6 +64,8 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
+        if data.get("report") == "energyReport":
+            return ["energyReport.x", "energyReport.y", "energyReport.z"]
         return []
 
     @classmethod
