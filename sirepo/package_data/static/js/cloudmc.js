@@ -774,7 +774,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         },
         template: `
              <div data-report-content="heatmap" data-model-key="{{ modelName }}" data-report-cfg="reportCfg"></div>
-             <div data-ng-if="energyFilter" data-report-content="parameter" data-model-key="energyReport"></div>
+             <!--<div data-ng-if="energyFilter" data-report-content="parameter" data-model-key="energyReport"></div>-->
         `,
         controller: function($scope) {
             $scope.modelName = 'tallyReport';

@@ -434,9 +434,9 @@ def _energy_plot(run_dir, data):
         plots,
         PKDict(),
         PKDict(
-            title="Energy Spectrum",
-            y_label=f"Score",
-            x_label=f"Energy [eV]",
+            title=f"Energy Spectrum at ({r.x.val}, {r.y.val}, {r.z.val})",
+            y_label="Score",
+            x_label="Energy [eV]",
             summaryData=PKDict(),
         ),
     )
