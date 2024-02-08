@@ -32,6 +32,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="SearchTerms">
           <div data-search-terms="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="SearchTermText" data-ng-class="fieldClass">
+          <div data-search-term-text="" data-model="model" data-field="field"></div>
+        </div>
         <div data-ng-switch-when="ColumnList" data-ng-class="fieldClass">
           <div data-column-list="" data-model="model" data-field="field"></div>
         </div>
@@ -1205,6 +1208,24 @@ SIREPO.app.directive('searchTerms', function() {
                     return true;
                 }
                 return false;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('searchTermText', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            },
+        template: `
+          <input data-ng-disabled="disabled()" data-ng-model="model[field]" class="form-control" data-lpignore="true" />
+        `,
+        controller: function($scope, columnsService) {
+            $scope.disabled = () => {
+                return $scope.model.column === columnsService.selectSearchFieldText;
             };
         },
     };
