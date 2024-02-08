@@ -9,7 +9,7 @@ SIREPO.app.config(function() {
           <div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="19"></div>
         </div>
         <div data-ng-switch-when="MaginPlot">
-            <div data-magin-file-plot="" data-model-name="modelName">
+            <div data-magin-file-plot="" data-model-name="maginPlotReport">
         </div>
     `;
 });
@@ -63,20 +63,18 @@ SIREPO.app.directive('maginFilePlot', function(appState) {
     return {
         restrict: 'A',
         scope: {
-            model: '=',
-            field: '=',
-            modelName: '=',
+            modelName: '@',
         },
         template: `
             <div data-ng-if="hasMaginfile">
-              <div data-show-loading-and-error="" data-model-key="maginPlotReport">
-                <div data-parameter-plot="parameter" data-model-name="maginPlotReport"></div>
+              <div data-show-loading-and-error="" data-model-key="{{ modelName }}">
+                <div data-parameter-plot="parameter" data-model-name="{{ modelName }}"></div>
               </div>
             </div>
         `,
         controller: function($scope) {
             const checkForMaginfile = () => {
-                return  appState.models.io.maginfile || false;
+                return appState.models.io.maginfile || false;
             };
 
             $scope.hasMaginfile = checkForMaginfile();

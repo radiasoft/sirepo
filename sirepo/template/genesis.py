@@ -427,7 +427,9 @@ def _parse_maginfile(filepath):
                     p.append(row[1])
                 if row[0] == "?" and "UNITLENGTH" in row[1]:
                     u = row[2]
-    return PKDict(unit_length=u, points=p)
+    if p:
+        return PKDict(unit_length=u, points=p)
+    raise AssertionError(f"No AW fields present in maginfile={filepath.basename}")
 
 
 def _parse_namelist(data, text):
