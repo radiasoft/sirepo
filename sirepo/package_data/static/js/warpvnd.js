@@ -360,7 +360,7 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
 });
 
 
-SIREPO.app.controller('SourceController', function (appState, frameCache, panelState, vtkPlotting, warpvndService, $scope) {
+SIREPO.app.controller('SourceController', function (appState, frameCache, panelState, utilities, vtkPlotting, warpvndService, $scope) {
     var self = this;
     var MAX_PARTICLES_PER_STEP = 1000;
     var condctorTypes = SIREPO.APP_SCHEMA.enum.ConductorType.map(function (t) {
@@ -430,7 +430,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
             minGridBounds[i / 2] = Math.abs(bounds[i + 1] - bounds[i]);
         }
         // adjust to accomodate smallest dimension (??)
-        var maxmin = Math.min.apply(null, minGridBounds);
+        var maxmin = utilities.arrayMin(minGridBounds);
         for(var j in warpvndService.stlUnits) {
             var unit = warpvndService.stlUnits[j];
             if (maxmin >= unit) {
@@ -3010,7 +3010,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
 
             // if we have stl-type conductors, we might need to rescale the grid for drawing
             // (easier and faster than scaling the data)
-            var toMetersFactor = Math.min.apply(null, warpvndService.stlNanoUnits);
+            var toMetersFactor = utilities.arrayMin(warpvndService.stlNanoUnits);
             var toMicronFactor = 1.0;
             var gridOffsets = [0, 0, 0];
             var domain = {
@@ -3499,7 +3499,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             var stlBundles = {};
             var stlReaders = {};
 
-            var toMetersFactor = Math.min.apply(null, warpvndService.stlNanoUnits);
+            var toMetersFactor = utilities.arrayMin(warpvndService.stlNanoUnits);
             var toMicronFactor = 1e-6;
             var gridOffsets = [0, 0, 0];
             var xfactor = 1;
@@ -4170,8 +4170,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var d = faceData.dArr;
 
                 // data can be too large for the stack
-                var smin = ! impactData.v_min ? (impactData.v_min === 0 ? 0 : SIREPO.UTILS.arrayMin(d)) : impactData.v_min ;
-                var smax = impactData.v_max || SIREPO.UTILS.arrayMax(d);
+                var smin = ! impactData.v_min ? (impactData.v_min === 0 ? 0 : utilities.arrayMin(d)) : impactData.v_min ;
+                var smax = impactData.v_max || utilities.arrayMax(d);
 
                 var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
                 var dataColors = [];

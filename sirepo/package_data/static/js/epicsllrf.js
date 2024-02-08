@@ -426,7 +426,7 @@ SIREPO.app.directive('epicsInput', function(appState, epicsllrfService) {
     };
 });
 
-SIREPO.app.directive('waveformLoader', function(appState, epicsllrfService, panelState) {
+SIREPO.app.directive('waveformLoader', function(appState, epicsllrfService, panelState, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -456,8 +456,8 @@ SIREPO.app.directive('waveformLoader', function(appState, epicsllrfService, pane
                     }
                     plotScope.load({
                         x_range: [
-                            Math.min(...plotData.x),
-                            Math.max(...plotData.x),
+                            utilities.arrayMin(plotData.x),
+                            utilities.arrayMax(plotData.x),
                         ],
                         y_label: "",
                         x_label: l[e[$scope.modelName].x],
