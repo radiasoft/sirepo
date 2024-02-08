@@ -347,7 +347,6 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         return `Tally Results - ${a.tally} - ${a.score} - ${a.aspect}`;
     };
 
-
     return self;
 });
 
@@ -1602,9 +1601,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 appState.autoSave();
             }
 
-            const updateOpacity = utilities.debounce(updateDisplay, 100);
-            
-            function updateDisplay() {
+            const updateDisplay = utilities.debounce(() => {
                 // values can change before we're ready
                 if (! tallyService.fieldData || ! vtkScene) {
                     return;
@@ -1612,7 +1609,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 tallyService.updateTallyDisplay();
                 setTallyColors();
                 addSources();
-            }
+            }, 100);
+            
 
             function vectorScaleFactor() {
                 return 3.5 * tallyService.getMaxMeshExtent();
@@ -1631,11 +1629,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             if (hasTallies) {
                 appState.watchModelFields($scope, [
                     `${$scope.modelName}.colorMap`,
+                    `${$scope.modelName}.opacity`,
                     `${$scope.modelName}.sourceColorMap`,
                 ], updateDisplay);
-                appState.watchModelFields($scope, [
-                    `${$scope.modelName}.opacity`,
-                ], updateOpacity);
                 appState.watchModelFields($scope, [`${$scope.modelName}.showSources`], showSources, true);
                 $scope.$on('openmcAnimation.summaryData', () => {
                     if (vtkScene) {
