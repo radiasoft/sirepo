@@ -2271,12 +2271,14 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         if (cookies !== document.cookie) {
             return false;
         }
-        if (cookies === null) {
-            self.updateCookies();
+        const c = cookies;
+        self.updateCookies();
+        if (c === null || c === cookies) {
+            // first time or cookies reordered
             return false;
         }
-        srlog("cookies changed, reloading");
-        uri.globalRedirect('authLogout');
+        srlog("cookies changed, reloading", document.cookie, cookies);
+        uri.globalRedirectRoot();
         return true;
     };
 
@@ -2523,7 +2525,8 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
     self.send = (url, data, httpConfig) => {
         if (_cookiesChanged()) {
             // app will reload
-            return;
+            // return a fake promise
+            return {then: () => {}};
         }
         if (! SIREPO.authState.uiWebSocket) {
             if (socket) {
@@ -2571,7 +2574,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
     };
 
     self.updateCookies = () => {
-        cookies = document.cookie;
+        cookies = document.cookie.split(/\s*;\s*/).sort().join('; ');
     };
 
     return self;
