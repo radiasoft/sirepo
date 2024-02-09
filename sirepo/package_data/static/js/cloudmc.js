@@ -786,18 +786,15 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 crosshairs: [
                     {
                         dim: 'x',
-                        color: 'red',
-                        strokeWidth: '1.0',  
+                        color: 'black',
+                        strokeWidth: '0.5',  
                     },
                     {
                         dim: 'y',
-                        color: 'red',
-                        strokeWidth: '1.0',  
+                        color: 'black',
+                        strokeWidth: '0.5',  
                     },                  
                 ],
-                onClick: (x, y) => {
-                    setBins(x, y);
-                },
             };
             const displayRanges = {};
             const sources = cloudmcService.getSourceVisualizations(
@@ -1096,6 +1093,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 if (doUpdate) {
                     buildTallyReport();
                 }
+            });
+
+            $scope.$on('sr-plotEvent', (e, d) => {
+                srdbg(d);
             });
 
             $scope.$on('sr-volume-visibility-toggle-all', buildTallyReport);
