@@ -544,23 +544,23 @@ def _prepare_elegant(run_dir, elegant_id, omega_sim_name, prev_sim=None):
     if prev_sim:
         assert prev_sim.outfile_path
         filename = _file_name_from_sim_name('elegant', f'{omega_sim_name}-{run_dir.basename}')
-        _update_sim(data, filename, prev_sim)
-        t = run_dir.join("omega-elegant-bunch")
-        if prev_sim.sim_type == 'elegant':
-            pkio.py_path(prev_sim.outfile_path).copy(t)
-        elif prev_sim.sim_type == 'genesis':
-            import pmd_beamphysics.interfaces.elegant
+        # _update_sim(data, filename, prev_sim)
+        # t = run_dir.join("omega-elegant-bunch")
+        # if prev_sim.sim_type == 'elegant':
+        #     pkio.py_path(prev_sim.outfile_path).copy(t)
+        # elif prev_sim.sim_type == 'genesis':
+        #     import pmd_beamphysics.interfaces.elegant
 
-            pmd_beamphysics.interfaces.elegant.write_elegant(
-                _genesis_to_pmd(prev_sim),
-                str(t),
-            )
-        else:
-            # TODO (gurhar1133): this read/write from the output of a previous sim stuff needs to be done in parameters.py
-            sw = switchyard.Switchyard()
-            sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
-            sw.write(str(t), 'elegant')
-        _save_lib_files(t, filename)
+        #     pmd_beamphysics.interfaces.elegant.write_elegant(
+        #         _genesis_to_pmd(prev_sim),
+        #         str(t),
+        #     )
+        # else:
+        #     # TODO (gurhar1133): this read/write from the output of a previous sim stuff needs to be done in parameters.py
+        #     sw = switchyard.Switchyard()
+        #     sw.read(f'{prev_sim.outfile_path}', prev_sim.sim_type)
+        #     sw.write(str(t), 'elegant')
+        # _save_lib_files(t, filename)
     data.computeModel = 'animation'
     if 'report' in data:
         del data['report']
