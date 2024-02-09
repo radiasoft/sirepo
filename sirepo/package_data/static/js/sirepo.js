@@ -2248,7 +2248,8 @@ SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
 // cannot import authState factory, because of circular import with requestSender
 SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, uri) => {
     let asyncMsgMethods = {};
-    let cookies = null;
+    let cookiesSorted = null;
+    let cookiesVerbatim = null;
     let needReply = {};
     let reqSeq = 1;
     const self = {};
@@ -2268,16 +2269,16 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
     };
 
     const _cookiesChanged = () => {
-        if (cookies !== document.cookie) {
+        if (cookiesVerbatim === document.cookie) {
             return false;
         }
-        const c = cookies;
+        const c = cookiesSorted;
         self.updateCookies();
-        if (c === null || c === cookies) {
+        if (c === null || c === cookiesSorted) {
             // first time or cookies reordered
             return false;
         }
-        srlog("cookies changed, reloading", document.cookie, cookies);
+        srlog("cookies changed via another browser tab, reloading application");
         uri.globalRedirectRoot();
         return true;
     };
@@ -2315,7 +2316,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
                 _protocolError(header, content, wsreq, "missing method in content");
             }
             else if (! (header.method in asyncMsgMethods) ){
-                _protocolError(header, content, wsreq, `unregistered asyncMsg method={header.method}`);
+                _protocolError(header, content, wsreq, `unregistered asyncMsg method=${header.method}`);
             }
             else {
                 asyncMsgMethods[header.method](content);
@@ -2574,7 +2575,9 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
     };
 
     self.updateCookies = () => {
-        cookies = document.cookie.split(/\s*;\s*/).sort().join('; ');
+        // Keep two versions for faster checking in _cookiesChanged
+        cookiesVerbatim = document.cookie;
+        cookiesSorted = document.cookie.split(/\s*;\s*/).sort().join('; ');
     };
 
     return self;
