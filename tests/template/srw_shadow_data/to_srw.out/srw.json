@@ -304,7 +304,7 @@
         "numWorkers": 1,
         "randomSeed": "",
         "scanType": "random",
-        "totalSamples": 100
+        "totalSamples": 0
     },
     "fluxAnimation": {
         "azimuthalPrecision": 1,
