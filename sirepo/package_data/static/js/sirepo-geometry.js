@@ -1107,7 +1107,7 @@ class Line extends GeometricObject {
         }
         return this.equalWithin(point.y, s * point.x + this.intercept());
     }
-    
+
     /**
      * Determines whether this Line is equal to another, according to the following criteria:
      *  - if the slopes of each are Infinite, and they have the same x coordinate, they are equal
@@ -2023,8 +2023,8 @@ SIREPO.app.service('geometry', function(utilities) {
             var d = pts.map(function (pt) {
                 return pt[dim];
             });
-            bounds[dim].min = Math.min.apply(null, d);
-            bounds[dim].max = Math.max.apply(null, d);
+            bounds[dim].min = SIREPO.UTILS.arrayMin(d);
+            bounds[dim].max = SIREPO.UTILS.arrayMax(d);
         });
         */
 
@@ -2071,8 +2071,8 @@ SIREPO.app.service('geometry', function(utilities) {
                     return pt[dim];
                 });
                 b[dim] = {};
-                b[dim].min = Math.min.apply(null, d);
-                b[dim].max = Math.max.apply(null, d);
+                b[dim].min = SIREPO.UTILS.arrayMin(d);
+                b[dim].max = SIREPO.UTILS.arrayMax(d);
             });
             return b;
         };

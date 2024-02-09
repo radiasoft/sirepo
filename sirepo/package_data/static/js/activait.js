@@ -54,7 +54,7 @@ SIREPO.app.config(() => {
     `;
 });
 
-SIREPO.app.factory('activaitService', function(appState, panelState) {
+SIREPO.app.factory('activaitService', function(appState, panelState, utilities) {
     const self = {};
     const parameterCache = {
         analysisParameters: null,
@@ -66,7 +66,7 @@ SIREPO.app.factory('activaitService', function(appState, panelState) {
         const report = appState.clone(parent);
         const subreports = self.getSubreports();
         report.id = subreports.length
-            ? (Math.max.apply(null, subreports) + 1)
+            ? (utilities.arrayMax(subreports) + 1)
             : 1;
         report.action = null;
         report.history.push(action);
