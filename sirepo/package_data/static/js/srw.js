@@ -856,9 +856,7 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
         });
     };
 
-    self.showRunSimPanel = () => {
-        return appState.applicationState().exportRsOpt.totalSamples > 0;
-    };
+    self.showRunSimPanel = () => appState.applicationState().exportRsOpt.totalSamples > 0;
 
     self.simHandleStatus = data => {
         if (data.error) {
