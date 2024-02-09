@@ -426,7 +426,10 @@ def _parse_maginfile(filepath):
                 if row[0] == _MAGIN_PLOT_FIELD:
                     p.append(row[1])
                 if row[0] == "?" and "UNITLENGTH" in row[1]:
-                    u = row[2]
+                    if row[2] == "=":
+                        u = row[3]
+                    else:
+                        u = row[2]
     if p:
         return PKDict(unit_length=u, points=p)
     raise AssertionError(f"No AW fields present in maginfile={filepath.basename}")

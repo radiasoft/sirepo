@@ -59,28 +59,22 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('maginFilePlot', function(appState) {
+SIREPO.app.directive('maginFilePlot', function(appState, utilities) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
         },
         template: `
-            <div data-ng-if="hasMaginfile">
+            <div data-ng-if="hasMaginfile()">
               <div data-show-loading-and-error="" data-model-key="{{ modelName }}">
-                <div data-parameter-plot="parameter" data-model-name="{{ modelName }}"></div>
+                <div data-parameter-plot="parameter" data-model-name="{{ modelName }}" data-report-id="reportId"></div>
               </div>
             </div>
         `,
         controller: function($scope) {
-            const checkForMaginfile = () => {
-                return appState.models.io.maginfile || false;
-            };
-
-            $scope.hasMaginfile = checkForMaginfile();
-            $scope.$on('io.changed', ()=> {
-                $scope.hasMaginfile = checkForMaginfile();
-            });
+            $scope.hasMaginfile = () => appState.applicationState().io.maginfile;
+            $scope.reportId = utilities.reportId();
         }
     };
 });
