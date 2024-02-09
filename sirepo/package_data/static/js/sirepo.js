@@ -2025,7 +2025,7 @@ SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
                 throw new Error(routeOrParams + ': routeName must be supplied');
             }
             if (angular.isDefined(params)) {
-                srlog(arguments);
+                srlog(map, routeOrParams, params);
                 throw new Error(params + ': params must be null if routeOrParams is an object: ' + routeOrParams);
             }
             params = angular.copy(routeOrParams);
