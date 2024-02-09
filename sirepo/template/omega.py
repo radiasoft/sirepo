@@ -7,7 +7,6 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
-from rsbeams.rsdata import switchyard
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
@@ -108,7 +107,6 @@ _ELEGANT_BEAM_PARAMETER_FILE = PKDict(
     Cx="run_setup.centroid.sdds",
     Cy="run_setup.centroid.sdds",
 )
-_GENESIS_PARTICLE_COLUMN_COUNT = 6
 _RELATED_SIMS_FOLDER = "/Omega"
 _SUCCESS_OUTPUT_FILE = PKDict(
     elegant="run_setup.output.sdds",
