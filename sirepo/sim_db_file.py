@@ -13,6 +13,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import aiofiles
 import aiohttp
+import os
 import re
 import sirepo.agent_supervisor_api
 import sirepo.const
@@ -114,6 +115,13 @@ class SimDbClient:
             SimDbUri: valid in any string context
         """
         return SimDbUri(sim_type or self._sim_data.sim_type(), lib_sid_uri, basename)
+
+    def _check_size(content):
+        max_size = sirepo.job.cfg().max_message_bytes
+        pkdp("CHECK SZ {} VS {}", len(content), max_size)
+        if len(content) > max_size:
+            raise AssertionError(f"content too large ({len(content)} > {max_size})")
+        return content
 
     def _post(self, lib_sid_uri, basename=None, args=None, sim_type=None):
         res = pkjson.load_any(
