@@ -377,6 +377,17 @@ def stateful_compute_get_remote_data(data, **kwargs):
     _SIM_DATA.lib_file_save_from_url(data.args.url, "dataFile", "file")
     return PKDict()
 
+def stateful_compute_download_remote_lib_file(data, **kwargs):
+    _SIM_DATA.lib_file_save_from_url(
+        "{}/{}".format(
+            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+            data.args.exampleURL,
+        ),
+        "dataFile",
+        "exampleURL",
+    )
+    return PKDict()
+
 
 def stateful_compute_sample_images(data, **kwargs):
     return _ImagePreview(data).images()

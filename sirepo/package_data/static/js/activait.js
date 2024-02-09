@@ -2324,6 +2324,26 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
         );
     }
 
+    function downloadRemoteDataFile() {
+        requestSender.sendStatefulCompute(
+            appState,
+            data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                appState.models.datafile.exampleURL = "";
+                appState.saveQuietly('dataFile');
+                //processGeometry(); (Don't think I need to do what cloudmc does, leaving in case)
+            },
+            {
+                method: 'download_remote_lib_file',
+                args: {
+                    exampleURL: appState.models.dataFile.exampleURL,
+                },
+            }
+        );
+    }
+
     function hasCachedDataList(cache) {
         return cache && cache.dataList && cache.dataList.length;
     }
@@ -2379,6 +2399,13 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
         dataFileChanged();
         updateEditor();
     };
+
+    appState.whenModelsLoaded($scope, () => {
+        console.log('Here models loaded:', appState.models[$scope.modelName]);
+        if (appState.models[$scope.modelName].exampleURL) {
+            downloadRemoteDataFile();
+        }
+    });
 
     $scope.$on( `${modelName}.changed`, updateData);
 });

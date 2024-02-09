@@ -291,7 +291,8 @@
             "featureRangeMax": ["Feature range maximum", "Integer", 1],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
-            "url": ["Data URL", "URL", ""]
+            "url": ["Data URL", "URL", ""],
+            "exampleURL": ["", "String", ""]
         },
         "dataFileCache": {},
         "dtClassifierClassificationMetricsAnimation": {},
