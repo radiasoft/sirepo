@@ -1,56 +1,62 @@
-
-#prevent GIST from starting upon setup
+# prevent GIST from starting upon setup
 wp.top.lprntpara = False
 wp.top.lpsplots = False
 
-wp.top.verbosity = 0 # Reduce solver verbosity
-solverE.mgverbose = 0 #further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
-solverE.mgmaxiters = 12000 #rough approximation needed for initial solve to converge
+wp.top.verbosity = 0  # Reduce solver verbosity
+solverE.mgverbose = 0  # further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
+solverE.mgmaxiters = 12000  # rough approximation needed for initial solve to converge
 wp.package("w3d")
 wp.generate()
 solverE.mgmaxiters = 100
 
-#------
+# ------
 
 #%%time
-num_steps = {{ simulationGrid_num_steps }}
-output_steps = np.linspace(0,num_steps,num_steps//particleperiod + 1)[1:]
+num_steps = {{simulationGrid_num_steps}}
+output_steps = np.linspace(0, num_steps, num_steps // particleperiod + 1)[1:]
 step_count = 0
 time0 = time.time()
 wp.step(num_steps)
 time1 = time.time()
-time_per_step = (time1-time0)/num_steps
+time_per_step = (time1 - time0) / num_steps
 
-#------
+# ------
 
 electrons_tracked_t0 = wp.Species(type=wp.Electron)
-v_coords = sources.get_MB_velocities(PTCL_PER_STEP,CATHODE_TEMP)
-x_vals = CHANNEL_WIDTH*(np.random.rand(PTCL_PER_STEP)-0.5)
-y_vals = CHANNEL_HEIGHT*(np.random.rand(PTCL_PER_STEP)-0.5)
-z_vals = np.zeros(PTCL_PER_STEP) + Z_PART_MIN #Add a minimum z coordinate to prevent absorption
-eptclArray = np.asarray([x_vals,v_coords[:,0],y_vals,v_coords[:,1],z_vals,v_coords[:,2]]).T
-electron_tracker_0 = TraceParticle(js=electrons_tracked_t0.jslist[0],
-                                   x=eptclArray[:,0],
-                                   y=eptclArray[:,2],
-                                   z=eptclArray[:,4],
-                                   vx=np.zeros_like(eptclArray[:,0]),
-                                   vy=np.zeros_like(eptclArray[:,0]),
-                                   vz=eptclArray[:,5],
-                                   savedata={{ simulationGrid_trace_period }})
+v_coords = sources.get_MB_velocities(PTCL_PER_STEP, CATHODE_TEMP)
+x_vals = CHANNEL_WIDTH * (np.random.rand(PTCL_PER_STEP) - 0.5)
+y_vals = CHANNEL_HEIGHT * (np.random.rand(PTCL_PER_STEP) - 0.5)
+z_vals = (
+    np.zeros(PTCL_PER_STEP) + Z_PART_MIN
+)  # Add a minimum z coordinate to prevent absorption
+eptclArray = np.asarray(
+    [x_vals, v_coords[:, 0], y_vals, v_coords[:, 1], z_vals, v_coords[:, 2]]
+).T
+electron_tracker_0 = TraceParticle(
+    js=electrons_tracked_t0.jslist[0],
+    x=eptclArray[:, 0],
+    y=eptclArray[:, 2],
+    z=eptclArray[:, 4],
+    vx=np.zeros_like(eptclArray[:, 0]),
+    vy=np.zeros_like(eptclArray[:, 0]),
+    vz=eptclArray[:, 5],
+    savedata={{simulationGrid_trace_period}},
+)
 
 # step with particle tracing, much slower under MPI, increase savedata period to speed up
 wp.step(num_steps)
 
+
 def is_lost_particle(trace, electron, step):
-    return abs(
-        trace.getx(i=electron)[step] -
-        trace.getx(i=electron)[step + 1]) > (X_MAX - X_MIN) / 2. \
-        or abs(
-            trace.gety(i=electron)[step] -
-            trace.gety(i=electron)[step + 1]) > (Y_MAX - Y_MIN) / 2.
+    return (
+        abs(trace.getx(i=electron)[step] - trace.getx(i=electron)[step + 1])
+        > (X_MAX - X_MIN) / 2.0
+        or abs(trace.gety(i=electron)[step] - trace.gety(i=electron)[step + 1])
+        > (Y_MAX - Y_MIN) / 2.0
+    )
 
 
-def particle_trace(trace,ntrack):
+def particle_trace(trace, ntrack):
     kept = [[], [], []]
     lost = [[], [], []]
     for electron in range(ntrack):
@@ -68,12 +74,11 @@ def particle_trace(trace,ntrack):
 
 
 if can_write_files:
-    kept_electrons, lost_electrons = particle_trace(electron_tracker_0, electron_tracker_0.nn)
-    with h5py.File('{{ particleFile }}', 'w') as hf:
-        dict_to_h5(
-            {
-                'kept': kept_electrons,
-                'lost': lost_electrons
-            },
-            hf, path='particle'
-        )
+    kept_electrons, lost_electrons = particle_trace(
+        electron_tracker_0, electron_tracker_0.nn
+    )
+    with open("{{ particleFile }}", "wb") as f:
+        f.write(msgpack.packb(dict(
+            kept=array_to_list(kept_electrons),
+            lost=array_to_list(lost_electrons),
+        )))

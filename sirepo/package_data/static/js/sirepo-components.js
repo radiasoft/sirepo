@@ -52,7 +52,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
             fieldDef: '@',
         },
         template: `
-            <h5 data-ng-if="::description && fieldDef == \'advanced\'"><span data-text-with-math="description"></span></h5>
+            <h5 data-ng-if="::description && fieldDef == 'advanced'"><span data-text-with-math="description"></span></h5>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <ul data-ng-if="pages" class="nav nav-tabs">
                 <li data-ng-repeat="page in pages" role="presentation" class="{{page.class}}" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">{{ page.name }}</a></li>
@@ -260,7 +260,7 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
             panelTitle: '@',
         },
         template: `
-            <div class="panel panel-info" id="{{ \'sr-\' + viewName + \'-basicEditor\' }}">
+            <div class="panel panel-info" id="sr-{{ viewName }}-basicEditor">
               <div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-key="modelKey" data-view-name="{{ viewName }}"></div>
                 <div class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
                   <div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="{{ wantButtons }}" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
@@ -409,7 +409,7 @@ SIREPO.app.directive('confirmationModal', function() {
             isRequired: '@',
         },
         template: `
-            <div class="modal fade" data-backdrop="{{ isRequired ? \'static\' : true }}" id="{{ id }}" tabindex="-1" role="dialog">
+            <div class="modal fade" data-backdrop="{{ isRequired ? 'static' : true }}" id="{{ id }}" tabindex="-1" role="dialog">
               <div class="modal-dialog">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
@@ -426,7 +426,7 @@ SIREPO.app.directive('confirmationModal', function() {
                       <div class="row">
                         <div class="col-sm-6 pull-right" style="margin-top: 1em">
                           <button data-ng-if="okText" data-ng-disabled="! isValid()" data-ng-click="clicked()" class="btn btn-default sr-button-size">{{ okText }}</button>
-                           <button data-ng-if="! isRequired" data-dismiss="modal" class="btn btn-default sr-button-size">{{ cancelText || \'Cancel\' }}</button>
+                           <button data-ng-if="! isRequired" data-dismiss="modal" class="btn btn-default sr-button-size">{{ cancelText || 'Cancel' }}</button>
                         </div>
                       </div>
                     </div>
@@ -481,7 +481,7 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager, strings
             disabled: '<',
         },
         template: `
-            <div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy {{ ::stringsService.formatKey(\'simulationDataType\') }}" data-ok-text="Create Copy" data-ok-clicked="copy()">
+            <div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy {{ ::stringsService.formatKey('simulationDataType') }}" data-ok-text="Create Copy" data-ok-clicked="copy()">
               <form class="form-horizontal" autocomplete="off">
                 <div class="form-group">
                 <label class="col-sm-3 control-label">New Name</label>
@@ -493,7 +493,7 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager, strings
                 <div class="form-group" data-ng-if="showFolders()">
                   <label class="col-sm-3 control-label">Folder</label>
                   <div class="col-sm-9">
-                    <div data-user-folder-list="" data-model="copyCfg" data-field="\'copyFolder\'"></div>
+                    <div data-user-folder-list="" data-model="copyCfg" data-field="'copyFolder'"></div>
                   </div>
               </div>
               </form>
@@ -776,7 +776,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
               </div>
               <div data-ng-switch-when="SimulationName" data-ng-class="fieldClass">
-                <input data-safe-path="" data-ng-model="model[field]" class="form-control" required data-ng-readonly="model[\'isExample\']" data-lpignore="true" />
+                <input data-safe-path="" data-ng-model="model[field]" class="form-control" required data-ng-readonly="model['isExample']" data-lpignore="true" />
                 <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
               </div>
               <div data-ng-switch-when="InputFile" class="col-sm-7">
@@ -816,7 +816,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               ${SIREPO.appFieldEditors}
               <div data-ng-switch-default data-ng-class="fieldClass">
                 <div data-ng-if="wantEnumButtons" class="btn-group">
-                  <button type="button" class="btn sr-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>
+                  <button type="button" class="btn sr-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{'active btn-primary': isSelectedValue(item[0]), 'btn-default': ! isSelectedValue(item[0])}">{{ item[1] }}</button>
                 </div>
                 <select data-ng-if="! wantEnumButtons" number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
                 <div class="sr-input-warning"></div>
@@ -988,7 +988,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
         },
         template: `
           <div class="btn-group" role="group">
-            <button type="button" class="btn btn-default dropdown-toggle" data-ng-class="{\'btn-invalid\': selectionRequired && ! hasValidFileSelected()}" data-toggle="dropdown">{{ model[fileField] || emptySelectionText }} <span class="caret"></span></button>
+            <button type="button" class="btn btn-default dropdown-toggle" data-ng-class="{'btn-invalid': selectionRequired && ! hasValidFileSelected()}" data-toggle="dropdown">{{ model[fileField] || emptySelectionText }} <span class="caret"></span></button>
             <ul class="dropdown-menu">
               <li data-ng-repeat="item in itemList()" class="sr-model-list-item"><a href data-ng-click="selectItem(item)">{{ item }}<span data-ng-show="! isSelectedItem(item)" data-ng-click="confirmDeleteItem(item, $event)" class="glyphicon glyphicon-remove"></span></a></li>
               <li class="divider"></li>
@@ -2002,7 +2002,7 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
             <button type="button" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown"><span class="sr-color-map-indicator" data-ng-style="itemStyle[model[field]]"></span> {{ colorMapDescription(model[field]) }} <span class="caret"></span></button>
             <ul class="dropdown-menu sr-button-menu">
                 <li data-ng-repeat="item in items" class="sr-button-menu">
-                    <button type="button" class="btn btn-block"  data-ng-class="{\'sr-button-menu-selected\': isSelectedMap(item[0]), \'sr-button-menu-unselected\': ! isSelectedMap(item[0])}" data-ng-click="setColorMap(item[0])">
+                    <button type="button" class="btn btn-block"  data-ng-class="{'sr-button-menu-selected': isSelectedMap(item[0]), 'sr-button-menu-unselected': ! isSelectedMap(item[0])}" data-ng-click="setColorMap(item[0])">
                         <span class="sr-color-map-indicator" data-ng-style="itemStyle[item[0]]"></span> {{item[1]}} <span data-ng-if="isDefaultMap(item[0])" class="glyphicon glyphicon-star-empty"></span><span data-ng-if="isSelectedMap(item[0])" class="glyphicon glyphicon-ok"></span>
                     </button>
                 </li>
@@ -2064,7 +2064,7 @@ SIREPO.app.directive('collapsableNotes', function() {
         template: `
             <div>
             <a href data-ng-click="toggleNotes()" style="text-decoration: none;">
-            <span class="glyphicon" data-ng-class="{\'glyphicon-chevron-down\': ! showNotes, \'glyphicon-chevron-up\': showNotes}" style="font-size:16px;"></span>
+            <span class="glyphicon" data-ng-class="{'glyphicon-chevron-down': ! showNotes, 'glyphicon-chevron-up': showNotes}" style="font-size:16px;"></span>
              <span data-ng-show="! openNotes() && hasNotes()">...</span>
              <span data-ng-show="! openNotes() && ! hasNotes()" style="font-style: italic; font-size: small">click to enter notes</span>
             </a>
@@ -2126,7 +2126,7 @@ SIREPO.app.directive('numberList', function(appState, utilities) {
         },
         template: `
             <div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >
-            <label data-text-with-math="valueLabels[$index] || \'Plane \' + $index" style="margin-right: 1ex"></label>
+            <label data-text-with-math="valueLabels[$index] || 'Plane ' + $index" style="margin-right: 1ex"></label>
             <input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right; {{ customStyle }}" required />
             </div>
         `,
@@ -2189,7 +2189,7 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
         template: `
             <span class="sr-panel-heading">{{ simpleHeading }}</span>
             <div class="sr-panel-options pull-right">
-              <a href data-ng-class="{\'sr-disabled-link\': utilities.isFullscreen()}" data-ng-click="toggleHidden()" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a>
+              <a href data-ng-class="{'sr-disabled-link': utilities.isFullscreen()}" data-ng-click="toggleHidden()" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a>
               <a href data-ng-click="panelState.toggleHiddenAndNotify(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>
             </div>
             <div class="sr-panel-options pull-right" data-ng-transclude="" ></div>
@@ -2234,7 +2234,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   <li data-ng-if="::hasDataFile" data-ng-repeat="l in panelDownloadLinks"><a data-ng-href="{{ dataFileURL(l.suffix) }}" target="_blank">{{ l.title }}</a></li>
                 </ul>
               </div>
-              <a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a>
+              <a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{'glyphicon-resize-full': ! utilities.isFullscreen(), 'glyphicon-resize-small': utilities.isFullscreen()}"></span></a>
             </div>
         `,
         controller: function($scope, $element) {
@@ -2364,7 +2364,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
         },
         template: `
             <div data-show-loading-and-error="" data-model-key="{{ modelKey }}">
-              <div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'sr-hide-report\' : \'\' }}">
+              <div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? 'sr-hide-report' : '' }}">
                 <div data-ng-switch-when="2d" data-plot2d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
                 <div data-ng-switch-when="3d" data-plot3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
                 <div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
@@ -2466,7 +2466,7 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
         },
         template: `
             <ul class="nav navbar-nav" data-ng-if=":: authState.isLoggedIn">
-              <li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> {{ simulationsLinkText }}</a></li>
+              <li data-ng-class="{active: nav.isActive('simulations')}"><a href data-ng-click="nav.openSection('simulations')"><span class="glyphicon glyphicon-th-list"></span> {{ simulationsLinkText }}</a></li>
             </ul>
             <div data-ng-if="showTitle()" class="navbar-text">
                 <a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a>
@@ -3134,12 +3134,12 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
         scope: {},
         template: `
             <div data-ng-show="isJupyterhub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">
-            We\'re improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. Simply follow the directions below to complete this process.
+            We're improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. Simply follow the directions below to complete this process.
             </div>
             <form class="form-horizontal" autocomplete="off" novalidate>
               <div class="form-group">
                 <div class="col-sm-offset-2 col-sm-10">
-                  <p>Enter your email address and we\'ll send an authorization link to your inbox.</p>
+                  <p>Enter your email address and we'll send an authorization link to your inbox.</p>
                 </div>
               </div>
               <div class="form-group">
@@ -3154,12 +3154,12 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                    <div data-disable-after-click="">
                     <button data-ng-click="login()" class="btn btn-primary">Continue</button>
                   </div>
-                  <p class="help-block">By signing up for Sirepo you agree to Sirepo\'s <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
+                  <p class="help-block">By signing up for Sirepo you agree to Sirepo's <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
                 </div>
               </div>
             </form>
             <div data-confirmation-modal="" data-is-required="true" data-id="sr-email-login-done" data-title="Check your inbox" data-ok-text="" data-cancel-text="">
-              <p>We just emailed a confirmation link to {{ data.sentEmail }}. Click the link and you\'ll be signed in. You may close this window.</p>
+              <p>We just emailed a confirmation link to {{ data.sentEmail }}. Click the link and you'll be signed in. You may close this window.</p>
             </div>
         `,
         controller: function($scope) {
@@ -3253,7 +3253,7 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
                     <button data-ng-click="login()" class="btn btn-primary">Continue</button>
                   </div>
                   <div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>
-                  <p class="help-block">By signing up for Sirepo you agree to Sirepo\'s <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
+                  <p class="help-block">By signing up for Sirepo you agree to Sirepo's <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
                 </div>
               </div>
             </form>
@@ -3325,7 +3325,7 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             convMethod: '@',
         },
         template: `
-            <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openConvertedSimulation()">
+            <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? 'Close' : 'Cancel' }}" data-ok-text="{{ displayLink() ? '' : 'Create' }}" data-ok-clicked="openConvertedSimulation()">
               <div data-ng-if="! displayLink()"> Create a {{ title }} simulation with an equivalent beamline? </div>
               <div data-ng-if="displayLink()">
                 {{ title }} simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
@@ -4513,7 +4513,7 @@ SIREPO.app.directive('simSections', function(utilities) {
         restrict: 'A',
         transclude: true,
         template: `
-            <ul data-ng-transclude="" class="nav navbar-nav sr-navbar-right" data-ng-class="{\'nav-tabs\': isWide()}"></ul>
+            <ul data-ng-transclude="" class="nav navbar-nav sr-navbar-right" data-ng-class="{'nav-tabs': isWide()}"></ul>
         `,
         controller: function($scope) {
             $scope.isWide = function() {
@@ -4553,7 +4553,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               </div>
               <div data-ng-if="simState.showJobSettings()">
                 <div class="form-group form-group-sm">
-                  <div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
+                  <div data-model-field="'jobRunMode'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
                 </div>
                 <div data-sbatch-options="simState"></div>
               </div>
@@ -5058,6 +5058,10 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
 
     var self = this;
 
+    this.arrayMin = array => SIREPO.UTILS.arrayMin(array);
+
+    this.arrayMax = array => SIREPO.UTILS.arrayMax(array);
+
     this.modelFieldID = function(modelName, fieldName) {
         return 'model-' + modelName + '-' + fieldName;
     };
@@ -5106,12 +5110,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         return $interpolate(str)(context);
     };
 
-    this.wordSplits = function(str) {
-        var wds = str.split(/(\s+)/);
-        return wds.map(function (value, index) {
-            return wds.slice(0, index).join('') + value;
-        });
-    };
+    this.wordSplits = str => SIREPO.UTILS.wordSplits(str);
 
     this.splitCommaDelimitedString = function(str, parser=null) {
         let a = str.split(/\s*,\s*/);
@@ -5265,21 +5264,9 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         };
     };
 
-    this.indexArray = function(size) {
-        var res = [];
-        for (var i = 0; i < size; res.push(i++)) {}
-        return res;
-    };
+    this.indexArray = size => SIREPO.UTILS.indexArray(size);
 
-    this.normalize = function(seq) {
-        var sMax = Math.max.apply(null, seq);
-        var sMin = Math.min.apply(null, seq);
-        var sRange = sMax - sMin;
-        sRange = sRange > 0 ? sRange : 1.0;
-        return seq.map(function (v) {
-            return (v - sMin) / sRange;
-        });
-    };
+    this.normalize = seq => SIREPO.UTILS.normalize(seq);
 
     // Returns a minimal formatted json-like value
     this.objectToText = function(obj) {
@@ -5293,13 +5280,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
             .replace(/\"/g, '');
     };
 
-    this.roundToPlaces = function(val, p) {
-        if (p < 0) {
-            return val;
-        }
-        var r = Math.pow(10, p);
-        return Math.round(val * r) / r;
-    };
+    this.roundToPlaces = (val, p) => SIREPO.UTILS.roundToPlaces(val, p);
 
     this.trimText = function(text, maxLines, maxLength) {
         const m = text.match(new RegExp(`^(.*\n+){${maxLines}}`));
@@ -5314,26 +5295,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         return text;
     };
 
-    // returns an array containing the unique elements of the input,
-    // according to a two-input equality function (null means use ===)
-    this.unique = function(arr, equals) {
-        var uniqueArr = [];
-        arr.forEach(function (a, i) {
-            var found = false;
-            for(var j = 0; j < uniqueArr.length; ++j) {
-                var b = uniqueArr[j];
-                found = equals ? equals(a, b) : a === b;
-                if (found) {
-                    break;
-                }
-            }
-            if (! found) {
-                uniqueArr.push(a);
-            }
-        });
-        return uniqueArr;
-    };
-
+    this.unique = (arr, equals) => SIREPO.UTILS.unique(arr, equals);
 });
 
 SIREPO.app.directive('srItemHolder', function() {
