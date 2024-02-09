@@ -509,8 +509,8 @@ SIREPO.app.directive('scansTable', function() {
                     </tr>
                   </tbody>
                 </table>
-                <div style="height: 20px;">
-                  <div ng-show="isLoadingNewScans">Loading scans ...</div>
+                <div style="height: 20px; position: relative;">
+                  <span data-loading-spinner data-sentinel="!isLoadingNewScans">
                   <div ng-show="isRefreshingScans && ! isLoadingNewScans">Checking for new scans</div>
                   <div ng-show="noScansReturned">No scans found</div>
                   <div ng-show="searchError"><span class="bg-warning">{{ searchError }}</span></div>
