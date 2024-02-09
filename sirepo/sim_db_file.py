@@ -116,12 +116,12 @@ class SimDbClient:
         """
         return SimDbUri(sim_type or self._sim_data.sim_type(), lib_sid_uri, basename)
 
-    def _check_size(content):
+    def _check_size(self, data):
+        if not data:
+            return
         max_size = sirepo.job.cfg().max_message_bytes
-        pkdp("CHECK SZ {} VS {}", len(content), max_size)
-        if len(content) > max_size:
-            raise AssertionError(f"content too large ({len(content)} > {max_size})")
-        return content
+        if len(data) > max_size:
+            raise AssertionError(f"request data too large ({len(data)} > {max_size})")
 
     def _post(self, lib_sid_uri, basename=None, args=None, sim_type=None):
         res = pkjson.load_any(
@@ -145,6 +145,7 @@ class SimDbClient:
     def _request(
         self, method, lib_sid_uri, basename, data=None, json=None, sim_type=None
     ):
+        self._check_size(data)
         u = self.uri(lib_sid_uri, basename, sim_type)
         r = sirepo.agent_supervisor_api.request(
             method,
