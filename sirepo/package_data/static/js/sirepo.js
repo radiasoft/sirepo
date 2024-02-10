@@ -2577,7 +2577,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
     self.updateCookies = () => {
         // Keep two versions for faster checking in _cookiesChanged
         cookiesVerbatim = document.cookie;
-        cookiesSorted = document.cookie.split(/\s*;\s*/).sort().join('; ');
+        cookiesSorted = cookiesVerbatim.split(/\s*;\s*/).sort().join('; ');
     };
 
     return self;
