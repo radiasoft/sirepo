@@ -32,6 +32,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="SearchTerms">
           <div data-search-terms="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="SearchTermText" data-ng-class="fieldClass">
+          <div data-search-term-text="" data-model="model" data-field="field"></div>
+        </div>
         <div data-ng-switch-when="ColumnList" data-ng-class="fieldClass">
           <div data-column-list="" data-model="model" data-field="field"></div>
         </div>
@@ -374,6 +377,7 @@ SIREPO.app.directive('presetTimePicker', function() {
         template: `
           <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastHour()">Last Hour</button>
           <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastDay()">Last Day</button>
+          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastWeek()">Last Week</button>
           <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeMaxRange()">All Time</button>
         `,
         controller: function(appState, timeService, $scope) {
@@ -391,6 +395,11 @@ SIREPO.app.directive('presetTimePicker', function() {
 
             $scope.setSearchTimeLastHour = () => {
                 $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneHourAgo());
+                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
+            };
+
+            $scope.setSearchTimeLastWeek = () => {
+                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneWeekAgo());
                 $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
             };
 
@@ -500,8 +509,8 @@ SIREPO.app.directive('scansTable', function() {
                     </tr>
                   </tbody>
                 </table>
-                <div style="height: 20px;">
-                  <div ng-show="isLoadingNewScans">Loading scans ...</div>
+                <div style="height: 40px; position: relative;">
+                  <span data-loading-spinner data-sentinel="!isLoadingNewScans">
                   <div ng-show="isRefreshingScans && ! isLoadingNewScans">Checking for new scans</div>
                   <div ng-show="noScansReturned">No scans found</div>
                   <div ng-show="searchError"><span class="bg-warning">{{ searchError }}</span></div>
@@ -1199,6 +1208,24 @@ SIREPO.app.directive('searchTerms', function() {
                     return true;
                 }
                 return false;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('searchTermText', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            },
+        template: `
+          <input data-ng-disabled="disabled()" data-ng-model="model[field]" class="form-control" data-lpignore="true" />
+        `,
+        controller: function($scope, columnsService) {
+            $scope.disabled = () => {
+                return $scope.model.column === columnsService.selectSearchFieldText;
             };
         },
     };
