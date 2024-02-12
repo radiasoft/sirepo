@@ -373,6 +373,26 @@ def analysis_job_dice_coefficient(data, run_dir, **kwargs):
     return _ImagePreview(data, run_dir).dice_coefficient_plot()
 
 
+def plot_dice(data):
+    pkdp("\n\n\n\n hit for plot_dice")
+    x_points = []
+    y_points = []
+    return template_common.parameter_plot(
+        x_points,
+        [
+            PKDict(
+                points=y_points,
+                label="Counts",
+            )
+        ],
+        PKDict(),
+        PKDict(
+            title="Dice Coefficients",
+            x_label="Scores",
+        ),
+    )
+
+
 def stateful_compute_get_remote_data(data, **kwargs):
     _SIM_DATA.lib_file_save_from_url(data.args.url, "dataFile", "file")
     return PKDict()
@@ -1164,6 +1184,7 @@ class _ImagePreview:
             x, y, _ = self._masks(s[0], s[1], self.data.method)
             for pair in zip(x, y):
                 d.append(_dice_coefficient(pair[0], pair[1]))
+            pkdp("\n\n\n\n\nd={}", d)
             return d
 
         plt.figure(figsize=[10, 10])

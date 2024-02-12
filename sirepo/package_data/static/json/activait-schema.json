@@ -245,6 +245,7 @@
             ],
             "advanced": []
         },
+        "dicePlotReport": {},
         "analysisReport": {
             "x": ["X Value", "AnalysisParameter", "0"],
             "y1": ["Y1 Value", "AnalysisParameter", "1"],
@@ -514,6 +515,10 @@
             "basic": [
                 "action"
             ],
+            "advanced": []
+        },
+        "dicePlotReport": {
+            "title": "Dice Plot Report",
             "advanced": []
         },
         "analysisReport": {

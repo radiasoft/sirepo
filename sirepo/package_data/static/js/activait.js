@@ -1096,10 +1096,16 @@ SIREPO.app.directive('diceCoeffViewer', function(requestSender) {
         restrict: 'A',
         scope: {},
         template: `
+        <!--
         <div>
           <img class="img-responsive dice-plot" />
           <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
           <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
+        </div>
+        -->
+
+        <div data-show-loading-and-error="" data-model-key="dicePlotReport">
+          <div data-parameter-plot="parameter" data-model-name="dicePlotReport" data-report-id="reportId"></div>
         </div>
         `,
         controller: function($scope, appState) {

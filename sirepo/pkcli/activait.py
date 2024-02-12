@@ -14,9 +14,16 @@ import sirepo.template.activait as template
 
 
 def run(cfg_dir):
-    template_common.exec_parameters()
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    template.save_sequential_report_data(py.path.local(cfg_dir), data)
+    if data.report == "dicePlotReport":
+        res = template.plot_dice(data)
+        pkdp("\n\n\n\ plotting dice res={}", res)
+        template_common.write_sequential_result(
+            res
+        )
+    else:
+        template_common.exec_parameters()
+        template.save_sequential_report_data(py.path.local(cfg_dir), data)
 
 
 def run_background(cfg_dir):
