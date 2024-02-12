@@ -13,7 +13,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import aiofiles
 import aiohttp
-import os
 import re
 import sirepo.agent_supervisor_api
 import sirepo.const
