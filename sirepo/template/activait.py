@@ -380,6 +380,7 @@ def plot_dice(data, run_dir):
             3,
         )
 
+    pkdp("\n\n\n PLOTTING ")
     shape = data.models.columnInfo.shape[
         data.models.columnInfo.inputOutput.index("output")
     ][1:]
