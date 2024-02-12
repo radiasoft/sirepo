@@ -243,6 +243,9 @@ def save_sequential_report_data(run_dir, sim_in):
         _extract_analysis_report(run_dir, sim_in)
     elif "fftReport" in sim_in.report:
         _extract_fft_report(run_dir, sim_in)
+    elif "dicePlotReport" in sim_in.report:
+        # TODO (gurhar1133): ???
+        pass
     else:
         raise AssertionError("unknown report: {}".format(sim_in.report))
 
@@ -373,15 +376,40 @@ def analysis_job_dice_coefficient(data, run_dir, **kwargs):
     return _ImagePreview(data, run_dir).dice_coefficient_plot()
 
 
-def plot_dice(data):
-    pkdp("\n\n\n\n hit for plot_dice")
-    x_points = []
-    y_points = []
+def plot_dice(data, run_dir):
+    def _dice_coefficient(mask1, mask2):
+        return round(
+            (2 * numpy.sum(mask1 * mask2))
+            / (numpy.sum(mask1) + numpy.sum(mask2)),
+            3,
+        )
+
+    pkdp("\n\n col info={}", data.models.columnInfo)
+    # x_points = []
+    # y_points = []
+
+    shape = data.models.columnInfo.shape[
+        data.models.columnInfo.inputOutput.index("output")
+    ][1:]
+    # x = _read_file(run_dir, _OUTPUT_FILE.testFile)
+    # y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
+    size = shape[0] * shape[1]
+    a = pkio.py_path(run_dir).dirpath().join("animation")
+    x = _read_file(a, _OUTPUT_FILE.testFile)
+    y = _read_file(a, _OUTPUT_FILE.predictFile)
+    x = x.reshape(len(x) // size, shape[1], shape[0])
+    y = y.reshape(len(y) // size, shape[1], shape[0])
+
+    d = []
+    for pair in zip(x, y):
+        d.append(_dice_coefficient(pair[0], pair[1]))
+    pkdp("\n\n\n\n\nd={}", d)
+    y_points, x_points = numpy.histogram(d, bins=10)
     return template_common.parameter_plot(
-        x_points,
+        x_points.tolist(),
         [
             PKDict(
-                points=y_points,
+                points=y_points.tolist(),
                 label="Counts",
             )
         ],
@@ -1429,6 +1457,7 @@ def _plot_info(y, label="", style=None):
 
 
 def _read_file(run_dir, filename):
+    pkdp("\n\n\n reading run_dir={}\n\n filename={} \n\n dirpath={}", run_dir, filename, run_dir.dirpath())
     res = numpy.load(str(run_dir.join(filename)))
     if len(res.shape) == 1:
         res.shape = (res.shape[0], 1)
