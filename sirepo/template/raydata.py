@@ -32,7 +32,9 @@ def stateless_compute_analysis_output(data, **kwargs):
 
 def stateless_compute_analysis_run_log(data, **kwargs):
     def _filter_log(log):
-        return re.sub("Ending Cell.*\n", "", log)
+        for f in ("Ending Cell.*\n", "Executing Cell.*\n"):
+            log = re.sub(f, "", log)
+        return log
 
     def _log_to_html(log):
         return pygments.highlight(
