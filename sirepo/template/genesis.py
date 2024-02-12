@@ -289,6 +289,9 @@ def validate_file(file_type, path):
     elif file_type == "io-distfile":
         if not pkio.is_pure_text(path):
             return "The DISTFILE should be a text file with columns: X PX Y PY T P."
+    elif file_type == "io-maginfile":
+        if not pkio.is_pure_text(path):
+            return "The MAGINFILE should be a text file."
     return None
 
 
