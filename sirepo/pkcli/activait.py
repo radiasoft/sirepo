@@ -16,10 +16,8 @@ import sirepo.template.activait as template
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data.report == "dicePlotReport":
-        res = template.plot_dice(data, cfg_dir)
-        pkdp("\n\n\n\ plotting dice cfg_dir={} res={}", cfg_dir, res)
         template_common.write_sequential_result(
-            res
+            template.plot_dice(data, cfg_dir)
         )
     else:
         template_common.exec_parameters()

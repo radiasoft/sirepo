@@ -518,8 +518,9 @@
             "advanced": []
         },
         "dicePlotReport": {
-            "title": "Dice Plot Report",
-            "advanced": []
+            "title": "Dice Coefficient Report",
+            "advanced": [],
+            "basic": []
         },
         "analysisReport": {
             "title": "Analysis Plot",
@@ -773,11 +774,6 @@
         },
         "worstLosses": {
             "title": "Worst Loss Images",
-            "basic": [],
-            "advanced": []
-        },
-        "diceCoefficient": {
-            "title": "Dice Coefficient",
             "basic": [],
             "advanced": []
         },

@@ -372,10 +372,6 @@ def analysis_job_sample_images(data, run_dir, **kwargs):
     return _ImagePreview(data, run_dir).images()
 
 
-def analysis_job_dice_coefficient(data, run_dir, **kwargs):
-    return _ImagePreview(data, run_dir).dice_coefficient_plot()
-
-
 def plot_dice(data, run_dir):
     def _dice_coefficient(mask1, mask2):
         return round(
@@ -384,32 +380,28 @@ def plot_dice(data, run_dir):
             3,
         )
 
-    pkdp("\n\n col info={}", data.models.columnInfo)
-    # x_points = []
-    # y_points = []
-
     shape = data.models.columnInfo.shape[
         data.models.columnInfo.inputOutput.index("output")
     ][1:]
-    # x = _read_file(run_dir, _OUTPUT_FILE.testFile)
-    # y = _read_file(run_dir, _OUTPUT_FILE.predictFile)
     size = shape[0] * shape[1]
     a = pkio.py_path(run_dir).dirpath().join("animation")
     x = _read_file(a, _OUTPUT_FILE.testFile)
     y = _read_file(a, _OUTPUT_FILE.predictFile)
     x = x.reshape(len(x) // size, shape[1], shape[0])
     y = y.reshape(len(y) // size, shape[1], shape[0])
-
     d = []
     for pair in zip(x, y):
         d.append(_dice_coefficient(pair[0], pair[1]))
-    pkdp("\n\n\n\n\nd={}", d)
-    y_points, x_points = numpy.histogram(d, bins=10)
+
+    # r = []
+    # _update_range(r, d)
+    # TODO (gurhar1133): fix range issue
+    x_points, y_points = _histogram_plot(d, [min(d) - 0.3, max(d) + 0.3], bins=10)
     return template_common.parameter_plot(
-        x_points.tolist(),
+        x_points,
         [
             PKDict(
-                points=y_points.tolist(),
+                points=y_points,
                 label="Counts",
             )
         ],
@@ -1108,8 +1100,8 @@ def _get_fit_report(report, x_vals, y_vals):
     return param_vals, param_sigmas, plots
 
 
-def _histogram_plot(values, vrange):
-    hist = numpy.histogram(values, bins=20, range=vrange)
+def _histogram_plot(values, vrange, bins=20):
+    hist = numpy.histogram(values, bins=bins, range=vrange)
     x = []
     y = []
     for i in range(len(hist[0])):
@@ -1192,36 +1184,6 @@ class _ImagePreview:
             return "data:image/jpeg;base64," + pkcompat.from_bytes(
                 b64encode(f.getvalue())
             )
-
-    def dice_coefficient_plot(self):
-        import matplotlib.pyplot as plt
-
-        s = self.data.args.columnInfo.shape[
-            self.data.args.columnInfo.inputOutput.index("output")
-        ][1:]
-
-        def _dice():
-            def _dice_coefficient(mask1, mask2):
-                return round(
-                    (2 * numpy.sum(mask1 * mask2))
-                    / (numpy.sum(mask1) + numpy.sum(mask2)),
-                    3,
-                )
-
-            d = []
-            x, y, _ = self._masks(s[0], s[1], self.data.method)
-            for pair in zip(x, y):
-                d.append(_dice_coefficient(pair[0], pair[1]))
-            pkdp("\n\n\n\n\nd={}", d)
-            return d
-
-        plt.figure(figsize=[10, 10])
-        plt.hist(_dice())
-        plt.xlabel("Dice Scores", fontsize=20)
-        plt.ylabel("Counts", fontsize=20)
-        plt.xticks(fontsize=14)
-        plt.yticks(fontsize=14)
-        return PKDict(uris=[self._pyplot_data_url()])
 
     def _output(self, info, io):
         if "output" in info.inputOutput:
