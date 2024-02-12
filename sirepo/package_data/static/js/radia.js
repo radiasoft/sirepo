@@ -313,7 +313,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.updateExtrudedSize = o => {
         [o.widthAxis, o.heightAxis].forEach((dim, i) => {
             const p = o.referencePoints.map(x => x[i]);
-            o.size[self.axisIndex(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
+            o.size[self.axisIndex(dim)] = Math.abs(SIREPO.UTILS.arrayMax(p) - SIREPO.UTILS.arrayMin(p));
         });
     };
 
@@ -2417,7 +2417,7 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
                         if (gObj.members) {
                             gColor = null;
                         }
-                        
+
                         const pData = radiaVtkUtils.objToPolyData(sceneDatum, [t], gColor).data;
                         let bundle = null;
                         if (radiaVtkUtils.GEOM_OBJ_TYPES.includes(t)) {
@@ -2568,10 +2568,10 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
 
                 // get log values back into the original range, so that the extremes have the same
                 // size as a linear scale
-                const minLogMag = Math.min.apply(null, logMags);
-                const maxLogMag = Math.max.apply(null, logMags);
-                const minMag = Math.min.apply(null, vectors.magnitudes);
-                const maxMag = Math.max.apply(null, vectors.magnitudes);
+                const minLogMag = utilities.arrayMin(logMags);
+                const maxLogMag = utilities.arrayMax(logMags);
+                const minMag = utilities.arrayMin(vectors.magnitudes);
+                const maxMag = utilities.arrayMax(vectors.magnitudes);
                 colorScale = plotting.colorScale(minMag, maxMag, cmap);
 
                 logMags = logMags.map(n => minMag + (n - minLogMag) * (maxMag - minMag) / (maxLogMag - minLogMag));
@@ -2717,7 +2717,7 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
                     if (pid === selectedPointId) {
                         selectedPointId = -1;
                         selectedColor = [];
-                        selectedValue = Math.min.apply(null, linArr.getData());
+                        selectedValue = utilities.arrayMin(linArr.getData());
                         v = [];
                     }
                     else {
@@ -3195,8 +3195,8 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 
             for (let j = 0; j < 3; ++j) {
                 const c = pts.filter(modf(j));
-                mins[j] =  Math.min(mins[j], Math.min.apply(null, c));
-                maxs[j] =  Math.max(maxs[j], Math.max.apply(null, c));
+                mins[j] =  Math.min(mins[j], utilities.arrayMin(c));
+                maxs[j] =  Math.max(maxs[j], utilities.arrayMax(c));
             }
         });
 

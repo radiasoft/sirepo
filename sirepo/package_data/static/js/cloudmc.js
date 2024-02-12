@@ -346,6 +346,7 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         const a = appState.models.openmcAnimation;
         return `Tally Results - ${a.tally} - ${a.score} - ${a.aspect}`;
     };
+
     return self;
 });
 
@@ -390,7 +391,7 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope) {
+SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities, $rootScope) {
     const self = {
         mesh: null,
         fieldData: null,
@@ -505,7 +506,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
 
     self.sourceParticleEnergyRange = () => {
         const e = self.getSourceParticles().map(x => x.energy);
-        return [Math.min(...e), Math.max(...e)];
+        return [utilities.arrayMin(e), utilities.arrayMax(e)];
     };
 
     self.sourceParticleMeanEnergy = () => {
@@ -533,6 +534,14 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, $rootScope
             max: r[1] - f * s,
             step: s,
         };
+    };
+
+    self.updateTallyDisplay = () => {
+        appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
+        // save quietly but immediately
+        appState.saveQuietly('openmcAnimation');
+        appState.saveQuietly('tallyReport');
+        appState.autoSave();
     };
 
     $rootScope.$on('modelsUnloaded', self.clearMesh);
@@ -730,12 +739,6 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
             };
             $scope.is2D = () => appState.applicationState().tallyReport.selectedGeometry === '2D';
             $scope.is3D = () => ! $scope.is2D();
-            $scope.$on('openmcAnimation.changed', () => {
-                // keep colorMap synchronized
-                appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
-                appState.saveQuietly('tallyReport');
-            });
-
             $scope.$on('openmcAnimation.summaryData', (e, summaryData) => {
                 if (summaryData.tally) {
                     tallyService.setOutlines(summaryData.tally, summaryData.outlines);
@@ -931,7 +934,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         .select('path')
                         .attr('fill', d => sourceColor(d));
                 }
-                
+
                 const outlines = [];
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
                 for (const volId of cloudmcService.getNonGraveyardVolumes()) {
@@ -1022,6 +1025,11 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 return SIREPO.GEOMETRY.GeometryUtils.axisIndices(appState.models.tallyReport.axis);
             }
 
+            function updateDisplay() {
+                tallyService.updateTallyDisplay();
+                updateSlice();
+            }
+
             function updateDisplayRange() {
                 if (! tallyService.initMesh()) {
                     return;
@@ -1103,6 +1111,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             $scope.$on('tallyReport.summaryData', updateSliceAxis);
             appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
+            appState.watchModelFields($scope, ['openmcAnimation.colorMap', 'openmcAnimation.sourceColorMap'], updateDisplay);
             appState.watchModelFields($scope, ['tallyReport.planePos', 'openmcAnimation.showSources'], updateSlice, true);
             $scope.$on('openmcAnimation.summaryData', updateDisplayRange);
             if (frameCache.hasFrames('openmcAnimation')) {
@@ -1112,7 +1121,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, plotToPNG, tallyService, volumeLoadingService, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, plotToPNG, tallyService, utilities, volumeLoadingService, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -1641,6 +1650,16 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 appState.autoSave();
             }
 
+            const updateDisplay = utilities.debounce(() => {
+                // values can change before we're ready
+                if (! tallyService.fieldData || ! vtkScene) {
+                    return;
+                }
+                tallyService.updateTallyDisplay();
+                setTallyColors();
+                addSources();
+            }, 100);
+            
             function vectorScaleFactor() {
                 return 3.5 * tallyService.getMaxMeshExtent();
             }
@@ -1656,6 +1675,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             $scope.$on($scope.modelName + '.changed', setGlobalProperties);
 
             if (hasTallies) {
+                appState.watchModelFields($scope, [
+                    `${$scope.modelName}.colorMap`,
+                    `${$scope.modelName}.opacity`,
+                    `${$scope.modelName}.sourceColorMap`,
+                ], updateDisplay);
                 appState.watchModelFields($scope, [`${$scope.modelName}.showSources`], showSources, true);
                 $scope.$on('openmcAnimation.summaryData', () => {
                     if (vtkScene) {
@@ -2927,13 +2951,10 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     $scope.watchFields = [
         [
             'openmcAnimation.aspect',
-            'openmcAnimation.colorMap',
             'openmcAnimation.energyRangeSum',
             'openmcAnimation.numSampleSourceParticles',
-            'openmcAnimation.opacity',
             'openmcAnimation.score',
             'openmcAnimation.sourceNormalization',
-            'openmcAnimation.sourceColorMap',
             'openmcAnimation.threshold',
         ], autoUpdate,
         ['openmcAnimation.tally'], validateTally,
