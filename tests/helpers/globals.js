@@ -64,6 +64,16 @@ SIREPO.APP_SCHEMA = {
               "controller": "LoginController as login",
               "templateUrl": "/static/html/login.html"
             }
+        },
+        "httpException": {
+            "route": "/http-exception/:srExceptionOnly"
+        },
+        "simulationsFolder": {
+            "route": "/simulations/:folderPath?",
+            "config": {
+              "controller": "SimulationsController as simulations",
+              "templateUrl": "/static/html/simulations.html"
+            }
         }
     },
     "route": {
@@ -78,7 +88,7 @@ SIREPO.APP_SCHEMA = {
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
-        "pythonSource": "/python-source/<simulation_type>/<simulation_id>",
+        "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "root": "/<simulation_type>",
         "runCancel": "/run-cancel",
         "runSimulation": "/run-simulation",
