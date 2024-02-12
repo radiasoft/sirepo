@@ -116,10 +116,8 @@ class SimDbClient:
         return SimDbUri(sim_type or self._sim_data.sim_type(), lib_sid_uri, basename)
 
     def _check_size(self, data):
-        if not data:
-            return
         max_size = sirepo.job.cfg().max_message_bytes
-        if len(data) > max_size:
+        if len(data or []) > max_size:
             raise AssertionError(f"request data too large ({len(data)} > {max_size})")
 
     def _post(self, lib_sid_uri, basename=None, args=None, sim_type=None):
