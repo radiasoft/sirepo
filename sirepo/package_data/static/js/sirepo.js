@@ -936,76 +936,34 @@ SIREPO.app.factory('appDataService', function() {
 });
 
 SIREPO.app.factory('notificationService', function(cookieService, $sce) {
-
-    var self = {};
+    const self = {};
 
     self.notifications = {};
 
+    function _cookieDef(notification) {
+        return SIREPO.APP_SCHEMA.cookies[notification.name];
+    }
+
     self.addNotification = function(notification) {
-        if(! notification.name || ! notification.content) {
-            return;
+        self.notifications[notification.name] = {
+            ...notification,
+            active: true,
         }
-        self.notifications[notification.name] = notification;
     };
 
     self.dismiss = function(name) {
-        if(name) {
-            self.dismissNotification(self.getNotification(name));
+        var n = self.notifications[name];
+        //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
+        n.active = false;
+        if (! cookieService.addCookie(_cookieDef(n), 'i')) {
+            return false;
         }
-    };
-
-    self.dismissNotification = function(notification) {
-        if(notification) {
-            self.sleepNotification(notification);
-        }
+        return true;
     };
 
     self.getContent = function(name) {
-        if(! name || ! self.getNotification(name)) {
-            return '';
-        }
-        return self.getNotification(name).content;
+        return self.notifications[name].content;
     };
-
-    self.getNotification = function(name) {
-        return self.notifications[name];
-    };
-
-    self.removeNotification = function(notification) {
-        delete self.notifications[notification.name];
-        cookieService.removeCookie(cookieDef(notification));
-    };
-
-    self.shouldPresent = function(name) {
-        var now = new Date();
-        var notification = self.notifications[name];
-        if(! notification || ! notification.active) {
-            return false;
-        }
-
-        if (! cookieService.cleanExpiredCookie(cookieDef(notification))) {
-            var vcd = SIREPO.APP_SCHEMA.cookies.firstVisit;
-            var vc = cookieService.getCookie(vcd);
-            if (! vc) {
-                return false;
-            }
-            var lstVisitDays = vc.t - cookieService.timeoutOrDefault(vcd);
-            // we need millisecond comparison here
-            return now.getTime() > (lstVisitDays + (notification.delay || 0)) * SIREPO.APP_SCHEMA.constants.oneDayMillis;
-        }
-
-        return false;
-    };
-
-    self.sleepNotification = function(notification) {
-        cookieService.addCookie(cookieDef(notification), 'i');
-        //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
-        notification.active = false;
-    };
-
-    function cookieDef(notification) {
-        return SIREPO.APP_SCHEMA.cookies[notification.cookie];
-    }
 
     return self;
 });
@@ -2574,7 +2532,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         return wsreq.deferred.promise;
     };
 
-    self.updateCookies = () => {
+    self.verify = (changeOp) => {
         // Keep two versions for faster checking in _cookiesChanged
         cookiesVerbatim = document.cookie;
         cookiesSorted = cookiesVerbatim.split(/\s*;\s*/).sort().join('; ');
@@ -2602,11 +2560,13 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         ) {
             return;
         }
-        var p = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.previousRoute);
+        var p = cookieService.getCookieValue("previousRoute");
         if (! p) {
             return;
         }
-        cookieService.removeCookie(SIREPO.APP_SCHEMA.cookies.previousRoute);
+        if (! cookieService.removeCookie("previousRoute")) {
+            return;
+        }
         p = p.split(' ');
         if (p[0] != SIREPO.APP_SCHEMA.simulationType) {
             // wrong app so just ignore
@@ -2631,7 +2591,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
 
     function saveCookieRedirect(route) {
         var v = SIREPO.APP_SCHEMA.simulationType + ' ' + encodeURIComponent(route);
-        cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.previousRoute, v);
+        return cookieService.addCookie("previousRoute", v);
     }
 
     function sendWithSimulationFields(url, appState, successCallback, data, errorCb) {
@@ -2672,7 +2632,9 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         }
         const u = $location.url();
         if (e.routeName == LOGIN_ROUTE_NAME && u != LOGIN_URI) {
-            saveCookieRedirect(u);
+            if (! saveCookieRedirect(u)) {
+                return;
+            }
         }
         if (e.params && e.params.isModal && e.routeName.includes('sbatch')) {
             e.params.errorCallback = errorCallback;
@@ -4195,24 +4157,21 @@ SIREPO.app.controller('ServerUpgradedController', function (errorService, reques
     requestSender.globalRedirectRoot();
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, stringsService, $location, $rootScope, $sce, $scope) {
+SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, stringsService, $location, $rootScope, $scope) {
     var self = this;
     self.stringsService = stringsService;
     $rootScope.$broadcast('simulationUnloaded');
-    var n = appState.clone(SIREPO.APP_SCHEMA.notifications.getStarted);
     const s = SIREPO.APP_SCHEMA.strings;
-    n.content = [
-        '<div class="text-center"><strong>Welcome to Sirepo - ',
-        $sce.getTrustedHtml(SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName),
-        '!</strong></div>',
-        `Below are some example ${s.simulationDataTypePlural}` +
-            ` and folders containing ${s.simulationDataTypePlural}.` +
-            ` Click on the ${s.simulationDataType}` +
-            ` to open and view the ${s.simulationDataType} results.` +
-            ` You can create a new ${s.simulationDataType}` +
-            ` by selecting the "${stringsService.newSimulationLabel()}" link above.`
-    ].join('');
-    notificationService.addNotification(n);
+    notificationService.addNotification(
+        'getStarted',
+        `<div class="text-center"><strong>Welcome to Sirepo - ${SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName}!</strong></div>
+        Below are some example ${s.simulationDataTypePlural}
+        and folders containing ${s.simulationDataTypePlural}
+        Click on the ${s.simulationDataType}
+        to open and view the ${s.simulationDataType} results.
+        You can create a new ${s.simulationDataType}
+        by selecting the "${stringsService.newSimulationLabel()}" link above.`,
+    );
 
     self.importText = SIREPO.APP_SCHEMA.strings.importText;
     self.fileTree = fileManager.getFileTree();
@@ -4462,7 +4421,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
-        cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.listView, self.isIconView);
+        return cookieService.addCookie("listView", self.isIconView ? "t" : "f");
     };
 
     self.toggleFolder = function(item) {
@@ -4485,7 +4444,7 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     };
 
     var lv = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.listView);
-    self.isIconView = (lv == null ? true : lv);
+    self.isIconView = (lv == null || lv == "f" ? true : lv));
     clearModels();
     $scope.$on('simulation.changed', function() {
         self.isWaitingForSim = true;
@@ -4577,109 +4536,96 @@ SIREPO.app.filter('simulationName', function() {
 // The client cookie then has the format
 //  <name 1>:v=<value 1>;t=<timeout 1>;|...
 SIREPO.app.factory('cookieService', function($cookies, msgRouter) {
-
-    var svc = {};
-
-    var oneDayMillis = SIREPO.APP_SCHEMA.constants.oneDayMillis;
-
-    var cdelim = '|';
-    var nDelim = ':';
-    var pDelim = ';';
-    var kvDelim = '=';
-
-    var fiveYearsDays = 5*365;
-    var fiveYearsMillis = fiveYearsDays * oneDayMillis;
-
-    // used to delete the old cookies
-    var cookieMap = {
-        'net.sirepo.first_visit': SIREPO.APP_SCHEMA.cookies.firstVisit,
-        'net.sirepo.get_started_notify': SIREPO.APP_SCHEMA.cookies.getStarted,
-        'net.sirepo.sim_list_view': SIREPO.APP_SCHEMA.cookies.listView,
+    const self = {};
+    const oneDayMillis = SIREPO.APP_SCHEMA.constants.oneDayMillis;
+    const cdelim = '|';
+    const nDelim = ':';
+    const pDelim = ';';
+    const kvDelim = '=';
+    const allDelim = cdelim + nDelim + pDelim + kvDelim;
+    const delimRE = new RegExp('[' + allDelim + ']+');
+    const fiveYearsDays = 5*365;
+    const fiveYearsMillis = fiveYearsDays * oneDayMillis;
+    const timeoutDays = fiveYearsDays;
+    const cookieKeys = {
+        getStarted: "strt",
+        listView: "lv",
+        previousRoute: "prev",
+    };
+    const migratedKeys = {
+        'net.sirepo.first_visit': "firstVisit",
+        'net.sirepo.get_started_notify': "getStarted",
+        'net.sirepo.sim_list_view': "listView",
     };
 
-    svc.addCookie = function (cookieDef, value) {
-        add(cookieDef.name, value || cookieDef.value, svc.timeoutOrDefault(cookieDef));
+    self.addCookie = function (cookieDef, value) {
+        return add(cookieDef.name, value || cookieDef.value);
     };
 
-    svc.cleanExpiredCookie = function (cookieDef) {
+    self.cleanExpiredCookie = function (cookieDef) {
         var cobj = get(cookieDef.name);
         if (cobj && cobj.t && parseInt(cobj.t) < new Date().getTime() / oneDayMillis) {
-            remove(name);
-            return null;
+            if (! remove(name)) {
+                return false;
+            }
         }
-        return cobj;
+        return true;
     };
 
-    svc.getCookie = function (cookieDef) {
-        return get(cookieDef.name);
+    self.getCookie = function (cookieDef) {
+        return readSRCookie()[cookieDef.name];
     };
 
-    svc.getCookieValue = function (cookieDef) {
-        var cobj = svc.getCookie(cookieDef);
+    self.getCookieValue = function (name) {
+        var cobj = self.getCookie(name);
         if (! cobj) {
             return null;
         }
-        var val = cobj.v;
-        if (cookieDef.valType && cookieDef.valType.toLowerCase() === 'b') {
-            return val.toLowerCase() === 'true';
-        }
-        if (cookieDef.valType && cookieDef.valType.toLowerCase() === 'n') {
-            return parseFloat(val);
-        }
-        return val;
+        return cobj.v;
     };
 
-    svc.removeCookie = function (cookieDef) {
+    self.removeCookie = function (cookieDef) {
         remove(cookieDef.name);
-    };
-
-    svc.timeoutOrDefault = function (cookieDef) {
-        return cookieDef.timeout || fiveYearsDays;
     };
 
     // to reduce the string size, and because that's usually as accurate as we need,
     // timeout is in days
-    function add(name, value, timeoutDays) {
-        var allDelim = cdelim + nDelim + pDelim + kvDelim;
-        var delimRE = new RegExp('[' + allDelim + ']+');
-        if(delimRE.test(name) || delimRE.test(value) ) {
+    function add(name, value) {
+        if (delimRE.test(name) || delimRE.test(value) ) {
             throw new Error(name + ': Cookie name/value cannot contain delimiters ' + allDelim);
         }
-        var cobj = readSRCookie();
-        if(! cobj[name]) {
+        const cobj = readSRCookie();
+        if (! (name in cobj)) {
             cobj[name] = {};
         }
-        cobj[name].t = Math.floor((new Date().getTime() / oneDayMillis)) + parseInt(timeoutDays) || 0;
+        cobj[name].t = Math.floor((new Date().getTime() / oneDayMillis)) + timeoutDays;
         cobj[name].v = value;
         writeSRCookie(cobj);
     }
 
-    function checkFirstVisit() {
-        if (! svc.cleanExpiredCookie(SIREPO.APP_SCHEMA.cookies.firstVisit)) {
-            svc.addCookie(SIREPO.APP_SCHEMA.cookies.firstVisit);
-        }
-    }
-
+ encodeURIComponent(name) + '=' + encodeURIComponent(value);
     function fixupOldCookies() {
-        for(var cname in cookieMap) {
+        for (var cname in migratedKeys) {
             var c = $cookies.get(cname);
-            if(angular.isDefined(c)) {
-                svc.addCookie(cookieMap[cname]);
-                $cookies.remove(cname);
-                msgRouter.updateCookies();
+            if (! angular.isDefined(c)) {
+                return true;
+            }
+            if (! msgRouter.updateCookies(
+                () => {
+                    $cookies.remove(cname);
+                },
+            ) {
+                return false;
             }
         }
-    }
-
-    function get(name) {
-        return readSRCookie()[name];
+        return true;
     }
 
     function pack(cobj) {
         var cstr = '';
         for(var name in cobj) {
             cstr = cstr + name + nDelim;
-            for(var k in cobj[name]) {
+            for (var k in cobj[name]) {
                 cstr = cstr + k + kvDelim + cobj[name][k] + pDelim;
             }
             cstr = cstr + cdelim;
@@ -4706,29 +4652,33 @@ SIREPO.app.factory('cookieService', function($cookies, msgRouter) {
     }
 
     function readSRCookie() {
+        could change here, keep a local copy.
         return parse($cookies.get(SIREPO.APP_SCHEMA.constants.clientCookie));
     }
 
     function remove(name) {
-        var cobj = readSRCookie();
-        if(cobj && cobj[name]) {
-            delete cobj[name];
-            writeSRCookie(cobj);
+        const c = readSRCookie();
+        if (name in c) {
+            delete c[name];
+            return writeSRCookie(c);
         }
+        return true;
     }
 
     function writeSRCookie(cobj) {
-        $cookies.put(SIREPO.APP_SCHEMA.constants.clientCookie,
-            pack(cobj),
-            {expires: new Date(new Date().getTime() + fiveYearsMillis)}
+        return msgRouter.updateCookies(
+            () => {
+                $cookies.put(
+                    SIREPO.APP_SCHEMA.constants.clientCookie,
+                    pack(cobj),
+                    {expires: new Date(new Date().getTime() + fiveYearsMillis)}
+                );
+            },
         );
-        msgRouter.updateCookies();
     }
 
     fixupOldCookies();
-    checkFirstVisit();
-
-    return svc;
+    return self;
 });
 
 SIREPO.app.factory('asyncMsgSetCookies', ($cookies, msgRouter) => {

@@ -940,7 +940,6 @@ def _init_schemas():
             "constants",
             "cookies",
             "enum",
-            "notifications",
             "localRoutes",
             "model",
             "strings",

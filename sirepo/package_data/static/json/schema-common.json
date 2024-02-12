@@ -225,11 +225,6 @@
                 "value": false,
                 "valType": "b"
             },
-            "login": {
-                "name": "login",
-                "value": "a",
-                "timeout": 1
-            },
             "previousRoute": {
                 "name": "prev",
                 "value": "a"
@@ -478,21 +473,6 @@
                 "folder": ["Folder", "UserFolder", "/"],
                 "documentationUrl": ["Documentation URL", "OptionalString", ""],
                 "notes": ["Notes", "Text", ""]
-            }
-        },
-        "notifications": {
-            "getStarted": {
-                "name": "getStarted",
-                "cookie": "getStarted",
-                "content": "",
-                "active": true
-            },
-            "login": {
-                "name": "login",
-                "cookie": "login",
-                "content": "",
-                "active": false,
-                "delay": 1
             }
         },
         "staticFiles": {
