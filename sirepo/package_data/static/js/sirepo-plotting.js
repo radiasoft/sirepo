@@ -3356,8 +3356,21 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const yr = yRange[0] + j * dy;
                 const px = Math.round(axes.x.scale(xr));
                 const py = Math.round(axes.y.scale(yr));
-                srdbg('pxpy', px, py);
                 const sz = plotting.pixelSize(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values);
+                const xZoomDomain = axes.x.scale.domain();
+                const xDomain = [axes.x.values[0], axes.x.values[axes.x.values.length - 1]];
+                const yZoomDomain = axes.y.scale.domain();
+                const yDomain = [axes.y.values[0], axes.y.values[axes.y.values.length - 1]];
+                const zoomWidth = xZoomDomain[1] - xZoomDomain[0];
+                const zoomHeight = yZoomDomain[1] - yZoomDomain[0];
+                const dix0 = -(xZoomDomain[0] - xDomain[0]) / zoomWidth * $scope.canvasSize.width - sz.x / 2;
+                const diy0 = -(yDomain[1] - yZoomDomain[1]) / zoomHeight * $scope.canvasSize.height - sz.y / 2;
+                const didx = ((xDomain[1] - xDomain[0]) / zoomWidth * $scope.canvasSize.width + sz.x) / (heatmap[0].length - 1);
+                const didy = ((yDomain[1] - yDomain[0]) / zoomHeight * $scope.canvasSize.height + sz.y) / heatmap.length - 1;
+                const dipx = Math.round(dix0 + i * didx);
+                const dipy = Math.round(diy0 + j * didy);
+                srdbg('sz', sz, 'cnvsz', $scope.canvasSize.width, $scope.canvasSize.height, 'zsz', zoomWidth, zoomHeight);
+                srdbg('pxpy', px, py, 'dipxpy', dipx, dipy, 'diff', );
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                     //updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), px, py, sz.x, sz.y);
@@ -3426,7 +3439,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     point: mouseMovePoint,
                     coords: binCoords(mouseMovePoint),            
                 };
-                srdbg('C', c);
+                //srdbg('C', c);
                 if (selectedCell && selectedCell.coords[0] === c.coords[0] && selectedCell.coords[1] === c.coords[1]) {
                     return null;
                 }

@@ -1104,7 +1104,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             });
 
             $scope.$on('sr-plotEvent', (e, d) => {
-                srdbg(d);
+                //srdbg(d);
             });
 
             $scope.$on('sr-volume-visibility-toggle-all', buildTallyReport);
