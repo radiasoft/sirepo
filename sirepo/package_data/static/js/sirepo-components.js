@@ -226,6 +226,7 @@ SIREPO.app.directive('srAlert', function(errorService) {
 });
 
 SIREPO.app.directive('getStarted', function(browserStorage, stringsService) {
+    return {
         restrict: 'A',
         scope: {},
         template: `
@@ -249,7 +250,7 @@ SIREPO.app.directive('getStarted', function(browserStorage, stringsService) {
             let isActive = true;
 
             $scope.dismiss = () => {
-                browserStorage.setItem(storageKey, 'shown');
+                browserStorage.setBoolean(storageKey, false);
                 //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
                 isActive = false;
             };
@@ -257,7 +258,7 @@ SIREPO.app.directive('getStarted', function(browserStorage, stringsService) {
                 if (! isActive) {
                     return false;
                 }
-                isActive = ! browserStorage.getItem(storageKey);
+                isActive = browserStorage.getBoolean(storageKey, true);
                 return isActive;
             };
         },

@@ -2370,7 +2370,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         };
     };
 
-    const _saveCookies() => {
+    const _saveCookies = () => {
         // Keep two versions for faster checking in _cookiesChangedAndRedirect
         cookiesVerbatim = document.cookie;
         cookiesSorted = cookiesVerbatim.split(/\s*;\s*/).sort().join('; ');
@@ -2537,7 +2537,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         ) {
             return;
         }
-        var p = browserStorage.getItem(storageKey);
+        let p = browserStorage.getString(storageKey);
         if (! p) {
             return;
         }
@@ -2547,7 +2547,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
             // wrong app so ignore
             return;
         }
-        var r = uri.firstComponent(decodeURIComponent(p[1]));
+        const r = uri.firstComponent(decodeURIComponent(p[1]));
         // After a reload from a login. Only redirect if
         // the route is different. The firstComponent is
         // always unique in our routes.
@@ -2572,7 +2572,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         if (u == LOGIN_URI) {
             return true;
         }
-        browserStorage.setItem(
+        browserStorage.setString(
             storageKey,
             SIREPO.APP_SCHEMA.simulationType + ' ' + encodeURIComponent(u),
         );
@@ -4139,7 +4139,7 @@ SIREPO.app.controller('ServerUpgradedController', function (errorService, reques
     requestSender.globalRedirectRoot();
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, browserStorage, errorService, fileManager, notificationService, panelState, requestSender, stringsService, $location, $rootScope, $scope) {
+SIREPO.app.controller('SimulationsController', function (appState, browserStorage, errorService, fileManager, panelState, requestSender, stringsService, $location, $rootScope, $scope) {
     var self = this;
     const storageKey = "iconView";
     self.stringsService = stringsService;
@@ -4392,10 +4392,10 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
-        browserStorage.setItem(storageKey, self.isIconView ? "true" : "false");
+        browserStorage.setBoolean(storageKey, self.isIconView);
     };
 
-    self.isIconView = (browserStorage.getItem(storageKey) || "true") === "true";
+    self.isIconView = browserStorage.getBoolean(storageKey, true);
 
     self.toggleFolder = function(item) {
         if (item == self.activeFolder) {
@@ -4497,7 +4497,7 @@ SIREPO.app.filter('simulationName', function() {
 SIREPO.app.factory('browserStorage', function($cookies, msgRouter) {
     const self = {};
 
-    const _oldUpdate = () => {
+    const _updateOld = () => {
         const toDelete = [];
 
         const _v1 = () => {
@@ -4516,28 +4516,33 @@ SIREPO.app.factory('browserStorage', function($cookies, msgRouter) {
         };
 
         const _v2 = () => {
-            const c = $cookies.get('sirepo_cookie_js');
-            if (! c) {
+            const incoming = $cookies.get('sirepo_cookie_js');
+            if (! incoming) {
                 return;
             }
             toDelete.push('sirepo_cookie_js');
             // only ones we care about
             const remap = {
-                strt: "getStarted",
-                lv: "iconView",
+                strt: 'getStarted',
+                lv: 'iconView',
             };
-            for (let c of (cstr || '').split('|')) {
+            for (let c of incoming.split('|')) {
                 let [k, v] = c.split(':');
                 if (! (k && v) ) {
                     continue;
                 }
                 for (let e of v.split(';')) {
                     if (e && e.charAt(0) === 'v' && remap[k]) {
-                        self.setItem(remap[k], e.split('=')[1]);
+                        const b = e.split('=')[1];
+                        // originally had an "i" for true on getStarted,
+                        // and we are inverting getStarted (true => show)
+                        self.setBoolean(remap[k], b === 'true' || b !== 'i' && b !== 'false');
                     }
                 }
             }
         };
+        _v1();
+        _v2();
         msgRouter.updateCookies(() => {
             for (let k of toDelete) {
                 $cookies.remove(k);
@@ -4545,19 +4550,40 @@ SIREPO.app.factory('browserStorage', function($cookies, msgRouter) {
         });
     };
 
-    self.getItem = function (name) {
-        return localStorage.getItem(name);
+    self.getBoolean = (name, defaultValue=false) => {
+        const s = self.getString(name, null);
+        if (s === null) {
+             return defaultValue;
+        }
+        if (s === 'true') {
+            return true;
+        }
+        if (s === 'false') {
+            return false;
+        }
+        srlog(`browserStorage.getBoolean(${name}) invalid value=${s}`);
+        self.removeItem(name);
+        return defaultValue;
     };
 
-    self.removeItem = function (name) {
+    self.getString = (name, defaultValue=null) => {
+        const rv = localStorage.getItem(name);
+        return rv == null ? defaultValue : rv;
+    };
+
+    self.removeItem = (name) => {
         localStorage.removeItem(name);
     };
 
-    self.setItem = function (name, value) {
+    self.setBoolean = (name, value) => {
+        self.setString(name, value ? 'true' : 'false');
+    };
+
+    self.setString = (name, value) => {
         localStorage.setItem(name, value);
     };
 
-    _oldUpdate();
+    _updateOld();
     return self;
 });
 
