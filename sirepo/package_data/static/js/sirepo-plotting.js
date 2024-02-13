@@ -3176,7 +3176,21 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             const overlaySelector = 'svg.sr-plot g.sr-overlay-data-group';
             const cellHighlight = ($scope.reportCfg || {}).cellHighlight;
             const cellHighlightClass = 'sr-cell-highlight';
-            const crosshairs = ($scope.reportCfg || {}).crosshairs;
+            //const crosshairs = ($scope.reportCfg || {}).crosshairs;
+            //TMP
+            const crosshairs =  [
+                {
+                    dim: 'x',
+                    color: 'black',
+                    strokeWidth: '0.5',  
+                },
+                {
+                    dim: 'y',
+                    color: 'black',
+                    strokeWidth: '0.5',  
+                },                  
+            ];
+
             const crosshairClass = 'sr-crosshair';
             const onClick = ($scope.reportCfg || {}).onClick || (() => {});
             let overlayData = null;
