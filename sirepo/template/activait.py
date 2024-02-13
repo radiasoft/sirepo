@@ -394,17 +394,18 @@ def plot_dice(data, run_dir):
         ):
             d.append(_dice_coefficient(pair[0], pair[1]))
         # TODO (gurhar1133): fix range issue
-        return _histogram_plot(d, [min(d) - 0.3, max(d) + 0.3], bins=10)
+        return _histogram_plot(d, [min(d), max(d)], bins=10)
 
     pkdp("\n\n\n PLOTTING ")
     x, y = _dice_histogram(data, run_dir)
+    pkdp("\n\n y={}", y)
     return template_common.parameter_plot(
         x,
         [
             PKDict(
                 points=y,
                 label="Counts",
-            )
+            ),
         ],
         PKDict(),
         PKDict(
@@ -1110,10 +1111,10 @@ def _histogram_plot(values, vrange, bins=20):
     x = []
     y = []
     for i in range(len(hist[0])):
-        x.append(hist[1][i])
-        x.append(hist[1][i + 1])
-        y.append(hist[0][i])
-        y.append(hist[0][i])
+        x.append(float(hist[1][i]))
+        x.append(float(hist[1][i + 1]))
+        y.append(float(hist[0][i]))
+        y.append(float(hist[0][i]))
     x.insert(0, x[0])
     y.insert(0, 0)
     return x, y
