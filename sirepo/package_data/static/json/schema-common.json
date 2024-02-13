@@ -197,7 +197,6 @@
             "canDownloadInputFile": true,
             "canExportArchive": true,
             "canShowDocumentationUrl": true,
-            "clientCookie": "sirepo_cookie_js",
             "hasJupyterExport": false,
             "hasMadxExport": false,
             "logFileFrameId": -1,

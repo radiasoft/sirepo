@@ -225,24 +225,33 @@ SIREPO.app.directive('srAlert', function(errorService) {
     };
 });
 
-SIREPO.app.directive('srNotify', function(notificationService) {
-
-    return {
+SIREPO.app.directive('getStarted', function(notificationService, stringService) {
         restrict: 'A',
-        scope: {
-            notificationName: '<',
-            notificationClass: '<',
-        },
+        scope: {},
         template: `
-            <div data-ng-show="notificationService.shouldPresent(notificationName)" class="alert alert-dismissible sr-notify" role="alert" data-ng-class="notificationClass">
-                <button type="button" class="close" aria-label="Close" data-ng-click="notificationService.dismiss(notificationName)">
+            <div data-ng-show="show()" class="alert alert-dismissible sr-notify" role="alert" data-ng-class="'alert-info'">
+                <button type="button" class="close" aria-label="Close" data-ng-click="dismiss()">
                     <span aria-hidden="true">&times;</span>
                 </button>
-                <span data-ng-bind-html="notificationService.getContent(notificationName)"></span>
+                <span>
+                    <div class="text-center"><strong>Welcome to Sirepo - {{ longName  }}!</strong></div>
+                    {{ msg }}
+                </span>
             </div>
         `,
         controller: function($scope) {
+            $scope.dismiss = () => {
+            };
+            $scope.show = () => {
+            };
+            $scope.longName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName;
             $scope.notificationService = notificationService;
+            $scope.msg = `Below are some example ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
+                and folders containing ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
+                Click on the ${SIREPO.APP_SCHEMA.strings.simulationDataType}
+                to open and view the ${SIREPO.APP_SCHEMA.strings.simulationDataType} results.
+                You can create a new ${SIREPO.APP_SCHEMA.strings.simulationDataType}
+                by selecting the "${stringsService.newSimulationLabel()}" link above.`;
         },
     };
 });
