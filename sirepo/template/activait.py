@@ -244,8 +244,7 @@ def save_sequential_report_data(run_dir, sim_in):
     elif "fftReport" in sim_in.report:
         _extract_fft_report(run_dir, sim_in)
     elif "dicePlotReport" in sim_in.report:
-        # TODO (gurhar1133): ???
-        pass
+        _extract_dice_report(run_dir, sim_in)
     else:
         raise AssertionError("unknown report: {}".format(sim_in.report))
 
@@ -380,29 +379,30 @@ def plot_dice(data, run_dir):
             3,
         )
 
-    pkdp("\n\n\n PLOTTING ")
-    shape = data.models.columnInfo.shape[
-        data.models.columnInfo.inputOutput.index("output")
-    ][1:]
-    size = shape[0] * shape[1]
-    a = pkio.py_path(run_dir).dirpath().join("animation")
-    x = _read_file(a, _OUTPUT_FILE.testFile)
-    y = _read_file(a, _OUTPUT_FILE.predictFile)
-    x = x.reshape(len(x) // size, shape[1], shape[0])
-    y = y.reshape(len(y) // size, shape[1], shape[0])
-    d = []
-    for pair in zip(x, y):
-        d.append(_dice_coefficient(pair[0], pair[1]))
+    def _dice_histogram(data, run_dir):
+        shape = data.models.columnInfo.shape[
+            data.models.columnInfo.inputOutput.index("output")
+        ][1:]
+        size = shape[0] * shape[1]
+        a = pkio.py_path(run_dir).dirpath().join("animation")
+        x = _read_file(a, _OUTPUT_FILE.testFile)
+        y = _read_file(a, _OUTPUT_FILE.predictFile)
+        d = []
+        for pair in zip(
+            x.reshape(len(x) // size, shape[1], shape[0]),
+            y.reshape(len(y) // size, shape[1], shape[0]),
+        ):
+            d.append(_dice_coefficient(pair[0], pair[1]))
+        # TODO (gurhar1133): fix range issue
+        return _histogram_plot(d, [min(d) - 0.3, max(d) + 0.3], bins=10)
 
-    # r = []
-    # _update_range(r, d)
-    # TODO (gurhar1133): fix range issue
-    x_points, y_points = _histogram_plot(d, [min(d) - 0.3, max(d) + 0.3], bins=10)
+    pkdp("\n\n\n PLOTTING ")
+    x, y = _dice_histogram(data, run_dir)
     return template_common.parameter_plot(
-        x_points,
+        x,
         [
             PKDict(
-                points=y_points,
+                points=y,
                 label="Counts",
             )
         ],
@@ -802,6 +802,10 @@ def _extract_analysis_report(run_dir, sim_in):
 def _extract_column(run_dir, idx):
     y = _read_file_column(run_dir, "scaledFile", idx)
     return numpy.arange(0, len(y)), y
+
+
+def _extract_dice_report(run_dir, sim_in):
+    template_common.write_sequential_result(plot_dice(sim_in, run_dir))
 
 
 def _extract_file_column_report(run_dir, sim_in):
@@ -1420,7 +1424,6 @@ def _plot_info(y, label="", style=None):
 
 
 def _read_file(run_dir, filename):
-    pkdp("\n\n\n reading run_dir={}\n\n filename={} \n\n dirpath={}", run_dir, filename, run_dir.dirpath())
     res = numpy.load(str(run_dir.join(filename)))
     if len(res.shape) == 1:
         res.shape = (res.shape[0], 1)

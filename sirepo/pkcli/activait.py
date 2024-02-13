@@ -15,13 +15,8 @@ import sirepo.template.activait as template
 
 def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if data.report == "dicePlotReport":
-        template_common.write_sequential_result(
-            template.plot_dice(data, cfg_dir)
-        )
-    else:
-        template_common.exec_parameters()
-        template.save_sequential_report_data(py.path.local(cfg_dir), data)
+    template_common.exec_parameters()
+    template.save_sequential_report_data(py.path.local(cfg_dir), data)
 
 
 def run_background(cfg_dir):
