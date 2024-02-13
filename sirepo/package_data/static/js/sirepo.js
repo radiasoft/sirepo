@@ -2197,14 +2197,14 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         wsreq.msg = f;
     };
 
-    const _cookiesChanged = () => {
+    const _cookiesChangedAndRedirect = () => {
         if (cookiesVerbatim === document.cookie) {
             return false;
         }
         const c = cookiesSorted;
         _saveCookies();
+        // first time is null, and reordering is ok
         if (c === null || c === cookiesSorted) {
-            // first time or cookies reordered
             return false;
         }
         srlog("cookies changed via another browser tab, reloading application");
@@ -2371,37 +2371,21 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
     };
 
     const _saveCookies() => {
-        // Keep two versions for faster checking in _cookiesChanged
+        // Keep two versions for faster checking in _cookiesChangedAndRedirect
         cookiesVerbatim = document.cookie;
         cookiesSorted = cookiesVerbatim.split(/\s*;\s*/).sort().join('; ');
     };
 
-    const _saveCookiesFromHttp(req) => {
-        return req.then(
-            (response) => {
-                srdbg('_saveCookiesFromHttp ok');
-                if (cookiesVerbatim !== document.cookie) {
-                    srdbg('_saveCookiesFromHttp saving');
-                    _saveCookies();
-                }
-                return response;
-            },
-            (response) => {
-                srdbg('_saveCookiesFromHttp error');
-                return response;
-            },
-        )
-    };
     const _send = () => {
         //if already req_seq use that so server can know if it is a resend
         if (toSend.length <= 0) {
             return;
         }
-        if (socket == null) {
+        if (socket === null) {
             _socket();
             return;
         }
-        if (socket.readyState != 1) {
+        if (socket.readyState !== 1) {
             return;
         }
         while (toSend.length > 0) {
@@ -2415,7 +2399,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         if (socket !== null) {
             return;
         }
-        if (_cookiesChanged()) {
+        if (_cookiesChangedAndRedirect()) {
             return;
         }
         const s = new WebSocket(
@@ -2477,21 +2461,13 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
     };
 
     self.send = (url, data, httpConfig) => {
-        if (_cookiesChanged()) {
-            // app will reload
-            // return a fake promise
+        if (_cookiesChangedAndRedirect()) {
+            // app will reload so return a fake promise
             return {then: () => {}};
         }
         if (! SIREPO.authState.uiWebSocket) {
-            if (socket) {
-                // Close socket so can re-authenticate
-                socket.close();
-                socket = null;
-            }
-            return _saveCookiesFromHttp(
-                data ? $http.post(url, data, httpConfig)
-                : $http.get(url, httpConfig),
-            );
+            return data ? $http.post(url, data, httpConfig)
+                : $http.get(url, httpConfig);
         }
         let wsreq = {
             deferred: $q.defer(),
@@ -2530,7 +2506,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
     };
 
     self.updateCookies = (changeOp) => {
-        if (_cookiesChanged()) {
+        if (_cookiesChangedAndRedirect()) {
             return false;
         }
         changeOp();
