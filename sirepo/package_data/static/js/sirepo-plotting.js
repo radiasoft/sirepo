@@ -3181,13 +3181,13 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             const crosshairs =  [
                 {
                     dim: 'x',
-                    color: 'black',
-                    strokeWidth: '0.5',  
+                    color: 'white',
+                    strokeWidth: '1',  
                 },
                 {
                     dim: 'y',
-                    color: 'black',
-                    strokeWidth: '0.5',  
+                    color: 'white',
+                    strokeWidth: '1',  
                 },                  
             ];
 
