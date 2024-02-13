@@ -20,7 +20,7 @@ def init_module(**imports):
 
 def parse_json(qcall):
     d = qcall.http_data_uget()
-    if d:
+    if d is not None:
         return d
     return qcall.sreq.body_as_content()
 
