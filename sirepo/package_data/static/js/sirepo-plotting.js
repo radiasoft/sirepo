@@ -970,8 +970,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             };
         },
 
-        randomId: () => Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
-
         recalculateDomainFromPoints: function(modelName, yScale, points, xDomain, invertAxis) {
             var ydom;
             var min_nonzero = Number.MAX_VALUE;
@@ -1993,7 +1991,7 @@ SIREPO.app.directive('interactiveOverlay', function(focusPointService, keypressS
             }
             plotting.setupSelector($scope, $element);
 
-            var listenerId = plotting.randomId();
+            var listenerId = SIREPO.UTILS.randomId();
             var geometries = [];
             var plotScope;
 
@@ -2654,7 +2652,7 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             var points;
-            $scope.reportId = plotting.randomId();
+            $scope.reportId = SIREPO.UTILS.randomId();
             $scope.focusPoints = [];
 
             $scope.formatFocusPointData = function(fp) {
@@ -2728,7 +2726,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
         templateUrl: '/static/html/plot3d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             var MIN_PIXEL_RESOLUTION = 10;
-            $scope.reportId = plotting.randomId();
+            $scope.reportId = SIREPO.UTILS.randomId();
             $scope.margin = {
                 top: 50,
                 left: 50,
@@ -3556,7 +3554,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             var symbolSize = 144.0;
             var legendSymbolSize = 48.0;
 
-            $scope.reportId = plotting.randomId();
+            $scope.reportId = SIREPO.UTILS.randomId();
             $scope.domPadding = {
                 x: 0,
                 y: 0
