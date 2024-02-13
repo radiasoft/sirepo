@@ -225,33 +225,41 @@ SIREPO.app.directive('srAlert', function(errorService) {
     };
 });
 
-SIREPO.app.directive('getStarted', function(notificationService, stringService) {
+SIREPO.app.directive('getStarted', function(browserStorage, stringsService) {
         restrict: 'A',
         scope: {},
         template: `
-            <div data-ng-show="show()" class="alert alert-dismissible sr-notify" role="alert" data-ng-class="'alert-info'">
+            <div data-ng-show="show()" class="alert alert-dismissible sr-get-started" role="alert" data-ng-class="'alert-info'">
                 <button type="button" class="close" aria-label="Close" data-ng-click="dismiss()">
                     <span aria-hidden="true">&times;</span>
                 </button>
                 <span>
-                    <div class="text-center"><strong>Welcome to Sirepo - {{ longName  }}!</strong></div>
-                    {{ msg }}
+                    <div class="text-center"><strong>Welcome to Sirepo - ${SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName}!</strong></div>
+                    Below are some example ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
+                    and folders containing ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
+                    Click on the ${SIREPO.APP_SCHEMA.strings.simulationDataType}
+                    to open and view the ${SIREPO.APP_SCHEMA.strings.simulationDataType} results.
+                    You can create a new ${SIREPO.APP_SCHEMA.strings.simulationDataType}
+                    by selecting the "${stringsService.newSimulationLabel()}" link above.
                 </span>
             </div>
         `,
         controller: function($scope) {
+            const storageKey = 'getStarted';
+            let isActive = true;
+
             $scope.dismiss = () => {
+                browserStorage.setItem(storageKey, 'shown');
+                //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
+                isActive = false;
             };
             $scope.show = () => {
+                if (! isActive) {
+                    return false;
+                }
+                isActive = ! browserStorage.getItem(storageKey);
+                return isActive;
             };
-            $scope.longName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName;
-            $scope.notificationService = notificationService;
-            $scope.msg = `Below are some example ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
-                and folders containing ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
-                Click on the ${SIREPO.APP_SCHEMA.strings.simulationDataType}
-                to open and view the ${SIREPO.APP_SCHEMA.strings.simulationDataType} results.
-                You can create a new ${SIREPO.APP_SCHEMA.strings.simulationDataType}
-                by selecting the "${stringsService.newSimulationLabel()}" link above.`;
         },
     };
 });

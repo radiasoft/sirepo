@@ -2202,7 +2202,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             return false;
         }
         const c = cookiesSorted;
-        self.updateCookies();
+        _saveCookies();
         if (c === null || c === cookiesSorted) {
             // first time or cookies reordered
             return false;
@@ -2370,6 +2370,28 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         };
     };
 
+    const _saveCookies() => {
+        // Keep two versions for faster checking in _cookiesChanged
+        cookiesVerbatim = document.cookie;
+        cookiesSorted = cookiesVerbatim.split(/\s*;\s*/).sort().join('; ');
+    };
+
+    const _saveCookiesFromHttp(req) => {
+        return req.then(
+            (response) => {
+                srdbg('_saveCookiesFromHttp ok');
+                if (cookiesVerbatim !== document.cookie) {
+                    srdbg('_saveCookiesFromHttp saving');
+                    _saveCookies();
+                }
+                return response;
+            },
+            (response) => {
+                srdbg('_saveCookiesFromHttp error');
+                return response;
+            },
+        )
+    };
     const _send = () => {
         //if already req_seq use that so server can know if it is a resend
         if (toSend.length <= 0) {
@@ -2393,10 +2415,12 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         if (socket !== null) {
             return;
         }
+        if (_cookiesChanged()) {
+            return;
+        }
         const s = new WebSocket(
             new URL($window.location.href).origin.replace(/^http/i, "ws") + "/ws",
         );
-        self.updateCookies();
         s.onclose = _socketError;
         s.onerror = _socketError;
         s.onmessage = _socketOnMessage;
@@ -2464,8 +2488,10 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
                 socket.close();
                 socket = null;
             }
-            return data ? $http.post(url, data, httpConfig)
-                : $http.get(url, httpConfig);
+            return _saveCookiesFromHttp(
+                data ? $http.post(url, data, httpConfig)
+                : $http.get(url, httpConfig),
+            );
         }
         let wsreq = {
             deferred: $q.defer(),
@@ -2503,17 +2529,20 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         return wsreq.deferred.promise;
     };
 
-    self.verify = (changeOp) => {
-        // Keep two versions for faster checking in _cookiesChanged
-        cookiesVerbatim = document.cookie;
-        cookiesSorted = cookiesVerbatim.split(/\s*;\s*/).sort().join('; ');
+    self.updateCookies = (changeOp) => {
+        if (_cookiesChanged()) {
+            return false;
+        }
+        changeOp();
+        _saveCookies();
+        return true;
     };
 
     return self;
 
 });
 
-SIREPO.app.factory('requestSender', function(browserStore, errorService, utilities, msgRouter, uri, $location, $injector, $interval, $q, $rootScope) {
+SIREPO.app.factory('requestSender', function(browserStorage, errorService, utilities, msgRouter, uri, $location, $injector, $interval, $q, $rootScope) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -2522,7 +2551,7 @@ SIREPO.app.factory('requestSender', function(browserStore, errorService, utiliti
     var REDIRECT_RE = new RegExp('window.location = "([^"]+)";', 'i');
     var SR_EXCEPTION_RE = new RegExp('/\\*sr_exception=(.+)\\*/');
     var listFilesData = {};
-    const _cookieKey = "previousRoute";
+    const storageKey = "previousRoute";
 
     function checkCookieRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn
@@ -2532,13 +2561,11 @@ SIREPO.app.factory('requestSender', function(browserStore, errorService, utiliti
         ) {
             return;
         }
-        var p = browserStore.getItem(_cookieKey);
+        var p = browserStorage.getItem(storageKey);
         if (! p) {
             return;
         }
-        if (! browserStore.removeItem(_cookieKey)) {
-            return;
-        }
+        browserStorage.removeItem(storageKey);
         p = p.split(' ');
         if (p[0] !== SIREPO.APP_SCHEMA.simulationType) {
             // wrong app so ignore
@@ -2569,9 +2596,9 @@ SIREPO.app.factory('requestSender', function(browserStore, errorService, utiliti
         if (u == LOGIN_URI) {
             return true;
         }
-        return browserStore.addItem(
-            _cookieKey,
-             SIREPO.APP_SCHEMA.simulationType + ' ' + encodeURIComponent(u),
+        browserStorage.setItem(
+            storageKey,
+            SIREPO.APP_SCHEMA.simulationType + ' ' + encodeURIComponent(u),
         );
     }
 
@@ -2611,7 +2638,8 @@ SIREPO.app.factory('requestSender', function(browserStore, errorService, utiliti
             $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
             return;
         }
-        if (e.routeName == LOGIN_ROUTE_NAME && ! saveCookieRedirect()) {
+        if (e.routeName == LOGIN_ROUTE_NAME) {
+            saveCookieRedirect();
             return;
         }
         if (e.params && e.params.isModal && e.routeName.includes('sbatch')) {
@@ -4135,9 +4163,9 @@ SIREPO.app.controller('ServerUpgradedController', function (errorService, reques
     requestSender.globalRedirectRoot();
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, browserStore, errorService, fileManager, notificationService, panelState, requestSender, stringsService, $location, $rootScope, $scope) {
+SIREPO.app.controller('SimulationsController', function (appState, browserStorage, errorService, fileManager, notificationService, panelState, requestSender, stringsService, $location, $rootScope, $scope) {
     var self = this;
-    const _cookieKey = "listView";
+    const storageKey = "iconView";
     self.stringsService = stringsService;
     $rootScope.$broadcast('simulationUnloaded');
     self.importText = SIREPO.APP_SCHEMA.strings.importText;
@@ -4388,11 +4416,10 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStore,
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
-        return browserStore.addItem(_cookieKey, self.isIconView ? "true" : "false");
+        browserStorage.setItem(storageKey, self.isIconView ? "true" : "false");
     };
 
-    const v = browserStore.getItem(_cookieKey);
-    self.isIconView = v == null || v == "true";
+    self.isIconView = (browserStorage.getItem(storageKey) || "true") === "true";
 
     self.toggleFolder = function(item) {
         if (item == self.activeFolder) {
@@ -4491,7 +4518,7 @@ SIREPO.app.filter('simulationName', function() {
     };
 });
 
-SIREPO.app.factory('persistentStorage', function($cookies, msgRouter) {
+SIREPO.app.factory('browserStorage', function($cookies, msgRouter) {
     const self = {};
 
     const _oldUpdate = () => {
@@ -4521,7 +4548,7 @@ SIREPO.app.factory('persistentStorage', function($cookies, msgRouter) {
             // only ones we care about
             const remap = {
                 strt: "getStarted",
-                lv: "listView",
+                lv: "iconView",
             };
             for (let c of (cstr || '').split('|')) {
                 let [k, v] = c.split(':');
@@ -4530,7 +4557,7 @@ SIREPO.app.factory('persistentStorage', function($cookies, msgRouter) {
                 }
                 for (let e of v.split(';')) {
                     if (e && e.charAt(0) === 'v' && remap[k]) {
-                        self.addItem(remap[k], e.split('=')[1]);
+                        self.setItem(remap[k], e.split('=')[1]);
                     }
                 }
             }
@@ -4542,16 +4569,16 @@ SIREPO.app.factory('persistentStorage', function($cookies, msgRouter) {
         });
     };
 
-    self.addItem = function (name, value) {
-        localStorage.setItem(name, value);
-    };
-
     self.getItem = function (name) {
         return localStorage.getItem(name);
     };
 
     self.removeItem = function (name) {
         localStorage.removeItem(name);
+    };
+
+    self.setItem = function (name, value) {
+        localStorage.setItem(name, value);
     };
 
     _oldUpdate();
@@ -4561,10 +4588,11 @@ SIREPO.app.factory('persistentStorage', function($cookies, msgRouter) {
 SIREPO.app.factory('asyncMsgSetCookies', ($cookies, msgRouter) => {
     const self = {};
     const asyncMsgMethod = (content) => {
-        for (let c of content) {
-            document.cookie = c;
-        }
-        msgRouter.updateCookies();
+        msgRouter.updateCookies(() => {
+            for (let c of content) {
+                document.cookie = c;
+            }
+        });
     };
 
     msgRouter.registerAsyncMsg('setCookies', asyncMsgMethod);

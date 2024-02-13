@@ -282,7 +282,7 @@ SIREPO.app.directive('selectCrystal', function(appState, silasService) {
     };
 });
 
-SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $http) {
+SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender) {
     return {
         restrict: 'A',
         scope: {
