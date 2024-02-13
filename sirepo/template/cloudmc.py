@@ -407,7 +407,7 @@ def _energy_plot(run_dir, data):
     try:
         e_f = t.find_filter(openmc.EnergyFilter)
     except ValueError:
-        return PKDict(error="No energy filter defined for tally {tally_name}")
+        return PKDict(error=f"No energy filter defined for tally {tally_name}")
 
     tally = _get_tally(data.models.settings.tallies, tally_name)
     mesh = _get_filter(tally, "meshFilter")
