@@ -259,7 +259,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
 });
 
-SIREPO.app.factory('authState', function(appDataService, appState, errorService, uri, $rootScope, $cookies) {
+SIREPO.app.factory('authState', function(appDataService, appState, errorService, uri, $rootScope) {
     var self = appState.clone(SIREPO.authState);
 
     if (SIREPO.authState.isGuestUser
@@ -2529,7 +2529,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     var listFilesData = {};
     const storageKey = "previousRoute";
 
-    function checkCookieRedirect(event, route) {
+    function checkLoginRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn
             || SIREPO.authState.needCompleteRegistration
             // Any controller that has 'login' in it will stay on page
@@ -2567,7 +2567,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         }
     }
 
-    function saveCookieRedirect() {
+    function saveLoginRedirect() {
         const u = $location.url();
         if (u == LOGIN_URI) {
             return true;
@@ -2614,11 +2614,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
             $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
             return;
         }
-        if (e.routeName == LOGIN_ROUTE_NAME) {
-            saveCookieRedirect();
-            return;
-        }
-        if (e.params && e.params.isModal && e.routeName.includes('sbatch')) {
+        if (e.params && e.params.isModal && e.routeName.toLowerCase().includes('sbatch')) {
             e.params.errorCallback = errorCallback;
             $rootScope.$broadcast(
                 'showSbatchLoginModal',
@@ -2630,6 +2626,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
             return;
         }
         if (e.routeName == LOGIN_ROUTE_NAME) {
+            saveLoginRedirect();
             // if redirecting to login, but the app thinks it is already logged in,
             // then force a logout to avoid a login loop
             if (SIREPO.authState.isLoggedIn) {
@@ -2894,7 +2891,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     self.localRedirectHome = uri.localRedirectHome;
     self.isRouteParameter = uri.isRouteParameter;
 
-    $rootScope.$on('$routeChangeStart', checkCookieRedirect);
+    $rootScope.$on('$routeChangeStart', checkLoginRedirect);
     LOGIN_URI = uri.formatLocal(LOGIN_ROUTE_NAME).slice(1);
     return self;
 });
@@ -4494,6 +4491,8 @@ SIREPO.app.filter('simulationName', function() {
     };
 });
 
+// only uses angularjs $cookies for removing old cookies, which
+// were encoded by $cookies.
 SIREPO.app.factory('browserStorage', function($cookies, msgRouter) {
     const self = {};
 
