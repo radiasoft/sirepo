@@ -3477,7 +3477,6 @@ SIREPO.app.directive('downloadStatus', function() {
             </div>
         `,
         controller: function($scope) {
-
             $scope.cancel = () => {
                 $scope.simState.cancelSimulation(() => {
                     $('#sr-download-status').modal('hide');
@@ -3499,8 +3498,7 @@ SIREPO.app.directive('splitPanels', function($window) {
     var MIN_TOP_PERCENT = 15;
     var TOP_PAD = 12;
     return {
-                    controller: function($scope) {
-
+        controller: function($scope) {
             function totalHeight() {
                 return $($window).height() - $scope.el.offset().top;
             }

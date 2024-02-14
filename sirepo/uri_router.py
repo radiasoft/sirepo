@@ -218,7 +218,7 @@ def start_tornado(ip, port, debug):
 
             async def _reply_op(sreply):
                 nonlocal w
-                self.cookie_state = sreply.qcall.cookie.state_for_websocket()
+                self.cookie_state = sreply.qcall.cookie.export_state()
                 await sreply.websocket_response(w)
 
             try:

@@ -146,8 +146,7 @@ class _Auth(sirepo.quest.Attr):
     METHOD_EMAIL = METHOD_EMAIL
     METHOD_GUEST = METHOD_GUEST
 
-    _QUEST_KEY = "auth"
-
+    # Keys passed to child quests (nested call_api) so login state is cascaded
     _INIT_QUEST_FOR_CHILD_KEYS = frozenset(
         (
             "_logged_in_user",

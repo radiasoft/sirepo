@@ -47,9 +47,8 @@ def init_quest(qcall):
 
 
 class _Cookie(sirepo.quest.Attr):
+    # Only necessary to cascade values
     _INIT_QUEST_FOR_CHILD_KEYS = frozenset(("_values",))
-
-    _QUEST_KEY = "cookie"
 
     def __init__(self, qcall, *args, **kwargs):
         super().__init__(qcall, *args, **kwargs)
@@ -62,6 +61,14 @@ class _Cookie(sirepo.quest.Attr):
         else:
             # Also handles case where state is None (_SRequestCLI)
             self._from_http_header(qcall, s)
+
+    def export_state(self):
+        """Persistent state for next websocket call
+
+        Returns:
+            object: anonymous values to be passed to init_quest
+        """
+        return self._values
 
     def get_value(self, key):
         return self._values[key]
@@ -97,7 +104,7 @@ class _Cookie(sirepo.quest.Attr):
         Args:
             error (str): to be logged
         """
-        pkdlog("resetting cookie: error={} values={}", error, _state())
+        pkdlog("resetting cookie: error={} values={}", error, self._values)
         self._modified = True
         self._values.clear()
 
@@ -125,14 +132,6 @@ class _Cookie(sirepo.quest.Attr):
         ), f"_COOKIE_SENTINEL not set self keys={sorted(self._values.keys())} for key={key}"
         self._modified = True
         self._values[key] = v
-
-    def state_for_websocket(self):
-        """Persistent state for next websocket call
-
-        Returns:
-            object: anonymous values to be passed to init_quest
-        """
-        return self._values
 
     def unchecked_get_value(self, key, default=None):
         return self._values.get(key, default)

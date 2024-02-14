@@ -287,6 +287,19 @@ class API(pykern.quest.API):
 class Attr(PKDict):
     _INIT_QUEST_FOR_CHILD_KEYS = frozenset()
 
+    # Class names bound to attribute keys
+    _KEY_MAP = PKDict(
+        _Auth="auth",
+        _AuthDb="auth_db",
+        # bucket should only be referred to by bucket_get/set
+        _Bucket="_bucket",
+        _Cookie="cookie",
+        _SReply="sreply",
+        _SRequestCLI="sreq",
+        _SRequestHTTP="sreq",
+        _SRequestWebSocket="sreq",
+    )
+
     def __init__(self, qcall, init_quest_for_child=False, **kwargs):
         """Initialize object from a parent or a new qcall
 
@@ -296,7 +309,7 @@ class Attr(PKDict):
             kwargs (dict): insert into dictionary
         """
         super().__init__(qcall=qcall, **kwargs)
-        qcall.attr_set(self._QUEST_KEY, self)
+        qcall.attr_set(self._key(), self)
 
     def detach_from_quest(self):
         """Useful only for `_SReply`
@@ -306,7 +319,7 @@ class Attr(PKDict):
         Returns:
             self: object
         """
-        self.qcall.pkdel(self._QUEST_KEY)
+        self.qcall.pkdel(self._key())
         self.qcall = None
         return self
 
@@ -325,7 +338,7 @@ class Attr(PKDict):
             Attr: instance to be assigned to `child`
         """
         rv = self.__class__(qcall=child, init_quest_for_child=True)
-        for k, v in parent[self._QUEST_KEY].items():
+        for k, v in parent[self._key()].items():
             if k not in self._INIT_QUEST_FOR_CHILD_KEYS:
                 continue
             if isinstance(v, (API, Attr)):
@@ -334,6 +347,9 @@ class Attr(PKDict):
                 )
             rv[k] = copy.deepcopy(v)
         return rv
+
+    def _key(self):
+        return self._KEY_MAP[self.__class__.__name__]
 
 
 class Spec(pykern.quest.Spec):
@@ -361,8 +377,6 @@ class Spec(pykern.quest.Spec):
 
 
 class _Bucket(Attr):
-    _QUEST_KEY = "_bucket"
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Don't want a backlink here, because we expect exact count of items

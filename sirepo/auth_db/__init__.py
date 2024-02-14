@@ -133,8 +133,6 @@ def init_quest(qcall):
 
 
 class _AuthDb(sirepo.quest.Attr):
-    _QUEST_KEY = "auth_db"
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._orm_session = None

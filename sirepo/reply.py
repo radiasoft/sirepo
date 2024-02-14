@@ -76,8 +76,6 @@ def init_quest(qcall):
 
 
 class _SReply(sirepo.quest.Attr):
-    _QUEST_KEY = "sreply"
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._cookies_to_delete = tuple()
@@ -147,7 +145,6 @@ class _SReply(sirepo.quest.Attr):
         # to the server, which will have code to handle this case.
         try:
             if isinstance(exc, sirepo.util.ReplyExc):
-                self.qcall.cookie.has_sentinel()
                 return self._gen_exception_reply(exc)
             return self._gen_exception_error(exc)
         except Exception as e:

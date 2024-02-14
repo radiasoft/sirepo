@@ -72,9 +72,9 @@ class _FormFileWebSocket(_FormFileBase):
 class _SRequestBase(sirepo.quest.Attr):
     """Holds context for incoming requests"""
 
+    # bare minimum to operate a child quest
     _INIT_QUEST_FOR_CHILD_KEYS = frozenset(
         (
-            "cookie_state",
             "http_authorization",
             "http_headers",
             "http_method",
@@ -82,13 +82,6 @@ class _SRequestBase(sirepo.quest.Attr):
             "remote_addr",
         )
     )
-
-    _QUEST_KEY = "sreq"
-
-    def __init__(self, qcall, internal_req=None, **kwargs):
-        super().__init__(qcall=qcall, internal_req=internal_req, **kwargs)
-        if kwargs.get("init_quest_for_child"):
-            self.http_method = "GET"
 
     def body_as_bytes(self):
         return pykern.pkjson.dump_bytes(self.body_as_dict())
@@ -114,6 +107,17 @@ class _SRequestBase(sirepo.quest.Attr):
             # The package robot_detection does see it, but we don't want to introduce another dependency.
             return True
         return user_agents.parse(a).is_bot
+
+    def init_quest_for_child(self, child, parent):
+        return (
+            super()
+            .init_quest_for_child(child, parent)
+            .pkupdate(
+                # need to cascade current value, not parent.sreq.cookie_state
+                cookie_state=parent.cookie.export_state(),
+                # no data yet; set_body will change
+                http_method="GET",
+        )
 
     def method_is_post(self):
         return self.http_method == "POST"
