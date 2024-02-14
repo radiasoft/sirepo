@@ -1245,6 +1245,8 @@ class _ImagePreview:
         import matplotlib.pyplot as plt
 
         if self.data.args.method == "improvedImagePreview":
+            plt.xticks([])
+            plt.yticks([])
             plt.imshow(self.currentImage)
             return
 
@@ -1299,7 +1301,7 @@ class _ImagePreview:
 
             if self.data.args.method == "improvedImagePreview":
                 c = []
-                for i in range(3):
+                for i in range(15):
 
                     # self.row = i
                     # self.original = o[i] if o is not None else None
@@ -1316,7 +1318,7 @@ class _ImagePreview:
                     c.append(self._pyplot_data_url())
 
                 return PKDict(
-                    numPages=3,
+                    # numPages=15,
                     uris=u,
                     countours=c,
                 )

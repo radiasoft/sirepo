@@ -1150,19 +1150,35 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
         restrict: 'A',
         scope: {
             method: '@',
-            inImage: '@',
-            countourImage: '@',
+            // inImage: '@',
+            // countourImage: '@',
         },
         template: `
         <div>
-        <div class="row">
-          <div class="col-md-10 col-lg-6">
-            <img class="img-responsive {{ inImage }}" />
+          <div class="row">
+            <div class="col-md-10 col-lg-6">
+              <img class="img-responsive {{ inImage1 }}" />
+            </div>
+            <div class="col-md-10 col-lg-6">
+              <img class="img-responsive {{ countourImage1 }}" />
+            </div>
           </div>
-          <div class="col-md-10 col-lg-6">
-            <img class="img-responsive {{ countourImage }}" />
+          <div class="row">
+            <div class="col-md-10 col-lg-6">
+              <img class="img-responsive {{ inImage2 }}" />
+            </div>
+            <div class="col-md-10 col-lg-6">
+              <img class="img-responsive {{ countourImage2 }}" />
+            </div>
           </div>
-        </div>
+          <div class="row">
+            <div class="col-md-10 col-lg-6">
+              <img class="img-responsive {{ inImage3 }}" />
+            </div>
+            <div class="col-md-10 col-lg-6">
+              <img class="img-responsive {{ countourImage3 }}" />
+            </div>
+          </div>
           <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
           <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
           <div data-ng-if="! isLoading() && multiPage">
@@ -1181,6 +1197,12 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
         controller: function($scope, appState) {
             let loading = true;
             let numPages = 0;
+            $scope.inImage1 = "i1";
+            $scope.countourImage1 = "c1";
+            $scope.inImage2 = "i2";
+            $scope.countourImage2 = "c2";
+            $scope.inImage3 = "i3";
+            $scope.countourImage3 = "c3";
             $scope.uris = null;
             $scope.idx = 0;
             $scope.dataFileMissing = false;
@@ -1189,27 +1211,31 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
             };
 
             $scope.first = () => {
-                setImageFromUriIndex($scope.idx = 0);
+                setIndex($scope.idx = 0);
             };
 
             $scope.isLoading = () => loading;
 
             $scope.last = () => {
-                setImageFromUriIndex($scope.idx = $scope.uris.length - 1);
+                setIndex($scope.idx = $scope.uris.length - 1);
             };
 
             $scope.next = () => {
-                setImageFromUriIndex($scope.idx += 1);
+                setIndex($scope.idx += 1);
             };
 
             $scope.prev = () => {
-                setImageFromUriIndex($scope.idx -= 1);
+                setIndex($scope.idx -= 1);
             };
 
-            function setImageFromUriIndex(index) {
-                if ($('.' + $scope.inImage).length && $scope.uris) {
-                    $('.' + $scope.inImage)[0].src = $scope.uris[index];
-                    $('.' + $scope.countourImage)[0].src = $scope.countours[index];
+            function setIndex(index) {
+                if ($('.' + $scope.inImage1).length && $scope.uris) {
+                    $('.' + $scope.inImage1)[0].src = $scope.uris[index];
+                    $('.' + $scope.countourImage1)[0].src = $scope.countours[index];
+                    $('.' + $scope.inImage2)[0].src = $scope.uris[index + 1];
+                    $('.' + $scope.countourImage2)[0].src = $scope.countours[index + 1];
+                    $('.' + $scope.inImage3)[0].src = $scope.uris[index + 2];
+                    $('.' + $scope.countourImage3)[0].src = $scope.countours[index + 2];
                     // srdbg("setting");
                 }
                 if (! $scope.uris) {
@@ -1223,13 +1249,14 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
                 f(
                     appState,
                     response => {
-                        numPages = response.numPages;
+                        numPages = response.uris.length / 3;
+                        srdbg(numPages);
                         $scope.uris = response.uris;
                         $scope.countours = response.countours;
                         srdbg("response:", response);
                         if ($scope.uris) {
                             $scope.multiPage = $scope.uris.length > 1;
-                            setImageFromUriIndex(0);
+                            setIndex(0);
                         }
                         loading = false;
                     },
