@@ -26,7 +26,7 @@ def run(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data.report == "scansReport":
         res = sirepo.template.raydata._request_scan_monitor(
-            PKDict(method="get_scans", data=data.models.scansReport)
+            PKDict(method="get_scans", data=PKDict(args=data.models.scansReport)),
         )
     else:
         raise AssertionError("unknown report: {}".format(data.report))
