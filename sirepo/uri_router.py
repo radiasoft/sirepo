@@ -395,7 +395,7 @@ async def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_o
         if not parent:
             sirepo.auth.init_quest(qcall=qcall, internal_req=internal_req)
             await sirepo.spa_session.init_quest(qcall=qcall)
-        if data:
+        if data is not None:
             qcall.http_data_set(data)
         try:
             # must be first so exceptions have access to sim_type
