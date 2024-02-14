@@ -10,7 +10,6 @@ from sirepo.template import template_common
 import sirepo.raydata.scans
 import sirepo.raydata.replay
 import sirepo.raydata.scan_monitor
-import sirepo.template.raydata
 
 
 def create_scans(num_scans, catalog_name, delay=True):
@@ -22,6 +21,8 @@ def replay(source_catalog, destination_catalog, num_scans):
 
 
 def run(cfg_dir):
+    import sirepo.template.raydata
+
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     if data.report == "scansReport":
         res = sirepo.template.raydata._request_scan_monitor(
