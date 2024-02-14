@@ -117,6 +117,7 @@ class _SRequestBase(sirepo.quest.Attr):
                 cookie_state=parent.cookie.export_state(),
                 # no data yet; set_body will change
                 http_method="GET",
+            ),
         )
 
     def method_is_post(self):
