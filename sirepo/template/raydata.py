@@ -77,6 +77,10 @@ def stateless_compute_scan_fields(data, **kwargs):
     return _request_scan_monitor(PKDict(method="scan_fields", data=data))
 
 
+def write_parameters(data, run_dir, is_parallel):
+    pass
+
+
 def _request_scan_monitor(data):
     try:
         r = requests.post(

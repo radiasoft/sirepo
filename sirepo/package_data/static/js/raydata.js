@@ -521,7 +521,7 @@ SIREPO.app.directive('scansTable', function() {
             <div data-log-modal="" data-scan-id="runLogScanId" data-analysis-status="{{ analysisStatus }}"></div>
             <div data-confirm-analysis-modal="" data-scan-id="confirmScanId" data-ok-clicked="runAnalysis(confirmScanId, true)"></div>
         `,
-        controller: function(appState, columnsService, errorService, panelState, raydataService, requestSender, scanService, $scope, $interval) {
+        controller: function(appState, columnsService, errorService, panelState, raydataService, requestSender, scanService, simulationQueue, $scope, $interval) {
             $scope.analysisScanId = null;
             $scope.columnsService = columnsService;
             $scope.confirmScanId = null;
@@ -536,6 +536,7 @@ SIREPO.app.directive('scansTable', function() {
             $scope.scans = [];
             $scope.showPdfColumn = $scope.analysisStatus === 'executed' || $scope.analysisStatus === 'allStatuses';
 
+            let currentRequestItem = null;
             let scanOutputIndex = 1;
             let pendingRunAnalysis = {};
             let scanRequestInterval = null;
@@ -626,7 +627,9 @@ SIREPO.app.directive('scansTable', function() {
                     scanArgs.pageNumber = 0;
                 }
                 const m = appState.applicationState()[$scope.modelName];
+
                 function doRequest() {
+
                     $scope.searchError = validateSearchFields();
                     if ($scope.searchError) {
                         $scope.isLoadingNewScans = false;
@@ -639,33 +642,68 @@ SIREPO.app.directive('scansTable', function() {
                     $scope.isRefreshingScans = true;
                     $scope.noScansReturned = false;
                     const expectedOutputIndex = scanOutputIndex;
-                    requestSender.sendStatelessCompute(
-                        appState,
+
+
+                    appState.applicationState().scansReport = {
+                        ...appState.applicationState().scansReport,
+                        analysisStatus: $scope.analysisStatus,
+                        catalogName: appState.applicationState().catalog.catalogName,
+                        searchStartTime: m.searchStartTime,
+                        searchStopTime: m.searchStopTime,
+                        selectedColumns: appState.applicationState().metadataColumns.selected,
+                        pageSize: m.pageSize,
+                        pageNumber: scanArgs.pageNumber,
+                        searchText: m.searchText,
+                        searchTerms: buildSearchTerms(m.searchTerms),
+                        sortColumn: scanArgs.sortColumn,
+                        sortOrder: scanArgs.sortOrder,
+                    };
+
+                    currentRequestItem = simulationQueue.addTransientItem(
+                        'scansReport',
+                        appState.applicationState(),
                         json => {
                             if (expectedOutputIndex != scanOutputIndex) {
                                 return;
                             }
+                            currentRequestItem = null;
+                            srdbg(json);
                             loadScans(scanService.setCachedScans($scope.analysisStatus, json.data));
-                        },
-                        {
-                            method: 'scans',
-                            args: {
-                                analysisStatus: $scope.analysisStatus,
-                                catalogName: appState.applicationState().catalog.catalogName,
-                                searchStartTime: m.searchStartTime,
-                                searchStopTime: m.searchStopTime,
-                                selectedColumns: appState.applicationState().metadataColumns.selected,
-                                pageSize: m.pageSize,
-                                pageNumber: scanArgs.pageNumber,
-                                searchText: m.searchText,
-                                searchTerms: buildSearchTerms(m.searchTerms),
-                                sortColumn: scanArgs.sortColumn,
-                                sortOrder: scanArgs.sortOrder,
-                            }
-                        },
-                        errorOptions
+                            srdbg("3333333");
+                        }
                     );
+
+                    /* requestSender.sendStatelessCompute(
+                     *     appState,
+                     *     json => {
+                     *         if (expectedOutputIndex != scanOutputIndex) {
+                     *             return;
+                     *         }
+                     *         loadScans(scanService.setCachedScans($scope.analysisStatus, json.data));
+                     *     },
+                     *     {
+                     *         method: 'scans',
+                     *         args: {
+                     *             analysisStatus: $scope.analysisStatus,
+                     *             catalogName: appState.applicationState().catalog.catalogName,
+                     *             searchStartTime: m.searchStartTime,
+                     *             searchStopTime: m.searchStopTime,
+                     *             selectedColumns: appState.applicationState().metadataColumns.selected,
+                     *             pageSize: m.pageSize,
+                     *             pageNumber: scanArgs.pageNumber,
+                     *             searchText: m.searchText,
+                     *             searchTerms: buildSearchTerms(m.searchTerms),
+                     *             sortColumn: scanArgs.sortColumn,
+                     *             sortOrder: scanArgs.sortOrder,
+                     *         }
+                     *     },
+                     *     errorOptions
+                     * );*/
+
+
+
                 }
+
                 cancelRequestInterval();
                 // Send once and then will happen on $interval
                 doRequest();

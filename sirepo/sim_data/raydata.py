@@ -22,7 +22,10 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-        return []
+        if r == "initZipReport":
+            # always compute initZipReport when asked
+            return [[sirepo.util.random_base62()]]
+        return [r]
 
     @classmethod
     def _compute_model(cls, analysis_model, resp):

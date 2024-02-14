@@ -5,10 +5,12 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkcollections import PKDict
+from sirepo import simulation_db
 from sirepo.template import template_common
 import sirepo.raydata.scans
 import sirepo.raydata.replay
 import sirepo.raydata.scan_monitor
+import sirepo.template.raydata
 
 
 def create_scans(num_scans, catalog_name, delay=True):
@@ -20,8 +22,14 @@ def replay(source_catalog, destination_catalog, num_scans):
 
 
 def run(cfg_dir):
-    _run()
-    template_common.write_sequential_result(PKDict())
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    if data.report == "scansReport":
+        res = sirepo.template.raydata._request_scan_monitor(
+            PKDict(method="get_scans", data=data.models.scansReport)
+        )
+    else:
+        raise AssertionError("unknown report: {}".format(data.report))
+    template_common.write_sequential_result(res)
 
 
 def run_background(cfg_dir):

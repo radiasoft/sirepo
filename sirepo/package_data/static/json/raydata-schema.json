@@ -89,6 +89,7 @@
             "confirmRunAnalysis": ["Hide this message for this session", "Boolean", "0"],
             "searchTerms": ["", "SearchTerms", []]
         },
+        "scansReport": {},
         "searchTerm": {
             "column": ["Column", "ColumnList", ""],
             "term": ["Search Term", "SearchTermText", ""]
