@@ -58,7 +58,7 @@ _LATTICE_COL_LABEL = PKDict(
 _LATTICE_DATA_FILENAME = "lattice{}.npy"
 
 _LATTICE_RE = re.compile(r"\bpower\b[\s\w]+\n(.*?)(\n\n|$)", flags=re.DOTALL)
-
+_MAGIN_PLOT_FIELD = "AW"
 _OUTPUT_FILENAME = "genesis.out"
 _FIELD_DISTRIBUTION_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".fld"
 _PARTICLE_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".par"
@@ -159,6 +159,38 @@ def parse_genesis_error(run_dir):
     )
 
 
+def plot_magin(magin_filename):
+    def _x_points(data):
+        if data.unit_length == 1:
+            return [x for x in range(len(data.points))]
+        x = []
+        c = 0
+        for i in range(len(data.points)):
+            x.append(str(c))
+            c += float(data.unit_length)
+        return x
+
+    d = _parse_maginfile(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_model_field("io", "maginfile", magin_filename)
+        )
+    )
+    return template_common.parameter_plot(
+        _x_points(d),
+        [
+            PKDict(
+                points=d.points,
+                label=f"{_MAGIN_PLOT_FIELD} Value",
+            )
+        ],
+        PKDict(),
+        PKDict(
+            title="MAGINFILE",
+            x_label="length (m)",
+        ),
+    )
+
+
 def post_execution_processing(success_exit, run_dir, **kwargs):
     if success_exit:
         return None
@@ -252,11 +284,14 @@ def stateful_compute_import_file(data, **kwargs):
 
 def validate_file(file_type, path):
     if file_type == "io-partfile":
-        if _is_text_file(path):
+        if pkio.is_pure_text(path):
             return "The PARTFILE should be a binary file. Use the DISTFILE to import a text file."
     elif file_type == "io-distfile":
-        if not _is_text_file(path):
+        if not pkio.is_pure_text(path):
             return "The DISTFILE should be a text file with columns: X PX Y PY T P."
+    elif file_type == "io-maginfile":
+        if not pkio.is_pure_text(path):
+            return "The MAGINFILE should be a text file."
     return None
 
 
@@ -382,12 +417,25 @@ def _get_frame_counts(run_dir):
     return res
 
 
-def _is_text_file(path):
-    try:
-        pkio.read_text(path)
-        return True
-    except UnicodeDecodeError:
-        return False
+def _parse_maginfile(filepath):
+    if not pkio.is_pure_text(filepath):
+        raise AssertionError(f"{filepath.basename} for maginfile should be text file")
+    p = []
+    u = 1
+    with pkio.open_text(filepath) as f:
+        for line in f:
+            row = line.split()
+            if row:
+                if row[0] == _MAGIN_PLOT_FIELD:
+                    p.append(row[1])
+                if row[0] == "?" and "UNITLENGTH" in row[1]:
+                    if row[2] == "=":
+                        u = row[3]
+                    else:
+                        u = row[2]
+    if p:
+        return PKDict(unit_length=u, points=p)
+    raise AssertionError(f"No AW fields present in maginfile={filepath.basename}")
 
 
 def _parse_namelist(data, text):
