@@ -7,6 +7,7 @@
 
 max_bytes = 10000
 
+
 def setup_module(module):
     import os
 
