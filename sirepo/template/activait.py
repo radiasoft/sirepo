@@ -1244,6 +1244,10 @@ class _ImagePreview:
     def _gen_image(self):
         import matplotlib.pyplot as plt
 
+        if self.data.args.method == "improvedImagePreview":
+            plt.imshow(self.currentImage)
+            return
+
         if (
             _param_to_image(self.info)
             and not self.data.args.method in _POST_TRAINING_PLOTS
@@ -1285,35 +1289,63 @@ class _ImagePreview:
     def images(self):
         import matplotlib.pyplot as plt
 
+        # if self.data.args.method == "improvedImagePreview":
+            # assert 0, "HIT"
         with h5py.File(_filepath(self.data.args.dataFile.file), "r") as f:
             self.file = f
             x, y, o = self._x_y()
             u = []
             k = 0
-            g = (
-                self._grid(x)
-                if self.data.args.method not in ("bestLosses", "worstLosses")
-                else [_SEGMENT_ROWS]
-            )
-            for i in g:
-                plt.figure(figsize=[10, 10])
-                self.axes = (
-                    self._set_image_to_image_plt(plt) if _image_out(self.info) else None
-                )
-                for j in range(i):
-                    self.row = j
-                    self.original = o[k + j] if o is not None else None
-                    self.input = x[k + j]
+
+            if self.data.args.method == "improvedImagePreview":
+                c = []
+                for i in range(3):
+
+                    # self.row = i
+                    # self.original = o[i] if o is not None else None
+                    self.currentImage = x[i]
                     if self.io.input.kind == "f":
                         self.input = self.input.astype(float)
-                    self.output = y[k + j]
+
+
                     self._gen_image()
-                u.append(self._pyplot_data_url())
-                k += i
-            return PKDict(
-                numPages=len(g),
-                uris=u,
-            )
+                    u.append(self._pyplot_data_url())
+
+                    self.currentImage = y[i]
+                    self._gen_image()
+                    c.append(self._pyplot_data_url())
+
+                return PKDict(
+                    numPages=3,
+                    uris=u,
+                    countours=c,
+                )
+            else:
+                g = (
+                    self._grid(x)
+                    if self.data.args.method not in ("bestLosses", "worstLosses")
+                    else [_SEGMENT_ROWS]
+                )
+                for i in g:
+                    plt.figure(figsize=[10, 10])
+                    self.axes = (
+                        self._set_image_to_image_plt(plt) if _image_out(self.info) else None
+                    )
+                    for j in range(i):
+                        self.row = j
+                        self.original = o[k + j] if o is not None else None
+                        self.input = x[k + j]
+                        if self.io.input.kind == "f":
+                            self.input = self.input.astype(float)
+                        self.output = y[k + j]
+                        self._gen_image()
+                    u.append(self._pyplot_data_url())
+                    k += i
+
+                return PKDict(
+                    numPages=len(g),
+                    uris=u,
+                )
 
 
 def _is_branching(node):

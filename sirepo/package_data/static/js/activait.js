@@ -1145,6 +1145,112 @@ SIREPO.app.directive('diceCoeffViewer', function(requestSender) {
     };
 });
 
+SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            method: '@',
+            inImage: '@',
+            countourImage: '@',
+        },
+        template: `
+        <div>
+        <div class="row">
+          <div class="col-md-10 col-lg-6">
+            <img class="img-responsive {{ inImage }}" />
+          </div>
+          <div class="col-md-10 col-lg-6">
+            <img class="img-responsive {{ countourImage }}" />
+          </div>
+        </div>
+          <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
+          <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
+          <div data-ng-if="! isLoading() && multiPage">
+            <div class="pull-left">
+              <button class="btn btn-primary" title="first" data-ng-click="first()">|<</button>
+              <button class="btn btn-primary" title="previous" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><</button>
+            </div>
+            <div class="pull-right">
+                page {{ idx + 1 }} of {{ uris.length }}
+              <button class="btn btn-primary" title="next" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()">></button>
+              <button class="btn btn-primary" title="last" data-ng-click="last()">>|</button>
+            </div>
+          </div>
+        </div>
+        `,
+        controller: function($scope, appState) {
+            let loading = true;
+            let numPages = 0;
+            $scope.uris = null;
+            $scope.idx = 0;
+            $scope.dataFileMissing = false;
+            $scope.canUpdateUri = increment => {
+                return $scope.idx + increment >= 0 && $scope.idx + increment < numPages;
+            };
+
+            $scope.first = () => {
+                setImageFromUriIndex($scope.idx = 0);
+            };
+
+            $scope.isLoading = () => loading;
+
+            $scope.last = () => {
+                setImageFromUriIndex($scope.idx = $scope.uris.length - 1);
+            };
+
+            $scope.next = () => {
+                setImageFromUriIndex($scope.idx += 1);
+            };
+
+            $scope.prev = () => {
+                setImageFromUriIndex($scope.idx -= 1);
+            };
+
+            function setImageFromUriIndex(index) {
+                if ($('.' + $scope.inImage).length && $scope.uris) {
+                    $('.' + $scope.inImage)[0].src = $scope.uris[index];
+                    $('.' + $scope.countourImage)[0].src = $scope.countours[index];
+                    // srdbg("setting");
+                }
+                if (! $scope.uris) {
+                    $scope.dataFileMissing = true;
+                    $scope.fileName = appState.models.dataFile.file;
+                }
+            }
+
+            const loadImageFile = () => {
+                const f = $scope.method == 'imagePreview' || $scope.method == 'improvedImagePreview' ? requestSender.sendStatefulCompute : requestSender.sendAnalysisJob;
+                f(
+                    appState,
+                    response => {
+                        numPages = response.numPages;
+                        $scope.uris = response.uris;
+                        $scope.countours = response.countours;
+                        srdbg("response:", response);
+                        if ($scope.uris) {
+                            $scope.multiPage = $scope.uris.length > 1;
+                            setImageFromUriIndex(0);
+                        }
+                        loading = false;
+                    },
+                    {
+                        method: 'sample_images',
+                        modelName: 'animation',
+                        args: {
+                            method: $scope.method,
+                            imageFilename: 'sample',
+                            dataFile: appState.applicationState().dataFile,
+                            columnInfo: appState.applicationState().columnInfo,
+                        }
+                    }
+                );
+            };
+
+            loadImageFile();
+        }
+    };
+});
+
 SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
     return {
         restrict: 'A',
