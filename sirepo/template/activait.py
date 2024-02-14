@@ -739,23 +739,22 @@ def _continue_building_level(cur_node, merge_continue):
 def _dice(data, run_dir):
     def _coefficient(mask1, mask2):
         return round(
-            (2 * numpy.sum(mask1 * mask2))
-            / (numpy.sum(mask1) + numpy.sum(mask2)),
+            (2 * numpy.sum(mask1 * mask2)) / (numpy.sum(mask1) + numpy.sum(mask2)),
             3,
         )
 
-    def _hist(data, run_dir):
-        shape = data.models.columnInfo.shape[
+    def _reshape(values, data):
+        s = data.models.columnInfo.shape[
             data.models.columnInfo.inputOutput.index("output")
         ][1:]
-        size = shape[0] * shape[1]
+        return values.reshape(len(values) // (s[0] * s[1]), s[1], s[0])
+
+    def _hist(data, run_dir):
         a = pkio.py_path(run_dir).dirpath().join("animation")
-        x = _read_file(a, _OUTPUT_FILE.testFile)
-        y = _read_file(a, _OUTPUT_FILE.predictFile)
         d = []
         for pair in zip(
-            x.reshape(len(x) // size, shape[1], shape[0]),
-            y.reshape(len(y) // size, shape[1], shape[0]),
+            _reshape(_read_file(a, _OUTPUT_FILE.testFile), data),
+            _reshape(_read_file(a, _OUTPUT_FILE.predictFile), data),
         ):
             d.append(_coefficient(pair[0], pair[1]))
         return _histogram_plot(d, [min(d), max(d)], bins=10)
