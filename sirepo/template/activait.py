@@ -243,8 +243,6 @@ def save_sequential_report_data(run_dir, sim_in):
         _extract_analysis_report(run_dir, sim_in)
     elif "fftReport" in sim_in.report:
         _extract_fft_report(run_dir, sim_in)
-    elif "dicePlotReport" in sim_in.report:
-        _extract_dice_report(run_dir, sim_in)
     else:
         raise AssertionError("unknown report: {}".format(sim_in.report))
 
@@ -266,6 +264,10 @@ def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
         _OUTPUT_FILE.dtClassifierConfusionFile,
         "Decision Tree Confusion Matrix",
     )
+
+
+def sim_frame_dicePlotAnimation(frame_args):
+    return _dice(frame_args.sim_in, frame_args.run_dir)
 
 
 def sim_frame_epochAnimation(frame_args):
@@ -369,50 +371,6 @@ def stateful_compute_column_info(data, **kwargs):
 
 def analysis_job_sample_images(data, run_dir, **kwargs):
     return _ImagePreview(data, run_dir).images()
-
-
-def plot_dice(data, run_dir):
-    def _dice_coefficient(mask1, mask2):
-        return round(
-            (2 * numpy.sum(mask1 * mask2))
-            / (numpy.sum(mask1) + numpy.sum(mask2)),
-            3,
-        )
-
-    def _dice_histogram(data, run_dir):
-        shape = data.models.columnInfo.shape[
-            data.models.columnInfo.inputOutput.index("output")
-        ][1:]
-        size = shape[0] * shape[1]
-        a = pkio.py_path(run_dir).dirpath().join("animation")
-        x = _read_file(a, _OUTPUT_FILE.testFile)
-        y = _read_file(a, _OUTPUT_FILE.predictFile)
-        d = []
-        for pair in zip(
-            x.reshape(len(x) // size, shape[1], shape[0]),
-            y.reshape(len(y) // size, shape[1], shape[0]),
-        ):
-            d.append(_dice_coefficient(pair[0], pair[1]))
-        # TODO (gurhar1133): fix range issue
-        return _histogram_plot(d, [min(d), max(d)], bins=10)
-
-    pkdp("\n\n\n PLOTTING ")
-    x, y = _dice_histogram(data, run_dir)
-    pkdp("\n\n y={}", y)
-    return template_common.parameter_plot(
-        x,
-        [
-            PKDict(
-                points=y,
-                label="Counts",
-            ),
-        ],
-        PKDict(),
-        PKDict(
-            title="Dice Coefficients",
-            x_label="Scores",
-        ),
-    )
 
 
 def stateful_compute_get_remote_data(data, **kwargs):
@@ -778,6 +736,47 @@ def _continue_building_level(cur_node, merge_continue):
     return True
 
 
+def _dice(data, run_dir):
+    def _coefficient(mask1, mask2):
+        return round(
+            (2 * numpy.sum(mask1 * mask2))
+            / (numpy.sum(mask1) + numpy.sum(mask2)),
+            3,
+        )
+
+    def _hist(data, run_dir):
+        shape = data.models.columnInfo.shape[
+            data.models.columnInfo.inputOutput.index("output")
+        ][1:]
+        size = shape[0] * shape[1]
+        a = pkio.py_path(run_dir).dirpath().join("animation")
+        x = _read_file(a, _OUTPUT_FILE.testFile)
+        y = _read_file(a, _OUTPUT_FILE.predictFile)
+        d = []
+        for pair in zip(
+            x.reshape(len(x) // size, shape[1], shape[0]),
+            y.reshape(len(y) // size, shape[1], shape[0]),
+        ):
+            d.append(_coefficient(pair[0], pair[1]))
+        return _histogram_plot(d, [min(d), max(d)], bins=10)
+
+    x, y = _hist(data, run_dir)
+    return template_common.parameter_plot(
+        x,
+        [
+            PKDict(
+                points=y,
+                label="Counts",
+            ),
+        ],
+        PKDict(),
+        PKDict(
+            title="Dice Coefficients",
+            x_label="Scores",
+        ),
+    )
+
+
 def _error_rate_report(frame_args, filename, x_label):
     v = numpy.load(str(frame_args.run_dir.join(filename)))
     return _report_info(
@@ -803,10 +802,6 @@ def _extract_analysis_report(run_dir, sim_in):
 def _extract_column(run_dir, idx):
     y = _read_file_column(run_dir, "scaledFile", idx)
     return numpy.arange(0, len(y)), y
-
-
-def _extract_dice_report(run_dir, sim_in):
-    template_common.write_sequential_result(plot_dice(sim_in, run_dir))
 
 
 def _extract_file_column_report(run_dir, sim_in):
