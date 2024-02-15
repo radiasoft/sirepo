@@ -56,6 +56,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 y = f._type
                 if y != "None":
                     cls.update_model_defaults(f, y)
+        if th := dm.openmcAnimation.get("threshold"):
+            dm.openmcAnimation.thresholds[0] = th
+            del dm["openmcAnimation"]["threshold"]
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
