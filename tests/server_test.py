@@ -61,7 +61,7 @@ def _get_file(fc, data, api_name):
     r.assert_http_status(200)
     pkunit.pkre("no-cache", r.header_get("Cache-Control"))
     # 50,000 particles plus header row
-    pkunit.pkeq(50001, len(list(csv.reader(six.StringIO(pkcompat.from_bytes(r.data))))))
+    pkunit.pkeq(50001, len(list(csv.reader(io.StringIO(pkcompat.from_bytes(r.data))))))
 
     r = fc.sr_get(
         api_name,
