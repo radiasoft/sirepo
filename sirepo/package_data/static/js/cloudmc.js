@@ -84,6 +84,9 @@ SIREPO.app.config(() => {
             <select class="form-control" data-ng-model="model[field]" data-ng-options="s.score as s.score for s in (model.tallies | filter:{name:model.tally})[0].scores"></select>
           </div>
         </div>
+        <div data-ng-switch-when="FloatArray" class="col-sm-7">
+            <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
+        </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
         'geometryInput-dagmcFile': '.h5m',
@@ -440,8 +443,15 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         ]);
     };
 
+    self.getMaxWithThreshold = () => {
+        const t = appState.applicationState().openmcAnimation.thresholds[1];
+        return t < self.minField
+             ? self.maxField
+             : t;
+    };
+
     self.getMinWithThreshold = () => {
-        const t = appState.applicationState().openmcAnimation.threshold;
+        const t = appState.applicationState().openmcAnimation.thresholds[0];
         return t > self.maxField
              ? self.minField
              : t;
@@ -808,9 +818,9 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 );
                 const r =  {
                     aspectRatio: ar,
-                    global_max: tallyService.maxField,
+                    global_max: tallyService.getMaxWithThreshold(),
                     global_min: tallyService.getMinWithThreshold(),
-                    threshold: appState.models.openmcAnimation.threshold,
+                    threshold: appState.models.openmcAnimation.thresholds,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
@@ -1281,7 +1291,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             }
 
             function isInFieldThreshold(value) {
-                return value > appState.models.openmcAnimation.threshold;
+                const t = appState.models.openmcAnimation.thresholds;
+                return value < t[1] && value > t[0];
             }
 
             function scoreUnits() {
@@ -2885,7 +2896,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.numSampleSourceParticles',
             'openmcAnimation.score',
             'openmcAnimation.sourceNormalization',
-            'openmcAnimation.threshold',
+            'openmcAnimation.thresholds',
         ], autoUpdate,
         ['openmcAnimation.tally'], validateTally,
         [
