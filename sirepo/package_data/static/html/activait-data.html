@@ -6,16 +6,17 @@
         <div data-basic-editor-panel="" data-view-name="columnChooser">
           <div data-column-selector=""></div>
         </div>
+        <div data-ng-if="data.showImageViewer()" data-basic-editor-panel="" data-view-name="imageViewer">
+          <div data-improved-image-preview-panel="" data-in-image="images-sample" data-countour-image="countours-sample" data-method="improvedImagePreview">
+          </div>
+        </div>
       </div>
+
       <!-- <div class="col-md-10 col-lg-6" data-ng-if="data.showImageViewer()" data-basic-editor-panel="" data-view-name="imageViewer">
         <div data-image-preview-panel="" data-image-class="images-sample" data-method="imagePreview">
         </div>
       </div> -->
     </div>
     <div data-ng-if="data.activaitService.isTextData()" data-column-reports=""></div>
-  </div>
-  <div data-ng-if="data.showImageViewer()" data-basic-editor-panel="" data-view-name="imageViewer">
-    <div data-improved-image-preview-panel="" data-in-image="images-sample" data-countour-image="countours-sample" data-method="improvedImagePreview">
-    </div>
   </div>
 </div>

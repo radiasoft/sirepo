@@ -1155,13 +1155,22 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
         },
         template: `
         <div>
-          <div data-ng-repeat="image in allImages">
+          <div class="row">
+            <div class="col-md-10 col-lg-6">
+              <div class="lead text-center">Images</div>
+            </div>
+            <div class="col-md-10 col-lg-6">
+              <div class="lead text-center">Contours</div>
+            </div>
+          </div>
+
+          <div data-ng-repeat="image in pageImages">
             <div class="row">
               <div class="col-md-10 col-lg-6">
-                <img class="img-responsive i{{ $index + 1 }}" />
+                <img class="img-responsive image{{ $index + 1 }}" />
               </div>
               <div class="col-md-10 col-lg-6">
-                <img class="img-responsive c{{ $index + 1 }}" />
+                <img class="img-responsive contour{{ $index + 1 }}" />
               </div>
             </div>
           </div>
@@ -1173,7 +1182,7 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
               <button class="btn btn-primary" title="previous" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><</button>
             </div>
             <div class="pull-right">
-                page {{ idx + 1 }} of {{ uris.length }}
+                page {{ imageIdx/imagesPerPage + 1 }} of {{ numPages }}
               <button class="btn btn-primary" title="next" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()">></button>
               <button class="btn btn-primary" title="last" data-ng-click="last()">>|</button>
             </div>
@@ -1181,46 +1190,46 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
         </div>
         `,
         controller: function($scope, appState) {
-            const perPage = 3;
             let loading = true;
-            let numPages = 0;
-
-            $scope.allImages = ["1", "2", "3"];
-
+            $scope.numPages = 0;
+            $scope.imagesPerPage = 3;
+            $scope.pageImages = [...Array($scope.imagesPerPage).keys()];
             $scope.uris = null;
             $scope.contours = null;
-            $scope.idx = 0;
+            $scope.imageIdx = 0;
             $scope.dataFileMissing = false;
+
+            const pageIndex = () => {
+                return $scope.imageIdx/$scope.imagesPerPage;
+            }
+
             $scope.canUpdateUri = increment => {
-                return $scope.idx + increment >= 0 && $scope.idx + increment < numPages;
+                return $scope.imageIdx + increment >= 0 && pageIndex() + increment < $scope.numPages;
             };
 
             $scope.first = () => {
-                setIndex($scope.idx = 0);
+                setIndex($scope.imageIdx = 0);
             };
 
             $scope.isLoading = () => loading;
 
             $scope.last = () => {
-                setIndex($scope.idx = $scope.uris.length - 1);
+                setIndex($scope.imageIdx = $scope.uris.length - $scope.imagesPerPage);
             };
 
             $scope.next = () => {
-                // TODO (gurhar1133): paging needs to be fixed
-                setIndex($scope.idx += perPage);
+                setIndex($scope.imageIdx += $scope.imagesPerPage);
             };
 
             $scope.prev = () => {
-                // TODO (gurhar1133): paging needs to be fixed
-                setIndex($scope.idx -= perPage);
+                setIndex($scope.imageIdx -= $scope.imagesPerPage);
             };
 
             function setIndex(index) {
-                if ($('.' + 'i1').length && $scope.uris) {
-                    $scope.allImages.forEach( (v, i) => {
-                        srdbg("v", v);
-                        $('.' + 'i' + v)[0].src = $scope.uris[index + i];
-                        $('.' + 'c' + v)[0].src = $scope.contours[index + i];
+                if ($('.image1').length && $scope.uris) {
+                    $scope.pageImages.forEach( (v) => {
+                        $(`.image${v + 1}`)[0].src = $scope.uris[index + v];
+                        $(`.contour${v + 1}`)[0].src = $scope.contours[index + v];
                     });
                 }
                 if (! $scope.uris) {
@@ -1234,11 +1243,10 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
                 f(
                     appState,
                     response => {
-                        numPages = response.uris.length / perPage;
-                        srdbg(numPages);
+                        $scope.numPages = response.uris.length / $scope.imagesPerPage;
+                        srdbg($scope.numPages);
                         $scope.uris = response.uris;
                         $scope.contours = response.contours;
-                        srdbg("response:", response);
                         if ($scope.uris) {
                             $scope.multiPage = $scope.uris.length > 1;
                             setIndex(0);
