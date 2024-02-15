@@ -420,7 +420,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
     self.colorScale = modelName => {
         return SIREPO.PLOTTING.Utils.colorScale(
             self.getMinWithThreshold(),
-            self.maxField,
+            self.getMaxWithThreshold(),
             SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.applicationState()[modelName].colorMap],
         );
     };
