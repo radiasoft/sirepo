@@ -109,7 +109,7 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user", filename="SimFileName")
     async def api_downloadFile(self, simulation_type, simulation_id, filename):
-        """DEPRECATED: Use downloadLibFile"""
+        """Deprecated use `api_downloadLibFile`"""
         return await self.api_downloadLibFile(simulation_type, filename)
 
     @sirepo.quest.Spec("require_user", filename="SimFileName")

@@ -75,6 +75,7 @@ class API(sirepo.quest.API):
     async def api_downloadDataFile(
         self, simulation_type, simulation_id, model, frame, suffix=None
     ):
+        """Deprecated use `api_downloadRunFile`"""
         return await self.api_downloadRunFile(
             simulation_type, simulation_id, model, frame, suffix=suffix
         )
