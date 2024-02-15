@@ -86,6 +86,7 @@ SIREPO.app.config(() => {
         </div>
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
+            <div class="sr-input-warning"></div>
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
@@ -2842,10 +2843,13 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
     };
 });
 
-SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, $scope) {
+SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $scope) {
 
     const autoUpdate = utilities.debounce(() => {
-        appState.saveChanges('openmcAnimation');
+        srdbg($scope.formController.$valid);
+        if ($scope.formController.$valid) {
+            appState.saveChanges('openmcAnimation');
+        }
     }, SIREPO.debounce_timeout);
 
     function showFields() {
@@ -2861,6 +2865,8 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
         panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);
         panelState.showField('openmcAnimation', 'sourceColorMap', showSources && appState.models.openmcAnimation.numSampleSourceParticles);
+
+        validateThresholds();
     }
 
     function updateEnergyRange() {
@@ -2882,6 +2888,18 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         appState.saveChanges('openmcAnimation');
     }
 
+    function validateThresholds() {
+        const t = appState.models.openmcAnimation.thresholds;
+        const v = validationService.validateField(
+            'openmcAnimation',
+            'thresholds',
+            'input',
+            t[0] < t[1],
+            'Lower limit must be less than upper limit'
+        );
+        autoUpdate();
+    }
+
     cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
 
     $scope.whenSelected = () => {
@@ -2896,8 +2914,8 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.numSampleSourceParticles',
             'openmcAnimation.score',
             'openmcAnimation.sourceNormalization',
-            'openmcAnimation.thresholds',
         ], autoUpdate,
+        ['openmcAnimation.thresholds'], validateThresholds,
         ['openmcAnimation.tally'], validateTally,
         [
             'tallyReport.selectedGeometry',
