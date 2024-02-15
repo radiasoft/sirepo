@@ -1217,7 +1217,7 @@ class _ImagePreview:
             return self._by_indices(
                 self.data.args.method, self.data.args.columnInfo.shape[i][1:]
             )
-        return self.file[self.io.input.path], o, None
+        return self.file[self.io.input.path], o, numpy.array([])
 
     def _grid(self, x):
         if _image_out(self.info):
@@ -1298,7 +1298,7 @@ class _ImagePreview:
             x, y, o = self._x_y()
             u = []
             k = 0
-            predictions = []
+            originals = []
             if self.data.args.method in ["improvedImagePreview", "segmentViewer"]:
                 c = []
                 for i in range(15):
@@ -1316,15 +1316,22 @@ class _ImagePreview:
                     self.currentImage = y[i]
                     self._gen_image()
                     c.append(self._pyplot_data_url())
-                    if o != None:
+
+                    pkdp("\n\n\n o={}", o)
+                    if o.size != 0:
                         self.currentImage = o[i]
                         self._gen_image()
-                        predictions.append(self._pyplot_data_url())
+                        originals.append(self._pyplot_data_url())
 
+                if originals:
+                    return PKDict(
+                        # numPages=15,
+                        pred=c,
+                        x=originals,
+                        contours=u,
+                    )
                 return PKDict(
-                    # numPages=15,
-                    preds=predictions,
-                    uris=u,
+                    x=u,
                     contours=c,
                 )
             else:
