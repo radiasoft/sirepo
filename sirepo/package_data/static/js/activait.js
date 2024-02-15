@@ -1160,7 +1160,7 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
             <div class="col-md-4">
               <div class="lead text-center">Contour</div>
             </div>
-            <div data-ng-if="method == 'segmentViewer'" class="col-md-4">
+            <div data-ng-if="thirdColumn()" class="col-md-4">
               <div class="lead text-center">Predicted</div>
             </div>
           </div>
@@ -1168,24 +1168,24 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
           <div data-ng-repeat="image in pageImages">
             <div class="row">
               <div class="col-md-4">
-                <img class="img-responsive x{{ $index + 1 }}" />
+                <img class="img-responsive x{{method}}{{$index + 1 }}" />
               </div>
               <div class="col-md-4">
-                <img class="img-responsive y{{ $index + 1 }}" />
+                <img class="img-responsive y{{method}}{{$index + 1 }}" />
               </div>
-              <div data-ng-if="method == 'segmentViewer'" class="col-md-4">
-                <img class="img-responsive pred{{ $index + 1 }}" />
+              <div data-ng-if="thirdColumn()" class="col-md-4">
+                <img class="img-responsive pred{{method}}{{$index + 1 }}" />
               </div>
             </div>
           </div>
           <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
           <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
           <div data-ng-if="! isLoading() && multiPage">
-            <div class="pull-left">
+            <div data-ng-if="numPages > 3" class="pull-left">
               <button class="btn btn-primary" title="first" data-ng-click="first()">|<</button>
               <button class="btn btn-primary" title="previous" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><</button>
             </div>
-            <div class="pull-right">
+            <div data-ng-if="numPages > 3" class="pull-right">
                 page {{ imageIdx/imagesPerPage + 1 }} of {{ numPages }}
               <button class="btn btn-primary" title="next" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()">></button>
               <button class="btn btn-primary" title="last" data-ng-click="last()">>|</button>
@@ -1206,6 +1206,10 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
 
             const pageIndex = () => {
                 return $scope.imageIdx/$scope.imagesPerPage;
+            }
+
+            $scope.thirdColumn = () => {
+               return $scope.method == 'segmentViewer' || $scope.method == 'bestLosses' || $scope.method == 'worstLosses';
             }
 
             $scope.canUpdateUri = increment => {
@@ -1231,12 +1235,12 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
             };
 
             function setIndex(index) {
-                if ($('.x1').length && $scope.x) {
+                if ($(`.x${$scope.method}1`).length && $scope.x) {
                     $scope.pageImages.forEach( (v) => {
-                        $(`.x${v + 1}`)[0].src = $scope.x[index + v];
-                        $(`.y${v + 1}`)[0].src = $scope.y[index + v];
+                        $(`.x${$scope.method}${v + 1}`)[0].src = $scope.x[index + v];
+                        $(`.y${$scope.method}${v + 1}`)[0].src = $scope.y[index + v];
                         if ($scope.pred.length) {
-                            $(`.pred${v + 1}`)[0].src = $scope.pred[index + v];
+                            $(`.pred${$scope.method}${v + 1}`)[0].src = $scope.pred[index + v];
                         }
                     });
                 }
@@ -1251,10 +1255,10 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
                 f(
                     appState,
                     response => {
+                        srdbg('response for method=', $scope.method, response);
                         $scope.numPages = response.x.length / $scope.imagesPerPage;
-                        srdbg(response);
                         $scope.x = response.x;
-                        $scope.y = response.contours;
+                        $scope.y = response.y;
                         $scope.pred = response.pred || [];
                         if ($scope.x) {
                             $scope.multiPage = $scope.x.length > 1;
