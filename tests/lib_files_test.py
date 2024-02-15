@@ -255,7 +255,6 @@ def _get_file(fc, api_name):
         redirect=False,
     )
     pkre("/tif", r.mimetype)
-    f = s.lib_file_resource_path("sample.tif")
     r = fc.sr_post_form(
         "uploadFile",
         params=PKDict(
@@ -264,7 +263,7 @@ def _get_file(fc, api_name):
             file_type="sample",
         ),
         data=PKDict(confirm="1"),
-        file=f,
+        file=s.lib_file_resource_path("sample.tif"),
     )
     pkeq("sample.tif", r.filename)
     pkeq("sample", r.fileType)
