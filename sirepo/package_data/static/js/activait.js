@@ -1150,17 +1150,15 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
         restrict: 'A',
         scope: {
             method: '@',
-            // inImage: '@',
-            // countourImage: '@',
         },
         template: `
         <div>
           <div class="row">
             <div class="col-md-10 col-lg-6">
-              <div class="lead text-center">Images</div>
+              <div class="lead text-center">Image</div>
             </div>
             <div class="col-md-10 col-lg-6">
-              <div class="lead text-center">Contours</div>
+              <div class="lead text-center">Original Contour</div>
             </div>
           </div>
 
