@@ -2846,11 +2846,12 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $scope) {
 
     const autoUpdate = utilities.debounce(() => {
-        srdbg($scope.formController.$valid);
-        if ($scope.formController.$valid) {
+        if (formValid) {
             appState.saveChanges('openmcAnimation');
         }
     }, SIREPO.debounce_timeout);
+
+    let formValid = true;
 
     function showFields() {
         const is2D = appState.models.tallyReport.selectedGeometry === '2D';
@@ -2890,7 +2891,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
 
     function validateThresholds() {
         const t = appState.models.openmcAnimation.thresholds;
-        const v = validationService.validateField(
+        formValid = validationService.validateField(
             'openmcAnimation',
             'thresholds',
             'input',

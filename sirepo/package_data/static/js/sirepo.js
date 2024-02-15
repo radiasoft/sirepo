@@ -70,7 +70,6 @@ SIREPO.viewLogic = function(name, init) {
             link: function(scope, element) {
                 if (scope.whenSelected) {
                     scope.$parent.$on('sr-tabSelected', function(event, modelName, modelKey) {
-                        scope.formController = angular.element($(element).prevAll('form').eq(0)).controller('form');
                         if (scope.modelData) {
                             if (scope.modelData.modelKey == modelKey) {
                                 scope.whenSelected();
