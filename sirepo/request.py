@@ -31,7 +31,7 @@ def init_quest(qcall, internal_req=None):
         else:
             raise AssertionError(f"unknown internal_req={type(internal_req)}")
 
-    _class().init_quest(qcall, internal_req)
+    _class().init_quest(qcall, internal_req=internal_req)
 
 
 class _FormFileBase(PKDict):
@@ -135,7 +135,7 @@ class _SRequestBase(sirepo.quest.Attr):
 class _SRequestCLI(_SRequestBase):
     @classmethod
     def init_quest(cls, qcall, internal_req):
-        return cls(qcall, internal_req).pkupdate(
+        return cls(qcall, internal_req=internal_req).pkupdate(
             cookie_state=None,
             http_authorization=None,
             http_headers=PKDict(),
@@ -176,7 +176,7 @@ class _SRequestHTTP(_SRequestBase):
             )
 
         r = internal_req.request
-        return cls(qcall, internal_req).pkupdate(
+        return cls(qcall, internal_req=internal_req).pkupdate(
             # Property that extracts the body so defer until use
             _body_as_bytes=lambda: r.body,
             cookie_state=r.headers.get("Cookie"),
@@ -287,7 +287,7 @@ class _SRequestWebSocket(_SRequestBase):
     @classmethod
     def init_quest(cls, qcall, internal_req):
         b = internal_req.get("body_as_dict")
-        return cls(qcall, internal_req).pkupdate(
+        return cls(qcall, internal_req=internal_req).pkupdate(
             _body_as_dict=b,
             # This is not use except in api_errorLogging, which shouldn't happen much
             cookie_state=internal_req.handler.cookie_state,

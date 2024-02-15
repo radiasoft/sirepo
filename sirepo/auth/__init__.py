@@ -92,7 +92,7 @@ def init_quest(qcall, internal_req=None):
         and internal_req
         or qcall.bucket_unchecked_get("in_pkcli")
     ):
-        sirepo.request.init_quest(qcall, internal_req)
+        sirepo.request.init_quest(qcall, internal_req=internal_req)
         sirepo.reply.init_quest(qcall)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.

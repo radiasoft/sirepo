@@ -189,9 +189,9 @@ class _Cookie(sirepo.quest.Attr):
                 )
                 if m:
                     s = self._decrypt(m.group(1))
-                    self._values, self._modified = qcall.auth.cookie_cleaner(
-                        self._deserialize(s)
-                    )
+                    self._values, m = qcall.auth.cookie_cleaner(self._deserialize(s))
+                    if m:
+                        self._modified = True
                     return True
             except Exception as e:
                 if "crypto" in type(e).__module__:
