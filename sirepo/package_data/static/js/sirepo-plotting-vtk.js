@@ -2083,7 +2083,7 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
                         }
                         : null,
                     requestSender.formatUrl(
-                        'uploadFile',
+                        'uploadLibFile',
                         {
                             '<simulation_id>': simId,
                             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,

@@ -1097,7 +1097,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                         f,
                         null,
                         requestSender.formatUrl(
-                            'uploadFile',
+                            'uploadLibFile',
                             {
                                 '<simulation_id>': $scope.id,
                                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,

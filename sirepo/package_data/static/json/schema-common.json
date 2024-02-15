@@ -174,7 +174,8 @@
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
-        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
+        "uploadLibFile": "/upload-lib-file/<simulation_type>/<simulation_id>/<file_type>"
     },
     "common": {
         "adm": {

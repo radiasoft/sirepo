@@ -380,7 +380,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             inputFile,
             {},
             requestSender.formatUrl(
-                'uploadFile',
+                'uploadLibFile',
                 {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,

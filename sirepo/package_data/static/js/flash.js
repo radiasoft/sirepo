@@ -884,7 +884,7 @@ SIREPO.app.directive('archiveFileList', function() {
                     $scope.inputFile,
                     null,
                     requestSender.formatUrl(
-                        'uploadFile',
+                        'uploadLibFile',
                         {
                             '<simulation_id>': appState.models.simulation.simulationId,
                             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,

@@ -1308,7 +1308,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         }
                         : null,
                     requestSender.formatUrl(
-                        'uploadFile',
+                        'uploadLibFile',
                         {
                             simulation_id: appState.models.simulation.simulationId,
                             simulation_type: SIREPO.APP_SCHEMA.simulationType,
@@ -2799,7 +2799,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
                         info.file,
                         null,
                         requestSender.formatUrl(
-                            'uploadFile',
+                            'uploadLibFile',
                             {
                                 // dummy id because no simulation id is available or required
                                 simulation_id: SIREPO.nonSimulationId,

@@ -591,6 +591,17 @@ class API(sirepo.quest.API):
         confirm="Bool optional",
     )
     async def api_uploadFile(self, simulation_type, simulation_id, file_type):
+        """Deprecated use `api_uploadLibFile`"""
+        return await self.api_uploadLibFile(simulation_type, simulation_id, file_type)
+
+    @sirepo.quest.Spec(
+        "require_user",
+        file="LibFile",
+        file_type="LibFileType",
+        simulation_id="SimId",
+        confirm="Bool optional",
+    )
+    async def api_uploadLibFile(self, simulation_type, simulation_id, file_type):
         f = self.sreq.form_file_get()
         req = self.parse_params(
             file_type=file_type,
@@ -633,6 +644,7 @@ class API(sirepo.quest.API):
                 "simulationId": req.id,
             }
         )
+
 
     def _render_root_page(self, page, values):
         values.update(

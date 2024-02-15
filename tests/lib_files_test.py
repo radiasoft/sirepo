@@ -16,7 +16,7 @@ def test_elegant_upload_sdds(fc):
 
     d = fc.sr_sim_data("Compact Storage Ring")
     r = fc.sr_post_form(
-        "uploadFile",
+        "uploadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id=d.models.simulation.simulationId,
@@ -72,7 +72,7 @@ def test_srw_delete(fc):
     )
     pkunit.pkeq(u.basename, r.models.tabulatedUndulator.magneticFile)
     r = fc.sr_post_form(
-        "uploadFile",
+        "uploadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id=d.models.simulation.simulationId,
@@ -129,7 +129,7 @@ def test_srw_upload(fc):
     f = s.lib_file_resource_path("mirror_1d.dat")
     t = "mirror"
     r = fc.sr_post_form(
-        "uploadFile",
+        "uploadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id=d.models.simulation.simulationId,
@@ -140,7 +140,7 @@ def test_srw_upload(fc):
     )
     pkunit.pkre("in use in other", r.get("error", ""))
     r = fc.sr_post_form(
-        "uploadFile",
+        "uploadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id=d.models.simulation.simulationId,
@@ -152,7 +152,7 @@ def test_srw_upload(fc):
     e = r.get("error", "")
     pkunit.pkok(not e, "unexpected error={}", e)
     r = fc.sr_post_form(
-        "uploadFile",
+        "uploadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id=d.models.simulation.simulationId,
@@ -195,7 +195,7 @@ def test_warpvnd_import(fc):
     s = sim_data.get_class(fc.sr_sim_type)
     d = fc.sr_post("newSimulation", d)
     r = fc.sr_post_form(
-        "uploadFile",
+        "uploadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id=d.models.simulation.simulationId,
@@ -235,7 +235,7 @@ def _get_file(fc, api_name):
     )
     pkre("/tif", r.mimetype)
     r = fc.sr_post_form(
-        "uploadFile",
+        "uploadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id=d.models.simulation.simulationId,
