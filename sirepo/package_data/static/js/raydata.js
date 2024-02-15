@@ -510,9 +510,11 @@ SIREPO.app.directive('scansTable', function() {
                   </tbody>
                 </table>
                 <div style="height: 40px; position: relative;">
+                  <button ng-show="isLoadingNewScans" class="btn btn-info btn-xs" type="button" data-ng-click="doCancel()">Cancel Search</button>
                   <span data-loading-spinner data-sentinel="!isLoadingNewScans">
                   <div ng-show="isRefreshingScans && ! isLoadingNewScans">Checking for new scans</div>
                   <div ng-show="noScansReturned">No scans found</div>
+                  <div ng-show="cancelledSearch">Search cancelled</div>
                   <div ng-show="searchError"><span class="bg-warning">{{ searchError }}</span></div>
                 </div>
               </div>
@@ -523,6 +525,7 @@ SIREPO.app.directive('scansTable', function() {
         `,
         controller: function(appState, columnsService, errorService, panelState, raydataService, requestSender, scanService, simulationQueue, $scope, $interval, $timeout) {
             $scope.analysisScanId = null;
+            $scope.cancelledSearch = false;
             $scope.columnsService = columnsService;
             $scope.confirmScanId = null;
             $scope.isLoadingNewScans = false;
@@ -627,9 +630,8 @@ SIREPO.app.directive('scansTable', function() {
                     scanArgs.pageNumber = 0;
                 }
                 const m = appState.applicationState()[$scope.modelName];
-
                 function doRequest() {
-
+                    $scope.cancelledSearch = false;
                     $scope.searchError = validateSearchFields();
                     if ($scope.searchError) {
                         $scope.isLoadingNewScans = false;
@@ -642,7 +644,6 @@ SIREPO.app.directive('scansTable', function() {
                     $scope.isRefreshingScans = true;
                     $scope.noScansReturned = false;
                     const expectedOutputIndex = scanOutputIndex;
-
 
                     appState.applicationState().scansReport = {
                         ...appState.applicationState().scansReport,
@@ -667,41 +668,9 @@ SIREPO.app.directive('scansTable', function() {
                                 return;
                             }
                             currentRequestItem = null;
-                            srdbg(json);
                             loadScans(scanService.setCachedScans($scope.analysisStatus, json.data));
-                            srdbg("3333333");
                         }
                     );
-
-                    /* requestSender.sendStatelessCompute(
-                     *     appState,
-                     *     json => {
-                     *         if (expectedOutputIndex != scanOutputIndex) {
-                     *             return;
-                     *         }
-                     *         loadScans(scanService.setCachedScans($scope.analysisStatus, json.data));
-                     *     },
-                     *     {
-                     *         method: 'scans',
-                     *         args: {
-                     *             analysisStatus: $scope.analysisStatus,
-                     *             catalogName: appState.applicationState().catalog.catalogName,
-                     *             searchStartTime: m.searchStartTime,
-                     *             searchStopTime: m.searchStopTime,
-                     *             selectedColumns: appState.applicationState().metadataColumns.selected,
-                     *             pageSize: m.pageSize,
-                     *             pageNumber: scanArgs.pageNumber,
-                     *             searchText: m.searchText,
-                     *             searchTerms: buildSearchTerms(m.searchTerms),
-                     *             sortColumn: scanArgs.sortColumn,
-                     *             sortOrder: scanArgs.sortOrder,
-                     *         }
-                     *     },
-                     *     errorOptions
-                     * );*/
-
-
-
                 }
 
                 cancelRequestInterval();
@@ -777,6 +746,22 @@ SIREPO.app.directive('scansTable', function() {
                     return true;
                 }
                 return raydataService.ANALYSIS_STATUS_NON_STOPPED.includes(scan.status);
+            };
+
+            $scope.doCancel = () => {
+                if (currentRequestItem) {
+                    simulationQueue.cancelItem(currentRequestItem);
+                    currentRequestItem = null;
+                    cancelRequestInterval();
+                    $scope.isLoadingNewScans = false;
+                    $scope.isRefreshingScans = false;
+                    $scope.noScansReturned = false;
+                    $scope.cancelledSearch = true;
+                    $scope.pdfSelectedScans = [];
+                    scanArgs.pageCount = 0;
+                    scanArgs.pageNumber = 0;
+                    updatePageLocation();
+                }
             };
 
             $scope.downloadSelectedAnalyses = () => {
