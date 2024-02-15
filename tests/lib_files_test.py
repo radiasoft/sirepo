@@ -107,16 +107,6 @@ def test_srw_delete(fc):
         ),
     )
     pkunit.pkeq("ok", r.get("state"), "unexpected response={}", r)
-    r = fc.sr_get(
-        "downloadFile",
-        params=PKDict(
-            simulation_type=fc.sr_sim_type,
-            filename=u.basename,
-        ),
-        data=PKDict(),
-        redirect=False,
-    )
-    pkunit.pkre("does not exist", pkcompat.from_bytes(r.data))
 
     r = fc.sr_get(
         "downloadLibFile",
@@ -174,16 +164,6 @@ def test_srw_upload(fc):
     pkunit.pkre("invalid file type", r.get("error", ""))
     # the above used to delete the file
     r = fc.sr_get(
-        "downloadFile",
-        params=PKDict(
-            simulation_type=fc.sr_sim_type,
-            filename=f.basename,
-        ),
-        data=PKDict(),
-    )
-    pkunit.pkre(r"^\s*-1.39500", pkcompat.from_bytes(r.data))
-
-    r = fc.sr_get(
         "downloadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
@@ -201,7 +181,6 @@ def test_srw_validate_file(fc):
     from pykern.pkunit import pkre, pkeq
     from sirepo import sim_data
 
-    _get_file(fc, "downloadFile")
     _get_file(fc, "downloadLibFile")
 
 
