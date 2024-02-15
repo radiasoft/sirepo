@@ -83,7 +83,7 @@ def test_srw_delete(fc):
     )
     pkunit.pkeq(u.basename, r.get("filename"), "unexpected response={}", r)
     r = fc.sr_post(
-        "deleteFile",
+        "deleteLibFile",
         PKDict(
             fileType=t,
             filename=u.basename,
@@ -99,7 +99,7 @@ def test_srw_delete(fc):
         ),
     )
     r = fc.sr_post(
-        "deleteFile",
+        "deleteLibFile",
         PKDict(
             fileType=t,
             filename=u.basename,

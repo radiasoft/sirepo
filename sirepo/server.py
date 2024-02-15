@@ -85,6 +85,11 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user", filename="SimFileName", file_type="SimFileType")
     async def api_deleteFile(self):
+        """Deprecated use `api_deleteLibFile`"""
+        return await self.api_deleteLibFile()
+
+    @sirepo.quest.Spec("require_user", filename="SimFileName", file_type="SimFileType")
+    async def api_deleteLibFile(self):
         req = self.parse_post(filename=True, file_type=True)
         e = _simulations_using_file(req)
         if len(e):

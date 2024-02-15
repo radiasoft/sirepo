@@ -1040,7 +1040,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                 if (! $scope.isDeletingFile) {
                     $scope.isDeletingFile = true;
                     requestSender.sendRequest(
-                        'deleteFile',
+                        'deleteLibFile',
                         function(data) {
                             $scope.isDeletingFile = false;
                             if (data.error) {
