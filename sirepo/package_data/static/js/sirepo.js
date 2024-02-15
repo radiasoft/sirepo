@@ -2489,9 +2489,9 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
     };
 
-    self.downloadDataFileUrl = (appState, params) => {
+    self.downloadRunFileUrl = (appState, params) => {
         return self.formatUrl(
-            'downloadDataFile',
+            'downloadRunFile',
             {
                 simulation_id: appState.models.simulation.simulationId,
                 simulation_type: SIREPO.APP_SCHEMA.simulationType,
@@ -2670,13 +2670,13 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         sendWithSimulationFields('analysisJob', appState, callback, data);
     };
 
-    self.sendDownloadDataFile = (appState, routeParams, successCb, errorCb) => {
+    self.sendDownloadRunFile = (appState, routeParams, successCb, errorCb) => {
         // When other types are requested, we can add them, e.g. blob or txt.
         if (routeParams.suffix !== "json") {
             throw new Error("invalid downloadDataFile suffix=" + (routeParams.suffix || ""));
         }
         self.sendRequest(
-            self.downloadDataFileUrl(appState, routeParams),
+            self.downloadRunFileUrl(appState, routeParams),
             successCb,
             routeParams.suffix === "json" ? {responseType: "json"} : {},
             errorCb || (reply => {throw new Error(reply.error);})

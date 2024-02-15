@@ -281,7 +281,7 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
         if (! appState.isLoaded()) {
             return '';
         }
-        return requestSender.formatUrl('downloadDataFile', {
+        return requestSender.formatUrl('downloadRunFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             '<model>': model,
@@ -1458,7 +1458,7 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
                 if (! m) {
                     return '';
                 }
-                return requestSender.formatUrl('downloadDataFile', {
+                return requestSender.formatUrl('downloadRunFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<model>': m,

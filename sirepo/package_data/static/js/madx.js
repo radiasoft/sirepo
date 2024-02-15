@@ -292,7 +292,7 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
         return self.errorMessage;
     };
     self.simState.logFileURL = function() {
-        return requestSender.formatUrl('downloadDataFile', {
+        return requestSender.formatUrl('downloadRunFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             '<model>': self.simState.model,

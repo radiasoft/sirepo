@@ -11,10 +11,6 @@ import re
 import time
 
 
-def test_elegant_data_file(fc):
-    _get_file(fc, _run_elegant(fc), "downloadDataFile")
-
-
 def test_elegant_run_file(fc):
     _get_file(fc, _run_elegant(fc), "downloadRunFile")
 

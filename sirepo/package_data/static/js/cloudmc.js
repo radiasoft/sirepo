@@ -334,7 +334,7 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         self.simState.saveAndRunSimulation('openmcAnimation');
     };
     self.simState.logFileURL = function() {
-        return requestSender.downloadDataFileUrl(
+        return requestSender.downloadRunFileUrl(
             appState,
             {
                 model: self.simState.model,
@@ -578,7 +578,7 @@ SIREPO.app.factory('volumeLoadingService', function(appState, requestSender, $ro
     }
 
     function volumeURL(volId) {
-        return requestSender.downloadDataFileUrl(
+        return requestSender.downloadRunFileUrl(
             appState,
             {
                 model: 'dagmcAnimation',

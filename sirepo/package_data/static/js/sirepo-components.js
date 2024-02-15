@@ -2272,7 +2272,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                     if (suffix) {
                         params.suffix = suffix;
                     }
-                    return requestSender.formatUrl('downloadDataFile', params);
+                    return requestSender.formatUrl('downloadRunFile', params);
                 }
                 return '';
             };
