@@ -1130,7 +1130,7 @@ class _ImagePreview:
     def _original_images(self, method):
         if method == "segmentViewer" and not _param_to_image(self.info):
             return _read_file(self.run_dir, _OUTPUT_FILE.originalImageInFile)
-        return None
+        return numpy.array([])
 
     def _pyplot_data_url(self):
         import matplotlib.pyplot as plt
@@ -1199,7 +1199,7 @@ class _ImagePreview:
         x = x[i]
         y = y[i]
         if _param_to_image(self.info):
-            return x, y, None
+            return x, y, numpy.array([])
         return (
             x,
             y,
@@ -1307,7 +1307,7 @@ class _ImagePreview:
                     # self.original = o[i] if o is not None else None
                     self.currentImage = x[i]
                     if self.io.input.kind == "f":
-                        self.input = self.input.astype(float)
+                        self.currentImage = self.currentImage.astype(float)
 
 
                     self._gen_image()
