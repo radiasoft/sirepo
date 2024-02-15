@@ -1320,7 +1320,7 @@ class _ImagePreview:
                 return PKDict(
                     # numPages=15,
                     uris=u,
-                    countours=c,
+                    contours=c,
                 )
             else:
                 g = (
