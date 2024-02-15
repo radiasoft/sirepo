@@ -521,7 +521,7 @@ SIREPO.app.directive('scansTable', function() {
             <div data-log-modal="" data-scan-id="runLogScanId" data-analysis-status="{{ analysisStatus }}"></div>
             <div data-confirm-analysis-modal="" data-scan-id="confirmScanId" data-ok-clicked="runAnalysis(confirmScanId, true)"></div>
         `,
-        controller: function(appState, columnsService, errorService, panelState, raydataService, requestSender, scanService, simulationQueue, $scope, $interval) {
+        controller: function(appState, columnsService, errorService, panelState, raydataService, requestSender, scanService, simulationQueue, $scope, $interval, $timeout) {
             $scope.analysisScanId = null;
             $scope.columnsService = columnsService;
             $scope.confirmScanId = null;
@@ -706,7 +706,8 @@ SIREPO.app.directive('scansTable', function() {
 
                 cancelRequestInterval();
                 // Send once and then will happen on $interval
-                doRequest();
+                //TODO(pjm): for now need to call request after the pending save changes to avoid cancel
+                $timeout(doRequest, 100);
                 scanRequestInterval = $interval(doRequest, 5000);
             }
 
