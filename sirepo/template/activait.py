@@ -1244,7 +1244,7 @@ class _ImagePreview:
     def _gen_image(self):
         import matplotlib.pyplot as plt
 
-        if self.data.args.method == "improvedImagePreview":
+        if self.data.args.method in ["improvedImagePreview", "segmentViewer"]:
             plt.xticks([])
             plt.yticks([])
             plt.imshow(self.currentImage)
@@ -1298,8 +1298,8 @@ class _ImagePreview:
             x, y, o = self._x_y()
             u = []
             k = 0
-
-            if self.data.args.method == "improvedImagePreview":
+            predictions = []
+            if self.data.args.method in ["improvedImagePreview", "segmentViewer"]:
                 c = []
                 for i in range(15):
 
@@ -1316,9 +1316,14 @@ class _ImagePreview:
                     self.currentImage = y[i]
                     self._gen_image()
                     c.append(self._pyplot_data_url())
+                    if o != None:
+                        self.currentImage = o[i]
+                        self._gen_image()
+                        predictions.append(self._pyplot_data_url())
 
                 return PKDict(
                     # numPages=15,
+                    preds=predictions,
                     uris=u,
                     contours=c,
                 )

@@ -1160,6 +1160,9 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
             <div class="col-md-10 col-lg-6">
               <div class="lead text-center">Original Contour</div>
             </div>
+            <div data-ng-if="predictions.length" class="col-md-10 col-lg-6">
+              <div class="lead text-center">Predicted Contour</div>
+            </div>
           </div>
 
           <div data-ng-repeat="image in pageImages">
@@ -1169,6 +1172,9 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
               </div>
               <div class="col-md-10 col-lg-6">
                 <img class="img-responsive contour{{ $index + 1 }}" />
+              </div>
+              <div data-ng-if="predictions.length" class="col-md-10 col-lg-6">
+                <img class="img-responsive prediction{{ $index + 1 }}" />
               </div>
             </div>
           </div>
@@ -1194,6 +1200,7 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
             $scope.pageImages = [...Array($scope.imagesPerPage).keys()];
             $scope.uris = null;
             $scope.contours = null;
+            $scope.predictions = null;
             $scope.imageIdx = 0;
             $scope.dataFileMissing = false;
 
@@ -1228,6 +1235,9 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
                     $scope.pageImages.forEach( (v) => {
                         $(`.image${v + 1}`)[0].src = $scope.uris[index + v];
                         $(`.contour${v + 1}`)[0].src = $scope.contours[index + v];
+                        if ($scope.predictions.length) {
+                            $(`.prediction${v + 1}`)[0].src = $scope.contours[index + v];
+                        }
                     });
                 }
                 if (! $scope.uris) {
@@ -1242,9 +1252,10 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
                     appState,
                     response => {
                         $scope.numPages = response.uris.length / $scope.imagesPerPage;
-                        srdbg($scope.numPages);
+                        srdbg(response);
                         $scope.uris = response.uris;
                         $scope.contours = response.contours;
+                        $scope.predictions = response.preds
                         if ($scope.uris) {
                             $scope.multiPage = $scope.uris.length > 1;
                             setIndex(0);
