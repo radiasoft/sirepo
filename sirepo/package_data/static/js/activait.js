@@ -1153,15 +1153,15 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
         },
         template: `
         <div>
-          <div class="row">
+          <div data-ng-if="x" class="row">
             <div class="col-md-4">
-              <div class="lead text-center">Image</div>
+              <div class="lead text-center">{{ xCol }}</div>
             </div>
             <div class="col-md-4">
-              <div class="lead text-center">Contour</div>
+              <div class="lead text-center">{{ yCol }}</div>
             </div>
-            <div data-ng-if="thirdColumn()" class="col-md-4">
-              <div class="lead text-center">Predicted</div>
+            <div data-ng-if="thirdColumn" class="col-md-4">
+              <div class="lead text-center">{{ predCol }}</div>
             </div>
           </div>
 
@@ -1173,7 +1173,7 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
               <div class="col-md-4">
                 <img class="img-responsive y{{method}}{{$index + 1 }}" />
               </div>
-              <div data-ng-if="thirdColumn()" class="col-md-4">
+              <div data-ng-if="thirdColumn" class="col-md-4">
                 <img class="img-responsive pred{{method}}{{$index + 1 }}" />
               </div>
             </div>
@@ -1201,16 +1201,23 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
             $scope.x = null;
             $scope.y = null;
             $scope.pred = null;
+            $scope.xCol = "Image";
+            $scope.yCol = "Contour";
+            $scope.predCol = "Predicted";
             $scope.imageIdx = 0;
             $scope.dataFileMissing = false;
+            $scope.thirdColumn = true;
+
 
             const pageIndex = () => {
                 return $scope.imageIdx/$scope.imagesPerPage;
             }
 
-            $scope.thirdColumn = () => {
-               return $scope.method == 'segmentViewer' || $scope.method == 'bestLosses' || $scope.method == 'worstLosses';
+            const setThirdColumn = () => {
+                $scope.thirdColumn = $scope.pred != null;
             }
+
+            // $scope.thirdColumn = setThirdColumn();
 
             $scope.canUpdateUri = increment => {
                 return $scope.imageIdx + increment >= 0 && pageIndex() + increment < $scope.numPages;
@@ -1239,7 +1246,9 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
                     $scope.pageImages.forEach( (v) => {
                         $(`.x${$scope.method}${v + 1}`)[0].src = $scope.x[index + v];
                         $(`.y${$scope.method}${v + 1}`)[0].src = $scope.y[index + v];
-                        if ($scope.pred.length) {
+                        setThirdColumn();
+                        if ($(`.pred${$scope.method}1`).length && $scope.pred != null) {
+                            srdbg('$(`.pred${$scope.method}${v + 1}`)', $(`.pred${$scope.method}${v + 1}`));
                             $(`.pred${$scope.method}${v + 1}`)[0].src = $scope.pred[index + v];
                         }
                     });
@@ -1259,7 +1268,7 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
                         $scope.numPages = response.x.length / $scope.imagesPerPage;
                         $scope.x = response.x;
                         $scope.y = response.y;
-                        $scope.pred = response.pred || [];
+                        $scope.pred = response.pred || null;
                         if ($scope.x) {
                             $scope.multiPage = $scope.x.length > 1;
                             setIndex(0);

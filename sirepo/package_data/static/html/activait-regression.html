@@ -42,18 +42,9 @@
     </div>
     <div class="col-md-6 col-xxl-4" data-ng-repeat="(index, obj) in [['bestLosses', 'best-losses'], ['worstLosses', 'worst-losses']]" data-ng-if="regression.imageToImage()">
 
-      <!-- <div data-basic-editor-panel="" data-view-name="segmentViewer">
-        <div data-improved-image-preview-panel="" data-method="segmentViewer"></div>
-      </div>
-       -->
-      <!-- <div data-basic-editor-panel="" data-view-name="{{ obj[0] }}">
-        <div data-image-preview-panel="" data-image-class="{{ obj[1] }}" data-method="{{ obj[0] }}"></div>
-      </div> -->
-
       <div data-basic-editor-panel="" data-view-name="{{ obj[0] }}">
         <div data-improved-image-preview-panel="" data-method="{{ obj[0] }}"></div>
       </div>
-
 
     </div>
     <div data-ng-repeat="report in regression.reports track by report.columnNumber">
