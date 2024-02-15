@@ -650,7 +650,6 @@ class API(sirepo.quest.API):
             }
         )
 
-
     def _render_root_page(self, page, values):
         values.update(
             PKDict(
