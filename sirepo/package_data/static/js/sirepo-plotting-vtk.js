@@ -310,6 +310,59 @@ class RacetrackViews extends ExtrudedPolyViews {
     }
 }
 
+class SphereViews extends ObjectViews {
+    constructor(
+        id,
+        name,
+        center=[0, 0, 0],
+        radius=1.0,
+        numSides=8,
+        scale=1.0
+    ) {
+        super(id, name, center, [2 * radius, 2 * radius, 2 * radius], scale);
+        this.center = center;
+        this.numSides = numSides;
+        this.radius = radius;
+        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+            this.addView(dim, new SIREPO.PLOTTING.PlotPolygon(id, name, this.buildPoints()));
+        });
+    }
+
+    buildPoints(dim) {
+        const pts = [];
+        const [i, j] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
+        for (let n = 0; n < this.numSides; ++n) {
+            const t = 2 * n * Math.PI / this.numSides;
+            pts.push(
+                [
+                    this.center[i] + 0.5 * Math.cos(t) * this.radius,
+                    this.center[j] + 0.5 * Math.sin(t) * this.radius,
+                ]
+            );
+        }
+        return pts;
+    }
+
+    setRadius(r) {
+        this.radius = r;
+        this.updateViews();
+    }
+
+    shapePoints(dim) {
+        return this.shapes[dim].points.map(p => this.scaledArray(p.coords()));
+    }
+
+    updateView(dim) {
+        this.shapes[dim].setPoints(this.buildPoints(dim).map(x => new SIREPO.GEOMETRY.Point(...x)));
+    }
+
+    updateViews() {
+        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+            this.updateView(dim);
+        });
+    }
+}
+
 /**
  * Collection of static methods and fields related to vtk
  */
@@ -394,6 +447,116 @@ class VTKUtils {
     }
 }
 
+// used to create array of arrows (or other objects) for vector fields
+// change to use magnitudes and color locally
+class VTKVectorFormula {
+
+    static ARRAY_NAMES() {
+        return {
+            ...VTKVectorFormula.FLOAT_ARRAY_NAMES(),
+            scalars: 'scalars',
+        };
+    }
+
+    static FLOAT_ARRAY_NAMES() {
+        return {
+            linear: 'linear',
+            log: 'log',
+            orientation: 'orientation',
+        };
+    }
+
+    constructor(vectors, colorMapName='jet') {
+        this.vectors = vectors;
+        this.colorMapName = colorMapName;
+        this.colorMap = SIREPO.PLOTTING.Utils.COLOR_MAP()[colorMapName];
+
+        this.magnitudes = this.vectors.map(x => Math.hypot(...x));
+        this.directions = this.vectors.map((x, i) => x.map(y => y / this.magnitudes[i]));
+        this.norms = SIREPO.UTILS.normalize(this.magnitudes);
+
+        // get log values back into the original range, so that the extremes have the same
+        // size as a linear scale
+        const logMags = this.magnitudes.map(x =>  Math.log(x));
+        const minLogMag = SIREPO.UTILS.arrayMin(logMags);
+        const maxLogMag = SIREPO.UTILS.arrayMax(logMags);
+        const minMag = SIREPO.UTILS.arrayMin(this.magnitudes);
+        const maxMag = SIREPO.UTILS.arrayMax(this.magnitudes);
+
+        this.logMags = logMags.map(
+            n => minMag + (n - minLogMag) * (maxMag - minMag) / (maxLogMag - minLogMag)
+        );
+        this.colorScale = SIREPO.PLOTTING.Utils.colorScale(minMag, maxMag, this.colorMap);
+
+        this.arrays = {
+            input: [{
+                location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.COORDINATE,
+            }],
+            output: [{
+                location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.POINT,
+                name: 'scalars',
+                dataType: 'Uint8Array',
+                attribute: vtk.Common.DataModel.vtkDataSetAttributes.AttributeTypes.SCALARS,
+                numberOfComponents: 3,
+            }],
+        };
+        for (const n of Object.values(VTKVectorFormula.FLOAT_ARRAY_NAMES())) {
+            this.arrays.output.push({
+                location: vtk.Common.DataModel.vtkDataSet.FieldDataTypes.POINT,
+                name: n,
+                dataType: 'Float32Array',
+                numberOfComponents: 3,
+            });
+        }
+    }
+
+    getArrays(inputDataSets) {
+        return this.arrays;
+    }
+
+    evaluate(arraysIn, arraysOut) {
+
+        function getSubArrayOut(array, name) {
+            const o = arraysOut.map(d => d.getData());
+            for (const i in array) {
+                if (array[i].name === name) {
+                    return o[i];
+                }
+            }
+            return null;
+        }
+
+        const coords = arraysIn.map(d => d.getData())[0];
+
+        // note these arrays already have the correct length, so we need to set elements, not append
+        const out = this.arrays.output;
+        const orientation = getSubArrayOut(out, VTKVectorFormula.ARRAY_NAMES().orientation);
+        const linScale = getSubArrayOut(out, VTKVectorFormula.ARRAY_NAMES().linear).fill(1.0);
+        const logScale = getSubArrayOut(out, VTKVectorFormula.ARRAY_NAMES().log).fill(1.0);
+        const scalars = getSubArrayOut(out, VTKVectorFormula.ARRAY_NAMES().scalars);
+
+        for (let i = 0; i < coords.length / 3; ++i) {
+            let c = [0, 0, 0];
+            if (this.colorMap.length) {
+                const rgb = d3.rgb(this.colorScale(this.magnitudes[i]));
+                c = [rgb.r, rgb.g, rgb.b];
+            }
+            // scale arrow length (object-local x-direction) only
+            // this can stretch/squish the arrowhead though so the actor may have to adjust the ratio
+            linScale[3 * i] = this.magnitudes[i];
+            logScale[3 * i] = this.logMags[i];
+            for (let j = 0; j < 3; ++j) {
+                const k = 3 * i + j;
+                orientation[k] = this.directions[i][j];
+                scalars[k] = c[j];
+            }
+        }
+
+        arraysOut.forEach(x => {
+            x.modified();
+        });
+    }
+}
 
 /**
  * This class encapsulates various basic vtk elements such as the renderer, and supplies methods for using them.
@@ -652,7 +815,7 @@ class ActorBundle {
         /** @member {*} - vtk source */
         this.setSource(source);
 
-        /** @member {vtk.Rendering.Core.vtkActor} - the transform */
+        /** @member {vtk.Rendering.Core.vtkActor} - the actor */
         this.actor = vtk.Rendering.Core.vtkActor.newInstance({
             mapper: this.mapper
         });
@@ -872,7 +1035,7 @@ class PlaneBundle extends ActorBundle {
 }
 
 /**
- * A bundle for a line source defined by two points
+ * A bundle for generic polydata
  */
 class PolyDataBundle extends ActorBundle {
     /**
@@ -926,7 +1089,7 @@ class SphereBundle extends ActorBundle {
      * @param {[number]} labCenter - center in the lab
      */
     setCenter(labCenter) {
-        this.source.setCenter(this.transform.apply(new SIREPO.GEOMETRY.Matrix(labCenter)).val);
+        this.source.setCenter(labCenter);
     }
 
     /**
@@ -947,6 +1110,84 @@ class SphereBundle extends ActorBundle {
         this.source.setPhiResolution(phiRes);
     }
 }
+
+/**
+ * A bundle for a vector field
+ */
+class VectorFieldBundle extends ActorBundle {
+    /**
+     * @param {[[number]]} vectors - array of 3-dimensional arrays containing the vectors
+     * @param {[[number]]} positions - array of 3-dimensional arrays containing the coordinates of the vectors
+     * @param {number} scaleFactor - scales the length of the arrows
+     * @param {string} colormapName - name of a color map for the arrows
+     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    constructor(
+        vectors,
+        positions,
+        scaleFactor = 1.0,
+        useTailAsOrigin = false,
+        colormapName = 'jet',
+        transform = new SIREPO.GEOMETRY.Transform(),
+        actorProperties = {}
+    ) {
+        super(
+            null,
+            transform,
+            actorProperties
+        );
+        this.formula = new VTKVectorFormula(vectors, colormapName);
+        this.polyData = vtk.Common.DataModel.vtkPolyData.newInstance();
+        this.polyData.getPoints().setData(
+            new window.Float32Array(positions.flat()),
+            3
+        );
+
+        const vectorCalc = vtk.Filters.General.vtkCalculator.newInstance();
+        vectorCalc.setFormula(this.formula);
+        vectorCalc.setInputData(this.polyData);
+
+        this.setMapper(vtk.Rendering.Core.vtkGlyph3DMapper.newInstance());
+
+        this.mapper.setInputConnection(vectorCalc.getOutputPort(), 0);
+        const s = vtk.Filters.Sources.vtkArrowSource.newInstance();
+        if (useTailAsOrigin) {
+            // this undoes a translation in the arrowSource instantiation
+            vtk.Common.Core.vtkMatrixBuilder
+                .buildFromRadian()
+                .translate(0.5 - 0.5 * s.getTipLength(), 0.0, 0.0)
+                .apply(s.getOutputData().getPoints().getData());
+        }
+
+        this.mapper.setInputConnection(
+            s.getOutputPort(), 1
+        );
+        this.mapper.setOrientationArray(VTKVectorFormula.ARRAY_NAMES().orientation);
+
+        // this scales by a constant - the default is to use scalar data
+        this.setScaleFactor(scaleFactor);
+        this.mapper.setColorModeToDefault();
+
+        this.setScaling('uniform');
+    }
+
+    setScaleFactor(scaleFactor) {
+        this.scaleFactor = scaleFactor;
+        this.mapper.setScaleFactor(this.scaleFactor);
+    }
+
+    setScaling(scaleType) {
+        if (scaleType === 'uniform') {
+            this.mapper.setScaleModeToScaleByConstant();
+        }
+        else {
+            this.mapper.setScaleArray(VTKVectorFormula.FLOAT_ARRAY_NAMES()[scaleType]);
+            this.mapper.setScaleModeToScaleByComponents();
+        }
+    }
+}
+
 
 /**
  * Provides a mapping from "lab" coordinates to vtk's coordinates via a SIREPO.GEOMETRY.Transform.
@@ -1023,6 +1264,19 @@ class CoordMapper {
     buildSphere(labCenter, radius, actorProperties) {
         return new SphereBundle(labCenter, radius, this.transform, actorProperties);
     }
+
+    /**
+     * Creates a Bundle from vectors
+     * @param {[[number]]} vectors - array of 3-dimensional arrays containing the vectors
+     * @param {[[number]]} positions - array of 3-dimensional arrays containing the coordinates of the vectors
+     * @param {number} scaleFactor - scales the length of the arrows
+     * @param {boolean} useTailAsOrigin - when true, the origin is the vector's tail. Otherwise, the center
+     * @param {string} colormapName - name of a color map for the arrows
+     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
+     */
+    buildVectorField(vectors, positions, scaleFactor=1.0, useTailAsOrigin=false, colormapName='jet', actorProperties={}) {
+        return new VectorFieldBundle(vectors, positions, scaleFactor, useTailAsOrigin, colormapName, this.transform, actorProperties);
+    }
 }
 
 /**
@@ -1059,8 +1313,8 @@ class ViewPortObject {
             });
         });
         return new SIREPO.GEOMETRY.Rect(
-            new SIREPO.GEOMETRY.Point(Math.min.apply(null, xCoords), Math.min.apply(null, yCoords)),
-            new SIREPO.GEOMETRY.Point(Math.max.apply(null, xCoords), Math.max.apply(null, yCoords))
+            new SIREPO.GEOMETRY.Point(SIREPO.UTILS.arrayMin(xCoords), SIREPO.UTILS.arrayMin(yCoords)),
+            new SIREPO.GEOMETRY.Point(SIREPO.UTILS.arrayMax(xCoords), SIREPO.UTILS.arrayMax(yCoords))
         );
     }
 
@@ -2542,7 +2796,7 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
                         <td style="text-align: right">
                           <div class="sr-button-bar-parent">
                             <div class="sr-button-bar sr-button-bar-active">
-                               <button data-ng-disabled="isAlignDisabled(o)" class="dropdown-toggle btn btn-info btn-xs" title="align" data-toggle="dropdown"><span class="glyphicon glyphicon-move"></span></button>
+                               <button data-ng-disabled="isAlignDisabled(o)" type="button" class="dropdown-toggle btn sr-button-action btn-xs" title="align" data-toggle="dropdown"><span class="glyphicon glyphicon-move"></span></button>
                                <ul class="dropdown-menu">
                                  <div class="container col-sm-8">
                                    <div class="row">
@@ -2554,11 +2808,11 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
                                    <div>
                                  <div>
                                </ul>
-                               <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)" title="move up"><span class="glyphicon glyphicon-arrow-up"></span></button>
-                               <button class="btn btn-info btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)" title="move down"><span class="glyphicon glyphicon-arrow-down"></span></button>
-                               <button data-ng-disabled="isGroup(o) || locked[o.id]" class="btn btn-info btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-duplicate"></span></button>
-                               <button data-ng-disabled="locked[o.id]" data-ng-click="editObject(o)" class="btn btn-info btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
-                               <button data-ng-disabled="locked[o.id]" data-ng-click="deleteObject(o)" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
+                               <button type="button" class="btn sr-button-action btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)" title="move up"><span class="glyphicon glyphicon-arrow-up"></span></button>
+                               <button type="button" class="btn sr-button-action btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)" title="move down"><span class="glyphicon glyphicon-arrow-down"></span></button>
+                               <button data-ng-disabled="isGroup(o) || locked[o.id]" type="button" class="btn sr-button-action btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-duplicate"></span></button>
+                               <button data-ng-disabled="locked[o.id]" data-ng-click="editObject(o)" type="button" class="btn sr-button-action btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
+                               <button data-ng-disabled="locked[o.id]" data-ng-click="deleteObject(o)" type="button" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
                             </div>
                           </div>
                         </td>
@@ -3298,6 +3552,9 @@ SIREPO.VTK = {
     PlaneBundle: PlaneBundle,
     RacetrackViews: RacetrackViews,
     SphereBundle: SphereBundle,
+    SphereViews: SphereViews,
+    VectorFieldBundle: VectorFieldBundle,
     ViewPortBox: ViewPortBox,
     VTKUtils: VTKUtils,
+    VTKVectorFormula: VTKVectorFormula,
 };

@@ -26,7 +26,7 @@ class CSX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
         ]
 
     def get_output_dir(self):
-        return sirepo.raydata.scan_monitor.cfg.db_dir.join(self.uid)
+        return sirepo.raydata.scan_monitor.cfg.db_dir.join(self.rduid)
 
 
 _cfg = pkconfig.init(

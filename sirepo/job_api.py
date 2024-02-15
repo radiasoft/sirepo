@@ -192,31 +192,9 @@ class API(sirepo.quest.API):
         # Always true from the client's perspective
         return self.reply_dict({"state": "canceled"})
 
-    @sirepo.quest.Spec("require_user", data="RunMultiSpec")
-    async def api_runMulti(self):
-        def _api(api):
-            # SECURITY: Make sure we have permission to call API
-            sirepo.uri_router.assert_api_name_and_auth(
-                self,
-                api,
-                ("runSimulation", "runStatus"),
-            )
-            # Necessary so dispatch to job supervisor works correctly
-            return "api_" + api
-
-        r = []
-        for m in self.parse_json():
-            c = self._request_content(PKDict(req_data=m))
-            c.data.pkupdate(api=_api(c.data.api), asyncReply=m.awaitReply)
-            r.append(c)
-        return await self._request_api(
-            _request_content=PKDict(data=r),
-            _request_uri=self._supervisor_uri(sirepo.job.SERVER_RUN_MULTI_URI),
-        )
-
     @sirepo.quest.Spec("require_user")
     async def api_runSimulation(self):
-        r = self._request_content(PKDict(is_sim_data=True))
+        r = self._request_content(PKDict())
         if r.isParallel:
             r.isPremiumUser = self.auth.is_premium_user()
         return await self._request_api(_request_content=r)
@@ -224,9 +202,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user")
     async def api_runStatus(self):
         # runStatus receives models when an animation status if first queried
-        return await self._request_api(
-            _request_content=self._request_content(PKDict(is_sim_data=True))
-        )
+        return await self._request_api(_request_content=self._request_content(PKDict()))
 
     @sirepo.quest.Spec("require_user")
     async def api_sbatchLogin(self):
@@ -404,7 +380,6 @@ class API(sirepo.quest.API):
             # of the used values are modified by parse_post. If we have files (e.g. file_type, filename),
             # we need to use those values from parse_post
             d = self.parse_post(
-                is_sim_data=kwargs.pkdel("is_sim_data", False),
                 id=True,
                 model=True,
                 check_sim_exists=True,
@@ -475,8 +450,7 @@ class API(sirepo.quest.API):
 
 def init_apis(*args, **kwargs):
     # TODO(robnagler) if we recover connections with agents and running jobs remove this
-    pykern.pkio.unchecked_remove(sirepo.job.LIB_FILE_ROOT, sirepo.job.DATA_FILE_ROOT)
-    pykern.pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
+    pykern.pkio.unchecked_remove(sirepo.job.DATA_FILE_ROOT)
     pykern.pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
 
 

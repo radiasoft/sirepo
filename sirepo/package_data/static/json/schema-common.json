@@ -157,7 +157,6 @@
         "robotsTxt": "/robots.txt",
         "root": "/*<path_info>",
         "runCancel": "/run-cancel",
-        "runMulti": "/run-multi",
         "runSimulation": "/run-simulation",
         "runStatus": "/run-status",
         "saveModerationReason": "/save-moderation-reason",

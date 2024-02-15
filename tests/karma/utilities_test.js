@@ -17,4 +17,10 @@ describe('utilities', function() {
         expect(utilities.trimText(t, 10, 13)).toBe('some text\nlin');
     }));
 
+    it('should compute array min and max', inject(function(utilities) {
+        expect(utilities.arrayMax([10, -10, 30, 5])).toBe(30);
+        expect(utilities.arrayMin([10, -10, 30, 5])).toBe(-10);
+        expect(utilities.arrayMin(Array.from({ length: 200000 }, (_, i) => i - 1))).toBe(-1);
+    }));
+
 });

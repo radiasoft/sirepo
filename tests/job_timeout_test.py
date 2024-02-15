@@ -1,18 +1,14 @@
-# -*- coding: utf-8 -*-
 """test for canceling a long running simulation due to a timeout
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
-import os
-import pytest
-
 _MAX_SECS_PARALLEL_PREMIUM = "4"
 
 
 def setup_module(module):
+    import os
+
     os.environ.update(
         SIREPO_JOB_SUPERVISOR_MAX_SECS_PARALLEL_PREMIUM=_MAX_SECS_PARALLEL_PREMIUM,
         SIREPO_JOB_SUPERVISOR_MAX_SECS_ANALYSIS="6",
@@ -21,6 +17,7 @@ def setup_module(module):
 
 
 def test_srw(fc):
+    from pykern.pkcollections import PKDict
     from pykern import pkunit, pkcompat
     from pykern.pkdebug import pkdlog, pkdexc
     import time
@@ -67,6 +64,7 @@ def test_srw(fc):
 
 
 def test_myapp_analysis(fc):
+    from pykern.pkcollections import PKDict
     from pykern import pkunit
     from pykern.pkdebug import pkdp
 

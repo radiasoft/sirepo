@@ -1071,6 +1071,11 @@ SIREPO.app.factory('timeService', function() {
         return self.unixTimeNow() - (60 * 60);
     };
 
+    self.unixTimeOneWeekAgo = () => {
+        return self.unixTimeNow() - (60 * 60 * 24 * 7);
+    };
+
+
     self.unixTimeToDate = (unixTime) => {
         return new Date(unixTime * UNIX_TIMESTAMP_SCALE);
     };
@@ -2036,6 +2041,11 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         return url.startsWith("/auth-");
     };
 
+    const _isOauth = (url, data) => {
+	// TODO(e-carlin): https://github.com/radiasoft/sirepo/issues/6689
+        return SIREPO.APP_SCHEMA.simulationType === 'flash';
+    };
+
     const _protocolError = (header, content, wsreq, errorMsg) => {
         if (! errorMsg) {
             errorMsg = "invalid reply from server";
@@ -2078,7 +2088,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             const n = content.routeName;
             const r = {data: {}};
             if (n === "httpException") {
-                r.status = content.status;
+                r.status = content.params.code;
             }
             else {
                 r.data.state = "srException";
@@ -2233,7 +2243,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     };
 
     self.send = (url, data, httpConfig) => {
-        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url)) {
+        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url) || _isOauth(url, data)) {
             // Might be auto logged out so close socket so can re-authenticate
             if (socket) {
                 socket.close();
@@ -2390,7 +2400,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
     }
 
     function formatUrl(map, routeOrParams, params) {
-        var n = routeOrParams;
+        let n = routeOrParams;
         if (angular.isObject(routeOrParams)) {
             n = routeOrParams.routeName;
             if (! n) {
@@ -2414,11 +2424,15 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         if (! map[n]) {
             throw new Error(`routeName=${n} not found in map=${map._name}`);
         }
-        var r = map[n];
-        var u = r.baseUri ? '/' + r.baseUri : '';
+        const r = map[n];
+        let u = r.baseUri ? '/' + r.baseUri : '';
+        let v = null;
         for (p of r.params) {
             if (p.name in params) {
-                u = u + '/' + encodeURIComponent(serializeValue(params[p.name], p.name));
+                v = params[p.name];
+            }
+            else if (p.name === "simulation_type") {
+                v = SIREPO.APP_SCHEMA.simulationType;
             }
             else if (p.isOptional) {
                 break;
@@ -2426,6 +2440,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             else {
                 throw new Error(`param=${p.name} param missing map=${map._name} route=${r.name}`);
             }
+            u = u + '/' + encodeURIComponent(serializeValue(v, p.name));
         }
         return u;
     }
@@ -2550,6 +2565,11 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         const e = srException;
         if (e.routeName == "httpRedirect") {
             self.globalRedirect(e.params.uri, undefined);
+            return;
+        }
+        if (e.routeName == "serverUpgraded" && e.params
+            && ['invalidSimulationSerial', 'newRelease'].includes(e.params.reason)) {
+            $(`#sr-${e.params.reason}`).modal('show');
             return;
         }
         const u = $location.url();

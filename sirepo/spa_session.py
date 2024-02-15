@@ -29,7 +29,7 @@ def init_module():
 async def init_quest(qcall):
     async def _begin():
         try:
-            (await qcall.call_api("beginSession")).destroy()
+            (await qcall.call_api("beginSession", data={})).destroy()
         except Exception as e:
             pkdlog("error={} trying api_beginSession stack={}", e, pkdexc())
 

@@ -5,9 +5,9 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 import csv
+import io
 import pytest
 import re
-import six
 import time
 
 

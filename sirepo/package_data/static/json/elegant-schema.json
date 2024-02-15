@@ -1497,7 +1497,7 @@
             "track_pages_separately": ["Track Pages Separately", "RPNBoolean", "0", "If non-zero, then separate pages of the input file are tracked separately. Otherwise, the entire file is tracked together."],
             "use_bunched_mode": ["Use Bunched Mode", "RPNBoolean", "0", "If non-zero, then the IDSlotsPerBunch parameter is used to determine the bunch assignment of particles in the beam based on values in the particleID column. In particular, the bunch number is ⌊ (I-1)/S ⌋, where I is the particle ID and S=IDSlotsPerBunch."],
             "fiducialization_bunch": ["Fiducialization Bunch", "RPNValue", 0, "If non-negative, then rf cavities (e.g., RFCA, RFDF, RAMPRF) are phased to the indicated bunch (0 is the first bunch). Otherwise, rf cavities are phased to the entire beam (which is probably not what is wanted)."],
-            "sample_interval": ["Sample Interval", "RPNBoolean", "1", "If non-zero, only every sample_interval th particle is used."],
+            "sample_interval": ["Sample Interval", "RPNValue", 1, "If non-zero, only every sample_interval th particle is used."],
             "n_tables_to_skip": ["N Tables To Skip", "RPNValue", 0, "Number of SDDS pages to skip at the beginning of the file."],
             "center_transversely": ["Center Transversely", "RPNBoolean", "0", "If non-zero, the transverse centroids of the distribution are made to be zero."],
             "center_arrival_time": ["Center Arrival Time", "RPNBoolean", "0", "If non-zero, the mean arrival time of particles at the start of the accelerator is set to zero."],

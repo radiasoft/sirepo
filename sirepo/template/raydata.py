@@ -12,6 +12,7 @@ from sirepo.template import template_common
 import pygments
 import pygments.formatters
 import pygments.lexers
+import re
 import requests
 import requests.exceptions
 import sirepo.feature_config
@@ -30,6 +31,11 @@ def stateless_compute_analysis_output(data, **kwargs):
 
 
 def stateless_compute_analysis_run_log(data, **kwargs):
+    def _filter_log(log):
+        for f in ("Ending Cell.*\n", "Executing Cell.*\n"):
+            log = re.sub(f, "", log)
+        return log
+
     def _log_to_html(log):
         return pygments.highlight(
             log,
@@ -41,7 +47,7 @@ def stateless_compute_analysis_run_log(data, **kwargs):
         )
 
     r = _request_scan_monitor(PKDict(method="analysis_run_log", data=data))
-    r.run_log = _log_to_html(r.run_log)
+    r.run_log = _log_to_html(_filter_log(r.run_log))
     return r
 
 
@@ -55,7 +61,7 @@ def stateless_compute_catalog_names(data, **kwargs):
 
 def stateless_compute_download_analysis_pdfs(data, data_file_uri=None, **kwargs):
     assert data_file_uri, f"expected data_file_uri={data_file_uri}"
-    data.dataFileUri = data_file_uri
+    data.args.dataFileUri = data_file_uri
     return _request_scan_monitor(PKDict(method="download_analysis_pdfs", data=data))
 
 

@@ -32,6 +32,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             "plotScale",
             "rotateAngle",
             "rotateReshape",
+            "showPlotSize",
             "useIntensityLimits",
             "usePlotRange",
             "verticalOffset",
@@ -138,6 +139,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if "fieldUnits" in dm[m]:
                     dm.simulation.fieldUnits = dm[m].fieldUnits
                     del dm[m]["fieldUnits"]
+            if "beamlineAnimation" in m:
+                cls.update_model_defaults(dm[m], cls.WATCHPOINT_REPORT)
         # default sourceIntensityReport.method based on source type
         if "method" not in dm.sourceIntensityReport:
             if cls.srw_is_undulator_source(dm.simulation):

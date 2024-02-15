@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Operations run inside the report directory to extract data.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -83,26 +82,31 @@ def _background_percent_complete(msg, template, is_running):
 
 
 def _dispatch_compute(msg, template):
+    def _err(error, **kwargs):
+        pkdlog(
+            "method={}.{}_{} error={} {}",
+            template.SIM_TYPE,
+            msg.jobCmd,
+            msg.data.method,
+            error,
+            kwargs,
+        )
+        return PKDict(state=job.ERROR, error=error)
+
     def _op(expect_file):
         r = getattr(template_common, f"{msg.jobCmd}_dispatch")(
-            msg.data, data_file_uri=msg.get("dataFileUri")
+            msg.data,
+            data_file_uri=msg.get("dataFileUri"),
+            run_dir=msg.get("runDir", pkio.py_path()),
         )
-        if not isinstance(r, template_common.JobCmdFile):
-            # ok to not return JobCmdFile if there was an error
+        if not isinstance(r, PKDict):
+            return _err("invalid return", res=r)
+        if not isinstance(r, template_common.JobCmdFile) or r.error:
+            # ok to not return JobCmdFile of if there was an error
             return r
         if not expect_file:
-            return PKDict(
-                state=job.ERROR,
-                error=f"method={template.SIM_TYPE}.{msg.jobCmd}_{msg.data.method} unexpected return=JobCmdFile uri={r.uri}",
-            )
-        if e := _error_if_response_too_large(r.content):
-            return e
-        requests.put(
-            msg.dataFileUri + r.uri,
-            data=r.content,
-            verify=job.cfg().verify_tls,
-        ).raise_for_status()
-        return job.ok_reply()
+            return _err("returned a file", reply_uri=r.get("reply_uri"))
+        return _file_reply(r, msg)
 
     try:
         x = sirepo.sim_data.get_class(
@@ -179,28 +183,13 @@ def _do_download_run_file(msg, template):
             msg.frame,
             options=PKDict(suffix=msg.suffix),
         )
-        if not isinstance(r, PKDict):
+        if not isinstance(r, template_common.JobCmdFile):
             if isinstance(r, str):
                 r = msg.runDir.join(r, abs=1)
-            r = PKDict(filename=r)
-        u = r.get("uri")
-        if u is None:
-            u = r.filename.basename
-        c = r.get("content")
-        if e := _error_if_response_too_large(c if c else r.filename):
-            return e
-        if c is None:
-            c = (
-                pkcompat.to_bytes(pkio.read_text(r.filename))
-                if u.endswith((".py", ".txt", ".csv"))
-                else r.filename.read_binary()
-            )
-        requests.put(
-            msg.dataFileUri + u,
-            data=c,
-            verify=job.cfg().verify_tls,
-        ).raise_for_status()
-        return PKDict()
+            elif not isinstance(r, pkconst.PY_PATH_LOCAL_TYPE):
+                raise AssertionError(f"unexpected return value type={type(r)}")
+            r = template_common.JobCmdFile(reply_path=r)
+        return _file_reply(r, msg)
     except Exception as e:
         return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
@@ -244,7 +233,14 @@ def _do_fastcgi(msg, template):
                 r = globals()["_do_" + m.jobCmd](
                     m, sirepo.template.import_module(m.simulationType)
                 )
-            r = PKDict(r).pksetdefault(state=job.COMPLETED)
+            if isinstance(r, dict):
+                # Backwards compatibility
+                r = PKDict(r)
+            if isinstance(r, PKDict):
+                r.setdefault("state", job.COMPLETED)
+            else:
+                pkdlog("func={} failed to return a PKDict", m.jobCmd)
+                r = PKDict(state=job.ERROR, error="invalid return value")
             c = 0
         except _AbruptSocketCloseError:
             return
@@ -267,8 +263,6 @@ def _do_get_simulation_frame(msg, template):
 
 
 def _do_prepare_simulation(msg, template):
-    if "libFileList" in msg:
-        msg.data.libFileList = msg.libFileList
     return PKDict(
         cmd=simulation_db.prepare_simulation(
             msg.data,
@@ -325,6 +319,17 @@ def _error_if_response_too_large(payload):
             errorCode=job.ERROR_CODE_RESPONSE_TOO_LARGE,
         )
     return None
+
+
+def _file_reply(resp, msg):
+    if e := _error_if_response_too_large(resp.reply_content):
+        return e
+    requests.put(
+        msg.dataFileUri + resp.reply_uri,
+        data=resp.reply_content,
+        verify=job.cfg().verify_tls,
+    ).raise_for_status()
+    return job.ok_reply()
 
 
 def _maybe_parse_user_alert(exception, error=None):

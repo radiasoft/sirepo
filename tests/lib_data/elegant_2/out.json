@@ -147,7 +147,7 @@
                 "reuse_bunch": "0",
                 "reverse_t_sign": "0",
                 "sample_fraction": 1.0,
-                "sample_interval": "1",
+                "sample_interval": 1.0,
                 "save_initial_coordinates": "1",
                 "selection_parameter": "",
                 "selection_string": "",
