@@ -600,7 +600,6 @@ class _SReply(sirepo.quest.Attr):
         return self._gen_http_exception(401)
 
     def _gen_exception_reply_UserDirNotFound(self, args):
-        self.qcall.cookie.has_sentinel()
         return self.qcall.auth.user_dir_not_found(**args)
 
     def _gen_exception_reply_UserAlert(self, args):
