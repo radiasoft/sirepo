@@ -1012,6 +1012,11 @@ SIREPO.app.factory('timeService', function() {
         return self.unixTimeNow() - (60 * 60);
     };
 
+    self.unixTimeOneWeekAgo = () => {
+        return self.unixTimeNow() - (60 * 60 * 24 * 7);
+    };
+
+
     self.unixTimeToDate = (unixTime) => {
         return new Date(unixTime * UNIX_TIMESTAMP_SCALE);
     };
