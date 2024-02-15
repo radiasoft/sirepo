@@ -3315,17 +3315,13 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
 
 SIREPO.app.directive('commonFooter', function() {
     const _refreshModals = () => {
-        return Object.keys(SIREPO.refreshModalMap).reduce(_refreshTemplate, '');
+        return Object.values(SIREPO.refreshModalMap).reduce(
+            (rv, x) => {
+                return rv + `<div data-confirmation-modal="" data-is-required="true" data-id="${x.modal}" data-title="${x.title}" data-ok-text="Refresh" data-ok-clicked="refreshPage()">${x.msg}. Select <b>Refresh</b> to update this simulation.</div>\n`;
+            },
+            '',
+        );
     };
-
-    const _refreshTemplate = (rv, id) => {
-        const x = SIREPO.refreshModalMap[id];
-        if (! x) {
-            throw new Error(`not found id=${id} in refreshModalMap`);
-        }
-        return rv + `<div data-confirmation-modal="" data-is-required="true" data-id="${x.modal}" data-title="${x.title}" data-ok-text="Refresh" data-ok-clicked="refreshPage()">${x.msg}. Select <b>Refresh</b> to update this simulation.</div>\n`;
-    };
-
     return {
         restrict: 'A',
         scope: {
