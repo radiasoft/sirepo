@@ -1282,7 +1282,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             }
 
             function isInFieldThreshold(value) {
-                const t = appState.models.openmcAnimation.thresholds;
+                const t = tallyService.getMinMaxWithThreshold();
                 return value < t[1] && value > t[0];
             }
 
