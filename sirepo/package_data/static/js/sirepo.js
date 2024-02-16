@@ -67,7 +67,7 @@ SIREPO.viewLogic = function(name, init) {
                 modelData: '<',
             },
             controller: init,
-            link: function(scope, element) {
+            link: function(scope) {
                 if (scope.whenSelected) {
                     scope.$parent.$on('sr-tabSelected', function(event, modelName, modelKey) {
                         if (scope.modelData) {
