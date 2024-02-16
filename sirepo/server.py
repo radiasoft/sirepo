@@ -85,7 +85,7 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user", filename="SimFileName", file_type="SimFileType")
     async def api_deleteFile(self):
-        """Deprecated use `api_deleteLibFile`"""
+        """Deprecated - use `api_deleteLibFile`"""
         return await self.api_deleteLibFile()
 
     @sirepo.quest.Spec("require_user", filename="SimFileName", file_type="SimFileType")
@@ -114,7 +114,7 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user", filename="SimFileName")
     async def api_downloadFile(self, simulation_type, simulation_id, filename):
-        """Deprecated use `api_downloadLibFile`"""
+        """Deprecated - use `api_downloadLibFile`"""
         return await self.api_downloadLibFile(simulation_type, filename)
 
     @sirepo.quest.Spec("require_user", filename="SimFileName")
@@ -596,7 +596,7 @@ class API(sirepo.quest.API):
         confirm="Bool optional",
     )
     async def api_uploadFile(self, simulation_type, simulation_id, file_type):
-        """Deprecated use `api_uploadLibFile`"""
+        """Deprecated - use `api_uploadLibFile`"""
         return await self.api_uploadLibFile(simulation_type, simulation_id, file_type)
 
     @sirepo.quest.Spec(
