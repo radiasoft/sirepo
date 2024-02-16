@@ -1331,12 +1331,14 @@ class _ImagePreview:
                 if originals:
                     return PKDict(
                         # numPages=15,
+                        paramToImage=_param_to_image(self.info),
                         param_x=param_x,
                         pred=c,
                         x=originals,
                         y=u,
                     )
                 return PKDict(
+                    paramToImage=_param_to_image(self.info),
                     param_x=param_x,
                     x=u,
                     y=c,

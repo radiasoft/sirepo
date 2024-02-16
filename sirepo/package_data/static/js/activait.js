@@ -1282,6 +1282,12 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
                             $scope.multiPage = $scope.x.length > 1;
                             setIndex(0);
                         }
+                        if (response.paramToImage && response.param_x) {
+                            $scope.xCol = "Parameters";
+                            $scope.yCol = "Images";
+                        } else if (response.paramToImage) {
+                            $scope.yCol = "Prediction";
+                        }
                         loading = false;
                     },
                     {
