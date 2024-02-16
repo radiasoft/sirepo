@@ -292,7 +292,8 @@
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
             "url": ["Data URL", "URL", ""],
-            "exampleURL": ["", "String", ""]
+            "exampleFile": ["", "String", ""],
+            "exampleFile2": ["", "String", ""]
         },
         "dataFileCache": {},
         "dtClassifierClassificationMetricsAnimation": {},
