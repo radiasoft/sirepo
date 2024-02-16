@@ -1155,20 +1155,20 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
         <div>
           <div data-ng-if="x" class="row">
             <div class="col-md-4">
-              <div class="lead text-center">{{ xCol }}</div>
+              <div class="lead text-center">{{ xColName }}</div>
             </div>
             <div class="col-md-4">
-              <div class="lead text-center">{{ yCol }}</div>
+              <div class="lead text-center">{{ yColName }}</div>
             </div>
             <div data-ng-if="thirdColumn" class="col-md-4">
-              <div class="lead text-center">{{ predCol }}</div>
+              <div class="lead text-center">{{ predColName }}</div>
             </div>
           </div>
           <div data-ng-repeat="image in pageImages">
             <div class="row">
               <div class="col-md-4">
                 <img class="img-responsive x{{method}}{{$index + 1 }}" />
-                <div data-ng-if="xIsParams"> {{ parameters[$index] }} </div>
+                <div data-ng-if="xIsParams"> <br/> <b>{{ parameters[$index] }}</b> </div>
               </div>
               <div class="col-md-4">
                 <img class="img-responsive y{{method}}{{$index + 1 }}" />
@@ -1201,20 +1201,15 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             $scope.x = null;
             $scope.y = null;
             $scope.pred = null;
-            $scope.xCol = "Image";
-            $scope.yCol = "Contour";
-            $scope.predCol = "Predicted";
+            $scope.xColName = "Image";
+            $scope.yColName = "Contour";
+            $scope.predColName = "Predicted";
             $scope.imageIdx = 0;
             $scope.dataFileMissing = false;
             $scope.thirdColumn = true;
 
-
             const pageIndex = () => {
-                return $scope.imageIdx/$scope.imagesPerPage;
-            }
-
-            const setThirdColumn = () => {
-                $scope.thirdColumn = $scope.pred != null;
+                return $scope.imageIdx / $scope.imagesPerPage;
             }
 
             $scope.canUpdateUri = increment => {
@@ -1243,14 +1238,14 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                 if ($(`.x${$scope.method}1`).length && $scope.x) {
                     $scope.pageImages.forEach( (v, i) => {
                         if ($scope.xIsParams) {
-                            $scope.parameters.splice(i, 0, $scope.x[index + v]);
+                            let value = `${$scope.x[index + v].replace(/[\[\]]/g, '')}`;
+                            $scope.parameters.splice(i, 0, value);
                         } else {
                             $(`.x${$scope.method}${v + 1}`)[0].src = $scope.x[index + v];
                         }
                         $(`.y${$scope.method}${v + 1}`)[0].src = $scope.y[index + v];
-                        setThirdColumn();
-                        if ($(`.pred${$scope.method}1`).length && $scope.pred != null) {
-                            srdbg('$(`.pred${$scope.method}${v + 1}`)', $(`.pred${$scope.method}${v + 1}`));
+                        $scope.thirdColumn = $scope.pred != null;
+                        if ($(`.pred${$scope.method}1`).length && $scope.thirdColumn) {
                             $(`.pred${$scope.method}${v + 1}`)[0].src = $scope.pred[index + v];
                         }
                     });
@@ -1266,26 +1261,27 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                 f(
                     appState,
                     response => {
-                        srdbg('response for method=', $scope.method, response);
                         $scope.numPages = response.x.length / $scope.imagesPerPage;
                         $scope.x = response.x;
                         $scope.y = response.y;
-                        $scope.xIsParams = response.param_x;
+                        $scope.xIsParams = response.xIsParameters;
+                        $scope.pred = response.pred || null;
                         if ($scope.xIsParams) {
                             $scope.parameters = [];
                         }
-                        $scope.pred = response.pred || null;
                         if ($scope.x) {
                             $scope.multiPage = $scope.x.length > 1;
                             setIndex(0);
                         }
-                        if (response.paramToImage && response.param_x) {
-                            $scope.xCol = "Parameters";
-                            $scope.yCol = "Images";
-                        } else if (response.paramToImage) {
-                            $scope.yCol = "Prediction";
-                        }
                         loading = false;
+                        if (response.paramToImage) {
+                            if (! response.xIsParameters) {
+                                $scope.yColName = "Prediction";
+                                return;
+                            }
+                            $scope.xColName = "Parameters";
+                            $scope.yColName = "Images";
+                        }
                     },
                     {
                         method: 'sample_images',

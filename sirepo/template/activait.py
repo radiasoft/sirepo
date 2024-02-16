@@ -1222,46 +1222,46 @@ class _ImagePreview:
         plt.yticks([])
         plt.imshow(self.currentImage)
 
-    def images(self):
-        import matplotlib.pyplot as plt
+    def _append_input_image(self, data, index):
+        self.currentImage = data[index]
+        if self.io.input.kind == "f":
+            self.currentImage = self.currentImage.astype(float)
+        if self.currentImage.ndim == 1:
+            self.xIsParameters = True
+            self.inputs.append(self.currentImage)
+            return
+        self._gen_image()
+        self.inputs.append(self._pyplot_data_url())
 
+    def _append_output_image(self, data, index):
+        self.currentImage = data[index]
+        self._gen_image()
+        self.outputs.append(self._pyplot_data_url())
+
+    def _append_original_image(self, data, index):
+        if data.size != 0:
+            self.currentImage = data[index]
+            self._gen_image()
+            self.originals.append(self._pyplot_data_url())
+
+    def images(self):
         with h5py.File(_filepath(self.data.args.dataFile.file), "r") as f:
             self.file = f
+            self.inputs = []
+            self.originals = []
+            self.outputs = []
+            self.xIsParameters = False
             x, y, o = self._x_y()
-            u = []
-            originals = []
-            param_x = False
-            c = []
-            for i in range(15 if self.data.args.method in ["imagePreview", "segmentViewer"] else 3):
-                self.currentImage = x[i]
-                if self.io.input.kind == "f":
-                    self.currentImage = self.currentImage.astype(float)
-                if x[i].ndim == 1:
-                    param_x = True
-                    u.append(x[i])
-                else:
-                    self._gen_image()
-                    u.append(self._pyplot_data_url())
-                self.currentImage = y[i]
-                self._gen_image()
-                c.append(self._pyplot_data_url())
-                if o.size != 0:
-                    self.currentImage = o[i]
-                    self._gen_image()
-                    originals.append(self._pyplot_data_url())
-            if originals:
-                return PKDict(
-                    paramToImage=_param_to_image(self.info),
-                    param_x=param_x,
-                    pred=c,
-                    x=originals,
-                    y=u,
-                )
+            for i in range(15 if self.data.args.method in ("imagePreview", "segmentViewer") else 3):
+                self._append_input_image(x, i)
+                self._append_output_image(y, i)
+                self._append_original_image(o, i)
             return PKDict(
                 paramToImage=_param_to_image(self.info),
-                param_x=param_x,
-                x=u,
-                y=c,
+                xIsParameters=self.xIsParameters,
+                pred=self.outputs if self.originals else False,
+                x=self.originals if self.originals else self.inputs,
+                y=self.inputs if self.originals else self.outputs,
             )
 
 
