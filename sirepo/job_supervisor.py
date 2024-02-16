@@ -850,11 +850,16 @@ class _ComputeJob(_Supervisor):
             r = self._status_reply(req)
             if not r:
                 raise AssertionError(f"no reply to req={req}")
+            if not self.db.isParallel:
+                done = sirepo.tornado.Event()
             o.run_callback = tornado.ioloop.IOLoop.current().call_later(
-                0, self._run, o, d
+                0, self._run, o, d, done
             )
             o = None
-            return r
+            if self.db.isParallel:
+                return r
+            await done.wait()
+            return await self._send_op_analysis(req, "sequential_result")
         except Exception as e:
             if o:
                 o.destroy(internal_error=f"_receive_api_runSimulation exception={e}")
@@ -914,7 +919,7 @@ class _ComputeJob(_Supervisor):
             or self.db.computeJobSerial == req.content.computeJobSerial
         )
 
-    async def _run(self, op, prev_db):
+    async def _run(self, op, prev_db, done):
         def _is_run_op(msg):
             if op == self.run_op:
                 return True
@@ -996,6 +1001,7 @@ class _ComputeJob(_Supervisor):
                 )
         finally:
             op.destroy()
+            done.set()
 
     async def _send_op_analysis(self, req, jobCmd):
         pkdlog(
