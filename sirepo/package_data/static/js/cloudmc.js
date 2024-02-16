@@ -2845,12 +2845,8 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $scope) {
 
     const autoUpdate = utilities.debounce(() => {
-        if (formValid) {
-            appState.saveChanges('openmcAnimation');
-        }
+        appState.saveChanges('openmcAnimation');
     }, SIREPO.debounce_timeout);
-
-    let formValid = true;
 
     function showFields() {
         const is2D = appState.models.tallyReport.selectedGeometry === '2D';
@@ -2865,8 +2861,6 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
         panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);
         panelState.showField('openmcAnimation', 'sourceColorMap', showSources && appState.models.openmcAnimation.numSampleSourceParticles);
-
-        validateThresholds();
     }
 
     function updateEnergyRange() {
@@ -2891,14 +2885,17 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     function validateThresholds() {
         const t = appState.models.openmcAnimation.thresholds;
         const hasVals = ! t.some(x => x == null);
-        formValid = validationService.validateField(
-            'openmcAnimation',
-            'thresholds',
-            'input',
-            hasVals && t[0] < t[1],
-            ! hasVals ? 'Enter values' : 'Lower limit must be less than upper limit'
-        );
-        autoUpdate();
+        if (
+            validationService.validateField(
+                'openmcAnimation',
+                'thresholds',
+                'input',
+                hasVals && t[0] < t[1],
+                ! hasVals ? 'Enter values' : 'Lower limit must be less than upper limit'
+            )
+        ) {
+            autoUpdate();
+        }
     }
 
     cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
