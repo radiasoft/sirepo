@@ -86,7 +86,6 @@ SIREPO.app.config(() => {
         </div>
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
-            <div class="sr-input-warning"></div>
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
@@ -2891,12 +2890,13 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
 
     function validateThresholds() {
         const t = appState.models.openmcAnimation.thresholds;
+        const hasVals = ! t.some(x => x == null);
         formValid = validationService.validateField(
             'openmcAnimation',
             'thresholds',
             'input',
-            t[0] < t[1],
-            'Lower limit must be less than upper limit'
+            hasVals && t[0] < t[1],
+            ! hasVals ? 'Enter values' : 'Lower limit must be less than upper limit'
         );
         autoUpdate();
     }
