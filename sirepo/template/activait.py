@@ -1299,6 +1299,7 @@ class _ImagePreview:
             u = []
             k = 0
             originals = []
+            param_x = False
             if self.data.args.method in ["improvedImagePreview", "segmentViewer", "bestLosses", "worstLosses"]:
                 c = []
                 for i in range(15 if self.data.args.method in ["improvedImagePreview", "segmentViewer"] else 3):
@@ -1309,9 +1310,14 @@ class _ImagePreview:
                     if self.io.input.kind == "f":
                         self.currentImage = self.currentImage.astype(float)
 
+                    pkdp("\n\n\n x[i].shape={}", x[i].shape)
+                    if x[i].ndim == 1:
+                        param_x = True
+                        u.append(x[i])
+                    else:
+                        self._gen_image()
+                        u.append(self._pyplot_data_url())
 
-                    self._gen_image()
-                    u.append(self._pyplot_data_url())
 
                     self.currentImage = y[i]
                     self._gen_image()
@@ -1322,15 +1328,16 @@ class _ImagePreview:
                         self.currentImage = o[i]
                         self._gen_image()
                         originals.append(self._pyplot_data_url())
-
                 if originals:
                     return PKDict(
                         # numPages=15,
+                        param_x=param_x,
                         pred=c,
                         x=originals,
                         y=u,
                     )
                 return PKDict(
+                    param_x=param_x,
                     x=u,
                     y=c,
                 )

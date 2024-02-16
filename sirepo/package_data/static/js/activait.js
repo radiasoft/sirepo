@@ -1169,6 +1169,7 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
             <div class="row">
               <div class="col-md-4">
                 <img class="img-responsive x{{method}}{{$index + 1 }}" />
+                <div data-ng-if="xIsParams"> {{ parameters[$index] }} </div>
               </div>
               <div class="col-md-4">
                 <img class="img-responsive y{{method}}{{$index + 1 }}" />
@@ -1243,8 +1244,12 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
 
             function setIndex(index) {
                 if ($(`.x${$scope.method}1`).length && $scope.x) {
-                    $scope.pageImages.forEach( (v) => {
-                        $(`.x${$scope.method}${v + 1}`)[0].src = $scope.x[index + v];
+                    $scope.pageImages.forEach( (v, i) => {
+                        if ($scope.xIsParams) {
+                            $scope.parameters.splice(i, 0, $scope.x[index + v]);
+                        } else {
+                            $(`.x${$scope.method}${v + 1}`)[0].src = $scope.x[index + v];
+                        }
                         $(`.y${$scope.method}${v + 1}`)[0].src = $scope.y[index + v];
                         setThirdColumn();
                         if ($(`.pred${$scope.method}1`).length && $scope.pred != null) {
@@ -1268,6 +1273,10 @@ SIREPO.app.directive('improvedImagePreviewPanel', function(requestSender) {
                         $scope.numPages = response.x.length / $scope.imagesPerPage;
                         $scope.x = response.x;
                         $scope.y = response.y;
+                        $scope.xIsParams = response.param_x;
+                        if ($scope.xIsParams) {
+                            $scope.parameters = [];
+                        }
                         $scope.pred = response.pred || null;
                         if ($scope.x) {
                             $scope.multiPage = $scope.x.length > 1;
