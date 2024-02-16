@@ -807,11 +807,12 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0])
                     )
                 );
+                const minmax = tallyService.getMinMaxWithThreshold();
                 const r =  {
                     aspectRatio: ar,
-                    global_max: tallyService.maxField,
-                    global_min: tallyService.minField,
-                    threshold: tallyService.getMinMaxWithThreshold(),
+                    global_max: minmax[1],
+                    global_min: minmax[0],
+                    threshold: appState.models.openmcAnimation.thresholds,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
@@ -1282,7 +1283,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             }
 
             function isInFieldThreshold(value) {
-                const t = tallyService.getMinMaxWithThreshold();
+                const t = appState.models.openmcAnimation.thresholds;
                 return value < t[1] && value > t[0];
             }
 
