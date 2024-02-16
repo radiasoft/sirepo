@@ -56,3 +56,60 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
         `,
     };
 });
+
+SIREPO.app.directive('testComputeJob', function(appState, requestSender, simulationQueue) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div data-simple-panel="testReport">
+              <div class="well">
+                <button type="button" class="btn btn-default" data-ng-click="run('computeJob')">
+                  Test Compute Job</button>
+                <div>{{ computeJobOutput }}</div>
+              </div>
+              <div class="well">
+                <button type="button" class="btn btn-default" data-ng-click="run('statefulCompute')">
+                  Test Stateful Compute</button>
+                <div>{{ statefulComputeOutput }}</div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+
+            function setText(runCommand, text) {
+                $scope[runCommand + 'Output'] = text;
+            }
+
+            function handleResult(runCommand, start, result) {
+                if (result.error) {
+                    setText(runCommand, 'Error: ' + result.error);
+                    return;
+                }
+                setText(runCommand, 'Completed in ' + ((Date.now() - start) / 1000) + ' seconds');
+            }
+
+            $scope.run = (runCommand) => {
+                setText(runCommand, 'Running...');
+                const start = Date.now();
+                if (runCommand === 'computeJob') {
+                    simulationQueue.addTransientItem(
+                        'testReport',
+                        appState.applicationState(),
+                        result => handleResult(runCommand, start, result),
+                    );
+                }
+                else if (runCommand === 'statefulCompute') {
+                    requestSender.sendStatefulCompute(
+                        appState,
+                        result => handleResult(runCommand, start, result),
+                        {
+                            method: 'test',
+                            args: {},
+                        },
+                    );
+                }
+            };
+        },
+    };
+});

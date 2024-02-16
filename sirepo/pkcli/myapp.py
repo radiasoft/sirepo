@@ -18,18 +18,22 @@ _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 
 
 def run(cfg_dir):
-    pksubprocess.check_call_with_signals(
-        [sys.executable, template_common.PARAMETERS_PYTHON_FILE],
-    )
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if data.report == "heightWeightReport":
-        res = _report(
-            "Dog Height and Weight Over Time",
-            ("height", "weight"),
-            data,
-        )
+    if data.report == "testReport":
+        res = dict(value=123)
     else:
-        raise AssertionError("unknown report: {}".format(data.report))
+        pksubprocess.check_call_with_signals(
+            [sys.executable, template_common.PARAMETERS_PYTHON_FILE],
+        )
+        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        if data.report == "heightWeightReport":
+            res = _report(
+                "Dog Height and Weight Over Time",
+                ("height", "weight"),
+                data,
+            )
+        else:
+            raise AssertionError("unknown report: {}".format(data.report))
     template_common.write_sequential_result(res)
 
 

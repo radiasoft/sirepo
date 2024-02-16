@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
+import random
 
 
 class SimData(sirepo.sim_data.SimDataBase):
@@ -16,6 +17,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
+        if data.report == "testReport":
+            # always run the testReport
+            return [[random.random()]]
         return [
             data.report,
             "dog",

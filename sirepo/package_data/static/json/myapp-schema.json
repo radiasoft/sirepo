@@ -32,7 +32,8 @@
             "disposition": ["Disposition", "DogDisposition", "friendly"],
             "favoriteTreat": ["Favorite Treat", "OptionalString", ""]
         },
-        "heightWeightReport": {}
+        "heightWeightReport": {},
+        "testReport": {}
     },
     "view": {
         "dog": {
@@ -53,6 +54,10 @@
         },
         "heightWeightReport": {
             "title": "Physical Characteristics",
+            "advanced": []
+        },
+        "testReport": {
+            "title": "Test",
             "advanced": []
         }
     }

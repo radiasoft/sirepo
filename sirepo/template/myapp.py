@@ -40,6 +40,10 @@ def stateful_compute_sim_data(data, **kwargs):
     return getattr(sim_data, m)(**data.args.test_kwargs)
 
 
+def stateful_compute_test(data, **kwargs):
+    return PKDict(result=234)
+
+
 def get_data_file(run_dir, model, frame, options):
     if options.suffix == "sr_long_analysis":
         # Not asyncio.sleep: not in coroutine (job_cmd)
@@ -63,6 +67,8 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _generate_parameters_file(data):
     if "report" in data:
+        if data.report == "testReport":
+            return ""
         if data.report != "heightWeightReport":
             raise AssertionError(f"unknown report: {data.report}")
     v = copy.deepcopy(data.models, PKDict())
