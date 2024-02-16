@@ -1232,7 +1232,7 @@ class _ImagePreview:
             originals = []
             param_x = False
             c = []
-            for i in range(15 if self.data.args.method in ["improvedImagePreview", "segmentViewer"] else 3):
+            for i in range(15 if self.data.args.method in ["imagePreview", "segmentViewer"] else 3):
                 self.currentImage = x[i]
                 if self.io.input.kind == "f":
                     self.currentImage = self.currentImage.astype(float)
