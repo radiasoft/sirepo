@@ -1252,7 +1252,9 @@ class _ImagePreview:
             self.outputs = []
             self.xIsParameters = False
             x, y, o = self._x_y()
-            for i in range(15 if self.data.args.method in ("imagePreview", "segmentViewer") else 3):
+            for i in range(
+                15 if self.data.args.method in ("imagePreview", "segmentViewer") else 3
+            ):
                 self._append_input_image(x, i)
                 self._append_output_image(y, i)
                 self._append_original_image(o, i)

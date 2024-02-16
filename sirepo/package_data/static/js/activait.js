@@ -1201,16 +1201,16 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             $scope.x = null;
             $scope.y = null;
             $scope.pred = null;
-            $scope.xColName = "Image";
-            $scope.yColName = "Contour";
-            $scope.predColName = "Predicted";
+            $scope.xColName = 'Image';
+            $scope.yColName = 'Contour';
+            $scope.predColName = 'Predicted';
             $scope.imageIdx = 0;
             $scope.dataFileMissing = false;
             $scope.thirdColumn = true;
 
             const pageIndex = () => {
                 return $scope.imageIdx / $scope.imagesPerPage;
-            }
+            };
 
             $scope.canUpdateUri = increment => {
                 return $scope.imageIdx + increment >= 0 && pageIndex() + increment < $scope.numPages;
@@ -1276,11 +1276,11 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                         loading = false;
                         if (response.paramToImage) {
                             if (! response.xIsParameters) {
-                                $scope.yColName = "Prediction";
+                                $scope.yColName = 'Prediction';
                                 return;
                             }
-                            $scope.xColName = "Parameters";
-                            $scope.yColName = "Images";
+                            $scope.xColName = 'Parameters';
+                            $scope.yColName = 'Images';
                         }
                     },
                     {
