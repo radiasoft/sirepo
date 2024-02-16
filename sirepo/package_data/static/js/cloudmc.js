@@ -418,9 +418,10 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
     };
 
     self.colorScale = modelName => {
+        const m = self.getMinMaxWithThreshold();
         return SIREPO.PLOTTING.Utils.colorScale(
-            self.getMinWithThreshold(),
-            self.getMaxWithThreshold(),
+            m[0],
+            m[1],
             SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.applicationState()[modelName].colorMap],
         );
     };
@@ -455,6 +456,12 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         return t > self.maxField
              ? self.minField
              : t;
+    };
+
+    self.getMinMaxWithThreshold = () => {
+        const f = [self.minField, self.maxField];
+        const s = [-1, 1];
+        return appState.applicationState().openmcAnimation.thresholds.map((t, i) => s[i] * t > s[i] * f[i] ? f[i] : t);
     };
 
     self.getOutlines = (volId, dim, index) => {
@@ -816,11 +823,13 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0])
                     )
                 );
+                srdbg('mn', tallyService.getMinWithThreshold(), 'mx', tallyService.getMaxWithThreshold(), 'mnmx', tallyService.getMinMaxWithThreshold());
+                const minmax = tallyService.getMinMaxWithThreshold();
                 const r =  {
                     aspectRatio: ar,
-                    global_max: tallyService.getMaxWithThreshold(),
-                    global_min: tallyService.getMinWithThreshold(),
-                    threshold: appState.models.openmcAnimation.thresholds,
+                    global_max: tallyService.maxField,
+                    global_min: tallyService.minField,
+                    threshold: minmax,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],

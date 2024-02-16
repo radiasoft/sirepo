@@ -743,6 +743,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
         initImage: function(plotRange, heatmap, cacheCanvas, imageData, modelName, threshold=null) {
             var scaleFunction = this.scaleFunction(modelName);
+            srdbg('TH', threshold);
             if (scaleFunction) {
                 if (["e", "10", "2"].indexOf(scaleFunction.powerName) >= 0) {
                     plotRange.min = d3.min(heatmap, function(row) {
