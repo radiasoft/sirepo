@@ -1283,7 +1283,8 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 colorbar.element.scale($scope.colorScale);
                 colorbar.element.pointer = d3.select('.colorbar').call(colorbar.element);
                 const sc = [];
-                const o = Math.floor(255 * appState.models.openmcAnimation.opacity);
+                const o = Math.floor(255 * appState.models.openmcAnimation.opacity.val);
+                srdbg(appState.models.openmcAnimation.opacity.val, o);
                 for (const f of tallyService.fieldData) {
                     if (! isInFieldThreshold(f)) {
                         continue;
@@ -1455,7 +1456,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     const a = volumeAppearance(cloudmcService.getVolumeById(volId));
                     b.setActorProperty(
                         'opacity',
-                        a.actorProperties.opacity * model().opacity
+                        a.actorProperties.opacity * model().opacity.val
                     );
                     b.setActorProperty(
                         'edgeVisibility',
@@ -1619,7 +1620,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     `${$scope.modelName}.colorMap`,
                     `${$scope.modelName}.opacity`,
                     `${$scope.modelName}.sourceColorMap`,
-                ], updateDisplay);
+                ], updateDisplay, true);
                 appState.watchModelFields($scope, [`${$scope.modelName}.showSources`], showSources, true);
                 $scope.$on('openmcAnimation.summaryData', () => {
                     if (vtkScene) {
@@ -2771,7 +2772,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         appState.saveChanges('openmcAnimation');
     }
 
-    cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
+    //cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
 
     $scope.whenSelected = () => {
         updateEnergyRange();
@@ -2800,6 +2801,6 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
 
 SIREPO.viewLogic('geometry3DReportView', function(cloudmcService, $scope) {
     $scope.whenSelected = () => {
-        cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
+        //cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
     };
 });
