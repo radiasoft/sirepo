@@ -2743,8 +2743,6 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         ]);
         panelState.showFields('tallyReport', [
             'axis', is2D,
-        ]);
-        panelState.showFields('tallyReport', [
             'planePos', is2D,
         ]);
         
