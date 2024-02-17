@@ -795,7 +795,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 const [z, x, y] = tallyReportAxes();
                 const [n, m, l] = tallyReportAxisIndices();
                 const ranges = tallyService.getMeshRanges();
-                const pos = appState.models.tallyReport.planePos;
+                const pos = appState.models.tallyReport.planePos.val;
 
                 // for now set the aspect ratio to something reasonable even if it distorts the shape
                 const arRange = [0.50, 1.25];
@@ -811,7 +811,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     global_max: tallyService.maxField,
                     global_min: tallyService.getMinWithThreshold(),
                     threshold: appState.models.openmcAnimation.threshold,
-                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
+                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(pos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
@@ -1005,16 +1005,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             }
 
             function updateSliceAxis() {
-                function adjustToRange(val, range) {
-                    if (val < range.min) {
-                        return range.min;
-                    }
-                    if (val > range.max) {
-                        return  range.max;
-                    }
-                    return range.min + range.step * Math.round((val - range.min) / range.step);
-                }
-
                 if (! tallyService.fieldData) {
                     return;
                 }
@@ -1022,10 +1012,9 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     return ;
                 }
                 const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
-                appState.models.tallyReport.planePos = adjustToRange(
-                    appState.models.tallyReport.planePos,
-                    r
-                );
+                ['min', 'max', 'step'].forEach((x) => {
+                    appState.models.tallyReport.planePos[x] = r[x];
+                });
                 updateSlice();
             }
 
@@ -2724,94 +2713,6 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('planePositionSlider', function(appState, tallyService) {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: `
-            <div data-ng-show="hasSteps()">
-                <div data-label-with-tooltip="" data-label="Plane position"></div>
-                <div class="plane-pos-slider"></div>
-                <div style="display:flex; justify-content:space-between;">
-                     <span>{{ formatFloat(tallyService.tallyRange(appState.models.tallyReport.axis, true).min) }}</span>
-                     <span>{{ formatFloat(tallyService.tallyRange(appState.models.tallyReport.axis, true).max) }}</span>
-                </div>
-            </div>
-        `,
-        controller: function($scope) {
-            $scope.appState = appState;
-            $scope.tallyService = tallyService;
-            let planePosSlider = null;
-            let hasSteps = false;
-
-            function buildSlider(modelName, field, selectorString, range) {
-                hasSteps = range.min != range.max;
-                if (! hasSteps) {
-                    return;
-                }
-                const sel = $(selectorString);
-                const val = appState.models[modelName][field];
-                const isMulti = Array.isArray(val);
-                if (isMulti) {
-                    if (val[0] < range.min) {
-                        val[0] = range.min;
-                    }
-                    if (val[1] > range.max) {
-                        val[1] = range.max;
-                    }
-                }
-                sel.slider({
-                    min: range.min,
-                    max: range.max,
-                    range: isMulti,
-                    slide: (e, ui) => {
-                        $scope.$apply(() => {
-                            if (isMulti) {
-                                appState.models[modelName][field][ui.handleIndex] = ui.value;
-                            }
-                            else {
-                                appState.models[modelName][field] = ui.value;
-                            }
-                        });
-                    },
-                    step: range.step,
-                });
-                // jqueryui sometimes decrements the max by the step value due to floating-point
-                // shenanigans. Reset it here
-                sel.slider('instance').max = range.max;
-                sel.slider('option', isMulti ? 'values' : 'value', val);
-                sel.slider('option', 'disabled', range.min === range.max);
-                return sel;
-            }
-
-            function updateSlider() {
-                const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
-                planePosSlider = buildSlider(
-                    'tallyReport',
-                    'planePos',
-                    '.plane-pos-slider',
-                    r
-                );
-            }
-
-            $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
-            $scope.hasSteps = () => hasSteps;
-
-            appState.watchModelFields($scope, ['tallyReport.planePos', 'tallyReport.axis'], updateSlider, true);
-            $scope.$on('tallyReport.summaryData', updateSlider);
-            $scope.$on('openmcAnimation.summaryData', updateSlider);
-            updateSlider();
-
-            $scope.$on('$destroy', () => {
-                if (planePosSlider) {
-                    planePosSlider.slider('destroy');
-                    planePosSlider = null;
-                }
-            });
-        },
-    };
-});
-
 SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
     return {
         restrict: 'A',
@@ -2819,9 +2720,6 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
         template: `
             <div data-tally-volume-picker=""></div>
             <div data-advanced-editor-pane="" data-view-name="'tallySettings'" data-want-buttons="" data-field-def="basic"></div>
-            <div data-ng-if="is2D()">
-                <div plane-position-slider=""></div>
-            </div>
         `,
         controller: function($scope) {
             $scope.is2D = () => {
@@ -2846,6 +2744,10 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         panelState.showFields('tallyReport', [
             'axis', is2D,
         ]);
+        panelState.showFields('tallyReport', [
+            'planePos', is2D,
+        ]);
+        
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
         panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
         panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);

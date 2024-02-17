@@ -56,6 +56,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 y = f._type
                 if y != "None":
                     cls.update_model_defaults(f, y)
+        if isinstance(p := dm.tallyReport.planePos, float):
+            dm.tallyReport.planePos = sch.model.tallyReport.planePos[2]
+            dm.tallyReport.planePos.val = p
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):

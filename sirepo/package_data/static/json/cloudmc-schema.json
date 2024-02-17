@@ -1038,7 +1038,7 @@
         "tallyReport": {
             "axis": ["Slice Axis", "Axis", "y"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "planePos": ["_", "Range", 0.0, ""],
+            "planePos": ["Plane Position [m]", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.0, "space": "linear"}, ""],
             "selectedGeometry": ["", "TallyGeometry", "3D"]
         },
         "tallyScore": {
@@ -1214,7 +1214,8 @@
                 "colorMap",
                 "threshold",
                 "opacity",
-                "tallyReport.axis"
+                "tallyReport.axis",
+                "tallyReport.planePos"
             ],
             "advanced": []
         },
