@@ -1233,8 +1233,9 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                     }
                 );
             };
-
-            loadImageFile();
+            setTimeout(function(){
+                loadImageFile();
+            }, 3000);
         }
     };
 });
@@ -2403,9 +2404,7 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
     };
 
     appState.whenModelsLoaded($scope, () => {
-        console.log('Here models loaded:', appState.models[$scope.modelName]);
         if (appState.models[$scope.modelName].exampleFile) {
-            console.log('Downloading files');
             downloadRemoteDataFile();
         }
     });

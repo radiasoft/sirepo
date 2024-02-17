@@ -18,6 +18,7 @@ import numpy
 import os
 import re
 import pandas
+import py.path
 import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
@@ -378,29 +379,28 @@ def stateful_compute_get_remote_data(data, **kwargs):
     return PKDict()
 
 def stateful_compute_download_remote_lib_file(data, **kwargs):
-    _lib_file_save_from_url(data.args.exampleFile1)
+    def _dataFile_path(filename):
+        return _SIM_DATA.lib_file_abspath("dataFile-file.{}".format(filename))
+    
+    _lib_file_save_from_url(data.args.exampleFile)
     if data.args.exampleFile2:
         _lib_file_save_from_url(data.args.exampleFile2)
-    fname_out = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_write(
-            "dataFile-file.{}".format(data.args.file),
-            "",
+        f_name = "dataFile-file.{}".format(data.args.file)
+        f_out = "/".join(
+            (os.path.dirname(_dataFile_path(data.args.exampleFile)), f_name)
         )
-    )
-    fname_in = [
-        _SIM_DATA.lib_file_abspath("dataFile-file.{}".format(data.args.exampleFile)),
-        _SIM_DATA.lib_file_abspath("dataFile-file.{}".format(data.args.exampleFile2))
-    ]
-    '''
-    with h5py.File(fname_out, "w") as combined:
-        for fname in fname_in:
-            with h5py.File(fname, "r") as src:
-                combined.attrs.update(src.attrs)
-                for group in src:
-                    group_id = combined.require_group(src[group].parent.name)
-                    src.copy(f"/{group}", group_id, name=group)
-    '''
-    #lib_file_write
+        f_in = [
+            _dataFile_path(data.args.exampleFile),
+            _dataFile_path(data.args.exampleFile2),
+        ]
+        with h5py.File(f_out, "w") as cmb:
+            for f in f_in:
+                with h5py.File(f, "r") as src:
+                    cmb.attrs.update(src.attrs)
+                    for g in src:
+                        g_id = cmb.require_group(src[g].parent.name)
+                        src.copy(f"/{g}", g_id, name=g)
+        _SIM_DATA.lib_file_write(f_name, py.path.local(f_out))
     return PKDict()
 
 
