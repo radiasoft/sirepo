@@ -3,10 +3,11 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import databroker
 
-_CACHED_CATALOGS = {}
+_CACHED_CATALOGS = PKDict()
 
 
 class _Metadata:
@@ -47,7 +48,7 @@ def catalog(name):
     # the cached connection could timeout eventually, but the scan_monitor service
     # is polling for new scans, which should keep it active
 
-    if not name in _CACHED_CATALOGS:
+    if name not in _CACHED_CATALOGS:
         _CACHED_CATALOGS[name] = databroker.catalog[name]
     return _CACHED_CATALOGS[name]
 
