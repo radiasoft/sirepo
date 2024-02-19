@@ -1152,29 +1152,29 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             method: '@',
         },
         template: `
-        <div>
+        <div class="container-fluid">
           <div data-ng-if="x" class="row">
-            <div class="col-md-4">
+            <div class="col-md-{{ hasThirdColumn ? '4' : '6' }}">
               <div class="lead text-center">{{ xColName }}</div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-{{ hasThirdColumn ? '4' : '6' }}">
               <div class="lead text-center">{{ yColName }}</div>
             </div>
-            <div data-ng-if="thirdColumn" class="col-md-4">
+            <div data-ng-if="hasThirdColumn" class="col-md-4">
               <div class="lead text-center">{{ predColName }}</div>
             </div>
           </div>
           <div data-ng-repeat="image in pageImages">
             <div class="row">
-              <div class="col-md-4">
-                <img class="img-responsive x{{method}}{{$index + 1 }}" />
+              <div class="col-md-{{ hasThirdColumn ? '4' : '6' }}">
+                <img class="img-responsive x{{ method + ($index + 1) }}" />
                 <div data-ng-if="xIsParams"> <br/> <b>{{ parameters[$index] }}</b> </div>
               </div>
-              <div class="col-md-4">
-                <img class="img-responsive y{{method}}{{$index + 1 }}" />
+              <div class="col-md-{{ hasThirdColumn ? '4' : '6' }}">
+                <img class="img-responsive y{{ method + ($index + 1) }}" />
               </div>
-              <div data-ng-if="thirdColumn" class="col-md-4">
-                <img class="img-responsive pred{{method}}{{$index + 1 }}" />
+              <div data-ng-if="hasThirdColumn" class="col-md-4">
+                <img class="img-responsive pred{{ method + ($index + 1) }}" />
               </div>
             </div>
           </div>
@@ -1186,7 +1186,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
               <button class="btn btn-primary" title="previous" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><</button>
             </div>
             <div data-ng-if="numPages > 3" class="pull-right">
-                page {{ imageIdx/imagesPerPage + 1 }} of {{ numPages }}
+                page {{ imageIdx / imagesPerPage + 1 }} of {{ numPages }}
               <button class="btn btn-primary" title="next" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()">></button>
               <button class="btn btn-primary" title="last" data-ng-click="last()">>|</button>
             </div>
@@ -1206,7 +1206,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             $scope.predColName = 'Predicted';
             $scope.imageIdx = 0;
             $scope.dataFileMissing = false;
-            $scope.thirdColumn = true;
+            $scope.hasThirdColumn = true;
 
             const pageIndex = () => {
                 return $scope.imageIdx / $scope.imagesPerPage;
@@ -1244,8 +1244,8 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                             $(`.x${$scope.method}${v + 1}`)[0].src = $scope.x[index + v];
                         }
                         $(`.y${$scope.method}${v + 1}`)[0].src = $scope.y[index + v];
-                        $scope.thirdColumn = $scope.pred != null;
-                        if ($(`.pred${$scope.method}1`).length && $scope.thirdColumn) {
+                        $scope.hasThirdColumn = $scope.pred != null;
+                        if ($(`.pred${$scope.method}1`).length && $scope.hasThirdColumn) {
                             $(`.pred${$scope.method}${v + 1}`)[0].src = $scope.pred[index + v];
                         }
                     });
