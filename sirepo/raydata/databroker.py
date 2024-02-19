@@ -6,6 +6,8 @@
 from pykern.pkdebug import pkdp
 import databroker
 
+_CACHED_CATALOGS = {}
+
 
 class _Metadata:
     def __init__(self, scan, catalog_name):
@@ -39,7 +41,15 @@ class _Metadata:
 
 
 def catalog(name):
-    return databroker.catalog[name]
+    # each call to databroker.catalog[name] create a new pymongo.MongoClient
+    # so keep a catalog cache
+
+    # the cached connection could timeout eventually, but the scan_monitor service
+    # is polling for new scans, which should keep it active
+
+    if not name in _CACHED_CATALOGS:
+        _CACHED_CATALOGS[name] = databroker.catalog[name]
+    return _CACHED_CATALOGS[name]
 
 
 def catalogs():
