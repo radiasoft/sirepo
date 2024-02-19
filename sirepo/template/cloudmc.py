@@ -469,7 +469,7 @@ def _generate_distribution(dist):
     return _generate_call(t, args)
 
 
-def _generate_materials(data):
+def _generate_materials(data, template_data):
     res = ""
     material_vars = []
     for v in data.models.volumes.values():
@@ -513,7 +513,8 @@ def _generate_materials(data):
             elif c.component == "add_s_alpha_beta":
                 res += f'{n}.{c.component}("{c.name}", {c.fraction})\n'
     if not len(material_vars):
-        raise AssertionError(f"No materials defined for volumes")
+        template_data.incomplete_data_msg += "\nNo materials defined for volumes"
+        return
     res += "materials = openmc.Materials([" + ", ".join(material_vars) + "])\n"
     return res
 
@@ -537,13 +538,14 @@ def _generate_parameters_file(data, run_dir=None):
             cores = 1 if r == "sequential" else sirepo.mpi.cfg().cores
             v.runCommand = f"openmc.run(threads={ cores })"
 
-    v.materials = _generate_materials(data)
-    v.sources = _generate_sources(data)
+    v.incomplete_data_msg = ""
+    v.materials = _generate_materials(data, v)
+    v.sources = _generate_sources(data, v)
     v.sourceFile = _source_filename(data)
     v.maxSampleSourceParticles = SCHEMA.model.openmcAnimation.numSampleSourceParticles[
         5
     ]
-    v.tallies = _generate_tallies(data)
+    v.tallies = _generate_tallies(data, v)
     v.hasGraveyard = _has_graveyard(data)
     return template_common.render_jinja(
         SIM_TYPE,
@@ -575,9 +577,10 @@ def _generate_source(source):
     )"""
 
 
-def _generate_sources(data):
+def _generate_sources(data, template_data):
     if not len(data.models.settings.sources):
-        raise AssertionError(f"No Settings Sources defined")
+        template_data.incomplete_data_msg += "\n#  No Settings Sources defined"
+        return
     return ",\n".join([_generate_source(s) for s in data.models.settings.sources])
 
 
@@ -606,9 +609,10 @@ def _generate_space(space):
     return _generate_call(space._type, args)
 
 
-def _generate_tallies(data):
+def _generate_tallies(data, template_data):
     if not len(data.models.settings.tallies):
-        raise AssertionError(f"No Tallies defined")
+        template_data.incomplete_data_msg += "\n# No Tallies defined"
+        return
     return (
         "\n".join(
             [

@@ -1,3 +1,6 @@
+{% if incomplete_data_msg != "" %}
+# Unable to generate sim due to: {{ incomplete_data_msg }}
+{% else %}
 # -*- python -*-
 import numpy
 import openmc
@@ -93,4 +96,5 @@ sirepo.template.import_module('cloudmc').write_volume_outlines()
 {% endif %}
 {% if runCommand %}
 {{ runCommand }}
+{% endif %}
 {% endif %}
