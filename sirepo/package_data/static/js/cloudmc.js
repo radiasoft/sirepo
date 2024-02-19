@@ -125,23 +125,6 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
         };
     };
 
-    self.buildRangeDelegate = (modelName, field) => {
-        const d = panelState.getFieldDelegate(modelName, field);
-        d.range = () => {
-            return {
-                min: appState.fieldProperties(modelName, field).min,
-                max: appState.fieldProperties(modelName, field).max,
-                step: 0.01
-            };
-        };
-        d.readout = () => {
-            return appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_LABEL];
-        };
-        d.update = () => {};
-        d.watchFields = [];
-        return d;
-    };
-
     self.canNormalizeScore = score => ! SIREPO.APP_SCHEMA.constants.unnormalizableScores.includes(score);
 
     self.computeModel = modelKey => modelKey;
@@ -1284,7 +1267,6 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 colorbar.element.pointer = d3.select('.colorbar').call(colorbar.element);
                 const sc = [];
                 const o = Math.floor(255 * appState.models.openmcAnimation.opacity.val);
-                srdbg(appState.models.openmcAnimation.opacity.val, o);
                 for (const f of tallyService.fieldData) {
                     if (! isInFieldThreshold(f)) {
                         continue;
@@ -2594,12 +2576,11 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             modelName: '<',
         },
         template: `
-            <div data-label-with-tooltip="" data-label=""></div>
             <div class="{{ sliderClass }}"></div>
             <div style="display:flex; justify-content:space-between;">
-                    <span>{{ formatFloat(field.min) }}</span>
-                    <span>{{ display(field) }}</span>
-                    <span>{{ formatFloat(field.max) }}</span>
+                <span>{{ formatFloat(field.min) }}</span>
+                <span>{{ display(field) }}</span>
+                <span>{{ formatFloat(field.max) }}</span>
             </div>
         `,
         controller: function($scope, $element) {
@@ -2627,7 +2608,8 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
 
             function buildSlider() {
                 const range = $scope.field;
-                hasSteps = range.min !== range.max;
+                range.numSteps = Math.floor(Math.abs((range.max - range.min)) / range.step);
+                hasSteps = ! ! range.numSteps;
                 if (! hasSteps) {
                     return;
                 }
@@ -2738,13 +2720,14 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
 
     function showFields() {
         const is2D = appState.models.tallyReport.selectedGeometry === '2D';
+        const planePosHasSteps = (appState.models.tallyReport.planePos.numSteps || 0) > 0;
         const showSources = appState.models.openmcAnimation.showSources === '1';
         panelState.showFields('openmcAnimation', [
             'opacity', ! is2D,
         ]);
         panelState.showFields('tallyReport', [
             'axis', is2D,
-            'planePos', is2D,
+            'planePos', is2D && planePosHasSteps,
         ]);
         
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
@@ -2772,8 +2755,6 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         appState.saveChanges('openmcAnimation');
     }
 
-    //cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
-
     $scope.whenSelected = () => {
         updateEnergyRange();
         showFields();
@@ -2800,7 +2781,5 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
 });
 
 SIREPO.viewLogic('geometry3DReportView', function(cloudmcService, $scope) {
-    $scope.whenSelected = () => {
-        //cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
-    };
+    $scope.whenSelected = () => {};
 });
