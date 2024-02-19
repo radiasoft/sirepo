@@ -24,15 +24,9 @@ import sirepo.sim_data
 import sirepo.util
 
 
-_SEGMENT_ROWS = 3
+_LOSS_IMAGE_COUNT = 3
 
-_SEGMENT_PAGES = 5
-
-_IMG_ROWS = 5
-
-_IMG_COLS = 5
-
-_POST_TRAINING_PLOTS = ("segmentViewer", "bestLosses", "worstLosses")
+_PREVIEW_IMAGE_COUNT = 15
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -1244,6 +1238,22 @@ class _ImagePreview:
             self._gen_image()
             self.originals.append(self._pyplot_data_url())
 
+    def _final_images(self):
+        res = PKDict(
+            paramToImage=_param_to_image(self.info),
+            xIsParameters=self.xIsParameters,
+            pred=False,
+            x=self.inputs,
+            y=self.outputs,
+        )
+        if self.originals:
+            res.pkupdate(
+                pred=self.outputs,
+                x=self.originals,
+                y=self.inputs,
+            )
+        return res
+
     def images(self):
         with h5py.File(_filepath(self.data.args.dataFile.file), "r") as f:
             self.file = f
@@ -1253,18 +1263,14 @@ class _ImagePreview:
             self.xIsParameters = False
             x, y, o = self._x_y()
             for i in range(
-                15 if self.data.args.method in ("imagePreview", "segmentViewer") else 3
+                _PREVIEW_IMAGE_COUNT
+                if self.data.args.method in ("imagePreview", "segmentViewer")
+                else _LOSS_IMAGE_COUNT
             ):
                 self._append_input_image(x, i)
                 self._append_output_image(y, i)
                 self._append_original_image(o, i)
-            return PKDict(
-                paramToImage=_param_to_image(self.info),
-                xIsParameters=self.xIsParameters,
-                pred=self.outputs if self.originals else False,
-                x=self.originals if self.originals else self.inputs,
-                y=self.inputs if self.originals else self.outputs,
-            )
+            return self._final_images()
 
 
 def _is_branching(node):
