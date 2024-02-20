@@ -9,7 +9,7 @@ SIREPO.app.config(function() {
     };
     SIREPO.SINGLE_FRAME_ANIMATION = ['optimizerAnimation', 'fieldCalcAnimation', 'fieldComparisonAnimation'];
     SIREPO.appReportTypes = `
-        <div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+        <div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
         <div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-screenshot sr-plot" data-model-name="{{ modelKey }}"></div>
         <div data-ng-switch-when="optimizerPath" data-optimizer-path-plot="" class="sr-screenshot sr-plot" data-model-name="{{ modelKey }}"></div>
     `;
@@ -1052,7 +1052,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
         restrict: 'A',
         scope: {
             modelName: '@',
-            reportId: '<',
         },
         templateUrl: '/static/html/conductor-grid.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
@@ -2986,7 +2985,6 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
         restrict: 'A',
         scope: {
             parentController: '=',
-            reportId: '<',
         },
         template: `
           <div class="sr-screenshot">
@@ -3409,7 +3407,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
         restrict: 'A',
         scope: {
             modelName: '@',
-            reportId: '<',
         },
         templateUrl: '/static/html/particle3d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {

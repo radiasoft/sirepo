@@ -2231,7 +2231,6 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             panelHeading: '@',
             modelKey: '=',
             isReport: '@',
-            reportId: '<',
             viewName: '@',
         },
         template: `
@@ -2376,21 +2375,20 @@ SIREPO.app.directive('reportContent', function(panelState) {
         restrict: 'A',
         transclude: true,
         scope: {
-            reportId: '<',
             reportContent: '@',
             modelKey: '@',
         },
         template: `
             <div data-show-loading-and-error="" data-model-key="{{ modelKey }}">
               <div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? 'sr-hide-report' : '' }}">
-                <div data-ng-switch-when="2d" data-plot2d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="3d" data-plot3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="2d" data-plot2d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
+                <div data-ng-switch-when="3d" data-plot3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="particle" data-particle="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
-                <div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
+                <div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="lattice" data-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
-                <div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 ${SIREPO.appReportTypes || ''}
               </div>
               <div data-ng-transclude=""></div>
@@ -2415,14 +2413,12 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
             requestPriority: '@',
         },
         template: `
-            <div class="panel panel-info" data-ng-attr-id="{{ ::reportId }}">
-              <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1" data-report-id="reportId"></div>
-              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId"><div data-ng-transclude=""></div></div>
+            <div class="panel panel-info">
+              <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1"></div>
+              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}"><div data-ng-transclude=""></div></div>
               <div data-ng-if="notes()"><span class="pull-right sr-notes" data-sr-tooltip="{{ notes() }}" data-placement="top"></span><div class="clearfix"></div></div>
         `,
         controller: function($scope) {
-            // random id for the keypress service to track
-            $scope.reportId = utilities.reportId();  //Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
             if ($scope.modelName && $scope.modelName.includes('{') ) {
                 throw new Error('Expected simple name for modelName, got: ' + $scope.modelName);
             }
@@ -4779,134 +4775,6 @@ SIREPO.app.service('mathRendering', function() {
     };
 });
 
-SIREPO.app.service('keypressService', function() {
-
-    var listeners = {};
-    var reports = {};
-    var activeListeners = [];
-    var activeListenerId = null;
-
-    this.addListener = function(listenerId, listener, reportId) {
-        if(! reportId) {
-            return;
-        }
-        listeners[listenerId] = listener;
-        if (! reports[reportId]) {
-                reports[reportId] = [];
-        }
-        reports[reportId].push(listenerId);
-        if(activeListeners.indexOf(listenerId) < 0) {
-            activeListeners.push(listenerId);
-        }
-
-        // turn off highlighting for active report panel, if any
-        showPanelActive(reportForListener(activeListenerId), false);
-
-        activeListenerId = listenerId;
-        this.enableListener(true);
-    };
-    this.hasListener = function(listenerId) {
-        return activeListeners.indexOf(listenerId) >= 0;
-    };
-    this.hasReport = function(reportId) {
-        return ! ! reports[reportId];
-    };
-
-    this.removeListener = function(listenerId) {
-        var lIndex = activeListeners.indexOf(listenerId);
-        if(lIndex >= 0) {
-            activeListeners.splice(lIndex, 1);
-        }
-        delete listeners[listenerId];
-
-        var reportId = reportForListener(listenerId);
-        showPanelActive(reportId, false);
-        if(reportId) {
-            reports[reportId].splice(reports[reportId].indexOf(listenerId), 1);
-        }
-
-        // activate the last one added, if any remain
-        if(activeListeners.length > 0) {
-            activeListenerId = activeListeners[activeListeners.length - 1];
-            this.enableListener(true);
-        }
-        else {
-            activeListenerId = null;
-            this.enableListener(false);
-        }
-    };
-
-    this.removeListenersForReport = function(reportId) {
-        if(! reportId || ! reports[reportId]) {
-            return;
-        }
-        var rlArr = reports[reportId];
-        for(var rlIndex = 0; rlIndex < rlArr.length; ++rlIndex) {
-            this.removeListener(rlArr[rlIndex]);
-        }
-    };
-    this.removeReport = function(reportId) {
-        if(! reportId) {
-            return;
-        }
-        this.removeListenersForReport(reportId);
-        delete reports[reportId];
-    };
-
-
-    // set the active listener, or
-    // remove keydown listener from body element leaving the keys in place
-    this.enableListener = function(doListen, listenerId) {
-        if(! listenerId)  {
-            listenerId = activeListenerId;
-        }
-        activeListenerId = listenerId;
-        var reportId = reportForListener(activeListenerId);
-        if(doListen && activeListenerId) {
-            d3.select('body').on('keydown', listeners[activeListenerId]);
-            showPanelActive(reportId, true);
-            return;
-        }
-        d3.select('body').on('keydown', null);
-        showPanelActive(reportId, false);
-    };
-    this.enableNextListener = function(direction) {
-        var lIndex = activeListeners.indexOf(activeListenerId);
-        if(lIndex < 0) {
-            return;
-        }
-        this.enableListener(false);
-        var d = direction < 0 ? -1 : 1;
-        var newIndex = (lIndex + d + activeListeners.length) % activeListeners.length;
-        this.enableListener(true, activeListeners[newIndex]);
-    };
-
-    function reportForListener(listenerId) {
-        if(! listenerId) {
-            return null;
-        }
-        for(var reportId in reports) {
-            var rlIndex = reports[reportId].indexOf(listenerId);
-            if(rlIndex < 0) {
-                continue;
-            }
-            return reportId;
-        }
-    }
-
-    function showPanelActive(reportId, isActive) {
-        if(! reportId) {
-            return;
-        }
-        if(isActive) {
-            $('#' + reportId).addClass('sr-panel-active');
-            return;
-        }
-        $('#' + reportId).removeClass('sr-panel-active');
-    }
-
-});
-
 SIREPO.app.service('plotRangeService', function(appState, panelState, requestSender) {
     var self = this;
     var runningModels = [];
@@ -5101,10 +4969,6 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
 
     this.ngModelForInput = function(modelName, fieldName) {
         return angular.element($('.' + this.modelFieldID(modelName, fieldName) + ' input')).controller('ngModel');
-    };
-
-    this.reportId = function() {
-        return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
     };
 
     this.isWide = function() {

@@ -1,4 +1,4 @@
-    <div style="position: relative" ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
+    <div style="position: relative" ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}"  data-ng-attr-id="{{ ::reportId }}">
       <canvas ng-attr-style="position: absolute; left: {{ margin.left + noLabelPad }}px; top: {{ margin.top }}px;"></canvas>
       <div><svg class="sr-plot" style="position: relative" ng-attr-width="{{ margin.left + noLabelPad + canvasSize.width + rightPanelWidth }}" ng-attr-height="{{ margin.top + margin.bottom + canvasSize.height + bottomPanelHeight }}">
         <g ng-attr-transform="translate({{ margin.left + noLabelPad }},{{ margin.top }})">
