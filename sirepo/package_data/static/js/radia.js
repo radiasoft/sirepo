@@ -2234,16 +2234,15 @@ SIREPO.app.directive('radiaViewer', function(panelState, utilities) {
         template: `
             <div class="col-md-6">
                 <div class="panel panel-info" id="sr-magnetDisplay-basicEditor">
-                    <div class="panel-heading clearfix" data-panel-heading="Magnet Viewer" data-view-name="{{ modelName }}" data-is-report="true" data-model-key="modelName" data-report-id="reportId"></div>
+                    <div class="panel-heading clearfix" data-panel-heading="Magnet Viewer" data-view-name="{{ modelName }}" data-is-report="true" data-model-key="modelName"></div>
                     <div class="panel-body" data-ng-if="! panelState.isHidden(modelName)">
-                        <div data-radia-viewer-content="" data-model-name="{{ modelName }}" data-viz="viz" data-report-id="{{ reportId }}"></div>
+                        <div data-radia-viewer-content="" data-model-name="{{ modelName }}" data-viz="viz"></div>
                     </div>
                 </div>
             </div>
         `,
         controller: function($scope) {
             $scope.panelState = panelState;
-            $scope.reportId = utilities.reportId();
         },
     };
 });
@@ -2255,12 +2254,11 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
         transclude: true,
         scope: {
             modelName: '@',
-            reportId: '@',
         },
         template: `
             <div data-advanced-editor-pane="" data-view-name="modelName" data-want-buttons="true" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
             <div data-ng-transclude="">
-                <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-report-id="reportId" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
+                <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
                 <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
                     <div class="colorbar"></div>
                 </div>

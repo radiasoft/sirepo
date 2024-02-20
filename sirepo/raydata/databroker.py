@@ -3,8 +3,11 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import databroker
+
+_CACHED_CATALOGS = PKDict()
 
 
 class _Metadata:
@@ -39,7 +42,15 @@ class _Metadata:
 
 
 def catalog(name):
-    return databroker.catalog[name]
+    # each call to databroker.catalog[name] create a new pymongo.MongoClient
+    # so keep a catalog cache
+
+    # the cached connection could timeout eventually, but the scan_monitor service
+    # is polling for new scans, which should keep it active
+
+    if name not in _CACHED_CATALOGS:
+        _CACHED_CATALOGS[name] = databroker.catalog[name]
+    return _CACHED_CATALOGS[name]
 
 
 def catalogs():
