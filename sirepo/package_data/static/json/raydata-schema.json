@@ -91,7 +91,7 @@
         },
         "searchTerm": {
             "column": ["Column", "ColumnList", ""],
-            "term": ["Search Term", "OptionalString", ""]
+            "term": ["Search Term", "SearchTermText", ""]
         },
         "simulation": {
             "catalogNamePicker": ["Catalog Name", "CatalogNamePicker", ""]
