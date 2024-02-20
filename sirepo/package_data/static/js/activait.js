@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
     SIREPO.PLOTTING_COLOR_MAP = 'blues';
-    SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation', 'dicePlotAnimation'];
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.FILE_UPLOAD_TYPE = {
         'dataFile-file': '.h5,.csv',
