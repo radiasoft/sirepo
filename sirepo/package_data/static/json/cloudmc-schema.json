@@ -330,7 +330,7 @@
             "name": ["Name", "String", ""],
             "temperature": ["Temperature [K] (Optional)", "OptionalFloat"],
             "density_with_units": ["Density", "DensityWithUnits"],
-            "density": ["Density", "Float"],
+            "density": ["Density", "Float", 1.0],
             "density_units": ["Density units", "DensityUnits", "g/cm3"],
             "depletable": ["Depletable", "Boolean", "0"],
             "standardType": ["Standard Material", "StandardMaterial", "None"],
@@ -917,8 +917,8 @@
         },
         "normal": {
             "_super": [ "_", "model", "univariate"],
-            "mean_value": ["Mean value", "Float"],
-            "std_dev": ["Standard deviation", "Float"]
+            "mean_value": ["Mean value", "Float", 1.0],
+            "std_dev": ["Standard deviation", "Float", 0.01]
         },
         "nuclide": {
             "nuclide": ["Nuclide", "OptionalString"]
@@ -971,8 +971,8 @@
             "n": ["Exponent", "Float", 0, "Power law exponent. Defaults to zero, which is equivalent to a uniform distribution"]
         },
         "probabilityValue": {
-            "x": ["Value", "Float"],
-            "p": ["Probability", "Float"]
+            "x": ["Value", "Float", 10],
+            "p": ["Probability", "Float", 1]
         },
         "reflectivePlanes": {
             "useReflectivePlanes": ["Use reflective planes", "Boolean", "0", "Add reflective planes for sector models. $Ax + By + Cz = D$"],

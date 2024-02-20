@@ -204,47 +204,6 @@
         "logisticRegressionErrorRateAnimation": []
     },
     "model": {
-        "analysisCluster": {
-            "model": "analysisReport",
-            "basic": [
-                "action",
-                "clusterMethod",
-                "clusterCount",
-                "clusterFields"
-            ],
-            "advanced": []
-        },
-        "analysisData": {
-            "title": "Archive Data File",
-            "basic": [
-                "file"
-            ],
-            "advanced": []
-        },
-        "analysisFFT": {
-            "model": "analysisReport",
-            "basic": [
-                "action"
-            ],
-            "advanced": []
-        },
-        "analysisFit": {
-            "model": "analysisReport",
-            "basic": [
-                "action",
-                "fitEquation",
-                "fitVariable",
-                "fitParameters"
-            ],
-            "advanced": []
-        },
-        "analysisNone": {
-            "model": "analysisReport",
-            "basic": [
-                "action"
-            ],
-            "advanced": []
-        },
         "analysisReport": {
             "x": ["X Value", "AnalysisParameter", "0"],
             "y1": ["Y1 Value", "AnalysisParameter", "1"],
@@ -262,22 +221,12 @@
             "fitParameters": ["Fit Parameters", "EquationParameters", "a,b"],
             "fitVariable": ["Independent Variable", "EquationVariables", "x"],
             "trimField": ["Trim Field", "AnalysisParameter"],
-            "trimMin": ["Minimum", "Float"],
-            "trimMax": ["Maximum", "Float"],
+            "trimMin": ["Minimum", "Float", 0],
+            "trimMax": ["Maximum", "Float", 1],
             "trimButton": ["", "TrimButton"],
             "y2": ["Y2 Value", "AnalysisOptionalParameter", "none"],
             "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
             "notes": ["Notes", "Text", ""]
-        },
-        "analysisTrim": {
-            "model": "analysisReport",
-            "basic": [
-                "action",
-                "trimMin",
-                "trimMax",
-                "trimButton"
-            ],
-            "advanced": []
         },
         "columnInfo": {},
         "classificationAnimation": {
@@ -448,8 +397,8 @@
             "section0": ["Section 0", "PartitionSection", "validate"],
             "section1": ["Section 1", "PartitionSection", "train_and_test"],
             "section2": ["Section 2", "PartitionSection", "validate"],
-            "cutoff0": ["Cutoff 0", "Integer"],
-            "cutoff1": ["Cutoff 1", "Integer"],
+            "cutoff0": ["Cutoff 0", "Integer", 0],
+            "cutoff1": ["Cutoff 1", "Integer", 1],
             "trainTestPercent": ["Training %", "Float", 75, "", 1, 98]
         },
         "partitionColumnReport": {},

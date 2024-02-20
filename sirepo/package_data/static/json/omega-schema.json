@@ -58,21 +58,21 @@
         },
         "simulationStatus": {},
         "simBeamAnimation": {
-            "simCount": ["", "Integer"],
+            "simCount": ["", "Integer", 0],
             "y1": ["Y1 Value", "BeamParameter", "rmsx"],
             "y2": ["Y2 Value", "BeamParameter", "rmsy"],
             "y3": ["Y3 Value", "BeamParameter", "rmss"]
         },
         "simPhaseSpaceAnimation": {
-            "simCount": ["", "Integer"],
-            "reportCount": ["", "Integer"],
+            "simCount": ["", "Integer", 0],
+            "reportCount": ["", "Integer", 0],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "histogramBins": ["Histogram Bins", "Integer", 200]
         },
         "simFieldDistributionAnimation": {
             "fieldPlot": ["Value to Plot", "FieldPlot", "fieldDistributionPlot"],
-            "simCount": ["", "Integer"],
-            "reportCount": ["", "Integer"],
+            "simCount": ["", "Integer", 0],
+            "reportCount": ["", "Integer", 0],
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
             "notes": ["Notes", "Text", ""]
         },

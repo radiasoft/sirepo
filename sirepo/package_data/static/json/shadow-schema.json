@@ -409,7 +409,7 @@
         },
         "aperture": {
             "title": ["Element Name", "String", "Aperture"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Nominal Position [m]", "Float", 0],
             "shape": ["Shape", "ApertureShape", "0"],
             "horizontalSize": ["Horizontal Size [mm]", "Float", 10],
             "verticalSize": ["Vertical Size [mm]", "Float", 10],
@@ -430,14 +430,14 @@
         "bendingMagnet": {
             "ph1": ["Minimum Energy [eV]", "Float", 11160.0],
             "ph2": ["Maximum Energy [eV]", "Float", 0.0],
-            "r_magnet": ["Magnet Radius [m]", "Float"],
+            "r_magnet": ["Magnet Radius [m]", "Float", 25.0],
             "fdistr": ["Calculation Mode", "BendingMagnetMode"],
             "calculateFieldMethod": ["Compute Field/Radius", "ComputeFieldMethod", "radius"],
-            "magneticField": ["Magnetic Field [T]", "Float"]
+            "magneticField": ["Magnetic Field [T]", "Float", 1.0]
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Nominal Position [m]", "Float", 0],
             "numberOfLenses": ["Number of Lenses", "Integer", 3],
             "numberOfEmptySlots": ["Number of Empty Slots", "Integer", 0],
             "pilingThickness": ["Piling Thickness [mm]", "Float", 0.625],
@@ -457,7 +457,7 @@
         "crystal": {
             "_super": ["_", "model", "_MISALIGNED_ELEMENT"],
             "title": ["Element Name", "String", "Crystal"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Nominal Position [m]", "Float", 0],
             "fmirr": ["Crystal Shape", "ElementShape", "5"],
             "t_incidence": ["Incidence Angle [deg]", "Float", 35.0],
             "t_reflection": ["Reflection Angle [deg]", "Float", 35.0],
@@ -513,25 +513,25 @@
             "braggEnergyStep": ["Energy Step [eV]", "Float", 100.0]
         },
         "electronBeam": {
-            "bener": ["Beam Energy [GeV]", "Float"],
-            "sigmax": ["X Sigma [µm]", "Float"],
-            "sigmaz": ["Z Sigma [µm]", "Float"],
-            "epsi_x": ["X Emittance [nrad]", "Float"],
-            "epsi_z": ["Z Emittance [nrad]", "Float"],
-            "epsi_dx": ["X Distance From Waist [m]", "Float"],
-            "epsi_dz": ["Z Distance From Waist [m]", "Float"],
+            "bener": ["Beam Energy [GeV]", "Float", 1.0],
+            "sigmax": ["X Sigma [µm]", "Float", 1.0],
+            "sigmaz": ["Z Sigma [µm]", "Float", 1.0],
+            "epsi_x": ["X Emittance [nrad]", "Float", 1.0],
+            "epsi_z": ["Z Emittance [nrad]", "Float", 1.0],
+            "epsi_dx": ["X Distance From Waist [m]", "Float", 0.01],
+            "epsi_dz": ["Z Distance From Waist [m]", "Float", 0.01],
             "f_pol": ["Polaization Component", "PolarizationComponent", "3"]
         },
         "emptyElement": {
             "title": ["Element Name", "String", "Empty Element"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Nominal Position [m]", "Float", 0],
             "alpha": ["Orientation Angle [deg]", "OrientationAngle", 0]
         },
         "geometricSource": {
             "f_color": ["Photon Energy Distribution", "PhotonEnergyDistribution", "3"],
             "singleEnergyValue": ["Value [eV]", "Float", 1000],
             "ph1": ["Minimum Energy [eV]", "Float", 1000],
-            "ph2": ["Maximum Energy [eV]", "Float"],
+            "ph2": ["Maximum Energy [eV]", "Float", 10000],
             "f_polar": ["Polarization", "Boolean", "1"],
             "f_coher": ["Coherent Beam", "Boolean", "0"],
             "pol_angle": ["Phase Difference [deg]", "Float", 0.0],
@@ -553,7 +553,7 @@
         "grating": {
             "_super": ["_", "model", "_MISALIGNED_ELEMENT"],
             "title": ["Element Name", "String", "Grating"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Nominal Position [m]", "Float", 0],
             "fmirr": ["Grating Shape", "ElementShape", "5"],
             "t_incidence": ["Incidence Angle [deg]", "Float", 35.0],
             "t_reflection": ["Reflection Angle [deg]", "Float", 35.0],
@@ -622,7 +622,7 @@
             "distanceFromSource": ["Distance From Source [m]", "Float", 0],
             "column": ["Column", "ColumnValue"],
             "weight": ["Weight", "ColumnWeight", "22"],
-            "histogramBins": ["Number of Bins", "Integer"],
+            "histogramBins": ["Number of Bins", "Integer", 100],
             "notes": ["Notes", "Text", ""]
         },
         "initialIntensityReport": {
@@ -630,14 +630,14 @@
         },
         "lens": {
             "title": ["Element Name", "String", "Lens"],
-            "position": ["Position along Optical Path [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float", 0],
             "focal_x": ["Horizontal Focal Length [m]", "Float", 3],
             "focal_z": ["Vertical Focal Length [m]", "Float", 1.0e+23]
         },
         "mirror": {
             "_super": ["_", "model", "_MISALIGNED_ELEMENT"],
             "title": ["Element Name", "String", "Mirror"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Nominal Position [m]", "Float", 0],
             "fmirr": ["Mirror Shape", "ElementShape", "5"],
             "t_incidence": ["Incidence Angle [deg]", "Float", 35.0],
             "alpha": ["Orientation Angle [deg]", "OrientationAngle", 0],
@@ -690,7 +690,7 @@
         },
         "obstacle": {
             "title": ["Element Name", "String", "Obstacle"],
-            "position": ["Nominal Position [m]", "Float"],
+            "position": ["Nominal Position [m]", "Float", 0],
             "shape": ["Shape", "ApertureShape", "0"],
             "horizontalSize": ["Horizontal Size [mm]", "Float", 1],
             "verticalSize": ["Vertical Size [mm]", "Float", 1],
@@ -756,7 +756,7 @@
         },
         "watch": {
             "title": ["Element Name", "String", "Watchpoint"],
-            "position": ["Nominal Position [m]", "Float"]
+            "position": ["Nominal Position [m]", "Float", 0]
         },
         "watchpointReport": {
             "_super": ["_", "model", "_INTENSITY_REPORT"]
@@ -776,7 +776,7 @@
         },
         "zonePlate": {
             "title": ["Element Name", "String", "Zone Plate"],
-            "position": ["Position along Optical Path [m]", "Float"],
+            "position": ["Position along Optical Path [m]", "Float", 0],
             "zone_plate_type": ["Zone Plate Type", "ZonePlateType", "0"],
             "width_coating": ["Coating Width [nm]", "Float", 20.0],
             "height": ["Height [mm]", "Float", 4.0],

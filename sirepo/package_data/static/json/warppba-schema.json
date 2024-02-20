@@ -197,20 +197,20 @@
             "bunchLength": ["Bunch Length [µm]", "Float", 0]
         },
         "electronPlasma": {
-            "density": ["Density [m⁻³]", "Float"],
-            "length": ["Length [mm]", "Float"],
-            "entranceRampLength": ["Entrance Ramp [mm]", "Float"],
-            "exitRampLength": ["Exit Ramp [mm]", "Float"]
+            "density": ["Density [m⁻³]", "Float", 1.0],
+            "length": ["Length [mm]", "Float", 1.0],
+            "entranceRampLength": ["Entrance Ramp [mm]", "Float", 0],
+            "exitRampLength": ["Exit Ramp [mm]", "Float", 0]
         },
         "laserPulse": {
-            "wavelength": ["Wavelength [µm]", "Float"],
-            "amplitude": ["Normalized Amplitude A₀", "Float"],
-            "polarizationAngle": ["Polarization Angle [rad]", "Float"],
+            "wavelength": ["Wavelength [µm]", "Float", 1.0],
+            "amplitude": ["Normalized Amplitude A₀", "Float", 1.0],
+            "polarizationAngle": ["Polarization Angle [rad]", "Float", 0.0],
             "pulseDimensions": ["Pulse Dimensions", "PulseDimensions"],
-            "waist": ["Waist [µm]", "Float"],
-            "duration": ["Pulse Length [ps]", "Float"],
-            "length": ["Normalized Length", "Float"],
-            "spotSize": ["Normalized Transverse Spot Size", "Float"]
+            "waist": ["Waist [µm]", "Float", 1.0],
+            "duration": ["Pulse Length [ps]", "Float", 1.0],
+            "length": ["Normalized Length", "Float", 1.0],
+            "spotSize": ["Normalized Transverse Spot Size", "Float", 1.0]
         },
         "simulationGrid": {
             "gridDimensions": ["Grid Dimensions", "GridDimensions"],
