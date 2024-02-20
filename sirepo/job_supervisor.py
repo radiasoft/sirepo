@@ -480,6 +480,9 @@ class _ComputeJob(_Supervisor):
         ) - self.db.computeJobStart
 
     async def op_run_timeout(self, op):
+            if timed_out_op:
+                self.__db_update(canceledAfterSecs=timed_out_op.max_run_secs)
+
         await self._receive_api_runCancel(
             ServerReq(content=op.msg),
             timed_out_op=op,
@@ -670,6 +673,7 @@ class _ComputeJob(_Supervisor):
             dbUpdateTime=lambda: f.mtime(),
         )
         if "cancelledAfterSecs" in d:
+            # update spelling
             d.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=v)
             for h in d.history:
                 h.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=v)
@@ -719,78 +723,56 @@ class _ComputeJob(_Supervisor):
         )
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
-        """Cancel a run and related ops
-
-        Analysis ops that are for a parallel run (ex. sim frames) will not
-        be canceled.
+        """Cancel a run
 
         Args:
             req (ServerReq): The cancel request
-            timed_out_op (_Op, Optional): the op that was timed out, which
-                needs to be canceled
+            timed_out_op (_Op, Optional): the op that was timed out, which needs to be canceled
         Returns:
             PKDict: Message with state=canceled
         """
 
-        def _ops_to_cancel():
-            r = set(
-                o
-                for o in self.ops
-                # Do not cancel sim frames and file requests. Allow them to come back for a canceled
-                # compute job. Both can have relevant data in the event of a canceled compute job.
-                # In the case of OP_IO we excpect that the only reason for cancelation is due to
-                # a timeout (max_run_secs reached) in which case we send back "content-too-large".
-                if not (
-                    self.db.isParallel and o.op_name in (job.OP_ANALYSIS, job.OP_IO)
-                )
-            )
-            if timed_out_op in self.ops:
-                r.add(timed_out_op)
-            return r
-
-        if (
-            # a running simulation may be canceled due to a
-            # downloadDataFile request timeout in another browser window (only the
-            # computeJids must match between the two requests). This might be
-            # a weird UX but it's important to do, because no op should take
-            # longer than its timeout.
-            #
-            # timed_out_op might not be a valid request, because a new compute
-            # may have been started so either we are canceling a compute by
-            # user directive (left) or timing out an op (and canceling all).
-            (not self._req_is_valid(req) and not timed_out_op)
-            or (not self._is_running_pending() and not self.ops)
-        ):
-            # job is not relevant, but let the user know it isn't running
-            return _canceled_reply()
-        internal_error = None
-        candidates = _ops_to_cancel()
-        c = None
-        try:
-            # must be after candidates so don't cancel "c"
-            c = self._create_op(job.OP_CANCEL, req)
-            # No matter what happens the job is canceled
+        def _verify_and_update():
+            if not self._req_is_valid(req) or not self._is_running_pending():
+                # job is not relevant, but let the user know it isn't running
+                return _canceled_reply()
+            # No matter what happens the job is canceled, and this
+            # is done inside critical section so _is_running_pending returns false.
             self.__db_update(status=job.CANCELED, queuedState=None)
+            return None
+
+        def _find_op():
+            rv = set(o for o in self.ops if o.op_name == job.OP_RUN)
+            if not rv:
+                return None
+            if len(rv) > 1:
+                raise AssertionError("too many OP_RUN ops={}", rv)
+            return rv[0]
+
+        if r := _verify_and_update():
+            return r
+        c = None
+        internal_error = None
+        try:
+            if not (o := _find_op()):
+                return _canceled_reply()
+            c = self._create_op(job.OP_CANCEL, req)
             if not await c.prepare_send():
+                pkdlog("{} prepare_send failed op_to_cancel={}", self, o)
                 # cancel was canceled (unlikely).
                 # Reply with "canceled" anyway, since that's always the reply status
                 return _canceled_reply()
-            # Only cancel "old" ops. New ones should not be affected by this cancel.
-            o = _ops_to_cancel().intersection(candidates)
-            if not o:
+            if o.is_destroyed:
+                pkdlog("{} op={} destroyed after prepare_send", self, o)
                 return _canceled_reply()
             pkdlog("{} to_cancel={}", self, o)
-            if timed_out_op:
-                self.__db_update(canceledAfterSecs=timed_out_op.max_run_secs)
-            c.msg.opIdsToCancel = [x.op_id for x in o]
-            for x in o:
-                x.destroy()
+            o.destroy()
             c.send()
             # state of "c" is irrelevant here, cancel always "succeeds".
             # no need to check return.
             await c.reply_get()
         except Exception as e:
-            internal_error = f"_run exception={e}"
+            internal_error = f"_runCancel exception={e}"
             pkdlog("exception={} stack={}", e, pkdexc())
         finally:
             if c:
