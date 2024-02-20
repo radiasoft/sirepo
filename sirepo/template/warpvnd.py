@@ -617,7 +617,7 @@ def _extract_impact_density_2d(run_dir, data):
 
 
 def _extract_impact_density_3d(run_dir, data):
-    try: # TODO (gurhar1133): change this to use h5py.is_hdf5()?
+    try:
         with h5py.File(str(run_dir.join(_DENSITY_FILE)), "r") as hf:
             plot_info = template_common.h5_to_dict(hf, path="density")
     except IOError:

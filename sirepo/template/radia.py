@@ -1397,7 +1397,7 @@ def _read_data(view_type, field_type):
 
 
 def _read_h5_path(filename, h5path):
-    try: # TODO (gurhar1133): change this to use h5py.is_hdf5()?
+    try:
         with h5py.File(filename, "r") as f:
             return template_common.h5_to_dict(f, path=h5path)
     except IOError as e:
