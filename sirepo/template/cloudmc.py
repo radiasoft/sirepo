@@ -264,6 +264,13 @@ def stateless_compute_validate_material_name(data, **kwargs):
     return res
 
 
+def validate_file(file_type, path):
+    if file_type == "geometryInput-dagmcFile":
+        if not _valid_h5m(path):
+            return "dagmcFile must be valid hdf5 file"
+    return None
+
+
 def write_parameters(data, run_dir, is_parallel):
     if _is_sbatch_run_mode(data):
         pkio.write_text(
@@ -706,3 +713,15 @@ def _source_filename(data):
 
 def _statepoint_filename(data):
     return f"statepoint.{data.models.settings.batches}.h5"
+
+
+def _valid_h5m(file_path):
+    import h5py
+
+    # if pkio.is_pure_text(file_path):
+    #     return False
+    try:
+        with h5py.File(str(file_path), "r") as f:
+            return True
+    except OSError:
+        return False
