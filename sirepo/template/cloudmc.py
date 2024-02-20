@@ -265,8 +265,10 @@ def stateless_compute_validate_material_name(data, **kwargs):
 
 
 def validate_file(file_type, path):
+    import h5py
+
     if file_type == "geometryInput-dagmcFile":
-        if not _valid_h5m(path):
+        if not h5py.is_hdf5(path):
             return "dagmcFile must be valid hdf5 file"
     return None
 
@@ -713,16 +715,3 @@ def _source_filename(data):
 
 def _statepoint_filename(data):
     return f"statepoint.{data.models.settings.batches}.h5"
-
-
-def _valid_h5m(file_path):
-    import h5py
-
-    # TODO (gurhar1133): use h5py.is_hdf5()
-    # if pkio.is_pure_text(file_path):
-    #     return False
-    try:
-        with h5py.File(str(file_path), "r") as f:
-            return True
-    except OSError:
-        return False
