@@ -6,8 +6,8 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(() => {
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.appReportTypes = `
-        <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-        <div data-ng-switch-when="tallyViewer" data-tally-viewer="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+        <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
+        <div data-ng-switch-when="tallyViewer" data-tally-viewer="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
     `;
     //TODO(pjm): OptionalFloat should be standard
     SIREPO.appFieldEditors = `
@@ -684,7 +684,6 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
         restrict: 'A',
         scope: {
             modelName: '@',
-            reportId: '<',
         },
         template: `
             <div style="height: 90vh">
@@ -1077,12 +1076,11 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
         restrict: 'A',
         scope: {
             modelName: '@',
-            reportId: '<',
         },
         template: `
             <div data-vtk-display="" class="vtk-display col-sm-11"
                   data-ng-style="sizeStyle()" data-show-border="true"
-                  data-report-id="reportId" data-model-name="{{ modelName }}"
+                  data-model-name="{{ modelName }}"
                   data-event-handlers="eventHandlers" data-reset-side="y" data-reset-direction="-1"
                   data-enable-axes="true" data-axis-cfg="axisCfg"
                   data-axis-obj="axisObj" data-enable-selection="true"></div>
@@ -1610,7 +1608,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 setTallyColors();
                 addSources();
             }, 100);
-            
+
             function vectorScaleFactor() {
                 return 3.5 * tallyService.getMaxMeshExtent();
             }
