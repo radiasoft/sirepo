@@ -686,7 +686,7 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
             modelName: '@',
         },
         template: `
-            <div style="height: 90vh">
+            <div style="height: 90%">
                 <ul class="nav nav-tabs">
                     <li role="presentation" data-ng-class="{active: is2D()}">
                         <a href data-ng-click="setSelectedGeometry('2D')">2D</a>
