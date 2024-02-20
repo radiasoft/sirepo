@@ -210,9 +210,6 @@ async def terminate():
 
 
 class _Supervisor(PKDict):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     def destroy_op(self, op):
         pass
 
@@ -220,7 +217,7 @@ class _Supervisor(PKDict):
     def get_compute_job_or_self(cls, req):
         if not (j := req.content.get("computeJid")):
             # not a compute job
-            return cls(req=req)
+            return cls()
         self = _ComputeJob.instances.pksetdefault(j, lambda: _ComputeJob.create(req))[j]
         # SECURITY: must only return instances for authorized user
         if req.content.uid != self.db.uid:
@@ -234,7 +231,7 @@ class _Supervisor(PKDict):
         return self
 
     def pkdebug_str(self):
-        c = self.pkunchecked_nested_get("req.content") or PKDict()
+        c = self.pkunchecked_nested_get("req.content") or self
         return pkdformat(
             "_Supervisor(api={} uid={})",
             c.get("api"),
@@ -257,8 +254,42 @@ class _Supervisor(PKDict):
                 return cls._reply_exception(e)
             raise
 
-    async def op_run_timeout(self, op):
+    async def op_send_timeout(self, op):
         pass
+
+    async def _cancel_op(self, op):
+        c = None
+        internal_error = None
+        try:
+            c = self._create_cancel_op(op)
+            if not await c.prepare_send():
+                pkdlog("{} prepare_send failed op_to_cancel={}", self, o)
+                # TODO(robnagler): shouldn't happen. no pay to c.destroy()
+                return
+            pkdlog("{} to_cancel={}", self, o)
+            o.destroy()
+            c.send()
+            # state of "c" is irrelevant here, cancel always "succeeds".
+            # no need to check return, but need to get the reply.
+            await c.reply_get()
+        except Exception as e:
+            internal_error = f"op=CANCEL exception={e}"
+            pkdlog("exception={} stack={}", e, pkdexc())
+        finally:
+            if c:
+                c.destroy(internal_error=internal_error)
+
+    def _create_cancel_op(self, to_cancel):
+        return _Op(
+            _supervisor=cls(),
+            api="cancel_or_timeout",
+            driver=to_cancel.driver,
+            is_destroyed=False,
+            max_run_secs=None,
+            msg=PKDict(opIdsToCancel=[to_cancel.op_id]),
+            op_name=job.OP_CANCEL,
+            uid=to_cancel.driver.uid,
+        )
 
     def _create_op(self, op_name, req, kind, job_run_mode, **kwargs):
         req.kind = kind
@@ -469,6 +500,7 @@ class _ComputeJob(_Supervisor):
             self.ops.remove(op)
         if self.run_op == op:
             self.run_op = None
+        super().destroy_op(op)
 
     def elapsed_time(self):
         if not self.db.computeJobStart:
@@ -478,15 +510,6 @@ class _ComputeJob(_Supervisor):
             if self._is_running_pending()
             else self.db.dbUpdateTime
         ) - self.db.computeJobStart
-
-    async def op_run_timeout(self, op):
-            if timed_out_op:
-                self.__db_update(canceledAfterSecs=timed_out_op.max_run_secs)
-
-        await self._receive_api_runCancel(
-            ServerReq(content=op.msg),
-            timed_out_op=op,
-        )
 
     def pkdebug_str(self):
         d = self.get("db")
@@ -499,6 +522,17 @@ class _ComputeJob(_Supervisor):
             d.get("status"),
             self.ops,
         )
+
+    async def op_send_timeout(self, op):
+        if op.is_destroyed:
+            return
+        if self.run_op == op:
+            self.__db_update(
+                canceledAfterSecs=op.max_run_secs,
+                status=job.CANCELED,
+                queuedState=None,
+            )
+        await self._cancel_op(op)
 
     @classmethod
     async def purge_non_premium(cls):
@@ -732,15 +766,6 @@ class _ComputeJob(_Supervisor):
             PKDict: Message with state=canceled
         """
 
-        def _verify_and_update():
-            if not self._req_is_valid(req) or not self._is_running_pending():
-                # job is not relevant, but let the user know it isn't running
-                return _canceled_reply()
-            # No matter what happens the job is canceled, and this
-            # is done inside critical section so _is_running_pending returns false.
-            self.__db_update(status=job.CANCELED, queuedState=None)
-            return None
-
         def _find_op():
             rv = set(o for o in self.ops if o.op_name == job.OP_RUN)
             if not rv:
@@ -749,34 +774,15 @@ class _ComputeJob(_Supervisor):
                 raise AssertionError("too many OP_RUN ops={}", rv)
             return rv[0]
 
-        if r := _verify_and_update():
-            return r
-        c = None
-        internal_error = None
-        try:
-            if not (o := _find_op()):
-                return _canceled_reply()
-            c = self._create_op(job.OP_CANCEL, req)
-            if not await c.prepare_send():
-                pkdlog("{} prepare_send failed op_to_cancel={}", self, o)
-                # cancel was canceled (unlikely).
-                # Reply with "canceled" anyway, since that's always the reply status
-                return _canceled_reply()
-            if o.is_destroyed:
-                pkdlog("{} op={} destroyed after prepare_send", self, o)
-                return _canceled_reply()
-            pkdlog("{} to_cancel={}", self, o)
-            o.destroy()
-            c.send()
-            # state of "c" is irrelevant here, cancel always "succeeds".
-            # no need to check return.
-            await c.reply_get()
-        except Exception as e:
-            internal_error = f"_runCancel exception={e}"
-            pkdlog("exception={} stack={}", e, pkdexc())
-        finally:
-            if c:
-                c.destroy(internal_error=internal_error)
+        if not self._req_is_valid(req) or not self._is_running_pending():
+            # job is not relevant, but let the user know it isn't running
+            return _canceled_reply()
+        if not (o := _find_op()):
+            return _canceled_reply()
+        # No matter what happens the job is canceled, and this
+        # is done inside critical section so _is_running_pending returns false.
+        self.__db_update(status=job.CANCELED, queuedState=None)
+        self._cancel(o)
         return _canceled_reply()
 
     async def _receive_api_runSimulation(self, req, recursing=False):
@@ -1146,17 +1152,15 @@ class _Op(PKDict):
     def reply_put(self, reply):
         self._reply_q.put_nowait(reply)
 
-    async def run_timeout(self):
-        """Can be any op that's timed"""
-        pkdlog("{} max_run_secs={}", self, self.max_run_secs)
-        # TODO add-qcall and pass to op, can't be Op() or Supervisor()
-        await self._supervisor.op_run_timeout(self)
-
     def send(self):
+        async def _timeout():
+            pkdlog("{} max_run_secs={}", self, self.max_run_secs)
+            await self._supervisor.op_send_timeout(self)
+
         if self.max_run_secs:
             self.timer = tornado.ioloop.IOLoop.current().call_later(
                 self.max_run_secs,
-                self.run_timeout,
+                _timeout,
             )
         self.driver.send(self)
 
