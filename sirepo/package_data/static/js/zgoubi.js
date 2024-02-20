@@ -1121,7 +1121,6 @@ SIREPO.app.directive('particle3d', function(appState, plotting, plotToPNG, utili
         restrict: 'A',
         scope: {
             modelName: '@',
-            reportId: '<',
         },
         template: `
             <div class="sr-screenshot" data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">

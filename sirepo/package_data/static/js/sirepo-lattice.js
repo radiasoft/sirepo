@@ -1275,14 +1275,13 @@ SIREPO.app.directive('parameterWithLattice', function(appState) {
         restrict: 'A',
         scope: {
             modelName: '@',
-            reportId: '<',
             beamlineId: '<',
             pathToModels: '@',
             showTable: '@',
         },
         template: `
             <div data-ng-if="showLattice()"><div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelName }}" data-show-table-"{{ showTable }}" data-path-to-models="{{ pathToModels }}" data-flatten="1"></div></div>
-            <div id="sr-parameters" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelName }}" data-report-id="reportId"></div>
+            <div id="sr-parameters" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelName }}"></div>
         `,
         controller: function($scope, $element) {
             var latticeScope, plotScope;
@@ -2702,7 +2701,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
                     <div class="container-fluid">
                       <div class="row">
                         <div class="col-sm-12" data-ng-if="twissReportShown">
-                          <div data-report-content="parameterWithLattice" data-model-key="twissReport" data-report-id="reportId"></div>
+                          <div data-report-content="parameterWithLattice" data-model-key="twissReport"></div>
                         </div>
                       </div>
                       <br />
@@ -2718,7 +2717,6 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
             </div>
         `,
         controller: function($scope) {
-            $scope.reportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
             $scope.latticeService = latticeService;
 
             function hasTwissReport() {
