@@ -718,6 +718,7 @@ def _statepoint_filename(data):
 def _valid_h5m(file_path):
     import h5py
 
+    # TODO (gurhar1133): use h5py.is_hdf5()
     # if pkio.is_pure_text(file_path):
     #     return False
     try:
