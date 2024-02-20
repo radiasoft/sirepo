@@ -516,7 +516,7 @@ def read_frame_count(run_dir):
         if key:
             res[0] = step + 1
 
-    try:
+    try: # TODO (gurhar1133): change this to use h5py.is_hdf5()?
         return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, [0])[0]
     except IOError:
         pass
