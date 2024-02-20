@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Sirepo web server status for remote monitoring
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
@@ -7,6 +6,7 @@
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkjson
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdformat
 from sirepo import simulation_db
 import asyncio
@@ -42,7 +42,7 @@ class API(sirepo.quest.API):
         simulation_type = _cfg.sim_type
         res = await self.call_api(
             "findByNameWithAuth",
-            dict(
+            kwargs=PKDict(
                 simulation_type=simulation_type,
                 application_mode="default",
                 simulation_name=_cfg.sim_name,
@@ -69,7 +69,7 @@ class API(sirepo.quest.API):
         r = None
         resp = None
         try:
-            resp = await self.call_api("runSimulation", data=d)
+            resp = await self.call_api("runSimulation", body=d)
             for _ in range(_cfg.max_calls):
                 r = resp.content_as_object()
                 resp.destroy()
@@ -94,14 +94,14 @@ class API(sirepo.quest.API):
                         f"nextRequest missing state={r.get('state')} resp={r}"
                     )
 
-                resp = await self.call_api("runStatus", data=d)
+                resp = await self.call_api("runStatus", body=d)
                 await asyncio.sleep(_SLEEP)
             raise RuntimeError(f"timeout={_cfg.max_calls * _SLEEP}s last resp={r}")
         finally:
             if resp:
                 resp.destroy()
             try:
-                await self.call_api("runCancel", data=d)
+                await self.call_api("runCancel", body=d)
             except Exception:
                 pass
 

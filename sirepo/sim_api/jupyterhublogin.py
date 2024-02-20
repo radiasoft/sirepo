@@ -45,7 +45,7 @@ class API(sirepo.quest.API):
         self.parse_params(type=_SIM_TYPE)
         if not _cfg.rs_jupyter_migrate:
             raise sirepo.util.Forbidden("migrate not enabled")
-        d = self.parse_json()
+        d = self.body_as_dict()
         if not d.doMigration:
             create_user(self)
             return self.reply_redirect("jupyterHub")
@@ -215,8 +215,8 @@ def _event_end_api_call(qcall, kwargs):
     # Trailing slash is required in paths
     kwargs.resp.delete_third_party_cookies(
         (
-            ("jupyterhub-hub-login", f"/{_cfg.uri_root}/hub/"),
-            (f"jupyterhub-user-{u}", f"/{_cfg.uri_root}/user/{u}/"),
+            PKDict(key="jupyterhub-hub-login", path=f"/{_cfg.uri_root}/hub/"),
+            PKDict(key=f"jupyterhub-user-{u}", path=f"/{_cfg.uri_root}/user/{u}/"),
         )
     )
 
