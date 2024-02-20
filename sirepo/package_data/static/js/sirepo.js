@@ -2558,7 +2558,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         // always unique in our routes.
         if (uri.firstComponent($location.url()) !== r) {
             event.preventDefault();
-            uri.localRedirect(r);
+            uri.localRedirect(decodeURIComponent(p[1]));
         }
     }
 
