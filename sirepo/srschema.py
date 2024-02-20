@@ -161,13 +161,13 @@ def validate(schema):
             _validate_job_run_mode(field_name, schema)
             sch_field_info = sch_model[field_name]
             if len(sch_field_info) <= 1:
-                    raise AssertionError(
-                        util.err(
-                            sch_field_info,
-                            "{}: must define a type",
-                            model_name
-                        )
+                raise AssertionError(
+                    util.err(
+                        sch_field_info,
+                        "{}: must define a type",
+                        model_name
                     )
+                )
             if len(sch_field_info) <= 2:
                 if sch_field_info[1] in num_types:
                     raise AssertionError(
