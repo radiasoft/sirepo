@@ -57,7 +57,7 @@ class API(sirepo.quest.API):
                     ),
                 )
             assert m == "POST", "unexpect http method={}".format(m)
-            d = self.parse_json()
+            d = self.body_as_dict()
             if d.get("token") != token:
                 raise sirepo.util.Error(
                     "unable to confirm login",
