@@ -28,13 +28,12 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
-        def _float_to_j_range(model_name, field_name):
-            m = dm[model_name]
-            if not isinstance(f := m[field_name], (float, int)):
-                return
-            m[field_name] = sch.model[model_name][field_name][2]
-            m[field_name].val = f
-
+        def _float_to_j_range(val, field_info):
+            if not isinstance(val, (float, int)):
+                return val
+            m = field_info[2]
+            m.val = val
+            return m
 
         sch = cls.schema()
         dm = data.models
@@ -56,6 +55,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 continue
             if not dm.volumes[v].material.get("standardType"):
                 dm.volumes[v].material.standardType = "None"
+            dm.volumes[v].opacity = _float_to_j_range(dm.volumes[v].opacity, sch.model.geometry3DReport.opacity)
         if "tally" in dm:
             del dm["tally"]
         for t in dm.settings.tallies:
@@ -69,7 +69,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             ('openmcAnimation', 'opacity'),
             ('geometry3DReport', 'opacity',)
         ):
-            _float_to_j_range(m, f)
+            dm[m][f] = _float_to_j_range(dm[m][f], sch.model[m][f])
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):

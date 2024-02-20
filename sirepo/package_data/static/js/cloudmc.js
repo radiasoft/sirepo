@@ -1483,7 +1483,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 return {
                     actorProperties: {
                         color: v.color,
-                        opacity: v.opacity,
+                        opacity: v.opacity.val,
                         edgeVisibility: model().showEdges === '1',
                     },
                     visibilityKey: 'isVisible',
@@ -1688,10 +1688,11 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                         data-ng-change="broadcastVolumePropertyChanged(row, 'color')" />
                     </div>
                     <div class="col-sm-9" style="margin-top: 10px">
-                      <input
+                      <div id="volume-{{ row.name }}-opacity-range" data-j-range-slider="" data-ng-model="row" data-model-name="row.name" data-field-name="'opacity'" data-model="row" data-field="row.opacity"></div>
+                      <!--<input
                         id="volume-{{ row.name }}-opacity-range" type="range"
                         min="0" max="1.0" step="0.01" data-ng-model="row.opacity"
-                        data-ng-change="broadcastVolumePropertyChanged(row, 'opacity')" />
+                        data-ng-change="broadcastVolumePropertyChanged(row, 'opacity')" />-->
                     </div>
                   </div>
                 </div>
@@ -1711,7 +1712,14 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                     if (! row.color) {
                         row.name = n;
                         row.color = randomColor();
-                        row.opacity = 0.3;
+                        row.opacity = {
+                            "max": 1.0,
+                            "min": 0,
+                            "numSteps": 100,
+                            "space": "linear",
+                            "step": 0.01,
+                            "val": 0.3
+                        };
                         row.isVisible = true;
                         row.isVisibleWithTallies = false;
                     }
