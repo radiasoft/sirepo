@@ -1228,6 +1228,13 @@ class _ImagePreview:
         self.inputs.append(self._pyplot_data_url())
 
     def _append_output_image(self, data, index):
+        if data.ndim == 1 and "label_path" in self.io.output:
+            self.imageToLabels = True
+            self.outputs.append(pkcompat.from_bytes(
+                    self.file[self.io.output.label_path][data[index]]
+                )
+            )
+            return
         self.currentImage = data[index]
         self._gen_image()
         self.outputs.append(self._pyplot_data_url())
@@ -1242,6 +1249,7 @@ class _ImagePreview:
         res = PKDict(
             paramToImage=_param_to_image(self.info),
             xIsParameters=self.xIsParameters,
+            imageToLabels=self.imageToLabels,
             pred=False,
             x=self.inputs,
             y=self.outputs,
@@ -1261,6 +1269,7 @@ class _ImagePreview:
             self.originals = []
             self.outputs = []
             self.xIsParameters = False
+            self.imageToLabels = False
             x, y, o = self._x_y()
             for i in range(
                 _PREVIEW_IMAGE_COUNT

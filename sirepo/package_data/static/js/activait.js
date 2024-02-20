@@ -1172,6 +1172,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
               </div>
               <div class="col-md-{{ hasThirdColumn ? '4' : '6' }}">
                 <img class="img-responsive y{{ method + ($index + 1) }}" />
+                <div data-ng-if="imageToLabels" class="text-center"> <br/> <b>{{ labels[$index] }}</b> </div>
               </div>
               <div data-ng-if="hasThirdColumn" class="col-md-4">
                 <img class="img-responsive pred{{ method + ($index + 1) }}" />
@@ -1243,7 +1244,11 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                         } else {
                             $(`.x${$scope.method}${v + 1}`)[0].src = $scope.x[index + v];
                         }
-                        $(`.y${$scope.method}${v + 1}`)[0].src = $scope.y[index + v];
+                        if ($scope.imageToLabels) {
+                            $scope.labels.splice(i, 0, $scope.y[index + v]);
+                        } else {
+                            $(`.y${$scope.method}${v + 1}`)[0].src = $scope.y[index + v];
+                        }
                         $scope.hasThirdColumn = $scope.pred != null;
                         if ($(`.pred${$scope.method}1`).length && $scope.hasThirdColumn) {
                             $(`.pred${$scope.method}${v + 1}`)[0].src = $scope.pred[index + v];
@@ -1265,9 +1270,14 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                         $scope.x = response.x;
                         $scope.y = response.y;
                         $scope.xIsParams = response.xIsParameters;
+                        $scope.imageToLabels = response.imageToLabels;
                         $scope.pred = response.pred || null;
                         if ($scope.xIsParams) {
                             $scope.parameters = [];
+                        }
+                        if ($scope.imageToLabels) {
+                            $scope.labels = [];
+                            $scope.yColName = 'Labels';
                         }
                         if ($scope.x) {
                             $scope.multiPage = $scope.x.length > 1;
