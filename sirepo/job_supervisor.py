@@ -257,39 +257,40 @@ class _Supervisor(PKDict):
     async def op_send_timeout(self, op):
         pass
 
-    async def _cancel_op(self, op):
+    async def _cancel_op(self, to_cancel):
+        def _create_op():
+            # _create_op does too much and expects a request
+            return _Op(
+                _supervisor=_Supervisor(),
+                api="cancel_or_timeout",
+                driver=to_cancel.driver,
+                is_destroyed=False,
+                max_run_secs=None,
+                msg=PKDict(opIdsToCancel=[to_cancel.op_id]),
+                op_name=job.OP_CANCEL,
+                uid=to_cancel.driver.uid,
+            )
+
         c = None
         internal_error = None
         try:
-            c = self._create_cancel_op(op)
+            c = _create_op()
+            pkdlog("{} to_cancel={}", self, to_cancel)
+            to_cancel.destroy()
             if not await c.prepare_send():
-                pkdlog("{} prepare_send failed op_to_cancel={}", self, o)
+                pkdlog("{} prepare_send failed to_cancel={}", self, to_cancel)
                 # TODO(robnagler): shouldn't happen. no pay to c.destroy()
                 return
-            pkdlog("{} to_cancel={}", self, o)
-            o.destroy()
             c.send()
             # state of "c" is irrelevant here, cancel always "succeeds".
             # no need to check return, but need to get the reply.
             await c.reply_get()
         except Exception as e:
-            internal_error = f"op=CANCEL exception={e}"
+            internal_error = f"_cancel_op exception={e}"
             pkdlog("exception={} stack={}", e, pkdexc())
         finally:
             if c:
                 c.destroy(internal_error=internal_error)
-
-    def _create_cancel_op(self, to_cancel):
-        return _Op(
-            _supervisor=cls(),
-            api="cancel_or_timeout",
-            driver=to_cancel.driver,
-            is_destroyed=False,
-            max_run_secs=None,
-            msg=PKDict(opIdsToCancel=[to_cancel.op_id]),
-            op_name=job.OP_CANCEL,
-            uid=to_cancel.driver.uid,
-        )
 
     def _create_op(self, op_name, req, kind, job_run_mode, **kwargs):
         req.kind = kind
@@ -767,7 +768,7 @@ class _ComputeJob(_Supervisor):
         """
 
         def _find_op():
-            rv = set(o for o in self.ops if o.op_name == job.OP_RUN)
+            rv = [o for o in self.ops if o.op_name == job.OP_RUN]
             if not rv:
                 return None
             if len(rv) > 1:
@@ -775,14 +776,15 @@ class _ComputeJob(_Supervisor):
             return rv[0]
 
         if not self._req_is_valid(req) or not self._is_running_pending():
+            pkdlog("{} ignoring cancel, not running req_is_invalid", self)
             # job is not relevant, but let the user know it isn't running
             return _canceled_reply()
-        if not (o := _find_op()):
-            return _canceled_reply()
-        # No matter what happens the job is canceled, and this
-        # is done inside critical section so _is_running_pending returns false.
+        # No matter what happens the job is canceled at this point
         self.__db_update(status=job.CANCELED, queuedState=None)
-        self._cancel(o)
+        if not (o := _find_op()):
+            # no run op so just pending
+            return _canceled_reply()
+        await self._cancel_op(o)
         return _canceled_reply()
 
     async def _receive_api_runSimulation(self, req, recursing=False):
