@@ -378,10 +378,11 @@ def stateful_compute_get_remote_data(data, **kwargs):
     _SIM_DATA.lib_file_save_from_url(data.args.url, "dataFile", "file")
     return PKDict()
 
+
 def stateful_compute_download_remote_lib_file(data, **kwargs):
     def _dataFile_path(filename):
         return _SIM_DATA.lib_file_abspath("dataFile-file.{}".format(filename))
-    
+
     _lib_file_save_from_url(data.args.exampleFile)
     if data.args.exampleFile2:
         _lib_file_save_from_url(data.args.exampleFile2)
