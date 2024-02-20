@@ -102,6 +102,10 @@ class SirepoUtils {
         });
     }
 
+    static randomId() {
+        return 'sr' + SirepoUtils.randomString();
+    }
+
     static randomString(length=32) {
         const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
         return new Array(length)
