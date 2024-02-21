@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
     SIREPO.PLOTTING_COLOR_MAP = 'blues';
-    SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation', 'dicePlotAnimation'];
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.FILE_UPLOAD_TYPE = {
         'dataFile-file': '.h5,.csv',
@@ -1088,60 +1088,6 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
             });
 
         },
-    };
-});
-
-SIREPO.app.directive('diceCoeffViewer', function(requestSender) {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: `
-        <div>
-          <img class="img-responsive dice-plot" />
-          <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
-          <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
-        </div>
-        `,
-        controller: function($scope, appState) {
-            let loading = true;
-            let uris;
-            $scope.dataFileMissing = false;
-
-            $scope.isLoading = () => loading;
-
-            const setDicePlotImage = () => {
-                if (! uris) {
-                    $scope.dataFileMissing = true;
-                    $scope.fileName = 'dicePlot.png';
-                    return;
-                }
-                if ($('.dice-plot').length) {
-                    $('.dice-plot')[0].src = uris[0];
-                }
-            };
-
-            const loadImageFile = () => {
-                requestSender.sendAnalysisJob(
-                    appState,
-                    response => {
-                        uris = response.uris;
-                        setDicePlotImage();
-                        loading = false;
-                    },
-                    {
-                        method: 'dice_coefficient',
-                        modelName: 'animation',
-                        args: {
-                            imageFilename: 'dicePlot',
-                            dataFile: appState.applicationState().dataFile,
-                            columnInfo: appState.applicationState().columnInfo,
-                        }
-                    }
-                );
-            };
-
-            loadImageFile();
-        }
     };
 });
 
