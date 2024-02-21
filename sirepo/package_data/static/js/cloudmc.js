@@ -419,9 +419,18 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
 
     self.colorScale = modelName => {
         return SIREPO.PLOTTING.Utils.colorScale(
-            ...self.getMinMaxWithThreshold(),
+            self.minField,
+            self.maxField,
             SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.applicationState()[modelName].colorMap],
         );
+    };
+
+    self.decorateLabelWithIcon = (element, iconName, title) => {
+        $(element)
+        .closest('div[data-ng-switch]')
+        .siblings('.control-label')
+        .find('label')
+        .append(`<span class="glyphicon glyphicon-${iconName}" title="${title}"></span>`);
     };
 
     self.getMaxMeshExtent = () => {
@@ -445,7 +454,9 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
     self.getMinMaxWithThreshold = () => {
         const f = [self.minField, self.maxField];
         const s = [-1, 1];
-        return appState.applicationState().openmcAnimation.thresholds.map((t, i) => s[i] * t > s[i] * f[i] ? f[i] : t);
+        return appState.applicationState().openmcAnimation.thresholds.map(
+            (t, i) => s[i] * t > s[i] * f[i] ? f[i] : t
+        );
     };
 
     self.getOutlines = (volId, dim, index) => {
@@ -806,12 +817,14 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0])
                     )
                 );
-                const minmax = tallyService.getMinMaxWithThreshold();
+                const t = appState.models.openmcAnimation.thresholds;
+                t[0] = Math.max(t[0], tallyService.minField);
+                t[1] = Math.min(t[1], tallyService.maxField);
                 const r =  {
                     aspectRatio: ar,
-                    global_max: minmax[1],
-                    global_min: minmax[0],
-                    threshold: appState.models.openmcAnimation.thresholds,
+                    global_max: tallyService.maxField,
+                    global_min: tallyService.minField,
+                    threshold: t,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
