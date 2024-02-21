@@ -266,6 +266,10 @@ def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
     )
 
 
+def sim_frame_dicePlotAnimation(frame_args):
+    return _dice(frame_args.sim_in, frame_args.run_dir)
+
+
 def sim_frame_epochAnimation(frame_args):
     # TODO(pjm): improve heading text
     d = pandas.read_csv(str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile)))
@@ -367,10 +371,6 @@ def stateful_compute_column_info(data, **kwargs):
 
 def analysis_job_sample_images(data, run_dir, **kwargs):
     return _ImagePreview(data, run_dir).images()
-
-
-def analysis_job_dice_coefficient(data, run_dir, **kwargs):
-    return _ImagePreview(data, run_dir).dice_coefficient_plot()
 
 
 def stateful_compute_get_remote_data(data, **kwargs):
@@ -736,6 +736,46 @@ def _continue_building_level(cur_node, merge_continue):
     return True
 
 
+def _dice(data, run_dir):
+    def _coefficient(mask1, mask2):
+        return round(
+            (2 * numpy.sum(mask1 * mask2)) / (numpy.sum(mask1) + numpy.sum(mask2)),
+            3,
+        )
+
+    def _reshape(values, data):
+        s = data.models.columnInfo.shape[
+            data.models.columnInfo.inputOutput.index("output")
+        ][1:]
+        return values.reshape(len(values) // (s[0] * s[1]), s[1], s[0])
+
+    def _hist(data, run_dir):
+        a = pkio.py_path(run_dir).dirpath().join("animation")
+        d = []
+        for pair in zip(
+            _reshape(_read_file(a, _OUTPUT_FILE.testFile), data),
+            _reshape(_read_file(a, _OUTPUT_FILE.predictFile), data),
+        ):
+            d.append(_coefficient(pair[0], pair[1]))
+        return _histogram_plot(d, [min(d), max(d)], bins=10)
+
+    x, y = _hist(data, run_dir)
+    return template_common.parameter_plot(
+        x,
+        [
+            PKDict(
+                points=y,
+                label="Counts",
+            ),
+        ],
+        PKDict(),
+        PKDict(
+            title="Dice Coefficients",
+            x_label="Scores",
+        ),
+    )
+
+
 def _error_rate_report(frame_args, filename, x_label):
     v = numpy.load(str(frame_args.run_dir.join(filename)))
     return _report_info(
@@ -1060,15 +1100,15 @@ def _get_fit_report(report, x_vals, y_vals):
     return param_vals, param_sigmas, plots
 
 
-def _histogram_plot(values, vrange):
-    hist = numpy.histogram(values, bins=20, range=vrange)
+def _histogram_plot(values, vrange, bins=20):
+    hist = numpy.histogram(values, bins=bins, range=vrange)
     x = []
     y = []
     for i in range(len(hist[0])):
-        x.append(hist[1][i])
-        x.append(hist[1][i + 1])
-        y.append(hist[0][i])
-        y.append(hist[0][i])
+        x.append(float(hist[1][i]))
+        x.append(float(hist[1][i + 1]))
+        y.append(float(hist[0][i]))
+        y.append(float(hist[0][i]))
     x.insert(0, x[0])
     y.insert(0, 0)
     return x, y
@@ -1144,35 +1184,6 @@ class _ImagePreview:
             return "data:image/jpeg;base64," + pkcompat.from_bytes(
                 b64encode(f.getvalue())
             )
-
-    def dice_coefficient_plot(self):
-        import matplotlib.pyplot as plt
-
-        s = self.data.args.columnInfo.shape[
-            self.data.args.columnInfo.inputOutput.index("output")
-        ][1:]
-
-        def _dice():
-            def _dice_coefficient(mask1, mask2):
-                return round(
-                    (2 * numpy.sum(mask1 * mask2))
-                    / (numpy.sum(mask1) + numpy.sum(mask2)),
-                    3,
-                )
-
-            d = []
-            x, y, _ = self._masks(s[0], s[1], self.data.method)
-            for pair in zip(x, y):
-                d.append(_dice_coefficient(pair[0], pair[1]))
-            return d
-
-        plt.figure(figsize=[10, 10])
-        plt.hist(_dice())
-        plt.xlabel("Dice Scores", fontsize=20)
-        plt.ylabel("Counts", fontsize=20)
-        plt.xticks(fontsize=14)
-        plt.yticks(fontsize=14)
-        return PKDict(uris=[self._pyplot_data_url()])
 
     def _output(self, info, io):
         if "output" in info.inputOutput:

@@ -10,6 +10,7 @@ import contextlib
 import datetime
 import sirepo.quest
 import sirepo.srtime
+import sirepo.util
 import threading
 
 _REFRESH_SESSION = datetime.timedelta(seconds=5 * 60)
@@ -26,15 +27,19 @@ def init_module():
     _initialized = True
 
 
-async def init_quest(qcall):
+async def maybe_begin(qcall):
     async def _begin():
         try:
-            (await qcall.call_api("beginSession", data={})).destroy()
+            (await qcall.call_api("beginSession", body=PKDict())).destroy()
         except Exception as e:
-            pkdlog("error={} trying api_beginSession stack={}", e, pkdexc())
+            pkdlog("ignoring exception={} stack={}", e, pkdexc())
 
     def _check():
-        u = qcall.auth.logged_in_user(check_path=False)
+        try:
+            u = qcall.auth.logged_in_user(check_path=True)
+        except sirepo.util.UserDirNotFound as e:
+            pkdlog("ignoring exception={}, because api call will check", e)
+            return False
         t = sirepo.srtime.utc_now()
         s = _DB.get(u)
         if s:
