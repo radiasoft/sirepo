@@ -655,6 +655,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             canvas.height = height;
             var xPixelSize = alignOnPixel ? ((xDomain[1] - xDomain[0]) / zoomWidth * width / xValues.length) : 0;
             var yPixelSize = alignOnPixel ? ((yDomain[1] - yDomain[0]) / zoomHeight * height / yValues.length) : 0;
+            const p = this.pixelSize(xAxisScale, yAxisScale, width, height, xValues, yValues);
+            srdbg('PX', p, 'OLD', xPixelSize, yPixelSize);
+            srdbg('SZ', (xDomain[1] - xDomain[0]) / zoomWidth * width + p.x, (yDomain[1] - yDomain[0]) / zoomHeight * height + p.y, 'OLD', (xDomain[1] - xDomain[0]) / zoomWidth * width + xPixelSize, (yDomain[1] - yDomain[0]) / zoomHeight * height + yPixelSize);
             var ctx = canvas.getContext('2d');
             ctx.imageSmoothingEnabled = false;
             ctx.msImageSmoothingEnabled = false;
@@ -664,6 +667,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 -(yDomain[1] - yZoomDomain[1]) / zoomHeight * height - yPixelSize / 2,
                 (xDomain[1] - xDomain[0]) / zoomWidth * width + xPixelSize,
                 (yDomain[1] - yDomain[0]) / zoomHeight * height + yPixelSize);
+                //(xDomain[1] - xDomain[0]) / zoomWidth * width + p.x,
+                //(yDomain[1] - yDomain[0]) / zoomHeight * height + p.y);
         },
 
         ensureDomain: function(domain, scaleFunction) {
