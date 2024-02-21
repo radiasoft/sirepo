@@ -127,7 +127,7 @@ def _do_cancel(msg, template):
     return PKDict()
 
 
-def _do_compute(msg, template):
+def _do_compute_run(msg, template):
     msg.runDir = pkio.py_path(msg.runDir)
     with msg.runDir.join(template_common.RUN_LOG).open("w") as run_log:
         p = subprocess.Popen(
@@ -249,9 +249,9 @@ def _do_fastcgi(msg, template):
         s.sendall(_validate_msg_and_jsonl(r))
 
 
-def _do_get_simulation_frame(msg, template):
+def _do_simulation_frame(msg, template):
     try:
-        return template_common.sim_frame_dispatch(
+        return template_common.simulation_frame_dispatch(
             msg.data.copy().pkupdate(run_dir=msg.runDir),
         )
     except Exception as e:

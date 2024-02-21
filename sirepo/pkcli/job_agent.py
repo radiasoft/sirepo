@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Agent for managing the execution of jobs.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -158,12 +157,16 @@ def _assert_run_dir_exists(run_dir):
 
 
 class _Dispatcher(PKDict):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__(
             cmds=[],
             fastcgi_cmd=None,
             fastcgi_error_count=0,
+            **kwargs,
         )
+        if not "uid" not in self:
+            with sirepo.quest.start() as qcall:
+                self.uid = qcall.auth.logged_in_user(check_path=False)
 
     def fastcgi_destroy(self):
         self._fastcgi_file and pkio.unchecked_remove(self._fastcgi_file)
@@ -255,7 +258,7 @@ class _Dispatcher(PKDict):
     def _get_cmd_type(self, msg):
         if msg.jobRunMode == job.SBATCH:
             return _SbatchRun if msg.isParallel else _SbatchCmd
-        elif msg.jobCmd == "fastcgi":
+        elif msg.jobCmd == job.CMD_FASTCGI:
             return _FastCgiCmd
         return _Cmd
 
@@ -322,7 +325,7 @@ class _Dispatcher(PKDict):
                     job.OP_ANALYSIS,
                     job.OP_IO,
                 )
-                and msg.jobCmd != "fastcgi"
+                and msg.jobCmd != job.CMD_FASTCGI
             ):
                 return await self._fastcgi_op(msg)
             p = self._get_cmd_type(msg)(
@@ -334,7 +337,7 @@ class _Dispatcher(PKDict):
                 job.OP_ERROR,
                 reply=PKDict(runDirNotFound=True),
             )
-        if msg.jobCmd == "fastcgi":
+        if msg.jobCmd == job.CMD_FASTCGI:
             self.fastcgi_cmd = p
         self.cmds.append(p)
         await p.start()
@@ -381,7 +384,7 @@ class _Dispatcher(PKDict):
             _assert_run_dir_exists(pkio.py_path(msg.runDir))
         if not self.fastcgi_cmd:
             m = msg.copy()
-            m.jobCmd = "fastcgi"
+            m.jobCmd = job.CMD_FASTCGI
             self._fastcgi_file = _cfg.fastcgi_sock_dir.join(
                 f"sirepo_job_cmd-{_cfg.agent_id:8}.sock",
             )
@@ -437,7 +440,7 @@ class _Cmd(PKDict):
     def __init__(self, *args, send_reply=True, **kwargs):
         super().__init__(*args, send_reply=send_reply, **kwargs)
         self.run_dir = pkio.py_path(self.msg.runDir)
-        self._is_compute = self.msg.jobCmd == "compute"
+        self._is_compute = self.msg.jobCmd == job.CMD_COMPUTE_RUN
         if self._is_compute:
             pkio.unchecked_remove(self.run_dir)
             pkio.mkdir_parent(self.run_dir)
@@ -664,7 +667,7 @@ class _SbatchRun(_SbatchCmd):
             _status="PENDING",
             _stopped_sentinel=self.run_dir.join("sbatch_status_stop"),
         )
-        self.msg.jobCmd = "sbatch_status"
+        self.msg.jobCmd = job.CMD_SBATCH_STATUS
         self.pkdel("_in_file").remove()
 
     async def _await_start_ready(self):
@@ -754,7 +757,7 @@ class _SbatchRun(_SbatchCmd):
         c = _SbatchPrepareSimulationCmd(
             dispatcher=self.dispatcher,
             msg=self.msg.copy().pkupdate(
-                jobCmd="prepare_simulation",
+                jobCmd=job.CMD_PREPARE_SIMULATION,
                 # sequential job
                 opName=job.OP_ANALYSIS,
             ),
@@ -875,7 +878,7 @@ class _Process(PKDict):
             cmd=cmd,
             _exit=sirepo.tornado.Event(),
         )
-        if self.cmd.msg.jobCmd not in ("prepare_simulation", "compute"):
+        if self.cmd.msg.jobCmd not in (job.CMD_PREPARE_SIMULATION, job.CMD_COMPUTE_RUN):
             _assert_run_dir_exists(self.cmd.run_dir)
 
     async def exit_ready(self):

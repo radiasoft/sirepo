@@ -734,7 +734,7 @@ class _ComputeJob(_Supervisor):
         return await self._send_with_single_reply(
             job.OP_IO,
             req,
-            jobCmd="download_data_file",
+            jobCmd=job.CMD_DOWNLOAD_DATA_FILE,
         )
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
@@ -847,7 +847,7 @@ class _ComputeJob(_Supervisor):
             o = self._create_op(
                 job.OP_RUN,
                 req,
-                jobCmd="compute",
+                jobCmd=job.CMD_COMPUTE_RUN,
                 nextRequestSeconds=self.db.nextRequestSeconds,
             )
             t = sirepo.srtime.utc_now_as_int()
@@ -885,26 +885,26 @@ class _ComputeJob(_Supervisor):
         r = self._status_reply(req)
         if r:
             return r
-        r = await self._send_op_analysis(req, "sequential_result")
+        r = await self._send_op_analysis(req, job.CMD_SEQUENTIAL_RESULT)
         if r.state == job.ERROR and "errorCode" not in r:
             # TODO(robnagler) this seems wrong. Should be explicit
             return await self._init_db_missing_response(req)
         return r
 
     async def _receive_api_sbatchLogin(self, req):
-        return await self._send_with_single_reply(job.OP_SBATCH_LOGIN, req)
+        return await self._send_with_single_reply(job.CMD_SBATCH_LOGIN, req)
 
     async def _receive_api_simulationFrame(self, req):
         if not self._req_is_valid(req):
             raise sirepo.util.NotFound("invalid req={}", req)
         self._raise_if_purged_or_missing(req)
-        return await self._send_op_analysis(req, "get_simulation_frame")
+        return await self._send_op_analysis(req, job.CMD_SIMULATION_FRAME)
 
     async def _receive_api_statefulCompute(self, req):
-        return await self._send_op_analysis(req, "stateful_compute")
+        return await self._send_op_analysis(req, job.CMD_STATEFUL_COMPUTE)
 
     async def _receive_api_statelessCompute(self, req):
-        return await self._send_op_analysis(req, "stateless_compute")
+        return await self._send_op_analysis(req, job.CMD_STATELESS_COMPUTE)
 
     def _create_op(self, op_name, req, **kwargs):
         req.simulationType = self.db.simulationType

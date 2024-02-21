@@ -705,7 +705,7 @@ async def sim_frame(frame_id, op, qcall):
     return qcall.headers_for_no_cache(r)
 
 
-def sim_frame_dispatch(frame_args):
+def simulation_frame_dispatch(frame_args):
     from sirepo import simulation_db
 
     frame_args.pksetdefault(

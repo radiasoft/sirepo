@@ -30,6 +30,19 @@ OP_RUN = "run"
 OP_SBATCH_LOGIN = "sbatch_login"
 OP_BEGIN_SESSION = "begin_session"
 
+#: How operations are dispatched to pkcli.job_cmd
+CMD_ANALYSIS_JOB = "analysis_job"
+CMD_COMPUTE_RUN = "compute_run"
+CMD_DOWNLOAD_DATA_FILE = "download_data_file"
+CMD_FASTCGI = "fastcgi"
+CMD_PREPARE_SIMULATION = "prepare_simulation"
+CMD_SBATCH_LOGIN = OP_SBATCH_LOGIN
+CMD_SBATCH_STATUS = "sbatch_status"
+CMD_SEQUENTIAL_RESULT = "sequential_result"
+CMD_SIMULATION_FRAME = "simulation_frame"
+CMD_STATEFUL_COMPUTE = "stateful_compute"
+CMD_STATELESS_COMPUTE = "stateless_compute"
+
 _OK_REPLY = PKDict(state="ok")
 
 #: path supervisor registers to receive messages from agent
