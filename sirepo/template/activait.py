@@ -1241,9 +1241,8 @@ class _ImagePreview:
     def _append_output_image(self, data, index):
         if data.ndim == 1 and "label_path" in self.io.output:
             self.imageToLabels = True
-            self.outputs.append(pkcompat.from_bytes(
-                    self.file[self.io.output.label_path][data[index]]
-                )
+            self.outputs.append(
+                pkcompat.from_bytes(self.file[self.io.output.label_path][data[index]])
             )
             return
         self.currentImage = data[index]
