@@ -87,6 +87,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
         </div>
+        <div data-ng-switch-when="MinMax" class="col-sm-7">
+            <div data-min-max="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
+        </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
         'geometryInput-dagmcFile': '.h5m',
@@ -451,14 +454,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         ]);
     };
 
-    self.getMinMaxWithThreshold = () => {
-        const f = [self.minField, self.maxField];
-        const s = [-1, 1];
-        return appState.applicationState().openmcAnimation.thresholds.map(
-            (t, i) => s[i] * t > s[i] * f[i] ? f[i] : t
-        );
-    };
-
     self.getOutlines = (volId, dim, index) => {
         if (! self.outlines) {
             return [];
@@ -818,13 +813,14 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     )
                 );
                 const t = appState.models.openmcAnimation.thresholds;
-                t[0] = Math.max(t[0], tallyService.minField);
-                t[1] = Math.min(t[1], tallyService.maxField);
+                t.global = [tallyService.minField, tallyService.maxField];
+                t.val[0] = Math.max(t.val[0], t.global[0]);
+                t.val[1] = Math.min(t.val[1], t.global[1]);
                 const r =  {
                     aspectRatio: ar,
                     global_max: tallyService.maxField,
                     global_min: tallyService.minField,
-                    threshold: t,
+                    threshold: t.val,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
@@ -1294,7 +1290,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             }
 
             function isInFieldThreshold(value) {
-                const t = appState.models.openmcAnimation.thresholds;
+                const t = appState.models.openmcAnimation.thresholds.val;
                 return value < t[1] && value > t[0];
             }
 
@@ -2082,6 +2078,45 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
                 }
                 setView();
             });
+        },
+    };
+});
+
+SIREPO.app.directive('minMax', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            fieldName: '=',
+            info: '=',
+        },
+        template: `
+            <div style="display: inline-block;">
+                <label data-text-with-math="field.labels[0]" style="margin-right: 1ex"></label>
+                <button type="button" class="btn sr-button-action btn-xs" title="Set to global minimum ({{ field.global[0] }})" data-ng-click="toGlobal(0)"><span class="glyphicon glyphicon-step-backward"></span></button>
+                <input class="form-control sr-number-list" data-string-to-number="Float" data-ng-model="field.val[0]" style="text-align: right" required />
+                <label data-text-with-math="field.labels[1]" style="margin-right: 1ex"></label>
+                <button type="button" class="btn sr-button-action btn-xs" title="Set to global maximum ({{ field.global[1] }})" data-ng-click="toGlobal(1)"><span class="glyphicon glyphicon-step-forward"></span></button>
+                <input class="form-control sr-number-list" data-string-to-number="Float" data-ng-model="field.val[1]" style="text-align: right" required />
+                <div class="sr-input-warning"></div>
+            </div>
+        `,
+        controller: function($scope) {
+
+            $scope.toGlobal = (index) => {
+                $scope.field.val[index] = $scope.field.global[index];
+            };
+
+            $scope.toGlobalMin = () => {
+                $scope.field.val[0] = $scope.field.global[0];
+            };
+
+            $scope.toGlobalMax = () => {
+                $scope.field.val[1] = $scope.field.global[1];
+            };
+
+
         },
     };
 });
@@ -2886,7 +2921,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     }
 
     function validateThresholds() {
-        const t = appState.models.openmcAnimation.thresholds;
+        const t = appState.models.openmcAnimation.thresholds.val;
         const hasVals = ! t.some(x => x == null);
         if (
             validationService.validateField(
