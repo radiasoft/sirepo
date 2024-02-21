@@ -17,11 +17,14 @@ import re
 
 ERROR_CODE_RESPONSE_TOO_LARGE = "response_too_large"
 
+#: Ops are both operations and msg types
 OP_ANALYSIS = "analysis"
+#: terminate another op
 OP_CANCEL = "cancel"
 OP_ERROR = "error"
 OP_IO = "io"
 OP_JOB_CMD_STDERR = "job_cmd_stderr"
+#: terminate the agent
 OP_KILL = "kill"
 OP_OK = "ok"
 #: Agent indicates it is ready
@@ -29,6 +32,15 @@ OP_ALIVE = "alive"
 OP_RUN = "run"
 OP_SBATCH_LOGIN = "sbatch_login"
 OP_BEGIN_SESSION = "begin_session"
+
+#: Requires a core or more
+CPU_SLOT_OPS = frozenset((OP_ANALYSIS, OP_RUN))
+
+#: These are gated in the job driver to a specific number
+SLOT_OPS = frozenset().union(*[CPU_SLOT_OPS, (OP_IO,)])
+
+#: Are not time limited (handled by agent itself)
+UNTIMED_OPS = frozenset((OP_ALIVE, OP_CANCEL, OP_ERROR, OP_KILL, OP_OK))
 
 #: How operations are dispatched to pkcli.job_cmd
 CMD_ANALYSIS_JOB = "analysis_job"

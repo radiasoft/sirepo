@@ -218,7 +218,7 @@ def _do_fastcgi(msg, template):
                 return pkjson.load_any(m)
 
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect(msg.fastcgiFile)
+    s.connect(msg.socket)
     c = 0
     while True:
         try:

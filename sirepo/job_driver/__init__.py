@@ -36,14 +36,6 @@ _DEFAULT_MODULE = "local"
 
 _cfg = None
 
-_CPU_SLOT_OPS = frozenset((job.OP_ANALYSIS, job.OP_RUN))
-
-SLOT_OPS = frozenset().union(*[_CPU_SLOT_OPS, (job.OP_IO,)])
-
-_UNTIMED_OPS = frozenset(
-    (job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK)
-)
-
 
 class AgentMsg(PKDict):
     async def receive(self):
@@ -73,10 +65,8 @@ class DriverBase(PKDict):
         super().__init__(
             driver_details=PKDict({"type": self.__class__.__name__}),
             kind=op.kind,
-            # TODO(robnagler) sbatch could override OP_RUN, but not OP_ANALYSIS
-            # because OP_ANALYSIS touches the directory sometimes. Reasonably
-            # there should only be one OP_ANALYSIS running on an agent at one time.
-            op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in SLOT_OPS}),
+            # There can only be one op at a time. job_agent's use of fastcgi restricts this.
+            op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in job.SLOT_OPS}),
             uid=op.msg.uid,
             _agent_id=job.unique_key(),
             _agent_life_change_lock=tornado.locks.Lock(),
@@ -127,7 +117,7 @@ class DriverBase(PKDict):
         )
 
     def op_is_untimed(self, op):
-        return op.op_name in _UNTIMED_OPS
+        return op.op_name in job.UNTIMED_OPS
 
     def pkdebug_str(self):
         return pkdformat(
@@ -234,7 +224,8 @@ class DriverBase(PKDict):
                 ),
                 SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_TOKEN=self._global_resources_token,
                 SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
-                SIREPO_PKCLI_JOB_AGENT_KIND=str(op.kind),
+                # Kinds are a subset of run modes
+                SIREPO_PKCLI_JOB_AGENT_RUN_MODE=str(op.kind),
                 SIREPO_PKCLI_JOB_AGENT_START_DELAY=str(op.get("_agent_start_delay", 0)),
                 SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_TOKEN=self._sim_db_file_token,
                 SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_URI=job.supervisor_file_uri(
@@ -407,7 +398,7 @@ class DriverBase(PKDict):
             op.run_dir_slot.alloc,
             "Waiting for access to simulation state await=run_dir_slot",
         )
-        if n not in _CPU_SLOT_OPS:
+        if n not in job.CPU_SLOT_OPS:
             return res
         # once job-op relative resources are acquired, ask for global resources
         # so we only acquire on global resources, once we know we are ready to go.
