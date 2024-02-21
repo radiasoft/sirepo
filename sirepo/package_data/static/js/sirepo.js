@@ -159,6 +159,19 @@ SIREPO.appDefaultSimulationValues = {
     simFolder: {},
 };
 
+SIREPO.refreshModalMap = {
+    invalidSimulationSerial: {
+        modal: "sr-invalidSimulationSerial",
+        msg: 'This simulation has been updated outside of this browser',
+        title: 'Simulation Conflict',
+    },
+    newRelease: {
+        modal: "sr-newRelease",
+        msg: 'Sirepo has been upgraded',
+        title: 'Server Upgraded',
+    },
+};
+
 angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
     $provide.decorator('$rootScope', function ($delegate) {
         var _emit = $delegate.$emit;
@@ -177,7 +190,10 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 }]);
 
 // Add "log-broadcasts" in dependencies if you want to see all broadcasts
-SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'ngCookies', 'ngSanitize']);
+SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'ngCookies', 'ngSanitize']).run(
+    // Initialize factories not otherwise linked into dependency tree
+    (asyncMsgSetCookies) => {}
+);
 
 SIREPO.app.value('localRoutes', {});
 
@@ -243,7 +259,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
 });
 
-SIREPO.app.factory('authState', function(appDataService, appState, errorService, requestSender, $rootScope) {
+SIREPO.app.factory('authState', function(appDataService, appState, errorService, uri, $rootScope) {
     var self = appState.clone(SIREPO.authState);
 
     if (SIREPO.authState.isGuestUser
@@ -275,7 +291,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
                 SIREPO.authState = data.authState;
                 $.extend(self, SIREPO.authState);
             }
-            requestSender.globalRedirectRoot();
+            uri.globalRedirectRoot();
             return;
         }
         controller.showWarning = true;
@@ -919,81 +935,6 @@ SIREPO.app.factory('appDataService', function() {
     return self;
 });
 
-SIREPO.app.factory('notificationService', function(cookieService, $sce) {
-
-    var self = {};
-
-    self.notifications = {};
-
-    self.addNotification = function(notification) {
-        if(! notification.name || ! notification.content) {
-            return;
-        }
-        self.notifications[notification.name] = notification;
-    };
-
-    self.dismiss = function(name) {
-        if(name) {
-            self.dismissNotification(self.getNotification(name));
-        }
-    };
-
-    self.dismissNotification = function(notification) {
-        if(notification) {
-            self.sleepNotification(notification);
-        }
-    };
-
-    self.getContent = function(name) {
-        if(! name || ! self.getNotification(name)) {
-            return '';
-        }
-        return self.getNotification(name).content;
-    };
-
-    self.getNotification = function(name) {
-        return self.notifications[name];
-    };
-
-    self.removeNotification = function(notification) {
-        delete self.notifications[notification.name];
-        cookieService.removeCookie(cookieDef(notification));
-    };
-
-    self.shouldPresent = function(name) {
-        var now = new Date();
-        var notification = self.notifications[name];
-        if(! notification || ! notification.active) {
-            return false;
-        }
-
-        if (! cookieService.cleanExpiredCookie(cookieDef(notification))) {
-            var vcd = SIREPO.APP_SCHEMA.cookies.firstVisit;
-            var vc = cookieService.getCookie(vcd);
-            if (! vc) {
-                return false;
-            }
-            var lstVisitDays = vc.t - cookieService.timeoutOrDefault(vcd);
-            // we need millisecond comparison here
-            return now.getTime() > (lstVisitDays + (notification.delay || 0)) * SIREPO.APP_SCHEMA.constants.oneDayMillis;
-        }
-
-        return false;
-    };
-
-    self.sleepNotification = function(notification) {
-        cookieService.addCookie(cookieDef(notification), 'i');
-        //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
-        notification.active = false;
-    };
-
-    function cookieDef(notification) {
-        return SIREPO.APP_SCHEMA.cookies[notification.cookie];
-    }
-
-    return self;
-});
-
 SIREPO.app.factory('stringsService', function() {
     const strings = SIREPO.APP_SCHEMA.strings;
 
@@ -1436,7 +1377,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     return self;
 });
 
-SIREPO.app.factory('authService', function(authState, requestSender, stringsService) {
+SIREPO.app.factory('authService', function(authState, uri, stringsService) {
     var self = {};
 
     function label(method) {
@@ -1450,15 +1391,15 @@ SIREPO.app.factory('authService', function(authState, requestSender, stringsServ
         function (method) {
             return {
                 'label': 'Sign in ' + label(method),
-                'url': requestSender.formatUrlLocal(
+                'url': uri.formatLocal(
                     'loginWith',
                     {':method': method}
                 )
             };
         }
     );
-    self.loginUrl = requestSender.formatUrlLocal('login');
-    self.logoutUrl = requestSender.formatUrl(
+    self.loginUrl = uri.formatLocal('login');
+    self.logoutUrl = uri.format(
         'authLogout',
         {simulation_type: SIREPO.APP_SCHEMA.simulationType}
     );
@@ -1481,7 +1422,7 @@ SIREPO.app.factory('authService', function(authState, requestSender, stringsServ
  *     return self;
  * });
  * */
-SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, utilities, $compile, $rootScope, $timeout, $window) {
+SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilities, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -1629,7 +1570,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             simulation_id: simulationId,
             simulation_type: SIREPO.APP_SCHEMA.simulationType,
         };
-        return requestSender.formatUrl(route, {...a, ...args});
+        return uri.format(route, {...a, ...args});
     }
 
     self.addPendingRequest = function(name, requestFunction) {
@@ -2002,12 +1943,253 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
+SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
+    const self = {};
+    const globalMap = {_name: 'global'};
+    const localMap = {_name: 'local'};
+
+    const _format = (map, routeOrParams, params) => {
+        let n = routeOrParams;
+        if (angular.isObject(routeOrParams)) {
+            n = routeOrParams.routeName;
+            if (! n) {
+                throw new Error(routeOrParams + ': routeName must be supplied');
+            }
+            if (angular.isDefined(params)) {
+                srlog(map, routeOrParams, params);
+                throw new Error(params + ': params must be null if routeOrParams is an object: ' + routeOrParams);
+            }
+            params = angular.copy(routeOrParams);
+            delete params.routeName;
+        }
+        var p = {};
+        if (params) {
+            for (var k in params) {
+                // Deprecated params values: <simulationId> and :simulationId
+                p[k.replace(/\W+/g, '')] = params[k];
+            }
+        }
+        params = p;
+        if (! map[n]) {
+            throw new Error(`routeName=${n} not found in map=${map._name}`);
+        }
+        const r = map[n];
+        let u = r.baseUri ? '/' + r.baseUri : '';
+        let v = null;
+        for (p of r.params) {
+            if (p.name in params) {
+                v = params[p.name];
+            }
+            else if (p.name === "simulation_type") {
+                v = SIREPO.APP_SCHEMA.simulationType;
+            }
+            else if (p.isOptional) {
+                break;
+            }
+            else {
+                throw new Error(`param=${p.name} param missing map=${map._name} route=${r.name}`);
+            }
+            u = u + '/' + encodeURIComponent(_serializeValue(v, p.name));
+        }
+        return u;
+    };
+
+    // we can trust that the Python has validated the schema
+    // so no need for complicated checks like in sirepo.uri_router.
+    const _globalIterator = (p) => {
+        var m = p.match(/^([\?\*]?)<(\w+)>$/);
+        if (! m) {
+            throw new Error(`param=${p} invalid syntax global route`);
+        }
+        return {
+            name: m[2],
+            isOptional: !! m[1],
+        };
+    };
+
+    const _init = () => {
+        for (let n in SIREPO.APP_SCHEMA.route) {
+            let u = SIREPO.APP_SCHEMA.route[n].split('/');
+            u.shift();
+            globalMap[n] = {
+                name: n,
+                // root route has /*<path_info> so check for a non-param element
+                baseUri: u[0].match(/^[^\*\?<]/) ? u.shift() : '',
+                params: u.map(_globalIterator),
+            };
+        }
+
+        for (let n in SIREPO.APP_SCHEMA.localRoutes) {
+            localMap[n] = _routeMapLocal(n, SIREPO.APP_SCHEMA.localRoutes[n].route);
+        }
+    };
+
+    const _localIterator = (p) => {
+        var m = p.match(/^:(\w+)(\??)$/);
+        if (! m) {
+            throw new Error(`param=${p} invalid syntax local route`);
+        }
+        return {
+            name: m[1],
+            isOptional: !! m[2],
+        };
+    };
+
+    const _routeMapLocal = (name, route) => {
+        const u = route.split('/');
+        u.shift();
+        return {
+            name: name,
+            baseUri: u.shift(),
+            params: u.map(_localIterator),
+        };
+    };
+
+    const _routeNameOrUri = (routeNameOrUri, params) => {
+        if (routeNameOrUri.indexOf('/') >= 0) {
+            return routeNameOrUri;
+        }
+        return self.format(routeNameOrUri, params);
+    };
+
+    // Started from serializeValue in angular, but need more specialization.
+    // https://github.com/angular/angular.js/blob/2420a0a77e27b530dbb8c41319b2995eccf76791/src/ng/http.js#L12
+    const _serializeValue = (v, param) => {
+        if (v === null) {
+            throw new Error(param + ': may not be null');
+        }
+        if (typeof v == 'boolean') {
+            //TODO(robnagler) probably needs to be true/false with test
+            return v ? '1' : '0';
+        }
+        if (angular.isString(v)) {
+            if (v === '') {
+                throw new Error(param + ': may not be empty string');
+            }
+            return v;
+        }
+        if (angular.isNumber(v)) {
+            return v.toString();
+        }
+        if (angular.isDate(v)) {
+            return v.toISOString();
+        }
+        throw new Error(param + ': ' + (typeof v) + ' type cannot be serialized');
+    };
+
+    self.defaultRouteName = (appMode=null) => {
+        return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
+    };
+
+    self.firstComponent = (uri) => {
+        return uri.split('/')[1];
+    };
+
+    self.format = (routeName, params) => {
+        return _format(globalMap, routeName, params);
+    };
+
+    self.formatLocal = (routeName, params, app, routeMap=localMap) => {
+        var u = '#' + _format(routeMap, routeName, params);
+        return app ? '/' + app + u : u;
+    };
+
+    self.globalRedirect = (routeNameOrUri, params) => {
+        var u = _routeNameOrUri(routeNameOrUri, params);
+        var i = u.indexOf('#');
+        // https://github.com/radiasoft/sirepo/issues/2160
+        // hash is persistent even if setting href so explicitly
+        // set hash before href to avoid loops (e.g. #/server-upgraded)
+        if (i >= 0) {
+            $window.location.hash = u.substring(i);
+            u = u.substring(0, i);
+        }
+        else {
+            $location.hash('#');
+        }
+        $window.location.href = u;
+        // The whole app will reload.
+        // Don't respond to additional location change events from the current app.
+        $rootScope.$on('$locationChangeStart', function (event) {
+            event.preventDefault();
+        });
+    };
+
+    self.globalRedirectRoot = () => {
+        self.globalRedirect(
+            'root',
+            {path_info: SIREPO.APP_SCHEMA.simulationType}
+        );
+    };
+
+    self.isRouteParameter = (routeName, paramName) => {
+        var r = localMap[routeName] || globalMap[routeName];
+        if (! r) {
+            throw new Error('Invalid routeName: ' + routeName);
+        }
+        return r.params.some(function(p) {
+            return p.name == paramName;
+        });
+    };
+
+    self.localRedirect = (routeNameOrUri, params) => {
+        var u = routeNameOrUri;
+        if (u.indexOf('/') < 0) {
+            u = self.formatLocal(u, params);
+        }
+        if (u.charAt(0) == '#') {
+            u = u.slice(1);
+        }
+        // needs to handle query params from calls using complete url differently
+        u = u.split("?");
+
+        if(u.length > 1 && u[1].trim()) {
+            $location.path(u[0]).search(u[1]);
+        } else {
+            $location.path(u[0]);
+        }
+    };
+
+    self.localRedirectHome = (simulationId, appMode=null) => {
+        self.localRedirect(
+            self.defaultRouteName(appMode),
+            {':simulationId': simulationId}
+        );
+    };
+
+    self.newLocalWindow = (routeName, params, app) => {
+        $window.open(self.formatLocal(routeName, params, app), '_blank');
+    };
+
+    self.newWindow = (routeNameOrUri, params) => {
+        $window.open(_routeNameOrUri(routeNameOrUri, params), '_blank');
+    };
+
+    self.openSimulation = (app, localRoute, simId) => {
+        self.newWindow(
+            'simulationRedirect',
+            {
+                simulation_type: app,
+                local_route: localRoute,
+                simulation_id: simId,
+            },
+        );
+    };
+
+    _init();
+    return self;
+});
+
 // cannot import authState factory, because of circular import with requestSender
-SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) => {
+SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, uri) => {
+    let asyncMsgMethods = {};
+    let cookiesSorted = null;
+    let cookiesVerbatim = null;
     let needReply = {};
     let reqSeq = 1;
     const self = {};
     let socket = null;
+    let socketRetryBackoff = 0;
     const toSend = [];
 
     const _appendBuffers = (wsreq, buffers) => {
@@ -2021,45 +2203,37 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         wsreq.msg = f;
     };
 
-    const _error = (event) => {
-        // close: event.code : short, event.reason : str, wasClean : bool
-        // error: app specific
-        socket = null;
-        srlog("WebSocket failed: event=", event);
-        if (! event.wasClean) {
-            toSend.unshift(...Object.values(needReply));
-            needReply = {};
+    const _cookiesChangedAndRedirect = () => {
+        if (cookiesVerbatim === document.cookie) {
+            return false;
         }
-        //TODO(robnagler) backoff timer and set status
-        $interval(_socket, 1000, 1);
-    };
-
-    const _isAuthenticated = () =>  {
-        return SIREPO.authState.isLoggedIn && ! SIREPO.authState.needCompleteRegistration;
-    };
-
-    const _isAuthUrl = (url) =>  {
-        return url.startsWith("/auth-");
-    };
-
-    const _isOauth = (url, data) => {
-	// TODO(e-carlin): https://github.com/radiasoft/sirepo/issues/6689
-        return SIREPO.APP_SCHEMA.simulationType === 'flash';
+        const c = cookiesSorted;
+        _saveCookies();
+        // first time is null, and reordering is ok
+        if (c === null || c === cookiesSorted) {
+            return false;
+        }
+        srlog("cookies changed via another browser tab, reloading application");
+        uri.globalRedirectRoot();
+        return true;
     };
 
     const _protocolError = (header, content, wsreq, errorMsg) => {
-        if (! errorMsg) {
-            errorMsg = "invalid reply from server";
-        }
+        const e = "sirepo.msgRouter protocolError=" + (errorMsg || "invalid reply from server");
         srlog(
-            `wsreq#${wsreq && wsreq.header && wsreq.header.reqSeq} protocolError:`,
-            errorMsg,
+            e,
+            header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.asyncMsg
+                ? ` asyncMsgMethod={header.method}`
+                : wsreq && wsreq.header ? ` wsreq={wsreq.header.reqSeq}`
+                : "wsreq=null",
+            " header=",
             header,
+            " content=",
             content
         );
         if (wsreq) {
             wsreq.deferred.reject({
-                data: {state: "error", error: errorMsg},
+                data: {state: "error", error: e},
                 status: 500,
             });
         }
@@ -2068,6 +2242,22 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
     const _reply = (blob) => {
         let [header, content] = msgpack.decodeMulti(blob);
         const wsreq = needReply[header.reqSeq];
+        if (header.version !== SIREPO.APP_SCHEMA.websocketMsg.version) {
+            _protocolError(header, content, wsreq, "invalid version");
+            return;
+        }
+        if (header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.asyncMsg) {
+            if (! header.method) {
+                _protocolError(header, content, wsreq, "missing method in content");
+            }
+            else if (! (header.method in asyncMsgMethods) ){
+                _protocolError(header, content, wsreq, `unregistered asyncMsg method=${header.method}`);
+            }
+            else {
+                asyncMsgMethods[header.method](content);
+            }
+            return;
+        }
         const _replyError = (reply) => {
             if (SIREPO.traceWS) {
                 srlog(`wsreq#${wsreq.header.reqSeq} replyError:`, reply);
@@ -2075,16 +2265,10 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             wsreq.deferred.reject(reply);
         };
         if (! wsreq) {
-            srlog("wsreq not found reqSeq=", header.reqSeq, " header=", header);
-            _protocolError(header, content, null);
+            _protocolError(header, content, null, "reqSeq not found");
             return;
         }
         delete needReply[header.reqSeq];
-        if (header.version !== SIREPO.APP_SCHEMA.websocketMsg.version) {
-            srlog("WebSocket msg invalid version in header=", header, " req=", wsreq);
-            _protocolError(header, content, wsreq);
-            return;
-        }
         if (header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.srException) {
             const n = content.routeName;
             const r = {data: {}};
@@ -2099,15 +2283,13 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
             return;
         }
         if (header.kind !== SIREPO.APP_SCHEMA.websocketMsg.kind.httpReply) {
-            srlog("WebSocket msg invalid kind in header=", header, " req=", wsreq);
-            _protocolError(header, content, wsreq);
+            _protocolError(header, content, wsreq, "invalid websocketMsg.kind");
             return;
         }
         const b = wsreq.responseType === "blob";
         if (content instanceof Uint8Array) {
             if (! b) {
-                srlog("WebSocket not expecting blob header=", header, " wsreq=", wsreq);
-                _protocolError(header, content, wsreq);
+                _protocolError(header, content, wsreq, "unexpected blob content");
                 return;
             }
             content = new Blob([content]);
@@ -2117,8 +2299,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
                 _replyError({data: content});
                 return;
             }
-            srlog("WebSocket expecting blob header=", header, " wsreq=", wsreq, " content=", content);
-            _protocolError(header, content, wsreq);
+            _protocolError(header, content, wsreq, "expected blob content");
             return;
         }
         else if (wsreq.responseType === "json") {
@@ -2195,16 +2376,22 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         };
     };
 
+    const _saveCookies = () => {
+        // Keep two versions for faster checking in _cookiesChangedAndRedirect
+        cookiesVerbatim = document.cookie;
+        cookiesSorted = cookiesVerbatim.split(/\s*;\s*/).sort().join('; ');
+    };
+
     const _send = () => {
         //if already req_seq use that so server can know if it is a resend
         if (toSend.length <= 0) {
             return;
         }
-        if (socket == null) {
+        if (socket === null) {
             _socket();
             return;
         }
-        if (socket.readyState != 1) {
+        if (socket.readyState !== 1) {
             return;
         }
         while (toSend.length > 0) {
@@ -2218,19 +2405,48 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         if (socket !== null) {
             return;
         }
+        if (_cookiesChangedAndRedirect()) {
+            return;
+        }
         const s = new WebSocket(
             new URL($window.location.href).origin.replace(/^http/i, "ws") + "/ws",
         );
-        s.onclose = (event) => {_error(event);};
-        s.onerror = (event) => {_error(event);};
-        s.onmessage = (event) => {
-            event.data.arrayBuffer().then(
-                (blob) => {_reply(blob);},
-                (error) => {srlog("WebSocket.onmessage error=", error, " event=", event);}
-            );
-        };
-        s.onopen = (event) => {_send();};
+        s.onclose = _socketError;
+        s.onerror = _socketError;
+        s.onmessage = _socketOnMessage;
+        s.onopen = _socketOnOpen;
         socket = s;
+    };
+
+    const _socketError = (event) => {
+        // close: event.code : short, event.reason : str, wasClean : bool
+        // error: app specific
+        socket = null;
+        if (socketRetryBackoff <= 0) {
+            socketRetryBackoff = 1;
+            srlog("WebSocket failed: event=", event);
+            if (! event.wasClean) {
+                toSend.unshift(...Object.values(needReply));
+                needReply = {};
+            }
+        }
+        //TODO(robnagler) some type of set status to communicate connection lost
+        $interval(_socket, socketRetryBackoff * 1000, 1);
+        if (socketRetryBackoff < 60) {
+            socketRetryBackoff *= 2;
+        }
+    };
+
+    const _socketOnMessage = (event) => {
+        event.data.arrayBuffer().then(
+            (blob) => {_reply(blob);},
+            (error) => {srlog("WebSocket.onmessage error=", error, " event=", event);}
+        );
+    };
+
+    const _socketOnOpen = (event) => {
+        socketRetryBackoff = 0;
+        _send();
     };
 
     const _timeout = (wsreq) => {
@@ -2243,13 +2459,19 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         _protocolError(null, null, wsreq, "request timed out");
     };
 
+    self.registerAsyncMsg = (methodName, callback) => {
+        if (methodName in asyncMsgMethods) {
+            throw new Error(`duplicate registerAsyncMsg methodName="{methodName}"`);
+        }
+        asyncMsgMethods[methodName] = callback;
+    };
+
     self.send = (url, data, httpConfig) => {
-        if (! SIREPO.authState.uiWebSocket || ! _isAuthenticated() || _isAuthUrl(url) || _isOauth(url, data)) {
-            // Might be auto logged out so close socket so can re-authenticate
-            if (socket) {
-                socket.close();
-                socket = null;
-            }
+        if (_cookiesChangedAndRedirect()) {
+            // app will reload so return a fake promise
+            return {then: () => {}};
+        }
+        if (! SIREPO.authState.uiWebSocket) {
             return data ? $http.post(url, data, httpConfig)
                 : $http.get(url, httpConfig);
         }
@@ -2289,166 +2511,77 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService) =>
         return wsreq.deferred.promise;
     };
 
+    self.updateCookies = (changeOp) => {
+        if (_cookiesChangedAndRedirect()) {
+            return false;
+        }
+        changeOp();
+        _saveCookies();
+        return true;
+    };
+
     return self;
 
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, utilities, msgRouter, $location, $injector, $interval, $q, $rootScope, $window) {
+SIREPO.app.factory('requestSender', function(browserStorage, errorService, utilities, msgRouter, uri, $location, $injector, $interval, $q, $rootScope) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
-    var LOGIN_ROUTE_NAME = 'login';
-    var LOGIN_URI = null;
+    const LOGIN_ROUTE_NAME = 'login';
+    let LOGIN_URI = null;
     var REDIRECT_RE = new RegExp('window.location = "([^"]+)";', 'i');
     var SR_EXCEPTION_RE = new RegExp('/\\*sr_exception=(.+)\\*/');
     var listFilesData = {};
-    var globalMap = {_name: 'global'};
-    var localMap = {_name: 'local'};
+    const storageKey = "previousRoute";
 
-    // we can trust that the Python has validated the schema
-    // so no need for complicated checks like in sirepo.uri_router.
-    function _globalIterator(p) {
-        var m = p.match(/^([\?\*]?)<(\w+)>$/);
-        if (! m) {
-            throw new Error(`param=${p} invalid syntax global route`);
-        }
-        return {
-            name: m[2],
-            isOptional: !! m[1],
-        };
-    }
-
-    for (let n in SIREPO.APP_SCHEMA.route) {
-        let u = SIREPO.APP_SCHEMA.route[n].split('/');
-        u.shift();
-        globalMap[n] = {
-            name: n,
-            // root route has /*<path_info> so check for a non-param element
-            baseUri: u[0].match(/^[^\*\?<]/) ? u.shift() : '',
-            params: u.map(_globalIterator),
-        };
-    }
-    function _localIterator(p) {
-        var m = p.match(/^:(\w+)(\??)$/);
-        if (! m) {
-            throw new Error(`param=${p} invalid syntax local route`);
-        }
-        return {
-            name: m[1],
-            isOptional: !! m[2],
-        };
-    }
-
-    for (let n in SIREPO.APP_SCHEMA.localRoutes) {
-        localMap[n] = routeMapLocal(n, SIREPO.APP_SCHEMA.localRoutes[n].route);
-    }
-
-    const _routeNameOrUrl = (routeNameOrUrl, params) => {
-        if (routeNameOrUrl.indexOf('/') >= 0) {
-            return routeNameOrUrl;
-        }
-        return self.formatUrl(routeNameOrUrl, params);
-    };
-
-    function routeMapLocal(name, route) {
-        const u = route.split('/');
-        u.shift();
-        return {
-            name: name,
-            baseUri: u.shift(),
-            params: u.map(_localIterator),
-        };
-    }
-
-    function checkCookieRedirect(event, route) {
+    function checkLoginRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn
             || SIREPO.authState.needCompleteRegistration
             // Any controller that has 'login' in it will stay on page
-            || (route.controller && route.controller.indexOf('login') >= 0)
+            || (route.controller && route.controller.toLowerCase().indexOf('login') >= 0)
         ) {
             return;
         }
-        var p = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.previousRoute);
+        let p = browserStorage.getString(storageKey);
         if (! p) {
             return;
         }
-        cookieService.removeCookie(SIREPO.APP_SCHEMA.cookies.previousRoute);
+        browserStorage.removeItem(storageKey);
         p = p.split(' ');
-        if (p[0] != SIREPO.APP_SCHEMA.simulationType) {
-            // wrong app so just ignore
+        if (p[0] !== SIREPO.APP_SCHEMA.simulationType) {
+            // wrong app so ignore
             return;
         }
-        var r = decodeURIComponent(p[1]);
-        if ($location.path() != r) {
+        const r = uri.firstComponent(decodeURIComponent(p[1]));
+        // After a reload from a login. Only redirect if
+        // the route is different. The firstComponent is
+        // always unique in our routes.
+        if (uri.firstComponent($location.url()) !== r) {
             event.preventDefault();
-            self.localRedirect(r);
+            uri.localRedirect(decodeURIComponent(p[1]));
         }
     }
 
     function defaultErrorCallback(data, status) {
         const err = SIREPO.APP_SCHEMA.customErrors[status];
         if (err && err.route) {
-            self.localRedirect(err.route);
+            uri.localRedirect(err.route);
         }
         else {
             errorService.alertText('Request failed: ' + data.error);
         }
     }
 
-    function isFirefox() {
-        // https://stackoverflow.com/a/9851769
-        return typeof InstallTrigger !== 'undefined';
-    }
-
-    function formatUrl(map, routeOrParams, params) {
-        let n = routeOrParams;
-        if (angular.isObject(routeOrParams)) {
-            n = routeOrParams.routeName;
-            if (! n) {
-                throw new Error(routeOrParams + ': routeName must be supplied');
-            }
-            if (angular.isDefined(params)) {
-                srlog(arguments);
-                throw new Error(params + ': params must be null if routeOrParams is an object: ' + routeOrParams);
-            }
-            params = angular.copy(routeOrParams);
-            delete params.routeName;
+    function saveLoginRedirect() {
+        const u = $location.url();
+        if (u == LOGIN_URI) {
+            return true;
         }
-        var p = {};
-        if (params) {
-            for (var k in params) {
-                // Deprecated params values: <simulationId> and :simulationId
-                p[k.replace(/\W+/g, '')] = params[k];
-            }
-        }
-        params = p;
-        if (! map[n]) {
-            throw new Error(`routeName=${n} not found in map=${map._name}`);
-        }
-        const r = map[n];
-        let u = r.baseUri ? '/' + r.baseUri : '';
-        let v = null;
-        for (p of r.params) {
-            if (p.name in params) {
-                v = params[p.name];
-            }
-            else if (p.name === "simulation_type") {
-                v = SIREPO.APP_SCHEMA.simulationType;
-            }
-            else if (p.isOptional) {
-                break;
-            }
-            else {
-                throw new Error(`param=${p.name} param missing map=${map._name} route=${r.name}`);
-            }
-            u = u + '/' + encodeURIComponent(serializeValue(v, p.name));
-        }
-        return u;
-    }
-
-    function saveCookieRedirect(route) {
-        var v = SIREPO.APP_SCHEMA.simulationType + ' ' + encodeURIComponent(route);
-        cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.previousRoute, v);
+        browserStorage.setString(
+            storageKey,
+            SIREPO.APP_SCHEMA.simulationType + ' ' + encodeURIComponent(u),
+        );
     }
 
     function sendWithSimulationFields(url, appState, successCallback, data, errorCb) {
@@ -2457,41 +2590,12 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         self.sendRequest(url, successCallback, data, errorCb);
     }
 
-    // Started from serializeValue in angular, but need more specialization.
-    // https://github.com/angular/angular.js/blob/2420a0a77e27b530dbb8c41319b2995eccf76791/src/ng/http.js#L12
-    function serializeValue(v, param) {
-        if (v === null) {
-            throw new Error(param + ': may not be null');
-        }
-        if (typeof v == 'boolean') {
-            //TODO(robnagler) probably needs to be true/false with test
-            return v ? '1' : '0';
-        }
-        if (angular.isString(v)) {
-            if (v === '') {
-                throw new Error(param + ': may not be empty string');
-            }
-            return v;
-        }
-        if (angular.isNumber(v)) {
-            return v.toString();
-        }
-        if (angular.isDate(v)) {
-            return v.toISOString();
-        }
-        throw new Error(param + ': ' + (typeof v) + ' type cannot be serialized');
-    }
-
     self.clearListFilesData = function() {
         listFilesData = {};
     };
 
-    self.defaultRouteName = function(appMode=null) {
-        return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
-    };
-
     self.downloadDataFileUrl = (appState, params) => {
-        return self.formatUrl(
+        return uri.format(
             'downloadDataFile',
             {
                 simulation_id: appState.models.simulation.simulationId,
@@ -2502,82 +2606,21 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         );
     };
 
-    self.formatUrlLocal = function(routeName, params, app, routeMap=localMap) {
-        var u = '#' + formatUrl(routeMap, routeName, params);
-        return app ? '/' + app + u : u;
-    };
-
-    self.formatUrl = function(routeName, params) {
-        return formatUrl(globalMap, routeName, params);
-    };
-
     self.getListFilesData = function(name) {
         return listFilesData[name];
-    };
-
-    self.newLocalWindow = function(routeName, params, app) {
-        $window.open(self.formatUrlLocal(routeName, params, app), '_blank');
-    };
-
-    self.newWindow = function(routeNameOrUrl, params) {
-        $window.open(_routeNameOrUrl(routeNameOrUrl, params), '_blank');
-    };
-
-    self.openSimulation = (app, localRoute, simId) => {
-        self.newWindow(
-            'simulationRedirect',
-            {
-                simulation_type: app,
-                local_route: localRoute,
-                simulation_id: simId,
-            },
-        );
-    };
-
-    self.globalRedirect = function(routeNameOrUrl, params) {
-        var u = _routeNameOrUrl(routeNameOrUrl, params);
-        var i = u.indexOf('#');
-        // https://github.com/radiasoft/sirepo/issues/2160
-        // hash is persistent even if setting href so explicitly
-        // set hash before href to avoid loops (e.g. #/server-upgraded)
-        if (i >= 0) {
-            $window.location.hash = u.substring(i);
-            u = u.substring(0, i);
-        }
-        else {
-            $location.hash('#');
-        }
-        $window.location.href = u;
-        // The whole app will reload.
-        // Don't respond to additional location change events from the current app.
-        $rootScope.$on('$locationChangeStart', function (event) {
-            event.preventDefault();
-        });
-    };
-
-    self.globalRedirectRoot = function() {
-        self.globalRedirect(
-            'root',
-            {path_info: SIREPO.APP_SCHEMA.simulationType}
-        );
     };
 
     self.handleSRException = function(srException, errorCallback) {
         const e = srException;
         if (e.routeName == "httpRedirect") {
-            self.globalRedirect(e.params.uri, undefined);
+            uri.globalRedirect(e.params.uri, undefined);
             return;
         }
-        if (e.routeName == "serverUpgraded" && e.params
-            && ['invalidSimulationSerial', 'newRelease'].includes(e.params.reason)) {
-            $(`#sr-${e.params.reason}`).modal('show');
+        if (e.routeName == "serverUpgraded" && e.params && e.params.reason in SIREPO.refreshModalMap) {
+            $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
             return;
         }
-        const u = $location.url();
-        if (e.routeName == LOGIN_ROUTE_NAME && u != LOGIN_URI) {
-            saveCookieRedirect(u);
-        }
-        if (e.params && e.params.isModal && e.routeName.includes('sbatch')) {
+        if (e.params && e.params.isModal && e.routeName.toLowerCase().includes('sbatch')) {
             e.params.errorCallback = errorCallback;
             $rootScope.$broadcast(
                 'showSbatchLoginModal',
@@ -2589,40 +2632,16 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             return;
         }
         if (e.routeName == LOGIN_ROUTE_NAME) {
+            saveLoginRedirect();
             // if redirecting to login, but the app thinks it is already logged in,
             // then force a logout to avoid a login loop
             if (SIREPO.authState.isLoggedIn) {
-                self.globalRedirect('authLogout');
+                uri.globalRedirect('authLogout');
                 return;
             }
         }
-        self.localRedirect(e.routeName, e.params);
+        uri.localRedirect(e.routeName, e.params);
         return;
-    };
-
-    self.localRedirect = function(routeNameOrUrl, params) {
-        var u = routeNameOrUrl;
-        if (u.indexOf('/') < 0) {
-            u = self.formatUrlLocal(u, params);
-        }
-        if (u.charAt(0) == '#') {
-            u = u.slice(1);
-        }
-        // needs to handle query params from calls using complete url differently
-        u = u.split("?");
-
-        if(u.length > 1 && u[1].trim()) {
-            $location.path(u[0]).search(u[1]);
-        } else {
-            $location.path(u[0]);
-        }
-    };
-
-    self.localRedirectHome = function(simulationId, appMode=null) {
-        self.localRedirect(
-            self.defaultRouteName(appMode),
-            {':simulationId': simulationId}
-        );
     };
 
     self.loadListFiles = function(name, params, callback) {
@@ -2634,7 +2653,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         }
         listFilesData[name + ".loading"] = true;
         msgRouter.send(
-            self.formatUrl('listFiles'),
+            uri.format('listFiles'),
             params,
             {}
         ).then(
@@ -2656,17 +2675,6 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
             },
         );
     };
-
-    self.isRouteParameter = function(routeName, paramName) {
-        var r = localMap[routeName] || globalMap[routeName];
-        if (! r) {
-            throw new Error('Invalid routeName: ' + routeName);
-        }
-        return r.params.some(function(p) {
-            return p.name == paramName;
-        });
-    };
-
     self.sendAnalysisJob = function(appState, callback, data) {
         sendWithSimulationFields('analysisJob', appState, callback, data);
     };
@@ -2713,7 +2721,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         }
         var url = angular.isString(urlOrParams) && urlOrParams.indexOf('/') >= 0
             ? urlOrParams
-            : self.formatUrl(urlOrParams);
+            : uri.format(urlOrParams);
         var timeout = $q.defer();
         var interval, t;
         var timed_out = false;
@@ -2767,7 +2775,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
                 if (m) {
                     if (m[1].indexOf('#/error') <= -1) {
                         srlog('javascriptRedirectDocument', m[1]);
-                        self.globalRedirect(m[1], undefined);
+                        uri.globalRedirect(m[1], undefined);
                         return;
                     }
                     srlog('javascriptRedirectDocument: staying on page', m[1]);
@@ -2876,8 +2884,21 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, utilit
         );
     };
 
-    $rootScope.$on('$routeChangeStart', checkCookieRedirect);
-    LOGIN_URI = self.formatUrlLocal(LOGIN_ROUTE_NAME).slice(1);
+    // Deprecated interface
+    self.defaultRouteName = uri.defaultRouteName;
+    self.formatUrlLocal = uri.formatLocal;
+    self.formatUrl = uri.format;
+    self.newLocalWindow = uri.newLocalWindow;
+    self.newWindow = uri.newWindow;
+    self.openSimulation = uri.openSimulation;
+    self.globalRedirect = uri.globalRedirect;
+    self.globalRedirectRoot = uri.globalRedirectRoot;
+    self.localRedirect = uri.localRedirect;
+    self.localRedirectHome = uri.localRedirectHome;
+    self.isRouteParameter = uri.isRouteParameter;
+
+    $rootScope.$on('$routeChangeStart', checkLoginRedirect);
+    LOGIN_URI = uri.formatLocal(LOGIN_ROUTE_NAME).slice(1);
     return self;
 });
 
@@ -4121,25 +4142,11 @@ SIREPO.app.controller('ServerUpgradedController', function (errorService, reques
     requestSender.globalRedirectRoot();
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, stringsService, $location, $rootScope, $sce, $scope) {
+SIREPO.app.controller('SimulationsController', function (appState, browserStorage, errorService, fileManager, panelState, requestSender, stringsService, $location, $rootScope, $scope) {
     var self = this;
+    const storageKey = "iconView";
     self.stringsService = stringsService;
     $rootScope.$broadcast('simulationUnloaded');
-    var n = appState.clone(SIREPO.APP_SCHEMA.notifications.getStarted);
-    const s = SIREPO.APP_SCHEMA.strings;
-    n.content = [
-        '<div class="text-center"><strong>Welcome to Sirepo - ',
-        $sce.getTrustedHtml(SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName),
-        '!</strong></div>',
-        `Below are some example ${s.simulationDataTypePlural}` +
-            ` and folders containing ${s.simulationDataTypePlural}.` +
-            ` Click on the ${s.simulationDataType}` +
-            ` to open and view the ${s.simulationDataType} results.` +
-            ` You can create a new ${s.simulationDataType}` +
-            ` by selecting the "${stringsService.newSimulationLabel()}" link above.`
-    ].join('');
-    notificationService.addNotification(n);
-
     self.importText = SIREPO.APP_SCHEMA.strings.importText;
     self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';
@@ -4388,8 +4395,10 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
-        cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.listView, self.isIconView);
+        browserStorage.setBoolean(storageKey, self.isIconView);
     };
+
+    self.isIconView = browserStorage.getBoolean(storageKey, true);
 
     self.toggleFolder = function(item) {
         if (item == self.activeFolder) {
@@ -4410,8 +4419,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
         }
     };
 
-    var lv = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.listView);
-    self.isIconView = (lv == null ? true : lv);
     clearModels();
     $scope.$on('simulation.changed', function() {
         self.isWaitingForSim = true;
@@ -4490,167 +4497,111 @@ SIREPO.app.filter('simulationName', function() {
     };
 });
 
-// Handles cookies stored in a single string, based on a definition in the schema.
-// Public functions expect definitions in the format
-//
-//  {
-//      <name: <string>>,
-//      <value: <json type>>,
-//      [valType: [string, see getCookieValue()],
-//      [timeout: [cookie lifetime in days]]
-//  }
-//
-// The client cookie then has the format
-//  <name 1>:v=<value 1>;t=<timeout 1>;|...
-SIREPO.app.factory('cookieService', function($cookies) {
+// only uses angularjs $cookies for removing old cookies, which
+// were encoded by $cookies.
+SIREPO.app.factory('browserStorage', function($cookies, msgRouter) {
+    const self = {};
 
-    var svc = {};
+    const _updateOld = () => {
+        const toDelete = [];
 
-    var oneDayMillis = SIREPO.APP_SCHEMA.constants.oneDayMillis;
+        const _v1 = () => {
+            const toCheck = [
+                'net.sirepo.first_visit',
+                'net.sirepo.get_started_notify',
+                'net.sirepo.sim_list_view',
+            ];
 
-    var cdelim = '|';
-    var nDelim = ':';
-    var pDelim = ';';
-    var kvDelim = '=';
-
-    var fiveYearsDays = 5*365;
-    var fiveYearsMillis = fiveYearsDays * oneDayMillis;
-
-    // used to delete the old cookies
-    var cookieMap = {
-        'net.sirepo.first_visit': SIREPO.APP_SCHEMA.cookies.firstVisit,
-        'net.sirepo.get_started_notify': SIREPO.APP_SCHEMA.cookies.getStarted,
-        'net.sirepo.sim_list_view': SIREPO.APP_SCHEMA.cookies.listView,
-    };
-
-    svc.addCookie = function (cookieDef, value) {
-        add(cookieDef.name, value || cookieDef.value, svc.timeoutOrDefault(cookieDef));
-    };
-
-    svc.cleanExpiredCookie = function (cookieDef) {
-        var cobj = get(cookieDef.name);
-        if (cobj && cobj.t && parseInt(cobj.t) < new Date().getTime() / oneDayMillis) {
-            remove(name);
-            return null;
-        }
-        return cobj;
-    };
-
-    svc.getCookie = function (cookieDef) {
-        return get(cookieDef.name);
-    };
-
-    svc.getCookieValue = function (cookieDef) {
-        var cobj = svc.getCookie(cookieDef);
-        if (! cobj) {
-            return null;
-        }
-        var val = cobj.v;
-        if (cookieDef.valType && cookieDef.valType.toLowerCase() === 'b') {
-            return val.toLowerCase() === 'true';
-        }
-        if (cookieDef.valType && cookieDef.valType.toLowerCase() === 'n') {
-            return parseFloat(val);
-        }
-        return val;
-    };
-
-    svc.removeCookie = function (cookieDef) {
-        remove(cookieDef.name);
-    };
-
-    svc.timeoutOrDefault = function (cookieDef) {
-        return cookieDef.timeout || fiveYearsDays;
-    };
-
-    // to reduce the string size, and because that's usually as accurate as we need,
-    // timeout is in days
-    function add(name, value, timeoutDays) {
-        var allDelim = cdelim + nDelim + pDelim + kvDelim;
-        var delimRE = new RegExp('[' + allDelim + ']+');
-        if(delimRE.test(name) || delimRE.test(value) ) {
-            throw new Error(name + ': Cookie name/value cannot contain delimiters ' + allDelim);
-        }
-        var cobj = readSRCookie();
-        if(! cobj[name]) {
-            cobj[name] = {};
-        }
-        cobj[name].t = Math.floor((new Date().getTime() / oneDayMillis)) + parseInt(timeoutDays) || 0;
-        cobj[name].v = value;
-        writeSRCookie(cobj);
-    }
-
-    function checkFirstVisit() {
-        if (! svc.cleanExpiredCookie(SIREPO.APP_SCHEMA.cookies.firstVisit)) {
-            svc.addCookie(SIREPO.APP_SCHEMA.cookies.firstVisit);
-        }
-    }
-
-    function fixupOldCookies() {
-        for(var cname in cookieMap) {
-            var c = $cookies.get(cname);
-            if(angular.isDefined(c)) {
-                svc.addCookie(cookieMap[cname]);
-                $cookies.remove(cname);
+            for (let n of toCheck) {
+                var c = $cookies.get(n);
+                if (angular.isDefined(c)) {
+                    toDelete.push(n);
+                }
             }
-        }
-    }
+        };
 
-    function get(name) {
-        return readSRCookie()[name];
-    }
-
-    function pack(cobj) {
-        var cstr = '';
-        for(var name in cobj) {
-            cstr = cstr + name + nDelim;
-            for(var k in cobj[name]) {
-                cstr = cstr + k + kvDelim + cobj[name][k] + pDelim;
+        const _v2 = () => {
+            const incoming = $cookies.get('sirepo_cookie_js');
+            if (! incoming) {
+                return;
             }
-            cstr = cstr + cdelim;
-        }
-        return cstr;
-    }
-
-    function parse(cstr) {
-        var cobj = {};
-        var cookies = (cstr || '').split(cdelim);
-        cookies.forEach(function (c) {
-            var nameVals = c.split(nDelim);
-            if(nameVals && nameVals[0]) {
-                cobj[nameVals[0]] = {};
-                nameVals[1].split(pDelim).forEach(function (kvs) {
-                    if(kvs && kvs !== '') {
-                        var kv = kvs.split(kvDelim);
-                        cobj[nameVals[0]][kv[0]] = kv[1];
+            toDelete.push('sirepo_cookie_js');
+            // only ones we care about
+            const remap = {
+                strt: 'getStarted',
+                lv: 'iconView',
+            };
+            for (let c of incoming.split('|')) {
+                let [k, v] = c.split(':');
+                if (! (k && v) ) {
+                    continue;
+                }
+                for (let e of v.split(';')) {
+                    if (e && e.charAt(0) === 'v' && remap[k]) {
+                        const b = e.split('=')[1];
+                        // originally had an "i" for true on getStarted,
+                        // and we are inverting getStarted (true => show)
+                        self.setBoolean(remap[k], b === 'true' || b !== 'i' && b !== 'false');
                     }
-                });
+                }
+            }
+        };
+        _v1();
+        _v2();
+        msgRouter.updateCookies(() => {
+            for (let k of toDelete) {
+                $cookies.remove(k);
             }
         });
-        return cobj;
-    }
+    };
 
-    function readSRCookie() {
-        return parse($cookies.get(SIREPO.APP_SCHEMA.constants.clientCookie));
-    }
-
-    function remove(name) {
-        var cobj = readSRCookie();
-        if(cobj && cobj[name]) {
-            delete cobj[name];
-            writeSRCookie(cobj);
+    self.getBoolean = (name, defaultValue=false) => {
+        const s = self.getString(name, null);
+        if (s === null) {
+             return defaultValue;
         }
-    }
+        if (s === 'true') {
+            return true;
+        }
+        if (s === 'false') {
+            return false;
+        }
+        srlog(`browserStorage.getBoolean(${name}) invalid value=${s}`);
+        self.removeItem(name);
+        return defaultValue;
+    };
 
-    function writeSRCookie(cobj) {
-        $cookies.put(SIREPO.APP_SCHEMA.constants.clientCookie,
-            pack(cobj),
-            {expires: new Date(new Date().getTime() + fiveYearsMillis)}
-        );
-    }
+    self.getString = (name, defaultValue=null) => {
+        const rv = localStorage.getItem(name);
+        return rv == null ? defaultValue : rv;
+    };
 
-    fixupOldCookies();
-    checkFirstVisit();
+    self.removeItem = (name) => {
+        localStorage.removeItem(name);
+    };
 
-    return svc;
+    self.setBoolean = (name, value) => {
+        self.setString(name, value ? 'true' : 'false');
+    };
+
+    self.setString = (name, value) => {
+        localStorage.setItem(name, value);
+    };
+
+    _updateOld();
+    return self;
+});
+
+SIREPO.app.factory('asyncMsgSetCookies', ($cookies, msgRouter) => {
+    const self = {};
+    const asyncMsgMethod = (content) => {
+        msgRouter.updateCookies(() => {
+            for (let c of content) {
+                document.cookie = c;
+            }
+        });
+    };
+
+    msgRouter.registerAsyncMsg('setCookies', asyncMsgMethod);
+    return self;
 });

@@ -1,6 +1,7 @@
 import contextlib
 import os
 import pytest
+import re
 import requests
 import subprocess
 
@@ -192,10 +193,11 @@ def _fc(request, fc_module, new_user=False):
     def _sim_type(request):
         from sirepo import feature_config
 
+        f = request.function
+        n = getattr(f, "func_name", None) or getattr(f, "__name__")
         for c in feature_config.FOSS_CODES:
-            f = request.function
-            n = getattr(f, "func_name", None) or getattr(f, "__name__")
-            if c in n or c in str(request.fspath.purebasename):
+            r = re.compile(rf"(?:^|_){c}($|_)")
+            if r.search(n) or r.search(str(request.fspath.purebasename)):
                 return c
         return "myapp"
 
