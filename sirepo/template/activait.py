@@ -1261,14 +1261,14 @@ class _ImagePreview:
             xIsParameters=self.xIsParameters,
             imageToLabels=self.imageToLabels,
             pred=False,
-            x=self.inputs,
-            y=self.outputs,
+            colA=self.inputs,
+            colB=self.outputs,
         )
         if self.originals:
             res.pkupdate(
                 pred=self.outputs,
-                x=self.originals,
-                y=self.inputs,
+                colA=self.originals,
+                colB=self.inputs,
             )
         return res
 
