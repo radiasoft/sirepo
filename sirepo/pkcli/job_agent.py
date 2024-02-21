@@ -19,6 +19,7 @@ import signal
 import sirepo.feature_config
 import sirepo.modules
 import sirepo.nersc
+import sirepo.quest
 import sirepo.tornado
 import socket
 import subprocess
@@ -164,7 +165,7 @@ class _Dispatcher(PKDict):
             fastcgi_error_count=0,
             **kwargs,
         )
-        if not "uid" not in self:
+        if "uid" not in self:
             with sirepo.quest.start() as qcall:
                 self.uid = qcall.auth.logged_in_user(check_path=False)
 
@@ -256,7 +257,7 @@ class _Dispatcher(PKDict):
             tornado.ioloop.IOLoop.current().stop()
 
     def _get_cmd_type(self, msg):
-        if msg.jobRunMode == job.SBATCH:
+        if msg.jobRunMode == job.RUN_MODE_SBATCH:
             return _SbatchRun if msg.isParallel else _SbatchCmd
         elif msg.jobCmd == job.CMD_FASTCGI:
             return _FastCgiCmd
@@ -448,8 +449,7 @@ class _Cmd(PKDict):
         self._process = _Process(self)
         self._terminating = False
         self._start_time = int(time.time())
-        self.jid = self.msg.computeJid
-        self._uid = job.split_jid(jid=self.jid).uid
+        self.jid = self.msg.get("computeJid", None)
 
     def destroy(self):
         self._terminating = True
@@ -469,7 +469,7 @@ class _Cmd(PKDict):
             cmd=self.job_cmd_cmd(),
             env=self.job_cmd_env(),
             source_bashrc=self.job_cmd_source_bashrc(),
-            uid=self._uid,
+            uid=self.dispatcher.uid,
         )
 
     def job_cmd_env(self, env=None):
@@ -481,7 +481,7 @@ class _Cmd(PKDict):
                 SIREPO_SIM_DB_FILE_SERVER_TOKEN=_cfg.sim_db_file_server_token,
                 SIREPO_SIM_DB_FILE_SERVER_URI=_cfg.sim_db_file_server_uri,
             ),
-            uid=self._uid,
+            uid=self.dispatcher.uid,
         )
 
     def job_cmd_source_bashrc(self):
@@ -545,7 +545,7 @@ class _Cmd(PKDict):
                         error=e,
                         reply=PKDict(
                             state=job.ERROR,
-                            error=f"process exit={self._process.returncode} jid={self.jid}",
+                            error=f"process exit={self._process.returncode} self={self.jid}",
                         ),
                     )
                 )
@@ -754,6 +754,7 @@ class _SbatchRun(_SbatchCmd):
         tornado.ioloop.IOLoop.current().add_callback(self._await_start_ready)
 
     async def _prepare_simulation(self):
+        # TODO(robnagler) this should be run in job_cmd
         c = _SbatchPrepareSimulationCmd(
             dispatcher=self.dispatcher,
             msg=self.msg.copy().pkupdate(

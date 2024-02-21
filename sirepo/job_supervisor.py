@@ -200,9 +200,9 @@ def init_module(**imports):
     pykern.pkio.mkdir_parent(_DB_DIR)
     _NEXT_REQUEST_SECONDS = PKDict(
         {
-            job.PARALLEL: 2,
-            job.SBATCH: _cfg.sbatch_poll_secs,
-            job.SEQUENTIAL: 1,
+            job.RUN_MODE_PARALLEL: 2,
+            job.RUN_MODE_SBATCH: _cfg.sbatch_poll_secs,
+            job.RUN_MODE_SEQUENTIAL: 1,
         }
     )
     tornado.ioloop.IOLoop.current().add_callback(_ComputeJob.purge_non_premium)
@@ -387,7 +387,7 @@ class _Supervisor(PKDict):
     async def _receive_api_beginSession(self, req):
         c = None
         try:
-            c = self._create_op(job.OP_BEGIN_SESSION, req, job.SEQUENTIAL, "sequential")
+            c = self._create_op(job.OP_BEGIN_SESSION, req, job.KIND_SEQUENTIAL, job.RUN_MODE_SEQUENTIAL)
             # This "if" documents the prepare_send protocol
             if not await c.prepare_send():
                 # c is destroyed, do nothing
@@ -915,9 +915,9 @@ class _ComputeJob(_Supervisor):
             # happens only when config changes, and only when sbatch is missing
             raise sirepo.util.NotFound("invalid jobRunMode={} req={}", r, req)
         k = (
-            job.PARALLEL
+            job.KIND_PARALLEL
             if self.db.isParallel and op_name != job.OP_ANALYSIS
-            else job.SEQUENTIAL
+            else job.KIND_SEQUENTIAL
         )
         o = (
             super()
@@ -1216,7 +1216,7 @@ class _Op(PKDict):
             sirepo.job.OP_IO,
         ):
             return _cfg.max_secs[self.op_name]
-        if self.kind == job.PARALLEL and self.msg.get("isPremiumUser"):
+        if self.kind == job.KIND_PARALLEL and self.msg.get("isPremiumUser"):
             return _cfg.max_secs["parallel_premium"]
         return _cfg.max_secs[self.kind]
 

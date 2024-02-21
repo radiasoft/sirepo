@@ -193,7 +193,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user")
     async def api_sbatchLogin(self):
         r = self._request_content(
-            PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),
+            PKDict(computeJobHash="unused", jobRunMode=sirepo.job.RUN_MODE_SBATCH),
         )
         r.sbatchCredentials = r.pkdel("data")
         return await self._request_api(_request_content=r)
@@ -310,7 +310,7 @@ class API(sirepo.quest.API):
             computeJid=j,
             computeModel=s.compute_model,
             isParallel=False,
-            jobRunMode=sirepo.job.SEQUENTIAL,
+            jobRunMode=sirepo.job.RUN_MODE_SEQUENTIAL,
             # TODO(robnagler) not supposed to access run dir
             runDir=None,
             simulationId=s.sid,
@@ -327,9 +327,9 @@ class API(sirepo.quest.API):
             j = m and m.get("jobRunMode")
             if not j:
                 request_content.jobRunMode = (
-                    sirepo.job.PARALLEL
+                    sirepo.job.RUN_MODE_PARALLEL
                     if request_content.isParallel
-                    else sirepo.job.SEQUENTIAL
+                    else sirepo.job.RUN_MODE_SEQUENTIAL
                 )
                 return request_content
             if j not in simulation_db.JOB_RUN_MODE_MAP:

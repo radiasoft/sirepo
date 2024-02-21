@@ -53,8 +53,8 @@ class AgentMsg(PKDict):
 
 def assign_instance_op(op):
     m = op.msg
-    if m.jobRunMode == job.SBATCH:
-        res = _CLASSES[job.SBATCH].get_instance(op)
+    if m.jobRunMode == job.RUN_MODE_SBATCH:
+        res = _CLASSES[job.RUN_MODE_SBATCH].get_instance(op)
     else:
         res = _DEFAULT_CLASS.get_instance(op)
     if m.uid != res.uid:
@@ -234,6 +234,7 @@ class DriverBase(PKDict):
                 ),
                 SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_TOKEN=self._global_resources_token,
                 SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
+                SIREPO_PKCLI_JOB_AGENT_KIND=str(op.kind),
                 SIREPO_PKCLI_JOB_AGENT_START_DELAY=str(op.get("_agent_start_delay", 0)),
                 SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_TOKEN=self._sim_db_file_token,
                 SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_URI=job.supervisor_file_uri(

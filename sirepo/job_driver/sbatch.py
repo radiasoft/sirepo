@@ -137,6 +137,7 @@ class SbatchDriver(job_driver.DriverBase):
             op,
             env=PKDict(
                 SIREPO_SRDB_ROOT=self._srdb_root,
+                SIREPO_PKCLI_JOB_AGENT_KIND=str(op.kind),
             ),
         )
 

@@ -107,15 +107,17 @@ EXIT_STATUSES = frozenset((CANCELED, COMPLETED, ERROR))
 STATUSES = EXIT_STATUSES.union((PENDING, RUNNING))
 
 #: jobRunMode and kinds; should come from schema
-SEQUENTIAL = "sequential"
-PARALLEL = "parallel"
-SBATCH = "sbatch"
+KIND_SEQUENTIAL = "sequential"
+KIND_PARALLEL = "parallel"
+
+#: categories of jobs and agents
+KINDS = frozenset((KIND_SEQUENTIAL, KIND_PARALLEL))
 
 #: valid jobRunMode values
-RUN_MODES = frozenset((SEQUENTIAL, PARALLEL, SBATCH))
-
-#: categories of jobs
-KINDS = frozenset((SEQUENTIAL, PARALLEL))
+RUN_MODE_SEQUENTIAL = KIND_SEQUENTIAL
+RUN_MODE_PARALLEL = KIND_PARALLEL
+RUN_MODE_SBATCH = "sbatch"
+RUN_MODES = frozenset((RUN_MODE_SEQUENTIAL, RUN_MODE_PARALLEL, RUN_MODE_SBATCH))
 
 # https://docs.nersc.gov/jobs/policy/
 # https://docs.nersc.gov/performance/knl/getting-started/#knl-vs-haswell
