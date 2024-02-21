@@ -10,6 +10,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdformat
 from sirepo import job
 from sirepo.template import template_common
+import asyncio
 import datetime
 import json
 import os
@@ -35,6 +36,8 @@ import tornado.netutil
 
 
 _RETRY_SECS = 1
+
+_FASTCGI_RESTART_SECS = 60
 
 _IN_FILE = "in-{}.json"
 
@@ -68,7 +71,7 @@ def start():
             str,
             "how to connect to global resources",
         ),
-        run_mode=(str, "one of sirepo.job.RUN_MODES"),
+        run_mode=pkconfig.Required(str, "one of sirepo.job.RUN_MODES"),
         sim_db_file_server_token=pkconfig.Required(
             str,
             "credential for sim db files",
@@ -158,6 +161,7 @@ class _Dispatcher(PKDict):
         super().__init__(
             cmds=[],
             fastcgi_cmds=PKDict(),
+            fastcgi_recreates=PKDict(),
             _is_destroyed=False,
             **kwargs,
         )
@@ -191,9 +195,9 @@ class _Dispatcher(PKDict):
 
     async def loop(self):
         for o in job.SLOT_OPS:
-            # Only start for non-parallel/sbatch ops
+            # Only start sequential ops (not sbatch or parallel)
             if o != job.OP_RUN or _cfg.run_mode == job.RUN_MODE_SEQUENTIAL:
-                _FastCgiCmd.create(op_name=o, dispatcher=self)
+                await _FastCgiCmd.create(op_name=o, dispatcher=self)
         while True:
             self._websocket = None
             try:
@@ -257,8 +261,6 @@ class _Dispatcher(PKDict):
     def _get_cmd_type(self, msg):
         if msg.jobRunMode == job.RUN_MODE_SBATCH:
             return _SbatchRun if msg.isParallel else _SbatchCmd
-        elif msg.jobCmd == job.CMD_FASTCGI:
-            return _FastCgiCmd
         return _Cmd
 
     async def _op(self, msg):
@@ -438,7 +440,7 @@ class _Cmd(PKDict):
         try:
             await self._process.exit_ready()
             e = self._process.stderr.text.decode("utf-8", errors="ignore")
-            if e:
+            if e or self._process.returncode != 0:
                 pkdlog("{} exit={} stderr={}", self, self._process.returncode, e)
             if self._is_destroyed:
                 return
@@ -450,7 +452,7 @@ class _Cmd(PKDict):
                         error=e,
                         reply=PKDict(
                             state=job.ERROR,
-                            error=f"process exit={self._process.returncode} self={self.jid}",
+                            error=f"process exit={self._process.returncode} jid={self.jid}",
                         ),
                     )
                 )
@@ -485,22 +487,6 @@ class _Cmd(PKDict):
         pkjson.dump_pretty(self.msg, filename=f, pretty=False)
         return f
 
-    async def _job_cmd_reply_error(self, msg):
-        try:
-            await self.dispatcher.send(
-                self.dispatcher.format_op(
-                    msg,
-                    job.OP_ERROR,
-                    error=error,
-                    reply=PKDict(
-                        state=job.ERROR,
-                        error="internal error",
-                    ),
-                ),
-            )
-        except Exception as e:
-            pkdlog("msg={} error={} stack={}", msg, e, pkdexc())
-
 
 class _FastCgiCmd(_Cmd):
     @classmethod
@@ -527,7 +513,7 @@ class _FastCgiCmd(_Cmd):
         self._msg_q = sirepo.tornado.Queue(1)
         # Listen first so job_cmd can connect
         self._remove_accept_handler = tornado.netutil.add_accept_handler(
-            tornado.netutil.bind_unix_socket(str(self.socket)),
+            tornado.netutil.bind_unix_socket(str(self._socket)),
             self._accept,
         )
         await self.start()
@@ -535,26 +521,6 @@ class _FastCgiCmd(_Cmd):
             raise AssertionError(f"too many fastcgi_cmds for op_name={self.op_name}")
         self.dispatcher.fastcgi_cmds[self.op_name] = self
         return self
-
-    async def _recreate(self):
-        """Already destroyed pass values to recreate"""
-        await _FastCgiCmd.create(op_name=self.op_name, dispatcher=self.dispatcher)
-
-    def _subclass_destroy(self):
-        if not super().destroy():
-            return
-        self.dispatcher.fastcgi_cmds.pkdel(self.op_name)
-        # if _read is waiting, this will release it.
-        # May not matter, but is complete
-        if self._msg_q:
-            self._msg_q.put_nowait(PKDict())
-            self._msg_q = None
-        if self._remove_accept_handler:
-            self._remove_accept_handler()
-            self._remove_accept_handler = None
-        if self._socket:
-            pkio.unchecked_remove(self._socket)
-            self._socket = None
 
     def send_cmd(self, msg):
         if msg.runDir:
@@ -574,21 +540,21 @@ class _FastCgiCmd(_Cmd):
     def _accept(self, connection, *args, **kwargs):
         tornado.ioloop.IOLoop.current().add_callback(self._read, connection)
 
-    async def _read(self, connection):
-        async def _error(msg, error, stack=None):
-            # destroy _fastcgi state first, then send replies to avoid
-            # asynchronous modification of _fastcgi state.
-            q = self._msg_q
-            self._msg_q = None
-            self.destroy()
-            if msg:
-                await self._job_cmd_reply_error(msg)
-            while q.qsize() > 0:
-                await self._job_cmd_reply_error(msg=q.get_nowait())
-                q.task_done()
+    async def _await_exit(self):
+        try:
+            await self._process.exit_ready()
+            e = self._process.stderr.text.decode("utf-8", errors="ignore")
+            if e or self._process.returncode != 0:
+                pkdlog("{} exit={} stderr={}", self, self._process.returncode, e)
+        except Exception as e:
+            pkdlog("{} exception={}", self, e)
+        finally:
+            await self._handle_exit()
 
+    async def _read(self, connection):
         s = None
         m = None
+        err = None
         try:
             s = tornado.iostream.IOStream(
                 connection,
@@ -616,14 +582,69 @@ class _FastCgiCmd(_Cmd):
             pkdlog("msg={} error={} stack={}", m, e, pkdexc())
             if self._is_destroyed:
                 return
-            await _error(m, e, pkdexc())
+            if m:
+                self.msg_q.put_nowait(m)
         finally:
             if s:
                 s.close()
-            if not self._is_destroyed:
-                # some type of error that's not a terminate so restart
-                self.destroy()
-                await self._recreate()
+            # some type of error that's not a terminate so restart
+            await self._handle_exit()
+
+    def _subclass_destroy(self):
+        self.dispatcher.fastcgi_cmds.pkdel(self.op_name)
+        # if _read is waiting, this will release it.
+        # May not matter, but is complete
+        if self._msg_q:
+            self._msg_q.put_nowait(PKDict())
+            self._msg_q = None
+        if self._remove_accept_handler:
+            self._remove_accept_handler()
+            self._remove_accept_handler = None
+        if self._socket:
+            pkio.unchecked_remove(self._socket)
+            self._socket = None
+
+    async def _handle_exit(self):
+        """Destroy and possibly create a new instance"""
+
+        async def _error(msg):
+            try:
+                await self.dispatcher.send(
+                    self.dispatcher.format_op(
+                        msg,
+                        job.OP_ERROR,
+                        error="unexpected cmd exit",
+                        reply=PKDict(
+                            state=job.ERROR,
+                            error="internal error",
+                        ),
+                    ),
+                )
+            except Exception as e:
+                pkdlog("msg={} error={} stack={}", msg, e, pkdexc())
+
+        if self._is_destroyed:
+            return
+        # destroy _fastcgi state first (synchronously), then maybe
+        # send errors to avoid asynchronous modification
+        n = self.op_name
+        d = self.dispatcher
+        q = self._msg_q
+        self._msg_q = None
+        self.destroy()
+        while q.qsize() > 0:
+            await _error(msg=q.get_nowait())
+            q.task_done()
+        d.fastcgi_recreates.setdefault(n, [])
+        x = d.fastcgi_recreates[n]
+        if x and x[-1] + _FASTCGI_RESTART_SECS > int(time.time()):
+            # Restarts should be fine. If not, at least we wait a bit before recreating.
+            # The destroy above removes this op_name so ops with this name will go
+            # through the slow way in _cmd()
+            await asyncio.sleep(_FASTCGI_RESTART_SECS)
+        x.append(int(time.time()))
+        pkdlog("restarting _FastCgiCmd op_name={}", n)
+        await _FastCgiCmd.create(op_name=n, dispatcher=d)
 
 
 class _SbatchCmd(_Cmd):
@@ -667,6 +688,8 @@ class _SbatchPrepareSimulationCmd(_SbatchCmd):
 
     async def _await_exit(self):
         await self._process.exit_ready()
+        if self._is_destroyed:
+            return
         s = job.ERROR
         o = None
         if "stdout" in self:
