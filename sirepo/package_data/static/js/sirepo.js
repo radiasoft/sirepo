@@ -58,7 +58,7 @@ SIREPO.beamlineItemLogic = function(name, init) {
 };
 
 SIREPO.viewLogic = function(name, init) {
-    SIREPO.app.directive(name, function(appState, utilities) {
+    SIREPO.app.directive(name, function(appState, panelState, utilities) {
         return {
             restrict: 'A',
             scope: {
@@ -87,6 +87,11 @@ SIREPO.viewLogic = function(name, init) {
                         appState.watchModelFields(scope, fields, callback, true);
                     }
                 }
+
+                // must wait to get "angularized" form
+                panelState.waitForUI(() => {
+                    scope.form = scope.$parent.form;
+                });
             },
         };
     });

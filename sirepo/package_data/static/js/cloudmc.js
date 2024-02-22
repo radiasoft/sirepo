@@ -2896,7 +2896,9 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
 
     const autoUpdate = utilities.debounce(() => {
-        appState.saveChanges('openmcAnimation');
+        if ($scope.form.$valid) {
+            appState.saveChanges('openmcAnimation');
+        }
     }, SIREPO.debounce_timeout);
 
     function showFields() {
@@ -2953,8 +2955,8 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.numSampleSourceParticles',
             'openmcAnimation.score',
             'openmcAnimation.sourceNormalization',
+            'openmcAnimation.thresholds',
         ], autoUpdate,
-        ['openmcAnimation.thresholds'], validateThresholds,
         ['openmcAnimation.tally'], validateTally,
         [
             'tallyReport.selectedGeometry',
