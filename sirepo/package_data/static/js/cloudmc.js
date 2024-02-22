@@ -571,7 +571,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         // instead of the global min
         t.val[0] = Math.max(t.val[0], 0);
         t.val[1] = Math.min(t.val[1], t.global[1]);
-    }
+    };
 
 
     $rootScope.$on('modelsUnloaded', self.clearMesh);
