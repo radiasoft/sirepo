@@ -2092,14 +2092,11 @@ SIREPO.app.directive('minMax', function() {
             info: '=',
         },
         template: `
-            <div style="display: inline-block;">
-                <label data-text-with-math="field.labels[0]" style="margin-right: 1ex"></label>
-                <button type="button" class="btn sr-button-action btn-xs" title="Set to global minimum ({{ field.global[0] }})" data-ng-click="toGlobal(0)"><span class="glyphicon glyphicon-step-backward"></span></button>
-                <input class="form-control sr-number-list" data-string-to-number="Float" data-ng-model="field.val[0]" style="text-align: right" required />
-                <label data-text-with-math="field.labels[1]" style="margin-right: 1ex"></label>
-                <button type="button" class="btn sr-button-action btn-xs" title="Set to global maximum ({{ field.global[1] }})" data-ng-click="toGlobal(1)"><span class="glyphicon glyphicon-step-forward"></span></button>
-                <input class="form-control sr-number-list" data-string-to-number="Float" data-ng-model="field.val[1]" style="text-align: right" required />
-                <div class="sr-input-warning"></div>
+            <div data-ng-repeat="v in field.val track by $index" style="display: inline-block;">
+                <label data-text-with-math="field.labels[$index]" style="margin-right: 1ex"></label>
+                <button type="button" class="btn sr-button-action btn-xs" title="{{ globalButtons[$index].title }}" data-ng-click="toGlobal($index)"><span class="{{ globalButtons[$index].class }}"></span></button>
+                <input class="form-control sr-number-list" data-string-to-number="Float" data-ng-model="field.val[$index]" style="text-align: right" required />
+                <div data-ng-if="$last" class="sr-input-warning"></div>
             </div>
         `,
         controller: function($scope) {
@@ -2108,15 +2105,16 @@ SIREPO.app.directive('minMax', function() {
                 $scope.field.val[index] = $scope.field.global[index];
             };
 
-            $scope.toGlobalMin = () => {
-                $scope.field.val[0] = $scope.field.global[0];
-            };
-
-            $scope.toGlobalMax = () => {
-                $scope.field.val[1] = $scope.field.global[1];
-            };
-
-
+            $scope.globalButtons = [
+                {
+                    title: `Set to global minimum (${$scope.field.global[0]})`,
+                    class: 'glyphicon glyphicon-step-backward',
+                },
+                {
+                    title: `Set to global maximum ${$scope.field.global[1]})`,
+                    class: 'glyphicon glyphicon-step-forward',
+                },
+            ];
         },
     };
 });
