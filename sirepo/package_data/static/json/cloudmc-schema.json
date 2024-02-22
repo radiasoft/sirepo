@@ -935,7 +935,7 @@
             "showSources": ["Show Sources", "Boolean", "1"],
             "sourceColorMap": ["Source Energy Color Map", "ColorMap", "jet"],
             "tally": ["Tally", "TallyList"],
-            "thresholds": ["Threshold", "MinMax", {"val": [0, 1], "global": [0, 1], "labels": ["Lower", "Upper"]}, "Tally cells with a value outside this range will not be displayed"],
+            "thresholds": ["Threshold", "MinMax", {"val": [0, 1e+308], "global": [0, 1e+308], "labels": ["Lower", "Upper"]}, "Tally cells with a value outside this range will not be displayed"],
             "score": ["Score", "ScoreList"],
             "sourceNormalization": ["Normalize to particle count", "Float", 1e12, "Per-particle tally scores are normalized to this many source particles (a factor of {{ appState.models.openmcAnimation.sourceNormalization / appState.models.settings.particles }})", 1.0],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
