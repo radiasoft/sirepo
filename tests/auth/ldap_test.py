@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Test ldap
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import pytest
 
 
 def test_happy_path():
@@ -37,7 +35,7 @@ def _call_login(email, password):
 
         r = qcall.call_api_sync(
             "authLdapLogin",
-            data=PKDict(
+            body=PKDict(
                 simulationType="myapp",
                 email=email,
                 password=password,
