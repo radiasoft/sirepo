@@ -3329,7 +3329,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
             enableSelection: '=',
             eventHandlers: '<',
             modelName: '@',
-            reportId: '<',
             resetDirection: '@',
             resetSide: '@',
             showBorder: '@',

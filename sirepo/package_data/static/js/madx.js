@@ -263,7 +263,9 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                     y3: 'None',
                 };
                 // better twiss defaults
-                if (info.filename.indexOf('twiss') >= 0 || info.modelKey.indexOf('twiss') >= 0) {
+                if (
+                    (info.filename.indexOf('twiss') >= 0 || info.modelKey.indexOf('twiss') >= 0)
+                    && info.filename.indexOf('sectorfile') < 0) {
                     $.extend(appState.models[modelKey], {
                         includeLattice: "1",
                         x: 's',

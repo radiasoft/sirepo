@@ -132,7 +132,7 @@ class API(sirepo.quest.API):
             pkdlog(
                 "{}: javascript error: {}",
                 ip,
-                simulation_db.generate_json(self.parse_json(), pretty=True),
+                simulation_db.generate_json(self.body_as_dict(), pretty=True),
             )
         except Exception as e:
             try:
@@ -289,7 +289,7 @@ class API(sirepo.quest.API):
         async def _stateful_compute(req):
             r = await self.call_api(
                 "statefulCompute",
-                data=PKDict(
+                body=PKDict(
                     method="import_file",
                     args=req.sim_data.prepare_import_file_args(req=req),
                     simulationType=req.type,
@@ -386,31 +386,6 @@ class API(sirepo.quest.API):
             req.template.python_source_for_model(d, model=m, qcall=self),
             filename="{}.{}".format(
                 d.models.simulation.name + ("-" + title if title else ""),
-                "madx" if m == "madx" else suffix,
-            ),
-        )
-
-    @sirepo.quest.Spec(
-        "require_user",
-        simulation_id="SimId",
-        model="ComputeModelName optional",
-        title="DownloadNamePostfix optional",
-    )
-    async def api_pythonSource2(self, simulation_type):
-        req = self.parse_post(
-            type=simulation_type,
-            id=True,
-            template=True,
-            compute_model=PKDict(optional=True, name="model"),
-            title=PKDict(optional=True, name="title"),
-        )
-        m = "compute_model" in req and req.sim_data.parse_model(req.compute_model)
-        d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
-        suffix = simulation_db.get_schema(req.type).constants.simulationSourceExtension
-        return self.reply_attachment(
-            req.template.python_source_for_model(d, model=m, qcall=self),
-            filename="{}.{}".format(
-                d.models.simulation.name + ("-" + req.title if "title" in req else ""),
                 "madx" if m == "madx" else suffix,
             ),
         )
