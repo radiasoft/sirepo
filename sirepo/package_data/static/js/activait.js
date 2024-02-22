@@ -1143,7 +1143,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
         controller: function($scope, appState) {
             let loading = true;
             $scope.numPages = 0;
-            $scope.imagesPerPage = 4;
+            $scope.imagesPerPage = 3;
             $scope.pageImages = SIREPO.UTILS.indexArray($scope.imagesPerPage);
             $scope.colA = null;
             $scope.colB = null;
@@ -1172,7 +1172,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             $scope.isLoading = () => loading;
 
             $scope.last = () => {
-                setIndex($scope.imageIdx = $scope.colA.length - $scope.imagesPerPage);
+                setIndex($scope.imageIdx = $scope.numPages * $scope.imagesPerPage - $scope.imagesPerPage);
             };
 
             $scope.next = () => {
@@ -1183,13 +1183,17 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                 setIndex($scope.imageIdx -= $scope.imagesPerPage);
             };
 
+            function inRangeValue(imageIndex, value) {
+                if (imageIndex <= $scope.colA.length) {
+                    return value;
+                }
+                return ''
+            }
+
             function setIndex(index) {
+                srdbg("index = ", index);
                 if ($(`.colA${$scope.method}1`).length && $scope.colA) {
                     $scope.pageImages.forEach( (v, i) => {
-                        // if (index + i + 1 > $scope.colA.length) {
-                        //     srdbg("index + i + 1", index + i + 1, "$scope.colA.length", $scope.colA.length);
-                        //     return;
-                        // }
                         if ($scope.xIsParams) {
                             let value = '';
                             if (index + i + 1 <= $scope.colA.length) {
