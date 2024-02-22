@@ -469,24 +469,24 @@ def _generate_distribution(dist):
     return _generate_call(t, args)
 
 
-def _generate_materials(data, v):
+def _generate_materials(data, j2_ctx):
     res = ""
     material_vars = []
-    for d in data.models.volumes.values():
-        if "material" not in d:
+    for v in data.models.volumes.values():
+        if "material" not in v:
             continue
-        n = f"m{d.volId}"
+        n = f"m{v.volId}"
         material_vars.append(n)
-        res += f"# {d.name}\n"
-        res += f'{n} = openmc.Material(name="{d.key}", material_id={d.volId})\n'
-        res += f'{n}.set_density("{d.material.density_units}", {d.material.density})\n'
-        if d.material.depletable == "1":
+        res += f"# {v.name}\n"
+        res += f'{n} = openmc.Material(name="{v.key}", material_id={v.volId})\n'
+        res += f'{n}.set_density("{v.material.density_units}", {v.material.density})\n'
+        if v.material.depletable == "1":
             res += f"{n}.depletable = True\n"
-        if "temperator" in d and d.material:
-            res += f"{n}.temperature = {d.material.temperature}\n"
-        if "volume" in d and d.volume:
-            res += f"{n}.volume = {d.material.volume}\n"
-        for c in d.material.components:
+        if "temperator" in v and v.material:
+            res += f"{n}.temperature = {v.material.temperature}\n"
+        if "volume" in v and v.volume:
+            res += f"{n}.volume = {v.material.volume}\n"
+        for c in v.material.components:
             if (
                 c.component == "add_element"
                 or c.component == "add_elements_from_formula"
@@ -513,7 +513,7 @@ def _generate_materials(data, v):
             elif c.component == "add_s_alpha_beta":
                 res += f'{n}.{c.component}("{c.name}", {c.fraction})\n'
     if not len(material_vars):
-        v.incomplete_data_msg += "\n#  No materials defined for volumes"
+        j2_ctx.incomplete_data_msg += " No materials defined for volumes,"
         return
     res += "materials = openmc.Materials([" + ", ".join(material_vars) + "])\n"
     return res
@@ -547,6 +547,8 @@ def _generate_parameters_file(data, run_dir=None):
     ]
     v.tallies = _generate_tallies(data, v)
     v.hasGraveyard = _has_graveyard(data)
+    if v.incomplete_data_msg:
+        return f'raise AssertionError("{"Unable to generate sim:" + v.incomplete_data_msg}")'
     return template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -577,9 +579,9 @@ def _generate_source(source):
     )"""
 
 
-def _generate_sources(data, v):
+def _generate_sources(data, j2_ctx):
     if not len(data.models.settings.sources):
-        v.incomplete_data_msg += "\n#  No Settings Sources defined"
+        j2_ctx.incomplete_data_msg += " No Settings Sources defined,"
         return
     return ",\n".join([_generate_source(s) for s in data.models.settings.sources])
 
@@ -609,9 +611,9 @@ def _generate_space(space):
     return _generate_call(space._type, args)
 
 
-def _generate_tallies(data, v):
+def _generate_tallies(data, j2_ctx):
     if not len(data.models.settings.tallies):
-        v.incomplete_data_msg += "\n#  No Tallies defined"
+        j2_ctx.incomplete_data_msg += " No Tallies defined"
         return
     return (
         "\n".join(
@@ -700,7 +702,10 @@ def _parse_cloudmc_log(run_dir, log_filename="run.log"):
         log_filename=log_filename,
         default_msg="An unknown error occurred, check CloudMC log for details",
         # ERROR: Cannot tally flux for an individual nuclide.
-        error_patterns=(re.compile(r"^\s*Error:\s*(.*)$", re.IGNORECASE),),
+        error_patterns=(
+            re.compile(r"^\s*Error:\s*(.*)$", re.IGNORECASE),
+            re.compile(r"AssertionError: (.*)"),
+        ),
     ).parse_for_errors()
 
 
