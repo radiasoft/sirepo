@@ -88,7 +88,7 @@ SIREPO.app.config(() => {
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
         </div>
         <div data-ng-switch-when="MinMax" class="col-sm-7">
-            <div data-min-max="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
+            <div data-min-max="" data-model-name="modelName" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
@@ -2082,11 +2082,12 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('minMax', function() {
+SIREPO.app.directive('minMax', function(validationService) {
     return {
         restrict: 'A',
         scope: {
             model: '=',
+            modelName: '=',
             field: '=',
             fieldName: '=',
             info: '=',
@@ -2101,6 +2102,18 @@ SIREPO.app.directive('minMax', function() {
         `,
         controller: function($scope) {
 
+            function validate() {
+                const t = $scope.field.val;
+                const hasVals = ! t.some(x => x == null);
+                validationService.validateField(
+                    $scope.modelName,
+                    $scope.fieldName,
+                    'input',
+                    hasVals && t[0] < t[1],
+                    ! hasVals ? 'Enter values' : 'Lower limit must be less than upper limit'
+                );
+            }
+        
             $scope.toGlobal = (index) => {
                 $scope.field.val[index] = $scope.field.global[index];
             };
@@ -2115,6 +2128,8 @@ SIREPO.app.directive('minMax', function() {
                     class: 'glyphicon glyphicon-step-forward',
                 },
             ];
+
+            $scope.$watch('field', validate, true);
         },
     };
 });
@@ -2878,7 +2893,7 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
     };
 });
 
-SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $scope) {
+SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
 
     const autoUpdate = utilities.debounce(() => {
         appState.saveChanges('openmcAnimation');
@@ -2919,17 +2934,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     }
 
     function validateThresholds() {
-        const t = appState.models.openmcAnimation.thresholds.val;
-        const hasVals = ! t.some(x => x == null);
-        if (
-            validationService.validateField(
-                'openmcAnimation',
-                'thresholds',
-                'input',
-                hasVals && t[0] < t[1],
-                ! hasVals ? 'Enter values' : 'Lower limit must be less than upper limit'
-            )
-        ) {
+        if (appState.models.openmcAnimation.thresholds.isValid) {
             autoUpdate();
         }
     }
