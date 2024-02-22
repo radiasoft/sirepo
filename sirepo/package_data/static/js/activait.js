@@ -1183,61 +1183,61 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                 setIndex($scope.imageIdx -= $scope.imagesPerPage);
             };
 
-            function inRangeValue(imageIndex, value) {
-                if (imageIndex <= $scope.colA.length) {
-                    return value;
-                }
-                return ''
+            function imageInRange(firstImageIndex, rowIndex) {
+                return firstImageIndex + rowIndex + 1 <= $scope.colA.length;
             }
 
-            function setIndex(index) {
-                srdbg("index = ", index);
+            function setFirstColumnImage(firstImageIndex, rowIndex) {
+                if ($scope.xIsParams) {
+                    if (imageInRange(firstImageIndex, rowIndex)) {
+                        $scope.parameters.splice(i, 0, `${$scope.colA[firstImageIndex + rowIndex].replace(/[\[\]]/g, '')}`);
+                        return;
+                    }
+                    $scope.parameters.splice(i, 0, '');
+                    return;
+                }
+                if (imageInRange(firstImageIndex, rowIndex)) {
+                    $(`.colA${$scope.method}${rowIndex + 1}`)[0].src = $scope.colA[firstImageIndex + rowIndex];
+                    return;
+                }
+                $(`.colA${$scope.method}${rowIndex + 1}`)[0].src = '';
+            }
+
+            function setSecondColumnImage(firstImageIndex, rowIndex) {
+                if ($scope.imageToLabels) {
+                    if (imageInRange(firstImageIndex, rowIndex)) {
+                        $scope.labels.splice(i, 0, $scope.colB[firstImageIndex + rowIndex]);
+                        return;
+                    }
+                    $scope.labels.splice(i, 0, '');
+                    return;
+                }
+                if (imageInRange(firstImageIndex, rowIndex)) {
+                    $(`.colB${$scope.method}${rowIndex + 1}`)[0].src = $scope.colB[firstImageIndex + rowIndex];
+                    return;
+                }
+                    $(`.colB${$scope.method}${rowIndex + 1}`)[0].src = '';
+            }
+
+            function setThirdColumnImage(firstImageIndex, rowIndex) {
+                $scope.hasThirdColumn = $scope.pred != null;
+                if ($(`.pred${$scope.method}1`).length && $scope.hasThirdColumn) {
+                    if (imageInRange(firstImageIndex, rowIndex)) {
+                        $(`.pred${$scope.method}${rowIndex + 1}`)[0].src = $scope.pred[firstImageIndex + rowIndex];
+                        return;
+                    }
+                    $(`.pred${$scope.method}${rowIndex + 1}`)[0].src = '';
+                }
+            }
+
+            function setIndex(firstImageIndex) {
+                srdbg("firstImageIndex = ", firstImageIndex);
                 if ($(`.colA${$scope.method}1`).length && $scope.colA) {
-                    $scope.pageImages.forEach( (v, i) => {
+                    $scope.pageImages.forEach( (rowIndex) => {
+                        setFirstColumnImage(firstImageIndex, rowIndex);
+                        setSecondColumnImage(firstImageIndex, rowIndex);
+                        setThirdColumnImage(firstImageIndex, rowIndex);
 
-                        if ($scope.xIsParams) {
-                            if (index + i + 1 <= $scope.colA.length) {
-                                $scope.parameters.splice(i, 0, `${$scope.colA[index + v].replace(/[\[\]]/g, '')}`);
-                            }
-                            else {
-                                $scope.parameters.splice(i, 0, '');
-                            }
-                        }
-                        else {
-                            if (index + i + 1 <= $scope.colA.length) {
-                                $(`.colA${$scope.method}${v + 1}`)[0].src = $scope.colA[index + v];
-                            }
-                            else {
-                                $(`.colA${$scope.method}${v + 1}`)[0].src = '';
-                            }
-                        }
-
-                        if ($scope.imageToLabels) {
-                            if (index + i + 1 <= $scope.colA.length) {
-                                $scope.labels.splice(i, 0, $scope.colB[index + v]);
-                            }
-                            else {
-                                $scope.labels.splice(i, 0, '');
-                            }
-                        }
-                        else {
-                            if (index + i + 1 <= $scope.colA.length) {
-                                $(`.colB${$scope.method}${v + 1}`)[0].src = $scope.colB[index + v];
-                            }
-                            else {
-                                $(`.colB${$scope.method}${v + 1}`)[0].src = '';
-                            }
-                        }
-
-                        $scope.hasThirdColumn = $scope.pred != null;
-                        if ($(`.pred${$scope.method}1`).length && $scope.hasThirdColumn) {
-                            if (index + i + 1 <= $scope.colA.length) {
-                                $(`.pred${$scope.method}${v + 1}`)[0].src = $scope.pred[index + v];
-                            }
-                            else {
-                                $(`.pred${$scope.method}${v + 1}`)[0].src = '';
-                            }
-                        }
                     });
                 }
                 if (! $scope.colA) {
