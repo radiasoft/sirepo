@@ -1187,36 +1187,24 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                 return firstImageIndex + rowIndex + 1 <= $scope.colA.length;
             }
 
-            function setFirstColumnImage(firstImageIndex, rowIndex) {
-                if ($scope.xIsParams) {
+            function setColumnImage(firstImageIndex, rowIndex, column) {
+                let isTextCol = column == 'A' ? $scope.xIsParams : $scope.imageToLabels;
+                let textCol = column == 'A' ? $scope.parameters : $scope.labels;
+                if (isTextCol) {
                     if (imageInRange(firstImageIndex, rowIndex)) {
-                        $scope.parameters.splice(i, 0, `${$scope.colA[firstImageIndex + rowIndex].replace(/[\[\]]/g, '')}`);
+                        let value = column == 'A' ? `${$scope.colA[firstImageIndex + rowIndex].replace(/[\[\]]/g, '')}` : $scope.colB[firstImageIndex + rowIndex];
+                        textCol.splice(rowIndex, 0, value);
                         return;
                     }
-                    $scope.parameters.splice(i, 0, '');
+                    textCol.splice(rowIndex, 0, '');
                     return;
                 }
                 if (imageInRange(firstImageIndex, rowIndex)) {
-                    $(`.colA${$scope.method}${rowIndex + 1}`)[0].src = $scope.colA[firstImageIndex + rowIndex];
+                    let value = column == 'A' ? $scope.colA[firstImageIndex + rowIndex] : $scope.colB[firstImageIndex + rowIndex];
+                    $(`.col${column}${$scope.method}${rowIndex + 1}`)[0].src = value;
                     return;
                 }
-                $(`.colA${$scope.method}${rowIndex + 1}`)[0].src = '';
-            }
-
-            function setSecondColumnImage(firstImageIndex, rowIndex) {
-                if ($scope.imageToLabels) {
-                    if (imageInRange(firstImageIndex, rowIndex)) {
-                        $scope.labels.splice(i, 0, $scope.colB[firstImageIndex + rowIndex]);
-                        return;
-                    }
-                    $scope.labels.splice(i, 0, '');
-                    return;
-                }
-                if (imageInRange(firstImageIndex, rowIndex)) {
-                    $(`.colB${$scope.method}${rowIndex + 1}`)[0].src = $scope.colB[firstImageIndex + rowIndex];
-                    return;
-                }
-                    $(`.colB${$scope.method}${rowIndex + 1}`)[0].src = '';
+                $(`.col${column}${$scope.method}${rowIndex + 1}`)[0].src = '';
             }
 
             function setThirdColumnImage(firstImageIndex, rowIndex) {
@@ -1231,11 +1219,10 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             }
 
             function setIndex(firstImageIndex) {
-                srdbg("firstImageIndex = ", firstImageIndex);
                 if ($(`.colA${$scope.method}1`).length && $scope.colA) {
                     $scope.pageImages.forEach( (rowIndex) => {
-                        setFirstColumnImage(firstImageIndex, rowIndex);
-                        setSecondColumnImage(firstImageIndex, rowIndex);
+                        setColumnImage(firstImageIndex, rowIndex, 'A');
+                        setColumnImage(firstImageIndex, rowIndex, 'B');
                         setThirdColumnImage(firstImageIndex, rowIndex);
 
                     });
