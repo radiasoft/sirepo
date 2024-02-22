@@ -769,6 +769,11 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
             const displayRanges = {};
+            const cachedSettings = {
+                aspect: null,
+                score: null,
+                tally: null,
+            };
             const sources = cloudmcService.getSourceVisualizations(
                 {
                     box: space => {
@@ -795,6 +800,23 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             );
 
             function buildTallyReport() {
+                function updateThresholds() {
+                    const s = Object.keys(cachedSettings);
+                    // if none f the data-specific settings changed, do not update the thresholds
+                    if (s.every((k) => cachedSettings[k] === appState.models.openmcAnimation[k])) {
+                        return;
+                    }
+                    s.forEach((k) => {
+                        cachedSettings[k] = appState.models.openmcAnimation[k];
+                    });
+                    const t = appState.models.openmcAnimation.thresholds;
+                    t.global = [tallyService.minField, tallyService.maxField];
+                    // since tallies are counts, always reset the lower threshold -
+                    // but not the global min - to 0
+                    t.val[0] = 0;
+                    t.val[1] = t.global[1];
+                }
+
                 if (! tallyService.mesh) {
                     return;
                 }
@@ -812,15 +834,12 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0])
                     )
                 );
-                const t = appState.models.openmcAnimation.thresholds;
-                t.global = [tallyService.minField, tallyService.maxField];
-                t.val[0] = Math.max(t.val[0], t.global[0]);
-                t.val[1] = Math.min(t.val[1], t.global[1]);
+                updateThresholds();
                 const r =  {
                     aspectRatio: ar,
                     global_max: tallyService.maxField,
                     global_min: tallyService.minField,
-                    threshold: t.val,
+                    threshold: appState.models.openmcAnimation.thresholds.val,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
@@ -2095,7 +2114,7 @@ SIREPO.app.directive('minMax', function(validationService) {
         template: `
             <div data-ng-repeat="v in field.val track by $index" style="display: inline-block;">
                 <label data-text-with-math="field.labels[$index]" style="margin-right: 1ex"></label>
-                <button type="button" class="btn sr-button-action btn-xs" title="{{ globalButtons[$index].title }}" data-ng-click="toGlobal($index)"><span class="{{ globalButtons[$index].class }}"></span></button>
+                <button type="button" class="btn sr-button-action btn-xs" title="{{ globalButton($index).title }}" data-ng-click="toGlobal($index)"><span class="{{ globalButton($index).class }}"></span></button>
                 <input class="form-control sr-number-list" data-string-to-number="Float" data-ng-model="field.val[$index]" style="text-align: right" required />
                 <div data-ng-if="$last" class="sr-input-warning"></div>
             </div>
@@ -2118,7 +2137,7 @@ SIREPO.app.directive('minMax', function(validationService) {
                 $scope.field.val[index] = $scope.field.global[index];
             };
 
-            $scope.globalButtons = [
+            $scope.globalButton = (index) => [
                 {
                     title: `Set to global minimum (${$scope.field.global[0]})`,
                     class: 'glyphicon glyphicon-step-backward',
@@ -2127,7 +2146,7 @@ SIREPO.app.directive('minMax', function(validationService) {
                     title: `Set to global maximum ${$scope.field.global[1]})`,
                     class: 'glyphicon glyphicon-step-forward',
                 },
-            ];
+            ][index];
 
             $scope.$watch('field', validate, true);
         },
