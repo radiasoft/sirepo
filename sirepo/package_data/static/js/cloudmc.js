@@ -88,7 +88,7 @@ SIREPO.app.config(() => {
             <div data-num-array="" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-num-type="Float"></div>
         </div>
         <div data-ng-switch-when="MinMax" class="col-sm-7">
-            <div data-min-max="" data-model-name="modelName" data-model="model" data-field-name="field" data-field="model[field]" data-info="info"></div>
+            <div data-min-max="" data-model-name="modelName" data-model="model" data-field-name="field" data-field="model[field]" data-info="info" data-ng-model="model[field]"></div>
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
@@ -427,8 +427,9 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
 
     self.colorScale = modelName => {
         return SIREPO.PLOTTING.Utils.colorScale(
-            self.minField,
-            self.maxField,
+            ...appState.models.openmcAnimation.thresholds.global,
+            //self.minField,
+            //self.maxField,
             SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.applicationState()[modelName].colorMap],
         );
     };
@@ -838,8 +839,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 tallyService.updateThresholds();
                 const r =  {
                     aspectRatio: ar,
-                    global_max: tallyService.maxField,
-                    global_min: tallyService.minField,
+                    //global_max: tallyService.maxField,
+                    //global_min: tallyService.minField,
+                    global_max: appState.models.openmcAnimation.thresholds.global[1],
+                    global_min: appState.models.openmcAnimation.thresholds.global[0],
                     threshold: appState.models.openmcAnimation.thresholds.val,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
@@ -2105,6 +2108,7 @@ SIREPO.app.directive('multiLevelEditor', function(appState, panelState) {
 
 SIREPO.app.directive('minMax', function(validationService) {
     return {
+        require: 'ngModel',
         restrict: 'A',
         scope: {
             model: '=',
@@ -2122,19 +2126,6 @@ SIREPO.app.directive('minMax', function(validationService) {
             </div>
         `,
         controller: function($scope) {
-
-            function validate() {
-                const t = $scope.field.val;
-                const hasVals = ! t.some(x => x == null);
-                validationService.validateField(
-                    $scope.modelName,
-                    $scope.fieldName,
-                    'input',
-                    hasVals && t[0] < t[1],
-                    ! hasVals ? 'Enter values' : 'Lower limit must be less than upper limit'
-                );
-            }
-        
             $scope.toGlobal = (index) => {
                 $scope.field.val[index] = $scope.field.global[index];
             };
@@ -2149,9 +2140,21 @@ SIREPO.app.directive('minMax', function(validationService) {
                     class: 'glyphicon glyphicon-step-forward',
                 },
             ][index];
-
-            $scope.$watch('field', validate, true);
         },
+        link: function(scope, element, attr, ngModel) {
+            function validate() {
+                const t = scope.field.val;
+                const hasVals = ! t.some(x => x == null);
+                ngModel.$setValidity('', validationService.validateField(
+                    scope.modelName,
+                    scope.fieldName,
+                    'input',
+                    hasVals && t[0] < t[1],
+                    ! hasVals ? 'Enter values' : 'Lower limit must be less than upper limit'
+                ));
+            }
+            scope.$watch('field', validate, true);
+        }
     };
 });
 
@@ -2917,6 +2920,7 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
 
     const autoUpdate = utilities.debounce(() => {
+        srdbg('V?', $scope.form);
         if ($scope.form.$valid) {
             appState.saveChanges('openmcAnimation');
         }
