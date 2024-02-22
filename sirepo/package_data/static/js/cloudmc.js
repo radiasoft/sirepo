@@ -811,10 +811,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     });
                     const t = appState.models.openmcAnimation.thresholds;
                     t.global = [tallyService.minField, tallyService.maxField];
-                    // since tallies are counts, always reset the lower threshold -
-                    // but not the global min - to 0
-                    t.val[0] = 0;
-                    t.val[1] = t.global[1];
+                    // since tallies are counts, compare the lower threshold to 0
+                    // instead of the global min
+                    t.val[0] = Math.max(t.val[0], 0);
+                    t.val[1] = Math.min(t.val[1], t.global[1]);
                 }
 
                 if (! tallyService.mesh) {
