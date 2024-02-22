@@ -405,6 +405,11 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         maxField: 0,
         outlines: null,
         sourceParticles: [],
+        cachedSettings: {
+            aspect: null,
+            score: null,
+            tally: null,
+        },
     };
 
     function normalizer(score, numParticles) {
@@ -550,6 +555,24 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         appState.saveQuietly('tallyReport');
         appState.autoSave();
     };
+
+    self.updateThresholds = () => {
+        const s = Object.keys(self.cachedSettings);
+        // if none of the data-specific settings changed, do not update the thresholds
+        if (s.every((k) => self.cachedSettings[k] === appState.models.openmcAnimation[k])) {
+            return;
+        }
+        s.forEach((k) => {
+            self.cachedSettings[k] = appState.models.openmcAnimation[k];
+        });
+        const t = appState.models.openmcAnimation.thresholds;
+        t.global = [self.minField, self.maxField];
+        // since tallies are counts, compare the lower threshold to 0
+        // instead of the global min
+        t.val[0] = Math.max(t.val[0], 0);
+        t.val[1] = Math.min(t.val[1], t.global[1]);
+    }
+
 
     $rootScope.$on('modelsUnloaded', self.clearMesh);
 
@@ -769,11 +792,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
             const displayRanges = {};
-            const cachedSettings = {
-                aspect: null,
-                score: null,
-                tally: null,
-            };
             const sources = cloudmcService.getSourceVisualizations(
                 {
                     box: space => {
@@ -800,23 +818,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             );
 
             function buildTallyReport() {
-                function updateThresholds() {
-                    const s = Object.keys(cachedSettings);
-                    // if none f the data-specific settings changed, do not update the thresholds
-                    if (s.every((k) => cachedSettings[k] === appState.models.openmcAnimation[k])) {
-                        return;
-                    }
-                    s.forEach((k) => {
-                        cachedSettings[k] = appState.models.openmcAnimation[k];
-                    });
-                    const t = appState.models.openmcAnimation.thresholds;
-                    t.global = [tallyService.minField, tallyService.maxField];
-                    // since tallies are counts, compare the lower threshold to 0
-                    // instead of the global min
-                    t.val[0] = Math.max(t.val[0], 0);
-                    t.val[1] = Math.min(t.val[1], t.global[1]);
-                }
-
                 if (! tallyService.mesh) {
                     return;
                 }
@@ -834,7 +835,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         Math.abs(ranges[m][1] - ranges[m][0]) / Math.abs(ranges[l][1] - ranges[l][0])
                     )
                 );
-                updateThresholds();
+                tallyService.updateThresholds();
                 const r =  {
                     aspectRatio: ar,
                     global_max: tallyService.maxField,
@@ -1276,6 +1277,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 if (! fd) {
                     return;
                 }
+                tallyService.updateThresholds();
                 for (let zi = 0; zi < nz; zi++) {
                     for (let yi = 0; yi < ny; yi++) {
                         for (let xi = 0; xi < nx; xi++) {
