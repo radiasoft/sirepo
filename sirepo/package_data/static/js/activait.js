@@ -1239,7 +1239,6 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                     appState,
                     response => {
                         $scope.numPages = Math.ceil(response.colA.length / $scope.imagesPerPage);
-                        srdbg('numPages', $scope.numPages);
                         $scope.colA = response.colA;
                         $scope.colB = response.colB;
                         $scope.xIsParams = response.xIsParameters;
