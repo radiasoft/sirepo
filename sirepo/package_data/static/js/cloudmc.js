@@ -2920,7 +2920,6 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
 
     const autoUpdate = utilities.debounce(() => {
-        srdbg('V?', $scope.form);
         if ($scope.form.$valid) {
             appState.saveChanges('openmcAnimation');
         }
