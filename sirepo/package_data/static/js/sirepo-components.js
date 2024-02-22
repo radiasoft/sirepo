@@ -225,24 +225,42 @@ SIREPO.app.directive('srAlert', function(errorService) {
     };
 });
 
-SIREPO.app.directive('srNotify', function(notificationService) {
-
+SIREPO.app.directive('getStarted', function(browserStorage, stringsService) {
     return {
         restrict: 'A',
-        scope: {
-            notificationName: '<',
-            notificationClass: '<',
-        },
+        scope: {},
         template: `
-            <div data-ng-show="notificationService.shouldPresent(notificationName)" class="alert alert-dismissible sr-notify" role="alert" data-ng-class="notificationClass">
-                <button type="button" class="close" aria-label="Close" data-ng-click="notificationService.dismiss(notificationName)">
+            <div data-ng-show="show()" class="alert alert-dismissible sr-get-started" role="alert" data-ng-class="'alert-info'">
+                <button type="button" class="close" aria-label="Close" data-ng-click="dismiss()">
                     <span aria-hidden="true">&times;</span>
                 </button>
-                <span data-ng-bind-html="notificationService.getContent(notificationName)"></span>
+                <span>
+                    <div class="text-center"><strong>Welcome to Sirepo - ${SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName}!</strong></div>
+                    Below are some example ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
+                    and folders containing ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
+                    Click on the ${SIREPO.APP_SCHEMA.strings.simulationDataType}
+                    to open and view the ${SIREPO.APP_SCHEMA.strings.simulationDataType} results.
+                    You can create a new ${SIREPO.APP_SCHEMA.strings.simulationDataType}
+                    by selecting the "${stringsService.newSimulationLabel()}" link above.
+                </span>
             </div>
         `,
         controller: function($scope) {
-            $scope.notificationService = notificationService;
+            const storageKey = 'getStarted';
+            let isActive = true;
+
+            $scope.dismiss = () => {
+                browserStorage.setBoolean(storageKey, false);
+                //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
+                isActive = false;
+            };
+            $scope.show = () => {
+                if (! isActive) {
+                    return false;
+                }
+                isActive = browserStorage.getBoolean(storageKey, true);
+                return isActive;
+            };
         },
     };
 });
@@ -3293,6 +3311,14 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
 });
 
 SIREPO.app.directive('commonFooter', function() {
+    const _refreshModals = () => {
+        return Object.values(SIREPO.refreshModalMap).reduce(
+            (rv, x) => {
+                return rv + `<div data-confirmation-modal="" data-is-required="true" data-id="${x.modal}" data-title="${x.title}" data-ok-text="Refresh" data-ok-clicked="refreshPage()">${x.msg}. Select <b>Refresh</b> to update this simulation.</div>\n`;
+            },
+            '',
+        );
+    };
     return {
         restrict: 'A',
         scope: {
@@ -3304,9 +3330,7 @@ SIREPO.app.directive('commonFooter', function() {
             <div data-modal-editor="" view-name="simulation" modal-title="simulationModalTitle"></div>
             <div data-sbatch-login-modal=""></div>
             <div data-jobs-list-modal="" data-title="Jobs" data-id="sr-jobsListModal-editor"></div>
-            <div data-confirmation-modal="" data-is-required="true" data-id="sr-newRelease" data-title="Server Upgraded" data-ok-text="Refresh" data-ok-clicked="refreshPage()">Sirepo has been upgraded. Select <b>Refresh</b> to update this simulation.</div>
-            <div data-confirmation-modal="" data-is-required="true" data-id="sr-invalidSimulationSerial" data-title="Simulation Conflict" data-ok-text="Refresh" data-ok-clicked="refreshPage()">This simulation has been updated outside of this browser. Select <b>Refresh</b> to update this simulation.</div>
-        `,
+        ` + _refreshModals(),
         controller: function($scope, appState, stringsService) {
             $scope.simulationModalTitle = stringsService.formatKey('simulationDataType');
             $scope.refreshPage = () => window.location.reload();
@@ -3446,7 +3470,6 @@ SIREPO.app.directive('downloadStatus', function() {
             </div>
         `,
         controller: function($scope) {
-
             $scope.cancel = () => {
                 $scope.simState.cancelSimulation(() => {
                     $('#sr-download-status').modal('hide');
@@ -3469,7 +3492,6 @@ SIREPO.app.directive('splitPanels', function($window) {
     var TOP_PAD = 12;
     return {
         controller: function($scope) {
-
             function totalHeight() {
                 return $($window).height() - $scope.el.offset().top;
             }

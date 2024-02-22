@@ -263,6 +263,15 @@ def stateless_compute_validate_material_name(data, **kwargs):
     return res
 
 
+def validate_file(file_type, path):
+    import h5py
+
+    if file_type == "geometryInput-dagmcFile":
+        if not h5py.is_hdf5(path):
+            return "dagmcFile must be valid hdf5 file"
+    return None
+
+
 def write_parameters(data, run_dir, is_parallel):
     if _is_sbatch_run_mode(data):
         pkio.write_text(

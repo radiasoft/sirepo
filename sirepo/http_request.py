@@ -18,13 +18,6 @@ def init_module(**imports):
     sirepo.util.setattr_imports(imports)
 
 
-def parse_json(qcall):
-    d = qcall.http_data_uget()
-    if d is not None:
-        return d
-    return qcall.sreq.body_as_content()
-
-
 def parse_post(qcall, kwargs):
     """Parse a post augmented by inline args
 
@@ -36,7 +29,7 @@ def parse_post(qcall, kwargs):
     The names of the args are the keys of the return value.
 
     Args:
-        req_data (PKDict): input values [`parse_json`]
+        req_data (PKDict): input values [`body_as_dict`]
         type (object): `assert_sim_type`
         file_type (object): `sirepo.util.secure_filename`
         filename (object): `sirepo.util.secure_filename`
@@ -51,7 +44,7 @@ def parse_post(qcall, kwargs):
     res = PKDict(qcall=qcall)
     r = kwargs.pkdel("req_data")
     if r is None:
-        r = parse_json(qcall)
+        r = qcall.body_as_dict()
     if kwargs.get("fixup_old_data"):
         raise AssertionError("fixup_old_data invalid parameter")
     res.pkupdate(req_data=r)

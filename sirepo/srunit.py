@@ -503,10 +503,9 @@ class _TestClient:
             dict: data
         """
         from pykern import pkunit
-        from pykern.pkdebug import pkdpretty
+        from pykern.pkdebug import pkdpretty, pkdp
 
         self.sr_sim_type_set(sim_type)
-
         if not sim_name:
             sim_name = SR_SIM_NAME_DEFAULT
         d = self.sr_post(
@@ -650,6 +649,7 @@ class _TestClient:
         return self._requests_op("post", uri, k)
 
     def _requests_op(self, op, uri, kwargs):
+        from pykern.pkdebug import pkdlog, pkdexc, pkdc, pkdp
         from sirepo import const
 
         if hasattr(self, "_websocket") and not kwargs.get("want_http"):
@@ -670,6 +670,7 @@ class _TestClient:
         try:
             return _HTTPResponse(
                 getattr(self._session, op)(u, allow_redirects=False, **kwargs),
+                self,
             )
         except requests.exceptions.ConnectionError as e:
             from pykern.pkdebug import pkdlog
@@ -678,16 +679,12 @@ class _TestClient:
             raise
 
     def _uid_clear(self):
-        if hasattr(self, "_websocket"):
-            self._websocket.stop()
         self.sr_uid = None
 
     def _uid_verify_and_save(self):
         self.sr_uid = self.sr_auth_state(
             needCompleteRegistration=False, isLoggedIn=True
         ).uid
-        if hasattr(self, "_websocket"):
-            self._websocket.start()
         return self.sr_uid
 
     def _uri(self, uri):
@@ -701,10 +698,22 @@ class _TestClient:
 
 class _Response:
     def assert_http_redirect(self, expect_re):
-        from pykern import pkunit
+        from pykern import pkjson, pkunit, pkdebug
+        from sirepo import uri
 
-        self.assert_http_status(302)
-        pkunit.pkre(expect_re, self.header_get("Location"))
+        if not (getattr(self, "_is_sr_exception", False) and self.status_code == 200):
+            self.assert_http_status(302)
+            pkunit.pkre(expect_re, self.header_get("Location"))
+            return
+        # srException case is raw response
+        r = self._maybe_json_decode()
+        pkdebug.pkdp(r)
+        u = None
+        if (x := r.get("srException")) and x.routeName == "httpRedirect":
+            u = x.params.uri
+        if not u:
+            u = uri.local_route(self._test_client.sr_sim_type, r.routeName, r.params)
+        pkunit.pkre(expect_re, u)
 
     def assert_http_status(self, expect):
         from pykern import pkunit
@@ -752,16 +761,21 @@ class _Response:
 
 
 class _HTTPResponse(_Response):
-    def __init__(self, reply):
+    def __init__(self, reply, test_client):
+        from pykern.pkdebug import pkdlog, pkdexc, pkdc, pkdp
+
         self.status_code = reply.status_code
         self.data = reply.content
+        self._test_client = test_client
         c = reply.headers.get("content-type")
+
         self.mimetype = c.split(";")[0].strip() if c else ""
         self._headers = reply.headers
 
     def process(self, raw_response):
-        from sirepo import util
+        from sirepo import util, reply
 
+        self._is_sr_exception = False
         # Emulate code in sirepo.js to deal with redirects
         if self.status_code == 200 and self.mimetype == "text/html":
             m = _JAVASCRIPT_REDIRECT_RE.search(pkcompat.from_bytes(self.data))
@@ -771,6 +785,10 @@ class _HTTPResponse(_Response):
                         PKDict(error="server error uri={}".format(m.group(1))),
                     )
                 return self.change_to_redirect(m.group(1))
+        d = self._maybe_json_decode()
+        if isinstance(d, dict) and d.get("state") == reply.SR_EXCEPTION_STATE:
+            # Even in raw_response, we need to know this
+            self._is_sr_exception = True
         if raw_response:
             return self
         return self._assert_not_exception()
@@ -804,14 +822,17 @@ class _Thread(threading.Thread):
 class _WebSocket:
 
     # /download is special below
-    _HTTP_RE = re.compile(r"^(?:/(?:auth|download)-|https?:)")
+    _HTTP_RE = re.compile(r"^(?:/download-|https?:)")
     _ANCHOR_RE = re.compile(r"(/.*?)#")
 
     def __init__(self, test_client):
         self._enabled = False
         self._connection = None
-        self._test_client = test_client
+        self.test_client = test_client
         self._is_async = None
+
+    def save_cookie_hash(self):
+        self._cookie_hash = self._hash_cookies()
 
     def send(self, op, uri, headers=None, data=None, files=None, json=None, **kwargs):
         from pykern.pkdebug import pkdp, pkdlog
@@ -846,25 +867,55 @@ class _WebSocket:
         def _must_be_http(uri):
             # POSIT: /auth- match like sirepo.js msgRouter and https?:
             # for browser click on email msg. If there are headers,
-            # it's a change in auth. /download is special, because we
+            # it's basic auth. /download is special, because we
             # don't have a way of saving a file (easily) in sirepo.js.
-            if headers or self._HTTP_RE.search(uri):
-                if not uri.startswith("/download"):
-                    self.stop()
+            if headers:
+                if not headers.get("Authorization"):
+                    raise AssertionError(f"restricted use of headers={headers}")
+                # basic auth
                 return True
-            if self._enabled:
-                return False
-            if self._test_client.sr_uid:
+            if self._HTTP_RE.search(uri):
+                return True
+            if not self._enabled:
                 self.start()
-                return False
-            return True
+            if self._cookie_hash != self._hash_cookies():
+                # Cookies have changed via http so need to reset websocket state
+                self.stop()
+                return True
+            return False
 
         if _must_be_http(uri):
-            pkdlog("uri={} websocket enabled={}", uri, self._enabled)
+            pkdlog("via http: uri={} websocket.enabled={}", uri, self._enabled)
             return None
         assert uri[0] == "/", f"uri={uri} must begin with '/'"
         m = self._ANCHOR_RE.search(uri)
         return self._send(_combine_req(m.group(1) if m else uri))
+
+    def start(self):
+        assert not self._enabled
+        self.save_cookie_hash()
+        self._enabled = True
+
+    def stop(self):
+        if not self._enabled:
+            return
+        c = self._connection
+        self._connection = None
+        self._enabled = False
+        self.req_seq = None
+        if c:
+            c.close()
+
+    def _hash_cookies(self):
+        """Reaches inside cookiejar. No other way..."""
+        rv = 0
+        for d, domains in self.test_client.cookie_jar._cookies.items():
+            rv += hash(d)
+            for p, paths in domains.items():
+                rv += hash(p)
+                for n, c in paths.items():
+                    rv += hash(n) + hash(c.value)
+        return rv
 
     def _send(self, msg):
         from websockets.sync import client
@@ -872,8 +923,8 @@ class _WebSocket:
 
         def _connect():
             r = requests.Request(
-                url=self._test_client.http_prefix + "/ws",
-                cookies=self._test_client.cookie_jar,
+                url=self.test_client.http_prefix + "/ws",
+                cookies=self.test_client.cookie_jar,
             ).prepare()
             self._connection = client.connect(
                 r.url.replace("http", "ws"),
@@ -887,24 +938,15 @@ class _WebSocket:
         self.req_seq += 1
         msg.header.reqSeq = self.req_seq
         self._connection.send(_WebSocketRequest(msg).buf)
-        return _WebSocketResponse(
-            self._connection.recv(timeout=self._test_client.timeout_secs()),
-            self.req_seq,
-        )
-
-    def start(self):
-        assert not self._enabled
-        self._enabled = True
-
-    def stop(self):
-        if not self._enabled:
-            return
-        c = self._connection
-        self._connection = None
-        self._enabled = False
-        self.req_seq = None
-        if c:
-            c.close()
+        for _ in range(10):
+            r = _WebSocketResponse(
+                self._connection.recv(timeout=self.test_client.timeout_secs()),
+                msg,
+                self,
+            )
+            if not r.is_async_msg:
+                return r
+        raise AssertionError("too many asyncMsg _WebSocketResponses")
 
 
 class _WebSocketRequest:
@@ -921,21 +963,29 @@ class _WebSocketRequest:
 
 
 class _WebSocketResponse(_Response):
-    def __init__(self, msg, req_seq):
+    def __init__(self, msg, req_msg, websocket):
         from pykern.pkdebug import pkdp
         from sirepo import const
         import msgpack
 
+        self._req_msg = req_msg
+        self._websocket = websocket
+        self._test_client = websocket.test_client
         u = msgpack.Unpacker(object_pairs_hook=pkcollections.object_pairs_hook)
         u.feed(msg)
         h = u.unpack()
+        self.data = u.unpack() if u.tell() < len(msg) else None
         assert (
             const.SCHEMA_COMMON.websocketMsg.version == h.version
         ), f"invalid msg.version={h.version}"
-        # Good enough for now, since _send() is synchronous
-        assert req_seq == h.reqSeq, f"invalid msg.reqSeq={h.reqSeq} expect={req_seq}"
+        self.is_async_msg = const.SCHEMA_COMMON.websocketMsg.kind.asyncMsg == h.kind
+        if self.is_async_msg:
+            getattr(self, "_async_msg_" + h.method)(self.data)
+            return
+        assert (
+            req_msg.header.reqSeq == h.reqSeq
+        ), f"invalid msg.reqSeq={h.reqSeq} expect={req_msg.header.reqSeq}"
         self._headers = PKDict()
-        self.data = u.unpack() if u.tell() < len(msg) else None
         self.mimetype = "application/octet"
         self.status_code = 200
         if const.SCHEMA_COMMON.websocketMsg.kind.httpReply == h.kind:
@@ -985,6 +1035,17 @@ class _WebSocketResponse(_Response):
                 self.data,
             )
         raise util.SRException(self.data.routeName, self.data.params)
+
+    def _async_msg_setCookies(self, content):
+        self._test_client.cookie_jar.extract_cookies(
+            response=PKDict(info=lambda: PKDict(get_all=lambda x, y: content)),
+            request=PKDict(
+                unverifiable=False,
+                get_full_url=lambda: self._test_client.http_prefix
+                + self._req_msg.header.uri,
+            ),
+        )
+        self._websocket.save_cookie_hash()
 
     def _data_to_json(self):
         from pykern import pkjson
