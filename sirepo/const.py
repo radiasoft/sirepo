@@ -38,6 +38,10 @@ SCHEMA_COMMON = PKDict(
             httpRequest=1,
             httpReply=2,
             srException=3,
+            asyncMsg=4,
+        ),
+        method=PKDict(
+            setCookies="setCookies",
         ),
         version=1,
     ),

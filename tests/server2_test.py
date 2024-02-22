@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-"""more server tests
+"""test user alert
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html

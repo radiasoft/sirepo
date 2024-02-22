@@ -11,7 +11,7 @@ SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
     SIREPO.PLOTTING_SHOW_FWHM = true;
     SIREPO.appReportTypes = `
-        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
     `;
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="BeamList">
@@ -553,7 +553,6 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
     var self = this;
     // tabs: single, multi, beamline3d
     var activeTab = 'single';
-    self.mirrorReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
     self.appState = appState;
     self.beamlineService = beamlineService;
     self.srwService = srwService;
@@ -2777,7 +2776,6 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, plotToPNG, srwSe
         restrict: 'A',
         scope: {
             modelName: '@',
-            reportId: '<',
         },
         template: `
             <div style="float: right; margin-top: -10px; margin-bottom: 5px;">

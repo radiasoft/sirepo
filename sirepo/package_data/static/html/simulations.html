@@ -20,7 +20,7 @@
         <div class="sr-folder-nav visible-xs clearfix">
           <a href data-ng-repeat="item in simulations.activeFolderPath" data-ng-click="simulations.openItem(item)"><span data-ng-if="simulations.isRootFolder(item)" class="glyphicon glyphicon-folder-open sr-nav-icon"></span><span data-ng-if="! simulations.isRootFolder(item)" class="glyphicon glyphicon-chevron-right sr-small-nav-icon"></span><span data-ng-class="{ 'sr-user-item': ! simulations.fileManager.isFolderExample(item) }">{{ item.name }}</span> </a>
         </div>
-        <div class="col-sm-12" data-sr-notify="" data-notification-name="'getStarted'" data-notification-class="'alert-info'"></div>
+        <div class="col-sm-12" data-get-started=""></div>
         <div class="sr-icon-view-toggle"><a href data-ng-click="simulations.toggleIconView()"><span class="glyphicon" data-ng-class="{'glyphicon-th-list': simulations.isIconView, 'glyphicon-th-large': ! simulations.isIconView }"></span> View as {{ simulations.isIconView ? 'List' : 'Icons' }}</a></div>
         <div class="col-sm-6" data-list-search="simulations.getSimPaths()" data-on-select="simulations.openItem" data-placeholder-text="search"></div>
         <div class="clearfix"></div>
