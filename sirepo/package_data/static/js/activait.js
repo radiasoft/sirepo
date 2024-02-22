@@ -1129,13 +1129,13 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
           <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
           <div data-ng-if="! isLoading() && multiPage">
             <div data-ng-if="numPages > 1" class="pull-left">
-              <button class="btn btn-primary" title="first" data-ng-click="first()">|<</button>
+              <button class="btn btn-primary" title="first" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="first()">|<</button>
               <button class="btn btn-primary" title="previous" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><</button>
             </div>
             <div data-ng-if="numPages > 1" class="pull-right">
                 page {{ page() }} of {{ numPages }}
               <button class="btn btn-primary" title="next" data-ng-disabled="! canUpdateUri(1)" data-ng-click="next()">></button>
-              <button class="btn btn-primary" title="last" data-ng-click="last()">>|</button>
+              <button class="btn btn-primary" title="last" data-ng-disabled="! canUpdateUri(1)" data-ng-click="last()">>|</button>
             </div>
           </div>
         </div>
