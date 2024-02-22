@@ -1143,7 +1143,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
         controller: function($scope, appState) {
             let loading = true;
             $scope.numPages = 0;
-            $scope.imagesPerPage = 3;
+            $scope.imagesPerPage = 4;
             $scope.pageImages = SIREPO.UTILS.indexArray($scope.imagesPerPage);
             $scope.colA = null;
             $scope.colB = null;
@@ -1194,41 +1194,49 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                 srdbg("index = ", index);
                 if ($(`.colA${$scope.method}1`).length && $scope.colA) {
                     $scope.pageImages.forEach( (v, i) => {
+
                         if ($scope.xIsParams) {
-                            let value = '';
                             if (index + i + 1 <= $scope.colA.length) {
-                                value = `${$scope.colA[index + v].replace(/[\[\]]/g, '')}`;
+                                $scope.parameters.splice(i, 0, `${$scope.colA[index + v].replace(/[\[\]]/g, '')}`);
                             }
-                            $scope.parameters.splice(i, 0, value);
+                            else {
+                                $scope.parameters.splice(i, 0, '');
+                            }
                         }
                         else {
-                            let value = '';
                             if (index + i + 1 <= $scope.colA.length) {
-                                value = $scope.colA[index + v];
+                                $(`.colA${$scope.method}${v + 1}`)[0].src = $scope.colA[index + v];
                             }
-                            $(`.colA${$scope.method}${v + 1}`)[0].src = value;
+                            else {
+                                $(`.colA${$scope.method}${v + 1}`)[0].src = '';
+                            }
                         }
+
                         if ($scope.imageToLabels) {
-                            let value = '';
                             if (index + i + 1 <= $scope.colA.length) {
-                                value = $scope.colB[index + v];
+                                $scope.labels.splice(i, 0, $scope.colB[index + v]);
                             }
-                            $scope.labels.splice(i, 0, value);
+                            else {
+                                $scope.labels.splice(i, 0, '');
+                            }
                         }
                         else {
-                            let value = '';
                             if (index + i + 1 <= $scope.colA.length) {
-                                value = $scope.colB[index + v];
+                                $(`.colB${$scope.method}${v + 1}`)[0].src = $scope.colB[index + v];
                             }
-                            $(`.colB${$scope.method}${v + 1}`)[0].src = value;
+                            else {
+                                $(`.colB${$scope.method}${v + 1}`)[0].src = '';
+                            }
                         }
+
                         $scope.hasThirdColumn = $scope.pred != null;
                         if ($(`.pred${$scope.method}1`).length && $scope.hasThirdColumn) {
-                            let value = '';
                             if (index + i + 1 <= $scope.colA.length) {
-                                value = $scope.pred[index + v];
+                                $(`.pred${$scope.method}${v + 1}`)[0].src = $scope.pred[index + v];
                             }
-                            $(`.pred${$scope.method}${v + 1}`)[0].src = value;
+                            else {
+                                $(`.pred${$scope.method}${v + 1}`)[0].src = '';
+                            }
                         }
                     });
                 }
