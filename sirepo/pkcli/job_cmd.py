@@ -51,7 +51,11 @@ def default_command(in_file):
         msg.runDir = pkio.py_path(msg.runDir)
         f.remove()
         res = globals()["_do_" + msg.jobCmd](
-            msg, sirepo.template.import_module(msg.simulationType)
+            msg,
+            # fastcgi doesn't have a simulationType
+            sirepo.template.import_module(msg.simulationType)
+            if "simulationType" in msg
+            else None,
         )
         if res is None:
             return
