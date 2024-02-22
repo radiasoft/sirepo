@@ -154,11 +154,6 @@ def start_sbatch():
         pkio.unchecked_remove(_PID_FILE)
 
 
-def _assert_run_dir_exists(run_dir):
-    if not run_dir.exists():
-        raise _RunDirNotFound()
-
-
 class _Dispatcher(PKDict):
     def __init__(self, **kwargs):
         super().__init__(
@@ -240,7 +235,7 @@ class _Dispatcher(PKDict):
                     r = await self._websocket.read_message()
                     if r is None:
                         pkdlog(
-                            "websocket closed in response to len={} send={}",
+                            "websocket closed for reply=None to len(send)={} send={}",
                             s and len(s),
                             s,
                         )
@@ -357,7 +352,7 @@ class _Dispatcher(PKDict):
             return self.format_op(
                 msg,
                 job.OP_ERROR,
-                reply=PKDict(runDirNotFound=True),
+                reply=PKDict(state=job.ERROR, runDirNotFound=True),
             )
         self.cmds.append(p)
         await p.start()
@@ -367,25 +362,20 @@ class _Dispatcher(PKDict):
 class _Cmd(PKDict):
     def __init__(self, send_reply=True, **kwargs):
         super().__init__(send_reply=send_reply, _is_destroyed=False, **kwargs)
-        self.run_dir = pkio.py_path(self.msg.runDir)
-        self._is_compute = self.msg.jobCmd == job.CMD_COMPUTE_RUN
-        if self._is_compute:
-            pkio.unchecked_remove(self.run_dir)
-            pkio.mkdir_parent(self.run_dir)
+        self._maybe_start_compute_run()
         self._in_file = self._create_in_file()
         self._process = _Process(self)
         self._terminating = False
-        self._start_time = int(time.time())
         self.jid = self.msg.get("computeJid", None)
 
     def destroy(self):
         if self._is_destroyed:
             return
         self._is_destroyed = True
+        self._process.kill()
         self._subclass_destroy()
         if "_in_file" in self:
             pkio.unchecked_remove(self.pkdel("_in_file"))
-        self._process.kill()
         if self in self.dispatcher.cmds:
             self.dispatcher.cmds.remove(self)
 
@@ -455,14 +445,9 @@ class _Cmd(PKDict):
         )
 
     async def start(self):
-        if self._is_compute and self._start_time:
-            await self.dispatcher.send(
-                self.dispatcher.format_op(
-                    self.msg,
-                    job.OP_RUN,
-                    reply=PKDict(state=job.RUNNING, computeJobStart=self._start_time),
-                ),
-            )
+        await self._maybe_reply_running()
+        if self._is_destroyed:
+            return
         self._process.start()
         tornado.ioloop.IOLoop.current().add_callback(self._await_exit)
 
@@ -501,6 +486,32 @@ class _Cmd(PKDict):
         )
         pkjson.dump_pretty(self.msg, filename=f, pretty=False)
         return f
+
+    async def _maybe_reply_running(self):
+        if not self._is_compute or not self._start_time:
+            return
+        await self.dispatcher.send(
+            self.dispatcher.format_op(
+                self.msg,
+                job.OP_RUN,
+                reply=PKDict(state=job.RUNNING, computeJobStart=self._start_time),
+            ),
+        )
+
+    def _maybe_start_compute_run(self):
+        self.run_dir = pkio.py_path(self.msg.runDir)
+        self._is_compute = self.msg.jobCmd == job.CMD_COMPUTE_RUN
+        if self._is_compute:
+            pkio.unchecked_remove(self.run_dir)
+            pkio.mkdir_parent(self.run_dir)
+            self._start_time = int(time.time())
+        else:
+            if not self.run_dir.exists():
+                raise _RunDirNotFound()
+            self._start_time = 0
+
+    def _subclass_destroy(self):
+        pass
 
 
 class _FastCgiCmd(_Cmd):
@@ -562,8 +573,6 @@ class _FastCgiCmd(_Cmd):
         )
 
     def send_cmd(self, msg):
-        if msg.runDir:
-            _assert_run_dir_exists(pkio.py_path(msg.runDir))
         self._msg_q.put_nowait(msg)
         return None
 
@@ -597,12 +606,18 @@ class _FastCgiCmd(_Cmd):
                 # Avoid issues with exceptions. We don't use q.join()
                 # so not an issue to call before work is done.
                 self._msg_q.task_done()
+                # Updates run_dir, _start_time, _is_compute on self
+                self._maybe_start_compute_run()
+                await self._maybe_reply_running()
+                if self._is_destroyed:
+                    return
                 await s.write(pkjson.dump_bytes(m) + b"\n")
                 if self._is_destroyed:
                     return
                 r = await s.read_until(b"\n", job.cfg().max_message_bytes)
-                # This will reply always, even if the message is corrupt (error)
-                await self.dispatcher.job_cmd_reply(m, self.op_name, r)
+                if r is not None:
+                    # This will reply always, even if the message is corrupt (error)
+                    await self.dispatcher.job_cmd_reply(m, self.op_name, r)
                 if self._is_destroyed:
                     return
                 self.msg = m = None
@@ -694,9 +709,6 @@ class _SbatchCmd(_Cmd):
             h = pkio.py_path("~/src/radiasoft")
             e.PYTHONPATH = "{}:{}".format(h.join("sirepo"), h.join("pykern"))
         return super().job_cmd_env(e)
-
-    def _subclass_destroy(self):
-        pass
 
 
 class _SbatchPrepareSimulationCmd(_SbatchCmd):
@@ -934,8 +946,6 @@ class _Process(PKDict):
             cmd=cmd,
             _exit=sirepo.tornado.Event(),
         )
-        if self.cmd.msg.jobCmd not in (job.CMD_PREPARE_SIMULATION, job.CMD_COMPUTE_RUN):
-            _assert_run_dir_exists(self.cmd.run_dir)
 
     async def exit_ready(self):
         await self._exit.wait()

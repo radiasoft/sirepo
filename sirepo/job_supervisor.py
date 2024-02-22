@@ -387,7 +387,9 @@ class _Supervisor(PKDict):
     async def _receive_api_beginSession(self, req):
         c = None
         try:
-            c = self._create_op(job.OP_BEGIN_SESSION, req, job.KIND_SEQUENTIAL, job.RUN_MODE_SEQUENTIAL)
+            c = self._create_op(
+                job.OP_BEGIN_SESSION, req, job.KIND_SEQUENTIAL, job.RUN_MODE_SEQUENTIAL
+            )
             # This "if" documents the prepare_send protocol
             if not await c.prepare_send():
                 # c is destroyed, do nothing
@@ -986,6 +988,7 @@ class _ComputeJob(_Supervisor):
                     # Checked on 1/24/24 and neither check appears in the logs
                     if not _is_run_op(f"reply={r}"):
                         return
+                    pkdp(r)
                     self.db.queueState = None
                     # run_dir is in a stable state so don't need to lock
                     op.run_dir_slot.free()
@@ -1038,7 +1041,7 @@ class _ComputeJob(_Supervisor):
             # POSIT: any api_* that could run into runDirNotFound
             # will call _send_with_single_reply() and this will
             # properly format the reply
-            if r.get("runDirNotFound"):
+            if r.get("state") == job.ERROR and r.get("runDirNotFound"):
                 return await self._init_db_missing_response(req)
             return r
         except Exception as e:

@@ -238,9 +238,10 @@ def _do_fastcgi(msg, template):
                 r = PKDict(r)
             if isinstance(r, PKDict):
                 r.setdefault("state", job.COMPLETED)
-            else:
-                pkdlog("func={} failed to return a PKDict", m.jobCmd)
+            elif r is not None:
+                pkdlog("func={} failed to return a PKDict reply={}", m.jobCmd, r)
                 r = PKDict(state=job.ERROR, error="invalid return value")
+            # else None is ok and handled by job_agent._FastCgiCmd._read
             c = 0
         except _AbruptSocketCloseError:
             return
