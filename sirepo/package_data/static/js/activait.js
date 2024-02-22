@@ -1100,10 +1100,10 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
         template: `
         <div class="container-fluid">
           <div data-ng-if="colA" class="row">
-            <div class="col-md-{{ hasThirdColumn ? '4' : '6' }}">
+            <div class="{{ colClass() }}">
               <div class="lead text-center">{{ ColAName }}</div>
             </div>
-            <div class="col-md-{{ hasThirdColumn ? '4' : '6' }}">
+            <div class="{{ colClass() }}">
               <div class="lead text-center">{{ ColBName }}</div>
             </div>
             <div data-ng-if="hasThirdColumn" class="col-md-4">
@@ -1112,11 +1112,11 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
           </div>
           <div data-ng-repeat="image in pageImages">
             <div class="row">
-              <div class="col-md-{{ hasThirdColumn ? '4' : '6' }}">
+              <div class="{{ colClass() }}">
                 <img class="img-responsive colA{{ method + ($index + 1) }}" />
                 <div data-ng-if="xIsParams"> <br/> <b>{{ parameters[$index] }}</b> </div>
               </div>
-              <div class="col-md-{{ hasThirdColumn ? '4' : '6' }}">
+              <div class="{{ colClass() }}">
                 <img class="img-responsive colB{{ method + ($index + 1) }}" />
                 <div data-ng-if="imageToLabels" class="text-center"> <br/> <b>{{ labels[$index] }}</b> </div>
               </div>
@@ -1143,7 +1143,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
         controller: function($scope, appState) {
             let loading = true;
             $scope.numPages = 0;
-            $scope.imagesPerPage = 4;
+            $scope.imagesPerPage = 3;
             $scope.pageImages = SIREPO.UTILS.indexArray($scope.imagesPerPage);
             $scope.colA = null;
             $scope.colB = null;
@@ -1182,6 +1182,8 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             $scope.prev = () => {
                 setIndex($scope.imageIdx -= $scope.imagesPerPage);
             };
+
+            $scope.colClass = () => `col-md-${$scope.hasThirdColumn ? '4' : '6'}`;
 
             function imageInRange(firstImageIndex, rowIndex) {
                 return firstImageIndex + rowIndex + 1 <= $scope.colA.length;
