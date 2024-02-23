@@ -116,9 +116,9 @@ class SimDbClient:
         return SimDbUri(sim_type or self._sim_data.sim_type(), lib_sid_uri, basename)
 
     def _check_size(self, method, data):
-        max_size = sirepo.job.cfg().max_message_bytes
-        if len(data or []) > max_size:
-            raise sirepo.util.ContentTooLarge(f"len(data)={len(data)} > max_size={max_size} for method={method}")
+        m = sirepo.job.cfg().max_message_bytes
+        if len(data or []) > m:
+            raise sirepo.util.ContentTooLarge(f"len(data)={len(data)} > max_size={m} for method={method}")
 
     def _post(self, lib_sid_uri, basename=None, args=None, sim_type=None):
         res = pkjson.load_any(
