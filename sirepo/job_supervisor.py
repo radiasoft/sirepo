@@ -270,6 +270,7 @@ class _Supervisor(PKDict):
                 api="cancel_or_timeout",
                 driver=to_cancel.driver,
                 is_destroyed=False,
+                kind=to_cancel.kind,
                 max_run_secs=None,
                 msg=PKDict(opIdsToCancel=[to_cancel.op_id]),
                 op_name=job.OP_CANCEL,
@@ -279,9 +280,12 @@ class _Supervisor(PKDict):
         c = None
         internal_error = None
         try:
-            c = _create_op()
             pkdlog("{} to_cancel={}", self, to_cancel)
+            if to_cancel._is_sent:
+                c = _create_op()
             to_cancel.destroy()
+            if not c:
+                return
             if not await c.prepare_send():
                 pkdlog("{} prepare_send failed to_cancel={}", self, to_cancel)
                 # TODO(robnagler): shouldn't happen. no pay to c.destroy()
@@ -477,13 +481,14 @@ class _ComputeJob(_Supervisor):
         self.cache_timeout_set()
 
     def cache_timeout(self):
+        self.cache_timer = None
         if self.ops:
             self.cache_timeout_set()
         else:
             del self.instances[self.db.computeJid]
 
     def cache_timeout_set(self):
-        self.timer = tornado.ioloop.IOLoop.current().call_later(
+        self.cache_timer = tornado.ioloop.IOLoop.current().call_later(
             _cfg.job_cache_secs,
             self.cache_timeout,
         )
@@ -958,11 +963,11 @@ class _ComputeJob(_Supervisor):
                 )
                 return False
             # prepare_send may have awaited so need to see if op is still run_op
-            if not _is_run_op(f"prepare_send success"):
+            if not _is_run_op("prepare_send success"):
                 return False
-            await self.__db_update(driverDetails=op.driver.driver_details)
             op.send()
-            return True
+            await self.__db_update(driverDetails=op.driver.driver_details)
+            return _is_run_op("__db_update done")
 
         if not _is_run_op("start"):
             return
@@ -1090,10 +1095,10 @@ class _Op(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.update(
-            do_not_send=False,
             internal_error=None,
             op_id=job.unique_key(),
             _reply_q=sirepo.tornado.Queue(),
+            _is_sent=False,
         )
         if "run_dir_slot_q" in self._supervisor:
             self.run_dir_slot = self._supervisor.run_dir_slot_q.sr_slot_proxy(self)
@@ -1117,7 +1122,7 @@ class _Op(PKDict):
             for x in "cpu_slot", "op_slot", "run_dir_slot":
                 if y := self.pkdel(x):
                     y.free()
-            for x in "run_callback", "timer":
+            for x in "run_callback", "send_timer":
                 if y := self.pkdel(x):
                     tornado.ioloop.IOLoop.current().remove_timeout(y)
             self._supervisor.destroy_op(self)
@@ -1176,11 +1181,13 @@ class _Op(PKDict):
 
     def send(self):
         async def _timeout():
+            self.send_timer = None
             pkdlog("{} max_run_secs={}", self, self.max_run_secs)
             await self._supervisor.op_send_timeout(self)
 
+        self._is_sent = True
         if self.max_run_secs:
-            self.timer = tornado.ioloop.IOLoop.current().call_later(
+            self.send_timer = tornado.ioloop.IOLoop.current().call_later(
                 self.max_run_secs,
                 _timeout,
             )
