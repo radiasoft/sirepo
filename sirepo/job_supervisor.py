@@ -1175,7 +1175,6 @@ class _Op(PKDict):
 
     async def reply_get(self):
         pkdlog("{} await _reply_q.get()", self)
-
         if (r := await self._reply_q.get()) is None:
             pkdlog("{} no reply)", self)
             return None
