@@ -24,7 +24,7 @@ def run(cfg_dir):
     sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     r = sim_in.report
     template_common.write_sequential_result(
-        template_common.sim_frame_dispatch(
+        template_common.simulation_frame_dispatch(
             copy.deepcopy(sim_in.models[r]).pkupdate(
                 # show very first frame for source reports
                 frameIndex=0,

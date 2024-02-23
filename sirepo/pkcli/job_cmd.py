@@ -51,7 +51,11 @@ def default_command(in_file):
         msg.runDir = pkio.py_path(msg.runDir)
         f.remove()
         res = globals()["_do_" + msg.jobCmd](
-            msg, sirepo.template.import_module(msg.simulationType)
+            msg,
+            # fastcgi doesn't have a simulationType
+            sirepo.template.import_module(msg.simulationType)
+            if "simulationType" in msg
+            else None,
         )
         if res is None:
             return
@@ -127,7 +131,7 @@ def _do_cancel(msg, template):
     return PKDict()
 
 
-def _do_compute(msg, template):
+def _do_compute_run(msg, template):
     msg.runDir = pkio.py_path(msg.runDir)
     with msg.runDir.join(template_common.RUN_LOG).open("w") as run_log:
         p = subprocess.Popen(
@@ -218,7 +222,7 @@ def _do_fastcgi(msg, template):
                 return pkjson.load_any(m)
 
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect(msg.fastcgiFile)
+    s.connect(msg.socket)
     c = 0
     while True:
         try:
@@ -234,9 +238,10 @@ def _do_fastcgi(msg, template):
                 r = PKDict(r)
             if isinstance(r, PKDict):
                 r.setdefault("state", job.COMPLETED)
-            else:
-                pkdlog("func={} failed to return a PKDict", m.jobCmd)
+            elif r is not None:
+                pkdlog("func={} failed to return a PKDict reply={}", m.jobCmd, r)
                 r = PKDict(state=job.ERROR, error="invalid return value")
+            # else None is ok and handled by job_agent._FastCgiCmd._read
             c = 0
         except _AbruptSocketCloseError:
             return
@@ -249,9 +254,9 @@ def _do_fastcgi(msg, template):
         s.sendall(_validate_msg_and_jsonl(r))
 
 
-def _do_get_simulation_frame(msg, template):
+def _do_simulation_frame(msg, template):
     try:
-        return template_common.sim_frame_dispatch(
+        return template_common.simulation_frame_dispatch(
             msg.data.copy().pkupdate(run_dir=msg.runDir),
         )
     except Exception as e:

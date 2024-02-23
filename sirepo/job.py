@@ -17,11 +17,14 @@ import re
 
 ERROR_CODE_RESPONSE_TOO_LARGE = "response_too_large"
 
+#: Ops are both operations and msg types
 OP_ANALYSIS = "analysis"
+#: terminate another op
 OP_CANCEL = "cancel"
 OP_ERROR = "error"
 OP_IO = "io"
 OP_JOB_CMD_STDERR = "job_cmd_stderr"
+#: terminate the agent
 OP_KILL = "kill"
 OP_OK = "ok"
 #: Agent indicates it is ready
@@ -29,6 +32,28 @@ OP_ALIVE = "alive"
 OP_RUN = "run"
 OP_SBATCH_LOGIN = "sbatch_login"
 OP_BEGIN_SESSION = "begin_session"
+
+#: Requires a core or more
+CPU_SLOT_OPS = frozenset((OP_ANALYSIS, OP_RUN))
+
+#: These are gated in the job driver to a specific number
+SLOT_OPS = frozenset().union(*[CPU_SLOT_OPS, (OP_IO,)])
+
+#: Are not time limited (handled by agent itself)
+UNTIMED_OPS = frozenset((OP_ALIVE, OP_CANCEL, OP_ERROR, OP_KILL, OP_OK))
+
+#: How operations are dispatched to pkcli.job_cmd
+CMD_ANALYSIS_JOB = "analysis_job"
+CMD_COMPUTE_RUN = "compute_run"
+CMD_DOWNLOAD_DATA_FILE = "download_data_file"
+CMD_FASTCGI = "fastcgi"
+CMD_PREPARE_SIMULATION = "prepare_simulation"
+CMD_SBATCH_LOGIN = OP_SBATCH_LOGIN
+CMD_SBATCH_STATUS = "sbatch_status"
+CMD_SEQUENTIAL_RESULT = "sequential_result"
+CMD_SIMULATION_FRAME = "simulation_frame"
+CMD_STATEFUL_COMPUTE = "stateful_compute"
+CMD_STATELESS_COMPUTE = "stateless_compute"
 
 _OK_REPLY = PKDict(state="ok")
 
@@ -94,15 +119,17 @@ EXIT_STATUSES = frozenset((CANCELED, COMPLETED, ERROR))
 STATUSES = EXIT_STATUSES.union((PENDING, RUNNING))
 
 #: jobRunMode and kinds; should come from schema
-SEQUENTIAL = "sequential"
-PARALLEL = "parallel"
-SBATCH = "sbatch"
+KIND_SEQUENTIAL = "sequential"
+KIND_PARALLEL = "parallel"
+
+#: categories of jobs and agents
+KINDS = frozenset((KIND_SEQUENTIAL, KIND_PARALLEL))
 
 #: valid jobRunMode values
-RUN_MODES = frozenset((SEQUENTIAL, PARALLEL, SBATCH))
-
-#: categories of jobs
-KINDS = frozenset((SEQUENTIAL, PARALLEL))
+RUN_MODE_SEQUENTIAL = KIND_SEQUENTIAL
+RUN_MODE_PARALLEL = KIND_PARALLEL
+RUN_MODE_SBATCH = "sbatch"
+RUN_MODES = frozenset((RUN_MODE_SEQUENTIAL, RUN_MODE_PARALLEL, RUN_MODE_SBATCH))
 
 # https://docs.nersc.gov/jobs/policy/
 # https://docs.nersc.gov/performance/knl/getting-started/#knl-vs-haswell

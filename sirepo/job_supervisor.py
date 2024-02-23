@@ -200,9 +200,9 @@ def init_module(**imports):
     pykern.pkio.mkdir_parent(_DB_DIR)
     _NEXT_REQUEST_SECONDS = PKDict(
         {
-            job.PARALLEL: 2,
-            job.SBATCH: _cfg.sbatch_poll_secs,
-            job.SEQUENTIAL: 1,
+            job.RUN_MODE_PARALLEL: 2,
+            job.RUN_MODE_SBATCH: _cfg.sbatch_poll_secs,
+            job.RUN_MODE_SEQUENTIAL: 1,
         }
     )
     tornado.ioloop.IOLoop.current().add_callback(_ComputeJob.purge_non_premium)
@@ -419,7 +419,9 @@ class _Supervisor(PKDict):
     async def _receive_api_beginSession(self, req):
         c = None
         try:
-            c = self._create_op(job.OP_BEGIN_SESSION, req, job.SEQUENTIAL, "sequential")
+            c = self._create_op(
+                job.OP_BEGIN_SESSION, req, job.KIND_SEQUENTIAL, job.RUN_MODE_SEQUENTIAL
+            )
             # This "if" documents the prepare_send protocol
             if not await c.prepare_send():
                 # c is destroyed, do nothing
@@ -773,7 +775,7 @@ class _ComputeJob(_Supervisor):
         return await self._send_with_single_reply(
             job.OP_IO,
             req,
-            jobCmd="download_data_file",
+            jobCmd=job.CMD_DOWNLOAD_DATA_FILE,
         )
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
@@ -837,7 +839,7 @@ class _ComputeJob(_Supervisor):
             o = self._create_op(
                 job.OP_RUN,
                 req,
-                jobCmd="compute",
+                jobCmd=job.CMD_COMPUTE_RUN,
                 nextRequestSeconds=self.db.nextRequestSeconds,
             )
             t = sirepo.srtime.utc_now_as_int()
@@ -875,26 +877,26 @@ class _ComputeJob(_Supervisor):
         r = self._status_reply(req)
         if r:
             return r
-        r = await self._send_op_analysis(req, "sequential_result")
+        r = await self._send_op_analysis(req, job.CMD_SEQUENTIAL_RESULT)
         if r.state == job.ERROR and "errorCode" not in r:
             # TODO(robnagler) this seems wrong. Should be explicit
             return await self._init_db_missing_response(req)
         return r
 
     async def _receive_api_sbatchLogin(self, req):
-        return await self._send_with_single_reply(job.OP_SBATCH_LOGIN, req)
+        return await self._send_with_single_reply(job.CMD_SBATCH_LOGIN, req)
 
     async def _receive_api_simulationFrame(self, req):
         if not self._req_is_valid(req):
             raise sirepo.util.NotFound("invalid req={}", req)
         self._raise_if_purged_or_missing(req)
-        return await self._send_op_analysis(req, "get_simulation_frame")
+        return await self._send_op_analysis(req, job.CMD_SIMULATION_FRAME)
 
     async def _receive_api_statefulCompute(self, req):
-        return await self._send_op_analysis(req, "stateful_compute")
+        return await self._send_op_analysis(req, job.CMD_STATEFUL_COMPUTE)
 
     async def _receive_api_statelessCompute(self, req):
-        return await self._send_op_analysis(req, "stateless_compute")
+        return await self._send_op_analysis(req, job.CMD_STATELESS_COMPUTE)
 
     def _create_op(self, op_name, req, **kwargs):
         req.simulationType = self.db.simulationType
@@ -905,9 +907,9 @@ class _ComputeJob(_Supervisor):
             # happens only when config changes, and only when sbatch is missing
             raise sirepo.util.NotFound("invalid jobRunMode={} req={}", r, req)
         k = (
-            job.PARALLEL
+            job.KIND_PARALLEL
             if self.db.isParallel and op_name != job.OP_ANALYSIS
-            else job.SEQUENTIAL
+            else job.KIND_SEQUENTIAL
         )
         o = (
             super()
@@ -1028,7 +1030,7 @@ class _ComputeJob(_Supervisor):
             # POSIT: any api_* that could run into runDirNotFound
             # will call _send_with_single_reply() and this will
             # properly format the reply
-            if r.get("runDirNotFound"):
+            if r.get("state") == job.ERROR and r.get("runDirNotFound"):
                 return await self._init_db_missing_response(req)
             return r
         except Exception as e:
@@ -1163,7 +1165,6 @@ class _Op(PKDict):
 
     async def reply_get(self):
         pkdlog("{} await _reply_q.get()", self)
-
         if (r := await self._reply_q.get()) is None:
             pkdlog("{} no reply)", self)
             return None
@@ -1204,7 +1205,7 @@ class _Op(PKDict):
             sirepo.job.OP_IO,
         ):
             return _cfg.max_secs[self.op_name]
-        if self.kind == job.PARALLEL and self.msg.get("isPremiumUser"):
+        if self.kind == job.KIND_PARALLEL and self.msg.get("isPremiumUser"):
             return _cfg.max_secs["parallel_premium"]
         return _cfg.max_secs[self.kind]
 

@@ -32,6 +32,8 @@ class SbatchDriver(job_driver.DriverBase):
 
     def __init__(self, op):
         def _op_queue_size(op_kind):
+            # Can only be one for anything but run, because fastcgi
+            # restricts to one op at a time.
             return self.cfg.run_slots if op_kind == job.OP_RUN else 1
 
         super().__init__(op)
@@ -44,11 +46,11 @@ class SbatchDriver(job_driver.DriverBase):
             # is essentially a no-op (sbatch constrains its own cpu
             # resources) but makes it easier to code the other cases.
             cpu_slot_q=sirepo.job_supervisor.SlotQueue(
-                len(job_driver.SLOT_OPS) + self.cfg.run_slots - 1,
+                len(job.SLOT_OPS) + self.cfg.run_slots - 1,
             ),
             op_slot_q={
                 k: sirepo.job_supervisor.SlotQueue(maxsize=_op_queue_size(k))
-                for k in job_driver.SLOT_OPS
+                for k in job.SLOT_OPS
             },
         )
         self.__instances[self.uid] = self
@@ -136,6 +138,8 @@ class SbatchDriver(job_driver.DriverBase):
         return super()._agent_env(
             op,
             env=PKDict(
+                # Only one kind in sbatch mode
+                SIREPO_PKCLI_JOB_AGENT_RUN_MODE=job.RUN_MODE_SBATCH,
                 SIREPO_SRDB_ROOT=self._srdb_root,
             ),
         )
