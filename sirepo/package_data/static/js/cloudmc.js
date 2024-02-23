@@ -312,7 +312,9 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
 
     self.eigenvalueHistory = () => appState.models.settings.eigenvalueHistory;
 
-    self.simHandleStatus = function (data) {
+    $scope.energyFilter = () => cloudmcService.findFilter('energyFilter');
+
+    self.simHandleStatus = (data) => {
         errorMessage = data.error;
         self.eigenvalue = data.eigenvalue;
         self.results = data.results;
@@ -748,22 +750,6 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
-        },
-    };
-});
-
-SIREPO.app.directive('energySpectrum', function(appState, cloudmcService, utilities) {
-    return {
-        restrict: 'A',
-        scope: {
-            modelName: '@',
-        },
-        template: `
-            <div  data-ng-if="! ! energyFilter" class="col-sm-8" data-report-panel="parameter" data-model-name="modelName" data-panel-title="Energy Spectrum"></div>
-        `,
-        controller: function($scope) {
-            $scope.energyFilter = cloudmcService.findFilter('energyFilter');
-            srdbg($scope);
         },
     };
 });
