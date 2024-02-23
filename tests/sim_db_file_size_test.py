@@ -24,4 +24,4 @@ def test_max_size(sim_db_file_server):
     c = sim_data.get_class(stype).sim_db_client()
 
     with pkunit.pkexcept(util.ContentTooLarge):
-        c.put(c.LIB_DIR, "bbb.txt", (max_bytes + 1) * "b")
+        c.put(c.LIB_DIR, "content-too-large.txt", (max_bytes + 1) * "a")
