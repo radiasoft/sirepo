@@ -557,7 +557,9 @@ def _generate_parameters_file(data, run_dir=None):
     v.tallies = _generate_tallies(data, v)
     v.hasGraveyard = _has_graveyard(data)
     if v.incomplete_data_msg:
-        return f'raise AssertionError("{"Unable to generate sim:" + v.incomplete_data_msg}")'
+        return (
+            f'raise AssertionError("Unable to generate sim: {v.incomplete_data_msg}")'
+        )
     return template_common.render_jinja(
         SIM_TYPE,
         v,
