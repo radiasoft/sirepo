@@ -117,7 +117,7 @@ class SimDbClient:
 
     def _check_size(self, method, data):
         m = sirepo.job.cfg().max_message_bytes
-        if len(data or []) > m:
+        if data and len(data) > m:
             raise sirepo.util.ContentTooLarge(f"len(data)={len(data)} > max_size={m} for method={method}")
 
     def _post(self, lib_sid_uri, basename=None, args=None, sim_type=None):
