@@ -667,8 +667,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 -(yDomain[1] - yZoomDomain[1]) / zoomHeight * height - yPixelSize / 2,
                 (xDomain[1] - xDomain[0]) / zoomWidth * width + xPixelSize,
                 (yDomain[1] - yDomain[0]) / zoomHeight * height + yPixelSize);
-                //(xDomain[1] - xDomain[0]) / zoomWidth * width + p.x,
-                //(yDomain[1] - yDomain[0]) / zoomHeight * height + p.y);
         },
 
         ensureDomain: function(domain, scaleFunction) {
