@@ -12,7 +12,7 @@ def setup_module(module):
     import os
 
     os.environ.update(
-        SIREPO_JOB_MAX_MESSAGE_BYTES=f"{max_bytes}",
+        SIREPO_JOB_MAX_MESSAGE_BYTES=str(max_bytes)
     )
 
 
