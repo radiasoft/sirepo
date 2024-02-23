@@ -42,7 +42,7 @@ _RETRY_SECS = 1
 #: Reasonable over the Internet connection
 _CONNECT_SECS = 10
 
-_FASTCGI_RESTART_SECS = 60
+_FASTCGI_RESTART_SECS = 10
 
 _IN_FILE = "in-{}.json"
 
@@ -159,17 +159,18 @@ def start_sbatch():
 
 
 class _Dispatcher(PKDict):
-    def __init__(self, **kwargs):
+    def __init__(self):
         super().__init__(
-            cmds=[],
-            fastcgi_cmds=PKDict(),
-            fastcgi_recreates=PKDict(),
             _is_destroyed=False,
-            **kwargs,
+            cmds=[],
+            fastcgi_proxies=PKDict(),
         )
-        if "uid" not in self:
-            with sirepo.quest.start() as qcall:
-                self.uid = qcall.auth.logged_in_user(check_path=False)
+        for o in job.SLOT_OPS:
+            # Only start sequential ops (not sbatch or parallel)
+            if o != job.OP_RUN or _cfg.run_mode == job.RUN_MODE_SEQUENTIAL:
+                self.fastcgi_proxies[o] = _FastCgiProxy(op_name=o, dispatcher=self)
+        with sirepo.quest.start() as qcall:
+            self.uid = qcall.auth.logged_in_user(check_path=False)
 
     def destroy(self):
         if self._is_destroyed:
@@ -215,10 +216,6 @@ class _Dispatcher(PKDict):
             raise
 
     async def loop(self):
-        for o in job.SLOT_OPS:
-            # Only start sequential ops (not sbatch or parallel)
-            if o != job.OP_RUN or _cfg.run_mode == job.RUN_MODE_SEQUENTIAL:
-                await _FastCgiCmd.create(op_name=o, dispatcher=self)
         while True:
             self._websocket = None
             try:
@@ -347,7 +344,7 @@ class _Dispatcher(PKDict):
 
     async def _cmd(self, msg, **kwargs):
         try:
-            if c := self.fastcgi_cmds.get(msg.opName):
+            if c := self.fastcgi_proxies.get(msg.opName):
                 return c.send_cmd(msg)
             p = self._get_cmd_type(msg)(
                 msg=msg, dispatcher=self, op_id=msg.opId, **kwargs
@@ -518,9 +515,10 @@ class _Cmd(PKDict):
         pass
 
 
-class _FastCgiCmd(_Cmd):
-    @classmethod
-    async def create(cls, op_name, **kwargs):
+class _FastCgiProcess(_Cmd):
+    """Starts a single _Cmd which processes msgs instead of a _Cmd per msg."""
+
+    def __init__(self, op_name, **kwargs):
         """Start the fastcgi process
 
         Args:
@@ -539,7 +537,7 @@ class _FastCgiCmd(_Cmd):
         )
         pkio.unchecked_remove(s)
         m.socket = str(s)
-        self = cls(
+        super().__init__(
             msg=m,
             op_name=op_name,
             op_id=None,
@@ -553,11 +551,6 @@ class _FastCgiCmd(_Cmd):
             tornado.netutil.bind_unix_socket(str(self._socket)),
             self._accept,
         )
-        await self.start()
-        if self.op_name in self.dispatcher.fastcgi_cmds:
-            raise AssertionError(f"too many fastcgi_cmds for op_name={self.op_name}")
-        self.dispatcher.fastcgi_cmds[self.op_name] = self
-        return self
 
     async def on_stdout_read(self, text):
         if self._is_destroyed:
@@ -642,7 +635,7 @@ class _FastCgiCmd(_Cmd):
             await self._handle_exit()
 
     def _subclass_destroy(self):
-        self.dispatcher.fastcgi_cmds.pkdel(self.op_name)
+        self.proxy.destroy_process(self)
         # if _read is waiting, this will release it.
         # May not matter, but is complete
         if self._msg_q:
@@ -661,26 +654,62 @@ class _FastCgiCmd(_Cmd):
             return
         # destroy _fastcgi state first (synchronously), then maybe
         # send errors to avoid asynchronous modification
-        n = self.op_name
         d = self.dispatcher
         q = self._msg_q
         self._msg_q = None
         self.destroy()
         while q.qsize() > 0:
-            await self.dispatcher.send_error(
+            await d.send_error(
                 q.get_nowait(), "unexpected fastcgi exit", "internal error"
             )
             q.task_done()
-        d.fastcgi_recreates.setdefault(n, [])
-        x = d.fastcgi_recreates[n]
-        if x and x[-1] + _FASTCGI_RESTART_SECS > int(time.time()):
+
+
+class _FastCgiProxy(PKDict):
+    """Manages a single _FastCgiProcess"""
+
+    def __init__(self, **kwargs):
+        """Creates proxy and does not start process
+
+        Args:
+            op_name (str): which slot
+            dispatcher (_Dispatcher): back link
+        Returns:
+            self: instance
+        """
+        super().__init__(
+            _running=sirepo.tornado.Event(),
+            _process=None,
+            _starts=[],
+            **kwargs,
+        )
+
+    def destroy_process(self, process):
+        # command destroys itself
+        self._process = None
+
+    def send_cmd(self, msg):
+        if self._process is not None:
+            self._process = _FastCgiProcess.create(
+                op_name=self.op_name, dispatcher=self.dispatcher
+            )
+            asyncio.create_task(self._start())
+        # Synchronous so messages are always queued in the proper order
+        self._process.send_cmd(msg)
+
+    async def _start(self):
+        if self._starts and self._starts[-1] + _FASTCGI_RESTART_SECS > int(time.time()):
             # Restarts should be fine. If not, at least we wait a bit before recreating.
-            # The destroy above removes this op_name so ops with this name will go
-            # through the slow way in _cmd()
             await asyncio.sleep(_FASTCGI_RESTART_SECS)
-        x.append(int(time.time()))
-        pkdlog("restarting _FastCgiCmd op_name={}", n)
-        await _FastCgiCmd.create(op_name=n, dispatcher=d)
+            if self._process.is_destroyed:
+                # This should not happen, but correct way to code this
+                return
+        # TODO(robnagler) limit restarts by killing agent(?)
+        self._starts.append(int(time.time()))
+        pkdlog(
+            "_FastCgiProcess op_name={} starts[-3:]={}", self.op_name, self._starts[-3:]
+        )
+        await self._process.start()
 
 
 class _SbatchCmd(_Cmd):
