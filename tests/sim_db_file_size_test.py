@@ -18,10 +18,10 @@ def setup_module(module):
 
 def test_max_size(sim_db_file_server):
     from pykern import pkdebug, pkio, pkunit
-    from sirepo import sim_data, srunit
+    from sirepo import sim_data, srunit, util
 
     stype = srunit.SR_SIM_TYPE_DEFAULT
     c = sim_data.get_class(stype).sim_db_client()
 
-    with pkunit.pkexcept(AssertionError):
+    with pkunit.pkexcept(util.ContentTooLarge):
         c.put(c.LIB_DIR, "bbb.txt", (max_bytes + 1) * "b")
