@@ -988,7 +988,6 @@ class _ComputeJob(_Supervisor):
                     # Checked on 1/24/24 and neither check appears in the logs
                     if not _is_run_op(f"reply={r}"):
                         return
-                    pkdp(r)
                     self.db.queueState = None
                     # run_dir is in a stable state so don't need to lock
                     op.run_dir_slot.free()
