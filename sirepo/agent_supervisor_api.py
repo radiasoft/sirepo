@@ -84,4 +84,3 @@ def _check_size(method, data):
         raise sirepo.util.ContentTooLarge(
             f"len(data)={len(data)} > max_size={m} for method={method}"
         )
-
