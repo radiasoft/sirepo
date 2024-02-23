@@ -1017,7 +1017,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
           </div>
           <div data-ng-if="hasValidFileSelected()" class="btn-group" role="group">
             <div class="pull-left" data-ng-transclude=""></div>
-            <div class="pull-left"><a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a></div>
+            <div class="pull-left"><a data-ng-href="{{ downloadLibFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a></div>
           </div>
           <div class="sr-input-warning" data-ng-show="selectionRequired && ! hasValidFileSelected()">Select a file</div>
         `,
@@ -1080,7 +1080,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                 return false;
             };
 
-            $scope.downloadFileUrl = function() {
+            $scope.downloadLibFileUrl = function() {
                 if ($scope.model) {
                     return requestSender.formatUrl('downloadLibFile', {
                         simulation_id: 'unused',
