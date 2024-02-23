@@ -18,7 +18,7 @@ def setup_module(module):
 
 def test_max_size(sim_db_file_server):
     from pykern import pkdebug, pkio, pkunit
-    from sirepo import sim_data, srunit, simulation_db
+    from sirepo import sim_data, srunit
 
     stype = srunit.SR_SIM_TYPE_DEFAULT
     c = sim_data.get_class(stype).sim_db_client()
