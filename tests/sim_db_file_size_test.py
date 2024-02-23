@@ -11,9 +11,7 @@ max_bytes = 10000
 def setup_module(module):
     import os
 
-    os.environ.update(
-        SIREPO_JOB_MAX_MESSAGE_BYTES=str(max_bytes)
-    )
+    os.environ.update(SIREPO_JOB_MAX_MESSAGE_BYTES=str(max_bytes))
 
 
 def test_max_size(sim_db_file_server):
