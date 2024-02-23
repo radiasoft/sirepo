@@ -530,7 +530,7 @@ def _generate_distribution(dist):
     return _generate_call(t, args)
 
 
-def _generate_materials(data):
+def _generate_materials(data, j2_ctx):
     res = ""
     material_vars = []
     for v in data.models.volumes.values():
@@ -574,7 +574,8 @@ def _generate_materials(data):
             elif c.component == "add_s_alpha_beta":
                 res += f'{n}.{c.component}("{c.name}", {c.fraction})\n'
     if not len(material_vars):
-        raise AssertionError(f"No materials defined for volumes")
+        j2_ctx.incomplete_data_msg += " No materials defined for volumes,"
+        return
     res += "materials = openmc.Materials([" + ", ".join(material_vars) + "])\n"
     return res
 
@@ -600,14 +601,19 @@ def _generate_parameters_file(data, run_dir=None):
             cores = 1 if r == "sequential" else sirepo.mpi.cfg().cores
             v.runCommand = f"openmc.run(threads={ cores })"
 
-    v.materials = _generate_materials(data)
-    v.sources = _generate_sources(data)
+    v.incomplete_data_msg = ""
+    v.materials = _generate_materials(data, v)
+    v.sources = _generate_sources(data, v)
     v.sourceFile = _source_filename(data)
     v.maxSampleSourceParticles = SCHEMA.model.openmcAnimation.numSampleSourceParticles[
         5
     ]
-    v.tallies = _generate_tallies(data)
+    v.tallies = _generate_tallies(data, v)
     v.hasGraveyard = _has_graveyard(data)
+    if v.incomplete_data_msg:
+        return (
+            f'raise AssertionError("Unable to generate sim: {v.incomplete_data_msg}")'
+        )
     return template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -638,9 +644,10 @@ def _generate_source(source):
     )"""
 
 
-def _generate_sources(data):
+def _generate_sources(data, j2_ctx):
     if not len(data.models.settings.sources):
-        raise AssertionError(f"No Settings Sources defined")
+        j2_ctx.incomplete_data_msg += " No Settings Sources defined,"
+        return
     return ",\n".join([_generate_source(s) for s in data.models.settings.sources])
 
 
@@ -669,9 +676,10 @@ def _generate_space(space):
     return _generate_call(space._type, args)
 
 
-def _generate_tallies(data):
+def _generate_tallies(data, j2_ctx):
     if not len(data.models.settings.tallies):
-        raise AssertionError(f"No Tallies defined")
+        j2_ctx.incomplete_data_msg += " No Tallies defined"
+        return
     return (
         "\n".join(
             [
@@ -772,7 +780,10 @@ def _parse_cloudmc_log(run_dir, log_filename="run.log"):
         log_filename=log_filename,
         default_msg="An unknown error occurred, check CloudMC log for details",
         # ERROR: Cannot tally flux for an individual nuclide.
-        error_patterns=(re.compile(r"^\s*Error:\s*(.*)$", re.IGNORECASE),),
+        error_patterns=(
+            re.compile(r"^\s*Error:\s*(.*)$", re.IGNORECASE),
+            re.compile(r"AssertionError: (.*)"),
+        ),
     ).parse_for_errors()
 
 
