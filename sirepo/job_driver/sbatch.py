@@ -138,7 +138,7 @@ class SbatchDriver(job_driver.DriverBase):
         return super()._agent_env(
             op,
             env=PKDict(
-                # Only one kind in sbatch mode
+                # Only one run_mode in sbatch
                 SIREPO_PKCLI_JOB_AGENT_RUN_MODE=job.RUN_MODE_SBATCH,
                 SIREPO_SRDB_ROOT=self._srdb_root,
             ),
