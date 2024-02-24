@@ -15,6 +15,7 @@ import subprocess
 import tornado.ioloop
 import tornado.process
 import tornado.queues
+import tornado.util
 
 
 class LocalDriver(job_driver.DriverBase):
@@ -32,8 +33,8 @@ class LocalDriver(job_driver.DriverBase):
                 self._agent_id,
             ),
             _agent_exit=tornado.locks.Event(),
+            cpu_slot_q=self.__cpu_slot_q[op.kind],
         )
-        self.cpu_slot_q = self.__cpu_slot_q[op.kind]
         self.__instances[self.kind].append(self)
 
     @classmethod
@@ -83,17 +84,17 @@ class LocalDriver(job_driver.DriverBase):
     async def kill(self):
         if "subprocess" not in self:
             return
+        p = self.subprocess.proc
         try:
-            pkdlog("{} pid={}", self, self.subprocess.proc.pid)
-            self.subprocess.proc.terminate()
-            self.kill_timeout = tornado.ioloop.IOLoop.current().call_later(
-                job_driver.KILL_TIMEOUT_SECS,
-                self.subprocess.proc.kill,
-            )
-            await self._agent_exit.wait()
-            self._agent_exit.clear()
+            pkdlog("{} pid={}", self, p.pid)
+            p.terminate()
+            try:
+                await self._agent_exit.wait(timeout=6)
+            except tornado.util.TimeoutError:
+                p.kill()
         except Exception as e:
             pkdlog("{} error={} stack={}", self, e, pkdexc())
+            p.kill()
 
     async def prepare_send(self, op):
         if op.op_name == job.OP_RUN:
@@ -103,9 +104,6 @@ class LocalDriver(job_driver.DriverBase):
     def _agent_on_exit(self, returncode):
         self._agent_exit.set()
         self.pkdel("subprocess")
-        k = self.pkdel("kill_timeout")
-        if k:
-            tornado.ioloop.IOLoop.current().remove_timeout(k)
         pkdlog("{} returncode={}", self, returncode)
         self._agent_exec_dir.remove(rec=True, ignore_errors=True)
 
