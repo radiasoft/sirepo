@@ -46,7 +46,7 @@ _FASTCGI_RESTART_SECS = 10
 
 _IN_FILE = "in-{}.json"
 
-_PID_FILE = "job_agent.pid"
+_SBATCH_PID_FILE = "job_agent.pid"
 
 _cfg = None
 
@@ -135,7 +135,7 @@ def start_sbatch():
 
     f = None
     try:
-        f = pkjson.load_any(pkio.py_path(_PID_FILE))
+        f = pkjson.load_any(pkio.py_path(_SBATCH_PID_FILE))
     except Exception as e:
         if not pkio.exception_is_not_found(e):
             pkdlog("error={} stack={}", e, pkdexc())
@@ -149,13 +149,17 @@ def start_sbatch():
             host=get_host(),
             pid=os.getpid(),
         ),
-        _PID_FILE,
+        _SBATCH_PID_FILE,
     )
     try:
         start()
     finally:
-        # TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
-        pkio.unchecked_remove(_PID_FILE)
+        try:
+            f = pkjson.load_any(pkio.py_path(_SBATCH_PID_FILE))
+            if f.pid == os.getpid() and host == get_host():
+                pkio.unchecked_remove(_SBATCH_PID_FILE_FILE)
+        except Exception:
+            pass
 
 
 class _Dispatcher(PKDict):
@@ -375,8 +379,8 @@ class _Cmd(PKDict):
         self._is_destroyed = True
         self._process.kill()
         self._subclass_destroy()
-        if "_in_file" in self:
-            pkio.unchecked_remove(self.pkdel("_in_file"))
+        if f := self.pkdel("_in_file"):
+            pkio.unchecked_remove(f)
         if self in self.dispatcher.cmds:
             self.dispatcher.cmds.remove(self)
 
@@ -1095,4 +1099,3 @@ class _ReadUntilCloseStream(_Stream):
 
 def _terminate(dispatcher):
     dispatcher.destroy()
-    pkio.unchecked_remove(_PID_FILE)
