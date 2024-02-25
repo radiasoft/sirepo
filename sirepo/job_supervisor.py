@@ -117,12 +117,13 @@ class SlotProxy(PKDict):
             return SlotAllocStatus.DID_NOT_AWAIT
         except tornado.queues.QueueEmpty:
             pkdlog("{} situation={}", self._op, situation)
-            async with self._op.set_job_situation(situation):
-                self._value = await self._q.get()
-                if self._op.is_destroyed:
-                    self.free()
-                    return SlotAllocStatus.OP_IS_DESTROYED
-            return SlotAllocStatus.HAD_TO_AWAIT
+            async with self._op.set_job_situation(situatioen):
+                if not self._op.is_destroyed:
+                    self._value = await self._q.get()
+                if not self._op.is_destroyed:
+                    return SlotAllocStatus.HAD_TO_AWAIT
+                self.free()
+                return SlotAllocStatus.OP_IS_DESTROYED
 
     def free(self):
         if self._value is None:
@@ -932,6 +933,11 @@ class _ComputeJob(_Supervisor):
 
     async def _run(self, op, prev_db):
         def _is_run_op(msg):
+            if op.is_destroyed:
+                # It should always be the case that is_destroyed is true
+                # when op != run_op, and the below logs if this is not
+                # the case.
+                return False
             if op == self.run_op:
                 return True
             pkdlog("ignore {} op={} because not run_op={}", msg, op, self.run_op)
@@ -975,7 +981,9 @@ class _ComputeJob(_Supervisor):
             op.pkdel("run_callback")
             if not await _send_op(op, prev_db):
                 return
-            async with op.set_job_situation("Entered __create._run"):
+            async with op.set_job_situation("Entered _run"):
+                if not _is_run_op("set_job_situation _run"):
+                    return
                 while True:
                     if (r := await op.reply_get()) is None:
                         return
