@@ -120,8 +120,8 @@ class SlotProxy(PKDict):
             async with self._op.set_job_situation(situatioen):
                 if not self._op.is_destroyed:
                     self._value = await self._q.get()
-                if not self._op.is_destroyed:
-                    return SlotAllocStatus.HAD_TO_AWAIT
+                    if not self._op.is_destroyed:
+                        return SlotAllocStatus.HAD_TO_AWAIT
                 self.free()
                 return SlotAllocStatus.OP_IS_DESTROYED
 
