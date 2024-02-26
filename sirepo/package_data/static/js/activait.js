@@ -1091,7 +1091,7 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
     };
 });
 
-SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
+SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -1101,10 +1101,10 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
         <div class="container-fluid">
           <div data-ng-if="colA" class="row">
             <div class="{{ colClass() }}">
-              <div class="lead text-center">{{ ColAName }}</div>
+              <div class="lead text-center">{{ colAName }}</div>
             </div>
             <div class="{{ colClass() }}">
-              <div class="lead text-center">{{ ColBName }}</div>
+              <div class="lead text-center">{{ colBName }}</div>
             </div>
             <div data-ng-if="hasThirdColumn" class="col-md-4">
               <div class="lead text-center">{{ predColName }}</div>
@@ -1140,7 +1140,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
           </div>
         </div>
         `,
-        controller: function($scope, appState) {
+        controller: function($scope, $element) {
             let loading = true;
             $scope.numPages = 0;
             $scope.imagesPerPage = 3;
@@ -1148,16 +1148,14 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
             $scope.colA = null;
             $scope.colB = null;
             $scope.pred = null;
-            $scope.ColAName = 'Image';
-            $scope.ColBName = 'Contour';
+            $scope.colAName = 'Image';
+            $scope.colBName = 'Contour';
             $scope.predColName = 'Predicted';
             $scope.imageIdx = 0;
             $scope.dataFileMissing = false;
             $scope.hasThirdColumn = true;
 
-            const pageIndex = () => {
-                return $scope.imageIdx / $scope.imagesPerPage;
-            };
+            const pageIndex = () => $scope.imageIdx / $scope.imagesPerPage;
 
             $scope.page = () => Math.floor($scope.imageIdx / $scope.imagesPerPage) + 1;
 
@@ -1194,29 +1192,31 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                 let textCol = column == 'A' ? $scope.parameters : $scope.labels;
                 if (isTextCol) {
                     if (imageInRange(firstImageIndex, rowIndex)) {
-                        let value = column == 'A' ? `${$scope.colA[firstImageIndex + rowIndex].replace(/[\[\]]/g, '')}` : $scope.colB[firstImageIndex + rowIndex];
+                        const value = column == 'A' ? `${$scope.colA[firstImageIndex + rowIndex].replace(/[\[\]]/g, '')}` : $scope.colB[firstImageIndex + rowIndex];
                         textCol.splice(rowIndex, 0, value);
                         return;
                     }
                     textCol.splice(rowIndex, 0, '');
                     return;
                 }
+                const colSelector = $($element).find(`.col${column}${$scope.method}${rowIndex + 1}`)[0];
                 if (imageInRange(firstImageIndex, rowIndex)) {
-                    let value = column == 'A' ? $scope.colA[firstImageIndex + rowIndex] : $scope.colB[firstImageIndex + rowIndex];
-                    $(`.col${column}${$scope.method}${rowIndex + 1}`)[0].src = value;
+                    const value = column == 'A' ? $scope.colA[firstImageIndex + rowIndex] : $scope.colB[firstImageIndex + rowIndex];
+                    colSelector.src = value;
                     return;
                 }
-                $(`.col${column}${$scope.method}${rowIndex + 1}`)[0].src = '';
+                colSelector.src = '';
             }
 
             function setThirdColumnImage(firstImageIndex, rowIndex) {
                 $scope.hasThirdColumn = $scope.pred != null;
                 if ($(`.pred${$scope.method}1`).length && $scope.hasThirdColumn) {
+                    const colSelector = $($element).find(`.pred${$scope.method}${rowIndex + 1}`)[0];
                     if (imageInRange(firstImageIndex, rowIndex)) {
-                        $(`.pred${$scope.method}${rowIndex + 1}`)[0].src = $scope.pred[firstImageIndex + rowIndex];
+                        colSelector.src = $scope.pred[firstImageIndex + rowIndex];
                         return;
                     }
-                    $(`.pred${$scope.method}${rowIndex + 1}`)[0].src = '';
+                    colSelector.src = '';
                 }
             }
 
@@ -1251,7 +1251,7 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                         }
                         if ($scope.imageToLabels) {
                             $scope.labels = [];
-                            $scope.ColBName = 'Labels';
+                            $scope.colBName = 'Labels';
                         }
                         if ($scope.colA) {
                             $scope.multiPage = $scope.colA.length > 1;
@@ -1260,11 +1260,11 @@ SIREPO.app.directive('imagePreviewPanel', function(requestSender) {
                         loading = false;
                         if (response.paramToImage) {
                             if (! response.xIsParameters) {
-                                $scope.ColBName = 'Prediction';
+                                $scope.colBName = 'Prediction';
                                 return;
                             }
-                            $scope.ColAName = 'Parameters';
-                            $scope.ColBName = 'Images';
+                            $scope.colAName = 'Parameters';
+                            $scope.colBName = 'Images';
                         }
                     },
                     {
