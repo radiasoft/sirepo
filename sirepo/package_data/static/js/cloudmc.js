@@ -2802,7 +2802,3 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     ];
 
 });
-
-SIREPO.viewLogic('geometry3DReportView', function(cloudmcService, $scope) {
-    $scope.whenSelected = () => {};
-});
