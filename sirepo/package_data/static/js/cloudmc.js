@@ -1683,15 +1683,15 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                       <input
                         id="volume-{{ row.name }}-color" type="color"
                         class="sr-color-button" data-ng-model="row.color"
-                        data-ng-change="broadcastVolumePropertyChanged(row, 'color')" />
+                        data-ng-change="volumePropertyChanged(row, 'color')" />
                     </div>
                     <div class="col-sm-9" style="margin-top: 10px">
-                      <div id="volume-{{ row.name }}-opacity-range" data-j-range-slider="" data-ng-model="row" data-model-name="row.name" data-field-name="'opacity'" data-model="row" data-field="row.opacity"></div>
-                      <!--<input
-                        id="volume-{{ row.name }}-opacity-range" type="range"
-                        min="0" max="1.0" step="0.01" data-ng-model="row.opacity"
-                        data-ng-change="broadcastVolumePropertyChanged(row, 'opacity')" />-->
-                    </div>
+                      <div
+                        id="volume-{{ row.name }}-opacity-range" data-j-range-slider=""
+                        data-ng-model="row" data-model-name="row.name"
+                        data-field-name="'opacity'" data-model="row"
+                        data-field="row.opacity" data-on-change="volumeOpacityChanged(row)">
+                      </div>
                   </div>
                 </div>
               </div>
@@ -1701,6 +1701,16 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
             $scope.allVisible = true;
             let editRowKey = null;
             let prevOffset = 0;
+
+            function broadcastVolumePropertyChanged(volId, prop, val) {
+                appState.saveQuietly('volumes');
+                $rootScope.$broadcast(
+                    'sr-volume-property.changed',
+                    volId,
+                    prop,
+                    val
+                );
+            }
 
             function loadRows() {
                 $scope.rows = [];
@@ -1739,13 +1749,12 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                 editRowKey = null;
             }
 
-            $scope.broadcastVolumePropertyChanged = (row, prop) => {
-                appState.saveQuietly('volumes');
-                $rootScope.$broadcast(
-                    'sr-volume-property.changed',
-                    row.volId,
-                    prop,
-                    row[prop]);
+            $scope.volumeOpacityChanged = (row) => {
+                broadcastVolumePropertyChanged(row.volId, 'opacity', row.opacity.val);
+            };
+        
+            $scope.volumePropertyChanged = (row, prop) => {
+                broadcastVolumePropertyChanged(row.volId, prop, row[prop]);
             };
 
             $scope.editMaterial = (row) => {
@@ -2580,6 +2589,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             fieldName: '<',
             model: '=',
             modelName: '<',
+            onChange: '&',
         },
         template: `
             <div class="{{ sliderClass }}"></div>
@@ -2648,6 +2658,9 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                             }
                             else {
                                 $scope.field.val = ui.value;
+                            }
+                            if ($scope.onChange) {
+                                $scope.onChange();
                             }
                         });
                     },
