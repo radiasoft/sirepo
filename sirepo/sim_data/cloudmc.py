@@ -54,7 +54,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 continue
             if not dm.volumes[v].material.get("standardType"):
                 dm.volumes[v].material.standardType = "None"
-            dm.volumes[v].opacity = _float_to_j_range(dm.volumes[v].opacity, sch.model.geometry3DReport.opacity)
+            dm.volumes[v].opacity = _float_to_j_range(
+                dm.volumes[v].opacity, sch.model.geometry3DReport.opacity
+            )
         if "tally" in dm:
             del dm["tally"]
         for t in dm.settings.tallies:
@@ -64,9 +66,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if y != "None":
                     cls.update_model_defaults(f, y)
         for (m, f) in (
-            ('tallyReport', 'planePos'),
-            ('openmcAnimation', 'opacity'),
-            ('geometry3DReport', 'opacity',)
+            ("tallyReport", "planePos"),
+            ("openmcAnimation", "opacity"),
+            (
+                "geometry3DReport",
+                "opacity",
+            ),
         ):
             dm[m][f] = _float_to_j_range(dm[m][f], sch.model[m][f])
 
