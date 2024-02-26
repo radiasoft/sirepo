@@ -937,6 +937,28 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
                 },
             };
 
+            const checkColumnsDim = () => {
+                if (! $scope.isImageData) {
+                    return;
+                }
+                // srdbg("appState.models.columnInfo", appState.models.columnInfo);
+                const info = appState.models.columnInfo;
+                const shapes = [];
+                info.inputOutput.forEach((value, i) => {
+                    if (value != 'none') {
+                        // srdbg('value', value);
+                        // srdbg('shape', info.shape[i], 'name', info.header[i]);
+                        shapes.push(info.shape[i][0]);
+                    }
+                });
+                // srdbg("shapes: ", shapes);
+                if (! shapes.every(element => element === shapes[0])) {
+                    throw new Error(`Selected columns did not have matching first dimension`)
+                }
+            }
+
+            $scope.$on('columnInfo.changed', checkColumnsDim);
+
             const pageSize = 10;
             const radioGroups = {
                 inputOutput: ['input', 'output'],
@@ -974,6 +996,7 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
 
             function setModel() {
                 $scope.model = appState.models.columnInfo;
+                srdbg($scope.model);
                 const c = appState.models.columnInfo;
                 if (! c.header) {
                     return;
@@ -1022,6 +1045,8 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
                 if ($scope.pages.length === 0) {
                     return [];
                 }
+                // srdbg("appState.models", appState.models);
+                // srdbg("$scope.model", $scope.model);
                 return $scope.pages[$scope.pageIdx];
             };
 
@@ -1062,6 +1087,7 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
                 const b = $('div[data-column-selector] button.btn-primary')[0];
                 const w = $('div[data-column-selector] .sr-input-warning').text('').hide();
                 const msg = 'Select at least 2 columns';
+                srdbg("b", b, "w", w);
                 b.setCustomValidity('');
                 if (! $scope.isAnalysis || ! $scope.model.selected) {
                     return;
@@ -1078,6 +1104,7 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
             appState.whenModelsLoaded($scope, () => {
                 setModel();
                 updateIsAnalysis();
+                checkColumnsDim();
                 $scope.$on('columnInfo.changed', setModel);
                 $scope.$on('cancelChanges', (evt, name) => {
                     if (name == 'columnInfo') {
