@@ -248,6 +248,7 @@ def agent_env(uid, env=None):
             SIREPO_JOB_PING_INTERVAL_SECS=_cfg.ping_interval_secs,
             SIREPO_JOB_PING_TIMEOUT_SECS=_cfg.ping_timeout_secs,
             SIREPO_JOB_VERIFY_TLS=_cfg.verify_tls,
+            SIREPO_PKCLI_JOB_AGENT_LOGGED_IN_USER=uid,
             SIREPO_SIMULATION_DB_LOGGED_IN_USER=uid,
             SIREPO_SRDB_ROOT=lambda: sirepo.srdb.root(),
         )

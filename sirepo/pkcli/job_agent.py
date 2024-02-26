@@ -21,7 +21,6 @@ import signal
 import sirepo.feature_config
 import sirepo.modules
 import sirepo.nersc
-import sirepo.quest
 import sirepo.tornado
 import socket
 import subprocess
@@ -70,6 +69,7 @@ def start():
             pkio.py_path,
             "directory of fastcfgi socket, must be less than 50 chars",
         ),
+        logged_in_user=pkconfig.Required(str, "uid for logging and verification"),
         global_resources_server_token=pkconfig.Required(
             str,
             "credential for global resources server",
@@ -173,8 +173,7 @@ class _Dispatcher(PKDict):
             # Only start sequential ops (not sbatch or parallel)
             if o != job.OP_RUN or _cfg.run_mode == job.RUN_MODE_SEQUENTIAL:
                 self.fastcgi_proxies[o] = _FastCgiProxy(op_name=o, dispatcher=self)
-        with sirepo.quest.start() as qcall:
-            self.uid = qcall.auth.logged_in_user(check_path=False)
+        self.uid = _cfg.logged_in_user
 
     def destroy(self):
         if self.is_destroyed:
