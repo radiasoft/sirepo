@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
 """test cancel of sim
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import pytest
 
 
 def test_srw(fc):
@@ -24,11 +21,11 @@ def test_srw(fc):
             simulationType=d.simulationType,
         ),
     )
-    for _ in range(50):
+    for _ in range(fc.timeout_secs()):
         assert r.state != "error"
         if r.state == "running":
             break
-        time.sleep(0.1)
+        time.sleep(1)
         r = fc.sr_post("runStatus", r.nextRequest)
     else:
         pkunit.pkfail("runStatus: failed to start running: {}", r)
