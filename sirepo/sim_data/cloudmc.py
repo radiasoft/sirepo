@@ -29,7 +29,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         def _float_to_j_range(val, field_info):
-            pkdp("FL2JR {}", val)
             if not isinstance(val, (float, int)):
                 return val
             return PKDict(field_info[2]).pkupdate(val=val)
