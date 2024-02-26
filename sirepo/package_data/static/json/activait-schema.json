@@ -245,6 +245,7 @@
             ],
             "advanced": []
         },
+        "dicePlotAnimation": {},
         "analysisReport": {
             "x": ["X Value", "AnalysisParameter", "0"],
             "y1": ["Y1 Value", "AnalysisParameter", "1"],
@@ -516,6 +517,11 @@
             ],
             "advanced": []
         },
+        "dicePlotAnimation": {
+            "title": "Dice Coefficient",
+            "advanced": [],
+            "basic": []
+        },
         "analysisReport": {
             "title": "Analysis Plot",
             "advanced": [
@@ -768,11 +774,6 @@
         },
         "worstLosses": {
             "title": "Worst Loss Images",
-            "basic": [],
-            "advanced": []
-        },
-        "diceCoefficient": {
-            "title": "Dice Coefficient",
             "basic": [],
             "advanced": []
         },

@@ -1,18 +1,33 @@
-# -*- coding: utf-8 -*-
 """test missing cookies
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import pytest
 
 
-def test_srw_missing_cookies(fc):
+def test_missing_cookies(fc):
     from pykern.pkunit import pkeq, pkre, pkexcept
+    from pykern.pkcollections import PKDict
+    from pykern import pkdebug
     from sirepo import srunit
-    import json
 
+    d = fc.sr_sim_data()
     fc.cookie_jar.clear()
     with pkexcept("missingCookies"):
-        fc.sr_post("/simulation-list", {"simulationType": fc.sr_sim_type})
+        d = fc.sr_post(
+            "listSimulations",
+            PKDict(
+                simulationType=fc.sr_sim_type,
+                search=PKDict({"simulation.name": srunit.SR_SIM_NAME_DEFAULT}),
+            ),
+            want_http=True,
+        )
+    with pkexcept("routeName=login"):
+        # only needed for ui_websocket
+        fc.sr_post(
+            "listSimulations",
+            PKDict(
+                simulationType=fc.sr_sim_type,
+                search=PKDict({"simulation.name": srunit.SR_SIM_NAME_DEFAULT}),
+            ),
+        )

@@ -116,7 +116,6 @@
         "authLdapLogin": "/auth-ldap-login",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
-        "authState2": "/auth-state2",
         "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
         "checkAuthJupyterhub": "/check-auth-jupyterhub",
@@ -150,7 +149,6 @@
         "ownJobs": "/own-jobs",
         "proxyError": "/proxy-error",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
-        "pythonSource2": "/python-source2/<simulation_type>",
         "redirectJupyterHub": "/redirect-jupyterhub",
         "robotsTxt": "/robots.txt",
         "root": "/*<path_info>",
@@ -199,7 +197,6 @@
             "canDownloadInputFile": true,
             "canExportArchive": true,
             "canShowDocumentationUrl": true,
-            "clientCookie": "sirepo_cookie_js",
             "hasJupyterExport": false,
             "hasMadxExport": false,
             "logFileFrameId": -1,
@@ -226,11 +223,6 @@
                 "name": "lv",
                 "value": false,
                 "valType": "b"
-            },
-            "login": {
-                "name": "login",
-                "value": "a",
-                "timeout": 1
             },
             "previousRoute": {
                 "name": "prev",
@@ -480,21 +472,6 @@
                 "folder": ["Folder", "UserFolder", "/"],
                 "documentationUrl": ["Documentation URL", "OptionalString", ""],
                 "notes": ["Notes", "Text", ""]
-            }
-        },
-        "notifications": {
-            "getStarted": {
-                "name": "getStarted",
-                "cookie": "getStarted",
-                "content": "",
-                "active": true
-            },
-            "login": {
-                "name": "login",
-                "cookie": "login",
-                "content": "",
-                "active": false,
-                "delay": 1
             }
         },
         "staticFiles": {
