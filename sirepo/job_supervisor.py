@@ -48,7 +48,6 @@ _HISTORY_FIELDS = frozenset(
         "isParallel",
         "isPremiumUser",
         "jobRunMode",
-        "jobStatusMessage",
         "lastUpdateTime",
         "status",
     )
@@ -117,13 +116,12 @@ class SlotProxy(PKDict):
             return SlotAllocStatus.DID_NOT_AWAIT
         except tornado.queues.QueueEmpty:
             pkdlog("{} situation={}", self._op, situation)
-            async with self._op.set_job_situation(situatioen):
-                if not self._op.is_destroyed:
-                    self._value = await self._q.get()
-                    if not self._op.is_destroyed:
-                        return SlotAllocStatus.HAD_TO_AWAIT
-                self.free()
-                return SlotAllocStatus.OP_IS_DESTROYED
+            with self._op.set_job_situation(situatioen):
+                self._value = await self._q.get()
+                if self._op.is_destroyed:
+                    self.free()
+                    return SlotAllocStatus.OP_IS_DESTROYED
+                return SlotAllocStatus.HAD_TO_AWAIT
 
     def free(self):
         if self._value is None:
@@ -393,7 +391,6 @@ class _Supervisor(PKDict):
                         startTime=i.db.computeJobStart,
                         lastUpdateTime=i.db.lastUpdateTime,
                         elapsedTime=i.elapsed_time(),
-                        statusMessage=i.db.get("jobStatusMessage", ""),
                         computeModel=sirepo.job.split_jid(
                             i.db.computeJid
                         ).compute_model,
@@ -472,9 +469,10 @@ class _ComputeJob(_Supervisor):
 
     def __init__(self, req, **kwargs):
         super().__init__(
+            _situation=None,
             ops=[],
-            run_op=None,
             run_dir_slot_q=SlotQueue(),
+            run_op=None,
             **kwargs,
         )
         # At start we don't know anything about the run_dir so assume ready
@@ -616,21 +614,21 @@ class _ComputeJob(_Supervisor):
             )
         pkdlog("done")
 
-    async def set_situation(self, op, situation, exception=None):
+    def set_situation(self, op, situation, exception=None):
         if op.op_name != job.OP_RUN:
             return
-        s = self.db.jobStatusMessage
+        s = self._situation
         p = "Exception: "
         if situation is not None:
             # POSIT: no other situation begins with exception
             assert not s or not s.startswith(
                 p
-            ), f'Trying to overwrite existing jobStatusMessage="{s}" with situation="{situation}"'
+            ), f'Trying to overwrite existing situation="{s}" with situation="{situation}"'
         if exception is not None:
             if not str(exception):
                 exception = repr(exception)
             situation = f"{p}{exception}, while {s}"
-        await self.__db_update(jobStatusMessage=situation)
+        self._situation = situation
 
     @classmethod
     def __db_file(cls, computeJid):
@@ -661,7 +659,6 @@ class _ComputeJob(_Supervisor):
             history=cls.__db_init_history(prev_db),
             isParallel=data.isParallel,
             isPremiumUser=data.get("isPremiumUser"),
-            jobStatusMessage=None,
             lastUpdateTime=0,
             simName=None,
             simulationId=data.simulationId,
@@ -701,7 +698,7 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     async def __db_load(cls, compute_jid):
-        v = None
+        default = None
         p = cls.__db_file(compute_jid)
         async with aiofiles.open(p, "rb") as f:
             d = await f.read()
@@ -710,12 +707,11 @@ class _ComputeJob(_Supervisor):
             "alert",
             "canceledAfterSecs",
             "isPremiumUser",
-            "jobStatusMessage",
             "internalError",
         ]:
-            d.setdefault(k, v)
+            d.setdefault(k, default)
             for h in d.history:
-                h.setdefault(k, v)
+                h.setdefault(k, default)
         d.pksetdefault(
             computeModel=lambda: sirepo.job.split_jid(compute_jid).compute_model,
             # No need for async, because upgrading old files
@@ -723,9 +719,9 @@ class _ComputeJob(_Supervisor):
         )
         if "cancelledAfterSecs" in d:
             # update spelling
-            d.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=v)
+            d.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=default)
             for h in d.history:
-                h.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=v)
+                h.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=default)
         return d
 
     async def __db_restore(self, db):
@@ -981,9 +977,7 @@ class _ComputeJob(_Supervisor):
             op.pkdel("run_callback")
             if not await _send_op(op, prev_db):
                 return
-            async with op.set_job_situation("Entered _run"):
-                if not _is_run_op("set_job_situation _run"):
-                    return
+            with op.set_job_situation("Entered _run"):
                 while True:
                     if (r := await op.reply_get()) is None:
                         return
@@ -1071,7 +1065,6 @@ class _ComputeJob(_Supervisor):
             if self._is_running_pending():
                 c = req.content
                 r.update(
-                    jobStatusMessage=self.db.jobStatusMessage,
                     nextRequestSeconds=self.db.nextRequestSeconds,
                     nextRequest=PKDict(
                         computeJobHash=self.db.computeJobHash,
@@ -1201,15 +1194,17 @@ class _Op(PKDict):
             )
         self.driver.send(self)
 
-    @contextlib.asynccontextmanager
-    async def set_job_situation(self, situation):
-        await self._supervisor.set_situation(self, situation)
+    @contextlib.contextmanager
+    def set_job_situation(self, situation):
+        self._supervisor.set_situation(self, situation)
         try:
             yield
-            await self._supervisor.set_situation(self, None)
+            if self.is_destroyed:
+                return
+            self._supervisor.set_situation(self, None)
         except Exception as e:
             pkdlog("{} situation={} stack={}", self, situation, pkdexc())
-            await self._supervisor.set_situation(self, None, exception=e)
+            self._supervisor.set_situation(self, None, exception=e)
             raise
 
     def _get_max_run_secs(self):

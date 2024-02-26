@@ -165,7 +165,7 @@ def start_sbatch():
 class _Dispatcher(PKDict):
     def __init__(self):
         super().__init__(
-            _is_destroyed=False,
+            is_destroyed=False,
             cmds=[],
             fastcgi_proxies=PKDict(),
         )
@@ -177,9 +177,9 @@ class _Dispatcher(PKDict):
             self.uid = qcall.auth.logged_in_user(check_path=False)
 
     def destroy(self):
-        if self._is_destroyed:
+        if self.is_destroyed:
             return
-        self._is_destroyed = True
+        self.is_destroyed = True
         try:
             x = self.cmds
             self.cmds = []
@@ -366,7 +366,7 @@ class _Dispatcher(PKDict):
 
 class _Cmd(PKDict):
     def __init__(self, send_reply=True, **kwargs):
-        super().__init__(send_reply=send_reply, _is_destroyed=False, **kwargs)
+        super().__init__(send_reply=send_reply, is_destroyed=False, **kwargs)
         self._maybe_start_compute_run()
         self._in_file = self._create_in_file()
         self._process = _Process(self)
@@ -374,9 +374,9 @@ class _Cmd(PKDict):
         self.jid = self.msg.get("computeJid", None)
 
     def destroy(self):
-        if self._is_destroyed:
+        if self.is_destroyed:
             return
-        self._is_destroyed = True
+        self.is_destroyed = True
         self._process.kill()
         self._subclass_destroy()
         if f := self.pkdel("_in_file"):
@@ -413,7 +413,7 @@ class _Cmd(PKDict):
         return "source $HOME/.bashrc"
 
     async def on_stderr_read(self, text):
-        if self._is_destroyed:
+        if self.is_destroyed:
             return
         try:
             await self.dispatcher.send(
@@ -427,7 +427,7 @@ class _Cmd(PKDict):
             pkdlog("{} text={} error={} stack={}", self, text, exc, pkdexc())
 
     async def on_stdout_read(self, text):
-        if self._is_destroyed or not self.send_reply:
+        if self.is_destroyed or not self.send_reply:
             return
         try:
             await self.dispatcher.job_cmd_reply(
@@ -451,7 +451,7 @@ class _Cmd(PKDict):
 
     async def start(self):
         await self._maybe_reply_running()
-        if self._is_destroyed:
+        if self.is_destroyed:
             return
         self._process.start()
         tornado.ioloop.IOLoop.current().add_callback(self._await_exit)
@@ -462,7 +462,7 @@ class _Cmd(PKDict):
             e = self._process.stderr.text.decode("utf-8", errors="ignore")
             if e or self._process.returncode != 0:
                 pkdlog("{} exit={} stderr={}", self, self._process.returncode, e)
-            if self._is_destroyed:
+            if self.is_destroyed:
                 return
             if self._process.returncode != 0:
                 x = f"process exit={self._process.returncode}"
@@ -472,7 +472,7 @@ class _Cmd(PKDict):
                     x,
                 )
         except Exception as exc:
-            if self._is_destroyed:
+            if self.is_destroyed:
                 return
             pkdlog(
                 "{} error={} returncode={} stack={}",
@@ -557,7 +557,7 @@ class _FastCgiProcess(_Cmd):
         )
 
     async def on_stdout_read(self, text):
-        if self._is_destroyed:
+        if self.is_destroyed:
             return
         await self.on_stderr_read(
             pkcompat.to_bytes(f"unexpected output from fastcgi msg={self.msg} stdout=")
@@ -602,7 +602,7 @@ class _FastCgiProcess(_Cmd):
             )
             while True:
                 self.msg = m = await self._msg_q.get()
-                if self._is_destroyed:
+                if self.is_destroyed:
                     return
                 # Avoid issues with exceptions. We don't use q.join()
                 # so not an issue to call before work is done.
@@ -610,16 +610,16 @@ class _FastCgiProcess(_Cmd):
                 # Updates run_dir, _start_time, _is_compute on self
                 self._maybe_start_compute_run()
                 await self._maybe_reply_running()
-                if self._is_destroyed:
+                if self.is_destroyed:
                     return
                 await s.write(pkjson.dump_bytes(m) + b"\n")
-                if self._is_destroyed:
+                if self.is_destroyed:
                     return
                 r = await s.read_until(b"\n", job.cfg().max_message_bytes)
                 if r is not None:
                     # This will reply always, even if the message is corrupt (error)
                     await self.dispatcher.job_cmd_reply(m, self.op_name, r)
-                if self._is_destroyed:
+                if self.is_destroyed:
                     return
                 self.msg = m = None
                 if r[-1] != _NEWLINE:
@@ -628,7 +628,7 @@ class _FastCgiProcess(_Cmd):
                     )
         except Exception as e:
             pkdlog("msg={} error={} stack={}", m, e, pkdexc())
-            if self._is_destroyed:
+            if self.is_destroyed:
                 return
             if m:
                 self.msg_q.put_nowait(m)
@@ -654,7 +654,7 @@ class _FastCgiProcess(_Cmd):
 
     async def _handle_exit(self):
         """Destroy and possibly create a new instance"""
-        if self._is_destroyed:
+        if self.is_destroyed:
             return
         # destroy _fastcgi state first (synchronously), then maybe
         # send errors to avoid asynchronous modification
@@ -693,20 +693,24 @@ class _FastCgiProxy(PKDict):
         self._process = None
 
     def send_cmd(self, msg):
-        if self._process is not None:
-            self._process = _FastCgiProcess.create(
+        if self._process is None:
+            self._process = _FastCgiProcess(
                 op_name=self.op_name, dispatcher=self.dispatcher
             )
             asyncio.create_task(self._start())
         # Synchronous so messages are always queued in the proper order
         self._process.send_cmd(msg)
 
+    def _is_process_destroyed(self):
+        return not self._process or self._process.is_destroyed
+
     async def _start(self):
+        if self._is_process_destroyed():
+            return
         if self._starts and self._starts[-1] + _FASTCGI_RESTART_SECS > int(time.time()):
-            # Restarts should be fine. If not, at least we wait a bit before recreating.
+            # Restarts should be fine, and we wait a bit before recreating to reduce thrashing
             await asyncio.sleep(_FASTCGI_RESTART_SECS)
-            if self._process.is_destroyed:
-                # This should not happen, but correct way to code this
+            if self._is_process_destroyed():
                 return
         # TODO(robnagler) limit restarts by killing agent(?)
         self._starts.append(int(time.time()))
@@ -754,7 +758,7 @@ class _SbatchPrepareSimulationCmd(_SbatchCmd):
 
     async def _await_exit(self):
         await self._process.exit_ready()
-        if self._is_destroyed:
+        if self.is_destroyed:
             return
         s = job.ERROR
         o = None
@@ -791,7 +795,7 @@ class _SbatchRun(_SbatchCmd):
 
     async def _await_start_ready(self):
         await self._start_ready.wait()
-        if self._is_destroyed:
+        if self.is_destroyed:
             return
         self._in_file = self._create_in_file()
         pkdlog(
