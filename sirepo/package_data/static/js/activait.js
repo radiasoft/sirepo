@@ -937,6 +937,8 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
                 },
             };
 
+
+            // TODO (gurhar1133): might need to do something on server side too
             const checkColumnsDim = () => {
                 if (! $scope.isImageData) {
                     return;
