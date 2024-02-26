@@ -2633,11 +2633,10 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     classes: {
                         'ui-slider': 'ui-widget-header',
                         'ui-slider-range': 'sr-slider',
-                        //'.ui-widget-content': 'sr-slider',
                     },
                     min: range.min,
                     max: range.max,
-                    range: isMulti,
+                    range: isMulti ? true : 'min',
                     slide: (e, ui) => {
                         // prevent handles from having the same value
                         if (isMulti && ui.values[0] === ui.values[1]) {
@@ -2662,14 +2661,14 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 return sel;
             }
 
-            function updateSlider() {
-                slider = buildSlider();
-            }
-
             function isValid(range) {
                 const v = [range.min, range.max, range.step].every(x => x != null) &&
                     range.min !== range.max;
                 return v;
+            }
+            
+            function updateSlider() {
+                slider = buildSlider();
             }
 
             $scope.display = (range) => {
@@ -2703,6 +2702,8 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     slider = null;
                 }
             });
+        },
+        link: function link(scope, element) {
         },
     };
 });
