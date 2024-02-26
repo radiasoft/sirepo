@@ -32,9 +32,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             pkdp("FL2JR {}", val)
             if not isinstance(val, (float, int)):
                 return val
-            m = PKDict(field_info[2])
-            m.val = val
-            return m
+            return PKDict(field_info[2]).pkupdate(val=val)
 
         sch = cls.schema()
         dm = data.models
@@ -56,7 +54,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 continue
             if not dm.volumes[v].material.get("standardType"):
                 dm.volumes[v].material.standardType = "None"
-            pkdp("CHK OP {}", v)
             dm.volumes[v].opacity = _float_to_j_range(dm.volumes[v].opacity, sch.model.geometry3DReport.opacity)
         if "tally" in dm:
             del dm["tally"]
