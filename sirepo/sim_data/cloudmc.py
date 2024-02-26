@@ -29,6 +29,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         def _float_to_j_range(val, field_info):
+            pkdp("FL 2 JR {}", val)
             if not isinstance(val, (float, int)):
                 return val
             m = field_info[2]
@@ -70,6 +71,23 @@ class SimData(sirepo.sim_data.SimDataBase):
             ('geometry3DReport', 'opacity',)
         ):
             dm[m][f] = _float_to_j_range(dm[m][f], sch.model[m][f])
+        for v in dm.volumes:
+            pkdp("CHK OP {}", v)
+            dm.volumes[v].opacity = _float_to_j_range(
+                dm.volumes[v].opacity,
+                [
+                    0,
+                    0,
+                    PKDict(
+                        min=0.0,
+                        max=1.0,
+                        numSteps=100,
+                        step=0.01,
+                        val=1.0,
+                        space="linear"
+                    )
+                ]
+            )
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):

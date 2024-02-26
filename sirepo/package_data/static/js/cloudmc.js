@@ -2647,6 +2647,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                                 $scope.field.val[ui.handleIndex] = ui.value;
                             }
                             else {
+                                srdbg($scope.fieldName, 'SL', ui.value);
                                 $scope.field.val = ui.value;
                             }
                         });
@@ -2702,8 +2703,6 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     slider = null;
                 }
             });
-        },
-        link: function link(scope, element) {
         },
     };
 });
