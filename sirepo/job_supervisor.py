@@ -116,7 +116,7 @@ class SlotProxy(PKDict):
             return SlotAllocStatus.DID_NOT_AWAIT
         except tornado.queues.QueueEmpty:
             pkdlog("{} situation={}", self._op, situation)
-            with self._op.set_job_situation(situatioen):
+            with self._op.set_job_situation(situation):
                 self._value = await self._q.get()
                 if self._op.is_destroyed:
                     self.free()

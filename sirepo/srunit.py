@@ -549,7 +549,7 @@ class _TestClient:
             t = self._threads[n]
             t.join()
             del self._threads[n]
-            pkunit.pkok(t.sr_ok, f"thread={n} got an exception")
+            pkunit.pkok(t.sr_ok, "thread={} got an exception={}", n, t.sr_exception)
             res[n] = t.sr_res
         return res
 
@@ -811,12 +811,19 @@ class _Thread(threading.Thread):
     def __init__(self, op, kwargs):
         super().__init__()
         self.sr_ok = False
+        self.sr_exception = None
         self._op = op
         self._kwargs = kwargs
 
     def run(self):
-        self.sr_res = self._op(**self._kwargs)
-        self.sr_ok = True
+        from pykern.pkdebug import pkdlog, pkdexc
+
+        try:
+            self.sr_res = self._op(**self._kwargs)
+            self.sr_ok = True
+        except Exception as e:
+            pkdlog("exception={} stack={}", e, pkdexc())
+            self.sr_exception = e
 
 
 class _WebSocket:

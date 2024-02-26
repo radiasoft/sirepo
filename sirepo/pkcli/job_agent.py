@@ -322,6 +322,8 @@ class _Dispatcher(PKDict):
             if c.op_id in msg.opIdsToCancel:
                 pkdlog("cmd={}", c)
                 c.destroy()
+        remove a opIdsToCancel and have a single
+        then call cancel to the proxy
         return None
 
     async def _op_io(self, msg):
@@ -493,6 +495,7 @@ class _Cmd(PKDict):
 
     async def _maybe_reply_running(self):
         if not self._is_compute or not self._start_time:
+            pkdp(self.msg)
             return
         await self.dispatcher.send(
             self.dispatcher.format_op(
@@ -577,6 +580,7 @@ class _FastCgiProcess(_Cmd):
         return None
 
     def _accept(self, connection, *args, **kwargs):
+        pkdp("accept")
         tornado.ioloop.IOLoop.current().add_callback(self._read, connection)
 
     async def _await_exit(self):
@@ -608,6 +612,7 @@ class _FastCgiProcess(_Cmd):
                 self._msg_q.task_done()
                 # Updates run_dir, _start_time, _is_compute on self
                 self._maybe_start_compute_run()
+                pkdp(self.msg)
                 await self._maybe_reply_running()
                 if self.is_destroyed:
                     return
@@ -690,6 +695,10 @@ class _FastCgiProxy(PKDict):
     def destroy_process(self, process):
         # command destroys itself
         self._process = None
+
+    def send_cancel(self, msg):
+        kill the subprocess. that could be replied to
+        _do_compute can return the pid of the subprocess
 
     def send_cmd(self, msg):
         if self._process is None:
