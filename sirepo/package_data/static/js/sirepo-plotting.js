@@ -3339,10 +3339,17 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const x0 = axes.x.scale.invert(point[0] - 1);
                 const y0 = axes.y.scale.invert(point[1] - 1);
                 const n = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL ? 0 : 1;
-                const x = Math.round((heatmap[0].length - n) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
-                const y = Math.round((heatmap.length - n) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
+                const i = Math.round((heatmap[0].length - n) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
+                const j = Math.round((heatmap.length - n) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
+                const xr = xRange[0] + i * dx;
+                const yr = yRange[0] + j * dy;
+                const sz = plotting.pixelSize(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values);
+                const ddx = fullPixel ? sz.x / 2 : 0;
+                const ddy = fullPixel ? -sz.y / 2 : 0;
+                const px = Math.round(axes.x.scale(xr) + ddx);
+                const py = Math.round(axes.y.scale(yr) + ddy) - 10;
                 try {
-                    pointer.pointTo(heatmap[heatmap.length - 1 - y][x]);
+                    pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                     updateCrosshairs(select(overlaySelector).selectAll(`line.${crosshairClass}`), px, py, Math.round(axes.x.scale(xRange[1])), Math.round(axes.y.scale(yRange[0])));
                 }
                 catch (err) {
