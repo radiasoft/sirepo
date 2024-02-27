@@ -3341,6 +3341,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const n = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL ? 0 : 1;
                 const i = Math.round((heatmap[0].length - n) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
                 const j = Math.round((heatmap.length - n) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
+                const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - n);
+                const dy = Math.abs((yRange[1] - yRange[0])) / (heatmap.length - n);
                 const xr = xRange[0] + i * dx;
                 const yr = yRange[0] + j * dy;
                 const sz = plotting.pixelSize(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values);
