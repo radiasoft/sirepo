@@ -534,7 +534,7 @@ class _ComputeJob(_Supervisor):
         if op.is_destroyed:
             return
         if self.run_op == op:
-            self.__db_update(
+            await self.__db_update(
                 canceledAfterSecs=op.max_run_secs,
                 status=job.CANCELED,
                 queuedState=None,
