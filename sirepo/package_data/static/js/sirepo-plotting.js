@@ -890,6 +890,19 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             });
         },
 
+        pixelSize: function(xAxisScale, yAxisScale, width, height, xValues, yValues) {
+            const xZoomDomain = xAxisScale.domain();
+            const xDomain = [xValues[0], xValues[xValues.length - 1]];
+            const yZoomDomain = yAxisScale.domain();
+            const yDomain = [yValues[0], yValues[yValues.length - 1]];
+            const zoomWidth = xZoomDomain[1] - xZoomDomain[0];
+            const zoomHeight = yZoomDomain[1] - yZoomDomain[0];
+            return {
+                x: Math.round(((xDomain[1] - xDomain[0]) / zoomWidth * width / xValues.length)),
+                y: Math.round(((yDomain[1] - yDomain[0]) / zoomHeight * height / yValues.length)),
+            };
+        },
+        
         // create a 2d shape for d3 to plot - note that x, y are required because d3 looks for those
         // attributes
         plotShape: function(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape, points) {
@@ -3333,12 +3346,13 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
+                const fullPixel = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL;
                 const point = mouseMovePoint;
                 const xRange = getRange(axes.x.values);
                 const yRange = getRange(axes.y.values);
                 const x0 = axes.x.scale.invert(point[0] - 1);
                 const y0 = axes.y.scale.invert(point[1] - 1);
-                const n = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL ? 0 : 1;
+                const n = fullPixel  ? 0 : 1;
                 const i = Math.round((heatmap[0].length - n) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
                 const j = Math.round((heatmap.length - n) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
                 const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - n);
