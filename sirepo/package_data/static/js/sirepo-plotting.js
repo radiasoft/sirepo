@@ -3463,8 +3463,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const yRange = getRange(axes.y.values);
                 const x = axes.x.scale.invert(point[0] - 1);
                 const y = axes.y.scale.invert(point[1] - 1);
-                const ypp = axes.y.scale.invert(point[1] - 1) - axes.y.scale.invert(point[1] + 9);
-                srdbg('ypp', ypp);
                 const n = fullPixel ? 0 : 1;
                 const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - n);
                 const dy = Math.abs((yRange[1] - yRange[0])) / (heatmap.length - n);
@@ -3473,11 +3471,11 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const xr = xRange[0] + i * dx;
                 const yr = yRange[0] + j * dy;
                 const sz = plotting.pixelSize(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values);
-                const px = Math.round(axes.x.scale(xr) + sz.x / 2);
-                const py = Math.round(axes.y.scale(yr) - sz.y / 2) - 10;
-                srdbg('xr0', xRange[0], 'yr0', yRange[0], 'xr', xr, 'yr', yr, 'px', px, 'py', py);
                 const ddx = fullPixel ? sz.x / 2 : 0;
                 const ddy = fullPixel ? -sz.y / 2 : 0;
+                const px = Math.round(axes.x.scale(xr) + ddx);
+                const py = Math.round(axes.y.scale(yr) + ddy) - 10;
+                srdbg('xr0', xRange[0], 'yr0', yRange[0], 'xr', xr, 'yr', yr, 'px', px, 'py', py);
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                     updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), px, py, sz.x, sz.y);
