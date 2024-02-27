@@ -3485,7 +3485,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const didy = ((yDomain[1] - yDomain[0]) / zoomHeight * $scope.canvasSize.height + sz.y) / heatmap.length - 1;
                 const dipx = Math.round(dix0 + i * didx);
                 const dipy = Math.round(diy0 + j * didy);
-                srdbg('sz', sz, 'cnvsz', $scope.canvasSize.width, $scope.canvasSize.height, 'zsz', zoomWidth, zoomHeight);
+                srdbg('sz', sz, 'cnvsz', $scope.canvasSize.width, $scope.canvasSize.height, 'zsz', zoomWidth, zoomHeight, 'full sz', sz.x * heatmap[0].length, sz.y * heatmap.length);
                 srdbg('pxpy', px, py, 'dipxpy', dipx, dipy, 'diff', );
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);

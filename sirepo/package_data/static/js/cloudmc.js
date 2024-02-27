@@ -922,7 +922,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
                 const outlines = [];
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
-                srdbg('PP', pos);
                 for (const volId of cloudmcService.getNonGraveyardVolumes()) {
                     const v = cloudmcService.getVolumeById(volId);
                     if (! v.isVisibleWithTallies) {
@@ -1037,7 +1036,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             function updateSliceAxis() {
                 function adjustToRange(val, range) {
-                    srdbg('ADJ', val, range);
                     if (val < range.min) {
                         return range.min;
                     }
