@@ -71,6 +71,7 @@ class DriverBase(PKDict):
             _agent_id=job.unique_key(),
             _agent_life_change_lock=tornado.locks.Lock(),
             _idle_timer=None,
+            _idle_sentinel=False,
             _prepared_sends=PKDict(),
             _websocket=None,
             _websocket_ready=sirepo.tornado.Event(),
@@ -97,9 +98,12 @@ class DriverBase(PKDict):
         """Remove holds on all resources and remove self from data structures"""
         try:
             async with self._agent_life_change_lock:
-                await self.kill()
+                if _idle_timer:
+                    tornado.ioloop.IOLoop.current().remove_timeout(self.idle_timer)
+                    self._idle_timer = None
                 self._websocket_ready_timeout_cancel()
                 self._websocket_ready.clear()
+                await self.kill()
                 w = self._websocket
                 self._websocket = None
                 if w:
@@ -121,7 +125,7 @@ class DriverBase(PKDict):
 
     def pkdebug_str(self):
         return pkdformat(
-            "{}(a={:.4} k={} u={:.4} {})",
+            "{}(a={:.4} u={:.4} {:.3} {})",
             self.__class__.__name__,
             self._agent_id,
             self.kind,
@@ -142,6 +146,7 @@ class DriverBase(PKDict):
         # If the agent is not ready after awaiting on slots, we need
         # to recheck the agent, because agent can die (asynchronously) at any point
         # while waiting for slots.
+        self._idle_sentinel = False
         if not await self._agent_ready(op):
             return False
         r = await self._slots_ready(op)
@@ -160,6 +165,7 @@ class DriverBase(PKDict):
         """Receive message from agent"""
         a = cls.__instances.get(msg.content.agentId)
         if a:
+            a._idle_sentinel = False
             a._agent_receive(msg)
             return
         pkdlog("unknown agent, sending kill; msg={}", msg)
@@ -170,6 +176,7 @@ class DriverBase(PKDict):
 
     def send(self, op):
         pkdlog("{} {} runDir={}", self, op, op.msg.get("runDir"))
+        self._idle_sentinel = False
         self._websocket.write_message(pkjson.dump_bytes(op.msg))
 
     @classmethod
@@ -180,7 +187,7 @@ class DriverBase(PKDict):
                 await d.kill()
             except Exception as e:
                 # If one kill fails still try to kill the rest
-                pkdlog("error={} stack={}", e, pkdexc())
+                pkdlog("{} error={} stack={}", d, e, pkdexc())
 
     def websocket_on_close(self):
         pkdlog("{}", self)
@@ -196,13 +203,13 @@ class DriverBase(PKDict):
     async def _websocket_ready_timeout_handler(self):
         try:
             if not self._websocket_ready_timeout or self._websocket_ready.is_set():
-                pkdlog("ignore timeout {}, is canceled or ready", self)
+                pkdlog("{} ignore timeout, is canceled or ready", self)
                 return
             self._websocket_ready_timeout = None
             pkdlog("{} timeout={}", self, self.cfg.agent_starting_secs)
             self._start_free_resources(caller="_websocket_ready_timeout_handler")
         except Exception as e:
-            pkdlog("exception={} stack={}", e, pkdexc())
+            pkdlog("{} exception={} stack={}", self, e, pkdexc())
 
     def _agent_cmd_stdin_env(self, op, **kwargs):
         return job.agent_cmd_stdin_env(
@@ -244,21 +251,18 @@ class DriverBase(PKDict):
             uid=self.uid,
         )
 
-    def _agent_is_idle(self):
-        return not self._prepared_sends and not self._websocket_ready_timeout
-
     async def _agent_ready(self, op):
         if self._websocket_ready.is_set():
             return True
         await self._agent_start(op)
         if op.is_destroyed:
-            pkdlog("after agent_start op={} destroyed", op)
+            pkdlog("{} after agent_start op={} destroyed", self, op)
             return False
         pkdlog("{} {} await _websocket_ready", self, op)
         await self._websocket_ready.wait()
         pkdlog("{} {} websocket alive", self, op)
         if op.is_destroyed:
-            pkdlog("after websocket_ready op={} destroyed", op)
+            pkdlog("{} after websocket_ready op={} destroyed", self, op)
             return False
         return True
 
@@ -346,7 +350,7 @@ class DriverBase(PKDict):
         if not x:
             return t
         op._agent_start_delay = int(x.group(1))
-        pkdlog("op={} agent_start_delay={}", op, self._agent_start_delay)
+        pkdlog("{} op={} agent_start_delay={}", self, op, self._agent_start_delay)
         return t + op._agent_start_delay
 
     def __str__(self):
@@ -374,7 +378,7 @@ class DriverBase(PKDict):
             """Possibly call `alloc` and check `res`"""
             nonlocal res
             if res == job_supervisor.SlotAllocStatus.OP_IS_DESTROYED:
-                pkdlog("op={} is destroyed", op)
+                pkdlog("{} op={} is destroyed", self, op)
                 return res
             r = await alloc(msg)
             if r != job_supervisor.SlotAllocStatus.DID_NOT_AWAIT:
@@ -409,14 +413,22 @@ class DriverBase(PKDict):
 
     def _start_free_resources(self, caller):
         pkdlog("{} caller={}", self, caller)
+        self._idle_sentinel = False
         tornado.ioloop.IOLoop.current().add_callback(self.free_resources, caller=caller)
 
     def _start_idle_timeout(self):
+        def _is_idle(self):
+            return not (
+                self._prepared_sends
+                or self._websocket_ready_timeout
+                or self._idle_sentinel
+            )
+
         async def _kill_if_idle():
             try:
                 self._idle_timer = None
-                if self._agent_is_idle():
-                    pkdlog("{}", self)
+                if _is_idle():
+                    pkdlog("{} is idle", self)
                     self._start_free_resources(caller="_kill_if_idle")
                 else:
                     self._start_idle_timeout()
@@ -424,6 +436,7 @@ class DriverBase(PKDict):
                 pkdlog("{} error={} stack={}", self, e, pkdexc())
 
         if not self._idle_timer:
+            self._idle_sentinel = True
             self._idle_timer = tornado.ioloop.IOLoop.current().call_later(
                 _cfg.idle_check_secs,
                 _kill_if_idle,
