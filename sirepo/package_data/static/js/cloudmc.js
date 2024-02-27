@@ -825,7 +825,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 const [z, x, y] = tallyReportAxes();
                 const [n, m, l] = tallyReportAxisIndices();
                 const ranges = tallyService.getMeshRanges();
-                const pos = appState.models.tallyReport.planePos.val;
+                const pos = appState.models.tallyReport.planePos;
 
                 // for now set the aspect ratio to something reasonable even if it distorts the shape
                 const arRange = [0.50, 1.25];
@@ -841,7 +841,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     global_max: tallyService.maxField,
                     global_min: tallyService.getMinWithThreshold(),
                     threshold: appState.models.openmcAnimation.threshold,
-                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos.val, 6)}m`,
+                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
@@ -1054,8 +1054,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     return ;
                 }
                 const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
-                appState.models.tallyReport.planePos.val = adjustToRange(
-                    appState.models.tallyReport.planePos.val,
+                appState.models.tallyReport.planePos = adjustToRange(
+                    appState.models.tallyReport.planePos,
                     r
                 );
                 updateSlice();
