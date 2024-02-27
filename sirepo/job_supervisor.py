@@ -528,7 +528,7 @@ class _ComputeJob(_Supervisor):
         if not d:
             return "_ComputeJob()"
         return pkdformat(
-            "_ComputeJob({} u={} {} {})",
+            "_ComputeJob({} u={:.4} {} {})",
             d.get("computeJid"),
             d.get("uid"),
             d.get("status"),
@@ -1136,13 +1136,13 @@ class _Op(PKDict):
         def _internal_error():
             if not self.get("internal_error"):
                 return ""
-            return ", internal_error={self.internal_error}"
+            return " error={self.internal_error}"
 
         return pkdformat(
-            "_Op({}{}, {:.4}{})",
-            "DESTROYED, " if self.get("is_destroyed") else "",
-            self.get("op_name"),
+            "_Op({}o={:.4} {}{})",
+            "DESTROYED " if self.get("is_destroyed") else "",
             self.get("op_id"),
+            self.get("op_name"),
             _internal_error(),
         )
 
