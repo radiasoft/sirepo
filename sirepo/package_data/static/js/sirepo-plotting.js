@@ -3464,8 +3464,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const yRange = getRange(axes.y.values);
                 const x = axes.x.scale.invert(point[0] - 1);
                 const y = axes.y.scale.invert(point[1] - 1);
-                const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - 1);
-                const dy = Math.abs((yRange[1] - yRange[0])) / (heatmap.length - 1);
+                const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - 0);
+                const dy = Math.abs((yRange[1] - yRange[0])) / (heatmap.length - 0);
                 const i = Math.round((x - xRange[0]) / dx);
                 const j = Math.round((y - yRange[0]) / dy);
                 const xr = xRange[0] + i * dx;
