@@ -3415,9 +3415,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     $scope.margin.right = 20;
                 }
 
-                if (overlayData) {
-                    drawOverlay();
-                }
+                drawOverlay();
             }
 
             function resetZoom() {
