@@ -3316,6 +3316,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             function drawOverlay() {
                 const ns = 'http://www.w3.org/2000/svg';
+                const overlay = select(overlaySelector);
                 if (crosshairs) {
                     const c = overlay
                         .selectAll(`line.${crosshairClass}`)
