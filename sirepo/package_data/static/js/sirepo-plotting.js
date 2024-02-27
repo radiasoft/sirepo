@@ -3431,6 +3431,26 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return false;
             }
 
+            // TEST
+            function updateCrosshairs(selection, x, y, xMax, yMax) {
+                function isX(data) {
+                    return data.dim === 'x';
+                }
+                if (! crosshairs) {
+                    return;
+                }
+                if (! mouseMovePoint || x === undefined) {
+                    selection.attr('stroke', 'none');
+                    return;
+                }
+                selection
+                    .attr('stroke', (d) => d.color)
+                    .attr('x1', (d) => isX(d) ? 0 : x)
+                    .attr('x2', (d) => isX(d) ? xMax : x)
+                    .attr('y1', (d) => isX(d) ? y : 0)
+                    .attr('y2', (d) => isX(d) ? y : yMax);
+            }
+
             function updateOverlay(selection) {
                 selection
                     .attr('class', overlayDataClass)
