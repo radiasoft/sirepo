@@ -3271,6 +3271,21 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             let overlayData = null;
 
+             //TMP
+             const crosshairs =  [
+                {
+                    dim: 'x',
+                    color: 'white',
+                    strokeWidth: '1',  
+                },
+                {
+                    dim: 'y',
+                    color: 'white',
+                    strokeWidth: '1',  
+                },                  
+            ];
+            const crosshairClass = 'sr-crosshair';
+
             function colorbarSize() {
                 var tickFormat = colorbar.tickFormat();
                 if (! tickFormat) {
