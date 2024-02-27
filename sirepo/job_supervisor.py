@@ -800,7 +800,7 @@ class _ComputeJob(_Supervisor):
             # job is not relevant, but let the user know it isn't running
             return _canceled_reply()
         # No matter what happens the job is canceled at this point
-        self.__db_update(status=job.CANCELED, queuedState=None)
+        await self.__db_update(status=job.CANCELED, queuedState=None)
         if not (o := _find_op()):
             # no run op so just pending
             return _canceled_reply()
