@@ -3298,6 +3298,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 },                  
             ];
             const crosshairClass = 'sr-crosshair';
+            const overlaySelector = 'svg.sr-plot g.sr-overlay-data-group';
 
             function colorbarSize() {
                 var tickFormat = colorbar.tickFormat();
