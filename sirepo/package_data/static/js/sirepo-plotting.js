@@ -3343,6 +3343,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const y = Math.round((heatmap.length - n) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - y][x]);
+                    updateCrosshairs(select(overlaySelector).selectAll(`line.${crosshairClass}`), px, py, Math.round(axes.x.scale(xRange[1])), Math.round(axes.y.scale(yRange[0])));
                 }
                 catch (err) {
                     // ignore range errors due to mouse move after heatmap is reset
