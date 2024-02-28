@@ -272,26 +272,36 @@ class API(sirepo.quest.API):
             res.content = c
             return res
 
+        async def _fetch(args):
+            c = None
+            try:
+                c = tornado.httpclient.AsyncHTTPClient(
+                    max_buffer_size=sirepo.job.cfg().max_message_bytes,
+                    force_instance=True,
+                )
+                r = c.fetch(
+                    tornado.httpclient.HTTPRequest(
+                        body=pkjson.dump_bytes(args.content),
+                        connect_timeout=60,
+                        headers=PKDict({"Content-type": pkjson.MIME_TYPE}),
+                        method="POST",
+                        request_timeout=0,
+                        url=args.uri,
+                        validate_cert=sirepo.job.cfg().verify_tls,
+                    ),
+                )
+                if args.ignore_reply:
+                    asyncio.ensure_future(r)
+                    return None
+                return await r
+            finally:
+                if c:
+                    c.close()
+
         a = _args(kwargs)
         with self._reply_maybe_file(a.content) as d:
-            r = tornado.httpclient.AsyncHTTPClient(
-                max_buffer_size=sirepo.job.cfg().max_message_bytes,
-                force_instance=True,
-            ).fetch(
-                tornado.httpclient.HTTPRequest(
-                    body=pkjson.dump_bytes(a.content),
-                    connect_timeout=60,
-                    headers=PKDict({"Content-type": pkjson.MIME_TYPE}),
-                    method="POST",
-                    request_timeout=0,
-                    url=a.uri,
-                    validate_cert=sirepo.job.cfg().verify_tls,
-                ),
-            )
-            if a.ignore_reply:
-                asyncio.ensure_future(r)
+            if not (r := await _fetch(a)):
                 return self.reply_ok()
-            r = await r
             if not _JSON_TYPE.search(r.headers["content-type"]):
                 raise AssertionError(
                     f"expected json content-type={r.headers['content-type']}"
