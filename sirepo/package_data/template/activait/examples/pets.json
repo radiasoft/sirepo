@@ -905,11 +905,9 @@
         },
         "simFolder": {},
         "simulation": {
-            "documentationUrl": "",
             "folder": "/Examples",
-            "isExample": true,
-            "name": "Pets",
-            "notes": ""
+            "name": "Oxford Pets",
+            "notes": "Dataset derived from the Oxford-IIIT Pet Dataset. https://www.robots.ox.ac.uk/~vgg/data/pets/"
         },
         "upSampling2D": {
             "interpolation": "nearest",
@@ -922,17 +920,5 @@
             "padding": 1
         }
     },
-    "rsmanifest": {
-        "image": {
-            "git_commit": "64be9aa75db6690b1e21a95e5a19f9f8c1e8cc04",
-            "git_remote_origin_url": "https://github.com/radiasoft/sirepo",
-            "name": "radiasoft/sirepo",
-            "type": "docker",
-            "uri": "https://registry.hub.docker.com/radiasoft/sirepo:20240123.213837",
-            "version": "20240123.213837"
-        },
-        "version": "20190612.150000"
-    },
-    "simulationType": "activait",
-    "version": "20240116.165840"
+    "simulationType": "activait"
 }
