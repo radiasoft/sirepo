@@ -427,6 +427,22 @@ class _RequestHandler(_JsonPostRequestHandler):
             )
         return _scan_info_result(l, s, req_data)
 
+    def _request_reorder_scan(self, req_data):
+        i = _scan_index(req_data.rduid, req_data)
+        if i >= 0:
+            s = _SCANS_AWAITING_ANALYSIS.pop(i)
+            if s.rduid != req_data.rduid:
+                raise AssertionError(
+                    f"Failed to pop() correct scan: {req_data.rduid} != {s.rduid}"
+                )
+            if req_data.action == "first":
+                _SCANS_AWAITING_ANALYSIS.insert(0, s)
+            elif req_data.action == "last":
+                _SCANS_AWAITING_ANALYSIS.append(s)
+            else:
+                raise AssertionError(f"Unknown reorder action {req_data.action}")
+        return PKDict(data="ok")
+
     def _request_run_analysis(self, req_data):
         _queue_for_analysis(
             sirepo.raydata.databroker.get_metadata(req_data.rduid, req_data.catalogName)
@@ -567,6 +583,14 @@ def _queue_for_analysis(scan_metadata):
         _Analysis.set_scan_status(s, _AnalysisStatus.PENDING)
 
 
+def _scan_index(rduid, req_data):
+    s = PKDict(
+        rduid=rduid,
+        catalog_name=req_data.catalogName,
+    )
+    return _SCANS_AWAITING_ANALYSIS.index(s) if s in _SCANS_AWAITING_ANALYSIS else -1
+
+
 def _scan_info(rduid, status, req_data, all_columns):
     m = sirepo.raydata.databroker.get_metadata(rduid, req_data.catalogName)
     d = PKDict(
@@ -584,6 +608,8 @@ def _scan_info(rduid, status, req_data, all_columns):
 
     for c in m.get_start_fields():
         all_columns.add(c)
+
+    d["queue order"] = _scan_index(rduid, req_data) + 1
     return d
 
 
