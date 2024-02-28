@@ -86,6 +86,14 @@ def _check_for_animation_dir(dir_path):
     return os.path.exists(dir_path) and os.path.isdir(dir_path)
 
 
+def analysis_job_check_animation_dir(data, run_dir, **kwargs):
+    d = run_dir
+    res = _check_for_animation_dir(d)
+    pkdp("\n\n\n dir={} exists?={}", d, res)
+    # pkdp("\n\n\ndir={}", pkio.py_path())
+    return PKDict(dir_exists=res)
+
+
 def background_percent_complete(report, run_dir, is_running):
     if report == "dagmcAnimation":
 

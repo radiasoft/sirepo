@@ -284,9 +284,6 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                 processGeometry();
             }
         }
-        else {
-            // TODO (gurhar1133): ensureAnimationDir()
-        }
     };
 
     $scope.$on('geometryInput.changed', () => {
@@ -299,8 +296,26 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simComputeModel = 'dagmcAnimation';
     self.simState = persistentSimulation.initSimulationState(self);
 
-
-    // processGeometry();
+    function check() {
+        requestSender.sendAnalysisJob(
+            appState,
+            (data) => {
+                srdbg("data", data);
+                if (data.state == 'missing') {
+                    hasVolumes = false;
+                    processGeometry();
+                }
+            },
+            {
+                method: 'check_animation_dir',
+                args: {
+                    dir: 'dagcmAnimation'
+                },
+                modelName: 'dagmcAnimation',
+            }
+        );
+    }
+    check();
 });
 
 SIREPO.app.controller('VisualizationController', function(appState, cloudmcService, frameCache, persistentSimulation, requestSender, tallyService, $scope) {
