@@ -16,9 +16,9 @@
             "longName": "Controls",
             "shortName": "Controls"
         },
-        "cloudmc": {
-            "longName": "CloudMC",
-            "shortName": "CloudMC"
+        "openmc": {
+            "longName": "OpenMC",
+            "shortName": "OpenMC"
         },
         "elegant": {
             "longName": "elegant",

@@ -1,6 +1,6 @@
 User-agent: *
 Disallow: /activait
-Disallow: /cloudmc
+Disallow: /openmc
 Disallow: /controls
 Disallow: /elegant
 Disallow: /epicsllrf

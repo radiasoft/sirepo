@@ -21,7 +21,7 @@ _DEPENDENT_CODES = [
 PROD_FOSS_CODES = frozenset(
     (
         "activait",
-        "cloudmc",
+        "openmc",
         "controls",
         "elegant",
         "genesis",
@@ -135,11 +135,11 @@ def _init():
     _cfg = pkconfig.init(
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, "optional api modules, e.g. status"),
-        cloudmc=dict(
+        openmc=dict(
             data_storage_url=(
-                "https://github.com/radiasoft/sirepo-data-cloudmc/raw/master/",
+                "https://github.com/radiasoft/sirepo-data-openmc/raw/master/",
                 str,
-                "url base to reach cloudmc example h5m files",
+                "url base to reach openmc example h5m files",
             ),
         ),
         debug_mode=(pkconfig.in_dev_mode(), bool, "control debugging output"),
