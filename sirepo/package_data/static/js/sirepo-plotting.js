@@ -3284,22 +3284,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             let overlayData = null;
 
-             //TMP
-             const crosshairs =  [
-                {
-                    dim: 'x',
-                    color: 'white',
-                    strokeWidth: '1',  
-                },
-                {
-                    dim: 'y',
-                    color: 'white',
-                    strokeWidth: '1',  
-                },                  
-            ];
-            const crosshairClass = 'sr-crosshair';
-            const overlaySelector = 'svg.sr-plot g.sr-overlay-data-group';
-
             function colorbarSize() {
                 var tickFormat = colorbar.tickFormat();
                 if (! tickFormat) {
@@ -3316,22 +3300,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             function drawOverlay() {
                 const ns = 'http://www.w3.org/2000/svg';
-                const overlay = select(overlaySelector);
-                if (crosshairs) {
-                    const c = overlay
-                        .selectAll(`line.${crosshairClass}`)
-                        .data(crosshairs);
-                    c.enter()
-                        .append((d) => document.createElementNS(ns, 'line'))
-                        .attr('class', crosshairClass)
-                        .attr('clip-path', 'url(#sr-plot-window)')
-                        .attr('stroke', 'none')
-                        .attr('stroke-width', (d) => d.strokeWidth);
-                    c.call(updateCrosshairs);
-                }
-                if (! overlayData) {
-                    return;
-                }
                 let ds = d3.select('svg.sr-plot g.sr-overlay-data-group')
                     .selectAll(`path.${overlayDataClass}`)
                     .data(overlayData);
@@ -3351,27 +3319,19 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
-                const fullPixel = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL;
+                const fp = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL
                 const point = mouseMovePoint;
                 const xRange = getRange(axes.x.values);
                 const yRange = getRange(axes.y.values);
                 const x0 = axes.x.scale.invert(point[0] - 1);
                 const y0 = axes.y.scale.invert(point[1] - 1);
-                const n = fullPixel  ? 0 : 1;
-                const i = Math.round((heatmap[0].length - n) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
-                const j = Math.round((heatmap.length - n) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
-                const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - n);
-                const dy = Math.abs((yRange[1] - yRange[0])) / (heatmap.length - n);
-                const xr = xRange[0] + i * dx;
-                const yr = yRange[0] + j * dy;
-                const sz = plotting.pixelSize(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values);
-                const ddx = fullPixel ? sz.x / 2 : 0;
-                const ddy = fullPixel ? -sz.y / 2 : 0;
-                const px = Math.round(axes.x.scale(xr) + ddx);
-                const py = Math.round(axes.y.scale(yr) + ddy);
+                const n = fp ? 0 : 1;
+                let i = (heatmap[0].length - n) * (x0 - xRange[0]) / (xRange[1] - xRange[0]);
+                let j = (heatmap.length - n) * (y0 - yRange[0]) / (yRange[1] - yRange[0]);
+                i = fp ? Math.max(0, Math.floor(i)) : Math.round(i);
+                j = fp ? Math.max(0, Math.floor(j)) : Math.round(j);
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
-                    updateCrosshairs(select(overlaySelector).selectAll(`line.${crosshairClass}`), px, py, Math.round(axes.x.scale(xRange[1])), Math.round(axes.y.scale(yRange[0])));
                 }
                 catch (err) {
                     // ignore range errors due to mouse move after heatmap is reset
@@ -3419,7 +3379,9 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     $scope.margin.right = 20;
                 }
 
-                drawOverlay();
+                if (overlayData) {
+                    drawOverlay();
+                }
             }
 
             function resetZoom() {
@@ -3456,26 +3418,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     return appState.models[$scope.modelName].colorMap != 'contrast';
                 }
                 return false;
-            }
-
-            // TEST
-            function updateCrosshairs(selection, x, y, xMax, yMax) {
-                function isX(data) {
-                    return data.dim === 'x';
-                }
-                if (! crosshairs) {
-                    return;
-                }
-                if (! mouseMovePoint || x === undefined) {
-                    selection.attr('stroke', 'none');
-                    return;
-                }
-                selection
-                    .attr('stroke', (d) => d.color)
-                    .attr('x1', (d) => isX(d) ? 0 : x)
-                    .attr('x2', (d) => isX(d) ? xMax : x)
-                    .attr('y1', (d) => isX(d) ? y : 0)
-                    .attr('y2', (d) => isX(d) ? y : yMax);
             }
 
             function updateOverlay(selection) {
