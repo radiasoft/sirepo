@@ -748,7 +748,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         },
         template: `
              <div data-report-content="heatmap" data-model-key="{{ modelName }}" data-report-cfg="reportCfg"></div>
-             <div data-ng-if="energyFilter" data-report-content="parameter" data-model-key="energyReport"></div>
         `,
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
@@ -760,15 +759,16 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 crosshairs: [
                     {
                         dim: 'x',
-                        color: 'black',
-                        strokeWidth: '0.5',  
+                        color: 'white',
+                        strokeWidth: '1.0',  
                     },
                     {
                         dim: 'y',
-                        color: 'black',
-                        strokeWidth: '0.5',  
+                        color: 'white',
+                        strokeWidth: '1.0',  
                     },                  
                 ],
+                showCrosshairs: ! ! $scope.energyFilter,
             };
             const displayRanges = {};
             const sources = cloudmcService.getSourceVisualizations(
@@ -1083,6 +1083,15 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             function vectorScaleFactor() {
                 return 0.05 * tallyService.getMaxMeshExtent();
             }
+
+            $scope.$on('sr-plotEvent', (e, d) => {
+                srdbg(e, d);
+                const c = d.cell;
+                if (! c) {
+                    return;
+                }
+                setBins(...c.coords);
+            });
 
             $scope.$on('sr-volume-visibility-toggle', (event, volume, isVisible, doUpdate) => {
                 if (doUpdate) {
