@@ -9,6 +9,7 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo import util
 from sirepo.template import template_common
+import os
 import numpy
 import re
 import sirepo.feature_config
@@ -81,13 +82,27 @@ def _percent_complete(run_dir, is_running):
     return res
 
 
+def _check_for_animation_dir(dir_path):
+    return os.path.exists(dir_path) and os.path.isdir(dir_path)
+
+
 def background_percent_complete(report, run_dir, is_running):
     if report == "dagmcAnimation":
+
+        pkdp("\n\n\n dir?={}", _check_for_animation_dir(
+            run_dir.join("dagmcAnimation")
+        ))
+
         if is_running:
             return PKDict(
                 percentComplete=0,
                 frameCount=0,
             )
+        else:
+            pkdp("\n\n\nexists?={}", run_dir.join("dagmcAnimation").exists())
+            # if not run_dir.join("dagmcAnimation").exists():
+            #     raise AssertionError("NO dagmcAnimation dir")
+
         if not run_dir.join(_VOLUME_INFO_FILE).exists():
             raise AssertionError("Volume extraction failed")
         return PKDict(
