@@ -616,12 +616,6 @@
         cursor: pointer;
         font-size: 16px;
     }
-
-    .sr-plot .sr-crosshair {
-      pointer-events: none;
-      mix-blend-mode: difference;
-    }
-
     .sr-download-png .plot-visibility {
       visibility: hidden;
     }

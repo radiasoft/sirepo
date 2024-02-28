@@ -890,19 +890,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             });
         },
 
-        pixelSize: function(xAxisScale, yAxisScale, width, height, xValues, yValues) {
-            const xZoomDomain = xAxisScale.domain();
-            const xDomain = [xValues[0], xValues[xValues.length - 1]];
-            const yZoomDomain = yAxisScale.domain();
-            const yDomain = [yValues[0], yValues[yValues.length - 1]];
-            const zoomWidth = xZoomDomain[1] - xZoomDomain[0];
-            const zoomHeight = yZoomDomain[1] - yZoomDomain[0];
-            return {
-                x: Math.round(((xDomain[1] - xDomain[0]) / zoomWidth * width / xValues.length)),
-                y: Math.round(((yDomain[1] - yDomain[0]) / zoomHeight * height / yValues.length)),
-            };
-        },
-        
         // create a 2d shape for d3 to plot - note that x, y are required because d3 looks for those
         // attributes
         plotShape: function(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape, points) {
@@ -3314,12 +3301,12 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return [values[0], values[values.length - 1]];
             }
 
-            const mouseMove = utilities.debounce(function() {
+            const mouseMove = utilities.debounce(() => {
                 /*jshint validthis: true*/
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
-                const fp = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL
+                const fp = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL;
                 const point = mouseMovePoint;
                 const xRange = getRange(axes.x.values);
                 const yRange = getRange(axes.y.values);
