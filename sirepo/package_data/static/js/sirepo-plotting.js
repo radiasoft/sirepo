@@ -3457,25 +3457,23 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
-                const fullPixel = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL;
+                const fp = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL;
                 const point = mouseMovePoint;
                 const xRange = getRange(axes.x.values);
                 const yRange = getRange(axes.y.values);
                 const x = axes.x.scale.invert(point[0] - 1);
                 const y = axes.y.scale.invert(point[1] - 1);
-                const n = fullPixel ? 0 : 1;
+                const n = fp ? 0 : 1;
                 const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - n);
                 const dy = Math.abs((yRange[1] - yRange[0])) / (heatmap.length - n);
-                const i = Math.round((x - xRange[0]) / dx);
-                const j = Math.round((y - yRange[0]) / dy);
-                const xr = xRange[0] + i * dx;
-                const yr = yRange[0] + j * dy;
+                let i = (x - xRange[0]) / dx;
+                let j = (y - yRange[0]) / dy;
+                i = fp ? Math.max(0, Math.floor(i)) : Math.round(i);
+                j = fp ? Math.max(0, Math.floor(j)) : Math.round(j);
+
                 const sz = plotting.pixelSize(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values);
-                const ddx = fullPixel ? sz.x / 2 : 0;
-                const ddy = fullPixel ? -sz.y / 2 : 0;
-                const px = Math.round(axes.x.scale(xr) + ddx);
-                const py = Math.round(axes.y.scale(yr) + ddy) - 10;
-                srdbg('xr0', xRange[0], 'yr0', yRange[0], 'xr', xr, 'yr', yr, 'px', px, 'py', py);
+                const px = Math.round(axes.x.scale(xRange[0] + i * dx) + (fp ? sz.x / 2 : 0));
+                const py = Math.round(axes.y.scale(yRange[0] + j * dy) + (fp ? -sz.y / 2 : 0));
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                     updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), px, py, sz.x, sz.y);
