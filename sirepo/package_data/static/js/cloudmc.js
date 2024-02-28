@@ -697,9 +697,6 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                         <a href data-ng-click="setSelectedGeometry('3D')">3D</a>
                     </li>
                 </ul>
-                <div data-ng-if="energyFilter()" class="pull-right">
-                  <label>Energy &Sigma; {{ sumDisplay(sumRange.val[0]) }}-{{ sumDisplay(sumRange.val[1]) }} MeV</label>
-                </div>
                 <div data-ng-if="is3D()">
                     <div data-report-content="geometry3d" data-model-key="{{ modelName }}"></div>
                 </div>
@@ -712,17 +709,6 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
             plotting.setTextOnlyReport($scope);
 
             $scope.appState = appState;
-            $scope.sumRange = appState.models.openmcAnimation.energyRangeSum;
-
-            $scope.sumDisplay = val => {
-                if ($scope.energyFilter().space === 'linear') {
-                    return val;
-                }
-                return SIREPO.UTILS.formatFloat(
-                    SIREPO.UTILS.linearToLog(val, $scope.sumRange.min, $scope.sumRange.max, $scope.sumRange.step),
-                    4
-                );
-            };
 
             $scope.energyFilter = () => cloudmcService.findFilter('energyFilter');
 
@@ -762,7 +748,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         },
         template: `
              <div data-report-content="heatmap" data-model-key="{{ modelName }}" data-report-cfg="reportCfg"></div>
-             <!--<div data-ng-if="energyFilter" data-report-content="parameter" data-model-key="energyReport"></div>-->
+             <div data-ng-if="energyFilter" data-report-content="parameter" data-model-key="energyReport"></div>
         `,
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
@@ -841,7 +827,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     global_max: tallyService.maxField,
                     global_min: tallyService.getMinWithThreshold(),
                     threshold: appState.models.openmcAnimation.threshold,
-                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
+                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m${energySumLabel()}`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
@@ -862,6 +848,22 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     displayRanges.z,
                 ]
                     .map((x, i) => [fieldIndex(x.min, r[i], i), fieldIndex(x.max, r[i], i)]);
+            }
+
+            function sumDisplay(val) {
+                const sumRange = appState.models.openmcAnimation.energyRangeSum;
+                if ($scope.energyFilter.space === 'linear') {
+                    return val;
+                }
+                return SIREPO.UTILS.formatFloat(
+                    SIREPO.UTILS.linearToLog(val, sumRange.min, sumRange.max, sumRange.step),
+                    4
+                );
+            }
+
+            function energySumLabel() {
+                const sumRange = appState.models.openmcAnimation.energyRangeSum;
+                return $scope.energyFilter ? ` / Energy ∑ ${sumDisplay(sumRange.val[0])}-${sumDisplay(sumRange.val[1])} MeV` : '';
             }
 
             function fieldIndex(pos, range, dimIndex) {
@@ -1086,10 +1088,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 if (doUpdate) {
                     buildTallyReport();
                 }
-            });
-
-            $scope.$on('sr-plotEvent', (e, d) => {
-                //srdbg(d);
             });
 
             $scope.$on('sr-volume-visibility-toggle-all', buildTallyReport);
@@ -2370,27 +2368,6 @@ SIREPO.app.directive('tallyAspects', function() {
             };
         },
     };
-});
-
-SIREPO.viewLogic('energyReportView', function(appState, panelState, tallyService, $scope) {
-
-    function updateEditor() {
-        $scope.modelData = appState.models[$scope.modelName];
-        for (const dim in $scope.modelData) {
-            const r = tallyService.tallyRange(dim, true);
-            ['min', 'max', 'step'].forEach(x => {
-                $scope.modelData[dim][x] = r[x];
-            });
-        }
-    }
-
-    srdbg('ERV');
-    $scope.whenSelected = updateEditor;
-
-    //$scope.watchFields = [
-    //    [`${$scope.modelName}.run_mode`, 'reflectivePlanes.useReflectivePlanes'], updateEditor,
-    //];
-
 });
 
 SIREPO.viewLogic('settingsView', function(appState, panelState, validationService, $scope) {
