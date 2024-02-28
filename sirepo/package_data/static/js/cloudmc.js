@@ -427,7 +427,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
 
     self.colorScale = modelName => {
         return SIREPO.PLOTTING.Utils.colorScale(
-            ...appState.models.openmcAnimation.thresholds.global,
+            ...appState.models.openmcAnimation.thresholds.val,
             SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.applicationState()[modelName].colorMap],
         );
     };
@@ -837,8 +837,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 tallyService.updateThresholds();
                 const r =  {
                     aspectRatio: ar,
-                    global_min: appState.models.openmcAnimation.thresholds.global[0],
-                    global_max: appState.models.openmcAnimation.thresholds.global[1],
+                    global_min: appState.models.openmcAnimation.thresholds.val[0],
+                    global_max: appState.models.openmcAnimation.thresholds.val[1],
                     threshold: appState.models.openmcAnimation.thresholds.val,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
                     x_label: `${x} [m]`,
