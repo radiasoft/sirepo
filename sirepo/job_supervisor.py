@@ -213,9 +213,6 @@ async def terminate():
 
 
 class _Supervisor(PKDict):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     def destroy_op(self, op):
         pass
 
@@ -223,7 +220,7 @@ class _Supervisor(PKDict):
     async def get_compute_job_or_self(cls, req):
         if not (j := req.content.get("computeJid")):
             # not a compute job
-            return cls(req=req)
+            return cls()
         if j not in _ComputeJob.instances:
             _ComputeJob.instances[j] = await _ComputeJob.create(req)
         self = _ComputeJob.instances[j]
@@ -239,7 +236,7 @@ class _Supervisor(PKDict):
         return self
 
     def pkdebug_str(self):
-        c = self.pkunchecked_nested_get("req.content") or PKDict()
+        c = self.pkunchecked_nested_get("req.content") or self
         return pkdformat(
             "_Supervisor(api={} uid={})",
             c.get("api"),
@@ -262,8 +259,44 @@ class _Supervisor(PKDict):
                 return cls._reply_exception(e)
             raise
 
-    async def op_run_timeout(self, op):
+    async def op_send_timeout(self, op):
         pass
+
+    async def _cancel_op(self, to_cancel):
+        def _create_op():
+            # _create_op does too much and expects a request
+            return _Op(
+                _supervisor=_Supervisor(),
+                api="cancel_or_timeout",
+                driver=to_cancel.driver,
+                is_destroyed=False,
+                kind=to_cancel.kind,
+                max_run_secs=None,
+                msg=PKDict(opIdsToCancel=[to_cancel.op_id]),
+                op_name=job.OP_CANCEL,
+                uid=to_cancel.driver.uid,
+            )
+
+        c = None
+        internal_error = None
+        try:
+            c = _create_op()
+            pkdlog("{} to_cancel={}", self, to_cancel)
+            to_cancel.destroy()
+            if not await c.prepare_send():
+                pkdlog("{} prepare_send failed to_cancel={}", self, to_cancel)
+                # TODO(robnagler): shouldn't happen. no pay to c.destroy()
+                return
+            c.send()
+            # state of "c" is irrelevant here, cancel always "succeeds".
+            # no need to check return, but need to get the reply.
+            await c.reply_get()
+        except Exception as e:
+            internal_error = f"_cancel_op exception={e}"
+            pkdlog("exception={} stack={}", e, pkdexc())
+        finally:
+            if c:
+                c.destroy(internal_error=internal_error)
 
     def _create_op(self, op_name, req, kind, job_run_mode, **kwargs):
         req.kind = kind
@@ -474,6 +507,7 @@ class _ComputeJob(_Supervisor):
             self.ops.remove(op)
         if self.run_op == op:
             self.run_op = None
+        super().destroy_op(op)
 
     def elapsed_time(self):
         if not self.db.computeJobStart:
@@ -483,12 +517,6 @@ class _ComputeJob(_Supervisor):
             if self._is_running_pending()
             else self.db.dbUpdateTime
         ) - self.db.computeJobStart
-
-    async def op_run_timeout(self, op):
-        await self._receive_api_runCancel(
-            ServerReq(content=op.msg),
-            timed_out_op=op,
-        )
 
     def pkdebug_str(self):
         d = self.get("db")
@@ -501,6 +529,17 @@ class _ComputeJob(_Supervisor):
             d.get("status"),
             self.ops,
         )
+
+    async def op_send_timeout(self, op):
+        if op.is_destroyed:
+            return
+        if self.run_op == op:
+            await self.__db_update(
+                canceledAfterSecs=op.max_run_secs,
+                status=job.CANCELED,
+                queuedState=None,
+            )
+        await self._cancel_op(op)
 
     @classmethod
     async def purge_non_premium(cls):
@@ -676,6 +715,7 @@ class _ComputeJob(_Supervisor):
             dbUpdateTime=lambda: p.mtime(),
         )
         if "cancelledAfterSecs" in d:
+            # update spelling
             d.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=v)
             for h in d.history:
                 h.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=v)
@@ -738,82 +778,33 @@ class _ComputeJob(_Supervisor):
         )
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
-        """Cancel a run and related ops
-
-        Analysis ops that are for a parallel run (ex. sim frames) will not
-        be canceled.
+        """Cancel a run
 
         Args:
             req (ServerReq): The cancel request
-            timed_out_op (_Op, Optional): the op that was timed out, which
-                needs to be canceled
+            timed_out_op (_Op, Optional): the op that was timed out, which needs to be canceled
         Returns:
             PKDict: Message with state=canceled
         """
 
-        def _ops_to_cancel():
-            r = set(
-                o
-                for o in self.ops
-                # Do not cancel sim frames and file requests. Allow them to come back for a canceled
-                # compute job. Both can have relevant data in the event of a canceled compute job.
-                # In the case of OP_IO we excpect that the only reason for cancelation is due to
-                # a timeout (max_run_secs reached) in which case we send back "content-too-large".
-                if not (
-                    self.db.isParallel and o.op_name in (job.OP_ANALYSIS, job.OP_IO)
-                )
-            )
-            if timed_out_op in self.ops:
-                r.add(timed_out_op)
-            return r
+        def _find_op():
+            rv = [o for o in self.ops if o.op_name == job.OP_RUN]
+            if not rv:
+                return None
+            if len(rv) > 1:
+                raise AssertionError("too many OP_RUN ops={}", rv)
+            return rv[0]
 
-        if (
-            # a running simulation may be canceled due to a
-            # downloadDataFile request timeout in another browser window (only the
-            # computeJids must match between the two requests). This might be
-            # a weird UX but it's important to do, because no op should take
-            # longer than its timeout.
-            #
-            # timed_out_op might not be a valid request, because a new compute
-            # may have been started so either we are canceling a compute by
-            # user directive (left) or timing out an op (and canceling all).
-            (not self._req_is_valid(req) and not timed_out_op)
-            or (not self._is_running_pending() and not self.ops)
-        ):
+        if not self._req_is_valid(req) or not self._is_running_pending():
+            pkdlog("{} ignoring cancel, not running req_is_invalid", self)
             # job is not relevant, but let the user know it isn't running
             return _canceled_reply()
-        internal_error = None
-        candidates = _ops_to_cancel()
-        c = None
-        try:
-            # must be after candidates so don't cancel "c"
-            c = self._create_op(job.OP_CANCEL, req)
-            # No matter what happens the job is canceled
-            await self.__db_update(status=job.CANCELED, queuedState=None)
-            if not await c.prepare_send():
-                # cancel was canceled (unlikely).
-                # Reply with "canceled" anyway, since that's always the reply status
-                return _canceled_reply()
-            # Only cancel "old" ops. New ones should not be affected by this cancel.
-            o = _ops_to_cancel().intersection(candidates)
-            if not o:
-                return _canceled_reply()
-            pkdlog("{} to_cancel={}", self, o)
-            if timed_out_op:
-                await self.__db_update(canceledAfterSecs=timed_out_op.max_run_secs)
-            c.msg.opIdsToCancel = [x.op_id for x in o]
-            for x in o:
-                x.destroy()
-            c.send()
-            # state of "c" is irrelevant here, cancel always "succeeds".
-            # no need to check return.
-            await c.reply_get()
-        except Exception as e:
-            internal_error = f"_run exception={e}"
-            pkdlog("exception={} stack={}", e, pkdexc())
-        finally:
-            if c:
-                c.destroy(internal_error=internal_error)
+        # No matter what happens the job is canceled at this point
+        await self.__db_update(status=job.CANCELED, queuedState=None)
+        if not (o := _find_op()):
+            # no run op so just pending
+            return _canceled_reply()
+        await self._cancel_op(o)
         return _canceled_reply()
 
     async def _receive_api_runSimulation(self, req, recursing=False):
@@ -1183,17 +1174,15 @@ class _Op(PKDict):
     def reply_put(self, reply):
         self._reply_q.put_nowait(reply)
 
-    async def run_timeout(self):
-        """Can be any op that's timed"""
-        pkdlog("{} max_run_secs={}", self, self.max_run_secs)
-        # TODO add-qcall and pass to op, can't be Op() or Supervisor()
-        await self._supervisor.op_run_timeout(self)
-
     def send(self):
+        async def _timeout():
+            pkdlog("{} max_run_secs={}", self, self.max_run_secs)
+            await self._supervisor.op_send_timeout(self)
+
         if self.max_run_secs:
             self.timer = tornado.ioloop.IOLoop.current().call_later(
                 self.max_run_secs,
-                self.run_timeout,
+                _timeout,
             )
         self.driver.send(self)
 
