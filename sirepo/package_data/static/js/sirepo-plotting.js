@@ -3329,6 +3329,9 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                         .attr('stroke-width', (d) => d.strokeWidth);
                     c.call(updateCrosshairs);
                 }
+                if (! overlayData) {
+                    return;
+                }
                 let ds = d3.select('svg.sr-plot g.sr-overlay-data-group')
                     .selectAll(`path.${overlayDataClass}`)
                     .data(overlayData);
@@ -3365,7 +3368,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const ddx = fullPixel ? sz.x / 2 : 0;
                 const ddy = fullPixel ? -sz.y / 2 : 0;
                 const px = Math.round(axes.x.scale(xr) + ddx);
-                const py = Math.round(axes.y.scale(yr) + ddy) - 10;
+                const py = Math.round(axes.y.scale(yr) + ddy);
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                     updateCrosshairs(select(overlaySelector).selectAll(`line.${crosshairClass}`), px, py, Math.round(axes.x.scale(xRange[1])), Math.round(axes.y.scale(yRange[0])));
