@@ -38,19 +38,6 @@ class API(sirepo.quest.API):
             u = create_user(self)
         return self.reply_ok(PKDict(username=u))
 
-    @sirepo.quest.Spec(
-        "require_user", do_migration="Bool", sim_type=f"SimType const={_SIM_TYPE}"
-    )
-    async def api_migrateJupyterhub(self):
-        self.parse_params(type=_SIM_TYPE)
-        if not _cfg.rs_jupyter_migrate:
-            raise sirepo.util.Forbidden("migrate not enabled")
-        d = self.body_as_dict()
-        if not d.doMigration:
-            create_user(self)
-            return self.reply_redirect("jupyterHub")
-        sirepo.oauth.raise_authorize_redirect(self, _SIM_TYPE, github_auth=True)
-
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
     async def api_redirectJupyterHub(self):
         self.parse_params(type=_SIM_TYPE)

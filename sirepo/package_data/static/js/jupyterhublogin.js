@@ -46,13 +46,5 @@ SIREPO.app.directive('appHeader', function(jupyterhubloginService) {
 SIREPO.app.factory('jupyterhubloginService', function(appState, requestSender) {
     const self = {};
     appState.setAppService(self);
-
-    self.doMigration = function(doMigration) {
-        requestSender.sendRequest(
-            'migrateJupyterhub',
-            null,
-            {doMigration: doMigration}
-        );
-    };
     return self;
 });

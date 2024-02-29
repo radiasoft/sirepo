@@ -143,7 +143,6 @@
         "jupyterHub": "/jupyter",
         "listFiles": "/file-list",
         "listSimulations": "/simulation-list",
-        "migrateJupyterhub": "/migrate-jupyterhub",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "ownJobs": "/own-jobs",
