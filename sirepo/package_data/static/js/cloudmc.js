@@ -570,6 +570,10 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         // instead of the global min
         t.val[0] = Math.max(t.val[0], 0);
         t.val[1] = Math.min(t.val[1], t.global[1]);
+        // if the lower threshold is now too large, reset to 0
+        if (t.val[0] >= t.val[1]) {
+            t.val[0] = 0;
+        }
     };
 
 
