@@ -36,7 +36,7 @@ def process_beam_parameters(ebeam):
 
         s = sim_data.schema()
         if field_name in s["model"]["electronBeam"].keys():
-            label, field_type = s["model"]["electronBeam"][field_name]
+            label, field_type = s["model"]["electronBeam"][field_name][0:2]
             if field_type == "Float":
                 if re.search(r"\[m(m|rad)\]", label):
                     value *= _invert_value(1e3)
