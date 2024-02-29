@@ -617,7 +617,6 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
 
     def _version_validate(data):
         # If there is no version, ignore.
-        # TODO(robnagler) only case seems to be srw.import_file
         if data.get("version", SCHEMA_COMMON.version) != SCHEMA_COMMON.version:
             raise util.SRException(
                 "serverUpgraded",
@@ -633,6 +632,7 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
         if modified:
             t = sirepo.template.import_module(data.simulationType)
             if hasattr(t, "prepare_for_save"):
+                # TODO(robnagler) only case seems to be srw.import_file
                 data = t.prepare_for_save(data, qcall=qcall)
     # old implementation value
     data.pkdel("computeJobHash")
@@ -940,7 +940,6 @@ def _init_schemas():
             "constants",
             "cookies",
             "enum",
-            "notifications",
             "localRoutes",
             "model",
             "strings",

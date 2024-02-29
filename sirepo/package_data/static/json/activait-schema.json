@@ -204,11 +204,11 @@
         "logisticRegressionErrorRateAnimation": []
     },
     "model": {
+        "dicePlotAnimation": {},
         "analysisReport": {
             "x": ["X Value", "AnalysisParameter", "0"],
             "y1": ["Y1 Value", "AnalysisParameter", "1"],
             "action": ["", "PlotActionButtons"],
-            "notes": ["Notes", "Text", ""],
             "clusterMethod": ["Method", "ClusterMethod", "kmeans"],
             "clusterCount": ["Number of Clusters", "Integer", 3, "", 2, 20],
             "clusterFields": ["Fields", "ClusterFields"],
@@ -465,6 +465,11 @@
             ],
             "advanced": []
         },
+        "dicePlotAnimation": {
+            "title": "Dice Coefficient",
+            "advanced": [],
+            "basic": []
+        },
         "analysisReport": {
             "title": "Analysis Plot",
             "advanced": [
@@ -717,11 +722,6 @@
         },
         "worstLosses": {
             "title": "Worst Loss Images",
-            "basic": [],
-            "advanced": []
-        },
-        "diceCoefficient": {
-            "title": "Dice Coefficient",
             "basic": [],
             "advanced": []
         },

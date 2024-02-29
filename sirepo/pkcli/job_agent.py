@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Agent for managing the execution of jobs.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -37,7 +36,11 @@ import tornado.netutil
 #: Long enough for job_cmd to write result in run_dir
 _TERMINATE_SECS = 3
 
+#: How often to poll in loop()
 _RETRY_SECS = 1
+
+#: Reasonable over the Internet connection
+_CONNECT_SECS = 10
 
 _IN_FILE = "in-{}.json"
 
@@ -198,9 +201,9 @@ class _Dispatcher(PKDict):
         while True:
             self._websocket = None
             try:
-                # TODO(robnagler) connect_timeout, ping_interval, ping_timeout
                 self._websocket = await tornado.websocket.websocket_connect(
                     tornado.httpclient.HTTPRequest(
+                        connect_timeout=_CONNECT_SECS,
                         url=_cfg.supervisor_uri,
                         validate_cert=sirepo.job.cfg().verify_tls,
                     ),
@@ -222,8 +225,8 @@ class _Dispatcher(PKDict):
                         raise tornado.iostream.StreamClosedError()
                     s = await self._op(r)
             except Exception as e:
-                pkdlog("error={} stack={}", e, pkdexc())
-                # TODO(e-carlin): exponential backoff?
+                if not isinstance(e, tornado.iostream.StreamClosedError):
+                    pkdlog("retry websocket; error={} stack={}", e, pkdexc())
                 await tornado.gen.sleep(_RETRY_SECS)
             finally:
                 if self._websocket:

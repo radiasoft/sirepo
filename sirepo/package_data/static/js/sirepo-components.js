@@ -225,24 +225,42 @@ SIREPO.app.directive('srAlert', function(errorService) {
     };
 });
 
-SIREPO.app.directive('srNotify', function(notificationService) {
-
+SIREPO.app.directive('getStarted', function(browserStorage, stringsService) {
     return {
         restrict: 'A',
-        scope: {
-            notificationName: '<',
-            notificationClass: '<',
-        },
+        scope: {},
         template: `
-            <div data-ng-show="notificationService.shouldPresent(notificationName)" class="alert alert-dismissible sr-notify" role="alert" data-ng-class="notificationClass">
-                <button type="button" class="close" aria-label="Close" data-ng-click="notificationService.dismiss(notificationName)">
+            <div data-ng-show="show()" class="alert alert-dismissible sr-get-started" role="alert" data-ng-class="'alert-info'">
+                <button type="button" class="close" aria-label="Close" data-ng-click="dismiss()">
                     <span aria-hidden="true">&times;</span>
                 </button>
-                <span data-ng-bind-html="notificationService.getContent(notificationName)"></span>
+                <span>
+                    <div class="text-center"><strong>Welcome to Sirepo - ${SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName}!</strong></div>
+                    Below are some example ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
+                    and folders containing ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
+                    Click on the ${SIREPO.APP_SCHEMA.strings.simulationDataType}
+                    to open and view the ${SIREPO.APP_SCHEMA.strings.simulationDataType} results.
+                    You can create a new ${SIREPO.APP_SCHEMA.strings.simulationDataType}
+                    by selecting the "${stringsService.newSimulationLabel()}" link above.
+                </span>
             </div>
         `,
         controller: function($scope) {
-            $scope.notificationService = notificationService;
+            const storageKey = 'getStarted';
+            let isActive = true;
+
+            $scope.dismiss = () => {
+                browserStorage.setBoolean(storageKey, false);
+                //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
+                isActive = false;
+            };
+            $scope.show = () => {
+                if (! isActive) {
+                    return false;
+                }
+                isActive = browserStorage.getBoolean(storageKey, true);
+                return isActive;
+            };
         },
     };
 });
@@ -2213,7 +2231,6 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             panelHeading: '@',
             modelKey: '=',
             isReport: '@',
-            reportId: '<',
             viewName: '@',
         },
         template: `
@@ -2358,21 +2375,20 @@ SIREPO.app.directive('reportContent', function(panelState) {
         restrict: 'A',
         transclude: true,
         scope: {
-            reportId: '<',
             reportContent: '@',
             modelKey: '@',
         },
         template: `
             <div data-show-loading-and-error="" data-model-key="{{ modelKey }}">
               <div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? 'sr-hide-report' : '' }}">
-                <div data-ng-switch-when="2d" data-plot2d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="3d" data-plot3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="2d" data-plot2d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
+                <div data-ng-switch-when="3d" data-plot3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="particle" data-particle="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
-                <div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
+                <div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="lattice" data-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
-                <div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 ${SIREPO.appReportTypes || ''}
               </div>
               <div data-ng-transclude=""></div>
@@ -2397,14 +2413,12 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
             requestPriority: '@',
         },
         template: `
-            <div class="panel panel-info" data-ng-attr-id="{{ ::reportId }}">
-              <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1" data-report-id="reportId"></div>
-              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId"><div data-ng-transclude=""></div></div>
+            <div class="panel panel-info">
+              <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1"></div>
+              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}"><div data-ng-transclude=""></div></div>
               <div data-ng-if="notes()"><span class="pull-right sr-notes" data-sr-tooltip="{{ notes() }}" data-placement="top"></span><div class="clearfix"></div></div>
         `,
         controller: function($scope) {
-            // random id for the keypress service to track
-            $scope.reportId = utilities.reportId();  //Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
             if ($scope.modelName && $scope.modelName.includes('{') ) {
                 throw new Error('Expected simple name for modelName, got: ' + $scope.modelName);
             }
@@ -3296,6 +3310,14 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
 });
 
 SIREPO.app.directive('commonFooter', function() {
+    const _refreshModals = () => {
+        return Object.values(SIREPO.refreshModalMap).reduce(
+            (rv, x) => {
+                return rv + `<div data-confirmation-modal="" data-is-required="true" data-id="${x.modal}" data-title="${x.title}" data-ok-text="Refresh" data-ok-clicked="refreshPage()">${x.msg}. Select <b>Refresh</b> to update this simulation.</div>\n`;
+            },
+            '',
+        );
+    };
     return {
         restrict: 'A',
         scope: {
@@ -3307,9 +3329,7 @@ SIREPO.app.directive('commonFooter', function() {
             <div data-modal-editor="" view-name="simulation" modal-title="simulationModalTitle"></div>
             <div data-sbatch-login-modal=""></div>
             <div data-jobs-list-modal="" data-title="Jobs" data-id="sr-jobsListModal-editor"></div>
-            <div data-confirmation-modal="" data-is-required="true" data-id="sr-newRelease" data-title="Server Upgraded" data-ok-text="Refresh" data-ok-clicked="refreshPage()">Sirepo has been upgraded. Select <b>Refresh</b> to update this simulation.</div>
-            <div data-confirmation-modal="" data-is-required="true" data-id="sr-invalidSimulationSerial" data-title="Simulation Conflict" data-ok-text="Refresh" data-ok-clicked="refreshPage()">This simulation has been updated outside of this browser. Select <b>Refresh</b> to update this simulation.</div>
-        `,
+        ` + _refreshModals(),
         controller: function($scope, appState, stringsService) {
             $scope.simulationModalTitle = stringsService.formatKey('simulationDataType');
             $scope.refreshPage = () => window.location.reload();
@@ -3449,7 +3469,6 @@ SIREPO.app.directive('downloadStatus', function() {
             </div>
         `,
         controller: function($scope) {
-
             $scope.cancel = () => {
                 $scope.simState.cancelSimulation(() => {
                     $('#sr-download-status').modal('hide');
@@ -3472,7 +3491,6 @@ SIREPO.app.directive('splitPanels', function($window) {
     var TOP_PAD = 12;
     return {
         controller: function($scope) {
-
             function totalHeight() {
                 return $($window).height() - $scope.el.offset().top;
             }
@@ -4757,134 +4775,6 @@ SIREPO.app.service('mathRendering', function() {
     };
 });
 
-SIREPO.app.service('keypressService', function() {
-
-    var listeners = {};
-    var reports = {};
-    var activeListeners = [];
-    var activeListenerId = null;
-
-    this.addListener = function(listenerId, listener, reportId) {
-        if(! reportId) {
-            return;
-        }
-        listeners[listenerId] = listener;
-        if (! reports[reportId]) {
-                reports[reportId] = [];
-        }
-        reports[reportId].push(listenerId);
-        if(activeListeners.indexOf(listenerId) < 0) {
-            activeListeners.push(listenerId);
-        }
-
-        // turn off highlighting for active report panel, if any
-        showPanelActive(reportForListener(activeListenerId), false);
-
-        activeListenerId = listenerId;
-        this.enableListener(true);
-    };
-    this.hasListener = function(listenerId) {
-        return activeListeners.indexOf(listenerId) >= 0;
-    };
-    this.hasReport = function(reportId) {
-        return ! ! reports[reportId];
-    };
-
-    this.removeListener = function(listenerId) {
-        var lIndex = activeListeners.indexOf(listenerId);
-        if(lIndex >= 0) {
-            activeListeners.splice(lIndex, 1);
-        }
-        delete listeners[listenerId];
-
-        var reportId = reportForListener(listenerId);
-        showPanelActive(reportId, false);
-        if(reportId) {
-            reports[reportId].splice(reports[reportId].indexOf(listenerId), 1);
-        }
-
-        // activate the last one added, if any remain
-        if(activeListeners.length > 0) {
-            activeListenerId = activeListeners[activeListeners.length - 1];
-            this.enableListener(true);
-        }
-        else {
-            activeListenerId = null;
-            this.enableListener(false);
-        }
-    };
-
-    this.removeListenersForReport = function(reportId) {
-        if(! reportId || ! reports[reportId]) {
-            return;
-        }
-        var rlArr = reports[reportId];
-        for(var rlIndex = 0; rlIndex < rlArr.length; ++rlIndex) {
-            this.removeListener(rlArr[rlIndex]);
-        }
-    };
-    this.removeReport = function(reportId) {
-        if(! reportId) {
-            return;
-        }
-        this.removeListenersForReport(reportId);
-        delete reports[reportId];
-    };
-
-
-    // set the active listener, or
-    // remove keydown listener from body element leaving the keys in place
-    this.enableListener = function(doListen, listenerId) {
-        if(! listenerId)  {
-            listenerId = activeListenerId;
-        }
-        activeListenerId = listenerId;
-        var reportId = reportForListener(activeListenerId);
-        if(doListen && activeListenerId) {
-            d3.select('body').on('keydown', listeners[activeListenerId]);
-            showPanelActive(reportId, true);
-            return;
-        }
-        d3.select('body').on('keydown', null);
-        showPanelActive(reportId, false);
-    };
-    this.enableNextListener = function(direction) {
-        var lIndex = activeListeners.indexOf(activeListenerId);
-        if(lIndex < 0) {
-            return;
-        }
-        this.enableListener(false);
-        var d = direction < 0 ? -1 : 1;
-        var newIndex = (lIndex + d + activeListeners.length) % activeListeners.length;
-        this.enableListener(true, activeListeners[newIndex]);
-    };
-
-    function reportForListener(listenerId) {
-        if(! listenerId) {
-            return null;
-        }
-        for(var reportId in reports) {
-            var rlIndex = reports[reportId].indexOf(listenerId);
-            if(rlIndex < 0) {
-                continue;
-            }
-            return reportId;
-        }
-    }
-
-    function showPanelActive(reportId, isActive) {
-        if(! reportId) {
-            return;
-        }
-        if(isActive) {
-            $('#' + reportId).addClass('sr-panel-active');
-            return;
-        }
-        $('#' + reportId).removeClass('sr-panel-active');
-    }
-
-});
-
 SIREPO.app.service('plotRangeService', function(appState, panelState, requestSender) {
     var self = this;
     var runningModels = [];
@@ -5079,10 +4969,6 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
 
     this.ngModelForInput = function(modelName, fieldName) {
         return angular.element($('.' + this.modelFieldID(modelName, fieldName) + ' input')).controller('ngModel');
-    };
-
-    this.reportId = function() {
-        return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
     };
 
     this.isWide = function() {

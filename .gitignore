@@ -1,3 +1,5 @@
+# sirepo specific
+proprietary_code/
 # output from protractor
 reports/
 /package-lock.json
