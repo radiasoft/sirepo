@@ -2595,7 +2595,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             <div class="{{ sliderClass }}"></div>
             <div style="display:flex; justify-content:space-between;">
                 <span>{{ formatFloat(field.min) }}</span>
-                <span>{{ display(field) }}</span>
+                <span style="font-weight: bold;">{{ display(field) }}</span>
                 <span>{{ formatFloat(field.max) }}</span>
             </div>
         `,
@@ -2691,7 +2691,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
 
                 const v = range.val;
                 if (range.space === 'linear') {
-                    return v;
+                    return $scope.formatFloat(v);
                 }
                 return Array.isArray(v) ? v.map(x => toLog(x, range)) : toLog(v);
             };
