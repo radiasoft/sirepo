@@ -178,12 +178,11 @@ class SimData(sirepo.sim_data.SimDataBase):
             )
             del dm.multipole["distribution"]
             del dm.multipole["field"]
-        if "distanceFromSource" not in dm.coherentModesAnimation:
-            cs = cls.schema().model.coherentModesAnimation
-            si = dm.sourceIntensityReport
-            for f in cs:
-                if f not in dm.coherentModesAnimation and f in si:
-                    dm.coherentModesAnimation[f] = si[f]
+        cs = cls.schema().model.coherentModesAnimation
+        si = dm.sourceIntensityReport
+        for f in cs:
+            if f not in dm.coherentModesAnimation and f in si:
+                dm.coherentModesAnimation[f] = si[f]
         cls._organize_example(data)
 
     @classmethod

@@ -786,7 +786,6 @@ def text_data_file(filename, run_dir):
 def validate_model(model_data, model_schema, enum_info):
     """Ensure the value is valid for the field type. Scales values as needed."""
     for k in model_schema:
-        pkdp("MSCH[{}] {}", k, model_schema[k])
         label = model_schema[k][0]
         field_type = model_schema[k][1]
         if k in model_data:
