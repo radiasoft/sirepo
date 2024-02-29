@@ -73,7 +73,6 @@ def validate_fields(data, schema):
     Validations performed:
         enums (see _validate_enum)
         numeric values (see _validate_number)
-        notifications
         cookie definitions (see _validate_cookie_def)
 
     Args:
@@ -140,7 +139,6 @@ def validate(schema):
     """
     sch_models = schema.model
     sch_enums = schema.enum
-    sch_ntfy = schema.notifications
     sch_cookies = schema.cookies
     for name in sch_enums:
         for values in sch_enums[name]:
@@ -165,13 +163,6 @@ def validate(schema):
                 continue
             _validate_enum(field_default, sch_field_info, sch_enums)
             _validate_number(field_default, sch_field_info)
-    for n in sch_ntfy:
-        if "cookie" not in sch_ntfy[n] or sch_ntfy[n].cookie not in sch_cookies:
-            raise AssertionError(
-                util.err(
-                    sch_ntfy[n], "notification must reference a cookie in the schema"
-                )
-            )
     for sc in sch_cookies:
         _validate_cookie_def(sch_cookies[sc])
     for t in schema.dynamicModules:

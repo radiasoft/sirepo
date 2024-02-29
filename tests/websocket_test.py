@@ -21,4 +21,5 @@ def test_serialization(fc):
     from pykern import pkunit
 
     with pkunit.pkexcept("routeName=error"):
+        # Server: TypeError: can not serialize 'datetime.datetime' object
         fc.sr_post("srUnitCase", PKDict(type=False, filename="serialization"))
