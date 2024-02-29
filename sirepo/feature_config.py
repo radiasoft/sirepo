@@ -137,7 +137,7 @@ def _init():
         api_modules=((), set, "optional api modules, e.g. status"),
         openmc=dict(
             data_storage_url=(
-                "https://github.com/radiasoft/sirepo-data-openmc/raw/master/",
+                "https://github.com/radiasoft/sirepo-data-cloudmc/raw/master/",
                 str,
                 "url base to reach openmc example h5m files",
             ),
