@@ -65,6 +65,10 @@ def stateless_compute_download_analysis_pdfs(data, data_file_uri=None, **kwargs)
     return _request_scan_monitor(PKDict(method="download_analysis_pdfs", data=data))
 
 
+def stateless_compute_reorder_scan(data, **kwargs):
+    return _request_scan_monitor(PKDict(method="reorder_scan", data=data))
+
+
 def stateless_compute_run_analysis(data, **kwargs):
     return _request_scan_monitor(PKDict(method="run_analysis", data=data))
 
