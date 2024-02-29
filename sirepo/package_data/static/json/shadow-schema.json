@@ -433,7 +433,7 @@
             "r_magnet": ["Magnet Radius [m]", "Float", 25.0],
             "fdistr": ["Calculation Mode", "BendingMagnetMode"],
             "calculateFieldMethod": ["Compute Field/Radius", "ComputeFieldMethod", "radius"],
-            "magneticField": ["Magnetic Field [T]", "Float", 1.0]
+            "magneticField": ["Magnetic Field [T]", "Float", 1e+308]
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
