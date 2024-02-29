@@ -3301,20 +3301,24 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return [values[0], values[values.length - 1]];
             }
 
-            var mouseMove = utilities.debounce(function() {
+            const mouseMove = utilities.debounce(() => {
                 /*jshint validthis: true*/
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
-                var point = mouseMovePoint;
-                var xRange = getRange(axes.x.values);
-                var yRange = getRange(axes.y.values);
-                var x0 = axes.x.scale.invert(point[0] - 1);
-                var y0 = axes.y.scale.invert(point[1] - 1);
-                var x = Math.round((heatmap[0].length - 1) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
-                var y = Math.round((heatmap.length - 1) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
+                const fp = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL;
+                const point = mouseMovePoint;
+                const xRange = getRange(axes.x.values);
+                const yRange = getRange(axes.y.values);
+                const x0 = axes.x.scale.invert(point[0] - 1);
+                const y0 = axes.y.scale.invert(point[1] - 1);
+                const n = fp ? 0 : 1;
+                let i = (heatmap[0].length - n) * (x0 - xRange[0]) / (xRange[1] - xRange[0]);
+                let j = (heatmap.length - n) * (y0 - yRange[0]) / (yRange[1] - yRange[0]);
+                i = fp ? Math.max(0, Math.floor(i)) : Math.round(i);
+                j = fp ? Math.max(0, Math.floor(j)) : Math.round(j);
                 try {
-                    pointer.pointTo(heatmap[heatmap.length - 1 - y][x]);
+                    pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                 }
                 catch (err) {
                     // ignore range errors due to mouse move after heatmap is reset
