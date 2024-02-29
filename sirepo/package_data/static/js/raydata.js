@@ -80,9 +80,6 @@ SIREPO.app.factory('columnsService', function(appState, requestSender, $rootScop
     self.allColumnsWithHeading = null;
     self.selectSearchFieldText = 'Select Search Field';
 
-    // POSIT: status + sirepo.template.raydata._DEFAULT_COLUMNS
-    self.DEFAULT_COLUMNS = ['status', 'start', 'stop', 'suid'];
-
     function loadColumns() {
         requestSender.sendStatelessCompute(
             appState,
@@ -99,6 +96,14 @@ SIREPO.app.factory('columnsService', function(appState, requestSender, $rootScop
             },
         );
     }
+
+    self.defaultColumns = (analysisStatus) => {
+        const res = ['status', 'start', 'stop', 'suid'];
+        if (analysisStatus == 'queued') {
+            res.splice(1, 0, 'queue order');
+        }
+        return res;
+    };
 
     self.updateColumns = columns => {
         if (! columns || ! columns.length) {
@@ -461,7 +466,6 @@ SIREPO.app.directive('replayPanel', function() {
                         panelState: panelState,
                     }
                 );
-
             };
         },
     };
@@ -500,7 +504,10 @@ SIREPO.app.directive('scansTable', function() {
                     <tr ng-repeat="s in scans track by $index">
                       <td style="width: 1%" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans[s.rduid]" data-ng-click="togglePdfSelectScan(s.rduid)"/></td>
                       <td width="1%"><span data-header-tooltip="s.status"></span></td>
-                      <td data-ng-repeat="c in columnHeaders.slice(1)"><div data-scan-cell-value="s[c]", data-column-name="c"></div></td>
+                      <td data-ng-if="analysisStatus == 'queued'">
+                        <div data-queue-order="" scan="s" number-of-scans="{{ scans.length }}" data-refresh-scans="refreshScans()"></div>
+                      </td>
+                      <td data-ng-repeat="c in columnHeaders.slice(analysisStatus == 'queued' ? 2 : 1)"><div data-scan-cell-value="s[c]", data-column-name="c"></div></td>
                       <td style="white-space: nowrap" width="1%">
                         <button data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="runAnalysis(s.rduid)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button>
                         <button class="btn btn-info btn-xs" data-ng-disabled="! raydataService.canViewOutput(s)" data-ng-click="setAnalysisScan(s)">View Output</button>
@@ -542,8 +549,8 @@ SIREPO.app.directive('scansTable', function() {
             let scanArgs = {
                 pageCount: 0,
                 pageNumber: 0,
-                sortColumn: 'start',
-                sortOrder: false,
+                sortColumn: $scope.analysisStatus == 'queued' ? 'queue order' : 'start',
+                sortOrder: $scope.analysisStatus == 'queued',
             };
 
             const errorOptions = {
@@ -674,7 +681,7 @@ SIREPO.app.directive('scansTable', function() {
 
             function setColumnHeaders() {
                 $scope.columnHeaders = [
-                    ...columnsService.DEFAULT_COLUMNS,
+                    ...columnsService.defaultColumns($scope.analysisStatus),
                     ...appState.models.metadataColumns.selected
                 ];
             }
@@ -774,6 +781,10 @@ SIREPO.app.directive('scansTable', function() {
                 }
             };
 
+            $scope.refreshScans = () => {
+                sendScanRequest(true, true);
+            };
+
             $scope.runAnalysis = (scanId, forceRun) => {
                 if (! forceRun) {
                     const scan = findScan(scanId);
@@ -824,7 +835,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.showDeleteButton = index => {
-                return index > columnsService.DEFAULT_COLUMNS.length - 1;
+                return index > columnsService.defaultColumns($scope.analysisStatus).length - 1;
             };
 
             $scope.showPdfButton = () => {
@@ -1227,6 +1238,59 @@ SIREPO.app.directive('searchTermText', function() {
             $scope.disabled = () => {
                 return $scope.model.column === columnsService.selectSearchFieldText;
             };
+        },
+    };
+});
+
+
+SIREPO.app.directive('queueOrder', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            scan: '=',
+            numberOfScans: '@',
+            refreshScans: '&',
+        },
+        template: `
+            {{ scan['queue order'] }} &nbsp;
+            <span data-ng-show="scan['queue order'] > 0">
+              <button data-ng-repeat="b in buttons track by $index" type="button"
+                class="btn btn-info btn-xs" title="{{ b.title }}" data-ng-click="b.click()"
+                data-ng-style="{ visibility: b.visible() ? 'visible' : 'hidden', transform: b.rotate }"><span
+                  class="glyphicon glyphicon-step-forward"></span>
+              </button>
+            </span>
+        `,
+        controller: function(appState, requestSender, $scope) {
+            $scope.buttons = [
+                {
+                    title: 'Move to end of queue',
+                    rotate: 'rotate(90deg)',
+                    visible: () => $scope.scan['queue order'] < $scope.numberOfScans - 1,
+                    click: () => reorderScan('last'),
+                },
+                {
+                    title: 'Move to beginning of queue',
+                    rotate: 'rotate(270deg)',
+                    visible: () => $scope.scan['queue order'] > 1,
+                    click: () => reorderScan('first'),
+                },
+            ];
+
+            function reorderScan(action) {
+                requestSender.sendStatelessCompute(
+                    appState,
+                    () => $scope.refreshScans(),
+                    {
+                        method: 'reorder_scan',
+                        args: {
+                            catalogName: appState.models.catalog.catalogName,
+                            rduid: $scope.scan.rduid,
+                            action: action,
+                        }
+                    },
+                );
+            }
         },
     };
 });
