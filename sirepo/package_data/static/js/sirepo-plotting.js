@@ -3446,14 +3446,14 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return [values[0], values[values.length - 1]];
             }
 
-            function mouseClick() {
+            const mouseClick = utilities.debounce(() => {
                 selectedCell = selectCell();
                 updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`));
                 $scope.broadcastEvent({
                     name: 'heatmapSelectCell',
                     cell: selectedCell,
                 });
-            }
+            }, 100);
 
             const mouseMove = utilities.debounce(() => {
                 /*jshint validthis: true*/
