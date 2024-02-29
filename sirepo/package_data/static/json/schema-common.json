@@ -97,7 +97,8 @@
         "fete": "/warpvnd",
         "ml": "/activait",
         "plans": "/en/plans.html",
-        "warp": "/warppba"
+        "warp": "/warppba",
+        "cloudmc": "/openmc"
     },
     "route": {
         "adjustSupervisorSrtime": "/adjust-supervisor-srtime/?<days>",
