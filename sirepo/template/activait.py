@@ -367,19 +367,30 @@ def analysis_job_sample_images(data, run_dir, **kwargs):
     return _ImagePreview(data, run_dir).images()
 
 
-def _data_file_name(simulation_id):
-    return sirepo.simulation_db.read_json(
-        pkio.py_path(
+def stateful_compute_get_activait_sim_list(data, run_dir, **kwargs):
+    def _data_file_name(simulation_id):
+        p = pkio.py_path(
             simulation_db.find_global_simulation(
                 'activait',
                 simulation_id,
                 checked=True,
             )
-        ).join("sirepo-data.json")
-    ).models.dataFile.file
+        )
+        if p.join("animation").exists() or simulation_id == data.simulationId:
+            return sirepo.simulation_db.read_json(
+                p.join("sirepo-data.json")
+            ).models.dataFile.file
+        return ""
 
-
-def stateful_compute_get_activait_sim_list(data, run_dir, **kwargs):
+    # TODO (gurhar1133): this might all be handled better using a
+    # private object
+    this_sim_path = pkio.py_path(
+        simulation_db.find_global_simulation(
+            'activait',
+            data.simulationId,
+            checked=True,
+        )
+    )
     this_data_file = _data_file_name(data.simulationId)
     all_sims = sorted(
         simulation_db.iterate_simulation_datafiles(
@@ -390,8 +401,9 @@ def stateful_compute_get_activait_sim_list(data, run_dir, **kwargs):
     )
     res = []
     for sim in all_sims:
-        if sim.simulationId != data.simulationId:
-            if _data_file_name(sim.simulationId) == this_data_file:
+        if sim.simulationId != data.simulationId and this_sim_path.join("animation").exists():
+            f = _data_file_name(sim.simulationId)
+            if f == this_data_file:
                 res.append(sim)
     return PKDict(
         simList=res

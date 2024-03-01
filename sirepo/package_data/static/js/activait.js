@@ -327,6 +327,8 @@ SIREPO.app.controller('DataController', function (activaitService, appState, $sc
 SIREPO.app.controller('ComparisonController', function (activaitService, appState, $scope) {
     const self = this;
     self.activaitService = activaitService;
+    // TODO (gurhar1133): function that returns whether to display
+    // the comparisons
 });
 
 SIREPO.app.controller('ClassificationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
