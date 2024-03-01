@@ -797,10 +797,16 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             );
 
             function setBins(hVal, vVal) {
-                const [z, x, y] = tallyReportAxes();
-                appState.models.energyReport[x].val = hVal;
-                appState.models.energyReport[y].val = vVal;
-                appState.models.energyReport[z].val = appState.models.tallyReport.planePos;
+                const [k, i, j] = tallyReportAxisIndices();
+                //appState.models.energyReport[x].val = hVal;
+                //appState.models.energyReport[y].val = vVal;
+                //appState.models.energyReport[z].val = appState.models.tallyReport.planePos;
+                //appState.models.energyReport.coords = [0, 0, 0];
+                appState.models.energyReport.coords[i] = hVal;
+                appState.models.energyReport.coords[j] = vVal;
+                appState.models.energyReport.coords[k] = appState.models.tallyReport.planePos;
+                srdbg(appState.models.energyReport);
+
                 appState.saveChanges('energyReport');
             }
 
@@ -1085,7 +1091,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             }
 
             $scope.$on('sr-plotEvent', (e, d) => {
-                srdbg(e, d);
                 const c = d.cell;
                 if (! c) {
                     return;

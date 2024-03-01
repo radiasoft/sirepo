@@ -99,7 +99,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def extract_report_data(run_dir, sim_in):
-    pkdp("EXTR {}", sim_in.report)
     # dummy result
     if sim_in.report == "tallyReport":
         template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
@@ -428,8 +427,10 @@ def _energy_plot(run_dir, data):
             (*mesh.dimension, -1)
         )
         bins = [
-            _bin(r[dim].val, mesh.dimension[i], r[dim].min, r[dim].max) for i, dim in enumerate(('x', 'y', 'z'))
+            #_bin(r[dim].val, mesh.dimension[i], r[dim].min, r[dim].max) for i, dim in enumerate(('x', 'y', 'z'))
+            _bin(r.coords[i], mesh.dimension[i], mesh.lower_left[i], mesh.upper_right[i]) for i in range(3)
         ]
+        pkdp("R {} BINS {}", r, bins)
         plots.append(
             PKDict(
                 points=mean[bins[0]][bins[1]][bins[2]].tolist(),
