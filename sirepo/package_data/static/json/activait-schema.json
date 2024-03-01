@@ -167,6 +167,13 @@
                 "templateUrl": "/static/html/activait-analysis.html"
             }
         },
+        "comparison": {
+            "route": "/comparison/:simulationId",
+            "config": {
+                "controller": "ComparisonController as comparison",
+                "templateUrl": "/static/html/activait-comparison.html"
+            }
+        },
         "partition": {
             "route": "/partition/:simulationId",
             "config": {

@@ -228,6 +228,7 @@ SIREPO.app.directive('appHeader', function(appState, activaitService) {
                   <li class="sim-section" data-ng-if="hasInputsAndOutputs() && ! activaitService.isAnalysis()" data-ng-class="{active: nav.isActive('partition')}"><a href data-ng-click="nav.openSection('partition')"><span class="glyphicon glyphicon-scissors"></span> Partition</a></li>
                   <li class="sim-section" data-ng-if="hasInputsAndOutputs() && activaitService.isAppMode('regression')" data-ng-class="{active: nav.isActive('regression')}"><a href data-ng-click="nav.openSection('regression')"><span class="glyphicon glyphicon-qrcode"></span> Regression</a></li>
                   <li class="sim-section" data-ng-if="hasInputsAndOutputs() && activaitService.isAppMode('classification')" data-ng-class="{active: nav.isActive('classification')}"><a href data-ng-click="nav.openSection('classification')"><span class="glyphicon glyphicon-tag"></span> Classification</a></li>
+                  <li class="sim-section" data-ng-if="imageToImage()" data-ng-class="{active: nav.isActive('comparison')}"><a href data-ng-click="nav.openSection('comparison')"><span class="glyphicon glyphicon-tasks"></span> Model Comparison</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
@@ -249,6 +250,26 @@ SIREPO.app.directive('appHeader', function(appState, activaitService) {
                 }
                 return false;
             };
+            $scope.imageToImage = () => {
+                var info = appState.models.columnInfo;
+
+                if (info) {
+                    var idx = info.inputOutput.indexOf('output');
+                    srdbg("idx", idx);
+                    srdbg("info", info);
+                    return info.shape[idx].slice(1, info.shape[idx].length).length > 1;
+                }
+                return false;
+                // if (info.inputOutput) {
+                //     srdbg("info", info);
+                //     var idx = info.inputOutput.indexOf('output');
+                //     if (! info.shape) {
+                //         return false;
+                //     }
+                //     return info.shape[idx].slice(1, info.shape[idx].length).length > 1;
+                // }
+                // return false;
+            }
         },
     };
 });
@@ -298,6 +319,11 @@ SIREPO.app.controller('DataController', function (activaitService, appState, $sc
     });
 
     self.showImageViewer = () => activaitService.isImageData() && appState.models.imageViewerShow;
+});
+
+SIREPO.app.controller('ComparisonController', function (activaitService, appState, $scope) {
+    const self = this;
+    self.activaitService = activaitService;
 });
 
 SIREPO.app.controller('ClassificationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
