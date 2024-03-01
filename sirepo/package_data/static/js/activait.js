@@ -47,8 +47,8 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="XColumn" data-field-class="fieldClass">
           <div data-x-column="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="SimArray">
-          <div data-model-name="modelName" data-sim-array="" data-model="model" data-field="field"></div>
+        <div data-ng-switch-when="SimList" data-ng-class="fieldClass">
+          <div data-dynamic-sim-list="" data-model="model" data-field="field"></div>
         </div>
     `;
     SIREPO.appReportTypes = `
@@ -1559,57 +1559,27 @@ SIREPO.app.directive('plotActionButtons', function(appState) {
     };
 });
 
-SIREPO.app.directive('simArray', function(appState) {
+SIREPO.app.directive('dynamicSimList', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
             model: '=',
             field: '=',
         },
-        template: `000000
-        <div class="clearfix" style="margin-top:-20px"></div>
-        <div class="col-sm-4 col-sm-offset-1 lead">{{:: label('simulationType') }}</div>
-        <div class="col-sm-12">
-          <div data-ng-repeat="sim in model[field] track by $index">
-            <div class="form-group">
-              <div class="col-sm-1 control-label"><label>{{ $index + 1 }}</label></div>
-              <div data-model-field="'simulationType'" data-model-name="subModelName" data-model-data="modelData($index)" data-label-size="0" data-field-size="4"></div>
-              <div data-model-field="'simulationId'" data-model-name="subModelName" data-model-data="modelData($index)" data-label-size="0" data-field-size="6"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+        template: `
+          <div data-sim-list="" data-model="model" data-field="field" data-code="activait"></div>
         `,
         controller: function($scope) {
-            // srdbg("$scope.model", $scope.model);
-            // srdbg("$scope.field", $scope.field);
-            $scope.subModelName = 'otherSims';
-            $scope.items = $scope.model.others;
-            const modelData = {};
-            srdbg("scope.model=", $scope.model);
-            srdbg("model[field]", $scope.model[$scope.field]);
-            function checkArray() {
-                // ensure there is always an empty selection available at the end of the list
-                const a = $scope.model[$scope.field];
-                if (! a.length || (a[a.length - 1].simulationType && a[a.length - 1].simulationId)) {
-                    a.push(appState.setModelDefaults({}, $scope.subModelName));
-                }
-                srdbg("a=", a);
-            }
-
-            $scope.modelData = index => {
-                srdbg("$scope.model?", $scope.model);
-                if (! $scope.model) {
-                    return;
-                }
-                checkArray();
-                if (! modelData[index]) {
-                    modelData[index] = {
-                        getData: () => $scope.model[$scope.field][index],
-                    };
-                }
-                return modelData[index];
+            const requestSimListByType = (simType) => {
+                requestSender.sendRequest(
+                    'listSimulations',
+                    () => {},
+                    {
+                        simulationType: simType,
+                    }
+                );
             };
+            requestSimListByType('activait');
         },
     };
 });

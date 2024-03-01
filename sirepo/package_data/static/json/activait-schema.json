@@ -367,7 +367,7 @@
             "activation": ["Activation", "NeuralNetActivation", "relu"]
         },
         "otherSims": {
-            "others": ["Other Sim", "SimArray", ["sim1", "sim2"]]
+            "otherSims": ["Other Model", "SimList", []]
         },
         "activation": {
             "layer": ["Layer", "NeuralNetLayer", "Activation"],
@@ -745,7 +745,7 @@
         "otherSims": {
             "title": "Compare With",
             "basic": [
-                "others"
+                "otherSims"
             ],
             "advanced": []
         },

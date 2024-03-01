@@ -367,6 +367,37 @@ def analysis_job_sample_images(data, run_dir, **kwargs):
     return _ImagePreview(data, run_dir).images()
 
 
+def _data_file_name(simulation_id):
+    return sirepo.simulation_db.read_json(
+        pkio.py_path(
+            simulation_db.find_global_simulation(
+                'activait',
+                simulation_id,
+                checked=True,
+            )
+        ).join("sirepo-data.json")
+    ).models.dataFile.file
+
+
+def stateful_compute_get_activait_sim_list(data, run_dir, **kwargs):
+    this_data_file = _data_file_name(data.simulationId)
+    all_sims = sorted(
+        simulation_db.iterate_simulation_datafiles(
+            'activait',
+            simulation_db.process_simulation_list,
+        ),
+        key=lambda row: row["name"],
+    )
+    res = []
+    for sim in all_sims:
+        if sim.simulationId != data.simulationId:
+            if _data_file_name(sim.simulationId) == this_data_file:
+                res.append(sim)
+    return PKDict(
+        simList=res
+    )
+
+
 def stateful_compute_get_remote_data(data, **kwargs):
     _SIM_DATA.lib_file_save_from_url(data.args.url, "dataFile", "file")
     return PKDict()
