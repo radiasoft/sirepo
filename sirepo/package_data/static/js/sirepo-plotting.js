@@ -653,9 +653,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             var zoomHeight = yZoomDomain[1] - yZoomDomain[0];
             canvas.width = width;
             canvas.height = height;
-            var xPixelSize = alignOnPixel ? ((xDomain[1] - xDomain[0]) / zoomWidth * width / xValues.length) : 0;
-            var yPixelSize = alignOnPixel ? ((yDomain[1] - yDomain[0]) / zoomHeight * height / yValues.length) : 0;
-            const p = this.pixelSize(xAxisScale, yAxisScale, width, height, xValues, yValues);
+            const sz =  this.pixelSize(xAxisScale, yAxisScale, width, height, xValues, yValues);
+            var xPixelSize = alignOnPixel ? sz.x: 0;
+            var yPixelSize = alignOnPixel ? sz.y : 0;
             var ctx = canvas.getContext('2d');
             ctx.imageSmoothingEnabled = false;
             ctx.msImageSmoothingEnabled = false;
@@ -3464,17 +3464,25 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const point = mouseMovePoint;
                 const xRange = getRange(axes.x.values);
                 const yRange = getRange(axes.y.values);
-                const x = axes.x.scale.invert(point[0] - 1);
-                const y = axes.y.scale.invert(point[1] - 1);
+
+                const x0 = axes.x.scale.invert(point[0] - 1);
+                const y0 = axes.y.scale.invert(point[1] - 1);
                 const n = fp ? 0 : 1;
                 const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - n);
                 const dy = Math.abs((yRange[1] - yRange[0])) / (heatmap.length - n);
-                let i = (x - xRange[0]) / dx;
-                let j = (y - yRange[0]) / dy;
+                let i = (x0 - xRange[0]) / dx;
+                let j = (y0 - yRange[0]) / dy;
                 i = fp ? Math.max(0, Math.floor(i)) : Math.round(i);
                 j = fp ? Math.max(0, Math.floor(j)) : Math.round(j);
 
-                const sz = plotting.pixelSize(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values);
+                const sz = plotting.pixelSize(
+                    axes.x.scale,
+                    axes.y.scale,
+                    $scope.canvasSize.width,
+                    $scope.canvasSize.height,
+                    axes.x.values,
+                    axes.y.values
+                );
                 const px = Math.round(axes.x.scale(xRange[0] + i * dx) + (fp ? sz.x / 2 : 0));
                 const py = Math.round(axes.y.scale(yRange[0] + j * dy) + (fp ? -sz.y / 2 : 0));
                 try {
