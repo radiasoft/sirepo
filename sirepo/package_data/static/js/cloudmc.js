@@ -847,6 +847,20 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     tallyService.getSourceParticles().map(p => particleColor(p))
                 );
 
+                function clipPosition(pos, dim) {
+                    const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
+                    const s = cloudmcService.GEOMETRY_SCALE;
+                    const r = tallyService.getMeshRanges();
+                    const [rj, rk] = [
+                        r[j].slice(0, 2).map(x => x / s),
+                        r[k].slice(0, 2).map(x => x / s)
+                    ];
+                    return [
+                        Math.min(rj[1], Math.max(rj[0], pos[j])),
+                        Math.min(rk[1], Math.max(rk[0], pos[k])),
+                    ];
+                }
+
                 function particleColor(p) {
                     return tallyService.sourceParticleColorScale(
                         appState.models.openmcAnimation.sourceColorMap
@@ -918,18 +932,36 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     });
                 });
                 placeMarkers();
+                const r = vectorScaleFactor();
+                const s = cloudmcService.GEOMETRY_SCALE;
+                const ranges = tallyService.getMeshRanges();
                 tallyService.getSourceParticles().forEach((p, n) => {
                     const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
+                    const [rj, rk] = [
+                        ranges[j].slice(0, 2).map(x => x / s),
+                        ranges[k].slice(0, 2).map(x => x / s)
+                    ];
+                    srdbg(p.position, j, k, rj, rk);
+                    // clip the position if it is outside the mesh range
+                    // ranges have already been scaled
+                    const pos = clipPosition(p.position, dim);
+                    const endPos = clipPosition(
+                        p.position.map((x, i) => x + r * p.direction[i] / Math.hypot(...p.direction)),
+                        dim
+                    );
+                    srdbg('CL POS', pos, 'CL END', endPos);
+                    const pp1 = pos.map(x => x * s);
                     const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
-                    const r = vectorScaleFactor();
-                    // normalize in the plane
+                    // normalize in the plane and check if perpendicular
                     const d = Math.hypot(p.direction[j], p.direction[k]);
-                    const p2 = [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d];
+                    const p2 = d ? [pp1[0] + r * p.direction[j] / d, pp1[1] + r * p.direction[k] / d] : pp1;
+                    const pp2 = endPos.map(x => x * s);
+                    //srdbg('REAL', [p.position[j], p.position[k]], 'CLIPPED', pos, 'SC', p1, 'CLIP SC', pp1, 'P2', p2);
                     outlines.push({
                         name: `${p.type}-${p.energy}eV-${n}`,
                         color: sourceColor(particleColor(p)),
                         dashes: p.type === 'PHOTON' ? '6 2' : '',
-                        data: [p1, p2].map(p => p.toReversed()),
+                        data: [pp1, pp2].map(p => p.toReversed()),
                         marker: particleId(p),
                     });
                 });
@@ -1034,7 +1066,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     v[dim] = true;
                     SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim].forEach((bv, bi) => {
                         if (! bv && tallyService.mesh.dimension[bi] < SIREPO.APP_SCHEMA.constants.minTallyResolution) {
-                            delete v[dim];
+                            //delete v[dim];
                         }
                     });
                 });
