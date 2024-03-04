@@ -1,3 +1,11 @@
 <div class="container-fluid">
-    <div data-basic-editor-panel="" data-model-name="otherSims" data-view-name="otherSims" data-model="otherSims"></div>
+  <div data-basic-editor-panel="" data-model-name="otherSims" data-view-name="otherSims" data-model="otherSims"></div>
+  <div data-ng-if="comparison.showComparisons()" class="container-fluid">
+    comparisons will go here
+    <div class="col-md-6 col-xxl-4">
+      DICE FOR THIS SIM:
+      <div data-report-panel="parameter" data-model-name="dicePlotAnimation"></div>
+    </div>
+    <div class="col-md-6 col-xxl-4">DICE FOR OTHER SIM</div>
+  </div>
 </div>

@@ -327,8 +327,26 @@ SIREPO.app.controller('DataController', function (activaitService, appState, $sc
 SIREPO.app.controller('ComparisonController', function (activaitService, appState, $scope) {
     const self = this;
     self.activaitService = activaitService;
+    self.compare = false
+    srdbg('appState.models', appState.models);
     // TODO (gurhar1133): function that returns whether to display
     // the comparisons
+
+    self.showComparisons = () => self.compare;
+
+    const processesOtherSims = () => {
+        srdbg('otherSims', appState.models.otherSims);
+        if (appState.models.otherSims.otherSims.length) {
+            srdbg("selected another sim", appState.models.otherSims.otherSims);
+            self.compare = true;
+        } else {
+            srdbg("no selection");
+            self.compare = false;
+        }
+    };
+
+    processesOtherSims();
+    $scope.$on('otherSims.changed', processesOtherSims);
 });
 
 SIREPO.app.controller('ClassificationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
@@ -1575,7 +1593,9 @@ SIREPO.app.directive('dynamicSimList', function(appState, requestSender) {
             const requestSimListByType = (simType) => {
                 requestSender.sendRequest(
                     'listSimulations',
-                    () => {},
+                    () => {
+                        srdbg('appstate.models after', appState.models.otherSims.otherSims);
+                    },
                     {
                         simulationType: simType,
                     }
