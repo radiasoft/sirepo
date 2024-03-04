@@ -261,6 +261,11 @@ def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
 
 
 def sim_frame_dicePlotAnimation(frame_args):
+    pkdp("\n\n\nframe_args.sim_in.models.otherSims={}", frame_args.sim_in.models.otherSims)
+    return _dice(frame_args.sim_in, frame_args.run_dir)
+
+def sim_frame_dicePlotComparisonAnimation(frame_args):
+    pass
     return _dice(frame_args.sim_in, frame_args.run_dir)
 
 

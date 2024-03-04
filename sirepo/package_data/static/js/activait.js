@@ -343,6 +343,7 @@ SIREPO.app.controller('ComparisonController', function (activaitService, appStat
             srdbg("selected another sim", appState.models.otherSims.otherSims);
             self.compare = true;
             otherSimId = appState.models.otherSims.otherSims;
+            appState.saveChanges('otherSims');
         } else {
             srdbg("no selection");
             otherSimId = null;

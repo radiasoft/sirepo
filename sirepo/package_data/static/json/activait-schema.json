@@ -253,6 +253,7 @@
             "advanced": []
         },
         "dicePlotAnimation": {},
+        "dicePlotComparisonAnimation": {},
         "analysisReport": {
             "x": ["X Value", "AnalysisParameter", "0"],
             "y1": ["Y1 Value", "AnalysisParameter", "1"],
@@ -528,6 +529,11 @@
             "advanced": []
         },
         "dicePlotAnimation": {
+            "title": "Dice Coefficient",
+            "advanced": [],
+            "basic": []
+        },
+        "dicePlotComparisonAnimation": {
             "title": "Dice Coefficient",
             "advanced": [],
             "basic": []
