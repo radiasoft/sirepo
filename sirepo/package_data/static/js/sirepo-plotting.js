@@ -3305,14 +3305,14 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             function binCoords(point) {
                 const [i, j] = heatmapIndices(point);
-                const [dx, dy] = binSize();
+                const [dx, dy] = coordBinSize();
                 return [
                     getRange(axes.x.values)[0] + i * dx,
                     getRange(axes.y.values)[0] + j * dy,
                 ];
             }
 
-            function binSize() {
+            function coordBinSize() {
                 const n = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL ? 0 : 1;
                 const xRange = getRange(axes.x.values);
                 const yRange = getRange(axes.y.values);
@@ -3555,6 +3555,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (selectedCell && selectedCell.coords[0] === c.coords[0] && selectedCell.coords[1] === c.coords[1]) {
                     return null;
                 }
+                updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`));
                 return c;
             }
             
@@ -3633,7 +3634,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     mouseMove();
                 });
                 select('.mouse-rect').on('dblclick', mouseClick);
-                //select('.mouse-rect').on('mouseout', mouseClick);
+                select('.mouse-rect').on('mouseout', mouseClick);
                 ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
                 colorbar = Colorbar()
