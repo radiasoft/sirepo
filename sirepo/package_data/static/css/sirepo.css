@@ -1221,3 +1221,7 @@ img.sr-disabled-image {
 .running-icon {
   animation: icon-rotate 2s linear 0s infinite;
 }
+
+.sr-slider {
+  background: var(--sr-action) !important;
+}
