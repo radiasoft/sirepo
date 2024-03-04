@@ -1,23 +1,54 @@
 <div class="container-fluid">
   <div data-basic-editor-panel="" data-model-name="otherSims" data-view-name="otherSims" data-model="otherSims"></div>
   <div data-ng-if="comparison.showComparisons()" class="container-fluid">
-    comparisons will go here
+    <div class="col-md-6 col-xxl-4">THIS SIM</div>
+    <div class="col-md-6 col-xxl-4">Other SIM</div>
+
     <div class="col-md-6 col-xxl-4">
-      DICE FOR THIS SIM:
+      <div data-report-panel="parameter" data-model-name="epochAnimation">
+        <div data-model-download-link="" data-model-name="mlModel"></div>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-xxl-4">
+      fake rn
+      <div data-report-panel="parameter" data-model-name="epochAnimation">
+        <div data-model-download-link="" data-model-name="mlModel"></div>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-xxl-4">
       <div data-report-panel="parameter" data-model-name="dicePlotAnimation"></div>
     </div>
-    <div class="col-md-6 col-xxl-4">DICE FOR OTHER SIM</div>
-    <div class="col-md-6 col-xxl-4" data-ng-repeat="(index, obj) in [['bestLosses', 'best-losses'], ['worstLosses', 'worst-losses']]">
-      Best worst for this sim:
-      <div data-basic-editor-panel="" data-view-name="{{ obj[0] }}">
-        <div data-image-preview-panel="" data-method="{{ obj[0] }}"></div>
+
+    <div class="col-md-6 col-xxl-4"> fake rn
+      <div data-report-panel="parameter" data-model-name="dicePlotAnimation"></div>
+    </div>
+
+    <div class="col-md-6 col-xxl-4">
+      <div data-basic-editor-panel="" data-view-name="bestLosses">
+        <div data-image-preview-panel="" data-method="bestLosses"></div>
       </div>
     </div>
-    <div class="col-md-6 col-xxl-4" data-ng-repeat="(index, obj) in [['bestLosses', 'best-losses'], ['worstLosses', 'worst-losses']]">
-      Best worst for other sim
-      <div data-basic-editor-panel="" data-view-name="{{ obj[0] }}">
-        <div data-image-preview-panel="" data-comparison-info="comparison.comparisonInfo()" data-method="{{ obj[0] }}"></div>
+
+    <div class="col-md-6 col-xxl-4">
+      <div data-basic-editor-panel="" data-view-name="bestLosses">
+        <div data-image-preview-panel="" data-comparison-id="comparison.comparisonId()" data-method="bestLosses"></div>
       </div>
     </div>
+
+    <div class="col-md-6 col-xxl-4">
+      <div data-basic-editor-panel="" data-view-name="worstLosses">
+        <div data-image-preview-panel="" data-method="worstLosses"></div>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-xxl-4">
+      <div data-basic-editor-panel="" data-view-name="worstLosses">
+        <div data-image-preview-panel="" data-comparison-id="comparison.comparisonId()" data-method="worstLosses"></div>
+      </div>
+    </div>
+
+
   </div>
 </div>

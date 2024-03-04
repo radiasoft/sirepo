@@ -328,28 +328,24 @@ SIREPO.app.controller('ComparisonController', function (activaitService, appStat
     const self = this;
     self.activaitService = activaitService;
     self.compare = false;
-    self.otherSimId = null;
+    var otherSimId = null;
     srdbg('appState.models', appState.models);
     // TODO (gurhar1133): function that returns whether to display
     // the comparisons
 
     self.showComparisons = () => self.compare;
 
-    self.comparisonInfo = () => {
-        return {
-            id: this.otherSimId,
-        };
-    }
+    self.comparisonId = () => otherSimId;
 
     const processesOtherSims = () => {
         srdbg('otherSims', appState.models.otherSims);
         if (appState.models.otherSims.otherSims.length) {
             srdbg("selected another sim", appState.models.otherSims.otherSims);
             self.compare = true;
-            this.otherSimId = appState.models.otherSims.otherSims;
+            otherSimId = appState.models.otherSims.otherSims;
         } else {
             srdbg("no selection");
-            this.otherSimId = null;
+            otherSimId = null;
             self.compare = false;
         }
     };
@@ -1154,7 +1150,7 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
         restrict: 'A',
         scope: {
             method: '@',
-            comparisonInfo: '=',
+            comparisonId: '=',
         },
         template: `
         <div class="container-fluid">
@@ -1214,7 +1210,7 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
             $scope.dataFileMissing = false;
             $scope.hasThirdColumn = true;
 
-            srdbg("$scope.comparisonInfo", $scope.comparisonInfo);
+            srdbg("$scope.comparisonId", $scope.comparisonId);
 
             const pageIndex = () => $scope.imageIdx / $scope.imagesPerPage;
 
@@ -1336,7 +1332,7 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
                             imageFilename: 'sample',
                             dataFile: appState.applicationState().dataFile,
                             columnInfo: appState.applicationState().columnInfo,
-                            otherSimId: $scope.comparisonInfo ? $scope.comparisonInfo.id : null,
+                            otherSimId: $scope.comparisonId ? $scope.comparisonId : null,
                         }
                     }
                 );
