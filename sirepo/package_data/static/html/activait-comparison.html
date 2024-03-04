@@ -7,5 +7,17 @@
       <div data-report-panel="parameter" data-model-name="dicePlotAnimation"></div>
     </div>
     <div class="col-md-6 col-xxl-4">DICE FOR OTHER SIM</div>
+    <div class="col-md-6 col-xxl-4" data-ng-repeat="(index, obj) in [['bestLosses', 'best-losses'], ['worstLosses', 'worst-losses']]">
+      Best worst for this sim:
+      <div data-basic-editor-panel="" data-view-name="{{ obj[0] }}">
+        <div data-image-preview-panel="" data-method="{{ obj[0] }}"></div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xxl-4" data-ng-repeat="(index, obj) in [['bestLosses', 'best-losses'], ['worstLosses', 'worst-losses']]">
+      Best worst for other sim
+      <div data-basic-editor-panel="" data-view-name="{{ obj[0] }}">
+        <div data-image-preview-panel="" data-comparison-info="comparison.comparisonInfo()" data-method="{{ obj[0] }}"></div>
+      </div>
+    </div>
   </div>
 </div>

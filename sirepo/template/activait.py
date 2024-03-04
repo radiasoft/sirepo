@@ -364,7 +364,10 @@ def stateful_compute_column_info(data, **kwargs):
 
 
 def analysis_job_sample_images(data, run_dir, **kwargs):
-    return _ImagePreview(data, run_dir).images()
+    d = run_dir
+    if data.args.otherSimId:
+        d = simulation_db.simulation_dir("activait", sid=data.args.otherSimId).join("animation")
+    return _ImagePreview(data, d).images()
 
 
 def stateful_compute_get_activait_sim_list(data, run_dir, **kwargs):
