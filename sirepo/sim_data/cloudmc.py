@@ -41,6 +41,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "settings",
                 "tallyReport",
                 "volumes",
+                "survivalBiasing",
+                "weightWindows",
+                "weightWindowsMesh",
             ),
         )
         for v in dm.volumes:

@@ -71,15 +71,20 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="MaterialValue" data-ng-class="fieldClass">
           <div data-material-list="" data-model="model" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="TallyList" data-ng-class="fieldClass">
+        <div data-ng-switch-when="PlotTallyList" data-ng-class="fieldClass">
           <div class="input-group">
             <select class="form-control" data-ng-model="model[field]" data-ng-options="t.name as t.name for t in model.tallies"></select>
+          </div>
+        </div>
+        <div data-ng-switch-when="SettingsTallyList" data-ng-class="fieldClass">
+          <div class="input-group">
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="t as t.name for t in appState.models.settings.tallies track by t.name"></select>
           </div>
         </div>
         <div data-ng-switch-when="JRange" class="col-sm-5">
           <div data-j-range-slider="" data-ng-model="model[field]" data-model-name="modelName" data-field-name="field" data-model="model" data-field="model[field]"></div>
         </div>
-        <div data-ng-switch-when="ScoreList" data-ng-class="fieldClass">
+        <div data-ng-switch-when="PlotScoreList" data-ng-class="fieldClass">
           <div class="input-group">
             <select class="form-control" data-ng-model="model[field]" data-ng-options="s.score as s.score for s in (model.tallies | filter:{name:model.tally})[0].scores"></select>
           </div>
@@ -2351,14 +2356,24 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
             ['plane1a', 'plane1b', 'plane2a', 'plane2b'],
             appState.models.reflectivePlanes.useReflectivePlanes === '1',
         ]);
-
         panelState.showFields(
             $scope.modelName,
             [
                 ['eigenvalueHistory', 'inactive'], isRunModeEigenvalue,
             ],
         );
-
+        panelState.showFields('survivalBiasing', [
+            ['weight', 'weight_avg'], m.varianceReduction == 'survival_biasing',
+        ]);
+        panelState.showFields('weightWindows', [
+            ['tally', 'iterations', 'particle', 'particles'], m.varianceReduction == 'weight_windows_tally',
+        ]);
+        panelState.showFields('weightWindowsMesh', [
+            ['dimension', 'lower_left', 'upper_right'], m.varianceReduction == 'weight_windows_mesh',
+        ]);
+        panelState.showFields('settings', [
+            ['max_splits'], ['weight_windows_tally', 'weight_windows_mesh'].includes(m.varianceReduction),
+        ]);
         validationService.validateField(
             $scope.modelName,
             'batches',
@@ -2366,7 +2381,6 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
             activeBatches() > 0,
             `Must have at least one active batch (currently ${activeBatches()})`
         );
-
     }
 
     $scope.whenSelected = updateEditor;
@@ -2376,6 +2390,7 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
             `${$scope.modelName}.run_mode`,
             `${$scope.modelName}.batches`,
             `${$scope.modelName}.inactive`,
+            `${$scope.modelName}.varianceReduction`,
             'reflectivePlanes.useReflectivePlanes'
         ], updateEditor,
     ];
