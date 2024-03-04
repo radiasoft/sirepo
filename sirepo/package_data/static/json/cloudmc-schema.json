@@ -315,7 +315,7 @@
         },
         "geometry3DReport": {
             "bgColor": ["Background color", "Color", "#fff9ed"],
-            "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
+            "opacity": ["Global alpha", "JRange", {"min": 0, "max": 1.0, "numSteps": 100, "step": 0.01, "val": 1.0, "space": "linear"}],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"]
         },
@@ -927,9 +927,9 @@
             "aspect": ["Aspect", "TallyAspect", "mean"],
             "bgColor": ["Background color", "Color", "#fff9ed"],
             "colorMap": ["Tally Color Map", "ColorMap", "viridis"],
-            "energyRangeSum": ["Sum over energies [MeV]", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": [0, 1], "space": "linear"}],
+            "energyRangeSum": ["Sum over energies [MeV]", "JRange", {"min": 0, "max": 1, "numSteps": 100, "step": 0.01, "val": [0, 1], "space": "linear"}],
             "numSampleSourceParticles": ["Source Particles to Display", "Integer", 10, "", 0, 100],
-            "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
+            "opacity": ["Global alpha", "JRange", {"min": 0, "max": 1.0, "numSteps": 100, "step": 0.01, "val": 1.0, "space": "linear"}],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
             "showSources": ["Show Sources", "Boolean", "1"],
@@ -1038,7 +1038,7 @@
         "tallyReport": {
             "axis": ["Slice Axis", "Axis", "y"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "planePos": ["_", "Range", 0.0, ""],
+            "planePos": ["Plane Position [m]", "JRange", {"min": 0, "max": 1, "numSteps": 100, "step": 0.01, "val": 0.0, "space": "linear"}, ""],
             "selectedGeometry": ["", "TallyGeometry", "3D"]
         },
         "tallyScore": {
@@ -1214,7 +1214,8 @@
                 "colorMap",
                 "thresholds",
                 "opacity",
-                "tallyReport.axis"
+                "tallyReport.axis",
+                "tallyReport.planePos"
             ],
             "advanced": []
         },
