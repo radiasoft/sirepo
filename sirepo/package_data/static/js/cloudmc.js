@@ -539,24 +539,29 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
     };
 
     self.updateThresholds = () => {
-        const s = Object.keys(self.cachedSettings);
-        // if none of the data-specific settings changed, do not update the thresholds
-        if (s.every((k) => self.cachedSettings[k] === appState.models.openmcAnimation[k])) {
+        function updateCache() {
+            s.forEach(([k, v]) => {
+                self.cachedSettings[k] = appState.models.openmcAnimation[k];
+            });
+        }
+
+        const s = Object.entries(self.cachedSettings);
+        srdbg(s);
+        if (s.every(([k, v]) => v == null)) {
+            updateCache();
             return;
         }
-        s.forEach((k) => {
-            self.cachedSettings[k] = appState.models.openmcAnimation[k];
-        });
+        // if none of the data-specific settings changed, do not update the thresholds
+        if (s.every(([k, v]) => v === appState.models.openmcAnimation[k])) {
+            return;
+        }
+        updateCache();
         const t = appState.models.openmcAnimation.thresholds;
         t.global = [self.minField, self.maxField];
         // since tallies are counts, compare the lower threshold to 0
-        // instead of the global min
-        t.val[0] = Math.max(t.val[0], 0);
-        t.val[1] = Math.min(t.val[1], t.global[1]);
-        // if the lower threshold is now too large, reset to 0
-        if (t.val[0] >= t.val[1]) {
-            t.val[0] = 0;
-        }
+        // instead of the global min. The user can set it to the actual min if desired
+        t.val[0] = 0;
+        t.val[1] = t.global[1];
     };
 
 
