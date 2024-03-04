@@ -221,8 +221,8 @@
         "VarianceReduction": [
             ["None", "None"],
             ["survival_biasing", "Survival Biasing"],
-            ["weight_windows_mesh", "Weight Windows"],
-            ["weight_windows_tally", "Weight Windows for Tally"]
+            ["weight_windows_mesh", "MAGIC Method"],
+            ["weight_windows_tally", "MAGIC Method for Tally"]
         ]
     },
     "dynamicFiles": {
