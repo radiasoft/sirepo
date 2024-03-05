@@ -207,6 +207,7 @@ def sim_frame(frame_args):
 
     try:
         t.find_filter(openmc.EnergyFilter)
+        pkdp("T {} F {}", frame_args.tally, t.filters)
         tally = _get_tally(frame_args.sim_in.models.settings.tallies, frame_args.tally)
         v = _sum_energy_bins(
             v,
@@ -387,7 +388,8 @@ def write_volume_outlines():
 
 
 def _bin(val, num_bins, min_val, max_val):
-    return numpy.ceil(
+    pkdp("V {} N {} MN {} MX {}", val, num_bins, min_val, max_val)
+    return numpy.floor(
         num_bins * abs(val - min_val) / abs(max_val - min_val)
     ).astype(int)
 
@@ -421,6 +423,7 @@ def _energy_plot(run_dir, data):
     mesh = _get_filter(tally, "meshFilter")
     e = _get_filter(tally, "energyFilter")
     r = data.models.energyReport
+    pkdp("R {}", r)
     for s in [s.score for s in tally.scores]:
         mean = numpy.reshape(
             getattr(t, "mean")[:, :, t.get_score_index(s)].ravel(),
@@ -428,9 +431,9 @@ def _energy_plot(run_dir, data):
         )
         bins = [
             #_bin(r[dim].val, mesh.dimension[i], r[dim].min, r[dim].max) for i, dim in enumerate(('x', 'y', 'z'))
-            _bin(r.coords[i], mesh.dimension[i], mesh.lower_left[i], mesh.upper_right[i]) for i in range(3)
+            _bin(r.coords[i], mesh.dimension[i], mesh.lower_left[i] * SCHEMA.constants.geometryScale, mesh.upper_right[i] * SCHEMA.constants.geometryScale) for i in range(3)
         ]
-        pkdp("R {} BINS {}", r, bins)
+        pkdp("BINS {}", bins)
         plots.append(
             PKDict(
                 points=mean[bins[0]][bins[1]][bins[2]].tolist(),

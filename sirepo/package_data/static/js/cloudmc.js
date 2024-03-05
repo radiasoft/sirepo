@@ -781,13 +781,14 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             function setBins(hVal, vVal) {
                 const [k, i, j] = tallyReportAxisIndices();
-                //appState.models.energyReport[x].val = hVal;
-                //appState.models.energyReport[y].val = vVal;
-                //appState.models.energyReport[z].val = appState.models.tallyReport.planePos;
-                //appState.models.energyReport.coords = [0, 0, 0];
+                const [z, x, y] = tallyReportAxes();
+                appState.models.energyReport[x].val = hVal;
+                appState.models.energyReport[y].val = vVal;
+                appState.models.energyReport[z].val = appState.models.tallyReport.planePos.val;
+
                 appState.models.energyReport.coords[i] = hVal;
                 appState.models.energyReport.coords[j] = vVal;
-                appState.models.energyReport.coords[k] = appState.models.tallyReport.planePos;
+                appState.models.energyReport.coords[k] = appState.models.tallyReport.planePos.val;
                 srdbg(appState.models.energyReport);
 
                 appState.saveChanges('energyReport');
