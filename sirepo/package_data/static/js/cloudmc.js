@@ -945,14 +945,15 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             }
 
             function sumDisplay(val) {
+                const sumRange = appState.models.openmcAnimation.energyRangeSum;
                 if ($scope.energyFilter.space === 'linear') {
                     return val;
                 }
                 return SIREPO.UTILS.formatFloat(
-                    SIREPO.UTILS.linearToLog(val, $scope.sumRange.min, $scope.sumRange.max, $scope.sumRange.step),
+                    SIREPO.UTILS.linearToLog(val, sumRange.min, sumRange.max, sumRange.step),
                     4
                 );
-            };
+            }
 
             function tallyReportAxes() {
                 return [
