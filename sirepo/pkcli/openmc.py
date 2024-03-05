@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""CLI for CloudMC
+"""CLI for OpenMC
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -40,7 +40,7 @@ def extract_dagmc(dagmc_filename):
 def run(cfg_dir):
     template_common.exec_parameters()
     data = sirepo.simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    sirepo.template.import_module("cloudmc").extract_report_data(
+    sirepo.template.import_module("openmc").extract_report_data(
         pkio.py_path(cfg_dir), data
     )
 

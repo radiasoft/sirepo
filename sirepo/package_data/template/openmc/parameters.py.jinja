@@ -89,7 +89,7 @@ create_settings()
 create_tallies()
 {% if not isPythonSource %}
 import sirepo.template
-sirepo.template.import_module('cloudmc').write_volume_outlines()
+sirepo.template.import_module('openmc').write_volume_outlines()
 {% endif %}
 {% if runCommand %}
 {{ runCommand }}

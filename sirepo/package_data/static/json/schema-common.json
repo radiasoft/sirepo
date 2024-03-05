@@ -16,9 +16,9 @@
             "longName": "Controls",
             "shortName": "Controls"
         },
-        "cloudmc": {
-            "longName": "CloudMC",
-            "shortName": "CloudMC"
+        "openmc": {
+            "longName": "OpenMC",
+            "shortName": "OpenMC"
         },
         "elegant": {
             "longName": "elegant",
@@ -97,7 +97,8 @@
         "fete": "/warpvnd",
         "ml": "/activait",
         "plans": "/en/plans.html",
-        "warp": "/warppba"
+        "warp": "/warppba",
+        "cloudmc": "/openmc"
     },
     "route": {
         "adjustSupervisorSrtime": "/adjust-supervisor-srtime/?<days>",

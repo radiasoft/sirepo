@@ -802,5 +802,5 @@
             }
         }
     },
-    "simulationType": "cloudmc"
+    "simulationType": "openmc"
 }
