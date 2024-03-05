@@ -1757,7 +1757,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
             $scope.volumeOpacityChanged = (row) => {
                 broadcastVolumePropertyChanged(row.volId, 'opacity', row.opacity.val);
             };
-        
+
             $scope.volumePropertyChanged = (row, prop) => {
                 broadcastVolumePropertyChanged(row.volId, prop, row[prop]);
             };
@@ -2355,7 +2355,8 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
             ['weight', 'weight_avg'], m.varianceReduction == 'survival_biasing',
         ]);
         panelState.showFields('weightWindows', [
-            ['tally', 'iterations', 'particle', 'particles'], m.varianceReduction == 'weight_windows_tally',
+            ['tally', 'iterations', 'particles'], m.varianceReduction == 'weight_windows_tally',
+            ['particle'], ['weight_windows_tally', 'weight_windows_mesh'].includes(m.varianceReduction),
         ]);
         panelState.showFields('weightWindowsMesh', [
             ['dimension', 'lower_left', 'upper_right'], m.varianceReduction == 'weight_windows_mesh',
@@ -2694,7 +2695,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     range.min !== range.max;
                 return v;
             }
-            
+
             function updateSlider() {
                 slider = buildSlider();
             }
@@ -2767,7 +2768,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'axis', is2D,
             'planePos', is2D && planePosHasSteps,
         ]);
-        
+
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
         panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
         panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);

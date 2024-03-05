@@ -1319,6 +1319,7 @@
                     "weightWindowsMesh.dimension",
                     "weightWindowsMesh.lower_left",
                     "weightWindowsMesh.upper_right",
+                    "weightWindows.particle",
                     "weightWindows.particles",
                     "max_splits"
                 ]]
