@@ -375,8 +375,8 @@
             "dimensionality": ["Dimensionality", "Integer", 10],
             "activation": ["Activation", "NeuralNetActivation", "relu"]
         },
-        "otherSims": {
-            "otherSims": ["Other Model", "SimList", []]
+        "comparisonSims": {
+            "compareSim": ["Other Model", "SimList", []]
         },
         "activation": {
             "layer": ["Layer", "NeuralNetLayer", "Activation"],
@@ -762,10 +762,10 @@
             "title": "Neural Network Layers",
             "advanced": []
         },
-        "otherSims": {
+        "comparisonSims": {
             "title": "Compare With",
             "basic": [
-                "otherSims"
+                "compareSim"
             ],
             "advanced": []
         },
