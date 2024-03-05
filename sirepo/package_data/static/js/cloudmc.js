@@ -830,7 +830,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     tallyService.getSourceParticles().map(p => particleColor(p))
                 );
 
-                function clipPosition(pos, dim) {
+                function isPosOutsideMesh(pos, dim) {
                     const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                     const s = cloudmcService.GEOMETRY_SCALE;
                     const r = tallyService.getMeshRanges();
@@ -838,6 +838,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                         r[j].slice(0, 2).map(x => x / s),
                         r[k].slice(0, 2).map(x => x / s)
                     ];
+                    return pos[j] < rj[0] || pos[j] > rj[1] || pos[k] < rk[0] || pos[k]  > rk[1];
                     return [
                         Math.min(rj[1], Math.max(rj[0], pos[j])),
                         Math.min(rk[1], Math.max(rk[0], pos[k])),
@@ -916,35 +917,21 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 });
                 placeMarkers();
                 const r = vectorScaleFactor();
-                const s = cloudmcService.GEOMETRY_SCALE;
-                const ranges = tallyService.getMeshRanges();
+                const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                 tallyService.getSourceParticles().forEach((p, n) => {
-                    const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
-                    const [rj, rk] = [
-                        ranges[j].slice(0, 2).map(x => x / s),
-                        ranges[k].slice(0, 2).map(x => x / s)
-                    ];
-                    srdbg(p.position, j, k, rj, rk);
-                    // clip the position if it is outside the mesh range
-                    // ranges have already been scaled
-                    const pos = clipPosition(p.position, dim);
-                    const endPos = clipPosition(
-                        p.position.map((x, i) => x + r * p.direction[i] / Math.hypot(...p.direction)),
-                        dim
-                    );
-                    srdbg('CL POS', pos, 'CL END', endPos);
-                    const pp1 = pos.map(x => x * s);
+                    // ignore sources outside the plotting range
+                    if (isPosOutsideMesh(p.position, dim)) {
+                        return;
+                    }
                     const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
                     // normalize in the plane and check if perpendicular
                     const d = Math.hypot(p.direction[j], p.direction[k]);
-                    const p2 = d ? [pp1[0] + r * p.direction[j] / d, pp1[1] + r * p.direction[k] / d] : pp1;
-                    const pp2 = endPos.map(x => x * s);
-                    //srdbg('REAL', [p.position[j], p.position[k]], 'CLIPPED', pos, 'SC', p1, 'CLIP SC', pp1, 'P2', p2);
+                    const p2 = d ? [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d] : p1;
                     outlines.push({
                         name: `${p.type}-${p.energy}eV-${n}`,
                         color: sourceColor(particleColor(p)),
                         dashes: p.type === 'PHOTON' ? '6 2' : '',
-                        data: [pp1, pp2].map(p => p.toReversed()),
+                        data: [p1, p2].map(p => p.toReversed()),
                         marker: particleId(p),
                     });
                 });
