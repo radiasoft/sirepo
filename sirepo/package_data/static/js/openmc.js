@@ -2778,11 +2778,6 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
         appState.saveChanges('openmcAnimation');
     }
 
-<<<<<<< HEAD:sirepo/package_data/static/js/openmc.js
-    openmcService.buildRangeDelegate($scope.modelName, 'opacity');
-
-=======
->>>>>>> master:sirepo/package_data/static/js/cloudmc.js
     $scope.whenSelected = () => {
         updateEnergyRange();
         showFields();
