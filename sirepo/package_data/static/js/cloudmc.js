@@ -909,8 +909,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 const r = vectorScaleFactor();
                 const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                 tallyService.getSourceParticles().forEach((p, n) => {
-                    // ignore sources outside the plotting range
                     const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
+                    // ignore sources outside the plotting range
                     if (isPosOutsideMesh(p1, j, k)) {
                         return;
                     }
