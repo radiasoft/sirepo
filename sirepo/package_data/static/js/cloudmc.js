@@ -1025,7 +1025,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     v[dim] = true;
                     SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim].forEach((bv, bi) => {
                         if (! bv && tallyService.mesh.dimension[bi] < SIREPO.APP_SCHEMA.constants.minTallyResolution) {
-                            //delete v[dim];
+                            delete v[dim];
                         }
                     });
                 });
