@@ -324,8 +324,10 @@ SIREPO.app.controller('DataController', function (activaitService, appState, $sc
     self.showImageViewer = () => activaitService.isImageData() && appState.models.imageViewerShow;
 });
 
-SIREPO.app.controller('ComparisonController', function (activaitService, appState, $scope) {
+SIREPO.app.controller('ComparisonController', function (activaitService, appState, frameCache, persistentSimulation, $scope) {
     const self = this;
+    self.simScope = $scope;
+    self.simAnalysisModel = 'fitAnimation';
     self.activaitService = activaitService;
     self.compare = false;
     var otherSimId = null;
@@ -338,18 +340,28 @@ SIREPO.app.controller('ComparisonController', function (activaitService, appStat
     self.comparisonId = () => otherSimId;
 
     const processesOtherSims = () => {
+        srdbg('appState.models', appState.models);
         srdbg('otherSims', appState.models.otherSims);
         if (appState.models.otherSims.otherSims.length) {
             srdbg("selected another sim", appState.models.otherSims.otherSims);
             self.compare = true;
             otherSimId = appState.models.otherSims.otherSims;
-            appState.saveChanges('otherSims');
+            appState.models.dicePlotComparisonAnimation.otherSimId = otherSimId;
+            appState.saveChanges('dicePlotComparisonAnimation');
+            // appState.saveChanges('otherSims');
         } else {
             srdbg("no selection");
             otherSimId = null;
             self.compare = false;
         }
     };
+
+    self.simHandleStatus = data => {
+        self.reports = null;
+        frameCache.setFrameCount(data.frameCount || 0);
+    };
+
+    self.simState = persistentSimulation.initSimulationState(self);
 
     processesOtherSims();
     $scope.$on('otherSims.changed', processesOtherSims);

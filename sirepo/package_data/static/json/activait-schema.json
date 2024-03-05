@@ -198,6 +198,7 @@
     },
     "frameIdFields": {
         "animation": ["columnNumber", "appMode"],
+        "dicePlotComparisonAnimation": ["otherSimId"],
         "dtClassifierClassificationMetricsAnimation": [],
         "dtClassifierConfusionMatrixAnimation": [],
         "epochAnimation": [],
@@ -253,7 +254,9 @@
             "advanced": []
         },
         "dicePlotAnimation": {},
-        "dicePlotComparisonAnimation": {},
+        "dicePlotComparisonAnimation": {
+            "otherSimId": ["", "String", ""]
+        },
         "analysisReport": {
             "x": ["X Value", "AnalysisParameter", "0"],
             "y1": ["Y1 Value", "AnalysisParameter", "1"],
