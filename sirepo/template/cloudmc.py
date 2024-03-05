@@ -445,7 +445,7 @@ def _energy_plot(run_dir, data):
         plots,
         PKDict(),
         PKDict(
-            title=f"Energy Spectrum at ({round(r.x.val, ndigits=6)}, {round(r.y.val, ndigits=6)}, {round(r.z.val, ndigits=6)})",
+            title=f"Energy Spectrum at ({round(r.coords[0], ndigits=6)}, {round(r.coords[1], ndigits=6)}, {round(r.coords[2], ndigits=6)})",
             y_label="Score",
             x_label="Energy [eV]",
             summaryData=PKDict(),
