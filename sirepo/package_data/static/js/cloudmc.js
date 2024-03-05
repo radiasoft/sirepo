@@ -678,9 +678,6 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                         <a href data-ng-click="setSelectedGeometry('3D')">3D</a>
                     </li>
                 </ul>
-                <div data-ng-if="energyFilter()" class="pull-right">
-                  <label>Energy &Sigma; {{ sumDisplay(sumRange.val[0]) }}-{{ sumDisplay(sumRange.val[1]) }} MeV</label>
-                </div>
                 <div data-ng-if="is3D()">
                     <div data-report-content="geometry3d" data-model-key="{{ modelName }}"></div>
                 </div>
@@ -793,7 +790,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     global_max: tallyService.maxField,
                     global_min: tallyService.getMinWithThreshold(),
                     threshold: appState.models.openmcAnimation.threshold,
-                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(pos, 6)}m`,
+                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(pos, 6)}m${energySumLabel()}`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
@@ -814,6 +811,11 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     displayRanges.z,
                 ]
                     .map((x, i) => [fieldIndex(x.min, r[i], i), fieldIndex(x.max, r[i], i)]);
+            }
+
+            function energySumLabel() {
+                const sumRange = appState.models.openmcAnimation.energyRangeSum;
+                return $scope.energyFilter ? ` / Energy ∑ ${sumDisplay(sumRange.val[0])}-${sumDisplay(sumRange.val[1])} MeV` : '';
             }
 
             function fieldIndex(pos, range, dimIndex) {
