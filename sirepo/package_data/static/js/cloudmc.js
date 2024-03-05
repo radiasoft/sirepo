@@ -2738,9 +2738,9 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
 
                 const v = range.val;
                 if (range.space === 'linear') {
-                    return $scope.formatFloat(v);
+                    return Array.isArray(v) ? v.map(x => $scope.formatFloat(x)) : $scope.formatFloat(v);
                 }
-                return Array.isArray(v) ? v.map(x => toLog(x, range)) : toLog(v);
+                return Array.isArray(v) ? v.map(x => $scope.formatFloat(toLog(x, range))) : $scope.formatFloat(toLog(v));
             };
             $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
             $scope.hasSteps = () => hasSteps;
