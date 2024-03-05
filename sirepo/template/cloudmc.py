@@ -423,17 +423,15 @@ def _energy_plot(run_dir, data):
     mesh = _get_filter(tally, "meshFilter")
     e = _get_filter(tally, "energyFilter")
     r = data.models.energyReport
-    pkdp("R {}", r)
     for s in [s.score for s in tally.scores]:
         mean = numpy.reshape(
             getattr(t, "mean")[:, :, t.get_score_index(s)].ravel(),
             (*mesh.dimension, -1)
         )
         bins = [
-            #_bin(r[dim].val, mesh.dimension[i], r[dim].min, r[dim].max) for i, dim in enumerate(('x', 'y', 'z'))
-            _bin(r.coords[i], mesh.dimension[i], mesh.lower_left[i] * SCHEMA.constants.geometryScale, mesh.upper_right[i] * SCHEMA.constants.geometryScale) for i in range(3)
+            _bin(r[dim].val, mesh.dimension[i], r[dim].min, r[dim].max) for i, dim in enumerate(('x', 'y', 'z'))
+            #_bin(r.coords[i], mesh.dimension[i], mesh.lower_left[i] * SCHEMA.constants.geometryScale, mesh.upper_right[i] * SCHEMA.constants.geometryScale) for i in range(3)
         ]
-        pkdp("BINS {}", bins)
         plots.append(
             PKDict(
                 points=mean[bins[0]][bins[1]][bins[2]].tolist(),
@@ -448,7 +446,8 @@ def _energy_plot(run_dir, data):
         plots,
         PKDict(),
         PKDict(
-            title=f"Energy Spectrum at ({round(r.coords[0], ndigits=6)}, {round(r.coords[1], ndigits=6)}, {round(r.coords[2], ndigits=6)})",
+            #title=f"Energy Spectrum at ({round(r.coords[0], ndigits=6)}, {round(r.coords[1], ndigits=6)}, {round(r.coords[2], ndigits=6)})",
+            title=f"Energy Spectrum at ({round(r.x.val, ndigits=6)}, {round(r.y.val, ndigits=6)}, {round(r.z.val, ndigits=6)})",
             y_label="Score",
             x_label="Energy [eV]",
             summaryData=PKDict(),

@@ -518,6 +518,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
             min: r[0] + f * s,
             max: r[1] - f * s,
             step: s,
+            space: 'linear',
         };
     };
 
@@ -789,7 +790,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 appState.models.energyReport.coords[i] = hVal;
                 appState.models.energyReport.coords[j] = vVal;
                 appState.models.energyReport.coords[k] = appState.models.tallyReport.planePos.val;
-                srdbg(appState.models.energyReport);
 
                 appState.saveChanges('energyReport');
             }
@@ -1013,9 +1013,16 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 }
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
+                    updateRangeField(appState.models.energyReport[dim], displayRanges[dim]);
                 });
                 updateVisibleAxes();
                 updateSliceAxis();
+            }
+
+            function updateRangeField(f, range) {
+                ['min', 'max', 'step'].forEach((x) => {
+                    f[x] = range[x];
+                });
             }
 
             function updateSlice() {
@@ -1034,9 +1041,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     return ;
                 }
                 const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
-                ['min', 'max', 'step'].forEach((x) => {
-                    appState.models.tallyReport.planePos[x] = r[x];
-                });
+                updateRangeField(appState.models.tallyReport.planePos, r)
+                //['min', 'max', 'step'].forEach((x) => {
+                //    appState.models.tallyReport.planePos[x] = r[x];
+                //});
                 updateSlice();
             }
 
@@ -2741,7 +2749,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 if (range.space === 'linear') {
                     return Array.isArray(v) ? v.map(x => $scope.formatFloat(x)) : $scope.formatFloat(v);
                 }
-                return Array.isArray(v) ? v.map(x => $scope.formatFloat(toLog(x, range))) : $scope.formatFloat(toLog(v));
+                return Array.isArray(v) ? v.map(x => $scope.formatFloat(toLog(x, range))) : $scope.formatFloat(toLog(v, range));
             };
             $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
             $scope.hasSteps = () => hasSteps;
