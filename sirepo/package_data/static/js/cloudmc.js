@@ -130,23 +130,6 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
         };
     };
 
-    self.buildRangeDelegate = (modelName, field) => {
-        const d = panelState.getFieldDelegate(modelName, field);
-        d.range = () => {
-            return {
-                min: appState.fieldProperties(modelName, field).min,
-                max: appState.fieldProperties(modelName, field).max,
-                step: 0.01
-            };
-        };
-        d.readout = () => {
-            return appState.modelInfo(modelName)[field][SIREPO.INFO_INDEX_LABEL];
-        };
-        d.update = () => {};
-        d.watchFields = [];
-        return d;
-    };
-
     self.canNormalizeScore = score => ! SIREPO.APP_SCHEMA.constants.unnormalizableScores.includes(score);
 
     self.computeModel = modelKey => modelKey;
@@ -799,7 +782,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 const [z, x, y] = tallyReportAxes();
                 const [n, m, l] = tallyReportAxisIndices();
                 const ranges = tallyService.getMeshRanges();
-                const pos = appState.models.tallyReport.planePos;
+                const pos = appState.models.tallyReport.planePos.val;
 
                 // for now set the aspect ratio to something reasonable even if it distorts the shape
                 const arRange = [0.50, 1.25];
@@ -815,7 +798,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     global_max: tallyService.maxField,
                     global_min: tallyService.getMinWithThreshold(),
                     threshold: appState.models.openmcAnimation.threshold,
-                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(appState.models.tallyReport.planePos, 6)}m`,
+                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(pos, 6)}m`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
@@ -1009,16 +992,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             }
 
             function updateSliceAxis() {
-                function adjustToRange(val, range) {
-                    if (val < range.min) {
-                        return range.min;
-                    }
-                    if (val > range.max) {
-                        return  range.max;
-                    }
-                    return range.min + range.step * Math.round((val - range.min) / range.step);
-                }
-
                 if (! tallyService.fieldData) {
                     return;
                 }
@@ -1026,10 +999,9 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     return ;
                 }
                 const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
-                appState.models.tallyReport.planePos = adjustToRange(
-                    appState.models.tallyReport.planePos,
-                    r
-                );
+                ['min', 'max', 'step'].forEach((x) => {
+                    appState.models.tallyReport.planePos[x] = r[x];
+                });
                 updateSlice();
             }
 
@@ -1297,7 +1269,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 colorbar.element.scale($scope.colorScale);
                 colorbar.element.pointer = d3.select('.colorbar').call(colorbar.element);
                 const sc = [];
-                const o = Math.floor(255 * appState.models.openmcAnimation.opacity);
+                const o = Math.floor(255 * appState.models.openmcAnimation.opacity.val);
                 for (const f of tallyService.fieldData) {
                     if (! isInFieldThreshold(f)) {
                         continue;
@@ -1469,7 +1441,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     const a = volumeAppearance(cloudmcService.getVolumeById(volId));
                     b.setActorProperty(
                         'opacity',
-                        a.actorProperties.opacity * model().opacity
+                        a.actorProperties.opacity * model().opacity.val
                     );
                     b.setActorProperty(
                         'edgeVisibility',
@@ -1514,7 +1486,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 return {
                     actorProperties: {
                         color: v.color,
-                        opacity: v.opacity,
+                        opacity: v.opacity.val,
                         edgeVisibility: model().showEdges === '1',
                     },
                     visibilityKey: 'isVisible',
@@ -1633,7 +1605,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     `${$scope.modelName}.colorMap`,
                     `${$scope.modelName}.opacity`,
                     `${$scope.modelName}.sourceColorMap`,
-                ], updateDisplay);
+                ], updateDisplay, true);
                 appState.watchModelFields($scope, [`${$scope.modelName}.showSources`], showSources, true);
                 $scope.$on('openmcAnimation.summaryData', () => {
                     if (vtkScene) {
@@ -1716,14 +1688,15 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                       <input
                         id="volume-{{ row.name }}-color" type="color"
                         class="sr-color-button" data-ng-model="row.color"
-                        data-ng-change="broadcastVolumePropertyChanged(row, 'color')" />
+                        data-ng-change="volumePropertyChanged(row, 'color')" />
                     </div>
                     <div class="col-sm-9" style="margin-top: 10px">
-                      <input
-                        id="volume-{{ row.name }}-opacity-range" type="range"
-                        min="0" max="1.0" step="0.01" data-ng-model="row.opacity"
-                        data-ng-change="broadcastVolumePropertyChanged(row, 'opacity')" />
-                    </div>
+                      <div
+                        id="volume-{{ row.name }}-opacity-range" data-j-range-slider=""
+                        data-ng-model="row" data-model-name="row.name"
+                        data-field-name="'opacity'" data-model="row"
+                        data-field="row.opacity" data-on-change="volumeOpacityChanged(row)">
+                      </div>
                   </div>
                 </div>
               </div>
@@ -1734,6 +1707,16 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
             let editRowKey = null;
             let prevOffset = 0;
 
+            function broadcastVolumePropertyChanged(volId, prop, val) {
+                appState.saveQuietly('volumes');
+                $rootScope.$broadcast(
+                    'sr-volume-property.changed',
+                    volId,
+                    prop,
+                    val
+                );
+            }
+
             function loadRows() {
                 $scope.rows = [];
                 for (const n in appState.models.volumes) {
@@ -1742,7 +1725,14 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                     if (! row.color) {
                         row.name = n;
                         row.color = randomColor();
-                        row.opacity = 0.3;
+                        row.opacity = {
+                            "max": 1.0,
+                            "min": 0,
+                            "numSteps": 100,
+                            "space": "linear",
+                            "step": 0.01,
+                            "val": 0.3
+                        };
                         row.isVisible = true;
                         row.isVisibleWithTallies = false;
                     }
@@ -1764,13 +1754,12 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                 editRowKey = null;
             }
 
-            $scope.broadcastVolumePropertyChanged = (row, prop) => {
-                appState.saveQuietly('volumes');
-                $rootScope.$broadcast(
-                    'sr-volume-property.changed',
-                    row.volId,
-                    prop,
-                    row[prop]);
+            $scope.volumeOpacityChanged = (row) => {
+                broadcastVolumePropertyChanged(row.volId, 'opacity', row.opacity.val);
+            };
+        
+            $scope.volumePropertyChanged = (row, prop) => {
+                broadcastVolumePropertyChanged(row.volId, prop, row[prop]);
             };
 
             $scope.editMaterial = (row) => {
@@ -2615,14 +2604,14 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             fieldName: '<',
             model: '=',
             modelName: '<',
+            onChange: '&',
         },
         template: `
-            <div data-label-with-tooltip="" data-label=""></div>
             <div class="{{ sliderClass }}"></div>
             <div style="display:flex; justify-content:space-between;">
-                    <span>{{ formatFloat(field.min) }}</span>
-                    <span>{{ display(field) }}</span>
-                    <span>{{ formatFloat(field.max) }}</span>
+                <span>{{ formatFloat(field.min) }}</span>
+                <span style="font-weight: bold;">{{ display(field) }}</span>
+                <span>{{ formatFloat(field.max) }}</span>
             </div>
         `,
         controller: function($scope, $element) {
@@ -2650,7 +2639,8 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
 
             function buildSlider() {
                 const range = $scope.field;
-                hasSteps = range.min !== range.max;
+                range.numSteps = Math.floor(Math.abs((range.max - range.min)) / range.step);
+                hasSteps = ! ! range.numSteps;
                 if (! hasSteps) {
                     return;
                 }
@@ -2665,9 +2655,13 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     val = adjustToRange(val, range);
                 }
                 sel.slider({
+                    classes: {
+                        'ui-slider': 'ui-widget-header',
+                        'ui-slider-range': 'sr-slider',
+                    },
                     min: range.min,
                     max: range.max,
-                    range: isMulti,
+                    range: isMulti ? true : 'min',
                     slide: (e, ui) => {
                         // prevent handles from having the same value
                         if (isMulti && ui.values[0] === ui.values[1]) {
@@ -2679,6 +2673,9 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                             }
                             else {
                                 $scope.field.val = ui.value;
+                            }
+                            if ($scope.onChange) {
+                                $scope.onChange();
                             }
                         });
                     },
@@ -2692,14 +2689,14 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 return sel;
             }
 
-            function updateSlider() {
-                slider = buildSlider();
-            }
-
             function isValid(range) {
                 const v = [range.min, range.max, range.step].every(x => x != null) &&
                     range.min !== range.max;
                 return v;
+            }
+            
+            function updateSlider() {
+                slider = buildSlider();
             }
 
             $scope.display = (range) => {
@@ -2709,7 +2706,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
 
                 const v = range.val;
                 if (range.space === 'linear') {
-                    return v;
+                    return $scope.formatFloat(v);
                 }
                 return Array.isArray(v) ? v.map(x => toLog(x, range)) : toLog(v);
             };
@@ -2737,94 +2734,6 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('planePositionSlider', function(appState, tallyService) {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: `
-            <div data-ng-show="hasSteps()">
-                <div data-label-with-tooltip="" data-label="Plane position"></div>
-                <div class="plane-pos-slider"></div>
-                <div style="display:flex; justify-content:space-between;">
-                     <span>{{ formatFloat(tallyService.tallyRange(appState.models.tallyReport.axis, true).min) }}</span>
-                     <span>{{ formatFloat(tallyService.tallyRange(appState.models.tallyReport.axis, true).max) }}</span>
-                </div>
-            </div>
-        `,
-        controller: function($scope) {
-            $scope.appState = appState;
-            $scope.tallyService = tallyService;
-            let planePosSlider = null;
-            let hasSteps = false;
-
-            function buildSlider(modelName, field, selectorString, range) {
-                hasSteps = range.min != range.max;
-                if (! hasSteps) {
-                    return;
-                }
-                const sel = $(selectorString);
-                const val = appState.models[modelName][field];
-                const isMulti = Array.isArray(val);
-                if (isMulti) {
-                    if (val[0] < range.min) {
-                        val[0] = range.min;
-                    }
-                    if (val[1] > range.max) {
-                        val[1] = range.max;
-                    }
-                }
-                sel.slider({
-                    min: range.min,
-                    max: range.max,
-                    range: isMulti,
-                    slide: (e, ui) => {
-                        $scope.$apply(() => {
-                            if (isMulti) {
-                                appState.models[modelName][field][ui.handleIndex] = ui.value;
-                            }
-                            else {
-                                appState.models[modelName][field] = ui.value;
-                            }
-                        });
-                    },
-                    step: range.step,
-                });
-                // jqueryui sometimes decrements the max by the step value due to floating-point
-                // shenanigans. Reset it here
-                sel.slider('instance').max = range.max;
-                sel.slider('option', isMulti ? 'values' : 'value', val);
-                sel.slider('option', 'disabled', range.min === range.max);
-                return sel;
-            }
-
-            function updateSlider() {
-                const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
-                planePosSlider = buildSlider(
-                    'tallyReport',
-                    'planePos',
-                    '.plane-pos-slider',
-                    r
-                );
-            }
-
-            $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
-            $scope.hasSteps = () => hasSteps;
-
-            appState.watchModelFields($scope, ['tallyReport.planePos', 'tallyReport.axis'], updateSlider, true);
-            $scope.$on('tallyReport.summaryData', updateSlider);
-            $scope.$on('openmcAnimation.summaryData', updateSlider);
-            updateSlider();
-
-            $scope.$on('$destroy', () => {
-                if (planePosSlider) {
-                    planePosSlider.slider('destroy');
-                    planePosSlider = null;
-                }
-            });
-        },
-    };
-});
-
 SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
     return {
         restrict: 'A',
@@ -2832,9 +2741,6 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
         template: `
             <div data-tally-volume-picker=""></div>
             <div data-advanced-editor-pane="" data-view-name="'tallySettings'" data-want-buttons="" data-field-def="basic"></div>
-            <div data-ng-if="is2D()">
-                <div plane-position-slider=""></div>
-            </div>
         `,
         controller: function($scope) {
             $scope.is2D = () => {
@@ -2852,13 +2758,16 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
 
     function showFields() {
         const is2D = appState.models.tallyReport.selectedGeometry === '2D';
+        const planePosHasSteps = (appState.models.tallyReport.planePos.numSteps || 0) > 0;
         const showSources = appState.models.openmcAnimation.showSources === '1';
         panelState.showFields('openmcAnimation', [
             'opacity', ! is2D,
         ]);
         panelState.showFields('tallyReport', [
             'axis', is2D,
+            'planePos', is2D && planePosHasSteps,
         ]);
+        
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
         panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
         panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);
@@ -2884,8 +2793,6 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         appState.saveChanges('openmcAnimation');
     }
 
-    cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
-
     $scope.whenSelected = () => {
         updateEnergyRange();
         showFields();
@@ -2909,10 +2816,4 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         ], showFields,
     ];
 
-});
-
-SIREPO.viewLogic('geometry3DReportView', function(cloudmcService, $scope) {
-    $scope.whenSelected = () => {
-        cloudmcService.buildRangeDelegate($scope.modelName, 'opacity');
-    };
 });

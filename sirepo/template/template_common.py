@@ -103,7 +103,7 @@ class LogParser(PKDict):
 
     def parse_for_errors(self):
         p = self.run_dir.join(self.log_filename)
-        if not p.exists():
+        if not p.exists() or p.size() <= 0:
             return ""
         res = ""
         e = set()
