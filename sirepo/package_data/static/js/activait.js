@@ -5,7 +5,12 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
     SIREPO.PLOTTING_COLOR_MAP = 'blues';
-    SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation', 'dicePlotAnimation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = [
+        'epochAnimation',
+        'epochComparisonAnimation',
+        'dicePlotAnimation',
+        'dicePlotComparisonAnimation',
+    ];
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.FILE_UPLOAD_TYPE = {
         'dataFile-file': '.h5,.csv',
@@ -331,28 +336,20 @@ SIREPO.app.controller('ComparisonController', function (activaitService, appStat
     self.activaitService = activaitService;
     self.compare = false;
     var otherSimId = null;
-    srdbg('appState.models', appState.models);
-    // TODO (gurhar1133): function that returns whether to display
-    // the comparisons
 
     self.showComparisons = () => self.compare;
 
     self.comparisonId = () => otherSimId;
 
     const processesOtherSims = () => {
-        srdbg('appState.models', appState.models);
-        srdbg('otherSims', appState.models.otherSims);
         if (appState.models.otherSims.otherSims.length) {
-            srdbg("selected another sim", appState.models.otherSims.otherSims);
             self.compare = true;
             otherSimId = appState.models.otherSims.otherSims;
             appState.models.dicePlotComparisonAnimation.otherSimId = otherSimId;
             appState.models.epochComparisonAnimation.otherSimId = otherSimId;
             appState.saveChanges('dicePlotComparisonAnimation');
             appState.saveChanges('epochComparisonAnimation');
-            // appState.saveChanges('otherSims');
         } else {
-            srdbg("no selection");
             otherSimId = null;
             self.compare = false;
         }
@@ -366,6 +363,7 @@ SIREPO.app.controller('ComparisonController', function (activaitService, appStat
     self.simState = persistentSimulation.initSimulationState(self);
 
     processesOtherSims();
+
     $scope.$on('otherSims.changed', processesOtherSims);
 });
 
