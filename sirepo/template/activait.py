@@ -271,9 +271,8 @@ def sim_frame_dicePlotComparisonAnimation(frame_args):
     return _dice(frame_args.sim_in, d)
 
 
-def sim_frame_epochAnimation(frame_args):
-    # TODO(pjm): improve heading text
-    d = pandas.read_csv(str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile)))
+def _epoch_plot(run_dir):
+    d = pandas.read_csv(str(run_dir.join(_OUTPUT_FILE.fitCSVFile)))
     return _report_info(
         list(d.index),
         [
@@ -288,6 +287,17 @@ def sim_frame_epochAnimation(frame_args):
             x_label="epoch",
         )
     )
+
+
+def sim_frame_epochComparisonAnimation(frame_args):
+    pkdp("\n\n\n other simid in epoch comparison={}", frame_args.otherSimId)
+    d = simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join("animation")
+    return _epoch_plot(d)
+
+
+def sim_frame_epochAnimation(frame_args):
+    # TODO(pjm): improve heading text
+    return _epoch_plot(frame_args.run_dir)
 
 
 def sim_frame_knnClassificationMetricsAnimation(frame_args):

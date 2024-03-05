@@ -347,7 +347,9 @@ SIREPO.app.controller('ComparisonController', function (activaitService, appStat
             self.compare = true;
             otherSimId = appState.models.otherSims.otherSims;
             appState.models.dicePlotComparisonAnimation.otherSimId = otherSimId;
+            appState.models.epochComparisonAnimation.otherSimId = otherSimId;
             appState.saveChanges('dicePlotComparisonAnimation');
+            appState.saveChanges('epochComparisonAnimation');
             // appState.saveChanges('otherSims');
         } else {
             srdbg("no selection");

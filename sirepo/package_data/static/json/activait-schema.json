@@ -202,6 +202,7 @@
         "dtClassifierClassificationMetricsAnimation": [],
         "dtClassifierConfusionMatrixAnimation": [],
         "epochAnimation": [],
+        "epochComparisonAnimation": ["otherSimId"],
         "knnClassificationMetricsAnimation": [],
         "knnConfusionMatrixAnimation": [],
         "knnErrorRateAnimation": [],
@@ -312,6 +313,10 @@
         },
         "epochAnimation": {
             "plotScale": ["Plot Scale", "PlotScale", "linear"]
+        },
+        "epochComparisonAnimation": {
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
+            "otherSimId": ["", "String", ""]
         },
         "fftReport": {
             "column":  ["Column", "AnalysisParameter", "0"]
@@ -643,6 +648,12 @@
             ]
         },
         "epochAnimation": {
+            "title": "Training Error",
+            "advanced": [
+                "plotScale"
+            ]
+        },
+        "epochComparisonAnimation": {
             "title": "Training Error",
             "advanced": [
                 "plotScale"
