@@ -830,19 +830,9 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     tallyService.getSourceParticles().map(p => particleColor(p))
                 );
 
-                function isPosOutsideMesh(pos, dim) {
-                    const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
-                    const s = cloudmcService.GEOMETRY_SCALE;
+                function isPosOutsideMesh(pos, j, k) {
                     const r = tallyService.getMeshRanges();
-                    const [rj, rk] = [
-                        r[j].slice(0, 2).map(x => x / s),
-                        r[k].slice(0, 2).map(x => x / s)
-                    ];
-                    return pos[j] < rj[0] || pos[j] > rj[1] || pos[k] < rk[0] || pos[k]  > rk[1];
-                    return [
-                        Math.min(rj[1], Math.max(rj[0], pos[j])),
-                        Math.min(rk[1], Math.max(rk[0], pos[k])),
-                    ];
+                    return pos[j] < r[j][0] || pos[j] > r[j][1] || pos[k] < r[k][0] || pos[k]  > r[k][1];
                 }
 
                 function particleColor(p) {
@@ -920,10 +910,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                 tallyService.getSourceParticles().forEach((p, n) => {
                     // ignore sources outside the plotting range
-                    if (isPosOutsideMesh(p.position, dim)) {
+                    const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
+                    if (isPosOutsideMesh(p1, j, k)) {
                         return;
                     }
-                    const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
                     // normalize in the plane and check if perpendicular
                     const d = Math.hypot(p.direction[j], p.direction[k]);
                     const p2 = d ? [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d] : p1;
