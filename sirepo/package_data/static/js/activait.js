@@ -53,7 +53,7 @@ SIREPO.app.config(() => {
           <div data-x-column="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
         <div data-ng-switch-when="SimList" data-ng-class="fieldClass">
-          <div data-dynamic-sim-list="" data-model="model" data-field="field"></div>
+          <div data-activait-sim-list="" data-model="model" data-field="field"></div>
         </div>
     `;
     SIREPO.appReportTypes = `
@@ -1587,7 +1587,7 @@ SIREPO.app.directive('plotActionButtons', function(appState) {
     };
 });
 
-SIREPO.app.directive('dynamicSimList', function(appState, requestSender) {
+SIREPO.app.directive('activaitSimList', function(appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
