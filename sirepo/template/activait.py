@@ -267,7 +267,9 @@ def sim_frame_dicePlotAnimation(frame_args):
 def sim_frame_dicePlotComparisonAnimation(frame_args):
     return _dice(
         frame_args.sim_in,
-        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join("animation"),
+        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
+            "animation"
+        ),
     )
 
 
@@ -291,7 +293,9 @@ def _epoch_plot(run_dir):
 
 def sim_frame_epochComparisonAnimation(frame_args):
     return _epoch_plot(
-        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join("animation")
+        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
+            "animation"
+        )
     )
 
 
@@ -383,7 +387,9 @@ def stateful_compute_column_info(data, **kwargs):
 def analysis_job_sample_images(data, run_dir, **kwargs):
     d = run_dir
     if data.args.otherSimId:
-        d = simulation_db.simulation_dir("activait", sid=data.args.otherSimId).join("animation")
+        d = simulation_db.simulation_dir("activait", sid=data.args.otherSimId).join(
+            "animation"
+        )
     return _ImagePreview(data, d).images()
 
 
@@ -391,7 +397,7 @@ def stateful_compute_get_activait_sim_list(data, run_dir, **kwargs):
     def _data_file_name(simulation_id):
         p = pkio.py_path(
             simulation_db.find_global_simulation(
-                'activait',
+                "activait",
                 simulation_id,
                 checked=True,
             )
@@ -402,32 +408,15 @@ def stateful_compute_get_activait_sim_list(data, run_dir, **kwargs):
             ).models.dataFile.file
         return ""
 
-    # TODO (gurhar1133): this might all be handled better using a
-    # private object
-    this_sim_path = pkio.py_path(
-        simulation_db.find_global_simulation(
-            'activait',
-            data.simulationId,
-            checked=True,
-        )
-    )
-    this_data_file = _data_file_name(data.simulationId)
-    all_sims = sorted(
-        simulation_db.iterate_simulation_datafiles(
-            'activait',
-            simulation_db.process_simulation_list,
-        ),
-        key=lambda row: row["name"],
-    )
     res = []
-    for sim in all_sims:
-        if sim.simulationId != data.simulationId and this_sim_path.join("animation").exists():
-            f = _data_file_name(sim.simulationId)
-            if f == this_data_file:
+    for sim in _sims():
+        if (
+            sim.simulationId != data.simulationId
+            and _sim_path(data.simulationId).join("animation").exists()
+        ):
+            if _data_file_name(sim.simulationId) == _data_file_name(data.simulationId):
                 res.append(sim)
-    return PKDict(
-        simList=res
-    )
+    return PKDict(simList=res)
 
 
 def stateful_compute_get_remote_data(data, **kwargs):
@@ -1581,6 +1570,26 @@ def _set_outbound(neural_net):
             if "outbound" in c:
                 c.outbound.append(l.obj)
     return neural_net
+
+
+def _sims():
+    return sorted(
+        simulation_db.iterate_simulation_datafiles(
+            "activait",
+            simulation_db.process_simulation_list,
+        ),
+        key=lambda row: row["name"],
+    )
+
+
+def _sim_path(sim_id):
+    return pkio.py_path(
+        simulation_db.find_global_simulation(
+            "activait",
+            sim_id,
+            checked=True,
+        )
+    )
 
 
 def _update_range(vrange, values):
