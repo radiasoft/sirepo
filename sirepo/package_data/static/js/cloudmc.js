@@ -1007,7 +1007,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 }
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
-                    updateRangeField(appState.models.energyReport[dim], displayRanges[dim]);
+                    updateRangeField(appState.models.energyReport[dim], tallyService.tallyRange(dim, true));
                 });
                 updateVisibleAxes();
                 updateSliceAxis();
@@ -1036,9 +1036,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 }
                 const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
                 updateRangeField(appState.models.tallyReport.planePos, r)
-                //['min', 'max', 'step'].forEach((x) => {
-                //    appState.models.tallyReport.planePos[x] = r[x];
-                //});
                 updateSlice();
             }
 
@@ -2374,6 +2371,20 @@ SIREPO.app.directive('tallyAspects', function() {
             };
         },
     };
+});
+
+SIREPO.viewLogic('energyReportView', function(appState, panelState, $scope) {
+    function updateEditor() {
+        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+            panelState.showField($scope.modelName, dim, appState.models[$scope.modelName][dim].numSteps > 0);
+        });
+    }
+
+    $scope.whenSelected = updateEditor;
+
+    $scope.watchFields = [
+        SIREPO.GEOMETRY.GeometryUtils.BASIS().map(dim => `${$scope.modelName}.${dim}`), updateEditor,
+    ];
 });
 
 SIREPO.viewLogic('settingsView', function(appState, panelState, validationService, $scope) {

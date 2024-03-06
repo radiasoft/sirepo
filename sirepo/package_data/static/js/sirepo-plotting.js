@@ -3444,14 +3444,14 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return [values[0], values[values.length - 1]];
             }
 
-            const mouseDblClick = utilities.debounce(() => {
+            function mouseDblClick() {
                 selectedCell = selectCell();
                 updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`));
                 $scope.broadcastEvent({
                     name: 'heatmapSelectCell',
                     cell: selectedCell,
                 });
-            }, 1000);
+            }
 
             const mouseMove = utilities.debounce(() => {
                 /*jshint validthis: true*/
@@ -3634,7 +3634,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     mouseMove();
                 });
                 select('.mouse-rect').on('dblclick', mouseDblClick);
-                select('.mouse-rect').on('mouseout', mouseDblClick);
                 ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
                 colorbar = Colorbar()
