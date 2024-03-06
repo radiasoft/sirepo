@@ -265,7 +265,7 @@ SIREPO.app.directive('appHeader', function(appState, activaitService) {
                     return info.shape[idx].slice(1, info.shape[idx].length).length > 1;
                 }
                 return false;
-            }
+            };
         },
     };
 });
@@ -322,16 +322,16 @@ SIREPO.app.controller('ComparisonController', function (activaitService, appStat
     self.simScope = $scope;
     self.simAnalysisModel = 'fitAnimation';
     self.activaitService = activaitService;
-    self.compare = false;
+    var compare = false;
     var otherSimId = null;
 
-    self.showComparisons = () => self.compare;
+    self.showComparisons = () => compare;
 
     self.comparisonId = () => otherSimId;
 
     const setComparisonSim = () => {
         if (appState.models.comparisonSims.compareSim.length) {
-            self.compare = true;
+            compare = true;
             otherSimId = appState.models.comparisonSims.compareSim;
             appState.models.dicePlotComparisonAnimation.otherSimId = otherSimId;
             appState.models.epochComparisonAnimation.otherSimId = otherSimId;
@@ -339,7 +339,7 @@ SIREPO.app.controller('ComparisonController', function (activaitService, appStat
             appState.saveChanges('epochComparisonAnimation');
         } else {
             otherSimId = null;
-            self.compare = false;
+            compare = false;
         }
     };
 
