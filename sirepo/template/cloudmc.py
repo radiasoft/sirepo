@@ -388,8 +388,7 @@ def write_volume_outlines():
 
 
 def _bin(val, num_bins, min_val, max_val):
-    pkdp("V {} N {} MN {} MX {}", val, num_bins, min_val, max_val)
-    return numpy.floor(
+    return 0 if min_val == max_val else numpy.floor(
         num_bins * abs(val - min_val) / abs(max_val - min_val)
     ).astype(int)
 
