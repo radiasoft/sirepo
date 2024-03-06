@@ -3428,7 +3428,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             function mouseDblClick() {
                 selectedCell = selectCell();
-                srdbg('SEL', selectedCell);
                 $scope.broadcastEvent({
                     name: 'heatmapSelectCell',
                     cell: selectedCell,
@@ -3440,33 +3439,18 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
-                const fp = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL;
                 const point = mouseMovePoint;
-                const xRange = getRange(axes.x.values);
-                const yRange = getRange(axes.y.values);
-
                 const [i, j] = heatmapIndices(point);
-                const c = binCoords(point);
-
-                const sz = plotting.pixelSize(
-                    axes.x.scale,
-                    axes.y.scale,
-                    $scope.canvasSize.width,
-                    $scope.canvasSize.height,
-                    axes.x.values,
-                    axes.y.values
-                );
-                const px = Math.round(axes.x.scale(c[0]) + (fp ? sz.x / 2 : 0));
-                const py = Math.round(axes.y.scale(c[1]) + (fp ? -sz.y / 2 : 0));
+                const p = getPixel(binCoords(point));
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                     if (showCrosshairs) {
                         updateCrosshairs(
                             select(overlaySelector).selectAll(`line.${crosshairClass}`),
-                            px,
-                            py,
-                            Math.round(axes.x.scale(xRange[1])),
-                            Math.round(axes.y.scale(yRange[0]))
+                            p.x,
+                            p.y,
+                            Math.round(axes.x.scale(getRange(axes.x.values)[1])),
+                            Math.round(axes.y.scale(getRange(axes.y.values)[0]))
                         );
                     }
                 }
