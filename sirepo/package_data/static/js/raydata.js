@@ -98,7 +98,7 @@ SIREPO.app.factory('columnsService', function(appState, requestSender, $rootScop
     }
 
     self.defaultColumns = (analysisStatus) => {
-        const res = ['status', 'start', 'stop', 'suid'];
+        const res = ['status', 'detailed_status', 'start', 'stop', 'suid'];
         if (analysisStatus == 'queued') {
             res.splice(1, 0, 'queue order');
         }

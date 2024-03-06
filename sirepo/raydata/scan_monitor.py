@@ -79,6 +79,10 @@ class _DbBase:
         self.session.commit()
 
 
+def _get_detailed_status(rduid):
+    return "abc"
+
+
 class _Analysis(_DbBase):
     __tablename__ = "analysis_t"
     rduid = sqlalchemy.Column(sqlalchemy.String(36), nullable=False, primary_key=True)
@@ -101,7 +105,14 @@ class _Analysis(_DbBase):
             .order_by(sqlalchemy.desc("last_updated"))
             .limit(num_scans)
         ):
-            r.append(PKDict(rduid=x.rduid, status=x.status, catalog_name=catalog_name))
+            r.append(
+                PKDict(
+                    rduid=x.rduid,
+                    status=x.status,
+                    detailed_status=_get_detailed_status(x.rduid),
+                    catalog_name=catalog_name,
+                )
+            )
         return r
 
     @classmethod
@@ -127,7 +138,12 @@ class _Analysis(_DbBase):
         for s in statuses:
             for x in cls.search_all_by(catalog_name=catalog_name, status=s):
                 r.append(
-                    PKDict(rduid=x.rduid, status=x.status, catalog_name=catalog_name)
+                    PKDict(
+                        rduid=x.rduid,
+                        status=x.status,
+                        detailed_status=_get_detailed_status(x.rduid),
+                        catalog_name=catalog_name,
+                    )
                 )
         return r
 
@@ -338,6 +354,7 @@ class _RequestHandler(_JsonPostRequestHandler):
         )
         for s in l:
             s.status = d.get(s.rduid, _AnalysisStatus.NONE)
+            s.detailed_status = _get_detailed_status(s.rduid)
         return l, pc
 
     def _request_analysis_output(self, req_data):
@@ -591,11 +608,12 @@ def _scan_index(rduid, req_data):
     return _SCANS_AWAITING_ANALYSIS.index(s) if s in _SCANS_AWAITING_ANALYSIS else -1
 
 
-def _scan_info(rduid, status, req_data, all_columns):
+def _scan_info(rduid, status, detailed_status, req_data, all_columns):
     m = sirepo.raydata.databroker.get_metadata(rduid, req_data.catalogName)
     d = PKDict(
         rduid=rduid,
         status=status,
+        detailed_status=detailed_status,
         pdf=sirepo.raydata.analysis_driver.get(
             PKDict(rduid=rduid, **req_data)
         ).has_analysis_pdfs(),
@@ -635,7 +653,10 @@ def _scan_info_result(scans, page_count, req_data):
         return -1 if v1 < v2 else 1
 
     all_columns = set()
-    s = [_scan_info(x.rduid, x.status, req_data, all_columns) for x in scans]
+    s = [
+        _scan_info(x.rduid, x.status, x.detailed_status, req_data, all_columns)
+        for x in scans
+    ]
     if req_data.analysisStatus in ("recentlyExecuted", "queued"):
         s = sorted(
             s,

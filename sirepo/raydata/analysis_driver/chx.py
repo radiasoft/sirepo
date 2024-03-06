@@ -19,12 +19,13 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
     def get_notebooks(self):
         return [
             PKDict(
-                input_f=_cfg.input_base_dir.join(
-                    self._scan_metadata.get_start_field("cycle"),
-                    "AutoRuns",
-                    self._scan_metadata.get_start_field("user"),
-                    f"{self._scan_metadata.get_start_field('auto_pipeline')}.ipynb",
-                ),
+                input_f="/home/vagrant/src/radiasoft/raydata/dev_notebooks/chx/2023_2/AutoRuns/commissioning/XPCS_SAXS_2023_v2-detailed-status.ipynb",
+                # input_f=_cfg.input_base_dir.join(
+                #     self._scan_metadata.get_start_field("cycle"),
+                #     "AutoRuns",
+                #     self._scan_metadata.get_start_field("user"),
+                #     f"{self._scan_metadata.get_start_field('auto_pipeline')}.ipynb",
+                # ),
                 output_f=_cfg.output_base_dir.join(
                     self._scan_metadata.get_start_field("cycle"),
                     self._scan_metadata.get_start_field("user"),
