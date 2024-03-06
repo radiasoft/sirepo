@@ -3321,15 +3321,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     Math.abs((yRange[1] - yRange[0])) / (heatmap.length - n),
                 ];
             }
-            
-            function clearOverlay() {
-                selectedCell = null
-                updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`));
-                $scope.broadcastEvent({
-                    name: 'heatmapSelectCell',
-                    cell: selectedCell,
-                });
-            }
 
             function colorbarSize() {
                 var tickFormat = colorbar.tickFormat();
@@ -3428,6 +3419,9 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             function mouseDblClick() {
                 selectedCell = selectCell();
+                if (! d3.event.altKey) {
+                    return;
+                }
                 $scope.broadcastEvent({
                     name: 'heatmapSelectCell',
                     cell: selectedCell,
@@ -3439,9 +3433,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
-                const point = mouseMovePoint;
-                const [i, j] = heatmapIndices(point);
-                const p = getPixel(binCoords(point));
+                const [i, j] = heatmapIndices(mouseMovePoint);
+                const p = getPixel(binCoords(mouseMovePoint));
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                     if (showCrosshairs) {
@@ -3521,7 +3514,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     return null;
                 }
                 const p = getPixel(c.coords);
-                updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), p.x, p.y, p.width, p.height);
+                updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`), p.width, p.height);
                 return c;
             }
             
@@ -3552,16 +3545,20 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return false;
             }
 
-            function updateCellHighlight(selection, x, y, w, h) {
+            function updateCellHighlight(selection, w, h) {
+                if (! d3.event || ! d3.event.altKey) {
+                    return;
+                }
                 if (! cellHighlight) {
                     return;
                 }
-                if (! mouseMovePoint || x === undefined) {
+                if (w === undefined) {
                     return;
                 }
+                srdbg('MMP', mouseMovePoint, w, h, d3.event);
                 selection
-                    .attr('x', x - w / 2)
-                    .attr('y', y - h / 2)
+                    .attr('x', (d) => axes.x.scale(d.coords[0]) - w / 2)
+                    .attr('y', (d) => axes.y.scale(d.coords[1]) - h / 2)
                     .attr('width', w)
                     .attr('height', h);
             }
