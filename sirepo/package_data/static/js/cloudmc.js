@@ -1752,7 +1752,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
             $scope.volumeOpacityChanged = (row) => {
                 broadcastVolumePropertyChanged(row.volId, 'opacity', row.opacity.val);
             };
-        
+
             $scope.volumePropertyChanged = (row, prop) => {
                 broadcastVolumePropertyChanged(row.volId, prop, row[prop]);
             };
@@ -2601,8 +2601,9 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
         `,
         controller: function($scope, $element) {
             $scope.appState = appState;
-            $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`;
 
+            $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`.replace(/ /g, "-");
+            srdbg($scope.modelName, $scope.fieldName);
             let hasSteps = false;
             let slider = null;
             const watchFields = ['min', 'max', 'step'].map(x => `model[fieldName].${x}`);
@@ -2630,6 +2631,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     return;
                 }
                 const sel = $(`.${$scope.sliderClass}`);
+                srdbg("SLIDER CLASS =", $scope.sliderClass);
                 let val = range.val;
                 const isMulti = Array.isArray(val);
                 if (isMulti) {
@@ -2668,6 +2670,8 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 });
                 // jqueryui sometimes decrements the max by the step value due to floating-point
                 // shenanigans. Reset it here
+                srdbg('sel=', sel);
+                srdbg('sel.slider(instance)=', sel.slider('instance'));
                 sel.slider('instance').max = range.max;
                 sel.slider('option', isMulti ? 'values' : 'value', val);
                 sel.slider('option', 'disabled', ! isValid(range));
@@ -2679,7 +2683,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     range.min !== range.max;
                 return v;
             }
-            
+
             function updateSlider() {
                 slider = buildSlider();
             }
@@ -2752,7 +2756,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'axis', is2D,
             'planePos', is2D && planePosHasSteps,
         ]);
-        
+
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
         panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
         panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);
