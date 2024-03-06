@@ -337,10 +337,10 @@ SIREPO.app.controller('ComparisonController', function (activaitService, appStat
             appState.models.epochComparisonAnimation.otherSimId = otherSimId;
             appState.saveChanges('dicePlotComparisonAnimation');
             appState.saveChanges('epochComparisonAnimation');
-        } else {
-            otherSimId = null;
-            compare = false;
+            return;
         }
+        otherSimId = null;
+        compare = false;
     };
 
     self.simHandleStatus = data => {
