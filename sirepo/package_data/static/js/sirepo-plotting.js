@@ -3514,7 +3514,9 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     point: mouseMovePoint,
                     coords: binnedCoords(mouseMovePoint),        
                 };
-                updateCellHighlight(select(overlaySelector).selectAll(`rect.${cellHighlightClass}`));
+                const p = getPixel(binnedCoords(mouseMovePoint));
+                srdbg('C', selectedCells[0], 'PX', p, 'BC', binnedCoords([p.x, p.y]));
+                drawOverlay();
             }
             
             function setColorScale() {
@@ -3545,7 +3547,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             }
 
             function updateCellHighlight(selection) {
-                srdbg(selectedCells);
                 selection
                     .attr('x', (d) => axes.x.scale(d.coords[0]))
                     .attr('y', (d) => axes.y.scale(d.coords[1]))
@@ -3701,6 +3702,13 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             $scope.$on(`${$scope.modelName}.reload`, (e, d) => {
                 $scope.load(d);
+            });
+
+            $scope.$on(`${$scope.modelName}.updateSelection`, (e, d) => {
+                selectedCells[0] = {
+                    coords: d,
+                }
+                drawOverlay();
             });
 
         },

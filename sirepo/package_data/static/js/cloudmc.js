@@ -407,6 +407,14 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         );
     };
 
+    self.getEnergyReportCoords = () => {
+        const [x, y] = SIREPO.GEOMETRY.GeometryUtils.nextAxes(appState.models.tallyReport.axis).reverse();
+        return [
+            appState.models.energyReport[x].val,
+            appState.models.energyReport[y].val,
+        ]
+    };
+
     self.getMaxMeshExtent = () => {
         let e = 0;
         for (const r of self.getMeshRanges()) {
@@ -816,7 +824,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     z_matrix: reorderFieldData(tallyService.mesh.dimension)[fieldIndex(pos, ranges[n], n)],
                     z_range: ranges[n],
                     overlayData: getOutlines(pos, ranges[n], n),
-                    selectedCoords: $scope.energyFilter ? getCoords() : null,
+                    selectedCoords: $scope.energyFilter ? tallyService.getEnergyReportCoords() : null,
                 };
                 panelState.setData('tallyReport', r);
                 $scope.$broadcast('tallyReport.reload', r);
@@ -2371,7 +2379,7 @@ SIREPO.app.directive('tallyAspects', function() {
     };
 });
 
-SIREPO.viewLogic('energyReportView', function(appState, panelState, $scope) {
+SIREPO.viewLogic('energyReportView', function(appState, panelState, tallyService, $rootScope, $scope) {
     function updateEditor() {
         SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
             panelState.showField($scope.modelName, dim, appState.models[$scope.modelName][dim].numSteps > 0);
@@ -2383,6 +2391,13 @@ SIREPO.viewLogic('energyReportView', function(appState, panelState, $scope) {
     $scope.watchFields = [
         SIREPO.GEOMETRY.GeometryUtils.BASIS().map(dim => `${$scope.modelName}.${dim}`), updateEditor,
     ];
+
+    $scope.$on('modelChanged', (e, name) => {
+        if (name === $scope.modelName) {
+            $rootScope.$broadcast('tallyReport.updateSelection', tallyService.getEnergyReportCoords());
+        }
+    });
+    
 });
 
 SIREPO.viewLogic('settingsView', function(appState, panelState, validationService, $scope) {
