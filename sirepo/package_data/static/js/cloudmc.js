@@ -736,22 +736,11 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
             $scope.reportCfg = {
+                //TODO replace with css class
                 cellHighlight: {
                     color: 'red',
                     strokeWidth: '2.0',
                 },
-                crosshairs: [
-                    {
-                        dim: 'x',
-                        color: 'white',
-                        strokeWidth: '1.0',  
-                    },
-                    {
-                        dim: 'y',
-                        color: 'white',
-                        strokeWidth: '1.0',  
-                    },                  
-                ],
                 showCrosshairs: ! ! $scope.energyFilter,
             };
             const displayRanges = {};
@@ -788,6 +777,14 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 appState.saveChanges('energyReport');
             }
 
+            function getCoords() {
+                const [z, x, y] = tallyReportAxes();
+                return [
+                    appState.models.energyReport[x].val,
+                    appState.models.energyReport[y].val,
+                ]
+            }
+
             function buildTallyReport() {
                 if (! tallyService.mesh) {
                     return;
@@ -819,6 +816,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     z_matrix: reorderFieldData(tallyService.mesh.dimension)[fieldIndex(pos, ranges[n], n)],
                     z_range: ranges[n],
                     overlayData: getOutlines(pos, ranges[n], n),
+                    selectedCoords: $scope.energyFilter ? getCoords() : null,
                 };
                 panelState.setData('tallyReport', r);
                 $scope.$broadcast('tallyReport.reload', r);
