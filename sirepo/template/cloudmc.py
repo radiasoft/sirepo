@@ -752,9 +752,13 @@ def _statepoint_filename(data):
 
 def _weight_windows_run_command(data):
     ww = data.models.weightWindows
+    idx = 0
+    for idx, t in enumerate(data.models.settings.tallies):
+        if ww.tally == t.name:
+            break
     return f"""
 with openmc.lib.run_in_memory():
-    tally = openmc.lib.tallies[{int(ww.tally._index) + 1}]
+    tally = openmc.lib.tallies[{idx + 1}]
     wws = openmc.lib.WeightWindows.from_tally(tally, particle="{ww.particle}")
 
     for i in range({ww.iterations}):

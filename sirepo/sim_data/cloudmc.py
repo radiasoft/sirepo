@@ -76,6 +76,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             ),
         ):
             dm[m][f] = _float_to_j_range(dm[m][f], sch.model[m][f])
+        if "tally" in dm.weightWindows and not isinstance(dm.weightWindows.tally, str):
+            del dm.weightWindows["tally"]
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
