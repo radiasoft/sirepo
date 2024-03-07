@@ -1805,7 +1805,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
             $scope.volumeOpacityChanged = (row) => {
                 broadcastVolumePropertyChanged(row.volId, 'opacity', row.opacity.val);
             };
-        
+
             $scope.volumePropertyChanged = (row, prop) => {
                 broadcastVolumePropertyChanged(row.volId, prop, row[prop]);
             };
@@ -2675,7 +2675,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
         `,
         controller: function($scope, $element) {
             $scope.appState = appState;
-            $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`.replace(/\s/g, '-');
+            $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`.replace(/ /g, '-');
 
             let hasSteps = false;
             let slider = null;
@@ -2753,7 +2753,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     range.min !== range.max;
                 return v;
             }
-            
+
             function updateSlider() {
                 slider = buildSlider();
             }
@@ -2826,7 +2826,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'axis', is2D,
             'planePos', is2D && planePosHasSteps,
         ]);
-        
+
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
         panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
         panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);
