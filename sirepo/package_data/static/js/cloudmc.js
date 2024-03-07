@@ -73,12 +73,12 @@ SIREPO.app.config(() => {
         </div>
         <div data-ng-switch-when="PlotTallyList" data-ng-class="fieldClass">
           <div class="input-group">
-            <select class="form-control" data-ng-model="model[field]" data-ng-options="t.name as t.name for t in model.tallies"></select>
+            <div data-tally-list="model.tallies" data-model="model" data-field="field"></div>
           </div>
         </div>
         <div data-ng-switch-when="SettingsTallyList" data-ng-class="fieldClass">
           <div class="input-group">
-            <select class="form-control" data-ng-model="model[field]" data-ng-options="t as t.name for t in appState.models.settings.tallies track by t.name"></select>
+            <div data-tally-list="appState.models.settings.tallies" data-model="model" data-field="field"></div>
           </div>
         </div>
         <div data-ng-switch-when="JRange" class="col-sm-5">
@@ -2747,6 +2747,32 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
             $scope.is2D = () => {
                 return appState.models.tallyReport.selectedGeometry === '2D';
             };
+        },
+    };
+});
+
+SIREPO.app.directive('tallyList', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            tallyList: '=',
+        },
+        template: `
+            <select class="form-control" data-ng-model="model[field]"
+              data-ng-options="t as t for t in tallyNames"></select>
+        `,
+        controller: function($scope) {
+            function updateNames() {
+                $scope.tallyNames = $scope.tallyList.map(t => t.name, $scope.tallyList);
+                if ($scope.tallyNames.length && ! $scope.tallyNames.includes($scope.model[$scope.field])) {
+                    // default to first tally if the current values is invalid
+                    $scope.model[$scope.field] = $scope.tallyNames[0];
+                }
+            }
+            $scope.$watch('tallyList', updateNames);
+            updateNames();
         },
     };
 });
