@@ -3074,6 +3074,10 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         }
     };
 
+    self.stopRunStatus = (qi) => {
+        cancelInterval(qi);
+    };
+
     $rootScope.$on('$routeChangeSuccess', self.cancelAllItems);
     $rootScope.$on('clearCache', self.cancelTransientItems);
 
@@ -3397,6 +3401,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                 }
             }
             return stringsService.ucfirst(simulationStatus().state);
+        };
+
+        state.stopRunStatus = () => {
+            simulationQueue.stopRunStatus(state.simulationQueueItem);
         };
 
         state.resetSimulation();
