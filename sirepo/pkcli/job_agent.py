@@ -319,11 +319,10 @@ class _Dispatcher(PKDict):
             self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
         )
         for c in list(self.cmds):
-            if c.op_id in msg.opIdsToCancel:
+            if c.op_id == msg.opIdToCancel:
                 pkdlog("cmd={}", c)
                 c.destroy()
-        remove a opIdsToCancel and have a single
-        then call cancel to the proxy
+        # then call cancel to the proxy
         return None
 
     async def _op_io(self, msg):
@@ -697,8 +696,9 @@ class _FastCgiProxy(PKDict):
         self._process = None
 
     def send_cancel(self, msg):
-        kill the subprocess. that could be replied to
-        _do_compute can return the pid of the subprocess
+        # kill the subprocess. that could be replied to
+        # _do_compute can return the pid of the subprocess
+        pass
 
     def send_cmd(self, msg):
         if self._process is None:

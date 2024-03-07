@@ -271,7 +271,7 @@ class _Supervisor(PKDict):
                 is_destroyed=False,
                 kind=to_cancel.kind,
                 max_run_secs=None,
-                msg=PKDict(opIdsToCancel=[to_cancel.op_id]),
+                msg=PKDict(opIdToCancel=to_cancel.op_id),
                 op_name=job.OP_CANCEL,
                 uid=to_cancel.driver.uid,
             )

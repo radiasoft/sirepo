@@ -71,20 +71,6 @@ class _AbruptSocketCloseError(Exception):
     pass
 
 
-def _background_percent_complete(msg, template, is_running):
-    return template.background_percent_complete(
-        sirepo.sim_data.get_class(msg.simulationType).parse_model(msg.data),
-        msg.runDir,
-        is_running,
-    ).pksetdefault(
-        # TODO(robnagler) this is incorrect, because we want to see file updates
-        #   not just our polling frequency
-        lastUpdateTime=lambda: _mtime_or_now(msg.runDir),
-        frameCount=0,
-        percentComplete=0.0,
-    )
-
-
 def _dispatch_compute(msg, template):
     def _err(error, **kwargs):
         pkdlog(
@@ -132,6 +118,39 @@ def _do_cancel(msg, template):
 
 
 def _do_compute_run(msg, template):
+    def _exit(success_exit):
+        try:
+            return _exit_success() if success_exit else _exit_failure()
+        except Exception as e:
+            return PKDict(state=job.ERROR, error=e, stack=pkdexc())
+
+    def _exit_failure():
+        a = _post_processing()
+        if not a:
+            f = msg.runDir.join(template_common.RUN_LOG)
+            if f.exists():
+                a = _parse_python_errors(pkio.read_text(f))
+        if not a:
+            a = "non-zero exit code"
+        return PKDict(state=job.ERROR, error=a)
+
+    def _exit_post_processing():
+        if hasattr(template, "post_execution_processing"):
+            return template.post_execution_processing(
+                compute_model=msg.computeModel,
+                sim_id=msg.simulationId,
+                success_exit=success_exit,
+                is_parallel=msg.isParallel,
+                run_dir=msg.runDir,
+            )
+        return None
+
+    def _exit_success():
+        return PKDict(
+            state=job.COMPLETED,
+            alert=_exit_post_processing(),
+        )
+
     msg.runDir = pkio.py_path(msg.runDir)
     with msg.runDir.join(template_common.RUN_LOG).open("w") as run_log:
         p = subprocess.Popen(
@@ -149,6 +168,7 @@ def _do_compute_run(msg, template):
             r = p.poll()
             i = r is None
             if not i:
+should this be all signal kills?
                 if r == -signal.SIGKILL:
                     return PKDict(
                         state=job.ERROR,
@@ -161,14 +181,7 @@ def _do_compute_run(msg, template):
             _write_parallel_status(msg, template, i)
         if i:
             continue
-        return _on_do_compute_exit(
-            r == 0,
-            msg.isParallel,
-            template,
-            msg.runDir,
-            msg.computeModel,
-            msg.simulationId,
-        )
+        return _exit(r == 0)
 
 
 def _do_analysis_job(msg, template):
@@ -197,14 +210,6 @@ def _do_download_data_file(msg, template):
 def _do_fastcgi(msg, template):
     import socket
 
-    @contextlib.contextmanager
-    def _update_run_dir_and_maybe_chdir(msg):
-        msg.runDir = pkio.py_path(msg.runDir) if msg.runDir else None
-        with pkio.save_chdir(
-            msg.runDir,
-        ) if msg.runDir else contextlib.nullcontext():
-            yield
-
     def _recv():
         m = b""
         while True:
@@ -220,6 +225,20 @@ def _do_fastcgi(msg, template):
             m += r
             if m[-1:] == b"\n":
                 return pkjson.load_any(m)
+
+    @contextlib.contextmanager
+    def _update_run_dir_and_maybe_chdir(msg):
+        msg.runDir = pkio.py_path(msg.runDir) if msg.runDir else None
+        with pkio.save_chdir(
+            msg.runDir,
+        ) if msg.runDir else contextlib.nullcontext():
+            yield
+
+    def _validate_msg_and_jsonl(msg):
+        m = pkjson.dump_bytes(msg)
+        if r := _error_if_response_too_large(m):
+            m = pkjson.dump_bytes(r)
+        return m + b"\n"
 
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(msg.socket)
@@ -340,40 +359,6 @@ def _maybe_parse_user_alert(exception, error=None):
     return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
-def _on_do_compute_exit(
-    success_exit, is_parallel, template, run_dir, compute_model, sim_id
-):
-    # locals() must be called before anything else so we only get the function
-    # arguments
-    kwargs = locals()
-
-    def _failure_exit():
-        a = _post_processing()
-        if not a:
-            f = run_dir.join(template_common.RUN_LOG)
-            if f.exists():
-                a = _parse_python_errors(pkio.read_text(f))
-        if not a:
-            a = "non-zero exit code"
-        return PKDict(state=job.ERROR, error=a)
-
-    def _post_processing():
-        if hasattr(template, "post_execution_processing"):
-            return template.post_execution_processing(**kwargs)
-        return None
-
-    def _success_exit():
-        return PKDict(
-            state=job.COMPLETED,
-            alert=_post_processing(),
-        )
-
-    try:
-        return _success_exit() if success_exit else _failure_exit()
-    except Exception as e:
-        return PKDict(state=job.ERROR, error=e, stack=pkdexc())
-
-
 def _mtime_or_now(path):
     """mtime for path if exists else time.time()
 
@@ -397,19 +382,25 @@ def _parse_python_errors(text):
     return ""
 
 
-def _validate_msg_and_jsonl(msg):
-    m = pkjson.dump_bytes(msg)
-    if r := _error_if_response_too_large(m):
-        m = pkjson.dump_bytes(r)
-    return m + b"\n"
-
-
 def _write_parallel_status(msg, template, is_running):
+    def _background_percent_complete():
+        return template.background_percent_complete(
+            sirepo.sim_data.get_class(msg.simulationType).parse_model(msg.data),
+            msg.runDir,
+            is_running,
+        ).pksetdefault(
+            # TODO(robnagler) this is incorrect, because we want to see file updates
+            #   not just our polling frequency
+            lastUpdateTime=lambda: _mtime_or_now(msg.runDir),
+            frameCount=0,
+            percentComplete=0.0,
+        )
+
     sys.stdout.write(
         pkjson.dump_pretty(
             PKDict(
                 state=job.RUNNING,
-                parallelStatus=_background_percent_complete(msg, template, is_running),
+                parallelStatus=_background_percent_complete(),
             ),
             pretty=False,
         )
