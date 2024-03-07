@@ -207,7 +207,6 @@ def sim_frame(frame_args):
 
     try:
         t.find_filter(openmc.EnergyFilter)
-        pkdp("T {} F {}", frame_args.tally, t.filters)
         tally = _get_tally(frame_args.sim_in.models.settings.tallies, frame_args.tally)
         v = _sum_energy_bins(
             v,
