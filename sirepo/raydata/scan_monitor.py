@@ -79,8 +79,13 @@ class _DbBase:
         self.session.commit()
 
 
-def _get_detailed_status(rduid):
-    return "abc"
+def _get_detailed_status(catalog_name, rduid):
+    #    return "abc"
+    # todo check if anaylsis driver has this method?
+    # todo check somewhere (in driver) if file exists)
+    return sirepo.raydata.analysis_driver.get(
+        PKDict(catalog_name=catalog_name, rduid=rduid)
+    ).get_detailed_status(rduid)
 
 
 class _Analysis(_DbBase):
@@ -109,7 +114,7 @@ class _Analysis(_DbBase):
                 PKDict(
                     rduid=x.rduid,
                     status=x.status,
-                    detailed_status=_get_detailed_status(x.rduid),
+                    detailed_status=_get_detailed_status(catalog_name, x.rduid),
                     catalog_name=catalog_name,
                 )
             )
@@ -141,7 +146,7 @@ class _Analysis(_DbBase):
                     PKDict(
                         rduid=x.rduid,
                         status=x.status,
-                        detailed_status=_get_detailed_status(x.rduid),
+                        detailed_status=_get_detailed_status(catalog_name, x.rduid),
                         catalog_name=catalog_name,
                     )
                 )
@@ -354,7 +359,7 @@ class _RequestHandler(_JsonPostRequestHandler):
         )
         for s in l:
             s.status = d.get(s.rduid, _AnalysisStatus.NONE)
-            s.detailed_status = _get_detailed_status(s.rduid)
+            s.detailed_status = _get_detailed_status(req_data.catalogName, s.rduid)
         return l, pc
 
     def _request_analysis_output(self, req_data):

@@ -16,6 +16,20 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
     def get_conda_env(self):
         return _cfg.conda_env
 
+    def get_detailed_status(self, rduid):
+        import os.path
+        from pykern import pkjson
+        import json
+
+        p = self.get_output_dir().join("statusfile.json")
+        if os.path.exists(p):
+            with open(p, "r") as f:
+                try:
+                    return pkjson.load_any(f).get("status", "nostatus")
+                except json.decoder.JSONDecodeError:
+                    return f"empty file={f.read()}"
+        return None
+
     def get_notebooks(self):
         return [
             PKDict(
