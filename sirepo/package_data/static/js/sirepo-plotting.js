@@ -3277,7 +3277,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             const overlayDataClass = 'sr-overlay-data';
 
             let aspectRatio = 1.0;
-            let canvas, ctx, amrLine, heatmap, mouseMovePoint, pointer, selectedCell, zoom;
+            let canvas, ctx, amrLine, heatmap, mouseMovePoint, pointer, zoom;
             let globalMin = 0.0;
             let globalMax = 1.0;
             let threshold = null;
@@ -3301,6 +3301,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             ];
 
             const crosshairClass = 'sr-crosshair';
+            const mousedCells = [];
             const selectedCells = [];
 
             let overlayData = null;
@@ -3515,8 +3516,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     point: mouseMovePoint,
                     coords: binnedCoords(mouseMovePoint),        
                 };
-                const p = getPixel(binnedCoords(mouseMovePoint));
-                srdbg('C', selectedCells[0], 'PX', p, 'BC', binnedCoords([p.x, p.y]));
+                //const p = getPixel(binnedCoords(mouseMovePoint));
+                //srdbg('C', selectedCells[0], 'PX', p, 'BC', binnedCoords([p.x, p.y]));
                 drawOverlay();
             }
             

@@ -409,9 +409,10 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
 
     self.getEnergyReportCoords = () => {
         const [x, y] = SIREPO.GEOMETRY.GeometryUtils.nextAxes(appState.models.tallyReport.axis).reverse();
+        const r = appState.models.energyReport;
         return [
-            appState.models.energyReport[x].val,
-            appState.models.energyReport[y].val,
+            r[x].val + 0.5 * r[x].step,
+            r[y].val - 0.5 * r[y].step,
         ]
     };
 
@@ -783,14 +784,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 appState.models.energyReport[y].val = vVal;
                 appState.models.energyReport[z].val = appState.models.tallyReport.planePos.val;
                 appState.saveChanges('energyReport');
-            }
-
-            function getCoords() {
-                const [z, x, y] = tallyReportAxes();
-                return [
-                    appState.models.energyReport[x].val,
-                    appState.models.energyReport[y].val,
-                ]
             }
 
             function buildTallyReport() {
