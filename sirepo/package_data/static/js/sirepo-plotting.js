@@ -3278,6 +3278,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             let aspectRatio = 1.0;
             let canvas, ctx, amrLine, heatmap, mouseMovePoint, pointer, selectedCell, zoom;
+            const selectedCells = [];
             let globalMin = 0.0;
             let globalMax = 1.0;
             let threshold = null;
@@ -3342,7 +3343,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (cellHighlight) {
                     const c = overlay
                         .selectAll(`rect.${cellHighlightClass}`)
-                        .data(selectedCell ? [selectedCell] : []);
+                        .data(selectedCells);
                     c.exit().remove();
                     c.enter()
                         .append((d) => document.createElementNS(ns, 'rect'))
@@ -3418,7 +3419,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             }
 
             function mouseDblClick() {
-                selectedCell = selectCell();
+                selectedCells = selectCell();
                 if (! d3.event.altKey) {
                     return;
                 }
@@ -3506,6 +3507,16 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             }
 
             function selectCell() {
+                function findCellIndex(coords) {
+                    for (let i = 0; i < selectedCells.length; ++i) {
+                        const c = selectedCells[i];
+                        if (c.coords[0] === coords[0] && c.coords[1] === coords[1]) {
+                            return i;
+                        }
+                    }
+                    return -1;
+                }
+
                 const c = {
                     point: mouseMovePoint,
                     coords: binCoords(mouseMovePoint),            
