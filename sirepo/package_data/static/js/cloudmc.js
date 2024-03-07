@@ -830,6 +830,11 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     tallyService.getSourceParticles().map(p => particleColor(p))
                 );
 
+                function isPosOutsideMesh(pos, j, k) {
+                    const r = tallyService.getMeshRanges();
+                    return pos[j] < r[j][0] || pos[j] > r[j][1] || pos[k] < r[k][0] || pos[k]  > r[k][1];
+                }
+
                 function particleColor(p) {
                     return tallyService.sourceParticleColorScale(
                         appState.models.openmcAnimation.sourceColorMap
@@ -901,13 +906,17 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     });
                 });
                 placeMarkers();
+                const r = vectorScaleFactor();
+                const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                 tallyService.getSourceParticles().forEach((p, n) => {
-                    const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                     const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
-                    const r = vectorScaleFactor();
-                    // normalize in the plane
+                    // ignore sources outside the plotting range
+                    if (isPosOutsideMesh(p1, j, k)) {
+                        return;
+                    }
+                    // normalize in the plane and check if perpendicular
                     const d = Math.hypot(p.direction[j], p.direction[k]);
-                    const p2 = [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d];
+                    const p2 = d ? [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d] : p1;
                     outlines.push({
                         name: `${p.type}-${p.energy}eV-${n}`,
                         color: sourceColor(particleColor(p)),
