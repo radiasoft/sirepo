@@ -2662,7 +2662,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
         `,
         controller: function($scope, $element) {
             $scope.appState = appState;
-            $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`;
+            $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`.replace(/\s/g, '-');
 
             let hasSteps = false;
             let slider = null;
