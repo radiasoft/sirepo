@@ -380,7 +380,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             inputFile,
             {},
             requestSender.formatUrl(
-                'uploadFile',
+                'uploadLibFile',
                 {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
@@ -1181,7 +1181,7 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
 
     self.simState.errorMessage = () => self.errorMessage;
 
-    self.simState.logFileURL = () => requestSender.formatUrl('downloadDataFile', {
+    self.simState.logFileURL = () => requestSender.formatUrl('downloadRunFile', {
         '<simulation_id>': appState.models.simulation.simulationId,
         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
         '<model>': self.simState.model,
@@ -1315,7 +1315,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
                 if (! appState.isLoaded()) {
                     return null;
                 }
-                return requestSender.formatUrl('downloadDataFile', {
+                return requestSender.formatUrl('downloadRunFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<frame>': SIREPO.nonDataFileFrame,
