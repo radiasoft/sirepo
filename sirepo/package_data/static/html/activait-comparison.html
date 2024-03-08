@@ -10,12 +10,9 @@
     <div class="col-xs-6 col-md-6 col-xxl-4" data-ng-repeat="plot in ['epochAnimation', 'epochComparisonAnimation', 'dicePlotAnimation', 'dicePlotComparisonAnimation']">
       <div data-report-panel="parameter" data-model-name="{{ plot }}"></div>
     </div>
-    <div data-ng-repeat="imagePlot in ['bestLosses', 'worstLosses']">
-      <div class="col-xs-6 col-md-6 col-xxl-4" data-basic-editor-panel="" data-view-name="{{ imagePlot }}">
-        <div data-image-preview-panel="" data-method="{{ imagePlot }}"></div>
-      </div>
-      <div class="col-xs-6 col-md-6 col-xxl-4" data-basic-editor-panel="" data-view-name="{{ imagePlot }}">
-        <div data-image-preview-panel="" data-comparison-id="comparison.comparisonId()" data-method="{{ imagePlot }}"></div>
+    <div data-ng-repeat="imagePlot in ['bestLossesAnimation', 'bestLossesComparisonAnimation', 'worstLossesAnimation', 'worstLossesComparisonAnimation']">
+      <div class="col-xs-6 col-md-6 col-xxl-4">
+        <div data-report-panel="imageViewer" data-model-name="{{ imagePlot }}"></div>
       </div>
     </div>
   </div>

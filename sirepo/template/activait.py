@@ -383,8 +383,28 @@ def sim_frame_segmentSamplesAnimation(frame_args):
     return _image_preview("segmentViewer", frame_args.sim_in, frame_args.run_dir)
 
 
+def sim_frame_bestLossesComparisonAnimation(frame_args):
+    return _image_preview(
+        "bestLosses",
+        frame_args.sim_in,
+        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
+            "animation"
+        ),
+    )
+
+
 def sim_frame_bestLossesAnimation(frame_args):
     return _image_preview("bestLosses", frame_args.sim_in, frame_args.run_dir)
+
+
+def sim_frame_worstLossesComparisonAnimation(frame_args):
+    return _image_preview(
+        "worstLosses",
+        frame_args.sim_in,
+        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
+            "animation"
+        ),
+    )
 
 
 def sim_frame_worstLossesAnimation(frame_args):

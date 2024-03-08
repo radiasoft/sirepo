@@ -200,6 +200,8 @@
         "animation": ["columnNumber", "appMode"],
         "bestLossesAnimation": [],
         "dicePlotComparisonAnimation": ["otherSimId"],
+        "bestLossesComparisonAnimation": ["otherSimId"],
+        "worstLossesComparisonAnimation": ["otherSimId"],
         "dtClassifierClassificationMetricsAnimation": [],
         "dtClassifierConfusionMatrixAnimation": [],
         "epochAnimation": [],
@@ -259,6 +261,12 @@
         },
         "dicePlotAnimation": {},
         "dicePlotComparisonAnimation": {
+            "otherSimId": ["", "String", ""]
+        },
+        "bestLossesComparisonAnimation": {
+            "otherSimId": ["", "String", ""]
+        },
+        "worstLossesComparisonAnimation": {
             "otherSimId": ["", "String", ""]
         },
         "analysisReport": {
@@ -553,6 +561,16 @@
             "advanced": [],
             "basic": []
         },
+        "bestLossesComparisonAnimation": {
+            "title": "Best Losses Other Model",
+            "advanced": [],
+            "basic": []
+        },
+        "worstLossesComparisonAnimation": {
+            "title": "Worst Losses Other Model",
+            "advanced": [],
+            "basic": []
+        },
         "analysisReport": {
             "title": "Analysis Plot",
             "advanced": [
@@ -811,10 +829,12 @@
         },
         "bestLossesAnimation": {
             "title": "Best Loss Images",
+            "basic": [],
             "advanced": []
         },
         "worstLossesAnimation": {
             "title": "Worst Loss Images",
+            "basic": [],
             "advanced": []
         },
         "separableConv2D": {

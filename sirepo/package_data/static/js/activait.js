@@ -10,6 +10,10 @@ SIREPO.app.config(() => {
         'epochComparisonAnimation',
         'dicePlotAnimation',
         'dicePlotComparisonAnimation',
+        'bestLossesAnimation',
+        'bestLossesComparisonAnimation',
+        'worstLossesAnimation',
+        'worstLosssComparisonAnimation',
     ];
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.FILE_UPLOAD_TYPE = {
@@ -336,6 +340,10 @@ SIREPO.app.controller('ComparisonController', function (activaitService, appStat
             otherSimId = appState.models.comparisonSims.compareSim;
             appState.models.dicePlotComparisonAnimation.otherSimId = otherSimId;
             appState.models.epochComparisonAnimation.otherSimId = otherSimId;
+            appState.models.bestLossesComparisonAnimation.otherSimId = otherSimId;
+            appState.models.worstLossesComparisonAnimation.otherSimId = otherSimId;
+            appState.saveChanges('bestLossesComparisonAnimation');
+            appState.saveChanges('worstLossesComparisonAnimation');
             appState.saveChanges('dicePlotComparisonAnimation');
             appState.saveChanges('epochComparisonAnimation');
             return;
