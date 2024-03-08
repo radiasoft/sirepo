@@ -265,7 +265,7 @@ SIREPO.app.directive('appHeader', function(appState, activaitService) {
             };
             $scope.isImageToImage = () => {
                 var info = appState.models.columnInfo;
-                if (info) {
+                if (info && info.inputOutput.indexOf('output') >= 0) {
                     var idx = info.inputOutput.indexOf('output');
                     return info.shape[idx].slice(1, info.shape[idx].length).length > 1;
                 }
