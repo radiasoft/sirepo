@@ -562,12 +562,12 @@
             "basic": []
         },
         "bestLossesComparisonAnimation": {
-            "title": "Best Losses Other Model",
+            "title": "Best Loss Images",
             "advanced": [],
             "basic": []
         },
         "worstLossesComparisonAnimation": {
-            "title": "Worst Losses Other Model",
+            "title": "Worst Loss Images",
             "advanced": [],
             "basic": []
         },
