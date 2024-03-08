@@ -551,6 +551,16 @@
             ],
             "advanced": []
         },
+        "bestLossesAnimation": {
+            "title": "Best Loss Images",
+            "basic": [],
+            "advanced": []
+        },
+        "bestLossesComparisonAnimation": {
+            "title": "Best Loss Images",
+            "advanced": [],
+            "basic": []
+        },
         "dicePlotAnimation": {
             "title": "Dice Coefficient",
             "advanced": [],
@@ -558,16 +568,6 @@
         },
         "dicePlotComparisonAnimation": {
             "title": "Dice Coefficient",
-            "advanced": [],
-            "basic": []
-        },
-        "bestLossesComparisonAnimation": {
-            "title": "Best Loss Images",
-            "advanced": [],
-            "basic": []
-        },
-        "worstLossesComparisonAnimation": {
-            "title": "Worst Loss Images",
             "advanced": [],
             "basic": []
         },
@@ -827,16 +827,6 @@
             "title": "Segments Sample",
             "advanced": []
         },
-        "bestLossesAnimation": {
-            "title": "Best Loss Images",
-            "basic": [],
-            "advanced": []
-        },
-        "worstLossesAnimation": {
-            "title": "Worst Loss Images",
-            "basic": [],
-            "advanced": []
-        },
         "separableConv2D": {
             "columns": [
                 "dimensionality",
@@ -870,6 +860,16 @@
                 "size",
                 "interpolation"
             ]
+        },
+        "worstLossesAnimation": {
+            "title": "Worst Loss Images",
+            "basic": [],
+            "advanced": []
+        },
+        "worstLossesComparisonAnimation": {
+            "title": "Worst Loss Images",
+            "advanced": [],
+            "basic": []
         },
         "zeroPadding2D": {
             "columns": [
