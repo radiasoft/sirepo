@@ -239,20 +239,7 @@ def save_sequential_report_data(run_dir, sim_in):
         _extract_fft_report(run_dir, sim_in)
     elif sim_in.report == "imageSamplesReport":
         template_common.write_sequential_result(
-            PKDict(
-                x_range=[],
-                images=_ImagePreview(
-                    PKDict(
-                        args=PKDict(
-                            method="imagePreview",
-                            imageFilename="sample",
-                            dataFile=sim_in.models.dataFile,
-                            columnInfo=sim_in.models.columnInfo,
-                            otherSimId=None,
-                        ),
-                    )
-                ).images(),
-            )
+            _image_preview("imagePreview", sim_in, run_dir)
         )
     else:
         raise AssertionError("unknown report: {}".format(sim_in.report))
@@ -390,6 +377,18 @@ def sim_frame_logisticRegressionErrorRateAnimation(frame_args):
         _OUTPUT_FILE.logisticRegressionErrorFile,
         "C",
     )
+
+
+def sim_frame_segmentSamplesAnimation(frame_args):
+    return _image_preview("segmentViewer", frame_args.sim_in, frame_args.run_dir)
+
+
+def sim_frame_bestLossesAnimation(frame_args):
+    return _image_preview("bestLosses", frame_args.sim_in, frame_args.run_dir)
+
+
+def sim_frame_worstLossesAnimation(frame_args):
+    return _image_preview("worstLosses", frame_args.sim_in, frame_args.run_dir)
 
 
 def stateful_compute_column_info(data, **kwargs):
@@ -1177,6 +1176,24 @@ def _histogram_plot(values, vrange, bins=20):
     x.insert(0, x[0])
     y.insert(0, 0)
     return x, y
+
+
+def _image_preview(method, data, run_dir, other_sim_id=None):
+    return PKDict(
+        x_range=[],
+        images=_ImagePreview(
+            PKDict(
+                args=PKDict(
+                    method=method,
+                    imageFilename="sample",
+                    dataFile=data.models.dataFile,
+                    columnInfo=data.models.columnInfo,
+                    otherSimId=other_sim_id,
+                ),
+            ),
+            run_dir,
+        ).images(),
+    )
 
 
 class _ImagePreview:

@@ -198,6 +198,7 @@
     },
     "frameIdFields": {
         "animation": ["columnNumber", "appMode"],
+        "bestLossesAnimation": [],
         "dicePlotComparisonAnimation": ["otherSimId"],
         "dtClassifierClassificationMetricsAnimation": [],
         "dtClassifierConfusionMatrixAnimation": [],
@@ -210,7 +211,9 @@
         "linearSvcErrorRateAnimation": [],
         "logisticRegressionClassificationMetricsAnimation": [],
         "logisticRegressionConfusionMatrixAnimation": [],
-        "logisticRegressionErrorRateAnimation": []
+        "logisticRegressionErrorRateAnimation": [],
+        "segmentSamplesAnimation": [],
+        "worstLossesAnimation": []
     },
     "model": {
         "analysisCluster": {
@@ -451,6 +454,9 @@
             "_super": ["-", "model", "conv2D"],
             "layer": ["Layer", "NeuralNetLayer", "SeparableConv2D"]
         },
+        "segmentSamplesAnimation": {},
+        "bestLossesAnimation": {},
+        "worstLossesAnimation": {},
         "upSampling2D": {
             "layer": ["layer", "NeuralNetLayer", "UpSampling2D"],
             "size": ["Size", "Integer", 2],
@@ -691,6 +697,10 @@
         "globalAveragePooling2D": {
             "columns": []
         },
+        "imageSamplesReport": {
+            "title": "Image Samples",
+            "advanced": []
+        },
         "knnClassificationMetricsAnimation": {
             "title": "KNN Classification Metrics",
             "basic": [],
@@ -795,28 +805,16 @@
             "basic": [],
             "advanced": []
         },
-        "imageSamplesReport": {
-            "title": "Image Samples",
-            "advanced": []
-        },
-        "imageViewer": {
-            "title": "Image Samples",
-            "basic": [],
-            "advanced": []
-        },
-        "segmentViewer": {
+        "segmentSamplesAnimation": {
             "title": "Segments Sample",
-            "basic": [],
             "advanced": []
         },
-        "bestLosses": {
+        "bestLossesAnimation": {
             "title": "Best Loss Images",
-            "basic": [],
             "advanced": []
         },
-        "worstLosses": {
+        "worstLossesAnimation": {
             "title": "Worst Loss Images",
-            "basic": [],
             "advanced": []
         },
         "separableConv2D": {
