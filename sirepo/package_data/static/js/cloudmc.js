@@ -833,17 +833,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     .map((x, i) => [fieldIndex(x.min, r[i], i), fieldIndex(x.max, r[i], i)]);
             }
 
-            function sumDisplay(val) {
-                const sumRange = appState.models.openmcAnimation.energyRangeSum;
-                if ($scope.energyFilter.space === 'linear') {
-                    return val;
-                }
-                return SIREPO.UTILS.formatFloat(
-                    SIREPO.UTILS.linearToLog(val, sumRange.min, sumRange.max, sumRange.step),
-                    4
-                );
-            }
-
             function energySumLabel() {
                 const sumRange = appState.models.openmcAnimation.energyRangeSum;
                 return $scope.energyFilter ? ` / Energy ∑ ${sumDisplay(sumRange.val[0])}-${sumDisplay(sumRange.val[1])} MeV` : '';
@@ -991,6 +980,17 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             function sourceColor(color) {
                 return appState.models.openmcAnimation.showSources === '1' ? color : 'none';
+            }
+
+            function sumDisplay(val) {
+                const sumRange = appState.models.openmcAnimation.energyRangeSum;
+                if ($scope.energyFilter.space === 'linear') {
+                    return val;
+                }
+                return SIREPO.UTILS.formatFloat(
+                    SIREPO.UTILS.linearToLog(val, sumRange.min, sumRange.max, sumRange.step),
+                    4
+                );
             }
 
             function tallyReportAxes() {
