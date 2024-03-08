@@ -17,9 +17,6 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="BevelEdge" class="col-sm-12">
           <div data-bevel-edge="" data-model="model" data-model-name="modelName" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="Color" data-ng-class="fieldClass">
-          <input type="color" data-ng-model="model[field]" class="sr-color-button">
-        </div>
         <div data-ng-switch-when="FieldPaths" class="col-sm-7">
           <select class="form-control" data-ng-model="model.fieldPath" data-ng-options="p as p.name for p in appState.models.fieldPaths.paths track by p.name"></select>
         </div>
@@ -316,7 +313,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
     self.updateExtrudedSize = o => {
         [o.widthAxis, o.heightAxis].forEach((dim, i) => {
             const p = o.referencePoints.map(x => x[i]);
-            o.size[self.axisIndex(dim)] = Math.abs(Math.max(...p) - Math.min(...p));
+            o.size[self.axisIndex(dim)] = Math.abs(SIREPO.UTILS.arrayMax(p) - SIREPO.UTILS.arrayMin(p));
         });
     };
 
@@ -1386,7 +1383,8 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                   <div class="modal-body">
                     <div class="container-fluid">
                         <form>
-                        <div data-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true" data-file-formats="${IMPORT_FORMATS.join(',')}"></div>
+                        <div data-file-chooser="" data-input-file="inputFile" data-title="title" data-description="description" data-file-formats="${IMPORT_FORMATS.join(',')}"></div>
+                          <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
                           <div class="col-sm-6 pull-right">
                             <button data-ng-click="importDmpFile(inputFile)" class="btn btn-primary" data-ng-class="{'disabled': isMissingImportFile() }">Import File</button>
                              <button data-dismiss="modal" class="btn btn-default">Cancel</button>
@@ -1400,7 +1398,6 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
         `,
         controller: function($scope) {
             $scope.inputFile = null;
-            $scope.fileURL = null;
             $scope.isMissingImportFile = function() {
                 return ! $scope.inputFile;
             };
@@ -1410,92 +1407,32 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
                 if (! inputFile) {
                     return;
                 }
-                let data = null;
-                let a = inputFile.name.split('.');
-                let t = `${a[a.length - 1]}`;
-                if (isRadiaImport(t)) {
-                    data = newSimFromImport(inputFile);
-                }
-                importFile(inputFile, t, data);
-            };
-
-            function cleanup(simId) {
-                $('#simulation-import').modal('hide');
-                $scope.inputFile = null;
-                URL.revokeObjectURL($scope.fileURL);
-                $scope.fileURL = null;
-                requestSender.localRedirectHome(simId);
-            }
-
-            function newSimFromImport(inputFile) {
-                let model = appState.setModelDefaults(appState.models.simulation, 'simulation');
-                model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
-                model.folder = fileManager.getActiveFolderPath();
-                model.dmpImportFile = inputFile.name;
-                model.notes = `Imported from ${inputFile.name}`;
-                return model;
-            }
-
-            function importFile(inputFile, fileType, data={}) {
-                let f = fileManager.getActiveFolderPath();
-                if (fileManager.isFolderExample(f)) {
-                    f = fileManager.rootFolder();
-                }
                 fileUpload.uploadFileToUrl(
                     inputFile,
                     {
-                        folder: f,
-                        arguments: importFileArguments(data)
+                        folder: fileManager.getActiveFolderPath(),
+                        arguments: '',
                     },
                     requestSender.formatUrl(
                         'importFile',
-                        {
-                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        }),
+                        {simulation_type: SIREPO.APP_SCHEMA.simulationType},
+                    ),
                     function(d) {
-                        let simId = d.models.simulation.simulationId;
-                        if (! isRadiaImport(fileType)) {
-                            cleanup(simId);
+                        if (d.error) {
+                            $scope.fileUploadError = d.error;
                             return;
                         }
-                        upload(inputFile, fileType, simId);
-                    }, function (err) {
-                        throw new Error(inputFile + ': Error during import ' + err);
-                    });
-            }
-
-            // turn a dict into a delimited string so it can be added to the FormData.
-            // works for simple values, not arrays or other dicts
-            function importFileArguments(o) {
-                let d = SIREPO.APP_SCHEMA.constants.inputFileArgDelims;
-                let s = '';
-                for (const k in o) {
-                    s += `${k}${d.item}${o[k]}${d.list}`;
-                }
-                return s;
-            }
-
-            function isRadiaImport(fileType) {
-                return RADIA_IMPORT_FORMATS.indexOf(`.${fileType}`) >= 0;
-            }
-
-            function upload(inputFile, fileType, simId) {
-                fileUpload.uploadFileToUrl(
-                    inputFile,
-                    null,
-                    requestSender.formatUrl(
-                        'uploadFile',
-                        {
-                            '<simulation_id>': simId,
-                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                            '<file_type>': SIREPO.APP_SCHEMA.constants.fileTypeRadiaDmp,
-                        }),
-                    function(d) {
-                        cleanup(simId);
-                    }, function (err) {
-                        throw new Error(inputFile + ': Error during upload ' + err);
-                    });
-            }
+                        $('#simulation-import').modal('hide');
+                        requestSender.localRedirect(
+                            'visualization',
+                            {'simulationId': d.models.simulation.simulationId}
+                        );
+                    },
+                    function (err) {
+                        $scope.fileUploadError = err;
+                    },
+                );
+            };
         },
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {
@@ -2297,16 +2234,15 @@ SIREPO.app.directive('radiaViewer', function(panelState, utilities) {
         template: `
             <div class="col-md-6">
                 <div class="panel panel-info" id="sr-magnetDisplay-basicEditor">
-                    <div class="panel-heading clearfix" data-panel-heading="Magnet Viewer" data-view-name="{{ modelName }}" data-is-report="true" data-model-key="modelName" data-report-id="reportId"></div>
+                    <div class="panel-heading clearfix" data-panel-heading="Magnet Viewer" data-view-name="{{ modelName }}" data-is-report="true" data-model-key="modelName"></div>
                     <div class="panel-body" data-ng-if="! panelState.isHidden(modelName)">
-                        <div data-radia-viewer-content="" data-model-name="{{ modelName }}" data-viz="viz" data-report-id="{{ reportId }}"></div>
+                        <div data-radia-viewer-content="" data-model-name="{{ modelName }}" data-viz="viz"></div>
                     </div>
                 </div>
             </div>
         `,
         controller: function($scope) {
             $scope.panelState = panelState;
-            $scope.reportId = utilities.reportId();
         },
     };
 });
@@ -2318,12 +2254,11 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
         transclude: true,
         scope: {
             modelName: '@',
-            reportId: '@',
         },
         template: `
             <div data-advanced-editor-pane="" data-view-name="modelName" data-want-buttons="true" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
             <div data-ng-transclude="">
-                <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-report-id="reportId" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
+                <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
                 <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
                     <div class="colorbar"></div>
                 </div>
@@ -2480,6 +2415,7 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
                         if (gObj.members) {
                             gColor = null;
                         }
+
                         const pData = radiaVtkUtils.objToPolyData(sceneDatum, [t], gColor).data;
                         let bundle = null;
                         if (radiaVtkUtils.GEOM_OBJ_TYPES.includes(t)) {
@@ -2630,10 +2566,10 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
 
                 // get log values back into the original range, so that the extremes have the same
                 // size as a linear scale
-                const minLogMag = Math.min.apply(null, logMags);
-                const maxLogMag = Math.max.apply(null, logMags);
-                const minMag = Math.min.apply(null, vectors.magnitudes);
-                const maxMag = Math.max.apply(null, vectors.magnitudes);
+                const minLogMag = utilities.arrayMin(logMags);
+                const maxLogMag = utilities.arrayMax(logMags);
+                const minMag = utilities.arrayMin(vectors.magnitudes);
+                const maxMag = utilities.arrayMax(vectors.magnitudes);
                 colorScale = plotting.colorScale(minMag, maxMag, cmap);
 
                 logMags = logMags.map(n => minMag + (n - minLogMag) * (maxMag - minMag) / (maxLogMag - minLogMag));
@@ -2779,7 +2715,7 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
                     if (pid === selectedPointId) {
                         selectedPointId = -1;
                         selectedColor = [];
-                        selectedValue = Math.min.apply(null, linArr.getData());
+                        selectedValue = utilities.arrayMin(linArr.getData());
                         v = [];
                     }
                     else {
@@ -3257,8 +3193,8 @@ SIREPO.app.factory('radiaVtkUtils', function(utilities) {
 
             for (let j = 0; j < 3; ++j) {
                 const c = pts.filter(modf(j));
-                mins[j] =  Math.min(mins[j], Math.min.apply(null, c));
-                maxs[j] =  Math.max(maxs[j], Math.max.apply(null, c));
+                mins[j] =  Math.min(mins[j], utilities.arrayMin(c));
+                maxs[j] =  Math.max(maxs[j], utilities.arrayMax(c));
             }
         });
 

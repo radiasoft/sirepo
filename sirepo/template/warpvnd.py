@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Warp VND/WARP execution template.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
@@ -13,12 +12,14 @@ from scipy import constants
 from sirepo import simulation_db
 from sirepo.template import template_common
 import h5py
+import msgpack
 import numpy as np
 import os.path
 import py.path
 import re
 import sirepo.sim_data
 import sirepo.util
+import sirepo.sim_run
 
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -27,18 +28,19 @@ COMPARISON_STEP_SIZE = 100
 WANT_BROWSER_FRAME_CACHE = True
 MPI_SUMMARY_FILE = "mpi-info.json"
 
-_FIELD_ESTIMATE_FILE = "estimates.json"
+_ALL_PARTICLES_FILE = "all-particles.npy"
 _COMPARISON_FILE = "diags/fields/electric/data00{}.h5".format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
 _DENSITY_FILE = "density.h5"
 _EGUN_CURRENT_FILE = "egun-current.npy"
 _EGUN_STATUS_FILE = "egun-status.txt"
+_FIELD_ESTIMATE_FILE = "estimates.json"
 _OPTIMIZER_OUTPUT_FILE = "opt.out"
 _OPTIMIZER_RESULT_FILE = "opt.json"
 _OPTIMIZER_STATUS_FILE = "opt-run.out"
-_OPT_RESULT_INDEX = 3
 _OPTIMIZE_PARAMETER_FILE = "parameters-optimize.py"
-_PARTICLE_FILE = "particles.h5"
+_OPT_RESULT_INDEX = 3
+_PARTICLE_FILE = "particles.msgpack"
 _PARTICLE_PERIOD = 100
 _POTENTIAL_FILE = "potential.h5"
 _STL_POLY_FILE = "polygons.h5"
@@ -289,11 +291,14 @@ def remove_last_frame(run_dir):
 
 
 def stateful_compute_save_stl_polys(data, **kwargs):
-    assert "polys" in data
-    p = _SIM_DATA.lib_file_write_path(_stl_polygon_file(data.filename))
-    # write once
-    if not p.exists():
-        template_common.write_dict_to_h5(data, p, h5_path="/")
+    if "polys" not in data:
+        return PKDict(error='"polys" must be supplied')
+    b = _stl_polygon_file(data.filename)
+    if not _SIM_DATA.lib_file_exists(b):
+        with sirepo.sim_run.tmp_dir() as t:
+            p = t.join(b)
+            template_common.write_dict_to_h5(data, p, h5_path="/")
+            _SIM_DATA.lib_file_write(b, p)
     return PKDict()
 
 
@@ -526,7 +531,7 @@ def _extract_current_results(data, curr, data_time):
 
 
 def _extract_egun_current(data, data_file, frame_index):
-    v = np.load(str(data_file), allow_pickle=True)
+    v = np.load(str(data_file))
     if frame_index >= len(v):
         frame_index = -1
     # the first element in the array is the time, the rest are the current measurements
@@ -583,7 +588,11 @@ def _extract_impact_density(run_dir, data):
 
 def _extract_impact_density_2d(run_dir, data):
     # use a simple heatmap instead due to a normalization problem in rswarp
-    all_particles = np.load("all-particles.npy")
+    if not pkio.py_path(run_dir.join(_ALL_PARTICLES_FILE)).exists():
+        return PKDict(
+            error="No impact data recorded",
+        )
+    all_particles = np.load(_ALL_PARTICLES_FILE)
     grid = data.models.simulationGrid
     plate_spacing = _meters(grid.plate_spacing)
     channel_width = _meters(grid.channel_width)
@@ -686,11 +695,10 @@ def _extract_optimization_results(run_dir, data, args):
 
 def _extract_particle(run_dir, model_name, data, args):
     limit = int(args.renderCount)
-    hf = h5py.File(str(run_dir.join(_PARTICLE_FILE)), "r")
-    d = template_common.h5_to_dict(hf, "particle")
-    kept_electrons = d["kept"]
-    lost_electrons = d["lost"]
-    hf.close()
+    with open(_PARTICLE_FILE, "rb") as f:
+        d = msgpack.unpackb(f.read())
+        kept_electrons = d["kept"]
+        lost_electrons = d["lost"]
     grid = data["models"]["simulationGrid"]
     plate_spacing = _meters(grid["plate_spacing"])
     radius = _meters(grid["channel_width"] / 2.0)
@@ -842,6 +850,7 @@ def _generate_parameters_file(data, qcall=None):
     v = None
     template_common.validate_models(data, SCHEMA)
     res, v = template_common.generate_parameters_file(data)
+    v["allParticlesFile"] = _ALL_PARTICLES_FILE
     v["particlePeriod"] = _PARTICLE_PERIOD
     v["particleFile"] = _PARTICLE_FILE
     v["potentialFile"] = _POTENTIAL_FILE
@@ -1135,7 +1144,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
                 percent_complete = float(m.group(1)) / int(m.group(2))
         egun_current_file = run_dir.join(_EGUN_CURRENT_FILE)
         if egun_current_file.exists():
-            v = np.load(str(egun_current_file), allow_pickle=True)
+            v = np.load(str(egun_current_file))
             res.egunCurrentFrameCount = len(v)
     else:
         percent_complete = (

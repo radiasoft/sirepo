@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Sirepo web server status for remote monitoring
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
@@ -7,6 +6,7 @@
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkjson
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdformat
 from sirepo import simulation_db
 import asyncio
@@ -42,7 +42,7 @@ class API(sirepo.quest.API):
         simulation_type = _cfg.sim_type
         res = await self.call_api(
             "findByNameWithAuth",
-            dict(
+            kwargs=PKDict(
                 simulation_type=simulation_type,
                 application_mode="default",
                 simulation_name=_cfg.sim_name,
@@ -54,13 +54,11 @@ class API(sirepo.quest.API):
             res.destroy()
         m = re.search(r"/source/(\w+)$", c.uri)
         if not m:
-            raise RuntimeError("failed to find sid in resp={}".format(c))
+            raise RuntimeError(f"failed to find sid in resp={c}")
         i = m.group(1)
         d = simulation_db.read_simulation_json(simulation_type, sid=i, qcall=self)
         try:
-            d.models.electronBeam.current = d.models.electronBeam.current + (
-                random.random() / 10
-            )
+            d.models.electronBeam.current += random.random() / 10
         except AttributeError:
             assert (
                 _cfg.sim_type == "myapp"
@@ -71,33 +69,39 @@ class API(sirepo.quest.API):
         r = None
         resp = None
         try:
-            resp = await self.call_api("runSimulation", data=d)
+            resp = await self.call_api("runSimulation", body=d)
             for _ in range(_cfg.max_calls):
                 r = resp.content_as_object()
                 resp.destroy()
                 resp = None
-                pkdlog("resp={}", r)
                 if r.state == "error":
-                    raise RuntimeError("simulation error: resp={}".format(r))
+                    raise RuntimeError(f"state=error sid={i} resp={r}")
                 if r.state == "completed":
+                    pkdlog("status=completed sid={}", i)
                     if "initialIntensityReport" == d.report:
-                        min_size = 50
-                        if len(r.z_matrix) < min_size or len(r.z_matrix[0]) < min_size:
-                            raise RuntimeError("received bad report output: resp={}", r)
+                        m = 50
+                        if len(r.z_matrix) < m:
+                            raise RuntimeError(
+                                f"len(r.z_matrix)={len(r.z_matrix)} < {m} resp={r}",
+                            )
+                        if len(r.z_matrix[0]) < m:
+                            raise RuntimeError(
+                                f"len(r.z_matrix[0])={len(r.z_matrix[0])} < {m} resp={r}",
+                            )
                     return
-                d = r.nextRequest
-                resp = await self.call_api("runStatus", data=d)
+                if (d := r.get("nextRequest")) is None:
+                    raise RuntimeError(
+                        f"nextRequest missing state={r.get('state')} resp={r}"
+                    )
+
+                resp = await self.call_api("runStatus", body=d)
                 await asyncio.sleep(_SLEEP)
-            raise RuntimeError(
-                "simulation timed out: seconds={} resp=".format(
-                    _cfg.max_calls * _SLEEP, r
-                ),
-            )
+            raise RuntimeError(f"timeout={_cfg.max_calls * _SLEEP}s last resp={r}")
         finally:
             if resp:
                 resp.destroy()
             try:
-                await self.call_api("runCancel", data=d)
+                await self.call_api("runCancel", body=d)
             except Exception:
                 pass
 

@@ -8,8 +8,9 @@ from pykern import pkconfig
 from pykern import pkconst
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import simulation_db
+import os.path
 import re
 import sirepo.const
 import sirepo.feature_config
@@ -35,15 +36,6 @@ _ROBOTS_TXT = None
 
 #: Global app value (only here so instance not lost)
 _app = None
-
-#: See `_proxy_react`
-_PROXY_REACT_URI_SET = None
-
-#: See `_proxy_react`
-_PROXY_REACT_URI_RE = None
-
-#: See `_proxy_react`
-_REACT_SERVER_BUILD = "build"
 
 
 class API(sirepo.quest.API):
@@ -74,12 +66,7 @@ class API(sirepo.quest.API):
             data.models.simulation.simulationId,
             qcall=self,
         )
-        if hasattr(req.template, "copy_related_sims"):
-            return self._save_new_and_reply(
-                req,
-                req.template.copy_related_sims(data, qcall=self),
-            )
-        return self._save_new_and_reply(req, data)
+        return self._save_with_related(req, data)
 
     @sirepo.quest.Spec(
         "require_user", sid="SimId", folder="SimFolderName", name="SimName"
@@ -109,7 +96,8 @@ class API(sirepo.quest.API):
                 }
             )
 
-        # Will not remove resource (standard) lib files
+        # Will not remove resource (standard) lib files, because those
+        # live in the resource directoy.
         pkio.unchecked_remove(_lib_file_write_path(req))
         return self.reply_ok()
 
@@ -137,7 +125,7 @@ class API(sirepo.quest.API):
             pkdlog(
                 "{}: javascript error: {}",
                 ip,
-                simulation_db.generate_json(self.parse_json(), pretty=True),
+                simulation_db.generate_json(self.body_as_dict(), pretty=True),
             )
         except Exception as e:
             try:
@@ -269,9 +257,46 @@ class API(sirepo.quest.API):
         """
         from sirepo import importer
 
+        async def _import_file(req):
+            if not hasattr(req.template, "import_file"):
+                raise sirepo.util.Error(
+                    "Only zip files are supported",
+                    "no import_file in template req={}",
+                    req,
+                )
+            with sirepo.sim_run.tmp_dir(qcall=self) as d:
+                return await req.template.import_file(
+                    req,
+                    tmp_dir=d,
+                    qcall=self,
+                    # SRW needs a simulation created to be able to start
+                    # a background import.
+                    srw_save_sim=lambda data: _save_sim(req, data),
+                )
+
+        def _save_sim(req, data):
+            data.models.simulation.folder = req.folder
+            data.models.simulation.isExample = False
+            return self._save_new_and_reply(req, data)
+
+        async def _stateful_compute(req):
+            r = await self.call_api(
+                "statefulCompute",
+                body=PKDict(
+                    method="import_file",
+                    args=req.sim_data.prepare_import_file_args(req=req),
+                    simulationType=req.type,
+                ),
+            )
+            try:
+                res = r.content_as_object().imported_data
+                r.destroy()
+                return res
+            except Exception:
+                raise sirepo.util.SReplyExc(r)
+
         error = None
         f = None
-
         try:
             f = self.sreq.form_file_get()
             req = self.parse_params(
@@ -283,44 +308,24 @@ class API(sirepo.quest.API):
             )
             req.form_file = f
             req.import_file_arguments = self.sreq.form_get("arguments", "")
-
-            def _save_sim(data):
-                data.models.simulation.folder = req.folder
-                data.models.simulation.isExample = False
-                return self._save_new_and_reply(req, data)
-
             if pkio.has_file_extension(req.filename, "json"):
                 data = importer.read_json(req.form_file.as_bytes(), self, req.type)
-            # TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
-            # (dicom input is normally a zip file)
             elif pkio.has_file_extension(req.filename, "zip"):
-                data = importer.read_zip(
+                data = await importer.read_zip(
                     req.form_file.as_bytes(), self, sim_type=req.type
                 )
+            elif hasattr(req.template, "stateful_compute_import_file"):
+                data = await _stateful_compute(req)
             else:
-                if not hasattr(req.template, "import_file"):
-                    raise sirepo.util.Error(
-                        "Only zip files are supported",
-                        "no import_file in template req={}",
-                        req,
-                    )
-                with sirepo.sim_run.tmp_dir(qcall=self) as d:
-                    data = await req.template.import_file(
-                        req,
-                        tmp_dir=d,
-                        qcall=self,
-                        # SRW needs a simulation created to be able to start
-                        # a background import.
-                        srw_save_sim=_save_sim,
-                    )
-                if "error" in data:
-                    return self.reply_dict(data)
-            return _save_sim(data)
+                data = await _import_file(req)
+            if "error" in data:
+                return self.reply_dict(data)
+            return _save_sim(req, data)
         except sirepo.util.ReplyExc:
             raise
         except Exception as e:
             pkdlog("{}: exception: {}", f and f.filename, pkdexc())
-            # TODO(robnagler) security issue here. Really don't want to report errors to user
+            # TODO(robnagler) security issue here. Really don't want to report all errors to user
             if hasattr(e, "args"):
                 if len(e.args) == 1:
                     error = str(e.args[0])
@@ -328,11 +333,7 @@ class API(sirepo.quest.API):
                     error = str(e.args)
             else:
                 error = str(e)
-        return self.reply_dict(
-            {
-                "error": error if error else "An unknown error occurred",
-            }
-        )
+        return self.reply_dict(PKDict(error=error or "An unknown error occurred"))
 
     @sirepo.quest.Spec("allow_visitor", path_info="PathInfo optional")
     async def api_homePage(self, path_info=None):
@@ -382,31 +383,6 @@ class API(sirepo.quest.API):
             ),
         )
 
-    @sirepo.quest.Spec(
-        "require_user",
-        simulation_id="SimId",
-        model="ComputeModelName optional",
-        title="DownloadNamePostfix optional",
-    )
-    async def api_pythonSource2(self, simulation_type):
-        req = self.parse_post(
-            type=simulation_type,
-            id=True,
-            template=True,
-            compute_model=PKDict(optional=True, name="model"),
-            title=PKDict(optional=True, name="title"),
-        )
-        m = "compute_model" in req and req.sim_data.parse_model(req.compute_model)
-        d = simulation_db.read_simulation_json(req.type, sid=req.id, qcall=self)
-        suffix = simulation_db.get_schema(req.type).constants.simulationSourceExtension
-        return self.reply_attachment(
-            req.template.python_source_for_model(d, model=m, qcall=self),
-            filename="{}.{}".format(
-                d.models.simulation.name + ("-" + req.title if "title" in req else ""),
-                "madx" if m == "madx" else suffix,
-            ),
-        )
-
     @sirepo.quest.Spec("allow_visitor")
     async def api_robotsTxt(self):
         """Disallow the app (dev, prod) or / (alpha, beta)"""
@@ -429,7 +405,6 @@ class API(sirepo.quest.API):
     async def api_root(self, path_info=None):
         from sirepo import template
 
-        self._proxy_react(path_info)
         if path_info is None:
             return self.reply_redirect(_cfg.home_page_uri)
         if template.is_sim_type(path_info):
@@ -442,7 +417,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", sid="SimId", data="SimData all_input")
     async def api_saveSimulationData(self):
         # do not fixup_old_data yet
-        req = self.parse_post(id=True, template=True, is_sim_data=True)
+        req = self.parse_post(id=True, template=True)
         return self._simulation_data_reply(
             req,
             simulation_db.save_simulation_json(
@@ -465,7 +440,7 @@ class API(sirepo.quest.API):
         def _not_found(req):
             if not simulation_db.find_global_simulation(req.type, req.id):
                 raise sirepo.util.NotFound(
-                    "stype={} sid={} global simulation not found", req.type, req.id
+                    "sim_type={} sid={} global simulation not found", req.type, req.id
                 )
             return self.headers_for_no_cache(self.reply_dict(_redirect(req)))
 
@@ -541,7 +516,6 @@ class API(sirepo.quest.API):
         """
         if not path_info:
             raise sirepo.util.NotFound("empty path info")
-        self._proxy_react(f"{sirepo.const.STATIC_D}/" + path_info)
         p = sirepo.resource.static(sirepo.util.validate_path(path_info))
         if re.match(r"^(html|en)/[^/]+html$", path_info):
             return self.reply_html(p)
@@ -633,43 +607,6 @@ class API(sirepo.quest.API):
             }
         )
 
-    def _proxy_react(self, path):
-        import requests
-
-        def _build():
-            p = path
-            m = re.search(r"^(\w+)(?:$|/)", p)
-            if m and m.group(1) in sirepo.feature_config.cfg().sim_types:
-                p = "index.html"
-            # do not call api_staticFile due to recursion of proxy_react()
-            r = self.reply_file(
-                sirepo.resource.static(sirepo.util.validate_path(f"react/{p}")),
-            )
-            if p == "index.html":
-                # Ensures latest react is always returned, because index.html contains
-                # version-tagged values but index.html does not. It's likely that
-                # a check would be made on a refresh, this ensures no caching.
-                r.headers_for_no_cache()
-            raise sirepo.util.SReplyExc(r)
-
-        def _dev():
-            r = requests.get(_cfg.react_server + path)
-            # We want to throw an exception here, because it shouldn't happen
-            r.raise_for_status()
-            raise sirepo.util.SReplyExc(
-                self.reply_as_proxy(
-                    content=r.content,
-                    content_type=r.headers["Content-Type"],
-                ),
-            )
-
-        if (
-            path
-            and _cfg.react_server
-            and (path in _PROXY_REACT_URI_SET or _PROXY_REACT_URI_RE.search(path))
-        ):
-            _build() if _cfg.react_server == _REACT_SERVER_BUILD else _dev()
-
     def _render_root_page(self, page, values):
         values.update(
             PKDict(
@@ -686,11 +623,17 @@ class API(sirepo.quest.API):
             simulation_db.save_new_simulation(data, qcall=self),
         )
 
+    def _save_with_related(self, req, data):
+        if hasattr(req.template, "copy_related_sims"):
+            return self._save_new_and_reply(
+                req,
+                req.template.copy_related_sims(data, qcall=self),
+            )
+        return self._save_new_and_reply(req, data)
+
     def _simulation_data_reply(self, req, data):
         if hasattr(req.template, "prepare_for_client"):
             d = req.template.prepare_for_client(data, qcall=self)
-        if sirepo.feature_config.is_react_sim_type(req.type):
-            req.sim_data.react_format_data(data)
         return self.headers_for_no_cache(self.reply_dict(data))
 
 
@@ -700,7 +643,6 @@ def init_apis(*args, **kwargs):
 
 def init_tornado(use_reloader=False, is_server=False):
     """Initialize globals and create/upgrade db"""
-    _init_proxy_react()
     from sirepo import auth_db
 
     with sirepo.quest.start() as qcall:
@@ -709,43 +651,6 @@ def init_tornado(use_reloader=False, is_server=False):
 
 def init_module(**imports):
     pass
-
-
-def _cfg_react_server(value):
-    if value is None:
-        return None
-    # if not pkconfig.channel_in("dev"):
-    #     pkconfig.raise_error("invalid channel={}; must be dev", pkconfig.cfg.channel)
-    if value == _REACT_SERVER_BUILD:
-        return value
-    u = urllib.parse.urlparse(value)
-    if (
-        u.scheme
-        and u.netloc
-        and u.path == "/"
-        and len(u.params + u.query + u.fragment) == 0
-    ):
-        return value
-    pkconfig.raise_error(f"invalid url={value}, must be http://netloc/")
-
-
-def _init_proxy_react():
-    if not _cfg.react_server:
-        return
-    global _PROXY_REACT_URI_RE, _PROXY_REACT_URI_SET
-    p = [
-        "asset-manifest.json",
-        "manifest.json",
-        f"{sirepo.const.STATIC_D}/js/bundle.js",
-        f"{sirepo.const.STATIC_D}/js/bundle.js.map",
-    ]
-    _PROXY_REACT_URI_SET = set(p)
-    r = f"^{sirepo.const.REACT_ROOT_D}/"
-    for x in sirepo.feature_config.cfg().react_sim_types:
-        r += rf"|^{x}(?:\/|$)"
-    if _cfg.react_server == _REACT_SERVER_BUILD:
-        r += f"|^{sirepo.const.REACT_BUNDLE_FILE_PAT}"
-    _PROXY_REACT_URI_RE = re.compile(r)
 
 
 def _lib_file_write_path(req):
@@ -796,10 +701,4 @@ _cfg = pkconfig.init(
         "enable source cache key, disable to allow local file edits in Chrome",
     ),
     home_page_uri=("/en/landing.html", str, "home page to redirect to"),
-    react_server=(
-        None if pkconfig.in_dev_mode() else _REACT_SERVER_BUILD,
-        _cfg_react_server,
-        "Base URL of npm start server",
-    ),
-    react_sim_types=pkconfig.ReplacedBy("sirepo.feature_config.react_sim_types"),
 )

@@ -1,0 +1,62 @@
+#!/usr/bin/env python
+
+# fodo
+execution_mode = 'serial'
+
+lattice_file = """
+
+"L": DRIF,l=.5
+"QD": QUAD,k1=-2,l=0.25
+"QF": QUAD,k1=2,l=0.25
+"::FODO_BEAMLINE": LINE=("QF","L","QD","QD","L","QF")
+"FODO_BEAMLINE_X10": LINE=("::FODO_BEAMLINE","::FODO_BEAMLINE","::FODO_BEAMLINE","::FODO_BEAMLINE","::FODO_BEAMLINE","::FODO_BEAMLINE","::FODO_BEAMLINE","::FODO_BEAMLINE","::FODO_BEAMLINE","::FODO_BEAMLINE")
+
+"""
+
+elegant_file = """
+
+&global_settings
+  mpi_io_write_buffer_size = 1048576,
+&end
+
+&run_setup
+  semaphore_file = run_setup.semaphore,
+  centroid = "run_setup.centroid.sdds",
+  lattice = "elegant.lte",
+  output = "run_setup.output.sdds",
+  p_central_mev = 1001,
+  parameters = "run_setup.parameters.sdds",
+  sigma = "run_setup.sigma.sdds",
+&end
+
+&run_control
+&end
+
+&twiss_output
+  filename = "twiss_output.filename.sdds",
+  matched = 0,
+&end
+
+&bunched_beam
+  distribution_cutoff[0] = 3, 3, 3,
+  emit_x = 4.6e-08,
+  emit_y = 4.6e-08,
+  enforce_rms_values[0] = 1, 1, 1,
+  n_particles_per_bunch = 5000,
+  sigma_dp = 0.001,
+  sigma_s = 0.00065,
+&end
+
+&track
+&end
+
+"""
+
+with open('elegant.lte', 'w') as f:
+    f.write(lattice_file)
+
+with open('elegant.ele', 'w') as f:
+    f.write(elegant_file)
+
+import os
+os.system('elegant elegant.ele')

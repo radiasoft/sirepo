@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """CloudMC execution template.
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
@@ -40,7 +39,10 @@ def _percent_complete(run_dir, is_running):
         frameCount=0,
         percentComplete=0,
     )
-    with pkio.open_text(str(run_dir.join(template_common.RUN_LOG))) as f:
+    log = run_dir.join(template_common.RUN_LOG)
+    if not log.exists():
+        return res
+    with pkio.open_text(log) as f:
         res.eigenvalue = None
         res.results = None
         has_results = False
@@ -114,7 +116,7 @@ def get_data_file(run_dir, model, frame, options):
         return _statepoint_filename(
             simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         )
-    raise AssertionError("no data file for model={model} and options={options}")
+    raise AssertionError(f"invalid model={model} options={options}")
 
 
 def post_execution_processing(
@@ -126,7 +128,7 @@ def post_execution_processing(
             for f in ply_files:
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
         return None
-    return _parse_run_log(run_dir)
+    return _parse_cloudmc_log(run_dir)
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -134,16 +136,15 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def stateful_compute_download_remote_lib_file(data, **kwargs):
-    return template_common.remote_file_to_simulation_lib(
-        _SIM_DATA,
+    _SIM_DATA.lib_file_save_from_url(
         "{}/{}".format(
             sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
             data.args.exampleURL,
         ),
-        False,
         "geometryInput",
         "dagmcFile",
     )
+    return PKDict()
 
 
 def sim_frame(frame_args):
@@ -159,6 +160,25 @@ def sim_frame(frame_args):
     def _get_tally(tallies, name):
         f = [x for x in tallies if x.name == name]
         return f[0] if len(f) else None
+
+    def _sample_sources(filename, num_samples):
+        samples = []
+        try:
+            b = template_common.read_dict_from_h5(filename).get("source_bank", [])[
+                :num_samples
+            ]
+            return [
+                PKDict(
+                    direction=p.u,
+                    energy=p.E,
+                    position=p.r,
+                    type=openmc.ParticleType(p.particle).name,
+                )
+                for p in [openmc.SourceParticle(*p) for p in b]
+            ]
+        except:
+            pass
+        return samples
 
     def _sum_energy_bins(values, mesh_filter, energy_filter, sum_range):
         f = (lambda x: x) if energy_filter.space == "linear" else numpy.log10
@@ -206,9 +226,14 @@ def sim_frame(frame_args):
         field_data=v.tolist(),
         min_field=v.min(),
         max_field=v.max(),
+        num_particles=frame_args.sim_in.models.settings.particles,
         summaryData=PKDict(
             tally=frame_args.tally,
             outlines=o[frame_args.tally] if frame_args.tally in o else {},
+            sourceParticles=_sample_sources(
+                _source_filename(frame_args.sim_in),
+                frame_args.numSampleSourceParticles,
+            ),
         ),
     )
 
@@ -237,6 +262,15 @@ def stateless_compute_validate_material_name(data, **kwargs):
     except ValueError as e:
         res.error = "invalid material name"
     return res
+
+
+def validate_file(file_type, path):
+    import h5py
+
+    if file_type == "geometryInput-dagmcFile":
+        if not h5py.is_hdf5(path):
+            return "dagmcFile must be valid hdf5 file"
+    return None
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -444,7 +478,7 @@ def _generate_distribution(dist):
     return _generate_call(t, args)
 
 
-def _generate_materials(data):
+def _generate_materials(data, j2_ctx):
     res = ""
     material_vars = []
     for v in data.models.volumes.values():
@@ -488,7 +522,8 @@ def _generate_materials(data):
             elif c.component == "add_s_alpha_beta":
                 res += f'{n}.{c.component}("{c.name}", {c.fraction})\n'
     if not len(material_vars):
-        raise AssertionError(f"No materials defined for volumes")
+        j2_ctx.incomplete_data_msg += " No materials defined for volumes,"
+        return
     res += "materials = openmc.Materials([" + ", ".join(material_vars) + "])\n"
     return res
 
@@ -512,10 +547,19 @@ def _generate_parameters_file(data, run_dir=None):
             cores = 1 if r == "sequential" else sirepo.mpi.cfg().cores
             v.runCommand = f"openmc.run(threads={ cores })"
 
-    v.materials = _generate_materials(data)
-    v.sources = _generate_sources(data)
-    v.tallies = _generate_tallies(data)
+    v.incomplete_data_msg = ""
+    v.materials = _generate_materials(data, v)
+    v.sources = _generate_sources(data, v)
+    v.sourceFile = _source_filename(data)
+    v.maxSampleSourceParticles = SCHEMA.model.openmcAnimation.numSampleSourceParticles[
+        5
+    ]
+    v.tallies = _generate_tallies(data, v)
     v.hasGraveyard = _has_graveyard(data)
+    if v.incomplete_data_msg:
+        return (
+            f'raise AssertionError("Unable to generate sim: {v.incomplete_data_msg}")'
+        )
     return template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -535,8 +579,8 @@ def _generate_range(filter):
 
 def _generate_source(source):
     if source.get("type") == "file" and source.get("file"):
-        return f"openmc.Source(filename=\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
-    return f"""openmc.Source(
+        return f"openmc.IndependentSource(filename=\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
+    return f"""openmc.IndependentSource(
         space={_generate_space(source.space)},
         angle={_generate_angle(source.angle)},
         energy={_generate_distribution(source.energy)},
@@ -546,9 +590,10 @@ def _generate_source(source):
     )"""
 
 
-def _generate_sources(data):
+def _generate_sources(data, j2_ctx):
     if not len(data.models.settings.sources):
-        raise AssertionError(f"No Settings Sources defined")
+        j2_ctx.incomplete_data_msg += " No Settings Sources defined,"
+        return
     return ",\n".join([_generate_source(s) for s in data.models.settings.sources])
 
 
@@ -577,9 +622,10 @@ def _generate_space(space):
     return _generate_call(space._type, args)
 
 
-def _generate_tallies(data):
+def _generate_tallies(data, j2_ctx):
     if not len(data.models.settings.tallies):
-        raise AssertionError(f"No Tallies defined")
+        j2_ctx.incomplete_data_msg += " No Tallies defined"
+        return
     return (
         "\n".join(
             [
@@ -661,21 +707,21 @@ def _is_sbatch_run_mode(data):
     return data.models.openmcAnimation.jobRunMode == "sbatch"
 
 
-def _parse_run_log(run_dir):
-    res = ""
-    p = run_dir.join(template_common.RUN_LOG)
-    if not p.exists():
-        return res
-    with pkio.open_text(p) as f:
-        for line in f:
-            # ERROR: Cannot tally flux for an individual nuclide.
-            m = re.match(r"^\s*Error:\s*(.*)$", line, re.IGNORECASE)
-            if m:
-                res = m.group(1)
-                break
-    if res:
-        return res
-    return "An unknown error occurred, check CloudMC log for details"
+def _parse_cloudmc_log(run_dir, log_filename="run.log"):
+    return template_common.LogParser(
+        run_dir,
+        log_filename=log_filename,
+        default_msg="An unknown error occurred, check CloudMC log for details",
+        # ERROR: Cannot tally flux for an individual nuclide.
+        error_patterns=(
+            re.compile(r"^\s*Error:\s*(.*)$", re.IGNORECASE),
+            re.compile(r"AssertionError: (.*)"),
+        ),
+    ).parse_for_errors()
+
+
+def _source_filename(data):
+    return f"source.{data.models.settings.batches}.h5"
 
 
 def _statepoint_filename(data):

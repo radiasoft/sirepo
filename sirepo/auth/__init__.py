@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Authentication
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
@@ -86,15 +85,14 @@ def init_quest(qcall, internal_req=None):
         qcall (quest.API): context for APIs and CLIs
         internal_req (object): context of web framework, pkcli, unit test, etc.
     """
-    o = _Auth(qcall=qcall)
-    qcall.attr_set("auth", o)
+    o = _Auth(qcall)
     sirepo.auth_db.init_quest(qcall)
     if (
         not _cfg.logged_in_user
         and internal_req
         or qcall.bucket_unchecked_get("in_pkcli")
     ):
-        sirepo.request.init_quest(qcall, internal_req)
+        sirepo.request.init_quest(qcall, internal_req=internal_req)
         sirepo.reply.init_quest(qcall)
         # TODO(robnagler): process auth basic header, too. this
         # should not cookie but route to auth_basic.
@@ -148,6 +146,14 @@ class _Auth(sirepo.quest.Attr):
     METHOD_EMAIL = METHOD_EMAIL
     METHOD_GUEST = METHOD_GUEST
 
+    # Keys passed to child quests (nested call_api) so login state is cascaded
+    _INIT_QUEST_FOR_CHILD_KEYS = frozenset(
+        (
+            "_logged_in_user",
+            "_logged_in_method",
+        ),
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._logged_in_user = _cfg.logged_in_user
@@ -194,36 +200,36 @@ class _Auth(sirepo.quest.Attr):
         Always sets _COOKIE_STATE, which is our sentinel.
 
         Args:
-            values (dict): just parsed values
+            values (PKDict): just parsed values
         Returns:
-            dict: unmodified or migrated values
+            PKDict, bool: (unmodified or migrated values, True if modified)
         """
         if values.get(_COOKIE_STATE):
-            # normal case: we've seen a cookie at least once
-            # check for _cfg.methods changes
+            # normal case: this module has seen a cookie at least once
+            # check for _cfg.methods changes; invalid methods cause a logout.
+            # No method is fine, because not logged in.
             m = values.get(_COOKIE_METHOD)
-            if m and m not in valid_methods:
-                # invalid method (changed config), reset state
-                pkdlog(
-                    "possibly misconfigured server: invalid cookie_method={}, clearing values={}",
-                    m,
-                    values,
-                )
-                pkcollections.unchecked_del(
-                    values,
-                    _COOKIE_METHOD,
-                    _COOKIE_USER,
-                    _COOKIE_STATE,
-                )
-            return values
-        # data cleaning; do not need auth old values
+            if not m or m in valid_methods:
+                return values, False
+            # invalid method (changed config), reset state
+            pkdlog(
+                "possibly misconfigured server: invalid cookie_method={}, clearing auth values={}",
+                m,
+                values,
+            )
+            pkcollections.unchecked_del(
+                values, _COOKIE_METHOD, _COOKIE_USER, _COOKIE_STATE
+            )
+            return values, True
+        # data cleaning; do not need old auth values
         if values.get("sru") or values.get("uid"):
-            pkdlog("unknown cookie values, clearing, not migrating: {}", values)
-            return {}
-        # normal case: new visitor, and no user/state; set logged out
-        # and return all values
+            pkdlog(
+                "unknown cookie values, clearing completely, not migrating: {}", values
+            )
+            return PKDict(), True
+        # normal case: new visitor (no user or state); set logged out
         values[_COOKIE_STATE] = _STATE_LOGGED_OUT
-        return values
+        return values, True
 
     def create_user_from_email(self, email, display_name):
         u = self._create_user(_METHOD_MODULES[METHOD_EMAIL], want_login=False)
@@ -247,6 +253,8 @@ class _Auth(sirepo.quest.Attr):
 
     def is_logged_in(self, state=None):
         """Logged in is either needing to complete registration or done
+
+        Does not check simulation dir
 
         Args:
             state (str): logged in state [None: from cookie]
@@ -440,7 +448,7 @@ class _Auth(sirepo.quest.Attr):
                 self._handle_user_dir_not_found(**e.sr_args)
                 return self._auth_state()
         except Exception as e:
-            pkdlog("exception={}", e, " stack={}", pkdexc())
+            pkdlog("exception={} stack={}", e, pkdexc())
             # POSIT: minimal authState record, see _auth_state
             return PKDict(
                 displayName=None,
@@ -501,6 +509,9 @@ class _Auth(sirepo.quest.Attr):
         r = LOGIN_ROUTE_NAME
         s = self._qcall_bound_state()
         u = self._qcall_bound_user()
+        if u:
+            # Will raise an exception if dir not found
+            simulation_db.user_path(uid=u, check=True)
         if s is None:
             pass
         elif s == _STATE_LOGGED_IN:
@@ -633,6 +644,7 @@ class _Auth(sirepo.quest.Attr):
             isLoggedIn=self.is_logged_in(s),
             isLoginExpired=False,
             jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
+            max_message_bytes=sirepo.job.cfg().max_message_bytes,
             method=self._qcall_bound_method(),
             needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
             roles=[],

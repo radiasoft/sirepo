@@ -28,32 +28,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 cls.update_model_defaults(m, LatticeUtil.model_name_for_data(m))
 
     @classmethod
-    def react_format_data(cls, data):
-        dm = data.models
-        if "beamlines" in dm:
-            assert isinstance(dm.beamlines, list)
-            dm.lattice = PKDict(
-                beamlines=list(
-                    map(lambda i: PKDict(model="Beamline", item=i), dm.beamlines)
-                )
-            )
-            del dm["beamlines"]
-        assert isinstance(dm.elements, list)
-        dm.elements = PKDict(
-            elements=list(map(lambda i: PKDict(model=i.type, item=i), dm.elements))
-        )
-
-    @classmethod
-    def react_unformat_data(cls, data):
-        dm = data.models
-        if isinstance(dm.elements, list):
-            return
-        if "lattice" in dm:
-            dm.beamlines = [i.item for i in dm.lattice.beamlines]
-            del dm["lattice"]
-        dm.elements = [i.item for i in dm.elements.elements]
-
-    @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
         res = []
         if "bunchReport" in compute_model:

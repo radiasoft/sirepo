@@ -36,7 +36,7 @@ SIREPO.app.config(function() {
         `<li data-export-python-link="" data-report-title="{{ reportTitle().replace('/', ' ') }}"></li>`,
     ].join('');
     SIREPO.appReportTypes = `
-        <div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+        <div data-ng-switch-when="crystal3d" data-crystal-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
     `;
     SIREPO.BEAMLINE_WATCHPOINT_MODEL_PREFIX = 'beamlineAnimation';
     SIREPO.BEAMLINE_WATCHPOINT_REPORT_ELEMENTS = ['watch', 'crystal'];
@@ -282,7 +282,7 @@ SIREPO.app.directive('selectCrystal', function(appState, silasService) {
     };
 });
 
-SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender, $http) {
+SIREPO.app.directive('n0n2Plot', function(appState, panelState, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -572,7 +572,6 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plo
         restrict: 'A',
         scope: {
             modelName: '@',
-            reportId: '<',
         },
         template: `
             <div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">

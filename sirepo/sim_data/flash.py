@@ -154,7 +154,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             return
         try:
             super().sim_files_to_run_dir(data, run_dir)
-        except sirepo.sim_data.SimDbFileNotFound:
+        except Exception as e:
+            if not pkio.exception_is_not_found(e):
+                raise
             raise sirepo.util.UserAlert("Must first run Setup and Compile")
 
     @classmethod
@@ -257,7 +259,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         sirepo.sim_db_file delete does a glob of the filename to delete. So, we
         will delete any file that starts with _FLASH_EXE_PREFIX
         """
-        cls.delete_sim_file(data.models.simulation.simulationId, cls._FLASH_EXE_PREFIX)
+        cls.sim_db_client().delete_glob(
+            data.models.simulation.simulationId,
+            cls._FLASH_EXE_PREFIX,
+        )
 
     @classmethod
     def __extract_problem_files_archive(cls, path):

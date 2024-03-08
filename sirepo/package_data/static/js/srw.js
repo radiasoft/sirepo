@@ -11,7 +11,7 @@ SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
     SIREPO.PLOTTING_SHOW_FWHM = true;
     SIREPO.appReportTypes = `
-        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
     `;
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="BeamList">
@@ -553,7 +553,6 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
     var self = this;
     // tabs: single, multi, beamline3d
     var activeTab = 'single';
-    self.mirrorReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
     self.appState = appState;
     self.beamlineService = beamlineService;
     self.srwService = srwService;
@@ -788,6 +787,11 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
         $scope.$on('simulation.changed', syncDistanceFromSourceToFirstElementPosition);
         $scope.$on('multiElectronAnimation.changed', updateMultiElectronWatchpoint);
         $scope.$on('beamlineAnimation0.changed', copyIntensityReportCharacteristics);
+        $scope.$on('modelChanged', (event, modelName) => {
+            if (modelName.indexOf('beamlineAnimation') >= 0) {
+                updateWatchpointReports();
+            }
+        });
         srwService.addSummaryDataListener($scope);
         var search = $location.search();
         if (search) {
@@ -850,6 +854,8 @@ SIREPO.app.controller('MLController', function (appState, panelState, persistent
             '<suffix>': 'h5',
         });
     };
+
+    self.showRunSimPanel = () => appState.applicationState().exportRsOpt.totalSamples > 0;
 
     self.simHandleStatus = data => {
         if (data.error) {
@@ -955,14 +961,31 @@ var srwGrazingAngleLogic = function(panelState, srwService, $scope) {
 
 var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) {
 
+    const modelKey = $scope.modelData ? $scope.modelData.modelKey : $scope.modelName;
+
     function hasSamplingMethod() {
         return $scope.modelName == 'sourceIntensityReport' || $scope.modelName == 'coherentModesAnimation';
     }
+
+    function updateDetector() {
+        if ($scope.modelName == 'powerDensityReport' || $scope.modelName == 'coherentModesAnimation') {
+            panelState.showField($scope.modelName, 'useDetector', false);
+        }
+        const m = appState.models[modelKey];
+        if (m.useDetector === '1') {
+            m.usePlotRange = '0';
+        }
+        panelState.showField($scope.modelName, 'intensityPlotsWidth', m.useDetector === '0');
+        panelState.showField($scope.modelName, 'useDetectorAspectRatio', m.useDetector === '1');
+        panelState.showRow($scope.modelName, 'd_rx', m.useDetector === '1');
+    }
+
     function updateIntensityLimit() {
         srwService.updateIntensityLimit(
             $scope.modelName,
             $scope.modelData ? $scope.modelData.modelKey : null);
     }
+
     function updatePlotRange() {
         srwService.updatePlotRange(
             $scope.modelName,
@@ -972,6 +995,7 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
     function updateSelected() {
         updateIntensityLimit();
         updatePlotRange();
+        updateDetector();
         var schemaModel = SIREPO.APP_SCHEMA.model[$scope.modelName];
         if (schemaModel.fieldUnits) {
             panelState.showField($scope.modelName, 'fieldUnits', srwService.isGaussianBeam());
@@ -1004,7 +1028,6 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
         ]);
         panelState.showField('simulation', 'photonEnergy', isSource);
     }
-    var modelKey = $scope.modelData ? $scope.modelData.modelKey : $scope.modelName;
     $scope.whenSelected = updateSelected;
     $scope.watchFields = [
         [
@@ -1014,6 +1037,9 @@ var srwIntensityLimitLogic = function(appState, panelState, srwService, $scope) 
             ($scope.modelData ? $scope.modelData.modelKey : $scope.modelName)
                 + '.usePlotRange',
         ], updatePlotRange,
+        [
+            modelKey + '.useDetector',
+        ], updateDetector,
     ];
     if (hasSamplingMethod()) {
         $scope.watchFields.push(
@@ -2750,7 +2776,6 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, plotToPNG, srwSe
         restrict: 'A',
         scope: {
             modelName: '@',
-            reportId: '<',
         },
         template: `
             <div style="float: right; margin-top: -10px; margin-bottom: 5px;">
