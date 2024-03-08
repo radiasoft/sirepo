@@ -437,6 +437,7 @@
             "layer": ["Layer", "NeuralNetLayer", "GaussianNoise"],
             "stddev": ["Standard Deviation", "Float", 0.01]
         },
+        "imageSamplesReport": {},
         "maxPooling2D": {
             "_super": ["-", "model", "poolingLayer"],
             "layer": ["layer", "NeuralNetLayer", "MaxPooling2D"]
@@ -792,6 +793,10 @@
         "pathChooser": {
             "title": "Data Paths",
             "basic": [],
+            "advanced": []
+        },
+        "imageSamplesReport": {
+            "title": "Image Samples",
             "advanced": []
         },
         "imageViewer": {

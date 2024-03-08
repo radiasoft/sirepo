@@ -202,7 +202,7 @@ def new_simulation(data, new_sim_data, qcall, **kwargs):
 
 def prepare_sequential_output_file(run_dir, data):
     report = data["report"]
-    if "fileColumnReport" in report or "partitionColumnReport":
+    if "fileColumnReport" in report or report == "partitionColumnReport":
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
@@ -237,6 +237,23 @@ def save_sequential_report_data(run_dir, sim_in):
         _extract_analysis_report(run_dir, sim_in)
     elif "fftReport" in sim_in.report:
         _extract_fft_report(run_dir, sim_in)
+    elif sim_in.report == "imageSamplesReport":
+        template_common.write_sequential_result(
+            PKDict(
+                x_range=[],
+                images=_ImagePreview(
+                    PKDict(
+                        args=PKDict(
+                            method="imagePreview",
+                            imageFilename="sample",
+                            dataFile=sim_in.models.dataFile,
+                            columnInfo=sim_in.models.columnInfo,
+                            otherSimId=None,
+                        ),
+                    )
+                ).images(),
+            )
+        )
     else:
         raise AssertionError("unknown report: {}".format(sim_in.report))
 
@@ -990,6 +1007,8 @@ def _param_to_image(info):
 
 def _generate_parameters_file(data):
     report = data.get("report", "")
+    if report == "imageSamplesReport":
+        return ""
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
     v.imageOut = _image_out(dm.columnInfo)

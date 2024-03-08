@@ -59,6 +59,7 @@ SIREPO.app.config(() => {
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="classificationMetrics" data-table-panel="" data-model-name="{{ modelKey }}" class="sr-plot sr-screenshot"></div>
         <div data-ng-switch-when="confusionMatrix" data-table-panel="" data-model-name="{{ modelKey }}" class="sr-plot sr-screenshot"></div>
+        <div data-ng-switch-when="imageViewer" data-image-viewer="" data-model-name="{{ modelKey }}" class="sr-plot sr-screenshot"></div>
     `;
 });
 
@@ -1146,6 +1147,29 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
     };
 });
 
+SIREPO.app.directive('imageViewer', function(appState, plotting) {
+    return {
+        scope: {
+            modelName: "@"
+        },
+        template: `
+          <div data-ng-if="imageInfo">
+              <div data-image-preview="imageInfo"></div>
+          </div>
+        `,
+        controller: function($scope) {
+            plotting.setTextOnlyReport($scope);
+            $scope.load = function(json) {
+                $scope.imageInfo = json.images;
+                $scope.imageInfo.method = "imagePreview";
+            };
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
+        },
+    };
+});
+
 SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
     return {
         restrict: 'A',
@@ -1155,6 +1179,46 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
         },
         template: `
         <div class="container-fluid">
+          <div data-ng-if="isLoading" data-sim-state-progress-bar="" data-sim-state="simState"></div>
+          <div data-ng-if="imageInfo">
+              <div data-image-preview="imageInfo"></div>
+          </div>
+        </div>
+        `,
+        controller: function($scope, $element) {
+            $scope.isLoading = true;
+            const f = $scope.method == 'imagePreview' ? requestSender.sendStatefulCompute : requestSender.sendAnalysisJob;
+            f(
+                appState,
+                response => {
+                    $scope.isLoading = false;
+                    response.method = $scope.method;
+                    $scope.imageInfo = response;
+                },
+                {
+                    method: 'sample_images',
+                    modelName: 'animation',
+                    args: {
+                        method: $scope.method,
+                        imageFilename: 'sample',
+                        dataFile: appState.applicationState().dataFile,
+                        columnInfo: appState.applicationState().columnInfo,
+                        otherSimId: $scope.comparisonId ? $scope.comparisonId : null,
+                    }
+                }
+            );
+        }
+    };
+});
+
+SIREPO.app.directive('imagePreview', function(appState, requestSender, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            imageInfo: '=imagePreview',
+        },
+        template: `
+          <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
           <div data-ng-if="colA" class="row">
             <div class="{{ colClass() }}">
               <div class="lead text-center">{{ colAName }}</div>
@@ -1181,9 +1245,7 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
               </div>
             </div>
           </div>
-          <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
-          <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
-          <div data-ng-if="! isLoading() && multiPage">
+          <div data-ng-if="multiPage">
             <div data-ng-if="numPages > 1" class="pull-left">
               <button class="btn btn-primary" title="first" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="first()">|<</button>
               <button class="btn btn-primary" title="previous" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><</button>
@@ -1194,10 +1256,8 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
               <button class="btn btn-primary" title="last" data-ng-disabled="! canUpdateUri(1)" data-ng-click="last()">>|</button>
             </div>
           </div>
-        </div>
         `,
         controller: function($scope, $element) {
-            let loading = true;
             $scope.numPages = 0;
             $scope.imagesPerPage = 3;
             $scope.pageImages = SIREPO.UTILS.indexArray($scope.imagesPerPage);
@@ -1222,8 +1282,6 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
             $scope.first = () => {
                 setIndex($scope.imageIdx = 0);
             };
-
-            $scope.isLoading = () => loading;
 
             $scope.last = () => {
                 setIndex($scope.imageIdx = $scope.numPages * $scope.imagesPerPage - $scope.imagesPerPage);
@@ -1291,53 +1349,37 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
                 }
             }
 
-            const loadImageFile = () => {
-                const f = $scope.method == 'imagePreview' ? requestSender.sendStatefulCompute : requestSender.sendAnalysisJob;
-                f(
-                    appState,
-                    response => {
-                        $scope.numPages = Math.ceil(response.colA.length / $scope.imagesPerPage);
-                        $scope.colA = response.colA;
-                        $scope.colB = response.colB;
-                        $scope.xIsParams = response.xIsParameters;
-                        $scope.imageToLabels = response.imageToLabels;
-                        $scope.pred = response.pred || null;
-                        if ($scope.xIsParams) {
-                            $scope.parameters = [];
-                        }
-                        if ($scope.imageToLabels) {
-                            $scope.labels = [];
-                            $scope.colBName = 'Labels';
-                        }
-                        if ($scope.colA) {
-                            $scope.multiPage = $scope.colA.length > 1;
-                            setIndex(0);
-                        }
-                        loading = false;
-                        if (response.paramToImage) {
-                            if (! response.xIsParameters) {
-                                $scope.colBName = 'Prediction';
-                                return;
-                            }
-                            $scope.colAName = 'Parameters';
-                            $scope.colBName = 'Images';
-                        }
-                    },
-                    {
-                        method: 'sample_images',
-                        modelName: 'animation',
-                        args: {
-                            method: $scope.method,
-                            imageFilename: 'sample',
-                            dataFile: appState.applicationState().dataFile,
-                            columnInfo: appState.applicationState().columnInfo,
-                            otherSimId: $scope.comparisonId ? $scope.comparisonId : null,
-                        }
+            // .colAimagePreview1
+            function initFromResponse(response) {
+                $scope.method = response.method;
+                $scope.numPages = Math.ceil(response.colA.length / $scope.imagesPerPage);
+                $scope.colA = response.colA;
+                $scope.colB = response.colB;
+                $scope.xIsParams = response.xIsParameters;
+                $scope.imageToLabels = response.imageToLabels;
+                $scope.pred = response.pred || null;
+                if ($scope.xIsParams) {
+                    $scope.parameters = [];
+                }
+                if ($scope.imageToLabels) {
+                    $scope.labels = [];
+                    $scope.colBName = 'Labels';
+                }
+                if ($scope.colA) {
+                    $scope.multiPage = $scope.colA.length > 1;
+                    panelState.waitForUI(() => setIndex(0));
+                }
+                if (response.paramToImage) {
+                    if (! response.xIsParameters) {
+                        $scope.colBName = 'Prediction';
+                        return;
                     }
-                );
-            };
+                    $scope.colAName = 'Parameters';
+                    $scope.colBName = 'Images';
+                }
+            }
 
-            loadImageFile();
+            initFromResponse($scope.imageInfo);
         }
     };
 });
