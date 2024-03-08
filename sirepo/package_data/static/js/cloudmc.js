@@ -519,6 +519,18 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         };
     };
 
+    self.updateEnergyRange = () => {
+        const e = cloudmcService.findFilter('energyFilter');
+        if (! e || ! cloudmcService.findFilter('meshFilter')) {
+            return;
+        }
+        const s = appState.models.openmcAnimation.energyRangeSum;
+        s.space = e.space;
+        s.min = e.start;
+        s.max = e.stop;
+        s.step = Math.abs(e.stop - e.start) / e.num;
+    }
+    
     self.updateTallyDisplay = () => {
         appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
         // save quietly but immediately
@@ -2400,7 +2412,7 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, validationService, $scope) {
+SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, tallyService, validationService, $scope) {
 
     const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
         .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
@@ -2410,6 +2422,16 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
 
     function filterField(index) {
         return `${$scope.modelName}.filter${index}`;
+    }
+
+    function findFilter(type) {
+        for (let i of inds) {
+            const f = appState.models[$scope.modelName][`filter${i}`]
+            if (f._type === type) {
+                return f;
+            }
+        }
+        return null;
     }
 
     function type(index) {
@@ -2455,7 +2477,7 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
     }
 
     function validateFilter(field) {
-        const f = appState.models[$scope.modelName][ field.split('.')[1]];
+        const f = appState.models[$scope.modelName][field.split('.')[1]];
         if (f._type === 'None') {
             return;
         }
@@ -2470,6 +2492,16 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
         inds.map(i => `${filterField(i)}._type`), updateEditor,
         inds.map(i => `${filterField(i)}`), validateFilter,
     ];
+
+    $scope.$on(`${$scope.modelName}.changed`, () => {
+        const e = findFilter('energyFilter');
+        if (e) {
+            tallyService.updateEnergyRange();
+            //appState.models.openmcAnimation.energyRangeSum.min
+            //appState.models.openmcAnimation.energyRangeSum.val = [e.start, e.stop];
+            appState.saveChanges('openmcAnimation', () => { srdbg('OA', appState.models.openmcAnimation); });
+        }
+    });
 });
 
 SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
