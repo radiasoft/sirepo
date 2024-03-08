@@ -411,8 +411,8 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         const [x, y] = SIREPO.GEOMETRY.GeometryUtils.nextAxes(appState.models.tallyReport.axis).reverse();
         const r = appState.models.energyReport;
         return [
-            r[x].val + 0.5 * r[x].step,
-            r[y].val - 0.5 * r[y].step,
+            r[x].val,  // + 0.5 * r[x].step,
+            r[y].val, // - 0.5 * r[y].step,
         ]
     };
 
@@ -1071,11 +1071,11 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             }
 
             $scope.$on('sr-plotEvent', (e, d) => {
-                const c = d.cell;
-                if (! c) {
+                if (d.name !== SIREPO.PLOTTING.HeatmapSelectCellEvent) {
                     return;
                 }
-                setBins(...c.coords);
+                srdbg(SIREPO.PLOTTING.HeatmapSelectCellEvent, d);
+                setBins(...d.cell.coords);
             });
 
             $scope.$on('sr-volume-visibility-toggle', (event, volume, isVisible, doUpdate) => {
@@ -2396,6 +2396,7 @@ SIREPO.viewLogic('energyReportView', function(appState, panelState, tallyService
 
     $scope.$on('modelChanged', (e, name) => {
         if (name === $scope.modelName) {
+            srdbg(name, 'MC', tallyService.getEnergyReportCoords());
             $rootScope.$broadcast('tallyReport.updateSelection', tallyService.getEnergyReportCoords());
         }
     });

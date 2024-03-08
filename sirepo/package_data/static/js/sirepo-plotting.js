@@ -3424,10 +3424,9 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (! d3.event.altKey) {
                     return;
                 }
-                selectCell();
-                srdbg('C', selectedCells);
+                selectCell(d3.mouse(this));
                 $scope.broadcastEvent({
-                    name: 'heatmapSelectCell',
+                    name: SIREPO.PLOTTING.HeatmapSelectCellEvent,
                     cell: selectedCells[0],
                 });
             }
@@ -3439,7 +3438,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 }
                 const [i, j] = heatmapIndices(mouseMovePoint);
                 const p = getPixel(binnedCoords(mouseMovePoint));
-                srdbg('XH PX', p);
+                srdbg('XH PX', p, 'C', binnedCoords(mouseMovePoint));
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                     if (showCrosshairs) {
@@ -3510,11 +3509,12 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return selector ? e.select(selector) : e;
             }
 
-            function selectCell() {
+            function selectCell(point) {
                 // single selection for now
+                srdbg(d3.event, point);
                 selectedCells[0] = {
-                    point: mouseMovePoint,
-                    coords: binnedCoords(mouseMovePoint),        
+                    point: point,
+                    coords: binnedCoords(point),        
                 };
                 //const p = getPixel(binnedCoords(mouseMovePoint));
                 //srdbg('C', selectedCells[0], 'PX', p, 'BC', binnedCoords([p.x, p.y]));
@@ -3707,6 +3707,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             });
 
             $scope.$on(`${$scope.modelName}.updateSelection`, (e, d) => {
+                srdbg('UPS DEL', d);
                 selectedCells[0] = {
                     coords: d,
                 }
@@ -4506,6 +4507,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
 });
 
 SIREPO.PLOTTING = {
+    HeatmapSelectCellEvent: 'heatmapSelectCell', 
     PlotLine: PlotLine,
     PlotPolygon: PlotPolygon,
     PlotRect: PlotRect,
