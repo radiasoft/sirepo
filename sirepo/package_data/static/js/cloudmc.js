@@ -376,8 +376,9 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
 
 SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities, $rootScope) {
     const self = {
-        mesh: null,
+        energyRangeSum: [0, 1],
         fieldData: null,
+        mesh: null,
         minField: 0,
         maxField: 0,
         outlines: null,
@@ -405,6 +406,8 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         );
     };
 
+    self.getEnergyRangeSum = () => self.energyRangeSum;
+    
     self.getMaxMeshExtent = () => {
         let e = 0;
         for (const r of self.getMeshRanges()) {
@@ -459,6 +462,10 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         return false;
     };
 
+    self.setEnergyRangeSum = r => {
+        self.energyRangeSum = r;
+    };
+    
     self.setFieldData = (fieldData, min, max, numParticles) => {
         const n = normalizer(appState.models.openmcAnimation.score, numParticles);
         self.fieldData = fieldData.map(n);
@@ -2496,9 +2503,9 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, tal
     $scope.$on(`${$scope.modelName}.changed`, () => {
         const e = findFilter('energyFilter');
         if (e) {
-            tallyService.updateEnergyRange();
-            //appState.models.openmcAnimation.energyRangeSum.min
-            //appState.models.openmcAnimation.energyRangeSum.val = [e.start, e.stop];
+            //tallyService.updateEnergyRange();
+            appState.models.openmcAnimation.energyRangeSum.min
+            appState.models.openmcAnimation.energyRangeSum.val = [e.start, e.stop];
             appState.saveChanges('openmcAnimation', () => { srdbg('OA', appState.models.openmcAnimation); });
         }
     });
