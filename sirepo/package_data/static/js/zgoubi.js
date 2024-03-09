@@ -1072,7 +1072,7 @@ SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) 
                         $scope.toscaFile.file,
                         null,
                         requestSender.formatUrl(
-                            'uploadFile',
+                            'uploadLibFile',
                             {
                                 // dummy id because no simulation id is available or required
                                 '<simulation_id>': '11111111',

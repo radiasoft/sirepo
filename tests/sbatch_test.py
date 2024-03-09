@@ -33,7 +33,7 @@ def test_srw_data_file(new_user_fc):
     )
     d = new_user_fc.sr_sim_data(a)
     r = new_user_fc.sr_get(
-        "downloadDataFile",
+        "downloadRunFile",
         PKDict(
             simulation_type=d.simulationType,
             simulation_id=d.models.simulation.simulationId,
