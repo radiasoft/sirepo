@@ -5,9 +5,12 @@
 """
 from pykern import pkconfig
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
+import os.path
 import sirepo.raydata.analysis_driver
+
 
 _cfg = None
 
@@ -16,30 +19,29 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
     def get_conda_env(self):
         return _cfg.conda_env
 
-    def get_detailed_status(self, rduid):
-        import os.path
-        from pykern import pkjson
-        import json
-
-        p = self.get_output_dir().join("statusfile.json")
+    def get_detailed_status_json(self, rduid):
+        p = self.get_output_dir().join(f"progress_dict_{rduid}.json")
         if os.path.exists(p):
             with open(p, "r") as f:
-                try:
-                    return pkjson.load_any(f).get("status", "nostatus")
-                except json.decoder.JSONDecodeError:
-                    return f"empty file={f.read()}"
-        return None
+                return pkjson.load_any(f)
+        return PKDict()
+
+    def get_current_detailed_status(self, rduid):
+        return self.get_detailed_status_json(rduid)
+        pass
+
+    def get_consecutive_failures(self, rduid):
+        pass
 
     def get_notebooks(self):
         return [
             PKDict(
-                input_f="/home/vagrant/src/radiasoft/raydata/dev_notebooks/chx/2023_2/AutoRuns/commissioning/XPCS_SAXS_2023_v2-detailed-status.ipynb",
-                # input_f=_cfg.input_base_dir.join(
-                #     self._scan_metadata.get_start_field("cycle"),
-                #     "AutoRuns",
-                #     self._scan_metadata.get_start_field("user"),
-                #     f"{self._scan_metadata.get_start_field('auto_pipeline')}.ipynb",
-                # ),
+                input_f=_cfg.input_base_dir.join(
+                    self._scan_metadata.get_start_field("cycle"),
+                    "AutoRuns",
+                    self._scan_metadata.get_start_field("user"),
+                    f"{self._scan_metadata.get_start_field('auto_pipeline')}.ipynb",
+                ),
                 output_f=_cfg.output_base_dir.join(
                     self._scan_metadata.get_start_field("cycle"),
                     self._scan_metadata.get_start_field("user"),

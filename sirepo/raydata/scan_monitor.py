@@ -80,12 +80,11 @@ class _DbBase:
 
 
 def _get_detailed_status(catalog_name, rduid):
-    #    return "abc"
     # todo check if anaylsis driver has this method?
     # todo check somewhere (in driver) if file exists)
     return sirepo.raydata.analysis_driver.get(
         PKDict(catalog_name=catalog_name, rduid=rduid)
-    ).get_detailed_status(rduid)
+    ).get_current_detailed_status(rduid)
 
 
 class _Analysis(_DbBase):
