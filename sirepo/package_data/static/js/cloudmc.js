@@ -540,27 +540,37 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
 
     self.updateThresholds = () => {
         function updateCache() {
-            s.forEach(([k, v]) => {
+            for (const k in self.cachedSettings) {
                 self.cachedSettings[k] = appState.models.openmcAnimation[k];
-            });
+            }
         }
 
-        const s = Object.entries(self.cachedSettings);
-        if (s.every(([k, v]) => v == null)) {
+        function updateModel(t) {
+            t.global = [self.minField, self.maxField];
+            // since tallies are counts, compare the lower threshold to 0
+            // instead of the global min. The user can set it to the actual min if desired
+            t.val[0] = 0;
+            t.val[1] = t.global[1];
+        }
+
+        const t = appState.models.openmcAnimation.thresholds;
+        // replace default val
+        if ((t.val.concat(t.global)).some((v) => v === null)) {
+            updateModel(t);
+        }
+        
+        // initial page load - respect user setting
+        if (Object.values(self.cachedSettings).every((v) => v == null)) {
             updateCache();
             return;
         }
+
         // if none of the data-specific settings changed, do not update the thresholds
-        if (s.every(([k, v]) => v === appState.models.openmcAnimation[k])) {
+        if (Object.entries(self.cachedSettings).every(([k, v]) => v === appState.models.openmcAnimation[k])) {
             return;
         }
         updateCache();
-        const t = appState.models.openmcAnimation.thresholds;
-        t.global = [self.minField, self.maxField];
-        // since tallies are counts, compare the lower threshold to 0
-        // instead of the global min. The user can set it to the actual min if desired
-        t.val[0] = 0;
-        t.val[1] = t.global[1];
+        updateModel(t);
     };
 
 
