@@ -479,6 +479,7 @@ SIREPO.app.directive('scansTable', function() {
             modelName: '=',
         },
         template: `
+          <div data-scan-detail="" data-scan="detailScan"></div>
             <div>
               <div>
                 <div class="pull-right" data-ng-if="pageLocationText">
@@ -512,6 +513,7 @@ SIREPO.app.directive('scansTable', function() {
                         <button data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="runAnalysis(s.rduid)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button>
                         <button class="btn btn-info btn-xs" data-ng-disabled="! raydataService.canViewOutput(s)" data-ng-click="setAnalysisScan(s)">View Output</button>
                         <button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s)">View Log</button>
+                        <button class="btn btn-info btn-xs" data-ng-click="setDetailScan(s)">Details</button>
                       </td>
                     </tr>
                   </tbody>
@@ -531,6 +533,7 @@ SIREPO.app.directive('scansTable', function() {
         controller: function(appState, columnsService, errorService, panelState, raydataService, requestSender, scanService, $scope, $interval) {
             $scope.analysisScanId = null;
             $scope.columnsService = columnsService;
+            $scope.detailScan = null;
             $scope.confirmScanId = null;
             $scope.isLoadingNewScans = false;
             $scope.isRefreshingScans = false;
@@ -828,6 +831,10 @@ SIREPO.app.directive('scansTable', function() {
 
             $scope.setAnalysisScan = scan => {
                 $scope.analysisScanId = scan.rduid;
+            };
+
+            $scope.setDetailScan = scan => {
+                $scope.detailScan = scan;
             };
 
             $scope.showCheckbox = scan => {
@@ -1146,6 +1153,26 @@ SIREPO.app.directive('columnList', function() {
         },
     };
 });
+
+SIREPO.app.directive('scanDetail', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            scan: '<',
+        },
+        template: `
+            <div class="panel panel-info" style="width: 500px;">
+              <div class="panel-heading"><span class="sr-panel-heading">Details for Scan {{ scan.rduid }}</span></div>
+              <div class="panel-body">
+                <pre style="overflow: scroll; height: 250px; width: 450px;">{{ scan }}</pre>
+              </div>
+            </div>
+`,
+        controller: function($scope, columnsService) {
+        },
+    };
+});
+
 
 SIREPO.app.directive('searchTerms', function() {
     return {
