@@ -228,7 +228,8 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                 }
                 appState.models.geometryInput.exampleURL = "";
                 appState.saveQuietly('geometryInput');
-                processGeometry();
+                // processGeometry();
+                check();
             },
             {
                 method: 'download_remote_lib_file',
@@ -263,14 +264,18 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
         }
         else if (data.state === 'missing' || data.state === 'canceled') {
             if (self.isGeometrySelected()) {
-                processGeometry();
+                // processGeometry();
+                check();
             }
         }
     };
 
     $scope.$on('geometryInput.changed', () => {
         if (! hasVolumes) {
-            processGeometry();
+            // processGeometry();
+            // TODO (gurhar1133): review change of processGeometry calls to
+            // check()
+            check();
         }
     });
 
