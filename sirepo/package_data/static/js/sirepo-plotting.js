@@ -3414,7 +3414,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     return;
                 }
                 const [i, j] = heatmapIndices(mouseMovePoint);
-                const p = getPixel(binnedCoords(mouseMovePoint));
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                     if (enableCrosshairs) {
