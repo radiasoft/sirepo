@@ -252,8 +252,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
         return appState.applicationState().geometryInput.dagmcFile;
     };
     self.isGeometryProcessed = () => hasVolumes;
-    self.simHandleStatus = data => {
-        srdbg('data', data);
+    self.simHandleStatus = data => {;
         self.hasServerStatus = true;
         if (data.volumes) {
             hasVolumes = true;
@@ -280,11 +279,12 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simState = persistentSimulation.initSimulationState(self);
 
     function check() {
-        requestSender.sendAnalysisJob(
+        srdbg('about to check');
+        requestSender.sendStatefulCompute(
             appState,
             (data) => {
-                srdbg("data", data);
-                if (data.state == 'missing') {
+                srdbg("ret data=", data);
+                if (! data.dir_exists) {
                     hasVolumes = false;
                     processGeometry();
                 }
@@ -292,7 +292,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
             {
                 method: 'check_animation_dir',
                 args: {
-                    dir: 'dagcmAnimation'
+                    dir: 'dagmcAnimation'
                 },
                 modelName: 'dagmcAnimation',
             }
@@ -1774,7 +1774,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
             $scope.volumeOpacityChanged = (row) => {
                 broadcastVolumePropertyChanged(row.volId, 'opacity', row.opacity.val);
             };
-        
+
             $scope.volumePropertyChanged = (row, prop) => {
                 broadcastVolumePropertyChanged(row.volId, prop, row[prop]);
             };
@@ -2701,7 +2701,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     range.min !== range.max;
                 return v;
             }
-            
+
             function updateSlider() {
                 slider = buildSlider();
             }
@@ -2774,7 +2774,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'axis', is2D,
             'planePos', is2D && planePosHasSteps,
         ]);
-        
+
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! $scope.energyFilter);
         panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
         panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);
