@@ -5246,6 +5246,7 @@ SIREPO.app.directive('srDraggable', function() {
                 $scope.item.isDragging = false;
                 $element.removeClass('sr-dragging');
                 $element.removeClass('sr-hide-menu');
+                $scope.$applyAsync();
             });
             // need handlers for both to support desktop and tablet
             $element.on('click', setSelected);
