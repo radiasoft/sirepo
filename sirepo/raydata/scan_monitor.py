@@ -79,14 +79,6 @@ class _DbBase:
         self.session.commit()
 
 
-def _get_detailed_status(catalog_name, rduid):
-    # todo check if anaylsis driver has this method?
-    # todo check somewhere (in driver) if file exists)
-    return sirepo.raydata.analysis_driver.get(
-        PKDict(catalog_name=catalog_name, rduid=rduid)
-    ).get_current_detailed_status(rduid)
-
-
 class _Analysis(_DbBase):
     __tablename__ = "analysis_t"
     rduid = sqlalchemy.Column(sqlalchemy.String(36), nullable=False, primary_key=True)
@@ -530,6 +522,14 @@ async def _init_analysis_processors():
 
 def _display_columns(columns):
     return [k for k in columns if k not in _NON_DISPLAY_SCAN_FIELDS]
+
+
+def _get_detailed_status(catalog_name, rduid):
+    # todo check if anaylsis driver has this method?
+    # todo check somewhere (in driver) if file exists)
+    return sirepo.raydata.analysis_driver.get(
+        PKDict(catalog_name=catalog_name, rduid=rduid)
+    ).get_detailed_status_file(rduid)
 
 
 async def _init_catalog_monitors():

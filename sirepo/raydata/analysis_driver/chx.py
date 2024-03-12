@@ -19,19 +19,12 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
     def get_conda_env(self):
         return _cfg.conda_env
 
-    def get_detailed_status_json(self, rduid):
+    def get_detailed_status_file(self, rduid):
         p = self.get_output_dir().join(f"progress_dict_{rduid}.json")
         if os.path.exists(p):
             with open(p, "r") as f:
                 return pkjson.load_any(f)
         return PKDict()
-
-    def get_current_detailed_status(self, rduid):
-        return self.get_detailed_status_json(rduid)
-        pass
-
-    def get_consecutive_failures(self, rduid):
-        pass
 
     def get_notebooks(self):
         return [
