@@ -228,8 +228,10 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                 }
                 appState.models.geometryInput.exampleURL = "";
                 appState.saveQuietly('geometryInput');
-                // processGeometry();
-                check();
+                srdbg('processing geo')
+                processGeometry();
+                // srdbg("1");
+                // check();
             },
             {
                 method: 'download_remote_lib_file',
@@ -262,12 +264,13 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                 appState.saveChanges('volumes');
             }
         }
-        else if (data.state === 'missing' || data.state === 'canceled') {
-            if (self.isGeometrySelected()) {
-                // processGeometry();
-                check();
-            }
-        }
+        // else if (data.state === 'missing' || data.state === 'canceled') {
+        //     if (self.isGeometrySelected()) {
+        //         // processGeometry();
+        //         srdbg("2");
+        //         check();
+        //     }
+        // }
     };
 
     $scope.$on('geometryInput.changed', () => {
@@ -275,6 +278,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
             // processGeometry();
             // TODO (gurhar1133): review change of processGeometry calls to
             // check()
+            srdbg("3");
             check();
         }
     });
