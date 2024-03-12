@@ -3546,11 +3546,12 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             }
 
             function updateCellHighlight(selection) {
+                const p = (c) => getPixel(c);
                 selection
-                    .attr('x', (d) => getPixel(d.coords).x - 0.5 * getPixel(d.coords).width)
-                    .attr('y', (d) => getPixel(d.coords).y - 0.5 * getPixel(d.coords).height)
-                    .attr('width', (d) => getPixel(d.coords).width)
-                    .attr('height', (d) =>  getPixel(d.coords).height);
+                    .attr('x', (d) => p(d.coords).x - 0.5 * p(d.coords).width)
+                    .attr('y', (d) => p(d.coords).y - 0.5 * p(d.coords).height)
+                    .attr('width', (d) => p(d.coords).width)
+                    .attr('height', (d) =>  p(d.coords).height);
             }
 
             function updateCrosshairs(selection, x, y, xMax, yMax) {
