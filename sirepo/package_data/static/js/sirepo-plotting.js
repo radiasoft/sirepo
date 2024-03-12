@@ -3284,7 +3284,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             let cacheCanvas, imageData;
             let colorbar, hideColorBar;
             const overlaySelector = 'svg.sr-plot g.sr-overlay-data-group';
-            const cellHighlight = ($scope.reportCfg || {}).cellHighlight;
+            const enableSelection = ($scope.reportCfg || {}).enableSelection;
             const cellHighlightClass = 'sr-cell-highlight';
             const showCrosshairs = ($scope.reportCfg || {}).showCrosshairs;
             const crosshairs =  [
@@ -3342,7 +3342,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             function drawOverlay() {
                 const ns = 'http://www.w3.org/2000/svg';
                 const overlay = select(overlaySelector);
-                if (cellHighlight) {
+                if (enableSelection) {
                     const c = overlay
                         .selectAll(`rect.${cellHighlightClass}`)
                         .data(selectedCells);
@@ -3351,9 +3351,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                         .append((d) => document.createElementNS(ns, 'rect'))
                         .attr('class', cellHighlightClass)
                         .attr('clip-path', 'url(#sr-plot-window)')
-                        .attr('stroke', cellHighlight.color)
-                        .attr('fill', 'none')
-                        .attr('stroke-width', cellHighlight.strokeWidth);
                     c.call(updateCellHighlight);
                 }
                 if (showCrosshairs) {

@@ -745,11 +745,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
             $scope.reportCfg = {
-                //TODO replace with css class
-                cellHighlight: {
-                    color: 'red',
-                    strokeWidth: '2.0',
-                },
+                enableSelection: ! ! $scope.energyFilter,
                 showCrosshairs: ! ! $scope.energyFilter,
             };
             const displayRanges = {};

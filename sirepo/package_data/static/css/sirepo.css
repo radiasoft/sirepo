@@ -625,6 +625,13 @@
         pointer-events: none;
         mix-blend-mode: difference;
     }
+
+    .sr-plot .sr-cell-highlight {
+      fill: none;
+      pointer-events: none;
+      stroke: red;
+      stroke-width: 2.0;
+  }
     
     .sr-download-png .plot-visibility {
       visibility: hidden;
