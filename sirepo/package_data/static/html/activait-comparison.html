@@ -1,0 +1,19 @@
+<div class="container-fluid">
+  <div data-basic-editor-panel="" data-model-name="comparisonSims" data-view-name="comparisonSims" data-model="comparisonSims"></div>
+  <div data-ng-if="comparison.showComparisons()" class="container-fluid">
+    <div class="col-xs-6 col-md-6 col-xxl-4">
+      <div class="lead text-center">This Model</div>
+    </div>
+    <div class="col-xs-6 col-md-6 col-xxl-4">
+      <div class="lead text-center">Other Model</div>
+    </div>
+    <div class="col-xs-6 col-md-6 col-xxl-4" data-ng-repeat="plot in ['epochAnimation', 'epochComparisonAnimation', 'dicePlotAnimation', 'dicePlotComparisonAnimation']">
+      <div data-report-panel="parameter" data-model-name="{{ plot }}"></div>
+    </div>
+    <div data-ng-repeat="imagePlot in ['bestLossesAnimation', 'bestLossesComparisonAnimation', 'worstLossesAnimation', 'worstLossesComparisonAnimation']">
+      <div class="col-xs-6 col-md-6 col-xxl-4">
+        <div data-report-panel="imageViewer" data-model-name="{{ imagePlot }}"></div>
+      </div>
+    </div>
+  </div>
+</div>

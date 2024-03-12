@@ -173,6 +173,10 @@ def _do_analysis_job(msg, template):
 
 
 def _do_download_data_file(msg, template):
+    return _do_download_run_file(msg, template)
+
+
+def _do_download_run_file(msg, template):
     try:
         r = template.get_data_file(
             msg.runDir,
