@@ -6,6 +6,8 @@
     },
     "constants": {
         "geometryScale": 0.01,
+        "helpUserManualURL": "https://docs.openmc.org/en/stable/",
+        "helpUserForumURL": "https://openmc.discourse.group/",
         "inProgressText": "Working",
         "minTallyResolution": 5,
         "maxFilters": 5,
