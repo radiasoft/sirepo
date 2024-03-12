@@ -3438,7 +3438,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 }
                 const [i, j] = heatmapIndices(mouseMovePoint);
                 const p = getPixel(binnedCoords(mouseMovePoint));
-                srdbg('XH PX', p, 'C', binnedCoords(mouseMovePoint));
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                     if (showCrosshairs) {
@@ -3511,13 +3510,11 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             function selectCell(point) {
                 // single selection for now
-                srdbg(d3.event, point);
+                const c = binnedCoords(point);
                 selectedCells[0] = {
+                    coords: c,
                     point: point,
-                    coords: binnedCoords(point),        
                 };
-                //const p = getPixel(binnedCoords(mouseMovePoint));
-                //srdbg('C', selectedCells[0], 'PX', p, 'BC', binnedCoords([p.x, p.y]));
                 drawOverlay();
             }
             
@@ -3550,8 +3547,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             function updateCellHighlight(selection) {
                 selection
-                    .attr('x', (d) => axes.x.scale(d.coords[0]))
-                    .attr('y', (d) => axes.y.scale(d.coords[1]))
+                    .attr('x', (d) => getPixel(d.coords).x - 0.5 * getPixel(d.coords).width)
+                    .attr('y', (d) => getPixel(d.coords).y - 0.5 * getPixel(d.coords).height)
                     .attr('width', (d) => getPixel(d.coords).width)
                     .attr('height', (d) =>  getPixel(d.coords).height);
             }
@@ -3710,6 +3707,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 srdbg('UPS DEL', d);
                 selectedCells[0] = {
                     coords: d,
+                    point: getPixel(binnedCoords(d)),
                 }
                 drawOverlay();
             });

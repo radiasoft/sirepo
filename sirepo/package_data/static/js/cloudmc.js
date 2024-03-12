@@ -1074,7 +1074,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 if (d.name !== SIREPO.PLOTTING.HeatmapSelectCellEvent) {
                     return;
                 }
-                srdbg(SIREPO.PLOTTING.HeatmapSelectCellEvent, d);
                 setBins(...d.cell.coords);
             });
 
