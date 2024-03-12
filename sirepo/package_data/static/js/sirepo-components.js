@@ -1017,7 +1017,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
           </div>
           <div data-ng-if="hasValidFileSelected()" class="btn-group" role="group">
             <div class="pull-left" data-ng-transclude=""></div>
-            <div class="pull-left"><a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a></div>
+            <div class="pull-left"><a data-ng-href="{{ downloadLibFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a></div>
           </div>
           <div class="sr-input-warning" data-ng-show="selectionRequired && ! hasValidFileSelected()">Select a file</div>
         `,
@@ -1058,7 +1058,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                 if (! $scope.isDeletingFile) {
                     $scope.isDeletingFile = true;
                     requestSender.sendRequest(
-                        'deleteFile',
+                        'deleteLibFile',
                         function(data) {
                             $scope.isDeletingFile = false;
                             if (data.error) {
@@ -1080,9 +1080,9 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                 return false;
             };
 
-            $scope.downloadFileUrl = function() {
+            $scope.downloadLibFileUrl = function() {
                 if ($scope.model) {
-                    return requestSender.formatUrl('downloadFile', {
+                    return requestSender.formatUrl('downloadLibFile', {
                         simulation_id: 'unused',
                         simulation_type: SIREPO.APP_SCHEMA.simulationType,
                         filename: SIREPO.APP_NAME === 'srw'
@@ -1326,7 +1326,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         }
                         : null,
                     requestSender.formatUrl(
-                        'uploadFile',
+                        'uploadLibFile',
                         {
                             simulation_id: appState.models.simulation.simulationId,
                             simulation_type: SIREPO.APP_SCHEMA.simulationType,
@@ -2289,7 +2289,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                     if (suffix) {
                         params.suffix = suffix;
                     }
-                    return requestSender.formatUrl('downloadDataFile', params);
+                    return requestSender.formatUrl('downloadRunFile', params);
                 }
                 return '';
             };
@@ -2813,7 +2813,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
                         info.file,
                         null,
                         requestSender.formatUrl(
-                            'uploadFile',
+                            'uploadLibFile',
                             {
                                 // dummy id because no simulation id is available or required
                                 simulation_id: SIREPO.nonSimulationId,

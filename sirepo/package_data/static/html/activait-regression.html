@@ -28,17 +28,16 @@
     </div>
     <div class="clearfix"></div>
     <div class="col-md-6 col-xxl-4" data-ng-if="regression.imageToImage()">
-      <div data-basic-editor-panel="" data-view-name="segmentViewer">
-        <div data-image-preview-panel="" data-method="segmentViewer"></div>
-      </div>
+      <div data-report-panel="imageViewer" data-model-name="segmentSamplesAnimation"></div>
     </div>
     <div class="col-md-6 col-xxl-4" data-ng-if="regression.imageToImage()">
       <div data-report-panel="parameter" data-model-name="dicePlotAnimation"></div>
     </div>
-    <div class="col-md-6 col-xxl-4" data-ng-repeat="(index, obj) in [['bestLosses', 'best-losses'], ['worstLosses', 'worst-losses']]" data-ng-if="regression.imageToImage()">
-      <div data-basic-editor-panel="" data-view-name="{{ obj[0] }}">
-        <div data-image-preview-panel="" data-method="{{ obj[0] }}"></div>
-      </div>
+    <div class="col-md-6 col-xxl-4" data-ng-if="regression.imageToImage()">
+      <div data-report-panel="imageViewer" data-model-name="bestLossesAnimation"></div>
+    </div>
+    <div class="col-md-6 col-xxl-4" data-ng-if="regression.imageToImage()">
+      <div data-report-panel="imageViewer" data-model-name="worstLossesAnimation"></div>
     </div>
     <div data-ng-repeat="report in regression.reports track by report.columnNumber">
       <div class="col-xs-6 col-md-3 col-xxl-2">

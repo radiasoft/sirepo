@@ -322,7 +322,7 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         self.simState.saveAndRunSimulation('openmcAnimation');
     };
     self.simState.logFileURL = function() {
-        return requestSender.downloadDataFileUrl(
+        return requestSender.downloadRunFileUrl(
             appState,
             {
                 model: self.simState.model,
@@ -566,7 +566,7 @@ SIREPO.app.factory('volumeLoadingService', function(appState, requestSender, $ro
     }
 
     function volumeURL(volId) {
-        return requestSender.downloadDataFileUrl(
+        return requestSender.downloadRunFileUrl(
             appState,
             {
                 model: 'dagmcAnimation',
@@ -683,14 +683,11 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                         <a href data-ng-click="setSelectedGeometry('3D')">3D</a>
                     </li>
                 </ul>
-                <div data-ng-if="energyFilter()" class="pull-right">
-                  <label>Energy &Sigma; {{ sumDisplay(sumRange.val[0]) }}-{{ sumDisplay(sumRange.val[1]) }} MeV</label>
-                </div>
                 <div data-ng-if="is3D()">
                     <div data-report-content="geometry3d" data-model-key="{{ modelName }}"></div>
                 </div>
                 <div data-ng-if="is2D()">
-                    <div data-geometry-2d=""></div>
+                    <div data-geometry-2d="" data-energy-filter="energyFilter()"></div>
                 </div>
             </div>
         `,
@@ -698,17 +695,6 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
             plotting.setTextOnlyReport($scope);
 
             $scope.appState = appState;
-            $scope.sumRange = appState.models.openmcAnimation.energyRangeSum;
-
-            $scope.sumDisplay = val => {
-                if ($scope.energyFilter().space === 'linear') {
-                    return val;
-                }
-                return SIREPO.UTILS.formatFloat(
-                    SIREPO.UTILS.linearToLog(val, $scope.sumRange.min, $scope.sumRange.max, $scope.sumRange.step),
-                    4
-                );
-            };
 
             $scope.energyFilter = () => cloudmcService.findFilter('energyFilter');
 
@@ -743,7 +729,9 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
 SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache, panelState, tallyService) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            energyFilter: '=',
+        },
         template: `
              <div data-report-content="heatmap" data-model-key="{{ modelName }}"></div>
         `,
@@ -798,7 +786,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     global_max: tallyService.maxField,
                     global_min: tallyService.getMinWithThreshold(),
                     threshold: appState.models.openmcAnimation.threshold,
-                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(pos, 6)}m`,
+                    title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(pos, 6)}m${energySumLabel()}`,
                     x_label: `${x} [m]`,
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
@@ -821,6 +809,11 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     .map((x, i) => [fieldIndex(x.min, r[i], i), fieldIndex(x.max, r[i], i)]);
             }
 
+            function energySumLabel() {
+                const sumRange = appState.models.openmcAnimation.energyRangeSum;
+                return $scope.energyFilter ? ` / Energy ∑ ${sumDisplay(sumRange.val[0])}-${sumDisplay(sumRange.val[1])} MeV` : '';
+            }
+
             function fieldIndex(pos, range, dimIndex) {
                 const d = tallyService.mesh.dimension[dimIndex];
                 return Math.min(
@@ -834,6 +827,11 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 const particleColors = SIREPO.UTILS.unique(
                     tallyService.getSourceParticles().map(p => particleColor(p))
                 );
+
+                function isPosOutsideMesh(pos, j, k) {
+                    const r = tallyService.getMeshRanges();
+                    return pos[j] < r[j][0] || pos[j] > r[j][1] || pos[k] < r[k][0] || pos[k]  > r[k][1];
+                }
 
                 function particleColor(p) {
                     return tallyService.sourceParticleColorScale(
@@ -906,13 +904,17 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     });
                 });
                 placeMarkers();
+                const r = vectorScaleFactor();
+                const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                 tallyService.getSourceParticles().forEach((p, n) => {
-                    const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                     const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
-                    const r = vectorScaleFactor();
-                    // normalize in the plane
+                    // ignore sources outside the plotting range
+                    if (isPosOutsideMesh(p1, j, k)) {
+                        return;
+                    }
+                    // normalize in the plane and check if perpendicular
                     const d = Math.hypot(p.direction[j], p.direction[k]);
-                    const p2 = [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d];
+                    const p2 = d ? [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d] : p1;
                     outlines.push({
                         name: `${p.type}-${p.energy}eV-${n}`,
                         color: sourceColor(particleColor(p)),
@@ -954,6 +956,17 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
 
             function sourceColor(color) {
                 return appState.models.openmcAnimation.showSources === '1' ? color : 'none';
+            }
+
+            function sumDisplay(val) {
+                const sumRange = appState.models.openmcAnimation.energyRangeSum;
+                if ($scope.energyFilter.space === 'linear') {
+                    return val;
+                }
+                return SIREPO.UTILS.formatFloat(
+                    SIREPO.UTILS.linearToLog(val, sumRange.min, sumRange.max, sumRange.step),
+                    4
+                );
             }
 
             function tallyReportAxes() {
@@ -2617,7 +2630,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
         `,
         controller: function($scope, $element) {
             $scope.appState = appState;
-            $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`;
+            $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`.replace(/ /g, '-');
 
             let hasSteps = false;
             let slider = null;
@@ -2707,9 +2720,9 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
 
                 const v = range.val;
                 if (range.space === 'linear') {
-                    return $scope.formatFloat(v);
+                    return Array.isArray(v) ? v.map(x => $scope.formatFloat(x)) : $scope.formatFloat(v);
                 }
-                return Array.isArray(v) ? v.map(x => toLog(x, range)) : toLog(v);
+                return Array.isArray(v) ? v.map(x => $scope.formatFloat(toLog(x, range))) : $scope.formatFloat(toLog(v));
             };
             $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
             $scope.hasSteps = () => hasSteps;
