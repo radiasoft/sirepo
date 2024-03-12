@@ -3418,7 +3418,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             }
 
             function mouseClick() {
-                if (! d3.event.altKey) {
+                if (! d3.event.altKey || ! enableSelection) {
                     return;
                 }
                 selectCell(d3.mouse(this));
