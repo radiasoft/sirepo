@@ -622,11 +622,15 @@
     }
 
     .sr-plot .sr-crosshair {
-        pointer-events: none;
+        clip-path: url(#sr-plot-window);
         mix-blend-mode: difference;
+        pointer-events: none;
+        stroke: white;
+        stroke-width: 1.0;
     }
 
     .sr-plot .sr-cell-highlight {
+      clip-path: url(#sr-plot-window);
       fill: none;
       pointer-events: none;
       stroke: red;

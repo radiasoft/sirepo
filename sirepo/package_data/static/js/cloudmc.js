@@ -746,7 +746,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             $scope.modelName = 'tallyReport';
             $scope.reportCfg = {
                 enableSelection: ! ! $scope.energyFilter,
-                showCrosshairs: ! ! $scope.energyFilter,
+                enableCrosshairs: ! ! $scope.energyFilter,
             };
             const displayRanges = {};
             const sources = cloudmcService.getSourceVisualizations(
