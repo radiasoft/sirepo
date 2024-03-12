@@ -68,13 +68,12 @@ SIREPO.app.directive('maginFilePlot', function(appState, utilities) {
         template: `
             <div data-ng-if="hasMaginfile()">
               <div data-show-loading-and-error="" data-model-key="{{ modelName }}">
-                <div data-parameter-plot="parameter" data-model-name="{{ modelName }}" data-report-id="reportId"></div>
+                <div data-parameter-plot="parameter" data-model-name="{{ modelName }}"></div>
               </div>
             </div>
         `,
         controller: function($scope) {
             $scope.hasMaginfile = () => appState.applicationState().io.maginfile;
-            $scope.reportId = utilities.reportId();
         }
     };
 });
