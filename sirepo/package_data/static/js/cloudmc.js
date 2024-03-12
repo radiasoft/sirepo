@@ -376,7 +376,8 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
 
 SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities, $rootScope) {
     const self = {
-        energyRangeSum: [0, 1],
+        energyFilter: null,
+        energyOutFilter: null,
         fieldData: null,
         mesh: null,
         minField: 0,
@@ -391,6 +392,16 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         }
         return x => (appState.models.openmcAnimation.sourceNormalization / numParticles) * x;
     }
+
+    self.clearEnergyFilters = () => {
+        self.energyFilter = null;
+        self.energyOutFilter = null;
+    };
+
+    self.clearFilters = () => {
+        self.clearMesh();
+        self.clearEnergyFilters();
+    };
 
     self.clearMesh = () => {
         self.mesh = null;
@@ -526,12 +537,11 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         };
     };
 
-    self.updateEnergyRange = () => {
-        const e = cloudmcService.findFilter('energyFilter');
+    self.updateEnergyRange = (e) => {
         if (! e || ! cloudmcService.findFilter('meshFilter')) {
             return;
         }
-        const s = appState.models.openmcAnimation.energyRangeSum;
+        const s = appState.models.openmcAnimation.energyRangeSum;   
         s.space = e.space;
         s.min = e.start;
         s.max = e.stop;
@@ -2500,15 +2510,16 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, tal
         inds.map(i => `${filterField(i)}`), validateFilter,
     ];
 
+/*
     $scope.$on(`${$scope.modelName}.changed`, () => {
         const e = findFilter('energyFilter');
         if (e) {
-            //tallyService.updateEnergyRange();
-            appState.models.openmcAnimation.energyRangeSum.min
+            tallyService.updateEnergyRange();
             appState.models.openmcAnimation.energyRangeSum.val = [e.start, e.stop];
             appState.saveChanges('openmcAnimation', () => { srdbg('OA', appState.models.openmcAnimation); });
         }
     });
+*/
 });
 
 SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
