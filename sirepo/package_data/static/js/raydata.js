@@ -479,7 +479,7 @@ SIREPO.app.directive('scansTable', function() {
             modelName: '=',
         },
         template: `
-          <div data-scan-detail="" data-scan="detailScan"></div>
+          <div data-ng-if="analysisStatus === 'allStatuses'" data-scan-detail="" data-scan="detailScan"></div>
             <div>
               <div>
                 <div class="pull-right" data-ng-if="pageLocationText">
@@ -513,7 +513,7 @@ SIREPO.app.directive('scansTable', function() {
                         <button data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="runAnalysis(s.rduid)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button>
                         <button class="btn btn-info btn-xs" data-ng-disabled="! raydataService.canViewOutput(s)" data-ng-click="setAnalysisScan(s)">View Output</button>
                         <button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s)">View Log</button>
-                        <button class="btn btn-info btn-xs" data-ng-click="setDetailScan(s)">Details</button>
+                        <button  data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="setDetailScan(s)">Details</button>
                       </td>
                     </tr>
                   </tbody>
@@ -1164,35 +1164,53 @@ SIREPO.app.directive('scanDetail', function() {
             <div class="panel panel-info" style="width: 500px;">
               <div class="panel-heading"><span class="sr-panel-heading">Details for Scan {{ scan.rduid }}</span></div>
               <div class="panel-body">
-                <div>Most Recent Status</div>
-                <pre style="overflow: scroll; height: 100px; width: 450px;">{{ currentStatus() }}</pre>
-                <div>Detailed Status File</div>
-                <pre style="overflow: scroll; height: 250px; width: 450px;">{{ detailedStatus() }}</pre>
-                <div>Current Consecutive Failures: {{ consecutiveFailures() }}</div>
-                <div>Analysis Elapsed Time</div>
+                <div data-ng-if="detailedStatusFile()">
+                  <div>Most Recent Status</div>
+                  <pre style="overflow: scroll; height: 100px; width: 450px;">{{ currentStatus() }}</pre>
+                </div>
+                <div data-ng-if="detailedStatusFile()">
+                  <div>Detailed Status File</div>
+                  <pre style="overflow: scroll; height: 250px; width: 450px;">{{ detailedStatus() }}</pre>
+                </div>
+                <div data-ng-if="detailedStatusFile()">
+                  <div>Current Consecutive Failures: {{ consecutiveFailures() }}</div>
+                </div>
+                <div data-ng-if="analysisElapsedTime()">Analysis Elapsed Time: {{ analysisElapsedTime() }} seconds</div>
               </div>
             </div>
 `,
         controller: function($scope, columnsService) {
-            function detailedStatusFile() {
-                return $scope.scan && Object.keys($scope.scan.detailed_status).length > 0 ? $scope.scan.detailed_status : null;
+            $scope.analysisElapsedTime = () => {
+                if ($scope.scan && $scope.scan.analysis_elapsed_time) {
+                    return $scope.scan.analysis_elapsed_time;
+                } else {
+                    return null;
+                }
+            };
+
+            $scope.detailedStatusFile = () => {
+                srdbg("scan", $scope.scan);
+                if ($scope.scan) {
+                    srdbg("detailed status", $scope.scan.detailed_status);
+                }
+                return $scope.scan && $scope.scan.detailed_status && Object.keys($scope.scan.detailed_status).length > 0 ? $scope.scan.detailed_status : null;
             }
 
             function getSortedRunIndexes() {
-                return Object.keys(detailedStatusFile()).map((x) => parseInt(x)).sort();
+                return Object.keys($scope.detailedStatusFile()).map((x) => parseInt(x)).sort();
             }
 
             function mostRecentAnalysisDetails() {
-                if (! detailedStatusFile()) {
+                if (! $scope.detailedStatusFile()) {
                     return '';
                 }
-                return detailedStatusFile()[Math.max(...getSortedRunIndexes())];
+                return $scope.detailedStatusFile()[Math.max(...getSortedRunIndexes())];
              }
 
             function failureInRun(run) {
                 let failed = false;
 
-                for (const f of Object.values(detailedStatusFile()[run])) {
+                for (const f of Object.values($scope.detailedStatusFile()[run])) {
                     if (f.status === 'failed') {
                         failed = true;
                     }
@@ -1201,7 +1219,7 @@ SIREPO.app.directive('scanDetail', function() {
             }
 
             $scope.consecutiveFailures = () => {
-                if (! detailedStatusFile()) {
+                if (! $scope.detailedStatusFile()) {
                     return '';
                 }
                 let r = 0;
@@ -1218,7 +1236,7 @@ SIREPO.app.directive('scanDetail', function() {
             };
 
             $scope.detailedStatus = () => {
-                return JSON.stringify(detailedStatusFile(), undefined, 2);
+                return JSON.stringify($scope.detailedStatusFile(), undefined, 2);
             };
 
             $scope.currentStatus = () => {
