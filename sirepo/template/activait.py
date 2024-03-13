@@ -18,7 +18,6 @@ import numpy
 import os
 import re
 import pandas
-import py.path
 import sirepo.analysis
 import sirepo.numpy
 import sirepo.sim_data
@@ -374,28 +373,27 @@ def stateful_compute_get_remote_data(data, **kwargs):
 
 
 def stateful_compute_download_remote_lib_file(data, **kwargs):
-    def _dataFile_path(filename):
-        return _SIM_DATA.lib_file_abspath("dataFile-file.{}".format(filename))
-
-    _lib_file_save_from_url(data.args.exampleFile)
-    if data.args.exampleFile2:
-        _lib_file_save_from_url(data.args.exampleFile2)
-        f_name = "dataFile-file.{}".format(data.args.file)
-        f_out = "/".join(
-            (os.path.dirname(_dataFile_path(data.args.exampleFile)), f_name)
+    if data.args.exampleFileCnt == 1:
+        _lib_file_save_from_url(data.args.exampleDir + "/0.h5")
+        return PKDict()
+    i = []
+    n = _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", data.args.file)
+    for c in range(0, data.args.exampleFileCnt):
+        _lib_file_save_from_url(data.args.exampleDir + f"/{c}.h5")
+        i.append(
+            _SIM_DATA.lib_file_abspath(
+                _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", f"{c}.h5")
+            )
         )
-        f_in = [
-            _dataFile_path(data.args.exampleFile),
-            _dataFile_path(data.args.exampleFile2),
-        ]
-        with h5py.File(f_out, "w") as cmb:
-            for f in f_in:
-                with h5py.File(f, "r") as src:
-                    cmb.attrs.update(src.attrs)
-                    for g in src:
-                        g_id = cmb.require_group(src[g].parent.name)
-                        src.copy(f"/{g}", g_id, name=g)
-        _SIM_DATA.lib_file_write(f_name, py.path.local(f_out))
+    o = i[0].dirpath().join(n)
+    with h5py.File(o, "w") as cmb:
+        for f in i:
+            with h5py.File(f, "r") as src:
+                cmb.attrs.update(src.attrs)
+                for g in src:
+                    g_id = cmb.require_group(src[g].parent.name)
+                    src.copy(f"/{g}", g_id, name=g)
+    _SIM_DATA.lib_file_write(n, pkio.py_path(o))
     return PKDict()
 
 

@@ -137,8 +137,8 @@
             "oldFile": "pets.h5",
             "outputsScaler": "MinMaxScaler",
             "url": "",
-            "exampleFile": "pets_split1.h5",
-            "exampleFile2": "pets_split2.h5"
+            "exampleDir": "pets",
+            "exampleFileCnt": 2
         },
         "dataFileCache": {},
         "dense": {

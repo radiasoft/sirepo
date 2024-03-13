@@ -139,7 +139,7 @@ SIREPO.app.factory('activaitService', function(appState, panelState, utilities) 
     self.getSubreports = () => appState.models.hiddenReport.subreports;
 
     self.hasDataFile = () => appState.isLoaded()
-        && appState.applicationState().dataFile.file;
+        && appState.applicationState().dataFile.file; 
 
     self.isAnalysis = () => self.isAppMode('analysis');
 
@@ -1279,9 +1279,8 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
                     }
                 );
             };
-            setTimeout(function(){
-                loadImageFile();
-            }, 3000);
+            console.log("[][]loading image[][]")
+            loadImageFile();
         }
     };
 });
@@ -2371,22 +2370,23 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
         );
     }
 
-    function downloadRemoteDataFile() {
+    function downloadRemoteLibFile() {
+        console.log("[][]send request[][]")
         requestSender.sendStatefulCompute(
             appState,
             data => {
                 if (data.error) {
                     throw new Error(data.error);
                 }
-                appState.models.dataFile.exampleFile = "";
-                appState.models.dataFile.exampleFile2 = "";
+                appState.models.dataFile.exampleDir = "";
                 appState.saveQuietly('dataFile');
+                console.log("[][]fin request[][]")
             },
             {
                 method: 'download_remote_lib_file',
                 args: {
-                    exampleFile: appState.models.dataFile.exampleFile,
-                    exampleFile2: appState.models.dataFile.exampleFile2,
+                    exampleDir: appState.models.dataFile.exampleDir,
+                    exampleFileCnt: appState.models.dataFile.exampleFileCnt,
                     file: appState.models.dataFile.file
                 },
             }
@@ -2450,8 +2450,8 @@ SIREPO.viewLogic('dataFileView', function(activaitService, appState, panelState,
     };
 
     appState.whenModelsLoaded($scope, () => {
-        if (appState.models[$scope.modelName].exampleFile) {
-            downloadRemoteDataFile();
+        if (appState.models[$scope.modelName].exampleDir) {
+            downloadRemoteLibFile();
         }
     });
 
