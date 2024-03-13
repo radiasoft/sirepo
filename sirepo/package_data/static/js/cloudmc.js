@@ -252,7 +252,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
         return appState.applicationState().geometryInput.dagmcFile;
     };
     self.isGeometryProcessed = () => hasVolumes;
-    self.simHandleStatus = data => {;
+    self.simHandleStatus = data => {
         self.hasServerStatus = true;
         if (data.volumes) {
             hasVolumes = true;
