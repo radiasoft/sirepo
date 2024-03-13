@@ -11,68 +11,8 @@ import re
 import time
 
 
-def test_elegant_data_file(fc):
-    from pykern import pkunit, pkcompat, pkio
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp
-    import sdds
-    from sirepo import feature_config
-
-    data = fc.sr_sim_data("bunchComp - fourDipoleCSR")
-    run = fc.sr_post(
-        "runSimulation",
-        PKDict(
-            forceRun=False,
-            models=data.models,
-            report="bunchReport1",
-            simulationId=data.models.simulation.simulationId,
-            simulationType=data.simulationType,
-        ),
-    )
-    pkunit.pkeq("pending", run.state, "not pending, run={}", run)
-    for _ in range(fc.timeout_secs()):
-        if run.state == "completed":
-            break
-        pkunit.pkok(run.state in ("running", "pending"), "error in req={}", run)
-        time.sleep(1)
-        run = fc.sr_post("runStatus", run.nextRequest)
-    else:
-        if run.state != "completed":
-            pkunit.pkfail("runStatus: failed to complete: {}", run)
-    r = fc.sr_get(
-        "downloadDataFile",
-        PKDict(
-            simulation_type=data.simulationType,
-            simulation_id=data.models.simulation.simulationId,
-            model="bunchReport1",
-            frame="-1",
-            suffix="csv",
-        ),
-    )
-    r.assert_http_status(200)
-    pkunit.pkre("no-cache", r.header_get("Cache-Control"))
-    # 50,000 particles plus header row
-    pkunit.pkeq(50001, len(list(csv.reader(io.StringIO(pkcompat.from_bytes(r.data))))))
-    r = fc.sr_get(
-        "downloadDataFile",
-        PKDict(
-            simulation_type=data.simulationType,
-            simulation_id=data.models.simulation.simulationId,
-            model="bunchReport1",
-            frame="-1",
-        ),
-    )
-    r.assert_http_status(200)
-    d = pkunit.work_dir()
-    m = re.search(
-        r'attachment; filename="([^"]+)"',
-        r.header_get("Content-Disposition"),
-    )
-    path = d.join(m.group(1))
-    path.write_binary(r.data)
-    pkunit.pkeq(1, sdds.sddsdata.InitializeInput(0, str(path)))
-    pkunit.pkne(0, len(sdds.sddsdata.GetColumnNames(0)))
-    sdds.sddsdata.Terminate(0)
+def test_elegant_run_file(fc):
+    _get_file(fc, _run_elegant(fc), "downloadRunFile")
 
 
 def test_myapp_basic(fc):
@@ -97,3 +37,66 @@ def test_srw(fc):
     for sep in (" ", "%20"):
         r = fc.sr_get("/find-by-name-auth/srw/default/Undulator{}Radiation".format(sep))
         r.assert_http_status(200)
+
+
+def _get_file(fc, data, api_name):
+    import sdds
+    from pykern import pkunit, pkcompat
+    from pykern.pkcollections import PKDict
+
+    r = fc.sr_get(
+        api_name,
+        PKDict(
+            simulation_type=data.simulationType,
+            simulation_id=data.models.simulation.simulationId,
+            model="bunchReport1",
+            frame="-1",
+            suffix="csv",
+        ),
+    )
+    r.assert_http_status(200)
+    pkunit.pkre("no-cache", r.header_get("Cache-Control"))
+    # 50,000 particles plus header row
+    pkunit.pkeq(50001, len(list(csv.reader(io.StringIO(pkcompat.from_bytes(r.data))))))
+
+    r = fc.sr_get(
+        api_name,
+        PKDict(
+            simulation_type=data.simulationType,
+            simulation_id=data.models.simulation.simulationId,
+            model="bunchReport1",
+            frame="-1",
+        ),
+    )
+    r.assert_http_status(200)
+    d = pkunit.work_dir()
+    m = re.search(
+        r'attachment; filename="([^"]+)"',
+        r.header_get("Content-Disposition"),
+    )
+    path = d.join(m.group(1))
+    path.write_binary(r.data)
+    pkunit.pkeq(1, sdds.sddsdata.InitializeInput(0, str(path)))
+    pkunit.pkne(0, len(sdds.sddsdata.GetColumnNames(0)))
+    sdds.sddsdata.Terminate(0)
+
+
+def _run_elegant(fc):
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+
+    data = fc.sr_sim_data("bunchComp - fourDipoleCSR")
+    run = fc.sr_run_sim(data, "bunchReport1")
+    # another test may have run the simulation
+    if run.state == "completed":
+        return data
+    pkunit.pkeq("pending", run.state, "not pending, run={}", run)
+    for _ in range(fc.timeout_secs()):
+        if run.state == "completed":
+            break
+        time.sleep(1)
+        run = fc.sr_post("runStatus", run.nextRequest)
+    else:
+        if run.state != "completed":
+            pkunit.pkfail("runStatus: failed to complete: {}", run)
+    return data

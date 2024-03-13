@@ -315,7 +315,7 @@
         },
         "geometry3DReport": {
             "bgColor": ["Background color", "Color", "#fff9ed"],
-            "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
+            "opacity": ["Global alpha", "JRange", {"min": 0, "max": 1.0, "numSteps": 100, "step": 0.01, "val": 1.0, "space": "linear"}],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"]
         },
@@ -927,15 +927,15 @@
             "aspect": ["Aspect", "TallyAspect", "mean"],
             "bgColor": ["Background color", "Color", "#fff9ed"],
             "colorMap": ["Tally Color Map", "ColorMap", "viridis"],
-            "energyRangeSum": ["Sum over energies [MeV]", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": [0, 1], "space": "linear"}],
+            "energyRangeSum": ["Sum over energies [MeV]", "JRange", {"min": 0, "max": 1, "numSteps": 100, "step": 0.01, "val": [0, 1], "space": "linear"}],
             "numSampleSourceParticles": ["Source Particles to Display", "Integer", 10, "", 0, 100],
-            "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
+            "opacity": ["Global alpha", "JRange", {"min": 0, "max": 1.0, "numSteps": 100, "step": 0.01, "val": 1.0, "space": "linear"}],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
             "showSources": ["Show Sources", "Boolean", "1"],
             "sourceColorMap": ["Source Energy Color Map", "ColorMap", "jet"],
             "tally": ["Tally", "TallyList"],
-            "threshold": ["Threshold", "Float", 0.0, "Tally cells with a value below this will not be displayed"],
+            "thresholds": ["Threshold", "MinMax", {"val": [null, null], "global": [0, 1e+308], "labels": ["Lower", "Upper"]}, "Tally cells with a value outside this range will not be displayed"],
             "score": ["Score", "ScoreList"],
             "sourceNormalization": ["Normalize to particle count", "Float", 1e12, "Per-particle tally scores are normalized to this many source particles (a factor of {{ appState.models.openmcAnimation.sourceNormalization / appState.models.settings.particles }})", 1.0],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
@@ -1038,7 +1038,7 @@
         "tallyReport": {
             "axis": ["Slice Axis", "Axis", "y"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "planePos": ["_", "Range", 0.0, ""],
+            "planePos": ["Plane Position [m]", "JRange", {"min": 0, "max": 1, "numSteps": 100, "step": 0.01, "val": 0.0, "space": "linear"}, ""],
             "selectedGeometry": ["", "TallyGeometry", "3D"]
         },
         "tallyScore": {
@@ -1212,9 +1212,10 @@
                 "numSampleSourceParticles",
                 "sourceColorMap",
                 "colorMap",
-                "threshold",
+                "thresholds",
                 "opacity",
-                "tallyReport.axis"
+                "tallyReport.axis",
+                "tallyReport.planePos"
             ],
             "advanced": []
         },
