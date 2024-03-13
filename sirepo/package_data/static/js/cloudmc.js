@@ -427,6 +427,8 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         );
     };
 
+    self.doesCacheRequireUpdate = () => Object.entries(self.cachedSettings).every(([k, v]) => v === appState.models.openmcAnimation[k]);
+
     self.getEnergyRangeSum = () => self.energyRangeSum;
     
     self.decorateLabelWithIcon = (element, iconName, title) => {
@@ -595,7 +597,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         }
 
         // if none of the data-specific settings changed, do not update the thresholds
-        if (Object.entries(self.cachedSettings).every(([k, v]) => v === appState.models.openmcAnimation[k])) {
+        if (self.doesCacheRequireUpdate()) {
             return;
         }
         updateCache();
