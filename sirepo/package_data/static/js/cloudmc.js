@@ -558,7 +558,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         if ((t.val.concat(t.global)).some((v) => v === null)) {
             updateModel(t);
         }
-        
+
         // initial page load - respect user setting
         if (Object.values(self.cachedSettings).every((v) => v == null)) {
             updateCache();
@@ -2283,7 +2283,7 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
             };
 
             function tallyInfo(model) {
-                return model.name + ': ' + model.scores.map(t => t.score).join(', ');
+                return model.name + ': ' + model.scores.map(t => t.score).sort().join(', ');
             }
 
             function sourceInfo(modelType, model) {
