@@ -622,11 +622,15 @@
     }
 
     .sr-plot .sr-crosshair {
-        clip-path: url(#sr-plot-window);
-        mix-blend-mode: difference;
-        pointer-events: none;
-        stroke: white;
-        stroke-width: 1.0;
+      clip-path: url(#sr-plot-window);
+      mix-blend-mode: difference;
+      pointer-events: none;
+      stroke: white;
+      stroke-width: 1.0;
+    }
+
+    .sr-plot .sr-crosshair-readout {
+      pointer-events: none;
     }
 
     .sr-plot .sr-cell-highlight {
@@ -635,7 +639,8 @@
       pointer-events: none;
       stroke: red;
       stroke-width: 2.0;
-  }
+    }
+
     
     .sr-download-png .plot-visibility {
       visibility: hidden;

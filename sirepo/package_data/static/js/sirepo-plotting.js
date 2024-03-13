@@ -3521,7 +3521,9 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (! mouseMovePoint) {
                     return;
                 }
-                const p = getPixel(binnedCoords(mouseMovePoint));
+                const c = binnedCoords(mouseMovePoint);
+                const [i, j] = heatmapIndices(mouseMovePoint);
+                const p = getPixel(c);
                 const s = select(overlaySelector).selectAll(`line.${crosshairClass}`);
                 s.filter(`.${crosshairClass}-x`)
                     .attr('y1', p.y)
@@ -3529,6 +3531,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 s.filter(`.${crosshairClass}-y`)
                     .attr('x1', p.x)
                     .attr('x2', p.x);
+                select(overlaySelector).selectAll('text.sr-crosshair-readout')
+                    .text(`(${c.map(x => SIREPO.UTILS.roundToPlaces(x, 4))}): ${SIREPO.UTILS.roundToPlaces(heatmap[heatmap.length - 1 - j][i], 4)}`);
             }
 
             function updateOverlay(selection) {

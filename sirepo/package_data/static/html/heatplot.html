@@ -15,6 +15,8 @@
             <g data-ng-if="enableCrosshairs()" >
               <line class="sr-crosshair sr-crosshair-x" x1="0" ng-attr-x2="{{ canvasSize.width }}" y1="0" y2="0"></line>
               <line class="sr-crosshair sr-crosshair-y" x1="0" x2="0" y1="0" ng-attr-y2="{{ canvasSize.height }}"></line>
+              <rect x="4" y="4" width="16em" height="2em" rx="4" ry="4" stroke="black" fill="#eeeeee"></rect>
+              <text class="sr-crosshair-readout" x="8" y="1.5em"></text>
             </g>
           </g>
           <text class="x-base" text-anchor="end" ng-attr-x="{{ canvasSize.width + margin.right - 5 }}" ng-attr-y="{{ canvasSize.height + 40 }}"></text>
