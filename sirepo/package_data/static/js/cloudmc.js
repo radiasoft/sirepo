@@ -253,7 +253,6 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     };
     self.isGeometryProcessed = () => hasVolumes;
     self.simHandleStatus = data => {;
-        srdbg("state rn", data.state);
         self.hasServerStatus = true;
         if (data.volumes) {
             hasVolumes = true;
@@ -262,11 +261,16 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                 appState.saveChanges('volumes');
             }
         }
+        else if (data.state === 'missing' || data.state === 'canceled') {
+            if (self.isGeometrySelected()) {
+                resetProcessGeometry(data.state);
+            }
+        }
     };
 
     $scope.$on('geometryInput.changed', () => {
         if (! hasVolumes) {
-            hasAnimationDir();
+            resetProcessGeometry();
         }
     });
 
@@ -274,26 +278,28 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simComputeModel = 'dagmcAnimation';
     self.simState = persistentSimulation.initSimulationState(self);
 
-    function hasAnimationDir() {
-        requestSender.sendStatefulCompute(
-            appState,
-            (data) => {
-                srdbg("ret data", data);
-                if (! data.dirExists) {
-                    hasVolumes = false;
-                    processGeometry();
-                }
-            },
-            {
-                method: 'check_animation_dir',
-                args: {
-                    dir: 'dagmcAnimation'
-                },
-                modelName: 'dagmcAnimation',
+    function resetProcessGeometry(simulationState) {
+        if (self.isGeometrySelected()) {
+            if (simulationState === 'missing' || simulationState === 'canceled') {
+                processGeometry();
+                return;
             }
-        );
+            requestSender.sendStatefulCompute(
+                appState,
+                (data) => {
+                    if (! data.dirExists) {
+                        hasVolumes = false;
+                        processGeometry();
+                    }
+                },
+                {
+                    method: 'check_animation_dir',
+                    modelName: 'dagmcAnimation',
+                }
+            );
+        }
     }
-    hasAnimationDir();
+    resetProcessGeometry();
 });
 
 SIREPO.app.controller('VisualizationController', function(appState, cloudmcService, frameCache, persistentSimulation, requestSender, tallyService, $scope) {

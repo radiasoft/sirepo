@@ -9,7 +9,6 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo import util
 from sirepo.template import template_common
-import os
 import numpy
 import re
 import sirepo.feature_config
@@ -89,7 +88,7 @@ def _check_for_animation_dir(dir_path):
 def stateful_compute_check_animation_dir(data, run_dir, **kwargs):
     return PKDict(
         dirExists=simulation_db.simulation_dir("cloudmc", sid=data.simulationId)
-        .join(data.args.dir)
+        .join(data.modelName)
         .exists()
     )
 
