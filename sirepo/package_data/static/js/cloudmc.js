@@ -263,14 +263,14 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
         }
         else if (data.state === 'missing' || data.state === 'canceled') {
             if (self.isGeometrySelected()) {
-                resetProcessGeometry(data.state);
+                processGeometry();
             }
         }
     };
 
     $scope.$on('geometryInput.changed', () => {
         if (! hasVolumes) {
-            resetProcessGeometry();
+            processGeometry();
         }
     });
 
@@ -278,12 +278,8 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simComputeModel = 'dagmcAnimation';
     self.simState = persistentSimulation.initSimulationState(self);
 
-    function resetProcessGeometry(simulationState) {
+    function resetProcessGeometry() {
         if (self.isGeometrySelected()) {
-            if (simulationState === 'missing' || simulationState === 'canceled') {
-                processGeometry();
-                return;
-            }
             requestSender.sendStatefulCompute(
                 appState,
                 (data) => {
