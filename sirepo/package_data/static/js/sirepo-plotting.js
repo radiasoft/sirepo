@@ -779,7 +779,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     img.data[++p] = c.b;
                     let a = 255;
                     if (threshold !== null) {
-                        a = v > threshold ? 255 : 0;
+                        a = v < threshold[1] && v > threshold[0] ? 255 : 0;
                     }
                     img.data[++p] = a;
                 }
