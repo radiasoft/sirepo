@@ -58,7 +58,7 @@ SIREPO.beamlineItemLogic = function(name, init) {
 };
 
 SIREPO.viewLogic = function(name, init) {
-    SIREPO.app.directive(name, function(appState, utilities) {
+    SIREPO.app.directive(name, function(appState, panelState, utilities) {
         return {
             restrict: 'A',
             scope: {
@@ -87,6 +87,11 @@ SIREPO.viewLogic = function(name, init) {
                         appState.watchModelFields(scope, fields, callback, true);
                     }
                 }
+
+                // must wait to get "angularized" form
+                panelState.waitForUI(() => {
+                    scope.form = scope.$parent.form;
+                });
             },
         };
     });
@@ -1134,11 +1139,11 @@ SIREPO.app.service('validationService', function(utilities) {
 
     // html5 validation
     this.validateField = function(model, field, inputType, isValid, msg) {
-        this.validateInputSelectorString(`.${utilities.modelFieldID(model, field)} ${inputType}`, isValid, msg);
+        return this.validateInputSelectorString(`.${utilities.modelFieldID(model, field)} ${inputType}`, isValid, msg);
     };
 
     this.validateInputSelectorString = function(str, isValid, msg) {
-        this.validateInputSelector($(str), isValid, msg);
+        return this.validateInputSelector($(str), isValid, msg);
     };
 
     this.validateInputSelector = function(sel, isValid, msg) {
@@ -1157,6 +1162,7 @@ SIREPO.app.service('validationService', function(utilities) {
             f.setCustomValidity(msg);
             fWarn.show();
         }
+        return isValid;
     };
 
     this.validateFieldOfType = function(value, type) {
