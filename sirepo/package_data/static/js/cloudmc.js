@@ -421,11 +421,11 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         const [x, y] = SIREPO.GEOMETRY.GeometryUtils.nextAxes(appState.models.tallyReport.axis).reverse();
         const r = appState.models.energyReport;
         return [
-            r[x].val,  // + 0.5 * r[x].step,
-            r[y].val, // - 0.5 * r[y].step,
+            r[x].val,
+            r[y].val,
         ]
     };
-    
+
     self.decorateLabelWithIcon = (element, iconName, title) => {
         $(element)
         .closest('div[data-ng-switch]')
