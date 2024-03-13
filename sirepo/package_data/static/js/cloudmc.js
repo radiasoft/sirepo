@@ -228,10 +228,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                 }
                 appState.models.geometryInput.exampleURL = "";
                 appState.saveQuietly('geometryInput');
-                srdbg('processing geo')
                 processGeometry();
-                // srdbg("1");
-                // check();
             },
             {
                 method: 'download_remote_lib_file',
@@ -256,6 +253,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     };
     self.isGeometryProcessed = () => hasVolumes;
     self.simHandleStatus = data => {;
+        srdbg("state rn", data.state);
         self.hasServerStatus = true;
         if (data.volumes) {
             hasVolumes = true;
@@ -264,22 +262,11 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                 appState.saveChanges('volumes');
             }
         }
-        // else if (data.state === 'missing' || data.state === 'canceled') {
-        //     if (self.isGeometrySelected()) {
-        //         // processGeometry();
-        //         srdbg("2");
-        //         check();
-        //     }
-        // }
     };
 
     $scope.$on('geometryInput.changed', () => {
         if (! hasVolumes) {
-            // processGeometry();
-            // TODO (gurhar1133): review change of processGeometry calls to
-            // check()
-            srdbg("3");
-            check();
+            hasAnimationDir();
         }
     });
 
@@ -287,13 +274,12 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simComputeModel = 'dagmcAnimation';
     self.simState = persistentSimulation.initSimulationState(self);
 
-    function check() {
-        srdbg('about to check');
+    function hasAnimationDir() {
         requestSender.sendStatefulCompute(
             appState,
             (data) => {
-                srdbg("ret data=", data);
-                if (! data.dir_exists) {
+                srdbg("ret data", data);
+                if (! data.dirExists) {
                     hasVolumes = false;
                     processGeometry();
                 }
@@ -307,7 +293,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
             }
         );
     }
-    check();
+    hasAnimationDir();
 });
 
 SIREPO.app.controller('VisualizationController', function(appState, cloudmcService, frameCache, persistentSimulation, requestSender, tallyService, $scope) {

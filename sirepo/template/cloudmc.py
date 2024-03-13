@@ -83,35 +83,24 @@ def _percent_complete(run_dir, is_running):
 
 
 def _check_for_animation_dir(dir_path):
-    pkdp("\n\n\n type dir_path={} dir_path={}", type(dir_path), dir_path)
     return dir_path.exists()
 
 
 def stateful_compute_check_animation_dir(data, run_dir, **kwargs):
-    d = simulation_db.simulation_dir("cloudmc", sid=data.simulationId).join(data.args.dir)
-    pkdp("\n\n\n checking for anim dir\n\n")
-    res = _check_for_animation_dir(d)
-    pkdp("\n\n\n dir={} exists?={}", d, res)
-    return PKDict(dir_exists=res)
+    return PKDict(
+        dirExists=simulation_db.simulation_dir("cloudmc", sid=data.simulationId)
+        .join(data.args.dir)
+        .exists()
+    )
 
 
 def background_percent_complete(report, run_dir, is_running):
     if report == "dagmcAnimation":
-
-        # pkdp("\n\n\n dir?={}", _check_for_animation_dir(
-        #     run_dir.join("dagmcAnimation")
-        # ))
-
         if is_running:
             return PKDict(
                 percentComplete=0,
                 frameCount=0,
             )
-        # else:
-        #     pkdp("\n\n\nexists?={}", run_dir.join("dagmcAnimation").exists())
-            # if not run_dir.join("dagmcAnimation").exists():
-            #     raise AssertionError("NO dagmcAnimation dir")
-
         if not run_dir.join(_VOLUME_INFO_FILE).exists():
             raise AssertionError("Volume extraction failed")
         return PKDict(
