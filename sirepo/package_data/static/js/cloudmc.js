@@ -745,8 +745,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
         controller: function($scope) {
             $scope.modelName = 'tallyReport';
             $scope.reportCfg = {
-                enableSelection: ! ! $scope.energyFilter,
-                enableCrosshairs: ! ! $scope.energyFilter,
+                enableSelection: hasEnergyFilter(),
+                enableCrosshairs: hasEnergyFilter(),
             };
             const displayRanges = {};
             const sources = cloudmcService.getSourceVisualizations(
@@ -786,6 +786,10 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 if (! tallyService.mesh) {
                     return;
                 }
+
+                $scope.reportCfg.enableSelection = hasEnergyFilter();
+                $scope.reportCfg.enableCrosshairs = hasEnergyFilter();
+                
                 const [z, x, y] = tallyReportAxes();
                 const [n, m, l] = tallyReportAxisIndices();
                 const ranges = tallyService.getMeshRanges();
@@ -1066,7 +1070,19 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 return 0.05 * tallyService.getMaxMeshExtent();
             }
 
-            $scope.hasEnergyFilter = () => ! ! $scope.energyFilter;
+            function hasEnergyFilter() {
+                return ! ! $scope.energyFilter;
+            }
+
+            function updateReportCfg() {
+
+            }
+
+            $scope.getReportCfg = () => {
+                reportCfg.enableSelection = hasEnergyFilter();
+                reportCfg.enableCrosshairs = hasEnergyFilter();
+                return reportCfg;
+            };
 
             $scope.$on('sr-plotEvent', (e, d) => {
                 if (d.name !== SIREPO.PLOTTING.HeatmapSelectCellEvent) {
