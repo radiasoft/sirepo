@@ -98,7 +98,7 @@ SIREPO.app.factory('columnsService', function(appState, requestSender, $rootScop
     }
 
     self.defaultColumns = (analysisStatus) => {
-        const res = ['status', 'detailed_status', 'start', 'stop', 'suid'];
+        const res = ['status', 'start', 'stop', 'suid'];
         if (analysisStatus == 'queued') {
             res.splice(1, 0, 'queue order');
         }
@@ -1164,11 +1164,57 @@ SIREPO.app.directive('scanDetail', function() {
             <div class="panel panel-info" style="width: 500px;">
               <div class="panel-heading"><span class="sr-panel-heading">Details for Scan {{ scan.rduid }}</span></div>
               <div class="panel-body">
-                <pre style="overflow: scroll; height: 250px; width: 450px;">{{ scan }}</pre>
+                <div>Most Recent Status</div>
+                <pre style="overflow: scroll; height: 100px; width: 450px;">{{ currentStatus() }}</pre>
+                <div>Detailed Status File</div>
+                <pre style="overflow: scroll; height: 250px; width: 450px;">{{ detailedStatus() }}</pre>
+                <div>Current Consecutive Failures: {{ consecutiveFailures() }}</div>
+                <div>Analysis Elapsed Time</div>
               </div>
             </div>
 `,
         controller: function($scope, columnsService) {
+            function detailedStatusFile() {
+                return $scope.scan && Object.keys($scope.scan.detailed_status).length > 0 ? $scope.scan.detailed_status : null;
+            }
+
+            function getSortedRunIndexes() {
+                return Object.keys(detailedStatusFile()).map((x) => parseInt(x)).sort();
+            }
+
+            function mostRecentAnalysisDetails() {
+                if (! detailedStatusFile()) {
+                    return '';
+                }
+                return detailedStatusFile()[Math.max(...getSortedRunIndexes())];
+             }
+
+            $scope.consecutiveFailures = () => {
+                if (! detailedStatusFile()) {
+                    return '';
+                }
+                let r = '';
+                for (const k of getSortedRunIndexes()) {
+                    r += '\n k=' + k + ' ';
+                    for (const f of Object.values(detailedStatusFile()[k])) {
+                        r += f.status;
+                        r += '' + f;
+                    }
+                }
+                return r;
+            };
+
+            $scope.detailedStatus = () => {
+                return JSON.stringify(detailedStatusFile(), undefined, 2);
+            };
+
+            $scope.currentStatus = () => {
+                let r = '';
+                for (const k of Object.keys(mostRecentAnalysisDetails())) {
+                    r += k + ': ' + mostRecentAnalysisDetails()[k].status + '\n';
+                }
+                return r;
+            };
         },
     };
 });
