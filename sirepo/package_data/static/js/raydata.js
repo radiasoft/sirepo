@@ -1189,19 +1189,32 @@ SIREPO.app.directive('scanDetail', function() {
                 return detailedStatusFile()[Math.max(...getSortedRunIndexes())];
              }
 
+            function failureInRun(run) {
+                let failed = false;
+
+                for (const f of Object.values(detailedStatusFile()[run])) {
+                    if (f.status === 'failed') {
+                        failed = true;
+                    }
+                }
+                return failed;
+            }
+
             $scope.consecutiveFailures = () => {
                 if (! detailedStatusFile()) {
                     return '';
                 }
-                let r = '';
-                for (const k of getSortedRunIndexes()) {
-                    r += '\n k=' + k + ' ';
-                    for (const f of Object.values(detailedStatusFile()[k])) {
-                        r += f.status;
-                        r += '' + f;
+                let r = 0;
+                let failures = 0;
+                for (const k of getSortedRunIndexes().reverse()) {
+                    if (failureInRun(k)) {
+                        failures += 1;
+                    } else {
+                        return failures;
                     }
                 }
-                return r;
+
+                return failures;
             };
 
             $scope.detailedStatus = () => {
