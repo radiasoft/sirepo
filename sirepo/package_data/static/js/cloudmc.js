@@ -1066,6 +1066,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 return 0.05 * tallyService.getMaxMeshExtent();
             }
 
+            $scope.hasEnergyFilter = () => ! ! $scope.energyFilter;
+
             $scope.$on('sr-plotEvent', (e, d) => {
                 if (d.name !== SIREPO.PLOTTING.HeatmapSelectCellEvent) {
                     return;
