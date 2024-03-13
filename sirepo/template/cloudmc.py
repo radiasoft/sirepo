@@ -85,7 +85,7 @@ def _check_for_animation_dir(dir_path):
     return dir_path.exists()
 
 
-def stateful_compute_check_animation_dir(data, run_dir, **kwargs):
+def stateless_compute_check_animation_dir(data, **kwargs):
     return PKDict(
         dirExists=simulation_db.simulation_dir("cloudmc", sid=data.simulationId)
         .join(data.modelName)

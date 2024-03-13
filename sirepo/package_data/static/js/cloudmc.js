@@ -280,7 +280,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
 
     function resetProcessGeometry() {
         if (self.isGeometrySelected()) {
-            requestSender.sendStatefulCompute(
+            requestSender.sendStatelessCompute(
                 appState,
                 (data) => {
                     if (! data.dirExists) {
