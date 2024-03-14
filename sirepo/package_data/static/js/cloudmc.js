@@ -218,6 +218,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
 SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     let hasVolumes = false;
+    self.processing = false;
 
     function downloadRemoteGeometryFile() {
         requestSender.sendStatefulCompute(
@@ -263,14 +264,16 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
         }
         else if (data.state === 'missing' || data.state === 'canceled') {
             if (self.isGeometrySelected()) {
-                processGeometry();
+                // processGeometry();
+                resetProcessGeometry();
             }
         }
     };
 
     $scope.$on('geometryInput.changed', () => {
         if (! hasVolumes) {
-            processGeometry();
+            // processGeometry();
+            resetProcessGeometry();
         }
     });
 
@@ -279,7 +282,8 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simState = persistentSimulation.initSimulationState(self);
 
     function resetProcessGeometry() {
-        if (self.isGeometrySelected()) {
+        if (self.isGeometrySelected() && ! self.processing) {
+            self.processing = true;
             requestSender.sendStatelessCompute(
                 appState,
                 (data) => {
@@ -287,6 +291,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                         hasVolumes = false;
                         processGeometry();
                     }
+                    self.processing = false;
                 },
                 {
                     method: 'check_animation_dir',
