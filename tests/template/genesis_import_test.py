@@ -21,7 +21,7 @@ def test_lib_file_list(fc):
     )
     pkunit.pkok(r.get("missingFiles"), "expecting missingFiles reply={}", r)
     r = fc.sr_post_form(
-        "uploadFile",
+        "uploadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id="NONSIMID",

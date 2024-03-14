@@ -26,10 +26,9 @@ def test_activait_remote_data(fc):
         ),
     )
     r = fc.sr_get(
-        "downloadFile",
+        "downloadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
-            simulation_id="NONSIMID",
             filename="dataFile-file." + os.path.basename(u),
         ),
     )
