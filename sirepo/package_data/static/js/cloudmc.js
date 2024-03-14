@@ -1763,7 +1763,6 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
         `,
         controller: function($scope, $window) {
             $scope.allVisible = true;
-            $scope.rowsSameMinMax = true;
             let editRowKey = null;
             let prevOffset = 0;
 
@@ -2712,9 +2711,9 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
         template: `
             <div class="{{ sliderClass }}"></div>
             <div style="display:flex; justify-content:space-between;">
-                <span data-ng-if="sliderIndex === 0">{{ formatFloat(field.min) }}</span>
+                <span>{{ formatMinMax(field.min) }}</span>
                 <span style="font-weight: bold;">{{ display(field) }}</span>
-                <span data-ng-if="sliderIndex === 0">{{ formatFloat(field.max) }}</span>
+                <span>{{ formatMinMax(field.max) }}</span>
             </div>
         `,
         controller: function($scope, $element) {
@@ -2804,16 +2803,24 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
 
             $scope.display = (range) => {
                 function toLog(val, r) {
-                    return $scope.formatFloat(SIREPO.UTILS.linearToLog(val, r.min, r.max, r.step));
+                    return formatFloat(SIREPO.UTILS.linearToLog(val, r.min, r.max, r.step));
                 }
 
                 const v = range.val;
                 if (range.space === 'linear') {
-                    return Array.isArray(v) ? v.map(x => $scope.formatFloat(x)) : $scope.formatFloat(v);
+                    return Array.isArray(v) ? v.map(x => formatFloat(x)) : formatFloat(v);
                 }
-                return Array.isArray(v) ? v.map(x => $scope.formatFloat(toLog(x, range))) : $scope.formatFloat(toLog(v));
+                return Array.isArray(v) ? v.map(x => formatFloat(toLog(x, range))) : formatFloat(toLog(v));
             };
-            $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
+
+            const formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
+
+            $scope.formatMinMax = val => {
+                if ($scope.sliderIndex === 0) {
+                    return formatFloat(val);
+                }
+                return "";
+            };
             $scope.hasSteps = () => hasSteps;
 
             panelState.waitForUI(updateSlider);
