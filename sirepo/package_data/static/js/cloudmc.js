@@ -318,7 +318,7 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         return `Completed batch: ${self.simState.getFrameCount()}`;
     };
     self.startSimulation = function() {
-        tallyService.clearMesh();
+        tallyService.clearFilters();
         delete appState.models.openmcAnimation.tallies;
         self.simState.saveAndRunSimulation('openmcAnimation');
     };
@@ -383,7 +383,6 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
 SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities, $rootScope) {
     const self = {
         energyFilter: null,
-        energyOutFilter: null,
         fieldData: null,
         mesh: null,
         minField: 0,
@@ -404,14 +403,13 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         return x => (appState.models.openmcAnimation.sourceNormalization / numParticles) * x;
     }
 
-    self.clearEnergyFilters = () => {
+    self.clearEnergyFilter = () => {
         self.energyFilter = null;
-        self.energyOutFilter = null;
     };
 
     self.clearFilters = () => {
         self.clearMesh();
-        self.clearEnergyFilters();
+        self.clearEnergyFilter();
     };
 
     self.clearMesh = () => {
@@ -472,6 +470,18 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
     };
 
     self.getSourceParticles = () => self.sourceParticles;
+
+    self.initEnergyFilter = () => {
+        const noFilter = ! self.energyFilter;
+        self.energyFilter = cloudmcService.findFilter('energyFilter');
+        self.updateEnergyRange(self.energyFilter)
+        if (noFilter && self.energyFilter) {
+            appState.models.openmcAnimation.energyRangeSum.val = [
+                appState.models.openmcAnimation.energyRangeSum.min,
+                appState.models.openmcAnimation.energyRangeSum.max,
+            ];
+        }
+    };
 
     self.initMesh = () => {
         const t = cloudmcService.findTally();
@@ -605,7 +615,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
     };
 
 
-    $rootScope.$on('modelsUnloaded', self.clearMesh);
+    $rootScope.$on('modelsUnloaded', self.clearFilters);
 
     return self;
 });
@@ -1063,6 +1073,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 if (! tallyService.initMesh()) {
                     return;
                 }
+                
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
                 });
