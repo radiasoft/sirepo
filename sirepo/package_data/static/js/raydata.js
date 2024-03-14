@@ -1232,7 +1232,7 @@ SIREPO.app.directive('scanDetail', function() {
 
             $scope.detailedStatusFile = () => {
                 return $scope.scan && $scope.scan.detailed_status && Object.keys($scope.scan.detailed_status).length > 0 ? $scope.scan.detailed_status : null;
-            }
+            };
         },
     };
 });
