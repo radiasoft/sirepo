@@ -318,7 +318,7 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         return `Completed batch: ${self.simState.getFrameCount()}`;
     };
     self.startSimulation = function() {
-        tallyService.clearFilters();
+        tallyService.clearMesh();
         delete appState.models.openmcAnimation.tallies;
         self.simState.saveAndRunSimulation('openmcAnimation');
     };
@@ -382,7 +382,6 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
 
 SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities, $rootScope) {
     const self = {
-        energyFilter: null,
         fieldData: null,
         mesh: null,
         minField: 0,
@@ -403,15 +402,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         return x => (appState.models.openmcAnimation.sourceNormalization / numParticles) * x;
     }
 
-    self.clearEnergyFilter = () => {
-        self.energyFilter = null;
-    };
-
-    self.clearFilters = () => {
-        self.clearMesh();
-        self.clearEnergyFilter();
-    };
-
     self.clearMesh = () => {
         self.mesh = null;
         self.fieldData = null;
@@ -426,8 +416,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
     };
 
     self.doesCacheRequireUpdate = () => Object.entries(self.cachedSettings).every(([k, v]) => v === appState.models.openmcAnimation[k]);
-
-    self.getEnergyRangeSum = () => self.energyRangeSum;
     
     self.decorateLabelWithIcon = (element, iconName, title) => {
         $(element)
@@ -471,18 +459,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
 
     self.getSourceParticles = () => self.sourceParticles;
 
-    self.initEnergyFilter = () => {
-        const noFilter = ! self.energyFilter;
-        self.energyFilter = cloudmcService.findFilter('energyFilter');
-        self.updateEnergyRange(self.energyFilter)
-        if (noFilter && self.energyFilter) {
-            appState.models.openmcAnimation.energyRangeSum.val = [
-                appState.models.openmcAnimation.energyRangeSum.min,
-                appState.models.openmcAnimation.energyRangeSum.max,
-            ];
-        }
-    };
-
     self.initMesh = () => {
         const t = cloudmcService.findTally();
         for (let k = 1; k <= SIREPO.APP_SCHEMA.constants.maxFilters; k++) {
@@ -495,12 +471,9 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         self.mesh = null;
         return false;
     };
-
-    self.setEnergyRangeSum = r => {
-        self.energyRangeSum = r;
-    };
     
     self.setFieldData = (fieldData, min, max, numParticles) => {
+        srdbg('SET FD');
         const n = normalizer(appState.models.openmcAnimation.score, numParticles);
         self.fieldData = fieldData.map(n);
         self.minField = n(min);
@@ -615,7 +588,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
     };
 
 
-    $rootScope.$on('modelsUnloaded', self.clearFilters);
+    $rootScope.$on('modelsUnloaded', self.clearMesh);
 
     return self;
 });
@@ -786,6 +759,7 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                     // old format, ignore
                     return;
                 }
+                srdbg('LOAD');
                 tallyService.setFieldData(json.field_data, json.min_field, json.max_field, json.num_particles);
             };
 
@@ -2894,7 +2868,18 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
 
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
 
+/*
+    const autoUpdate = () => {
+        srdbg('AUTO');
+        if ($scope.form.$valid) {
+            appState.saveChanges('openmcAnimation');
+        }
+    };
+    */
+
+    
     const autoUpdate = utilities.debounce(() => {
+        srdbg('AUTO');
         if ($scope.form.$valid) {
             appState.saveChanges('openmcAnimation');
         }
@@ -2924,7 +2909,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         if (! e || ! cloudmcService.findFilter('meshFilter')) {
             return;
         }
-
+        srdbg('UPD ER');
         const s = appState.models.openmcAnimation.energyRangeSum;
         s.space = e.space;
         s.min = e.start;
@@ -2942,6 +2927,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             ];
         }
         appState.saveChanges('openmcAnimation');
+        //autoUpdate();
     }
 
     $scope.whenSelected = () => {
@@ -2952,7 +2938,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     $scope.watchFields = [
         [
             'openmcAnimation.aspect',
-            'openmcAnimation.energyRangeSum',
+            //'openmcAnimation.energyRangeSum',
             'openmcAnimation.numSampleSourceParticles',
             'openmcAnimation.score',
             'openmcAnimation.sourceNormalization',

@@ -770,6 +770,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     };
 
     self.saveChanges = function(name, callback) {
+        srdbg(name, 'SAVE CH');
         // save changes on a model by name, or by an array of names
         if (typeof(name) == 'string') {
             name = [name];
@@ -901,6 +902,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             $scope.$watch('appState.models' + propertyToIndexForm(f), function (newValue, oldValue) {
                 if ((self.isLoaded() || isSim) && newValue !== null && newValue !== undefined && newValue !== oldValue) {
                     // call in next cycle to allow UI to change layout first
+                    srdbg('SAW', f, oldValue, '->', newValue);
                     $interval(callback, 1, 1, true, f);
                 }
             }, useDeepEquals);
