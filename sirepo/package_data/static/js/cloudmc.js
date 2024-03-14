@@ -2946,6 +2946,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         ], autoUpdate,
         ['openmcAnimation.tally'], validateTally,
         [
+            'tallyReport.planePos.numSteps',
             'tallyReport.selectedGeometry',
             'openmcAnimation.score',
             'openmcAnimation.showSources',
