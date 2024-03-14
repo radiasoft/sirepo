@@ -427,7 +427,6 @@ class _RequestHandler(_JsonPostRequestHandler):
         if req_data.analysisStatus == "allStatuses":
             l, s = self._databroker_search(req_data)
         elif req_data.analysisStatus == "executed":
-            assert 0, "executed"
             assert req_data.searchStartTime and req_data.searchStopTime, pkdformat(
                 "must have both searchStartTime and searchStopTime req_data={}",
                 req_data,

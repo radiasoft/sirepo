@@ -1180,20 +1180,14 @@ SIREPO.app.directive('scanDetail', function() {
             </div>
 `,
         controller: function($scope, columnsService) {
-            $scope.analysisElapsedTime = () => {
-                if ($scope.scan && $scope.scan.analysis_elapsed_time) {
-                    return $scope.scan.analysis_elapsed_time;
-                } else {
-                    return null;
+            function failureInRun(run) {
+                let r = false;
+                for (const f of Object.values($scope.detailedStatusFile()[run])) {
+                    if (f.status === 'failed') {
+                        r = true;
+                    }
                 }
-            };
-
-            $scope.detailedStatusFile = () => {
-                srdbg("scan", $scope.scan);
-                if ($scope.scan) {
-                    srdbg("detailed status", $scope.scan.detailed_status);
-                }
-                return $scope.scan && $scope.scan.detailed_status && Object.keys($scope.scan.detailed_status).length > 0 ? $scope.scan.detailed_status : null;
+                return r;
             }
 
             function getSortedRunIndexes() {
@@ -1201,42 +1195,27 @@ SIREPO.app.directive('scanDetail', function() {
             }
 
             function mostRecentAnalysisDetails() {
-                if (! $scope.detailedStatusFile()) {
-                    return '';
-                }
-                return $scope.detailedStatusFile()[Math.max(...getSortedRunIndexes())];
+                return $scope.detailedStatusFile()? $scope.detailedStatusFile()[Math.max(...getSortedRunIndexes())] : '';
              }
 
-            function failureInRun(run) {
-                let failed = false;
-
-                for (const f of Object.values($scope.detailedStatusFile()[run])) {
-                    if (f.status === 'failed') {
-                        failed = true;
-                    }
-                }
-                return failed;
-            }
+            $scope.analysisElapsedTime = () => {
+                return $scope.scan && $scope.scan.analysis_elapsed_time ? $scope.scan.analysis_elapsed_time : null;
+            };
 
             $scope.consecutiveFailures = () => {
                 if (! $scope.detailedStatusFile()) {
                     return '';
                 }
                 let r = 0;
-                let failures = 0;
                 for (const k of getSortedRunIndexes().reverse()) {
                     if (failureInRun(k)) {
-                        failures += 1;
+                        r += 1;
                     } else {
-                        return failures;
+                        return r;
                     }
                 }
 
-                return failures;
-            };
-
-            $scope.detailedStatus = () => {
-                return JSON.stringify($scope.detailedStatusFile(), undefined, 2);
+                return r;
             };
 
             $scope.currentStatus = () => {
@@ -1246,6 +1225,14 @@ SIREPO.app.directive('scanDetail', function() {
                 }
                 return r;
             };
+
+            $scope.detailedStatus = () => {
+                return JSON.stringify($scope.detailedStatusFile(), undefined, 2);
+            };
+
+            $scope.detailedStatusFile = () => {
+                return $scope.scan && $scope.scan.detailed_status && Object.keys($scope.scan.detailed_status).length > 0 ? $scope.scan.detailed_status : null;
+            }
         },
     };
 });
