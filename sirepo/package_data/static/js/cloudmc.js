@@ -558,7 +558,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         if ((t.val.concat(t.global)).some((v) => v === null)) {
             updateModel(t);
         }
-        
+
         // initial page load - respect user setting
         if (Object.values(self.cachedSettings).every((v) => v == null)) {
             updateCache();
@@ -1753,7 +1753,8 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                         id="volume-{{ row.name }}-opacity-range" data-j-range-slider=""
                         data-ng-model="row" data-model-name="row.name"
                         data-field-name="'opacity'" data-model="row"
-                        data-field="row.opacity" data-on-change="volumeOpacityChanged(row)">
+                        data-field="row.opacity" data-slider-index="$index"
+                        data-on-change="volumeOpacityChanged(row)">
                       </div>
                   </div>
                 </div>
@@ -1762,6 +1763,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
         `,
         controller: function($scope, $window) {
             $scope.allVisible = true;
+            $scope.rowsSameMinMax = true;
             let editRowKey = null;
             let prevOffset = 0;
 
@@ -2705,13 +2707,14 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             model: '=',
             modelName: '<',
             onChange: '&',
+            sliderIndex: '=',
         },
         template: `
             <div class="{{ sliderClass }}"></div>
             <div style="display:flex; justify-content:space-between;">
-                <span>{{ formatFloat(field.min) }}</span>
+                <span data-ng-if="sliderIndex === 0">{{ formatFloat(field.min) }}</span>
                 <span style="font-weight: bold;">{{ display(field) }}</span>
-                <span>{{ formatFloat(field.max) }}</span>
+                <span data-ng-if="sliderIndex === 0">{{ formatFloat(field.max) }}</span>
             </div>
         `,
         controller: function($scope, $element) {
