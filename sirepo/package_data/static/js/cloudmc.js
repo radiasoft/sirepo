@@ -229,6 +229,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                 }
                 appState.models.geometryInput.exampleURL = "";
                 appState.saveQuietly('geometryInput');
+                self.processing = false;
                 processGeometry();
             },
             {
@@ -241,12 +242,17 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     }
 
     function processGeometry() {
+        if (self.processing) {
+            return;
+        }
         panelState.showField('geometryInput', 'dagmcFile', false);
+        self.processing = true;
         if (appState.models.geometryInput.exampleURL) {
             downloadRemoteGeometryFile();
             return;
         }
         self.simState.runSimulation();
+        self.processing = false;
     }
 
     self.isGeometrySelected = () => {
@@ -264,15 +270,13 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
         }
         else if (data.state === 'missing' || data.state === 'canceled') {
             if (self.isGeometrySelected()) {
-                // processGeometry();
-                resetProcessGeometry();
+                processGeometry();
             }
         }
     };
 
     $scope.$on('geometryInput.changed', () => {
         if (! hasVolumes) {
-            // processGeometry();
             resetProcessGeometry();
         }
     });
@@ -283,7 +287,6 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
 
     function resetProcessGeometry() {
         if (self.isGeometrySelected() && ! self.processing) {
-            self.processing = true;
             requestSender.sendStatelessCompute(
                 appState,
                 (data) => {
@@ -291,7 +294,6 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                         hasVolumes = false;
                         processGeometry();
                     }
-                    self.processing = false;
                 },
                 {
                     method: 'check_animation_dir',
