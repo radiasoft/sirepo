@@ -559,7 +559,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         s.min = e.start;
         s.max = e.stop;
         s.step = Math.abs(e.stop - e.start) / e.num;
-    }
+    };
     
     self.updateTallyDisplay = () => {
         appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
@@ -2923,6 +2923,13 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
 
     function validateTally() {
         cloudmcService.validateSelectedTally();
+        updateEnergyRange();
+        if ($scope.energyFilter) {
+            appState.models.openmcAnimation.energyRangeSum.val = [
+                appState.models.openmcAnimation.energyRangeSum.min,
+                appState.models.openmcAnimation.energyRangeSum.max,
+            ];
+        }
         appState.saveChanges('openmcAnimation');
     }
 
