@@ -85,6 +85,11 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user", filename="SimFileName", file_type="SimFileType")
     async def api_deleteFile(self):
+        """Deprecated - use `api_deleteLibFile`"""
+        return await self.api_deleteLibFile()
+
+    @sirepo.quest.Spec("require_user", filename="SimFileName", file_type="SimFileType")
+    async def api_deleteLibFile(self):
         req = self.parse_post(filename=True, file_type=True)
         e = _simulations_using_file(req)
         if len(e):
@@ -107,11 +112,13 @@ class API(sirepo.quest.API):
         simulation_db.delete_simulation(req.type, req.id, qcall=self)
         return self.reply_ok()
 
-    @sirepo.quest.Spec(
-        "require_user", sid="SimId optional", filename="SimFileName", sim_data="SimData"
-    )
+    @sirepo.quest.Spec("require_user", filename="SimFileName")
     async def api_downloadFile(self, simulation_type, simulation_id, filename):
-        # TODO(pjm): simulation_id is an unused argument
+        """Deprecated - use `api_downloadLibFile`"""
+        return await self.api_downloadLibFile(simulation_type, filename)
+
+    @sirepo.quest.Spec("require_user", filename="SimFileName")
+    async def api_downloadLibFile(self, simulation_type, filename):
         req = self.parse_params(type=simulation_type, filename=filename)
         return self.reply_attachment(
             req.sim_data.lib_file_abspath(req.filename, qcall=self),
@@ -564,6 +571,17 @@ class API(sirepo.quest.API):
         confirm="Bool optional",
     )
     async def api_uploadFile(self, simulation_type, simulation_id, file_type):
+        """Deprecated - use `api_uploadLibFile`"""
+        return await self.api_uploadLibFile(simulation_type, simulation_id, file_type)
+
+    @sirepo.quest.Spec(
+        "require_user",
+        file="LibFile",
+        file_type="LibFileType",
+        simulation_id="SimId",
+        confirm="Bool optional",
+    )
+    async def api_uploadLibFile(self, simulation_type, simulation_id, file_type):
         f = self.sreq.form_file_get()
         req = self.parse_params(
             file_type=file_type,
