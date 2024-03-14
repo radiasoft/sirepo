@@ -2855,7 +2855,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
     };
 });
 
-SIREPO.app.directive('numArray', function(appState, utilities) {
+SIREPO.app.directive('numArray', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -2872,6 +2872,7 @@ SIREPO.app.directive('numArray', function(appState, utilities) {
               <input class="form-control sr-number-list" data-string-to-number="{{ numType }}"
                 data-ng-model="model[fieldName][$index]" data-min="info[5][$index]" data-max="info[6][$index]"
                 style="text-align: right" required />
+              <div data-ng-if="$last" class="sr-input-warning"></div>
             </div>
         `,
         controller: $scope => {
