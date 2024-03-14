@@ -290,7 +290,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, cloudmcService, frameCache, persistentSimulation, requestSender, tallyService, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, authState, cloudmcService, frameCache, persistentSimulation, requestSender, tallyService, $scope) {
     const self = this;
     self.eigenvalue = null;
     self.results = null;
@@ -323,6 +323,11 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         return `Completed batch: ${self.simState.getFrameCount()}`;
     };
     self.startSimulation = function() {
+        if (appState.applicationState().settings.varianceReduction == 'weight_windows_tally'
+            && authState.jobRunModeMap.sbatch) {
+            errorMessage = 'Weight Windows are not yet available with sbatch';
+            return;
+        }
         tallyService.clearMesh();
         delete appState.models.openmcAnimation.tallies;
         self.simState.saveAndRunSimulation('openmcAnimation');
@@ -397,6 +402,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
             aspect: null,
             score: null,
             tally: null,
+            sourceNormalization: null,
         },
     };
 
