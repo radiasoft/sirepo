@@ -401,7 +401,11 @@ class SimDataBase(object):
         Returns:
             bool: True if `basename` in use by `data`
         """
-        return any(f for f in cls.lib_file_basenames(data) if f == basename)
+        files = cls.lib_file_basenames(data)
+        pkdp("\n\n\n basename={}", basename)
+        pkdp("\n\n\nfiles ={}", files)
+        # comparison here not right? basename vs full name
+        return any(f for f in files if f == basename)
 
     @classmethod
     def lib_file_names_for_type(cls, file_type, qcall=None):

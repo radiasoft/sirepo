@@ -92,7 +92,9 @@ class API(sirepo.quest.API):
     async def api_deleteLibFile(self):
         req = self.parse_post(filename=True, file_type=True)
         e = _simulations_using_file(req)
+        pkdp("\n\n\n\n delete filename={}", req.filename)
         if len(e):
+            pkdp("\n\n\n\n hit for file in use in other sim")
             return self.reply_dict(
                 {
                     "error": "File is in use in other simulations.",
@@ -702,6 +704,7 @@ def _simulations_using_file(req, ignore_sim_id=None):
                 s.name,
             )
         )
+    pkdp("\n\n\n res of sims using file={}", res)
     return res
 
 
