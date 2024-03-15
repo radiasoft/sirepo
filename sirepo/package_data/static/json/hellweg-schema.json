@@ -171,7 +171,7 @@
         "beam": {
             "transversalDistribution": ["Transversal Distribution", "TransversalDistribution"],
             "longitudinalDistribution": ["Longitudinal Distribution", "LongitudinalDistribution"],
-            "current": ["Current [A]", "Float"],
+            "current": ["Current [A]", "Float", 0],
             "particleKeyword": ["Particle Species", "ParticleSpecies", "electrons"],
             "particleParamA": ["A [a.m.u]", "Float", 1],
             "particleParamQ": ["Q [ee]", "Integer", 1],
@@ -188,7 +188,7 @@
         },
         "beamAnimation": {
             "reportType": ["Report", "BeamReportType"],
-            "histogramBins": ["Number of Bins", "Integer"],
+            "histogramBins": ["Number of Bins", "Integer", 200],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
@@ -201,18 +201,18 @@
         },
         "beamHistogramAnimation": {
             "reportType": ["Report", "BeamHistogramReportType"],
-            "histogramBins": ["Number of Bins", "Integer"],
+            "histogramBins": ["Number of Bins", "Integer", 200],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
             "notes": ["Notes", "Text", ""]
         },
         "beamHistogramReport": {
             "reportType": ["Report", "BeamHistogramReportType"],
-            "histogramBins": ["Number of Bins", "Integer"],
+            "histogramBins": ["Number of Bins", "Integer", 200],
             "notes": ["Notes", "Text", ""]
         },
         "beamReport": {
             "reportType": ["Report", "BeamReportType"],
-            "histogramBins": ["Number of Bins", "Integer"],
+            "histogramBins": ["Number of Bins", "Integer", 200],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
@@ -237,19 +237,19 @@
             "meshPoints": ["Mesh Points", "Integer", 20]
         },
         "ellipticalDistribution": {
-            "aX": ["a(x) [cm]", "Float"],
-            "bY": ["b(y) [cm]", "Float"],
+            "aX": ["a(x) [cm]", "Float", 1.0],
+            "bY": ["b(y) [cm]", "Float", 1.0],
             "rotationAngle": ["Rotation Angle [deg]", "Float", 0],
             "rmsDeviationFactor": ["RMS Deviation Factor (σ = a/factor)", "Float", 1]
         },
         "energyPhaseDistribution": {
             "distributionType": ["Distribution Type", "EnergyDistributionType"],
-            "meanEnergy": ["Mean Energy [MeV]", "Float"],
-            "energySpread": ["Energy Spread [MeV]", "Float"],
-            "energyDeviation": ["Energy RMS Deviation [MeV]", "Float"],
-            "meanPhase": ["Mean Phase [deg]", "Float"],
-            "phaseLength": ["Phase Length [deg]", "Float"],
-            "phaseDeviation": ["Phase RMS Deviation [deg]", "Float"]
+            "meanEnergy": ["Mean Energy [MeV]", "Float", 1.0],
+            "energySpread": ["Energy Spread [MeV]", "Float", 0.01],
+            "energyDeviation": ["Energy RMS Deviation [MeV]", "Float", 0.01],
+            "meanPhase": ["Mean Phase [deg]", "Float", 0.0],
+            "phaseLength": ["Phase Length [deg]", "Float", 0.0],
+            "phaseDeviation": ["Phase RMS Deviation [deg]", "Float", 0.01]
         },
         "parameterAnimation": {
             "reportType": ["Report", "ParameterReportType", "wav-wmax"],
@@ -283,25 +283,25 @@
         "simulationStatus": {},
         "solenoid": {
             "sourceDefinition": ["Solenoid Definition", "SolenoidDefinition"],
-            "fieldStrength": ["Field Strength (Bz) [Gs]", "Float"],
-            "length": ["Length [cm]", "Float"],
+            "fieldStrength": ["Field Strength (Bz) [Gs]", "Float", 1.0],
+            "length": ["Length [cm]", "Float", 1.0],
             "solenoidFile": ["Solenoid File", "InputFile"],
-            "z0": ["Longitudinal Coordinate of Start (Z₀) [cm]", "Float"],
-            "fringeRegion": ["Fringe Field Region [cm]", "Float"]
+            "z0": ["Longitudinal Coordinate of Start (Z₀) [cm]", "Float", 0.0],
+            "fringeRegion": ["Fringe Field Region [cm]", "Float", 0]
         },
         "sphericalDistribution": {
-            "radialLimit": ["Radial Limit [cm]", "Float"],
+            "radialLimit": ["Radial Limit [cm]", "Float", 0],
             "curvature": ["Curvature", "SphericalCurvature"],
-            "curvatureFactor": ["Curvature Factor (r'=-sin(r/factor))", "Float"],
-            "thermalEmittance": ["Thermal Emittance [eV]", "Float"]
+            "curvatureFactor": ["Curvature Factor (r'=-sin(r/factor))", "Float", 0.5],
+            "thermalEmittance": ["Thermal Emittance [eV]", "Float", 0.5]
         },
         "twissDistribution": {
-            "horizontalEmittance": ["Horizontal Emittance [cm*rad]", "Float"],
-            "horizontalBeta": ["Horizontal Beta [cm/rad]", "Float"],
-            "horizontalAlpha": ["Horizontal Alpha", "Float"],
-            "verticalEmittance": ["Vertical Emittance [cm*rad]", "Float"],
-            "verticalBeta": ["Vertical Beta [cm/rad]", "Float"],
-            "verticalAlpha": ["Vertical Alpha", "Float"]
+            "horizontalEmittance": ["Horizontal Emittance [cm*rad]", "Float", 0],
+            "horizontalBeta": ["Horizontal Beta [cm/rad]", "Float", 1],
+            "horizontalAlpha": ["Horizontal Alpha", "Float", 0.1],
+            "verticalEmittance": ["Vertical Emittance [cm*rad]", "Float", 0],
+            "verticalBeta": ["Vertical Beta [cm/rad]", "Float", 1],
+            "verticalAlpha": ["Vertical Alpha", "Float", 0.1]
         }
     },
     "view": {

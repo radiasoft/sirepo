@@ -546,7 +546,7 @@
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
-            "histogramBins": ["Histogram Bins", "Integer"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
             "colorMap": ["Color Map", "ColorMap", "afmhot"],
             "notes": ["Notes", "Text", ""]
         },

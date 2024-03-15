@@ -151,7 +151,7 @@
         "beam": {
             "currentMode": ["Current Mode", "CurrentMode"],
             "species": ["Beam Species", "BeamSpecies"],
-            "x_radius": ["Beam X Radius [µm]", "Float"],
+            "x_radius": ["Beam X Radius [µm]", "Float", 1.0],
             "beam_current": ["Beam Current [A]", "OptFloat"],
             "cathode_temperature": ["Cathode Temperature [K]", "OptFloat"],
             "cathode_work_function": ["Cathode Work Function [eV]", "OptFloat"],
@@ -246,8 +246,8 @@
         },
         "optimizerField": {
             "field": ["Field", "String"],
-            "minimum": ["Minimum", "Float"],
-            "maximum": ["Maximum", "Float"]
+            "minimum": ["Minimum", "Float", 0],
+            "maximum": ["Maximum", "Float", 1]
         },
         "optimizerStatus": {},
         "particleAnimation": {
@@ -266,15 +266,15 @@
         },
         "simulationGrid": {
             "simulation_mode": ["Simulation Mode", "SimulationMode", "2d"],
-            "plate_spacing": ["Plate Spacing [µm]", "Float"],
-            "channel_width": ["Channel Width [µm]", "Float"],
+            "plate_spacing": ["Plate Spacing [µm]", "Float", 5],
+            "channel_width": ["Channel Width [µm]", "Float", 0.1],
             "channel_height": ["Channel Height [µm]", "Float", 0.08],
-            "num_x": ["X Grid Points", "Integer"],
-            "num_z": ["Z Grid Points", "Integer"],
+            "num_x": ["X Grid Points", "Integer", 10],
+            "num_z": ["Z Grid Points", "Integer", 100],
             "num_y": ["Y Grid Points", "Integer", 10],
-            "particles_per_step": ["Particles Per Step", "Integer"],
-            "z_particle_min": ["Particle Z Minimum [µm]", "Float"],
-            "num_steps": ["Simulation Steps", "Integer"],
+            "particles_per_step": ["Particles Per Step", "Integer", 100],
+            "z_particle_min": ["Particle Z Minimum [µm]", "Float", 0.001],
+            "num_steps": ["Simulation Steps", "Integer", 1],
             "trace_period": ["Trace Period", "Integer", 1, "", 1]
         },
         "simulationStatus": {},
@@ -283,9 +283,9 @@
             "file": ["Conductor File", "FileChooser", ""],
             "scale": ["Conductor Scale", "Float", 1e-9, "Scale factor (1e-9 - 10)", 1e-12, 10],
             "type": ["Type", "ConductorType", "stl"],
-            "xLength": ["Width (X) [µm]", "Float"],
+            "xLength": ["Width (X) [µm]", "Float", 0.1],
             "yLength": ["Depth (Y) [µm]", "Float", 0.01],
-            "zLength": ["Length (Z) [µm]", "Float"]
+            "zLength": ["Length (Z) [µm]", "Float", 0.1]
         }
     },
     "strings": {

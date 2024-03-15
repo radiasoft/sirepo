@@ -31,7 +31,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "undulatorBeam",
             ),
         )
-        if "magneticField" not in dm.bendingMagnet:
+        if "magneticField" not in dm.bendingMagnet or dm.bendingMagnet.magneticField >= 1e308:
             dm.bendingMagnet.magneticField = (
                 1e9
                 / scipy.constants.c

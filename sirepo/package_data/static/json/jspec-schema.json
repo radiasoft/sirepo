@@ -305,7 +305,7 @@
         "particleAnimation": {
             "x": ["X Value", "ParticleColumn"],
             "y": ["Y Value", "ParticleColumn"],
-            "histogramBins": ["Histogram Bins", "Integer"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
             "horizontalSize": ["Horizontal Size", "Float", 0],
@@ -335,12 +335,12 @@
             "save_particle_interval": ["Save Particle Interval", "Integer", -1, "The interval of steps to save the 6D coordinates of the ions. No saving if the value is less than zero.", -1],
             "ref_bet_x": ["Horizontal Beta Reference Point", "Float", 10, "TWISS parameters for the reference point. Only needed when the Particle model is selected and the electron cooling effect is not included in the simulation.", 1e-99],
             "ref_bet_y": ["Vertical Beta Reference Point", "Float", 10, "", 1e-99],
-            "ref_alf_x": ["Horizontal Alpha Reference Point", "Float"],
-            "ref_alf_y": ["Vertical Alpha Reference Point", "Float"],
-            "ref_disp_x": ["Horizontal Dispersion Reference Point", "Float"],
-            "ref_disp_y": ["Vertical Dispersion Reference Point", "Float"],
-            "ref_disp_dx": ["Horizontal Dispersion Derivative Reference Point", "Float"],
-            "ref_disp_dy": ["Vertical Dispersion Derivative Reference Point", "Float"]
+            "ref_alf_x": ["Horizontal Alpha Reference Point", "Float", 0],
+            "ref_alf_y": ["Vertical Alpha Reference Point", "Float", 0],
+            "ref_disp_x": ["Horizontal Dispersion Reference Point", "Float", 0],
+            "ref_disp_y": ["Vertical Dispersion Reference Point", "Float", 0],
+            "ref_disp_dx": ["Horizontal Dispersion Derivative Reference Point", "Float", 0],
+            "ref_disp_dy": ["Vertical Dispersion Derivative Reference Point", "Float", 0]
         },
         "simulationStatus": {},
         "twissReport": {
