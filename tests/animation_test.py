@@ -211,9 +211,9 @@ def test_zgoubi(fc):
         "animation",
         PKDict(
             bunchAnimation=PKDict(
-                expect_title=lambda i: "Pass {}".format(i)
-                if i
-                else "Initial Distribution",
+                expect_title=lambda i: (
+                    "Pass {}".format(i) if i else "Initial Distribution"
+                ),
                 expect_y_range=lambda i: [
                     "-0.0462.*, -0.0281.*, 200",
                     "-0.0471.*, -0.0283.*, 200",

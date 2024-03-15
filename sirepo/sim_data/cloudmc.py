@@ -72,7 +72,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             dm.openmcAnimation.thresholds.val[0] = th
             del dm["openmcAnimation"]["threshold"]
 
-        for (m, f) in (
+        for m, f in (
             ("tallyReport", "planePos"),
             ("openmcAnimation", "opacity"),
             (
