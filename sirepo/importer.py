@@ -117,9 +117,9 @@ def _import_related_sims(data, zip_bytes, qcall=None):
                         lib_dir.join(pkio.py_path(lib_file).basename),
                         zip_obj.read(lib_file),
                     )
-                data.models.simWorkflow.coupledSims[
-                    _sim_index(p)
-                ].simulationId = s.models.simulation.simulationId
+                data.models.simWorkflow.coupledSims[_sim_index(p)].simulationId = (
+                    s.models.simulation.simulationId
+                )
 
 
 def _related_lib_files(zip_obj, zip_sim_path):
