@@ -1753,7 +1753,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                         id="volume-{{ row.name }}-opacity-range" data-j-range-slider=""
                         data-ng-model="row" data-model-name="row.name"
                         data-field-name="'opacity'" data-model="row"
-                        data-field="row.opacity" data-slider-index="$index"
+                        data-field="row.opacity" data-hide-min-max="$index !== 0"
                         data-on-change="volumeOpacityChanged(row)">
                       </div>
                   </div>
@@ -2706,7 +2706,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             model: '=',
             modelName: '<',
             onChange: '&',
-            sliderIndex: '=',
+            hideMinMax: '=',
         },
         template: `
             <div class="{{ sliderClass }}"></div>
@@ -2815,12 +2815,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
 
             const formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
 
-            $scope.formatMinMax = val => {
-                if ($scope.sliderIndex === 0) {
-                    return formatFloat(val);
-                }
-                return "";
-            };
+            $scope.formatMinMax = (val) => $scope.hideMinMax ? '' : formatFloat(val);
             $scope.hasSteps = () => hasSteps;
 
             panelState.waitForUI(updateSlider);
