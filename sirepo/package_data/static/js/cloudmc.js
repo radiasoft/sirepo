@@ -329,6 +329,7 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
             return;
         }
         tallyService.clearMesh();
+        //tallyService.updateEnergyRange(cloudmcService.findFilter('energyFilter'), true);
         delete appState.models.openmcAnimation.tallies;
         self.simState.saveAndRunSimulation('openmcAnimation');
     };
@@ -543,8 +544,8 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         };
     };
 
-    self.updateEnergyRange = (e) => {
-        if (! e || ! cloudmcService.findFilter('meshFilter')) {
+    self.updateEnergyRange = (e, resetVals=false) => {
+        if (! e) {
             return;
         }
         const s = appState.models.openmcAnimation.energyRangeSum;   
@@ -552,6 +553,9 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         s.min = e.start;
         s.max = e.stop;
         s.step = Math.abs(e.stop - e.start) / e.num;
+        if (resetVals) {
+            s.val = [s.min, s.max];
+        }
     };
     
     self.updateTallyDisplay = () => {
@@ -2763,10 +2767,10 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 if (! isValid(range)) {
                     return val;
                 }
-                if (val < range.min) {
+                if (val == null || val < range.min) {
                     return range.min;
                 }
-                else if (val > range.max) {
+                else if (val == null || val > range.max) {
                     return range.max;
                 }
                 else {
@@ -2933,7 +2937,7 @@ SIREPO.app.directive('tallyList', function() {
     };
 });
 
-SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
+SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, tallyService, utilities, $scope) {
     const autoUpdate = utilities.debounce(() => {
         if ($scope.form.$valid) {
             appState.saveChanges('openmcAnimation');
@@ -2961,21 +2965,11 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     function updateEnergyRange(resetVals=false) {
         const e = cloudmcService.findFilter('energyFilter');
         $scope.energyFilter = e;
-        if (! e || ! cloudmcService.findFilter('meshFilter')) {
-            return;
-        }
-        const s = appState.models.openmcAnimation.energyRangeSum;
-        s.space = e.space;
-        s.min = e.start;
-        s.max = e.stop;
-        s.step = Math.abs(e.stop - e.start) / e.num;
-        if (resetVals) {
-            s.val = [s.min, s.max];
-        }
+        tallyService.updateEnergyRange(e, resetVals);
     }
 
     function validateTally() {
-        cloudmcService.validateSelectedTally();
+        cloudmcService.validateSelectedTally(); 
         updateEnergyRange(true);
         appState.saveChanges('openmcAnimation');
     }
