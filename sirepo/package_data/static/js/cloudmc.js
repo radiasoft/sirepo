@@ -2826,7 +2826,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 return sel;
             }
 
-            function didValsChange(newValues, oldValues) {
+            function didChange(newValues, oldValues) {
                 if (Array.isArray(newValues)) {
                     return newValues.some((x, i) => x !== oldValues[i]) && ! newValues.some(x => x == null);
                 }
@@ -2866,7 +2866,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             $scope.$watchGroup(
                 watchFields,
                 (newValues, oldValues) => {
-                    if (didValsChange(newValues, oldValues)) {
+                    if (didChange(newValues, oldValues)) {
                         updateSlider();
                     }
                 }
@@ -2875,7 +2875,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             $scope.$watch(
                 'model[fieldName].val',
                 (newValue, oldValue) => {
-                    if (didValsChange(newValue, oldValue)) {
+                    if (didChange(newValue, oldValue)) {
                         setUIValue(newValue);
                     }
                 }
