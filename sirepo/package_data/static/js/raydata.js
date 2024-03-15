@@ -5,10 +5,10 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
     SIREPO.appFieldEditors += `
-        <div data-ng-switch-when="DateTimePicker" data-ng-class="fieldClass">
+        <div data-ng-switch-when="DateTimePicker" class="col-sm-7">
           <div data-date-time-picker="" data-model="model" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="PresetTimePicker" data-ng-class="fieldClass">
+        <div data-ng-switch-when="PresetTimePicker" class="col-sm-7">
           <div class="text-right" data-preset-time-picker="" data-model="model" data-model-name="modelName"></div>
         </div>
         <div data-ng-switch-when="ExecutedScansTable" class="col-sm-12">
@@ -44,7 +44,7 @@ SIREPO.app.config(() => {
     `;
 });
 
-SIREPO.app.factory('raydataService', function(appState) {
+SIREPO.app.factory('raydataService', function(appState, $rootScope) {
     const self = {};
     let id = 0;
 
@@ -56,8 +56,14 @@ SIREPO.app.factory('raydataService', function(appState) {
     self.ANALYSIS_STATUS_NONE = "none";
     self.ANALYSIS_STATUS_PENDING = "pending";
 
+    self.detailScan = null;
+
     self.canViewOutput = scan => {
         return ! [self.ANALYSIS_STATUS_NONE, self.ANALYSIS_STATUS_PENDING].includes(scan.status);
+    };
+
+    self.setDetailScan = scan => {
+        self.detailScan = scan;
     };
 
     self.nextPngImageId = () => {
@@ -69,6 +75,8 @@ SIREPO.app.factory('raydataService', function(appState) {
     };
 
     appState.setAppService(self);
+
+    $rootScope.$on('modelsUnloaded', () => self.setDetailScan(null));
 
     return self;
 });
@@ -179,8 +187,9 @@ SIREPO.app.controller('ReplayController', function() {
     return self;
 });
 
-SIREPO.app.controller('RunAnalysisController', function() {
+SIREPO.app.controller('RunAnalysisController', function(raydataService) {
     const self = this;
+    self.raydataService = raydataService;
     return self;
 });
 
@@ -479,7 +488,6 @@ SIREPO.app.directive('scansTable', function() {
             modelName: '=',
         },
         template: `
-          <div data-ng-if="analysisStatus === 'allStatuses'" data-scan-detail="" data-scan="detailScan"></div>
             <div>
               <div>
                 <div class="pull-right" data-ng-if="pageLocationText">
@@ -513,7 +521,7 @@ SIREPO.app.directive('scansTable', function() {
                         <button data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="runAnalysis(s.rduid)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button>
                         <button class="btn btn-info btn-xs" data-ng-disabled="! raydataService.canViewOutput(s)" data-ng-click="setAnalysisScan(s)">View Output</button>
                         <button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s)">View Log</button>
-                        <button  data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="setDetailScan(s)">Details</button>
+                        <button  data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="raydataService.setDetailScan(s)">Details</button>
                       </td>
                     </tr>
                   </tbody>
@@ -533,7 +541,6 @@ SIREPO.app.directive('scansTable', function() {
         controller: function(appState, columnsService, errorService, panelState, raydataService, requestSender, scanService, $scope, $interval) {
             $scope.analysisScanId = null;
             $scope.columnsService = columnsService;
-            $scope.detailScan = null;
             $scope.confirmScanId = null;
             $scope.isLoadingNewScans = false;
             $scope.isRefreshingScans = false;
@@ -831,10 +838,6 @@ SIREPO.app.directive('scansTable', function() {
 
             $scope.setAnalysisScan = scan => {
                 $scope.analysisScanId = scan.rduid;
-            };
-
-            $scope.setDetailScan = scan => {
-                $scope.detailScan = scan;
             };
 
             $scope.showCheckbox = scan => {
@@ -1161,22 +1164,20 @@ SIREPO.app.directive('scanDetail', function() {
             scan: '<',
         },
         template: `
-            <div class="panel panel-info" style="width: 500px;">
-              <div class="panel-heading"><span class="sr-panel-heading">Details for Scan {{ scan.rduid }}</span></div>
-              <div class="panel-body">
-                <div data-ng-if="detailedStatusFile()">
-                  <div>Most Recent Status</div>
-                  <pre style="overflow: scroll; height: 100px; width: 450px;">{{ currentStatus() }}</pre>
-                </div>
-                <div data-ng-if="detailedStatusFile()">
-                  <div>Detailed Status File</div>
-                  <pre style="overflow: scroll; height: 250px; width: 450px;">{{ detailedStatus() }}</pre>
-                </div>
-                <div data-ng-if="detailedStatusFile()">
-                  <div>Current Consecutive Failures: {{ consecutiveFailures() }}</div>
-                </div>
-                <div data-ng-if="analysisElapsedTime()">Analysis Elapsed Time: {{ analysisElapsedTime() }} seconds</div>
+            <div class="well" data-ng-if="scan">
+              <div>Scan Id: {{ scan.rduid }}</div>
+              <div data-ng-if="detailedStatusFile()">
+                <div>Most Recent Status</div>
+                <pre style="overflow: scroll; height: 100px">{{ currentStatus() }}</pre>
               </div>
+              <div data-ng-if="detailedStatusFile()">
+                <div>Detailed Status File</div>
+                <pre style="overflow: scroll; height: 250px">{{ detailedStatus() }}</pre>
+              </div>
+              <div data-ng-if="detailedStatusFile()">
+                <div>Current Consecutive Failures: {{ consecutiveFailures() }}</div>
+              </div>
+              <div data-ng-if="analysisElapsedTime()">Analysis Elapsed Time: {{ analysisElapsedTime() }} seconds</div>
             </div>
 `,
         controller: function($scope, columnsService) {
