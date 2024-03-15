@@ -81,12 +81,12 @@ def _percent_complete(run_dir, is_running):
     return res
 
 
-def stateless_compute_check_animation_dir(data, **kwargs):
+def stateful_compute_check_animation_dir(data, **kwargs):
     return PKDict(
         animationDirExists=simulation_db.simulation_dir(
             "cloudmc", sid=data.simulationId
         )
-        .join(data.modelName)
+        .join(data.args.modelName)
         .exists()
     )
 
