@@ -1148,8 +1148,9 @@ SIREPO.app.service('validationService', function(utilities) {
 
     this.validateInputSelector = function(sel, isValid, msg) {
         const f = sel[0];
+        // do not invalidate if the selector is not found
         if (! f) {
-            return;
+            return true;
         }
         const fWarn = sel.siblings('.sr-input-warning').eq(0);
         const invalidClass = 'ng-invalid ng-dirty';

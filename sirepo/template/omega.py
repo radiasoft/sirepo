@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -149,9 +150,9 @@ def copy_related_sims(data, qcall=None):
                 simulation_db.lib_dir_from_sim_dir(p),
                 qcall=qcall,
             )
-            data.models.simWorkflow.coupledSims[
-                index
-            ].simulationId = s.models.simulation.simulationId
+            data.models.simWorkflow.coupledSims[index].simulationId = (
+                s.models.simulation.simulationId
+            )
     return data
 
 

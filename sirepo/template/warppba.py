@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2015-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from openpmd_viewer import OpenPMDTimeSeries
 from openpmd_viewer.openpmd_timeseries import main
 from openpmd_viewer.openpmd_timeseries.data_reader import field_reader
@@ -62,9 +63,9 @@ def background_percent_complete(report, run_dir, is_running):
             ),
             PKDict(
                 modelName="beamAnimation",
-                frameCount=fc
-                if data.models.simulation.sourceType == "electronBeam"
-                else 0,
+                frameCount=(
+                    fc if data.models.simulation.sourceType == "electronBeam" else 0
+                ),
             ),
         ],
     )

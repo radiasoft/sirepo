@@ -71,15 +71,20 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="MaterialValue" data-ng-class="fieldClass">
           <div data-material-list="" data-model="model" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="TallyList" data-ng-class="fieldClass">
+        <div data-ng-switch-when="PlotTallyList" data-ng-class="fieldClass">
           <div class="input-group">
-            <select class="form-control" data-ng-model="model[field]" data-ng-options="t.name as t.name for t in model.tallies"></select>
+            <div data-tally-list="model.tallies" data-model="model" data-field="field"></div>
+          </div>
+        </div>
+        <div data-ng-switch-when="SettingsTallyList" data-ng-class="fieldClass">
+          <div class="input-group">
+            <div data-tally-list="appState.models.settings.tallies" data-model="model" data-field="field"></div>
           </div>
         </div>
         <div data-ng-switch-when="JRange" class="col-sm-5">
           <div data-j-range-slider="" data-ng-model="model[field]" data-model-name="modelName" data-field-name="field" data-model="model" data-field="model[field]"></div>
         </div>
-        <div data-ng-switch-when="ScoreList" data-ng-class="fieldClass">
+        <div data-ng-switch-when="PlotScoreList" data-ng-class="fieldClass">
           <div class="input-group">
             <select class="form-control" data-ng-model="model[field]" data-ng-options="s.score as s.score for s in (model.tallies | filter:{name:model.tally})[0].scores"></select>
           </div>
@@ -285,7 +290,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, cloudmcService, frameCache, persistentSimulation, requestSender, tallyService, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, authState, cloudmcService, frameCache, persistentSimulation, requestSender, tallyService, $scope) {
     const self = this;
     self.eigenvalue = null;
     self.results = null;
@@ -318,6 +323,11 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         return `Completed batch: ${self.simState.getFrameCount()}`;
     };
     self.startSimulation = function() {
+        if (appState.applicationState().settings.varianceReduction == 'weight_windows_tally'
+            && authState.jobRunModeMap.sbatch) {
+            errorMessage = 'Weight Windows are not yet available with sbatch';
+            return;
+        }
         tallyService.clearMesh();
         delete appState.models.openmcAnimation.tallies;
         self.simState.saveAndRunSimulation('openmcAnimation');
@@ -392,6 +402,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
             aspect: null,
             score: null,
             tally: null,
+            sourceNormalization: null,
         },
     };
 
@@ -2455,14 +2466,25 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
             ['plane1a', 'plane1b', 'plane2a', 'plane2b'],
             appState.models.reflectivePlanes.useReflectivePlanes === '1',
         ]);
-
         panelState.showFields(
             $scope.modelName,
             [
                 ['eigenvalueHistory', 'inactive'], isRunModeEigenvalue,
             ],
         );
-
+        panelState.showFields('survivalBiasing', [
+            ['weight', 'weight_avg'], m.varianceReduction == 'survival_biasing',
+        ]);
+        panelState.showFields('weightWindows', [
+            ['tally', 'iterations', 'particles'], m.varianceReduction == 'weight_windows_tally',
+            ['particle'], ['weight_windows_tally', 'weight_windows_mesh'].includes(m.varianceReduction),
+        ]);
+        panelState.showFields('weightWindowsMesh', [
+            ['dimension', 'lower_left', 'upper_right'], m.varianceReduction == 'weight_windows_mesh',
+        ]);
+        panelState.showFields('settings', [
+            ['max_splits'], ['weight_windows_tally', 'weight_windows_mesh'].includes(m.varianceReduction),
+        ]);
         validationService.validateField(
             $scope.modelName,
             'batches',
@@ -2470,7 +2492,6 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
             activeBatches() > 0,
             `Must have at least one active batch (currently ${activeBatches()})`
         );
-
     }
 
     $scope.whenSelected = updateEditor;
@@ -2480,6 +2501,7 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
             `${$scope.modelName}.run_mode`,
             `${$scope.modelName}.batches`,
             `${$scope.modelName}.inactive`,
+            `${$scope.modelName}.varianceReduction`,
             'reflectivePlanes.useReflectivePlanes'
         ], updateEditor,
     ];
@@ -2850,8 +2872,33 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
     };
 });
 
-SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
+SIREPO.app.directive('tallyList', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            tallyList: '=',
+        },
+        template: `
+            <select class="form-control" data-ng-model="model[field]"
+              data-ng-options="t as t for t in tallyNames"></select>
+        `,
+        controller: function($scope) {
+            function updateNames() {
+                $scope.tallyNames = $scope.tallyList.map(t => t.name, $scope.tallyList);
+                if ($scope.tallyNames.length && ! $scope.tallyNames.includes($scope.model[$scope.field])) {
+                    // default to first tally if the current values is invalid
+                    $scope.model[$scope.field] = $scope.tallyNames[0];
+                }
+            }
+            $scope.$watch('tallyList', updateNames);
+            updateNames();
+        },
+    };
+});
 
+SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
     const autoUpdate = utilities.debounce(() => {
         if ($scope.form.$valid) {
             appState.saveChanges('openmcAnimation');
@@ -2911,6 +2958,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         ], autoUpdate,
         ['openmcAnimation.tally'], validateTally,
         [
+            'tallyReport.planePos.numSteps',
             'tallyReport.selectedGeometry',
             'openmcAnimation.score',
             'openmcAnimation.showSources',
