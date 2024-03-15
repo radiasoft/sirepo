@@ -2813,7 +2813,9 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 return Array.isArray(v) ? v.map(x => formatFloat(toLog(x, range))) : formatFloat(toLog(v));
             };
 
-            const formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
+            const formatFloat = (val) => {
+                return SIREPO.UTILS.formatFloat(val, 4);
+            };
 
             $scope.formatMinMax = (val) => $scope.hideMinMax ? '' : formatFloat(val);
             $scope.hasSteps = () => hasSteps;
