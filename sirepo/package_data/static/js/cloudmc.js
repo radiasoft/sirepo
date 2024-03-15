@@ -484,7 +484,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
     };
     
     self.setFieldData = (fieldData, min, max, numParticles) => {
-        srdbg('SET FD');
         const n = normalizer(appState.models.openmcAnimation.score, numParticles);
         self.fieldData = fieldData.map(n);
         self.minField = n(min);
@@ -770,7 +769,6 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
                     // old format, ignore
                     return;
                 }
-                srdbg('LOAD');
                 tallyService.setFieldData(json.field_data, json.min_field, json.max_field, json.num_particles);
             };
 
@@ -2757,6 +2755,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`.replace(/ /g, '-');
 
             let hasSteps = false;
+            let isMulti = false;
             let slider = null;
             const watchFields = ['min', 'max', 'step'].map(x => `model[fieldName].${x}`);
 
@@ -2784,7 +2783,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 }
                 const sel = $(`.${$scope.sliderClass}`);
                 let val = range.val;
-                const isMulti = Array.isArray(val);
+                isMulti = Array.isArray(val);
                 if (isMulti) {
                     val[0] = adjustToRange(val[0], range);
                     val[1] = adjustToRange(val[1], range);
@@ -2827,10 +2826,21 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 return sel;
             }
 
+            function didValsChange(newValues, oldValues) {
+                if (Array.isArray(newValues)) {
+                    return newValues.some((x, i) => x !== oldValues[i]) && ! newValues.some(x => x == null);
+                }
+                return newValues != null && newValues !== oldValues;
+            }
+
             function isValid(range) {
                 const v = [range.min, range.max, range.step].every(x => x != null) &&
                     range.min !== range.max;
                 return v;
+            }
+
+            function setUIValue(val) {
+                slider.slider('option', isMulti ? 'values' : 'value', val);
             }
 
             function updateSlider() {
@@ -2856,8 +2866,17 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             $scope.$watchGroup(
                 watchFields,
                 (newValues, oldValues) => {
-                    if (newValues.some((x, i) => x !== oldValues[i]) && ! newValues.some(x => x == null)) {
+                    if (didValsChange(newValues, oldValues)) {
                         updateSlider();
+                    }
+                }
+            );
+
+            $scope.$watch(
+                'model[fieldName].val',
+                (newValue, oldValue) => {
+                    if (didValsChange(newValue, oldValue)) {
+                        setUIValue(newValue);
                     }
                 }
             );
@@ -2916,7 +2935,6 @@ SIREPO.app.directive('tallyList', function() {
 
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
     const autoUpdate = utilities.debounce(() => {
-        srdbg('AUTO');
         if ($scope.form.$valid) {
             appState.saveChanges('openmcAnimation');
         }
@@ -2940,31 +2958,26 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         panelState.showField('openmcAnimation', 'sourceColorMap', showSources && appState.models.openmcAnimation.numSampleSourceParticles);
     }
 
-    function updateEnergyRange() {
+    function updateEnergyRange(resetVals=false) {
         const e = cloudmcService.findFilter('energyFilter');
         $scope.energyFilter = e;
         if (! e || ! cloudmcService.findFilter('meshFilter')) {
             return;
         }
-        srdbg('UPD ER');
         const s = appState.models.openmcAnimation.energyRangeSum;
         s.space = e.space;
         s.min = e.start;
         s.max = e.stop;
         s.step = Math.abs(e.stop - e.start) / e.num;
+        if (resetVals) {
+            s.val = [s.min, s.max];
+        }
     }
 
     function validateTally() {
         cloudmcService.validateSelectedTally();
-        updateEnergyRange();
-        if ($scope.energyFilter) {
-            appState.models.openmcAnimation.energyRangeSum.val = [
-                appState.models.openmcAnimation.energyRangeSum.min,
-                appState.models.openmcAnimation.energyRangeSum.max,
-            ];
-        }
+        updateEnergyRange(true);
         appState.saveChanges('openmcAnimation');
-        //autoUpdate();
     }
 
     $scope.whenSelected = () => {
@@ -2975,7 +2988,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     $scope.watchFields = [
         [
             'openmcAnimation.aspect',
-            //'openmcAnimation.energyRangeSum',
+            'openmcAnimation.energyRangeSum',
             'openmcAnimation.numSampleSourceParticles',
             'openmcAnimation.score',
             'openmcAnimation.sourceNormalization',
