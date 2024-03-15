@@ -2915,7 +2915,6 @@ SIREPO.app.directive('tallyList', function() {
 });
 
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
-ster
     const autoUpdate = utilities.debounce(() => {
         srdbg('AUTO');
         if ($scope.form.$valid) {
