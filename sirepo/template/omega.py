@@ -10,6 +10,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+from sirepo.template.lattice import LatticeUtil
 import h5py
 import numpy
 import pmd_beamphysics
@@ -282,6 +283,7 @@ def stateful_compute_get_opal_sim_list(**kwargs):
 
 
 def write_parameters(data, run_dir, is_parallel):
+    _prepare_subsims(data, run_dir)
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
@@ -324,9 +326,8 @@ def _extract_elegant_beam_plot(frame_args):
     return res
 
 
-def _generate_parameters_file(data):
+def _coupled_sims_list(data):
     dm = data.models
-    res, v = template_common.generate_parameters_file(data)
     sim_list = []
     for idx in range(len(dm.simWorkflow.coupledSims)):
         s = _sim_info(dm, idx)
@@ -341,6 +342,12 @@ def _generate_parameters_file(data):
             break
     if not sim_list:
         raise AssertionError("No simulations selected")
+    return sim_list
+
+
+def _generate_parameters_file(data):
+    res, v = template_common.generate_parameters_file(data)
+    sim_list = _coupled_sims_list(data)
     v.simList = sim_list
     return res + template_common.render_jinja(SIM_TYPE, v)
 
@@ -462,6 +469,53 @@ def _plot_phase(sim_type, frame_args):
             )
         )
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
+
+
+def _prepare_elegant(run_dir, elegant_id):
+    data = _read_sim("elegant", elegant_id)
+    data.computeModel = "animation"
+    if "report" in data:
+        del data["report"]
+    sirepo.simulation_db.prepare_simulation(data, run_dir)
+    return f"{run_dir}/run_setup.output.sdds"
+
+
+def _prepare_genesis(run_dir, genesis_id):
+    data = _read_sim("genesis", genesis_id)
+    data.computeModel = "animation"
+    if "report" in data:
+        del data["report"]
+    sirepo.simulation_db.prepare_simulation(data, run_dir)
+    return f"{run_dir}/genesis.out.dpa"
+
+
+def _prepare_opal(run_dir, opal_id):
+    data = _read_sim("opal", opal_id)
+    data.computeModel = "animation"
+    LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
+    sirepo.simulation_db.prepare_simulation(data, run_dir)
+    return f"{run_dir}/{sirepo.template.opal._OPAL_H5_FILE}"
+
+
+def _prepare_subsims(data, run_dir):
+    sim_list = _coupled_sims_list(data)
+    for idx in range(len(sim_list)):
+        s = sim_list[idx]
+        d = run_dir.join(f"run{idx + 1}")
+        pkio.unchecked_remove(d)
+        pkio.mkdir_parent(d)
+        if s.sim_type == "opal":
+            _prepare_opal(d, s.sim_id)
+        elif s.sim_type == "elegant":
+            _prepare_elegant(d, s.sim_id)
+        elif s.sim_type == "genesis":
+            _prepare_genesis(d, s.sim_id)
+        else:
+            raise AssertionError(f"unhandled sim_type={s.sim_type}")
+
+
+def _read_sim(sim_type, sim_id):
+    return sirepo.sim_data.get_class(sim_type).sim_db_read_sim(sim_id)
 
 
 def _sim_dir(run_dir, sim_count):
