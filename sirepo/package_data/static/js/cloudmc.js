@@ -346,7 +346,7 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
         return `Tally Results - ${a.tally} - ${a.score} - ${a.aspect}`;
     };
 
-    $scope.$on('settings.changed', () => {
+    const sortTallies = () => {
         for (const t of appState.models.settings.tallies) {
             // sort and unique scores
             const v = {};
@@ -360,8 +360,11 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
             t.scores = r.sort((a, b) => a.score.localeCompare(b.score));
             appState.saveQuietly('settings');
         }
-    });
+    };
 
+    $scope.$on('settings.changed', sortTallies);
+
+    sortTallies();
     return self;
 });
 
