@@ -184,11 +184,13 @@ def _run_shadow(cfg_dir, data):
             x_range=[ticket["xrange"][0], ticket["xrange"][1], ticket["nbins"]],
             y_label="{}{}".format(
                 "Number of Rays",
-                " weighted by {}".format(
-                    _label_for_weight(model["weight"], column_values)
-                )
-                if weight
-                else "",
+                (
+                    " weighted by {}".format(
+                        _label_for_weight(model["weight"], column_values)
+                    )
+                    if weight
+                    else ""
+                ),
             ),
             x_label=_label_with_units(model["column"], column_values),
             points=ticket["histogram"].T.tolist(),

@@ -21,6 +21,13 @@ def test_job_supervisor():
     job_supervisor.default_command()
 
 
+def test_quest_start():
+    from sirepo import srunit
+
+    with srunit.quest_start() as qcall:
+        qcall.call_api_sync("authState")
+
+
 def _setup(prefix):
     from pykern import pkunit, pkconfig, pkdebug, pkio
     import tornado

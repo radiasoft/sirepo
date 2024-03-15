@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat, pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty, pkdformat
@@ -73,6 +74,21 @@ class API(sirepo.quest.API):
         suffix="FileSuffix optional",
     )
     async def api_downloadDataFile(
+        self, simulation_type, simulation_id, model, frame, suffix=None
+    ):
+        """Deprecated use `api_downloadRunFile`"""
+        return await self.api_downloadRunFile(
+            simulation_type, simulation_id, model, frame, suffix=suffix
+        )
+
+    @sirepo.quest.Spec(
+        "require_user",
+        sid="SimId",
+        model="AnalysisModel",
+        frame="DataFileIndex",
+        suffix="FileSuffix optional",
+    )
+    async def api_downloadRunFile(
         self, simulation_type, simulation_id, model, frame, suffix=None
     ):
         def _content_too_large(req):
@@ -276,6 +292,7 @@ class API(sirepo.quest.API):
         with self._reply_maybe_file(a.content) as d:
             r = tornado.httpclient.AsyncHTTPClient(
                 max_buffer_size=sirepo.job.cfg().max_message_bytes,
+                force_instance=True,
             ).fetch(
                 tornado.httpclient.HTTPRequest(
                     body=pkjson.dump_bytes(a.content),

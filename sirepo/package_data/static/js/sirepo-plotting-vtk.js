@@ -1833,8 +1833,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     self.loadSTLFile = function(file) {
         var fileName = file.name || file;
 
-        var url = requestSender.formatUrl('downloadFile', {
-            '<simulation_id>': appState.models.simulation.simulationId,
+        var url = requestSender.formatUrl('downloadLibFile', {
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             '<filename>': self.stlFileType + '.' + fileName,
         });
@@ -2084,7 +2083,7 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
                         }
                         : null,
                     requestSender.formatUrl(
-                        'uploadFile',
+                        'uploadLibFile',
                         {
                             '<simulation_id>': simId,
                             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
@@ -3330,7 +3329,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
             enableSelection: '=',
             eventHandlers: '<',
             modelName: '@',
-            reportId: '<',
             resetDirection: '@',
             resetSide: '@',
             showBorder: '@',

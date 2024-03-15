@@ -103,7 +103,7 @@ class LogParser(PKDict):
 
     def parse_for_errors(self):
         p = self.run_dir.join(self.log_filename)
-        if not p.exists():
+        if not p.exists() or p.size() <= 0:
             return ""
         res = ""
         e = set()
@@ -675,9 +675,11 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     """
     b = jinja_filename(name)
     return pkjinja.render_file(
-        sirepo.sim_data.get_class(sim_type).resource_path(b)
-        if sim_type
-        else sirepo.sim_data.resource_path(b),
+        (
+            sirepo.sim_data.get_class(sim_type).resource_path(b)
+            if sim_type
+            else sirepo.sim_data.resource_path(b)
+        ),
         v,
         jinja_env=jinja_env,
     )

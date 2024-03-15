@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Reply hold the response to API calls.
 
 Replies are independent of the web platform (tornado http or websocket). They
@@ -9,6 +8,7 @@ time. Internal call_api returns an `_SReply` object.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 
 """
+
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkconst
@@ -73,15 +73,13 @@ def init_module(**imports):
 
 
 def init_quest(qcall):
-    qcall.attr_set("sreply", _SReply(qcall=qcall))
+    _SReply(qcall=qcall)
 
 
 class _SReply(sirepo.quest.Attr):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        # Needed in tornado_response, after _SRequest is destroyed
-        self._internal_req = self.qcall.sreq.internal_req
-        self._cookies_to_delete = None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cookies_to_delete = tuple()
 
     def content_as_object(self):
         return self._content_as(_Object).value
@@ -92,26 +90,41 @@ class _SReply(sirepo.quest.Attr):
     def content_as_str(self):
         return self._content_as(str)
 
-    def cookie_set(self, **kwargs):
-        assert "key" in kwargs
-        assert "value" in kwargs
-        self.__attrs.cookie = PKDict(kwargs)
+    def cookie_set(self, cookie):
+        self.__attrs.cookie = cookie
         return self
 
-    def delete_third_party_cookies(self, names_and_paths):
-        if self._cookies_to_delete is not None:
+    def delete_third_party_cookies(self, values):
+        """Remove `values` on client on reply
+
+        Used exclusively by `jupyterhublogin` to delete Jupyter Hub cookies.
+
+        Args:
+            values (iterable): elements are PKDict(key, path)
+        """
+        v = tuple(values)
+        if ["key", "path"] != sorted(v[0].keys()):
+            raise AssertionError(f"must be PKDict(key, path) entries in values={v}")
+        if self._cookies_to_delete:
             raise AssertionError(
-                f"setting names_and_paths={names_and_paths} but found existing _cookies_to_delete={self._cookies_to_delete}"
+                f"existing _cookies_to_delete={self._cookies_to_delete} values={v}"
             )
-        self._cookies_to_delete = names_and_paths
+        self._cookies_to_delete = v
 
     def destroy(self, **kwargs):
         """Must be called"""
         try:
-            self.__attrs.pknested_get("content.handle").close()
-            self.__attrs.content.pkdel("handle")
-        except Exception:
-            pass
+            try:
+                a = self.__attrs
+            except AttributeError:
+                return
+            if (c := a.get("content")) and isinstance(c, _File):
+                h = c.pkdel("handle")
+                if h:
+                    raise AssertionError("")
+                    h.close()
+        except Exception as e:
+            pkdlog("error={} reply={} stack={}", e, self, pkdexc())
 
     def from_kwargs(self, **kwargs):
         """Saves reply attributes
@@ -281,11 +294,6 @@ class _SReply(sirepo.quest.Attr):
         self.__attrs.cache = PKDict(cache=False)
         return self
 
-    def init_child(self, qcall):
-        """Initialize child from parent (self)"""
-        # nothing to do with parent
-        init_quest(qcall)
-
     def pkdebug_str(self):
         n = self.__class__.__name__
         if not (a := self.get("__attrs")):
@@ -342,7 +350,7 @@ class _SReply(sirepo.quest.Attr):
         self.__attrs.status = int(status)
         return self
 
-    def tornado_response(self):
+    def tornado_response(self, handler):
         def _bytes(resp, content):
             if isinstance(content, _Base):
                 content, self.__attrs.content_type = content.http_response(self)
@@ -375,35 +383,11 @@ class _SReply(sirepo.quest.Attr):
             resp.set_header("Content-Type", c)
 
         def _cookie(resp):
-            # TODO(robnagler) http.cookies 3.8 introduced samesite and blows up otherwise.
-            # we know how our cookies are formed so
             a = self.__attrs
-            if not ("cookie" in a and 200 <= a.status < 400):
+            if not ((c := a.get("cookie")) and 200 <= a.status < 400):
                 return
-            c = a.cookie
-            r = [f'{c.pkdel("key")}={c.pkdel("value")}', "Path=/"]
-            for k in sorted(c.keys()):
-                if k == "httponly":
-                    if c[k]:
-                        r.append("HttpOnly")
-                elif k == "max_age":
-                    r.append(f"Max-Age={c[k]}")
-                elif k == "samesite":
-                    r.append(f"SameSite={c[k]}")
-                elif k == "secure":
-                    if c[k]:
-                        r.append("Secure")
-                else:
-                    raise AssertionError(f"unhandled cookie attr={k}")
-            resp.set_header("Set-Cookie", "; ".join(r))
-            _cookie_aux_delete(resp)
-
-        def _cookie_aux_delete(resp):
-            for n, p in self.pkdel(self._cookies_to_delete) or ():
-                resp.clear_cookie(
-                    n,
-                    path=p,
-                )
+            for h in c.http_header_values(to_delete=self._cookies_to_delete):
+                resp.add_header("Set-Cookie", h)
 
         def _file(resp):
             a = self.__attrs
@@ -426,7 +410,7 @@ class _SReply(sirepo.quest.Attr):
         if c is None:
             c = b""
             a.content_type = _MIME_TYPE.txt
-        r = self._internal_req
+        r = handler
         if isinstance(c, _File):
             _file(r)
         else:
@@ -451,7 +435,7 @@ class _SReply(sirepo.quest.Attr):
             return self.gen_dict(res)
         raise AssertionError(f"invalid return type={type(res)} from qcall={self.qcall}")
 
-    async def websocket_response(self):
+    async def websocket_response(self, wsreq):
         import msgpack
 
         def _content():
@@ -475,30 +459,47 @@ class _SReply(sirepo.quest.Attr):
             else:
                 return c, k
 
-        async def _send(content, kind):
+        async def _reply(content, kind):
+            await _send(
+                PKDict(
+                    kind=kind,
+                    reqSeq=wsreq.req_seq,
+                ),
+                content,
+            )
+
+        async def _send(header, content):
             p = None
             try:
                 p = msgpack.Packer(autoreset=False)
-                p.pack(
-                    PKDict(
-                        kind=kind,
-                        reqSeq=self._internal_req.req_seq,
-                        version=sirepo.const.SCHEMA_COMMON.websocketMsg.version,
-                    ),
-                )
+                header.version = sirepo.const.SCHEMA_COMMON.websocketMsg.version
+                p.pack(header)
                 p.pack(content)
                 # TODO(robnagler) getbuffer() would be better
-                await self._internal_req.handler.write_message(p.bytes(), binary=True)
+                await wsreq.handler.write_message(p.bytes(), binary=True)
             finally:
                 if p:
                     p.reset()
 
-        try:
-            self._assert_no_cookie_ops()
-            await _send(*_content())
-        except Exception as e:
-            pkdlog("error={} in reply={} stack={}", e, self, pkdexc())
+        async def _send_cookie():
+            if not (c := self.__attrs.get("cookie")):
+                return
             await _send(
+                PKDict(
+                    kind=sirepo.const.SCHEMA_COMMON.websocketMsg.kind.asyncMsg,
+                    method=sirepo.const.SCHEMA_COMMON.websocketMsg.method.setCookies,
+                ),
+                c.http_header_values(self._cookies_to_delete),
+            )
+
+        try:
+            # The cookie reply is sent first. This is not atomic, but it's fine.
+            # Reverse order is not good, since content may be a redirect.
+            await _send_cookie()
+            await _reply(*_content())
+        except Exception as e:
+            pkdlog("error={} reply={} stack={}", e, self, pkdexc())
+            await _reply(
                 PKDict(routeName=SERVER_ERROR_ROUTE, params=PKDict()),
                 sirepo.const.SCHEMA_COMMON.websocketMsg.kind.srException,
             )

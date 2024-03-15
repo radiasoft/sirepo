@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Handles dispatching of uris to server.api_* functions
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
@@ -22,7 +22,6 @@ import sirepo.auth
 import sirepo.const
 import sirepo.events
 import sirepo.feature_config
-import sirepo.quest
 import sirepo.spa_session
 import sirepo.uri
 import sirepo.util
@@ -61,8 +60,10 @@ _api_modules = []
 #: functions which implement APIs
 _api_funcs = PKDict()
 
+_BUCKET_KEY = "uri_route"
 
-async def call_api(qcall, name, kwargs=None, data=None):
+
+async def call_api(qcall, name, kwargs=None, body=None):
     """Should not be called outside of Base.call_api(). Use self.call_api() to call API.
 
     Call another API with permission checks.
@@ -70,17 +71,12 @@ async def call_api(qcall, name, kwargs=None, data=None):
     Args:
         qcall (quest.API): request object
         route_or_name (object): api function or name (without `api_` prefix)
-        kwargs (dict): to be passed to API [None]
-        data (dict): will be returned `qcall.parse_json`
+        kwargs (PKDict): to be passed to API [None]
+        body (PKDict): will be returned `qcall.body_as_dict`
     Returns:
         Response: result
     """
-    return await _call_api(
-        qcall,
-        _api_to_route[name],
-        kwargs=kwargs,
-        data=data,
-    )
+    return await _call_api(qcall, _api_to_route[name], kwargs=kwargs, body=body)
 
 
 def init_module(want_apis, **imports):
@@ -114,7 +110,9 @@ def init_module(want_apis, **imports):
 
 
 def maybe_sim_type_required_for_api(qcall):
-    return sirepo.api_auth.maybe_sim_type_required_for_api(qcall.uri_route.func)
+    return sirepo.api_auth.maybe_sim_type_required_for_api(
+        qcall.bucket_get(_BUCKET_KEY).func
+    )
 
 
 def register_api_module(module):
@@ -167,9 +165,6 @@ def start_tornado(ip, port, debug):
 
     ws_count = 0
 
-    async def _websocket_response(sreply):
-        await sreply.websocket_response()
-
     class _HTTPRequest(web.RequestHandler):
         async def _route(self):
             p = sirepo.uri.decode_to_str(self.request.path)
@@ -182,7 +177,7 @@ def start_tornado(ip, port, debug):
                 r,
                 kwargs=k,
                 internal_req=self,
-                reply_op=lambda r: r.tornado_response(),
+                reply_op=lambda r: r.tornado_response(self),
             )
 
         async def get(self):
@@ -208,10 +203,11 @@ def start_tornado(ip, port, debug):
             # self.get_compression_options
             self.set_nodelay(True)
             r = self.request
-            self.__headers = PKDict(r.headers)
-            self.remote_addr = r.remote_ip
-            self.http_server_uri = f"{r.protocol}://{r.host}/"
             ws_count += 1
+            self.__headers = PKDict(r.headers)
+            self.cookie_state = self.__headers.get("Cookie")
+            self.http_server_uri = f"{r.protocol}://{r.host}/"
+            self.remote_addr = r.remote_ip
             self.ws_id = ws_count
 
         def sr_get_log_user(self):
@@ -220,6 +216,12 @@ def start_tornado(ip, port, debug):
 
         async def __on_message(self, msg):
             w = _WebSocketRequest(handler=self, headers=self.__headers)
+
+            async def _reply_op(sreply):
+                nonlocal w
+                self.cookie_state = sreply.qcall.cookie.export_state()
+                await sreply.websocket_response(w)
+
             try:
                 w.parse_msg(msg)
                 await _call_api(
@@ -227,7 +229,7 @@ def start_tornado(ip, port, debug):
                     w.route,
                     kwargs=w.kwargs,
                     internal_req=w,
-                    reply_op=_websocket_response,
+                    reply_op=_reply_op,
                 )
             # TODO(robnagler) what if msg poorly constructed? Close socket?
             finally:
@@ -272,7 +274,7 @@ def start_tornado(ip, port, debug):
             self.req_seq = self.header.reqSeq
             self.uri = self.header.uri
             if u.tell() < len(msg):
-                self.content = u.unpack()
+                self.body_as_dict = u.unpack()
                 if u.tell() < len(msg):
                     self.attachment = u.unpack()
             # content may or may not exist so defer checking
@@ -354,7 +356,7 @@ def uri_for_api(api_name, params=None):
     return res or "/"
 
 
-class _Route(sirepo.quest.Attr):
+class _Route(PKDict):
     """Holds all route information for an API.
 
     Keys:
@@ -382,21 +384,20 @@ class _URIParams(PKDict):
     pass
 
 
-async def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_op=None):
+async def _call_api(parent, route, kwargs, body=None, internal_req=None, reply_op=None):
     qcall = route.cls()
     c = False
     r = None
     try:
         if parent:
             qcall.parent_set(parent)
-        # POSIT: sirepo.quest does not copy this attr in parent_set
-        qcall.attr_set("uri_route", route)
+        qcall.bucket_set(_BUCKET_KEY, route)
         qcall.sim_type_set_from_spec(route.func)
         if not parent:
             sirepo.auth.init_quest(qcall=qcall, internal_req=internal_req)
-            await sirepo.spa_session.init_quest(qcall=qcall)
-        if data:
-            qcall.http_data_set(data)
+            await sirepo.spa_session.maybe_begin(qcall=qcall)
+        if body is not None:
+            qcall.sreq.set_body(body)
         try:
             # must be first so exceptions have access to sim_type
             if kwargs:
@@ -405,28 +406,23 @@ async def _call_api(parent, route, kwargs, data=None, internal_req=None, reply_o
                 qcall.sim_type_set(kwargs.get("simulation_type"))
             elif kwargs is None:
                 kwargs = PKDict()
-            _check_route(qcall, qcall.uri_route)
+            _check_route(qcall, route)
             r = qcall.sreply.uri_router_process_api_call(
-                await getattr(qcall, qcall.uri_route.func_name)(**kwargs)
+                await getattr(qcall, route.func_name)(**kwargs)
             )
             c = True
         except Exception as e:
             if isinstance(e, sirepo.util.ReplyExc):
                 if isinstance(e, sirepo.util.OKReplyExc):
                     c = True
-                pkdc("api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc())
+                pkdc("api={} exception={} stack={}", route.name, e, pkdexc())
             else:
-                pkdlog(
-                    "api={} exception={} stack={}", qcall.uri_route.name, e, pkdexc()
-                )
+                pkdlog("api={} exception={} stack={}", route.name, e, pkdexc())
+            qcall.cookie.has_sentinel()
             r = qcall.sreply.gen_exception(e)
         if parent:
-            # At this point qcall.sreply is invalid if from_api was called so just return.
-            # Do not modify cookies or any global state.
-            res = r
-            r = None
-            res.quest_no_destroy = True
-            return res
+            # Done with nested call. Detach since qcall destroyed below
+            return r.detach_from_quest()
         sirepo.events.emit(qcall, "end_api_call", PKDict(resp=r))
         if pkconfig.in_dev_mode():
             r.header_set("Access-Control-Allow-Origin", "*")

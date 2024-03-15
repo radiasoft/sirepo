@@ -4,11 +4,14 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="Integer19StringArray" class="col-sm-7">',
-          '<div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="19"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="Integer19StringArray" class="col-sm-7">
+          <div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="19"></div>
+        </div>
+        <div data-ng-switch-when="MaginPlot">
+            <div data-magin-file-plot="" data-model-name="maginPlotReport">
+        </div>
+    `;
 });
 
 SIREPO.app.factory('genesisService', function(appState) {
@@ -53,6 +56,25 @@ SIREPO.app.directive('appFooter', function() {
                 <div data-import-options=""></div>
             </div>
         `,
+    };
+});
+
+SIREPO.app.directive('maginFilePlot', function(appState, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        template: `
+            <div data-ng-if="hasMaginfile()">
+              <div data-show-loading-and-error="" data-model-key="{{ modelName }}">
+                <div data-parameter-plot="parameter" data-model-name="{{ modelName }}"></div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.hasMaginfile = () => appState.applicationState().io.maginfile;
+        }
     };
 });
 

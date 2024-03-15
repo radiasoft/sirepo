@@ -38,3 +38,6 @@ div.sr-command-panel.panel {
 .sr-button-bar {
   background-color: transparent;
 }
+.sr-row-drag {
+  visibility: hidden;
+}

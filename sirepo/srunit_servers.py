@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 import contextlib
 
 # limit sirepo/pykern global imports
@@ -13,7 +14,7 @@ def api_and_supervisor(pytest_req, fc_args):
     from pykern import pkunit, pkjson
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdlog, pkdp
-    import time, requests, subprocess
+    import os, requests, subprocess, time
 
     fc_args.pksetdefault(
         cfg=PKDict,
@@ -51,9 +52,10 @@ def api_and_supervisor(pytest_req, fc_args):
         )
 
     def _ping_supervisor(uri):
-
         l = None
-        for _ in range(100):
+        for _ in range(
+            int(os.environ.get("SIREPO_SRUNIT_SERVERS_PING_TIMEOUT", 20)) * 10
+        ):
             try:
                 r = requests.post(uri, json=None)
                 r.raise_for_status()
@@ -63,7 +65,7 @@ def api_and_supervisor(pytest_req, fc_args):
                 raise RuntimeError(f"state={d.get('state')}")
             except Exception as e:
                 l = e
-                time.sleep(0.3)
+                time.sleep(0.1)
         pkunit.restart_or_fail("start failed uri={} exception={}", uri, l)
 
     def _subprocess(cmd):
@@ -142,7 +144,8 @@ def api_and_supervisor(pytest_req, fc_args):
 
         for x in p:
             try:
-                x.wait(timeout=2)
+                x.terminate()
+                x.wait(timeout=4)
             except subprocess.TimeoutExpired:
                 x.kill()
                 x.wait(timeout=2)

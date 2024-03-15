@@ -116,7 +116,6 @@
         "authLdapLogin": "/auth-ldap-login",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
-        "authState2": "/auth-state2",
         "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
         "checkAuthJupyterhub": "/check-auth-jupyterhub",
@@ -124,8 +123,11 @@
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteFile": "/delete-file",
+        "deleteLibFile": "/delete-lib-file",
         "deleteSimulation": "/delete-simulation",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
+        "downloadLibFile": "/download-lib-file/<simulation_type>/<filename>",
+        "downloadRunFile": "/download-run-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
         "error": "/error",
         "errorLogging": "/error-logging",
@@ -150,7 +152,6 @@
         "ownJobs": "/own-jobs",
         "proxyError": "/proxy-error",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
-        "pythonSource2": "/python-source2/<simulation_type>",
         "redirectJupyterHub": "/redirect-jupyterhub",
         "robotsTxt": "/robots.txt",
         "root": "/*<path_info>",
@@ -172,7 +173,8 @@
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
-        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
+        "uploadLibFile": "/upload-lib-file/<simulation_type>/<simulation_id>/<file_type>"
     },
     "common": {
         "adm": {
@@ -199,7 +201,6 @@
             "canDownloadInputFile": true,
             "canExportArchive": true,
             "canShowDocumentationUrl": true,
-            "clientCookie": "sirepo_cookie_js",
             "hasJupyterExport": false,
             "hasMadxExport": false,
             "logFileFrameId": -1,
@@ -226,11 +227,6 @@
                 "name": "lv",
                 "value": false,
                 "valType": "b"
-            },
-            "login": {
-                "name": "login",
-                "value": "a",
-                "timeout": 1
             },
             "previousRoute": {
                 "name": "prev",
@@ -480,21 +476,6 @@
                 "folder": ["Folder", "UserFolder", "/"],
                 "documentationUrl": ["Documentation URL", "OptionalString", ""],
                 "notes": ["Notes", "Text", ""]
-            }
-        },
-        "notifications": {
-            "getStarted": {
-                "name": "getStarted",
-                "cookie": "getStarted",
-                "content": "",
-                "active": true
-            },
-            "login": {
-                "name": "login",
-                "cookie": "login",
-                "content": "",
-                "active": false,
-                "delay": 1
             }
         },
         "staticFiles": {

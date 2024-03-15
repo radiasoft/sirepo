@@ -3,9 +3,11 @@
 :copyright: Copyright (c) 2019-2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import contextlib
+import copy
 import dns.resolver
 import dns.reversename
 import pykern.quest
@@ -15,8 +17,6 @@ import sirepo.uri
 import sirepo.util
 import re
 
-
-_HTTP_DATA_ATTR = "http_data"
 
 _PARENT_ATTR = "parent"
 
@@ -45,7 +45,7 @@ class API(pykern.quest.API):
 
     def __init__(self, in_pkcli=False):
         super().__init__()
-        self.attr_set("_bucket", _Bucket())
+        _Bucket(self)
         self.bucket_set("in_pkcli", in_pkcli)
 
     def absolute_uri(self, uri):
@@ -65,6 +65,9 @@ class API(pykern.quest.API):
         assert name not in self
         self[name] = obj
 
+    def bucket_get(self, name):
+        return self._bucket[name]
+
     def bucket_set(self, name, value):
         assert (
             name not in self._bucket
@@ -74,17 +77,19 @@ class API(pykern.quest.API):
     def bucket_unchecked_get(self, name):
         return self._bucket.get(name)
 
-    async def call_api(self, name, kwargs=None, data=None):
+    async def call_api(self, name, kwargs=None, body=None):
         """Calls uri_router.call_api, which calls the API with permission checks.
 
         Args:
             name (object): api name (without `api_` prefix)
-            kwargs (dict): to be passed to API [None]
-            data (dict): will be returned `self.parse_json` [None]
+            kwargs (PKDict): to be passed to API [None]
+            body (PKDict): will be returned `self.body_as_dict` [None]
         Returns:
             Reply: result
         """
-        return await uri_router.call_api(self, name, kwargs=kwargs, data=data)
+        if body is not None and not isinstance(body, PKDict):
+            raise AssertionError(f"invalid body type={type(body)} body={body}")
+        return await uri_router.call_api(self, name, kwargs=kwargs, body=body)
 
     def call_api_sync(self, *args, **kwargs):
         """Synchronous call_api
@@ -97,7 +102,7 @@ class API(pykern.quest.API):
 
     def destroy(self, commit=False):
         for k, v in reversed(list(self.items())):
-            if hasattr(v, "destroy") and not getattr(v, "quest_no_destroy", False):
+            if hasattr(v, "destroy"):
                 try:
                     v.destroy(commit=commit)
                 except Exception:
@@ -110,35 +115,34 @@ class API(pykern.quest.API):
     def headers_for_no_cache(self, resp):
         return resp.headers_for_no_cache()
 
-    def http_data_set(self, data):
-        self.bucket_set(_HTTP_DATA_ATTR, data)
+    def parent_set(self, parent):
+        """Links parent qcall to self and copies Attrs
 
-    def http_data_uget(self):
-        """Unchecked get for http_request.parse_post"""
-        return self.bucket_unchecked_get(_HTTP_DATA_ATTR)
-
-    def parent_set(self, qcall):
-        assert isinstance(qcall, API)
+        Args:
+            parent (API): qcall to link as parent
+        """
+        if not isinstance(parent, API):
+            raise AssertionError(f"invalid parent type={type(parent)}")
         # must be right after initialization
-        assert len(self._bucket.keys()) == 1
-        assert len(self.keys()) == 1
-        # TODO(robnagler): Consider nested transactions
-        #
-        # For now, we have to commit because we don't have nesting.
-        # Commit at the end of this child-qcall which shares auth_db.
-        # auth_db is robust here since it dynamically creates sessions.
-        qcall.auth_db.commit()
-        for k, v in qcall.items():
-            if k not in ("uri_route", "_bucket", "sreply"):
-                assert k not in self
-                self[k] = v
-        self._bucket[_PARENT_ATTR] = qcall
-        self._bucket.in_pkcli = qcall.bucket_unchecked_get("in_pkcli")
-        if "sreply" in qcall:
-            qcall.sreply.init_child(self)
+        if not (len(self._bucket.keys()) == 1 and len(self.keys()) == 1):
+            raise AssertionError(f"must be first call after __init__; child={self}")
+        # In insertion order so already sorted topologically. _bucket will
+        # be reinitialized, but it knows that.
+        for k, v in parent.items():
+            if k == "_bucket":
+                self._bucket.init_bucket_for_child(parent)
+                continue
+            if k in self:
+                raise AssertionError(f"Attr={k} already in child={self}")
+            if not hasattr(v, "init_quest_for_child"):
+                # Only copy Attr items
+                continue
+            v.init_quest_for_child(child=self, parent=parent)
+            if self[k] is v:
+                raise AssertionError(f"Attr={k} must be unique object for child")
 
-    def parse_json(self):
-        return http_request.parse_json(self)
+    def body_as_dict(self):
+        return self.sreq.body_as_dict()
 
     def parse_params(self, **kwargs):
         return http_request.parse_post(
@@ -282,7 +286,71 @@ class API(pykern.quest.API):
 
 
 class Attr(PKDict):
-    pass
+    _INIT_QUEST_FOR_CHILD_KEYS = frozenset()
+
+    # Class names bound to attribute keys
+    _KEY_MAP = PKDict(
+        _Auth="auth",
+        _AuthDb="auth_db",
+        # bucket should only be referred to by bucket_get/set
+        _Bucket="_bucket",
+        _Cookie="cookie",
+        _SReply="sreply",
+        _SRequestCLI="sreq",
+        _SRequestHTTP="sreq",
+        _SRequestWebSocket="sreq",
+    )
+
+    def __init__(self, qcall, init_quest_for_child=False, **kwargs):
+        """Initialize object from a parent or a new qcall
+
+        Args:
+            qcall (API): what qcall is being initialized
+            init_quest_for_child (bool): True if called from `init_quest_for_child`
+            kwargs (dict): insert into dictionary
+        """
+        super().__init__(qcall=qcall, **kwargs)
+        qcall.attr_set(self._key(), self)
+
+    def detach_from_quest(self):
+        """Useful only for `_SReply`
+
+        Detaches from the quest so won't be destroyed.
+
+        Returns:
+            self: object
+        """
+        self.qcall.pkdel(self._key())
+        self.qcall = None
+        return self
+
+    def init_quest_for_child(self, child, parent):
+        """Create or copy state of `self` (parent) to child (return)
+
+        `self` is the Attr in `parent`
+
+        If sharing between parent and child, care should be taken.
+
+        Args:
+            child (API): child quest that is being initialized
+            parent (API): parent quest to initialize from
+
+        Returns:
+            Attr: instance to be assigned to `child`
+        """
+        rv = self.__class__(qcall=child, init_quest_for_child=True)
+        for k, v in parent[self._key()].items():
+            if k not in self._INIT_QUEST_FOR_CHILD_KEYS:
+                continue
+            if isinstance(v, (API, Attr)):
+                raise AssertionError(
+                    f"invalid value type={type(v)} key={k} self={self}"
+                )
+            rv[k] = copy.deepcopy(v)
+        return rv
+
+    def _key(self):
+        return self._KEY_MAP[self.__class__.__name__]
 
 
 class Spec(pykern.quest.Spec):
@@ -310,7 +378,15 @@ class Spec(pykern.quest.Spec):
 
 
 class _Bucket(Attr):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Don't want a backlink here, because we expect exact count of items
+        self.pkdel("qcall")
+
+    def init_bucket_for_child(self, parent):
+        """Initializes already created `_bucket` attr"""
+        self[_PARENT_ATTR] = parent
+        self.in_pkcli = parent.bucket_get("in_pkcli")
 
 
 def init_module(**imports):

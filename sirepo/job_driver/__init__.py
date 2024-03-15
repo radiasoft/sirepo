@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig, pkinspect, pkconfig, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc, pkdformat
@@ -368,11 +369,11 @@ class DriverBase(PKDict):
 
         All slots are allocated and only freed when the op is
         destroyed. We don't need to recheck the slots, because
-        `destroy_op` cancels this task. `_agent_ready` is state held
+        job_supervisor.destroy_op frees the slots. `_agent_ready` is state held
         outside this op so it needs to be rechecked when
-        `HAD_TO_AWAIT` is returned.
+        `HAD_TO_AWAIT` is returned from this method.
 
-        If `OP_IS_DESTROYED` is encountered, slot is not ready
+        If `OP_IS_DESTROYED` is encountered, exit immediately with that result.
 
         Return:
             job_supervisor.SlotAllocStatus: whether coroutine had to yield or op is destroyed

@@ -778,7 +778,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     img.data[++p] = c.b;
                     let a = 255;
                     if (threshold !== null) {
-                        a = v > threshold ? 255 : 0;
+                        a = v < threshold[1] && v > threshold[0] ? 255 : 0;
                     }
                     img.data[++p] = a;
                 }
@@ -1985,14 +1985,13 @@ SIREPO.app.directive('interactiveOverlay', function(focusPointService, keypressS
             focusStrategy: '=',
         },
         controller: function($scope, $element) {
-            if (! $scope.focusPoints) {
+            if (! $scope.reportId || ! $scope.focusPoints) {
                 // interactiveOverlay only applies if focusPoints are defined on the plot
                 return;
             }
             plotting.setupSelector($scope, $element);
 
-            // random id for this listener
-            var listenerId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+            var listenerId = SIREPO.UTILS.randomId();
             var geometries = [];
             var plotScope;
 
@@ -2531,6 +2530,118 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
     };
 });
 
+SIREPO.app.service('keypressService', function() {
+    const svc = this;
+    const listeners = {};
+    const reports = {};
+    const activeListeners = [];
+    let activeListenerId = null;
+
+    function removeListenersForReport(reportId) {
+        if (! reports[reportId]) {
+            return;
+        }
+        const rlArr = reports[reportId];
+        for(let rlIndex = 0; rlIndex < rlArr.length; ++rlIndex) {
+            svc.removeListener(rlArr[rlIndex]);
+        }
+    }
+
+    function reportForListener(listenerId) {
+        if (! listenerId) {
+            return null;
+        }
+        for(const reportId in reports) {
+            const rlIndex = reports[reportId].indexOf(listenerId);
+            if (rlIndex < 0) {
+                continue;
+            }
+            return reportId;
+        }
+    }
+
+    function showPanelActive(reportId, isActive) {
+        if (isActive) {
+            $('#' + reportId).parents('.panel').addClass('sr-panel-active');
+            return;
+        }
+        $('#' + reportId).parents('.panel').removeClass('sr-panel-active');
+    }
+
+    svc.addListener = (listenerId, listener, reportId) => {
+        listeners[listenerId] = listener;
+        if (! reports[reportId]) {
+                reports[reportId] = [];
+        }
+        reports[reportId].push(listenerId);
+        if (activeListeners.indexOf(listenerId) < 0) {
+            activeListeners.push(listenerId);
+        }
+
+        // turn off highlighting for active report panel, if any
+        showPanelActive(reportForListener(activeListenerId), false);
+
+        activeListenerId = listenerId;
+        svc.enableListener(true);
+    };
+
+    // set the active listener, or
+    // remove keydown listener from body element leaving the keys in place
+    svc.enableListener = (doListen, listenerId) => {
+        if (listenerId)  {
+            activeListenerId = listenerId;
+        }
+        const reportId = reportForListener(activeListenerId);
+        if (doListen && activeListenerId) {
+            d3.select('body').on('keydown', listeners[activeListenerId]);
+            showPanelActive(reportId, true);
+            return;
+        }
+        d3.select('body').on('keydown', null);
+        showPanelActive(reportId, false);
+    };
+
+    svc.enableNextListener = (direction) => {
+        const lIndex = activeListeners.indexOf(activeListenerId);
+        if (lIndex < 0) {
+            return;
+        }
+        svc.enableListener(false);
+        const d = direction < 0 ? -1 : 1;
+        const newIndex = (lIndex + d + activeListeners.length) % activeListeners.length;
+        svc.enableListener(true, activeListeners[newIndex]);
+    };
+
+    svc.removeListener = (listenerId) => {
+        const lIndex = activeListeners.indexOf(listenerId);
+        if (lIndex >= 0) {
+            activeListeners.splice(lIndex, 1);
+        }
+        delete listeners[listenerId];
+
+        const reportId = reportForListener(listenerId);
+        showPanelActive(reportId, false);
+        if (reportId) {
+            reports[reportId].splice(reports[reportId].indexOf(listenerId), 1);
+        }
+
+        // activate the last one added, if any remain
+        if (activeListeners.length > 0) {
+            activeListenerId = activeListeners[activeListeners.length - 1];
+            svc.enableListener(true);
+        }
+        else {
+            activeListenerId = null;
+            svc.enableListener(false);
+        }
+    };
+
+    svc.removeReport = function(reportId) {
+        removeListenersForReport(reportId);
+        delete reports[reportId];
+    };
+});
+
 SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dService) {
     return {
         restrict: 'A',
@@ -2541,6 +2652,7 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             var points;
+            $scope.reportId = SIREPO.UTILS.randomId();
             $scope.focusPoints = [];
 
             $scope.formatFocusPointData = function(fp) {
@@ -2614,6 +2726,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
         templateUrl: '/static/html/plot3d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             var MIN_PIXEL_RESOLUTION = 10;
+            $scope.reportId = SIREPO.UTILS.randomId();
             $scope.margin = {
                 top: 50,
                 left: 50,
@@ -3188,20 +3301,24 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return [values[0], values[values.length - 1]];
             }
 
-            var mouseMove = utilities.debounce(function() {
+            const mouseMove = utilities.debounce(() => {
                 /*jshint validthis: true*/
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
-                var point = mouseMovePoint;
-                var xRange = getRange(axes.x.values);
-                var yRange = getRange(axes.y.values);
-                var x0 = axes.x.scale.invert(point[0] - 1);
-                var y0 = axes.y.scale.invert(point[1] - 1);
-                var x = Math.round((heatmap[0].length - 1) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
-                var y = Math.round((heatmap.length - 1) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
+                const fp = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL;
+                const point = mouseMovePoint;
+                const xRange = getRange(axes.x.values);
+                const yRange = getRange(axes.y.values);
+                const x0 = axes.x.scale.invert(point[0] - 1);
+                const y0 = axes.y.scale.invert(point[1] - 1);
+                const n = fp ? 0 : 1;
+                let i = (heatmap[0].length - n) * (x0 - xRange[0]) / (xRange[1] - xRange[0]);
+                let j = (heatmap.length - n) * (y0 - yRange[0]) / (yRange[1] - yRange[0]);
+                i = fp ? Math.max(0, Math.floor(i)) : Math.round(i);
+                j = fp ? Math.max(0, Math.floor(j)) : Math.round(j);
                 try {
-                    pointer.pointTo(heatmap[heatmap.length - 1 - y][x]);
+                    pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                 }
                 catch (err) {
                     // ignore range errors due to mouse move after heatmap is reset
@@ -3441,6 +3558,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             var symbolSize = 144.0;
             var legendSymbolSize = 48.0;
 
+            $scope.reportId = SIREPO.UTILS.randomId();
             $scope.domPadding = {
                 x: 0,
                 y: 0

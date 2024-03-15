@@ -19,4 +19,4 @@ def test_begin(fc):
             break
         time.sleep(1)
     else:
-        pkunit.pkfail("agent_dir={} is empty so agent never started")
+        pkunit.pkfail("agent_dir={} is empty so agent never started", p)

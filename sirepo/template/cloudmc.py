@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
@@ -264,6 +265,15 @@ def stateless_compute_validate_material_name(data, **kwargs):
     return res
 
 
+def validate_file(file_type, path):
+    import h5py
+
+    if file_type == "geometryInput-dagmcFile":
+        if not h5py.is_hdf5(path):
+            return "dagmcFile must be valid hdf5 file"
+    return None
+
+
 def write_parameters(data, run_dir, is_parallel):
     if _is_sbatch_run_mode(data):
         pkio.write_text(
@@ -469,7 +479,7 @@ def _generate_distribution(dist):
     return _generate_call(t, args)
 
 
-def _generate_materials(data):
+def _generate_materials(data, j2_ctx):
     res = ""
     material_vars = []
     for v in data.models.volumes.values():
@@ -513,9 +523,19 @@ def _generate_materials(data):
             elif c.component == "add_s_alpha_beta":
                 res += f'{n}.{c.component}("{c.name}", {c.fraction})\n'
     if not len(material_vars):
-        raise AssertionError(f"No materials defined for volumes")
+        j2_ctx.incomplete_data_msg += " No materials defined for volumes,"
+        return
     res += "materials = openmc.Materials([" + ", ".join(material_vars) + "])\n"
     return res
+
+
+def _generate_mesh(mesh):
+    return f"""
+m = openmc.RegularMesh()
+m.dimension = {_generate_array([int(v) for v in mesh.dimension])}
+m.lower_left = {_generate_array(mesh.lower_left)}
+m.upper_right = {_generate_array(mesh.upper_right)}
+"""
 
 
 def _generate_parameters_file(data, run_dir=None):
@@ -529,22 +549,25 @@ def _generate_parameters_file(data, run_dir=None):
     v.isPythonSource = False if run_dir else True
     if v.isPythonSource:
         v.materialDirectory = "."
-        v.runCommand = "openmc.run()"
+        v.isSBATCH = False
     else:
         v.materialDirectory = sirepo.sim_run.cache_dir(_CACHE_DIR)
-        r = data.models.openmcAnimation.jobRunMode
-        if not _is_sbatch_run_mode(data):
-            cores = 1 if r == "sequential" else sirepo.mpi.cfg().cores
-            v.runCommand = f"openmc.run(threads={ cores })"
-
-    v.materials = _generate_materials(data)
-    v.sources = _generate_sources(data)
+        v.isSBATCH = _is_sbatch_run_mode(data)
+    v.weightWindowsMesh = _generate_mesh(data.models.weightWindowsMesh)
+    v.runCommand = _generate_run_mode(data, v)
+    v.incomplete_data_msg = ""
+    v.materials = _generate_materials(data, v)
+    v.sources = _generate_sources(data, v)
     v.sourceFile = _source_filename(data)
     v.maxSampleSourceParticles = SCHEMA.model.openmcAnimation.numSampleSourceParticles[
         5
     ]
-    v.tallies = _generate_tallies(data)
+    v.tallies = _generate_tallies(data, v)
     v.hasGraveyard = _has_graveyard(data)
+    if v.incomplete_data_msg:
+        return (
+            f'raise AssertionError("Unable to generate sim: {v.incomplete_data_msg}")'
+        )
     return template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -562,6 +585,26 @@ def _generate_range(filter):
     return "numpy.{}({}, {}, {})".format(space, start, stop, filter.num)
 
 
+def _generate_run_mode(data, v):
+    r = data.models.openmcAnimation.jobRunMode
+    cores = 1 if r == "sequential" else sirepo.mpi.cfg().cores
+    if v.isPythonSource:
+        cores = 0
+    if data.models.settings.varianceReduction == "weight_windows_tally":
+        if v.isSBATCH:
+            raise AssertionError("Weight Windows are not yet available with sbatch")
+        v.settings_particles = v.weightWindows_particles
+        if cores:
+            # the only way to set threading for run_in_memory() is with an environment variable
+            v.weightWindowsThreadLimit = f'os.environ["OMP_NUM_THREADS"] = "{cores}"'
+        return _weight_windows_run_command(data)
+    if v.isSBATCH:
+        return ""
+    if v.isPythonSource:
+        return "openmc.run()"
+    return f"openmc.run(threads={cores})"
+
+
 def _generate_source(source):
     if source.get("type") == "file" and source.get("file"):
         return f"openmc.IndependentSource(filename=\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
@@ -575,9 +618,10 @@ def _generate_source(source):
     )"""
 
 
-def _generate_sources(data):
+def _generate_sources(data, j2_ctx):
     if not len(data.models.settings.sources):
-        raise AssertionError(f"No Settings Sources defined")
+        j2_ctx.incomplete_data_msg += " No Settings Sources defined,"
+        return
     return ",\n".join([_generate_source(s) for s in data.models.settings.sources])
 
 
@@ -606,9 +650,10 @@ def _generate_space(space):
     return _generate_call(space._type, args)
 
 
-def _generate_tallies(data):
+def _generate_tallies(data, j2_ctx):
     if not len(data.models.settings.tallies):
-        raise AssertionError(f"No Tallies defined")
+        j2_ctx.incomplete_data_msg += " No Tallies defined"
+        return
     return (
         "\n".join(
             [
@@ -635,12 +680,7 @@ def _generate_tally(tally, volumes):
         if has_mesh:
             raise AssertionError("Only one mesh may defined per filter")
         has_mesh = True
-        res += f"""
-m = openmc.RegularMesh()
-m.dimension = {_generate_array([int(v) for v in f.dimension])}
-m.lower_left = {_generate_array(f.lower_left)}
-m.upper_right = {_generate_array(f.upper_right)}
-"""
+        res += _generate_mesh(f)
     res += f"""t{tally._index + 1} = openmc.Tally(name='{tally.name}')
 t{tally._index + 1}.filters = ["""
     for i in range(1, SCHEMA.constants.maxFilters + 1):
@@ -696,7 +736,10 @@ def _parse_cloudmc_log(run_dir, log_filename="run.log"):
         log_filename=log_filename,
         default_msg="An unknown error occurred, check CloudMC log for details",
         # ERROR: Cannot tally flux for an individual nuclide.
-        error_patterns=(re.compile(r"^\s*Error:\s*(.*)$", re.IGNORECASE),),
+        error_patterns=(
+            re.compile(r"^\s*Error:\s*(.*)$", re.IGNORECASE),
+            re.compile(r"AssertionError: (.*)"),
+        ),
     ).parse_for_errors()
 
 
@@ -706,3 +749,22 @@ def _source_filename(data):
 
 def _statepoint_filename(data):
     return f"statepoint.{data.models.settings.batches}.h5"
+
+
+def _weight_windows_run_command(data):
+    ww = data.models.weightWindows
+    idx = 0
+    for idx, t in enumerate(data.models.settings.tallies):
+        if ww.tally == t.name:
+            break
+    return f"""
+with openmc.lib.run_in_memory():
+    tally = openmc.lib.tallies[{idx + 1}]
+    wws = openmc.lib.WeightWindows.from_tally(tally, particle="{ww.particle}")
+
+    for i in range({ww.iterations}):
+        openmc.lib.reset()
+        openmc.lib.run()
+        wws.update_magic(tally)
+        openmc.lib.settings.weight_windows_on = True
+"""
