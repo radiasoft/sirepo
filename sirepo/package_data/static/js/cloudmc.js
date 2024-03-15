@@ -218,7 +218,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
 SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     let hasVolumes = false;
-    self.processing = false;
+    self.isProcessing = false;
 
     function downloadRemoteGeometryFile() {
         requestSender.sendStatefulCompute(
@@ -229,7 +229,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
                 }
                 appState.models.geometryInput.exampleURL = "";
                 appState.saveQuietly('geometryInput');
-                self.processing = false;
+                self.isProcessing = false;
                 processGeometry();
             },
             {
@@ -242,17 +242,17 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     }
 
     function processGeometry() {
-        if (self.processing) {
+        if (self.isProcessing) {
             return;
         }
         panelState.showField('geometryInput', 'dagmcFile', false);
-        self.processing = true;
+        self.isProcessing = true;
         if (appState.models.geometryInput.exampleURL) {
             downloadRemoteGeometryFile();
             return;
         }
         self.simState.runSimulation();
-        self.processing = false;
+        self.isProcessing = false;
     }
 
     self.isGeometrySelected = () => {
@@ -286,11 +286,11 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     self.simState = persistentSimulation.initSimulationState(self);
 
     function resetProcessGeometry() {
-        if (self.isGeometrySelected() && ! self.processing) {
+        if (self.isGeometrySelected() && ! self.isProcessing) {
             requestSender.sendStatelessCompute(
                 appState,
                 (data) => {
-                    if (! data.dirExists) {
+                    if (! data.animationDirExists) {
                         hasVolumes = false;
                         processGeometry();
                     }
