@@ -233,9 +233,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def srw_compute_crystal_grazing_angle(cls, model):
-        model.grazingAngle = (
-            math.acos(math.sqrt(1 - model.tvx**2 - model.tvy**2)) * 1e3
-        )
+        model.grazingAngle = math.acos(math.sqrt(1 - model.tvx**2 - model.tvy**2)) * 1e3
 
     @classmethod
     def srw_find_closest_angle(cls, angle, allowed_angles):
