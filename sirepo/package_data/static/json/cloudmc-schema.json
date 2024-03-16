@@ -933,7 +933,7 @@
             "aspect": ["Aspect", "TallyAspect", "mean"],
             "bgColor": ["Background color", "Color", "#fff9ed"],
             "colorMap": ["Tally Color Map", "ColorMap", "viridis"],
-            "energyRangeSum": ["Sum over energies [MeV]", "JRange", {"min": 0, "max": 1, "numSteps": 100, "step": 0.01, "val": [null, null], "space": "linear"}],
+            "energyRangeSum": ["Sum over energies [MeV]", "JRange", {"min": 0, "max": 1, "numSteps": 100, "step": 0.01, "val": [0, 1], "space": "linear"}],
             "numSampleSourceParticles": ["Source Particles to Display", "Integer", 10, "", 0, 100],
             "opacity": ["Global alpha", "JRange", {"min": 0, "max": 1.0, "numSteps": 100, "step": 0.01, "val": 1.0, "space": "linear"}],
             "showEdges": ["Show edges", "Boolean", "0"],

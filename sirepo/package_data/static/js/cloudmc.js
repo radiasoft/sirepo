@@ -418,6 +418,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         self.mesh = null;
         self.fieldData = null;
         self.outlines = null;
+        appState.models.openmcAnimation.energyRangeSum.val = [null, null];
     };
 
     self.colorScale = modelName => {
@@ -2767,10 +2768,10 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 if (! isValid(range)) {
                     return val;
                 }
-                if (val == null || val < range.min) {
+                if (val < range.min) {
                     return range.min;
                 }
-                else if (val == null || val > range.max) {
+                else if (val > range.max) {
                     return range.max;
                 }
                 else {
@@ -2789,11 +2790,11 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 let val = range.val;
                 isMulti = Array.isArray(val);
                 if (isMulti) {
-                    val[0] = adjustToRange(val[0], range);
-                    val[1] = adjustToRange(val[1], range);
+                    val[0] = val[0] == null ? range.min : adjustToRange(val[0], range);
+                    val[1] = val[1] == null ? range.max : adjustToRange(val[1], range);
                 }
                 else {
-                    val = adjustToRange(val, range);
+                    val = val == null ? range.max : adjustToRange(val, range);
                 }
                 sel.slider({
                     classes: {
