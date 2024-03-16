@@ -510,7 +510,7 @@ SIREPO.app.directive('scansTable', function() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr ng-repeat="s in scans track by $index">
+                    <tr ng-repeat="s in scans track by $index" data-ng-click="raydataService.setDetailScan(s)">
                       <td style="width: 1%" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans[s.rduid]" data-ng-click="togglePdfSelectScan(s.rduid)"/></td>
                       <td width="1%"><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-if="analysisStatus == 'queued'">
@@ -521,7 +521,6 @@ SIREPO.app.directive('scansTable', function() {
                         <button data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="runAnalysis(s.rduid)" data-ng-disabled="disableRunAnalysis(s)">Run Analysis</button>
                         <button class="btn btn-info btn-xs" data-ng-disabled="! raydataService.canViewOutput(s)" data-ng-click="setAnalysisScan(s)">View Output</button>
                         <button class="btn btn-info btn-xs" data-ng-click="showRunLogModal(s)">View Log</button>
-                        <button  data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs" data-ng-click="raydataService.setDetailScan(s)">Details</button>
                       </td>
                     </tr>
                   </tbody>
@@ -623,6 +622,15 @@ SIREPO.app.directive('scansTable', function() {
                 for (const p in $scope.pdfSelectedScans) {
                     if (! findScan(p)) {
                         delete $scope.pdfSelectedScans[p];
+                    }
+                }
+                // update with latest details, but details won't disappear if detailScan isn't in latest results
+                if (raydataService.detailScan) {
+                    for (const s in $scope.scans) {
+                        if ($scope.scans[s].rduid === raydataService.detailScan.rduid) {
+                            raydataService.setDetailScan($scope.scans[s]);
+                            break;
+                        }
                     }
                 }
                 scanArgs.pageCount = scanInfo.pageCount || 0;
@@ -1164,7 +1172,9 @@ SIREPO.app.directive('scanDetail', function() {
             scan: '<',
         },
         template: `
-            <div class="well" data-ng-if="scan">
+            <div><strong>Scan Detail</strong></div>
+            <div class="well" style="height: 500px">
+            <div data-ng-if="scan">
               <div>Scan Id: {{ scan.rduid }}</div>
               <div data-ng-if="detailedStatusFile()">
                 <div>Most Recent Status</div>
@@ -1178,6 +1188,7 @@ SIREPO.app.directive('scanDetail', function() {
                 <div>Current Consecutive Failures: {{ consecutiveFailures() }}</div>
               </div>
               <div data-ng-if="analysisElapsedTime()">Analysis Elapsed Time: {{ analysisElapsedTime() }} seconds</div>
+            </div>
             </div>
 `,
         controller: function($scope, columnsService) {
