@@ -213,10 +213,25 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
         }
     };
 
+    self.updateEnergyRange = (e, resetVals=false) => {
+        if (! e) {
+            return;
+        }
+        const s = appState.models.openmcAnimation.energyRangeSum;
+        s.space = e.space;
+        s.min = e.start;
+        s.max = e.stop;
+        s.step = Math.abs(e.stop - e.start) / e.num;
+        if (resetVals) {
+            s.val = [s.min, s.max];
+        }
+    };
+    
     self.validateSelectedTally = () => {
         const a = appState.models.openmcAnimation;
         if (! a.tally || ! findTally()) {
             a.tally = a.tallies[0].name;
+            self.updateEnergyRange(self.findFilter('energyFilter'), true);
         }
         if (! a.score || ! findScore(a.score)) {
             a.score = findTally().scores[0].score;
@@ -329,8 +344,8 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
             return;
         }
         tallyService.clearMesh();
-        //tallyService.updateEnergyRange(cloudmcService.findFilter('energyFilter'), true);
         delete appState.models.openmcAnimation.tallies;
+        delete appState.models.openmcAnimation.tally;
         self.simState.saveAndRunSimulation('openmcAnimation');
     };
     self.simState.logFileURL = function() {
@@ -418,7 +433,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         self.mesh = null;
         self.fieldData = null;
         self.outlines = null;
-        appState.models.openmcAnimation.energyRangeSum.val = [null, null];
     };
 
     self.colorScale = modelName => {
@@ -545,6 +559,22 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         };
     };
 
+
+    self.updateEnergyRange = (e, resetVals=false) => {
+        if (! e) {
+            return;
+        }
+        const s = appState.models.openmcAnimation.energyRangeSum;   
+        s.space = e.space;
+        s.min = e.start;
+        s.max = e.stop;
+        s.step = Math.abs(e.stop - e.start) / e.num;
+        if (resetVals) {
+            s.val = [s.min, s.max];
+        }
+    };
+    
+    
     self.updateEnergyRange = (e, resetVals=false) => {
         if (! e) {
             return;
