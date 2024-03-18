@@ -2762,7 +2762,6 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`.replace(/ /g, '-');
 
             let hasSteps = false;
-            let isMulti = false;
             let slider = null;
             const watchFields = ['min', 'max', 'step'].map(x => `model[fieldName].${x}`);
 
@@ -2790,13 +2789,13 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 }
                 const sel = $(`.${$scope.sliderClass}`);
                 let val = range.val;
-                isMulti = Array.isArray(val);
+                const isMulti = Array.isArray(val);
                 if (isMulti) {
-                    val[0] = val[0] == null ? range.min : adjustToRange(val[0], range);
-                    val[1] = val[1] == null ? range.max : adjustToRange(val[1], range);
+                    val[0] = adjustToRange(val[0], range);
+                    val[1] = adjustToRange(val[1], range);
                 }
                 else {
-                    val = val == null ? range.max : adjustToRange(val, range);
+                    val = adjustToRange(val, range);
                 }
                 sel.slider({
                     classes: {
@@ -2846,10 +2845,6 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 return v;
             }
 
-            function setUIValue(val) {
-                slider.slider('option', isMulti ? 'values' : 'value', val);
-            }
-
             function updateSlider() {
                 slider = buildSlider();
             }
@@ -2880,15 +2875,6 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 (newValues, oldValues) => {
                     if (didChange(newValues, oldValues)) {
                         updateSlider();
-                    }
-                }
-            );
-
-            $scope.$watch(
-                'model[fieldName].val',
-                (newValue, oldValue) => {
-                    if (didChange(newValue, oldValue)) {
-                        setUIValue(newValue);
                     }
                 }
             );
