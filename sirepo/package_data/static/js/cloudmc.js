@@ -442,8 +442,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         );
     };
 
-    self.doesCacheRequireUpdate = () => Object.entries(self.cachedSettings).every(([k, v]) => v === appState.models.openmcAnimation[k]);
-    
     self.decorateLabelWithIcon = (element, iconName, title) => {
         $(element)
         .closest('div[data-ng-switch]')
@@ -595,7 +593,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         }
 
         // if none of the data-specific settings changed, do not update the thresholds
-        if (self.doesCacheRequireUpdate()) {
+        if (Object.entries(self.cachedSettings).every(([k, v]) => v === appState.models.openmcAnimation[k])) {
             return;
         }
         updateCache();
