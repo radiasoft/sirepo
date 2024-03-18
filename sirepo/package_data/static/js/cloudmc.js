@@ -498,7 +498,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         self.mesh = null;
         return false;
     };
-    
+
     self.setFieldData = (fieldData, min, max, numParticles) => {
         const n = normalizer(appState.models.openmcAnimation.score, numParticles);
         self.fieldData = fieldData.map(n);
@@ -559,20 +559,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         };
     };
 
-    self.updateEnergyRange = (e, resetVals=false) => {
-        if (! e) {
-            return;
-        }
-        const s = appState.models.openmcAnimation.energyRangeSum;   
-        s.space = e.space;
-        s.min = e.start;
-        s.max = e.stop;
-        s.step = Math.abs(e.stop - e.start) / e.num;
-        if (resetVals) {
-            s.val = [s.min, s.max];
-        }
-    };
-    
     self.updateTallyDisplay = () => {
         appState.models.tallyReport.colorMap = appState.models.openmcAnimation.colorMap;
         // save quietly but immediately
