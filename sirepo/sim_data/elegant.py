@@ -62,5 +62,4 @@ class SimData(sirepo.sim_data.SimDataBase):
                     "bunchFile", "sourceFile", data.models.bunchFile.sourceFile
                 )
             )
-        pkdp("\n\n\n res from sim_data={}", res)
         return res

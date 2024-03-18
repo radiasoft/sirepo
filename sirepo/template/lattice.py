@@ -99,7 +99,6 @@ class InputFileIterator(ModelIterator):
             )
 
         def _input_file():
-            pkdp("\n\n\n\nLatticeUtil.model_name_for_data(model)={} field={} model[field]={}", LatticeUtil.model_name_for_data(model), field, model[field])
             self.result.append(
                 self.sim_data.lib_file_name_with_model_field(
                     LatticeUtil.model_name_for_data(model), field, model[field]
@@ -111,7 +110,6 @@ class InputFileIterator(ModelIterator):
         f = None
         for k in t:
             if s.startswith(k):
-                pkdp("\n\n\n t[k] = {}", t[k])
                 f = t[k]
                 break
         if not model[field] or not f:
@@ -493,6 +491,7 @@ class LatticeParser(object):
             self.data.models.commands.append(res)
         elif cmd == "line":
             self.__parse_beamline(label, values)
+
         elif cmd == "title":
             if len(values) > 1:
                 self.data.models.simulation.name = self.__remove_quotes(values[1])

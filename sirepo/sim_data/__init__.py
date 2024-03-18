@@ -401,10 +401,9 @@ class SimDataBase(object):
         Returns:
             bool: True if `basename` in use by `data`
         """
-        files = cls.lib_file_basenames(data)
         return any(
             f
-            for f in files
+            for f in cls.lib_file_basenames(data)
             if cls.lib_file_name_without_type(f)
             == cls.lib_file_name_without_type(basename)
         )
