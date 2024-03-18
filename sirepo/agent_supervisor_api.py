@@ -5,6 +5,7 @@ For example, sim_db_file and global_resources.
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc
 import re
@@ -63,6 +64,7 @@ class ReqBase(tornado.web.RequestHandler):
 
 
 def request(method, uri, token, data=None, json=None):
+    _check_size(method, data)
     return requests.request(
         method,
         uri,
@@ -75,3 +77,11 @@ def request(method, uri, token, data=None, json=None):
             }
         ),
     )
+
+
+def _check_size(method, data):
+    m = sirepo.job.cfg().max_message_bytes
+    if data and len(data) > m:
+        raise sirepo.util.ContentTooLarge(
+            f"len(data)={len(data)} > max_size={m} for method={method}"
+        )

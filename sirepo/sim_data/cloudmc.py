@@ -46,6 +46,9 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "settings",
                 "tallyReport",
                 "volumes",
+                "survivalBiasing",
+                "weightWindows",
+                "weightWindowsMesh",
             ),
         )
         for v in dm.volumes:
@@ -64,7 +67,12 @@ class SimData(sirepo.sim_data.SimDataBase):
                 y = f._type
                 if y != "None":
                     cls.update_model_defaults(f, y)
-        for (m, f) in (
+        if th := dm.openmcAnimation.get("threshold"):
+            dm.openmcAnimation.thresholds = sch.model.openmcAnimation.thresholds[2]
+            dm.openmcAnimation.thresholds.val[0] = th
+            del dm["openmcAnimation"]["threshold"]
+
+        for m, f in (
             ("tallyReport", "planePos"),
             ("openmcAnimation", "opacity"),
             (
@@ -73,6 +81,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             ),
         ):
             dm[m][f] = _float_to_j_range(dm[m][f], sch.model[m][f])
+        if "tally" in dm.weightWindows and not isinstance(dm.weightWindows.tally, str):
+            del dm.weightWindows["tally"]
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):

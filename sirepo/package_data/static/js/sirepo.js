@@ -58,7 +58,7 @@ SIREPO.beamlineItemLogic = function(name, init) {
 };
 
 SIREPO.viewLogic = function(name, init) {
-    SIREPO.app.directive(name, function(appState, utilities) {
+    SIREPO.app.directive(name, function(appState, panelState, utilities) {
         return {
             restrict: 'A',
             scope: {
@@ -87,6 +87,11 @@ SIREPO.viewLogic = function(name, init) {
                         appState.watchModelFields(scope, fields, callback, true);
                     }
                 }
+
+                // must wait to get "angularized" form
+                panelState.waitForUI(() => {
+                    scope.form = scope.$parent.form;
+                });
             },
         };
     });
@@ -1134,17 +1139,18 @@ SIREPO.app.service('validationService', function(utilities) {
 
     // html5 validation
     this.validateField = function(model, field, inputType, isValid, msg) {
-        this.validateInputSelectorString(`.${utilities.modelFieldID(model, field)} ${inputType}`, isValid, msg);
+        return this.validateInputSelectorString(`.${utilities.modelFieldID(model, field)} ${inputType}`, isValid, msg);
     };
 
     this.validateInputSelectorString = function(str, isValid, msg) {
-        this.validateInputSelector($(str), isValid, msg);
+        return this.validateInputSelector($(str), isValid, msg);
     };
 
     this.validateInputSelector = function(sel, isValid, msg) {
         const f = sel[0];
+        // do not invalidate if the selector is not found
         if (! f) {
-            return;
+            return true;
         }
         const fWarn = sel.siblings('.sr-input-warning').eq(0);
         const invalidClass = 'ng-invalid ng-dirty';
@@ -1157,6 +1163,7 @@ SIREPO.app.service('validationService', function(utilities) {
             f.setCustomValidity(msg);
             fWarn.show();
         }
+        return isValid;
     };
 
     this.validateFieldOfType = function(value, type) {
@@ -2593,9 +2600,9 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         listFilesData = {};
     };
 
-    self.downloadDataFileUrl = (appState, params) => {
-        return uri.format(
-            'downloadDataFile',
+    self.downloadRunFileUrl = (appState, params) => {
+        return self.formatUrl(
+            'downloadRunFile',
             {
                 simulation_id: appState.models.simulation.simulationId,
                 simulation_type: SIREPO.APP_SCHEMA.simulationType,
@@ -2678,13 +2685,13 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         sendWithSimulationFields('analysisJob', appState, callback, data);
     };
 
-    self.sendDownloadDataFile = (appState, routeParams, successCb, errorCb) => {
+    self.sendDownloadRunFile = (appState, routeParams, successCb, errorCb) => {
         // When other types are requested, we can add them, e.g. blob or txt.
         if (routeParams.suffix !== "json") {
             throw new Error("invalid downloadDataFile suffix=" + (routeParams.suffix || ""));
         }
         self.sendRequest(
-            self.downloadDataFileUrl(appState, routeParams),
+            self.downloadRunFileUrl(appState, routeParams),
             successCb,
             routeParams.suffix === "json" ? {responseType: "json"} : {},
             errorCb || (reply => {throw new Error(reply.error);})

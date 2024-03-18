@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
@@ -770,11 +771,14 @@ class _ComputeJob(_Supervisor):
         return await self._send_op_analysis(req, "analysis_job")
 
     async def _receive_api_downloadDataFile(self, req):
+        return await self._receive_api_downloadRunFile(req)
+
+    async def _receive_api_downloadRunFile(self, req):
         self._raise_if_purged_or_missing(req)
         return await self._send_with_single_reply(
             job.OP_IO,
             req,
-            jobCmd="download_data_file",
+            jobCmd="download_run_file",
         )
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):

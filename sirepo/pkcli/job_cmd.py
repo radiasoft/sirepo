@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkconst
@@ -173,6 +174,10 @@ def _do_analysis_job(msg, template):
 
 
 def _do_download_data_file(msg, template):
+    return _do_download_run_file(msg, template)
+
+
+def _do_download_run_file(msg, template):
     try:
         r = template.get_data_file(
             msg.runDir,
@@ -197,9 +202,13 @@ def _do_fastcgi(msg, template):
     @contextlib.contextmanager
     def _update_run_dir_and_maybe_chdir(msg):
         msg.runDir = pkio.py_path(msg.runDir) if msg.runDir else None
-        with pkio.save_chdir(
-            msg.runDir,
-        ) if msg.runDir else contextlib.nullcontext():
+        with (
+            pkio.save_chdir(
+                msg.runDir,
+            )
+            if msg.runDir
+            else contextlib.nullcontext()
+        ):
             yield
 
     def _recv():

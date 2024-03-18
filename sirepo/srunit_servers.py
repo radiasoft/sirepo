@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 import contextlib
 
 # limit sirepo/pykern global imports
@@ -143,7 +144,8 @@ def api_and_supervisor(pytest_req, fc_args):
 
         for x in p:
             try:
-                x.wait(timeout=2)
+                x.terminate()
+                x.wait(timeout=4)
             except subprocess.TimeoutExpired:
                 x.kill()
                 x.wait(timeout=2)
