@@ -2829,13 +2829,6 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 return sel;
             }
 
-            function didChange(newValues, oldValues) {
-                if (Array.isArray(newValues)) {
-                    return newValues.some((x, i) => x !== oldValues[i]) && ! newValues.some(x => x == null);
-                }
-                return newValues != null && newValues !== oldValues;
-            }
-
             function isValid(range) {
                 const v = [range.min, range.max, range.step].every(x => x != null) &&
                     range.min !== range.max;
@@ -2870,7 +2863,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             $scope.$watchGroup(
                 watchFields,
                 (newValues, oldValues) => {
-                    if (didChange(newValues, oldValues)) {
+                    if (newValues.some((x, i) => x !== oldValues[i]) && ! newValues.some(x => x == null)) {
                         updateSlider();
                     }
                 }
