@@ -675,9 +675,11 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
     """
     b = jinja_filename(name)
     return pkjinja.render_file(
-        sirepo.sim_data.get_class(sim_type).resource_path(b)
-        if sim_type
-        else sirepo.sim_data.resource_path(b),
+        (
+            sirepo.sim_data.get_class(sim_type).resource_path(b)
+            if sim_type
+            else sirepo.sim_data.resource_path(b)
+        ),
         v,
         jinja_env=jinja_env,
     )

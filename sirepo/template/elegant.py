@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -207,9 +208,11 @@ class OutputFileIterator(lattice.ModelIterator):
                     suffix = self._command_file_extension(model)
                     filename = "{}{}.{}.{}".format(
                         model._type,
-                        self.model_index[self.model_name]
-                        if self.model_index[self.model_name] > 1
-                        else "",
+                        (
+                            self.model_index[self.model_name]
+                            if self.model_index[self.model_name] > 1
+                            else ""
+                        ),
                         field,
                         suffix,
                     )
@@ -583,9 +586,9 @@ def background_percent_complete(report, run_dir, is_running):
                     if name not in beamline_map:
                         beamline_map[name] = 0
                     beamline_map[name] += 1
-                    beamline_map[
-                        "{}#{}".format(name.upper(), beamline_map[name])
-                    ] = index
+                    beamline_map["{}#{}".format(name.upper(), beamline_map[name])] = (
+                        index
+                    )
                     index += 1
                 else:
                     index = _walk(
