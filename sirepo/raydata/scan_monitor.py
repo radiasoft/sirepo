@@ -193,6 +193,22 @@ class _Analysis(_DbBase):
 
     @classmethod
     def _db_upgrade(cls):
+        def _add_analysis_elapsed_time_column():
+            if _analysis_elapsed_time_in_schema():
+                return
+            cls.session.execute(
+                sqlalchemy.text(
+                    f"ALTER TABLE {cls.__tablename__} ADD COLUMN analysis_elapsed_time INTEGER"
+                )
+            )
+            cls.session.commit()
+
+        def _analysis_elapsed_time_in_schema():
+            for c in sqlalchemy.inspect(engine).get_columns(cls.__tablename__):
+                if c.get("name") == "analysis_elapsed_time":
+                    return True
+            return False
+
         def _fixup_running_statuses():
             for x in cls.session.query(cls).filter(
                 cls.status.in_(_AnalysisStatus.NON_STOPPED)
@@ -219,6 +235,7 @@ class _Analysis(_DbBase):
             )
             cls.session.commit()
 
+        _add_analysis_elapsed_time_column()
         _rename_uid_column_to_rduid()
         _fixup_running_statuses()
 
