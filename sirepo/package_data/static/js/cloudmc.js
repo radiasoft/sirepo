@@ -219,7 +219,10 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
             a.tally = a.tallies[0].name;
         }
         if (! a.score || ! findScore(a.score)) {
+            // TODO (gurhar1133): this seems to be the problem
+            srdbg("! findScore(a.score)=",! findScore(a.score));
             a.score = findTally().scores[0].score;
+            srdbg("findTally().scores[0].score", findTally().scores[0].score);
         }
         appState.saveQuietly('openmcAnimation');
     };
@@ -2875,6 +2878,8 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
             $scope.is2D = () => {
                 return appState.models.tallyReport.selectedGeometry === '2D';
             };
+
+
         },
     };
 });
@@ -2906,6 +2911,7 @@ SIREPO.app.directive('tallyList', function() {
 });
 
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
+    srdbg("first appState.models.openmcAnimation", appState.models.openmcAnimation);
     const autoUpdate = utilities.debounce(() => {
         if ($scope.form.$valid) {
             appState.saveChanges('openmcAnimation');
@@ -2949,6 +2955,12 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         appState.saveChanges('openmcAnimation');
     }
 
+    function preserveScore() {
+        srdbg("preserveScore called");
+        appState.saveChanges('openmcAnimation.score');
+        srdbg(appState.models.openmcAnimation);
+    }
+
     $scope.whenSelected = () => {
         updateEnergyRange();
         showFields();
@@ -2963,7 +2975,9 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.sourceNormalization',
             'openmcAnimation.thresholds',
         ], autoUpdate,
-        ['openmcAnimation.tally'], validateTally,
+        [
+            'openmcAnimation.tally',
+        ], validateTally,
         [
             'tallyReport.planePos.numSteps',
             'tallyReport.selectedGeometry',
@@ -2971,6 +2985,13 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.showSources',
             'openmcAnimation.numSampleSourceParticles',
         ], showFields,
+        [
+            'openmcAnimation.score',
+        ], preserveScore,
     ];
+
+    $scope.$watch(`appState.models.openmcAnimation.score`, function(newVal, oldVal) {
+        srdbg("hit on score change oldval", oldVal, "newVal", newVal);
+    });
 
 });
