@@ -559,22 +559,6 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         };
     };
 
-
-    self.updateEnergyRange = (e, resetVals=false) => {
-        if (! e) {
-            return;
-        }
-        const s = appState.models.openmcAnimation.energyRangeSum;   
-        s.space = e.space;
-        s.min = e.start;
-        s.max = e.stop;
-        s.step = Math.abs(e.stop - e.start) / e.num;
-        if (resetVals) {
-            s.val = [s.min, s.max];
-        }
-    };
-    
-    
     self.updateEnergyRange = (e, resetVals=false) => {
         if (! e) {
             return;
@@ -2994,9 +2978,8 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     }
 
     function updateEnergyRange(resetVals=false) {
-        const e = cloudmcService.findFilter('energyFilter');
-        $scope.energyFilter = e;
-        tallyService.updateEnergyRange(e, resetVals);
+        $scope.energyFilter = cloudmcService.findFilter('energyFilter');
+        cloudmcService.updateEnergyRange($scope.energyFilter, resetVals);
     }
 
     function validateTally() {
