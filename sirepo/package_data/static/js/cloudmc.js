@@ -408,8 +408,8 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
 
 SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities, $rootScope) {
     const self = {
-        fieldData: null,
         mesh: null,
+        fieldData: null,
         minField: 0,
         maxField: 0,
         outlines: null,
@@ -1059,7 +1059,6 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 if (! tallyService.initMesh()) {
                     return;
                 }
-                
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
                 });
@@ -2542,7 +2541,7 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, tallyService, validationService, $scope) {
+SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, validationService, $scope) {
 
     const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
         .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
