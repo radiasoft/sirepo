@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
@@ -528,6 +529,15 @@ def _generate_materials(data, j2_ctx):
     return res
 
 
+def _generate_mesh(mesh):
+    return f"""
+m = openmc.RegularMesh()
+m.dimension = {_generate_array([int(v) for v in mesh.dimension])}
+m.lower_left = {_generate_array(mesh.lower_left)}
+m.upper_right = {_generate_array(mesh.upper_right)}
+"""
+
+
 def _generate_parameters_file(data, run_dir=None):
     report = data.get("report", "")
     if report == "dagmcAnimation":
@@ -539,14 +549,12 @@ def _generate_parameters_file(data, run_dir=None):
     v.isPythonSource = False if run_dir else True
     if v.isPythonSource:
         v.materialDirectory = "."
-        v.runCommand = "openmc.run()"
+        v.isSBATCH = False
     else:
         v.materialDirectory = sirepo.sim_run.cache_dir(_CACHE_DIR)
-        r = data.models.openmcAnimation.jobRunMode
-        if not _is_sbatch_run_mode(data):
-            cores = 1 if r == "sequential" else sirepo.mpi.cfg().cores
-            v.runCommand = f"openmc.run(threads={ cores })"
-
+        v.isSBATCH = _is_sbatch_run_mode(data)
+    v.weightWindowsMesh = _generate_mesh(data.models.weightWindowsMesh)
+    v.runCommand = _generate_run_mode(data, v)
     v.incomplete_data_msg = ""
     v.materials = _generate_materials(data, v)
     v.sources = _generate_sources(data, v)
@@ -575,6 +583,26 @@ def _generate_range(filter):
         start = numpy.log10(start) if start > 0 else -307
         stop = numpy.log10(stop)
     return "numpy.{}({}, {}, {})".format(space, start, stop, filter.num)
+
+
+def _generate_run_mode(data, v):
+    r = data.models.openmcAnimation.jobRunMode
+    cores = 1 if r == "sequential" else sirepo.mpi.cfg().cores
+    if v.isPythonSource:
+        cores = 0
+    if data.models.settings.varianceReduction == "weight_windows_tally":
+        if v.isSBATCH:
+            raise AssertionError("Weight Windows are not yet available with sbatch")
+        v.settings_particles = v.weightWindows_particles
+        if cores:
+            # the only way to set threading for run_in_memory() is with an environment variable
+            v.weightWindowsThreadLimit = f'os.environ["OMP_NUM_THREADS"] = "{cores}"'
+        return _weight_windows_run_command(data)
+    if v.isSBATCH:
+        return ""
+    if v.isPythonSource:
+        return "openmc.run()"
+    return f"openmc.run(threads={cores})"
 
 
 def _generate_source(source):
@@ -652,12 +680,7 @@ def _generate_tally(tally, volumes):
         if has_mesh:
             raise AssertionError("Only one mesh may defined per filter")
         has_mesh = True
-        res += f"""
-m = openmc.RegularMesh()
-m.dimension = {_generate_array([int(v) for v in f.dimension])}
-m.lower_left = {_generate_array(f.lower_left)}
-m.upper_right = {_generate_array(f.upper_right)}
-"""
+        res += _generate_mesh(f)
     res += f"""t{tally._index + 1} = openmc.Tally(name='{tally.name}')
 t{tally._index + 1}.filters = ["""
     for i in range(1, SCHEMA.constants.maxFilters + 1):
@@ -726,3 +749,22 @@ def _source_filename(data):
 
 def _statepoint_filename(data):
     return f"statepoint.{data.models.settings.batches}.h5"
+
+
+def _weight_windows_run_command(data):
+    ww = data.models.weightWindows
+    idx = 0
+    for idx, t in enumerate(data.models.settings.tallies):
+        if ww.tally == t.name:
+            break
+    return f"""
+with openmc.lib.run_in_memory():
+    tally = openmc.lib.tallies[{idx + 1}]
+    wws = openmc.lib.WeightWindows.from_tally(tally, particle="{ww.particle}")
+
+    for i in range({ww.iterations}):
+        openmc.lib.reset()
+        openmc.lib.run()
+        wws.update_magic(tally)
+        openmc.lib.settings.weight_windows_on = True
+"""
