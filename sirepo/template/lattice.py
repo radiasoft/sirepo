@@ -491,7 +491,6 @@ class LatticeParser(object):
             self.data.models.commands.append(res)
         elif cmd == "line":
             self.__parse_beamline(label, values)
-
         elif cmd == "title":
             if len(values) > 1:
                 self.data.models.simulation.name = self.__remove_quotes(values[1])
