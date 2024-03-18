@@ -2938,7 +2938,7 @@ SIREPO.app.directive('tallyList', function() {
     };
 });
 
-SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, tallyService, utilities, $scope) {
+SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, $scope) {
     const autoUpdate = utilities.debounce(() => {
         if ($scope.form.$valid) {
             appState.saveChanges('openmcAnimation');
