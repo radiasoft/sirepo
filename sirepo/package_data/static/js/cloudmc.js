@@ -2965,6 +2965,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
 
     const preserveScore = () => {
         // TODO (gurhar1133): try again without openmcAnimation.cachedScore
+        // cause this is a hack
         appState.models.openmcAnimation.cachedScore = appState.models.openmcAnimation.score;
         appState.saveChanges('openmcAnimation');
         srdbg("appstate.models.openmcAnimation after caching score", appState.models.openmcAnimation);
