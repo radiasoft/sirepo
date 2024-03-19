@@ -446,8 +446,7 @@
       text-anchor: middle;
     }
     .sr-plot .select-cell-text {
-      font-size: 14px;
-      text-anchor: middle;
+      text-anchor: end;
     }
     .sr-plot .line {
       fill: none;

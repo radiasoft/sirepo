@@ -3267,6 +3267,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             $scope.dataCleared = true;
             $scope.margin = {top: 50, left: 70, right: 100, bottom: 50};
 
+            $scope.altKeyName = () => navigator.appVersion.indexOf("Mac")!=-1)
+
             $scope.readout = (coords=[0, 0], val=0) => {
                 if (! $scope.enableCrosshairs()) {
                     return '';
