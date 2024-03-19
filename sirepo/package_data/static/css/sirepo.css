@@ -445,6 +445,10 @@
       font-size: 14px;
       text-anchor: middle;
     }
+    .sr-plot .select-cell-text {
+      font-size: 14px;
+      text-anchor: middle;
+    }
     .sr-plot .line {
       fill: none;
       stroke: steelblue;

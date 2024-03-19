@@ -3267,6 +3267,14 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             $scope.dataCleared = true;
             $scope.margin = {top: 50, left: 70, right: 100, bottom: 50};
 
+            $scope.readout = (coords=[0, 0], val=0) => {
+                if (! $scope.enableCrosshairs()) {
+                    return '';
+                }
+                const labels = [axes.x.label, axes.y.label];
+                return `(${coords.map((x, i) => labels[i] + ': ' + SIREPO.UTILS.roundToPlaces(x, 4))}): ${SIREPO.UTILS.roundToPlaces(val, 4)}`
+            };
+
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             const axes = {
@@ -3517,12 +3525,12 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     .attr('height', (d) =>  p(d.coords).height);
             }
 
-            function updateCrosshairs() {
-                if (! mouseMovePoint) {
+            function updateCrosshairs(point) {
+                if (! point) {
                     return;
                 }
-                const c = binnedCoords(mouseMovePoint);
-                const [i, j] = heatmapIndices(mouseMovePoint);
+                const c = binnedCoords(point);
+                const [i, j] = heatmapIndices(point);
                 const p = getPixel(c);
                 const s = select(overlaySelector).selectAll(`line.${crosshairClass}`);
                 s.filter(`.${crosshairClass}-x`)
@@ -3532,7 +3540,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     .attr('x1', p.x)
                     .attr('x2', p.x);
                 select(overlaySelector).selectAll('text.sr-crosshair-readout')
-                    .text(`(${c.map(x => SIREPO.UTILS.roundToPlaces(x, 4))}): ${SIREPO.UTILS.roundToPlaces(heatmap[heatmap.length - 1 - j][i], 4)}`);
+                    .text($scope.readout(c, heatmap[heatmap.length - 1 - j][i]));
             }
 
             function updateOverlay(selection) {
@@ -3570,8 +3578,9 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
-            //$scope.enableCrosshairs = () => getCfg().enableCrosshairs;
             $scope.enableCrosshairs = () => appState.models[$scope.modelName].enableCrosshairs;
+
+            $scope.enableSelection = () => appState.models[$scope.modelName].enableSelection;
 
             $scope.init = function() {
                 select('svg.sr-plot').attr('height', plotting.initialHeight($scope));
