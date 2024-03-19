@@ -890,10 +890,6 @@ li.sr-dropdown-submenu > a {
   white-space: normal;
 }
 
-NONE {
-  background-color: light-dark(#f8f8f8, #223a2c);
-}
-
 .sr-sidebar {
   margin-top: -10px;
   padding: 0;

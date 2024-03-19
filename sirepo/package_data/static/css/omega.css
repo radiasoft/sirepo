@@ -1,33 +1,59 @@
 :root {
+  --sr-item-bg-dark-mode: #555;
   --sr-active-item-dark-mode: #ddd;
-  --sr-inactive-item-dark-mode: #4d94d1;
+  --sr-link-dark-mode: #5198d5;
   --sr-brand-text-dark-mode: #eee;
+  --sr-sidebar-bg-dark-mode: #333;
 }
 @media (prefers-color-scheme: dark) {
-    .navbar  {
-      background-color: #000;
-    }
-    .navbar-default .navbar-nav > .active > a {
-      color: var(--sr-active-item-dark-mode);
-      background-color: #444;
-    }
-    ul.navbar-nav > .active > a {
-        background-color: #444;
-      }
-    .navbar-brand-text span {
-      color: var(--sr-brand-text-dark-mode);
-    }
-    body {
-      background-color: #000;
-    }
-    .sr-sidebar {
-      background-color: #333;
-    }
-    .sr-nav-sidebar > li.active > a {
-        background-color: #444;
-        color: var(--sr-active-item-dark-mode);
-    }
-    .sr-nav-sidebar > li > a {
-      color: var(--sr-inactive-item-dark-mode);
-    }
+  a {
+    color: var(--sr-link-dark-mode);
   }
+  a:hover {
+    color: #fff !important;
+  }
+  body {
+    background-color: #000;
+  }
+  input {
+    background-color: var(--sr-sidebar-bg-dark-mode) !important;
+    color: var(--sr-active-item-dark-mode) !important;
+  }
+
+  .input-group-addon {
+    background-color: var(--sr-sidebar-bg-dark-mode) !important;
+    color: var(--sr-active-item-dark-mode) !important;
+  }
+
+  .navbar  {
+    background-color: #000;
+  }
+  .navbar-default .navbar-nav > li > a {
+    color: var(--sr-active-item-dark-mode);
+  }
+  .navbar-default .navbar-nav > .active > a {
+    color: var(--sr-active-item-dark-mode);
+    background-color: var(--sr-item-bg-dark-mode);
+  }
+  .navbar-brand-text span {
+    color: var(--sr-brand-text-dark-mode);
+  }
+
+  .sr-dropdown {
+    background-color: var(--sr-sidebar-bg-dark-mode);
+    color: var(--sr-active-item-dark-mode);    
+  }
+  .sr-dropdown.active {
+    background-color: var(--sr-action) !important;
+  }
+  .sr-sidebar {
+    background-color: var(--sr-sidebar-bg-dark-mode);
+  }
+  .sr-nav-sidebar > li.active > a {
+      background-color: var(--sr-item-bg-dark-mode);
+      color: var(--sr-active-item-dark-mode);
+  }
+  .sr-nav-sidebar > li > a {
+    color: var(--sr-link-dark-mode);
+  }
+}
