@@ -2914,17 +2914,31 @@ SIREPO.app.directive('tallyList', function() {
 });
 
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
-    srdbg("first appState.models.openmcAnimation", appState.models.openmcAnimation);
-
-    if (appState.models.openmcAnimation.cachedScore) {
-        appState.models.openmcAnimation.score = appState.models.openmcAnimation.cachedScore;
+    const useCachedScore = () => {
+        if (appState.models.openmcAnimation.prevScore) {
+            appState.models.openmcAnimation.tallies.forEach(t => {
+                if (t.name === appState.models.openmcAnimation.tally) {
+                    t.scores.forEach(s => {
+                        if (s.score === appState.models.openmcAnimation.prevScore) {
+                            appState.models.openmcAnimation.score = appState.models.openmcAnimation.prevScore;
+                            return;
+                        }
+                    });
+                }
+            });
+        }
     }
 
+    useCachedScore();
+
     const autoUpdate = utilities.debounce(() => {
+        srdbg("prevScore", appState.models.openmcAnimation.prevScore);
+        preserveScore();
         if ($scope.form.$valid) {
             appState.saveChanges('openmcAnimation');
         }
     }, SIREPO.debounce_timeout);
+
 
     function showFields() {
         const is2D = appState.models.tallyReport.selectedGeometry === '2D';
@@ -2964,9 +2978,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     }
 
     const preserveScore = () => {
-        // TODO (gurhar1133): try again without openmcAnimation.cachedScore
-        // cause this is a hack
-        appState.models.openmcAnimation.cachedScore = appState.models.openmcAnimation.score;
+        appState.models.openmcAnimation.prevScore = appState.models.openmcAnimation.score;
         appState.saveChanges('openmcAnimation');
         srdbg("appstate.models.openmcAnimation after caching score", appState.models.openmcAnimation);
     }
@@ -2998,10 +3010,8 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         [
             'openmcAnimation.score',
         ], preserveScore,
+        [
+            'openmcAnimation.tally',
+        ], useCachedScore,
     ];
-
-    $scope.$watch(`appState.models.openmcAnimation.score`, function(newVal, oldVal) {
-        srdbg("hit on score change oldval", oldVal, "newVal", newVal);
-    });
-
 });
