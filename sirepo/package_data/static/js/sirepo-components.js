@@ -5078,7 +5078,6 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         s.autocomplete({
             classes: {
                 'ui-autocomplete': 'sr-dropdown',
-                'ui-menu-item-wrapper': 'sr-dropdown',
             },
             delay: 0,
             select: (e, ui) => {
