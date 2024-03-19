@@ -229,6 +229,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
 SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     let hasVolumes = false;
+
     function downloadRemoteGeometryFile() {
         requestSender.sendStatefulCompute(
             appState,
@@ -2874,8 +2875,6 @@ SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
             $scope.is2D = () => {
                 return appState.models.tallyReport.selectedGeometry === '2D';
             };
-
-
         },
     };
 });
