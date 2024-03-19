@@ -155,9 +155,9 @@ class SDDSUtil:
             model=plot_attrs.model,
             plot_fields=PKDict(
                 title=plot_attrs.title if "title" in plot_attrs else "",
-                dynamicYLabel=plot_attrs.dynamicYLabel
-                if "dynamicYLabel" in plot_attrs
-                else False,
+                dynamicYLabel=(
+                    plot_attrs.dynamicYLabel if "dynamicYLabel" in plot_attrs else False
+                ),
                 y_label="",
                 x_label=x.label,
             ),
@@ -190,9 +190,11 @@ def process_sdds_page(filename, page_index, callback, *args, **kwargs):
                 pkdlog("{}: page not found in {}".format(page_index, filename))
                 err = _sdds_error(
                     sdds_index,
-                    "Output page {} not found".format(page_index)
-                    if page_index
-                    else "No output was generated for this report.",
+                    (
+                        "Output page {} not found".format(page_index)
+                        if page_index
+                        else "No output was generated for this report."
+                    ),
                 )
     finally:
         try:

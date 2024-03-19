@@ -77,7 +77,7 @@ def run_elegant(run_dir, elegant_id, prev_sim=None):
         c.copy(
             c.uri(c.LIB_DIR, b),
             c.uri(
-                c.LIB_DIR, 
+                c.LIB_DIR,
                 s.lib_file_name_with_model_field("command_run_setup", "expand_for", filename),
             ),
         )
@@ -91,7 +91,7 @@ def run_elegant(run_dir, elegant_id, prev_sim=None):
         cmd.input = filename
         cmd.center_arrival_time = '1'
         cmd.center_transversely = '1'
-        cmd.reverse_t_sign = '1' if prev_sim.sim_type == 'genesis' else '0'
+        cmd.reverse_t_sign = '1'
         LatticeUtil.find_first_command(data, "run_setup").expand_for = filename
         write_sim(data)
 

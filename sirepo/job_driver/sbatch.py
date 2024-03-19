@@ -188,9 +188,11 @@ disown
             async with asyncssh.connect(
                 self.cfg.host,
                 username=self._creds.username,
-                password=self._creds.password + self._creds.otp
-                if "nersc" in self.cfg.host
-                else self._creds.password,
+                password=(
+                    self._creds.password + self._creds.otp
+                    if "nersc" in self.cfg.host
+                    else self._creds.password
+                ),
                 known_hosts=self._KNOWN_HOSTS,
             ) as c:
                 async with c.create_process("/bin/bash --noprofile --norc -l") as p:

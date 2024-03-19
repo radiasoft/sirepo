@@ -111,9 +111,10 @@ def pytest_collection_modifyitems(session, config, items):
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_protocol(item, *args, **kwargs):
     import signal
-    from pykern import pkunit
 
     def _timeout(*args, **kwargs):
+        from pykern import pkunit
+
         signal.signal(signal.SIGALRM, _timeout_failed)
         signal.alarm(1)
         pkunit.pkfail("MAX_CASE_RUN_SECS={} exceeded", MAX_CASE_RUN_SECS)
@@ -127,17 +128,8 @@ def pytest_runtest_protocol(item, *args, **kwargs):
         os.killpg(os.getpgrp(), signal.SIGKILL)
 
     # Seems to be the only way to get the module under test
-    m = item._request.module
-    is_new = m != pkunit.module_under_test
-
-    if is_new:
-        signal.signal(signal.SIGALRM, _timeout)
-    pkunit.module_under_test = m
+    signal.signal(signal.SIGALRM, _timeout)
     signal.alarm(MAX_CASE_RUN_SECS)
-    if is_new:
-        from pykern import pkio
-
-        pkio.unchecked_remove(pkunit.work_dir())
 
 
 @pytest.hookimpl(tryfirst=True)
