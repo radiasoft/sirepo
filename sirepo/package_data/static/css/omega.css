@@ -1,8 +1,9 @@
 :root {
-  --sr-item-bg-dark-mode: #555;
   --sr-active-item-dark-mode: #ddd;
-  --sr-link-dark-mode: #5da1e1;
   --sr-brand-text-dark-mode: #eee;
+  --sr-item-bg-dark-mode: #555;
+  --sr-item-focused-bg-dark-mode: #666;
+  --sr-link-dark-mode: #5da1e1;
   --sr-sidebar-bg-dark-mode: #333;
 }
 @media (prefers-color-scheme: dark) {
@@ -25,6 +26,20 @@
     color: var(--sr-active-item-dark-mode) !important;
   }
 
+  .dropdown-menu {
+    background-color: var(--sr-sidebar-bg-dark-mode);
+    color: var(--sr-active-item-dark-mode);
+  }
+
+  .dropdown-menu > li > a {
+    color: var(--sr-active-item-dark-mode);
+  }
+
+  .dropdown-menu > li > a:hover {
+    background-color: var(--sr-sidebar-bg-dark-mode);
+    color: #fff !important;
+  }
+
   .input-group-addon {
     background-color: var(--sr-sidebar-bg-dark-mode) !important;
     color: var(--sr-active-item-dark-mode) !important;
@@ -33,6 +48,9 @@
   .navbar  {
     background-color: #000;
   }
+  .navbar-brand-text span {
+    color: var(--sr-brand-text-dark-mode);
+  }
   .navbar-default .navbar-nav > li > a {
     color: var(--sr-active-item-dark-mode);
   }
@@ -40,23 +58,37 @@
     color: var(--sr-active-item-dark-mode);
     background-color: var(--sr-item-bg-dark-mode);
   }
-  .navbar-brand-text span {
-    color: var(--sr-brand-text-dark-mode);
+  .navbar-default .navbar-nav > .active > a:focus {
+    color: var(--sr-active-item-dark-mode);
+    background-color: var(--sr-item-focused-bg-dark-mode);
+  }
+  .navbar-default .navbar-nav > .active > a:hover {
+    background-color: var(--sr-item-bg-dark-mode);
+  }
+  .navbar-default .navbar-nav > .open > a:focus {
+    color: var(--sr-active-item-dark-mode);
+    background-color: var(--sr-item-focused-bg-dark-mode);
   }
 
   .sr-dropdown {
     background-color: var(--sr-sidebar-bg-dark-mode);
-    color: var(--sr-active-item-dark-mode);    
+    color: var(--sr-active-item-dark-mode);  
   }
   .sr-dropdown .ui-state-active {
     background-color: var(--sr-action);
   }
-  .sr-sidebar {
-    background-color: var(--sr-sidebar-bg-dark-mode);
-  }
   .sr-nav-sidebar > li.active > a {
       background-color: var(--sr-item-bg-dark-mode);
       color: var(--sr-active-item-dark-mode);
+  }
+  .sr-sidebar {
+    background-color: var(--sr-sidebar-bg-dark-mode);
+  }
+  .sr-slack-img {
+    filter: invert(0.875);
+  }
+  .sr-slack-img:hover {
+    filter: invert(1.0);
   }
 
   .table-hover > tbody > tr {
