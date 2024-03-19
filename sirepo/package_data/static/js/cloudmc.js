@@ -215,15 +215,11 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
 
     self.validateSelectedTally = () => {
         const a = appState.models.openmcAnimation;
-        srdbg("a in validatedSelectedTally", a);
         if (! a.tally || ! findTally()) {
             a.tally = a.tallies[0].name;
         }
         if (! a.score || ! findScore(a.score)) {
-            // TODO (gurhar1133): this seems to be the problem
-            // srdbg("! findScore(a.score)=",! findScore(a.score));
             a.score = findTally().scores[0].score;
-            // srdbg("findTally().scores[0].score", findTally().scores[0].score);
         }
         appState.saveQuietly('openmcAnimation');
     };
@@ -233,7 +229,6 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
 SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     let hasVolumes = false;
-    srdbg("geometrycontroller.load", appState.models.openmcAnimation);
     function downloadRemoteGeometryFile() {
         requestSender.sendStatefulCompute(
             appState,
@@ -301,8 +296,6 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
     self.simScope = $scope;
     self.simComputeModel = 'openmcAnimation';
     let errorMessage;
-
-    srdbg("appState on visController.load", appState.models.openmcAnimation);
 
     function validateSelectedTally(tallies) {
         appState.models.openmcAnimation.tallies = tallies;
@@ -2927,18 +2920,13 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
                 }
             });
         }
-    }
-
-    useCachedScore();
+    };
 
     const autoUpdate = utilities.debounce(() => {
-        srdbg("prevScore", appState.models.openmcAnimation.prevScore);
-        preserveScore();
         if ($scope.form.$valid) {
             appState.saveChanges('openmcAnimation');
         }
     }, SIREPO.debounce_timeout);
-
 
     function showFields() {
         const is2D = appState.models.tallyReport.selectedGeometry === '2D';
@@ -2980,8 +2968,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     const preserveScore = () => {
         appState.models.openmcAnimation.prevScore = appState.models.openmcAnimation.score;
         appState.saveChanges('openmcAnimation');
-        srdbg("appstate.models.openmcAnimation after caching score", appState.models.openmcAnimation);
-    }
+    };
 
     $scope.whenSelected = () => {
         updateEnergyRange();
@@ -3014,4 +3001,6 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.tally',
         ], useCachedScore,
     ];
+
+    useCachedScore();
 });
