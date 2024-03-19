@@ -1,4 +1,5 @@
     :root {
+      color-scheme: light dark;
       --sr-action: #367dba;
       --sr-base-blue: #0061af;
       --sr-base-green: #8fc741;
@@ -888,6 +889,10 @@ tr:hover .sr-button-bar-parent {
 li.sr-dropdown-submenu > a {
   margin-right: 5px;
   white-space: normal;
+}
+
+NONE {
+  background-color: light-dark(#f8f8f8, #223a2c);
 }
 
 .sr-sidebar {

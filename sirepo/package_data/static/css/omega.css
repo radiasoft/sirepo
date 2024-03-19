@@ -1,0 +1,24 @@
+@media (prefers-color-scheme: dark) {
+    .navbar  {
+      background-color: #000;
+    }
+    ul.navbar-nav > .active > a {
+        background-color: #444;
+      }
+    .navbar-brand-text span {
+      color: #eee;
+    }
+    body {
+      background-color: #000;
+    }
+    .sr-sidebar {
+      background-color: #444;
+    }
+    .sr-sidebar>li.active>a {
+        background-color: #444;
+        color: red;
+    }
+    .sr-nav-sidebar {
+        color: red;
+    }
+  }

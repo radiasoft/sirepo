@@ -2457,7 +2457,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
         template: `
             <div class="navbar-header">
               <a class="navbar-brand" href="/"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="Sirepo"></a>
-              <div class="navbar-brand">
+              <div class="navbar-brand navbar-brand-text">
                 <div data-ng-if="appUrl">
                   <a data-ng-href="{{ appUrl }}">
                     ${brand()}
