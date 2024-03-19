@@ -215,14 +215,15 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
 
     self.validateSelectedTally = () => {
         const a = appState.models.openmcAnimation;
+        srdbg("a in validatedSelectedTally", a);
         if (! a.tally || ! findTally()) {
             a.tally = a.tallies[0].name;
         }
         if (! a.score || ! findScore(a.score)) {
             // TODO (gurhar1133): this seems to be the problem
-            srdbg("! findScore(a.score)=",! findScore(a.score));
+            // srdbg("! findScore(a.score)=",! findScore(a.score));
             a.score = findTally().scores[0].score;
-            srdbg("findTally().scores[0].score", findTally().scores[0].score);
+            // srdbg("findTally().scores[0].score", findTally().scores[0].score);
         }
         appState.saveQuietly('openmcAnimation');
     };
@@ -232,7 +233,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
 SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     let hasVolumes = false;
-
+    srdbg("geometrycontroller.load", appState.models.openmcAnimation);
     function downloadRemoteGeometryFile() {
         requestSender.sendStatefulCompute(
             appState,
@@ -300,6 +301,8 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
     self.simScope = $scope;
     self.simComputeModel = 'openmcAnimation';
     let errorMessage;
+
+    srdbg("appState on visController.load", appState.models.openmcAnimation);
 
     function validateSelectedTally(tallies) {
         appState.models.openmcAnimation.tallies = tallies;
@@ -2912,6 +2915,11 @@ SIREPO.app.directive('tallyList', function() {
 
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
     srdbg("first appState.models.openmcAnimation", appState.models.openmcAnimation);
+
+    if (appState.models.openmcAnimation.cachedScore) {
+        appState.models.openmcAnimation.score = appState.models.openmcAnimation.cachedScore;
+    }
+
     const autoUpdate = utilities.debounce(() => {
         if ($scope.form.$valid) {
             appState.saveChanges('openmcAnimation');
@@ -2955,10 +2963,11 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         appState.saveChanges('openmcAnimation');
     }
 
-    function preserveScore() {
-        srdbg("preserveScore called");
-        appState.saveChanges('openmcAnimation.score');
-        srdbg(appState.models.openmcAnimation);
+    const preserveScore = () => {
+        // TODO (gurhar1133): try again without openmcAnimation.cachedScore
+        appState.models.openmcAnimation.cachedScore = appState.models.openmcAnimation.score;
+        appState.saveChanges('openmcAnimation');
+        srdbg("appstate.models.openmcAnimation after caching score", appState.models.openmcAnimation);
     }
 
     $scope.whenSelected = () => {
