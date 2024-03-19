@@ -510,7 +510,7 @@ SIREPO.app.directive('scansTable', function() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr ng-repeat="s in scans track by $index" data-ng-click="raydataService.setDetailScan(s)">
+                    <tr ng-repeat="s in scans track by $index" data-ng-click="raydataService.setDetailScan(s)" style="{{ analysisStatus === 'allStatuses' ? 'cursor: pointer;' : '' }}">
                       <td style="width: 1%" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans[s.rduid]" data-ng-click="togglePdfSelectScan(s.rduid)"/></td>
                       <td width="1%"><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-if="analysisStatus == 'queued'">
@@ -624,7 +624,6 @@ SIREPO.app.directive('scansTable', function() {
                         delete $scope.pdfSelectedScans[p];
                     }
                 }
-                // update with latest details, but details won't disappear if detailScan isn't in latest results
                 if (raydataService.detailScan) {
                     for (const s in $scope.scans) {
                         if ($scope.scans[s].rduid === raydataService.detailScan.rduid) {
@@ -646,6 +645,7 @@ SIREPO.app.directive('scansTable', function() {
                     $scope.isRefreshingScans = false;
                     $scope.scans = [];
                     $scope.isLoadingNewScans = true;
+                    raydataService.setDetailScan(null);
                 }
                 if (resetPager) {
                     scanArgs.pageNumber = 0;
@@ -1173,21 +1173,21 @@ SIREPO.app.directive('scanDetail', function() {
         },
         template: `
             <div><strong>Scan Detail</strong></div>
-            <div class="well" style="height: 500px">
+            <div class="well" style="height: 250px; overflow: scroll;">
             <div data-ng-if="scan">
-              <div>Scan Id: {{ scan.rduid }}</div>
+              <div><strong>Scan Id:</strong> {{ scan.rduid }}</div>
               <div data-ng-if="detailedStatusFile()">
-                <div>Most Recent Status</div>
+                <div><strong>Most Recent Status</strong></div>
                 <pre style="overflow: scroll; height: 100px">{{ currentStatus() }}</pre>
               </div>
               <div data-ng-if="detailedStatusFile()">
-                <div>Detailed Status File</div>
+                <div><strong>Detailed Status File</strong></div>
                 <pre style="overflow: scroll; height: 250px">{{ detailedStatus() }}</pre>
               </div>
               <div data-ng-if="detailedStatusFile()">
-                <div>Current Consecutive Failures: {{ consecutiveFailures() }}</div>
+                <div><strong>Current Consecutive Failures:</strong> {{ consecutiveFailures() }}</div>
               </div>
-              <div data-ng-if="analysisElapsedTime()">Analysis Elapsed Time: {{ analysisElapsedTime() }} seconds</div>
+              <div data-ng-if="analysisElapsedTime()"><strong>Analysis Elapsed Time:</strong> {{ analysisElapsedTime() }} seconds</div>
             </div>
             </div>
 `,
