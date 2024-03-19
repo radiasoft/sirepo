@@ -9,7 +9,7 @@ SIREPO.app.config(function() {
           <div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="19"></div>
         </div>
         <div data-ng-switch-when="MaginPlot">
-            <div data-magin-file-plot="" data-model-name="maginPlotReport">
+            <div data-magin-file-plot="" data-model-name="maginPlotReport"></div>
         </div>
     `;
 });
