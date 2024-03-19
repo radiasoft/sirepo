@@ -2983,9 +2983,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.sourceNormalization',
             'openmcAnimation.thresholds',
         ], autoUpdate,
-        [
-            'openmcAnimation.tally',
-        ], validateTally,
+        ['openmcAnimation.tally'], validateTally,
         [
             'tallyReport.planePos.numSteps',
             'tallyReport.selectedGeometry',
@@ -2993,12 +2991,8 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.showSources',
             'openmcAnimation.numSampleSourceParticles',
         ], showFields,
-        [
-            'openmcAnimation.score',
-        ], preserveScore,
-        [
-            'openmcAnimation.tally',
-        ], useCachedScore,
+        ['openmcAnimation.score'], preserveScore,
+        ['openmcAnimation.tally'], useCachedScore,
     ];
 
     useCachedScore();
