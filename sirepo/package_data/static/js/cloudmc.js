@@ -344,11 +344,6 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
         return `Completed batch: ${self.simState.getFrameCount()}`;
     };
     self.startSimulation = function() {
-        if (appState.applicationState().settings.varianceReduction == 'weight_windows_tally'
-            && authState.jobRunModeMap.sbatch) {
-            errorMessage = 'Weight Windows are not yet available with sbatch';
-            return;
-        }
         tallyService.clearMesh();
         delete appState.models.openmcAnimation.tallies;
         self.simState.saveAndRunSimulation('openmcAnimation');
