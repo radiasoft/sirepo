@@ -229,6 +229,9 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
 SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     let hasVolumes = false;
+    let hasGeometry = false;
+    self.simScope = $scope;
+    self.simComputeModel = 'dagmcAnimation';
 
     function downloadRemoteGeometryFile() {
         requestSender.sendStatefulCompute(
@@ -256,23 +259,43 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
             downloadRemoteGeometryFile();
             return;
         }
+        hasGeometry = true;
         self.simState.runSimulation();
+    }
+
+    function verifyGeometry() {
+        requestSender.sendStatefulCompute(
+            appState,
+            (data) => {
+                // don't initialize simulation until geometry is known
+                hasGeometry = data.animationDirExists;
+                self.simState = persistentSimulation.initSimulationState(self);
+            },
+            {
+                method: 'check_animation_dir',
+                args: {
+                    modelName: 'dagmcAnimation',
+                },
+            },
+        );
     }
 
     self.isGeometrySelected = () => {
         return appState.applicationState().geometryInput.dagmcFile;
     };
+
     self.isGeometryProcessed = () => hasVolumes;
-    self.simHandleStatus = data => {
+
+    self.simHandleStatus = (data) => {
         self.hasServerStatus = true;
-        if (data.volumes) {
+        if (hasGeometry && data.volumes) {
             hasVolumes = true;
             if (! Object.keys(appState.applicationState().volumes).length) {
                 appState.models.volumes = data.volumes;
                 appState.saveChanges('volumes');
             }
         }
-        else if (data.state === 'missing' || data.state === 'canceled') {
+        else if (['canceled', 'completed', 'missing'].includes(data.state)) {
             if (self.isGeometrySelected()) {
                 processGeometry();
             }
@@ -285,9 +308,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
         }
     });
 
-    self.simScope = $scope;
-    self.simComputeModel = 'dagmcAnimation';
-    self.simState = persistentSimulation.initSimulationState(self);
+    verifyGeometry();
 });
 
 SIREPO.app.controller('VisualizationController', function(appState, authState, cloudmcService, frameCache, persistentSimulation, requestSender, tallyService, $scope) {
