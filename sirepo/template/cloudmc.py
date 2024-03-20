@@ -82,6 +82,16 @@ def _percent_complete(run_dir, is_running):
     return res
 
 
+def stateful_compute_check_animation_dir(data, **kwargs):
+    return PKDict(
+        animationDirExists=simulation_db.simulation_dir(
+            "cloudmc", sid=data.simulationId
+        )
+        .join(data.args.modelName)
+        .exists()
+    )
+
+
 def background_percent_complete(report, run_dir, is_running):
     if report == "dagmcAnimation":
         if is_running:

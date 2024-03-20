@@ -244,6 +244,9 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
 SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     let hasVolumes = false;
+    let hasGeometry = false;
+    self.simScope = $scope;
+    self.simComputeModel = 'dagmcAnimation';
 
     function downloadRemoteGeometryFile() {
         requestSender.sendStatefulCompute(
@@ -271,23 +274,43 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
             downloadRemoteGeometryFile();
             return;
         }
+        hasGeometry = true;
         self.simState.runSimulation();
+    }
+
+    function verifyGeometry() {
+        requestSender.sendStatefulCompute(
+            appState,
+            (data) => {
+                // don't initialize simulation until geometry is known
+                hasGeometry = data.animationDirExists;
+                self.simState = persistentSimulation.initSimulationState(self);
+            },
+            {
+                method: 'check_animation_dir',
+                args: {
+                    modelName: 'dagmcAnimation',
+                },
+            },
+        );
     }
 
     self.isGeometrySelected = () => {
         return appState.applicationState().geometryInput.dagmcFile;
     };
+
     self.isGeometryProcessed = () => hasVolumes;
-    self.simHandleStatus = data => {
+
+    self.simHandleStatus = (data) => {
         self.hasServerStatus = true;
-        if (data.volumes) {
+        if (hasGeometry && data.volumes) {
             hasVolumes = true;
             if (! Object.keys(appState.applicationState().volumes).length) {
                 appState.models.volumes = data.volumes;
                 appState.saveChanges('volumes');
             }
         }
-        else if (data.state === 'missing' || data.state === 'canceled') {
+        else if (['canceled', 'completed', 'missing'].includes(data.state)) {
             if (self.isGeometrySelected()) {
                 processGeometry();
             }
@@ -300,9 +323,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
         }
     });
 
-    self.simScope = $scope;
-    self.simComputeModel = 'dagmcAnimation';
-    self.simState = persistentSimulation.initSimulationState(self);
+    verifyGeometry();
 });
 
 SIREPO.app.controller('VisualizationController', function(appState, authState, cloudmcService, frameCache, persistentSimulation, requestSender, tallyService, $scope) {
@@ -338,11 +359,6 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
         return `Completed batch: ${self.simState.getFrameCount()}`;
     };
     self.startSimulation = function() {
-        if (appState.applicationState().settings.varianceReduction == 'weight_windows_tally'
-            && authState.jobRunModeMap.sbatch) {
-            errorMessage = 'Weight Windows are not yet available with sbatch';
-            return;
-        }
         tallyService.clearMesh();
         delete appState.models.openmcAnimation.tallies;
         delete appState.models.openmcAnimation.tally;
@@ -362,6 +378,25 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
         return `Tally Results - ${a.tally} - ${a.score} - ${a.aspect}`;
     };
 
+    const sortTallies = () => {
+        for (const t of appState.models.settings.tallies) {
+            // sort and unique scores
+            const v = {};
+            const r = [];
+            for (const s of t.scores) {
+                if (! v[s.score]) {
+                    r.push(s);
+                    v[s.score] = true;
+                }
+            }
+            t.scores = r.sort((a, b) => a.score.localeCompare(b.score));
+            appState.saveQuietly('settings');
+        }
+    };
+
+    $scope.$on('settings.changed', sortTallies);
+
+    sortTallies();
     return self;
 });
 
@@ -1765,7 +1800,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                     <b>{{ row.name }}</b>
                   </div>
                   <div style="position: absolute; top: 0px; right: 5px">
-                    <button data-ng-click="editMaterial(row)"
+                    <button type="button" data-ng-click="editMaterial(row)"
                       class="btn btn-info btn-xs sr-hover-button">Edit</button>
                   </div>
                   <div data-ng-show="row.isVisible">
@@ -2230,7 +2265,7 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
         },
         template: `
             <div class="col-sm-7">
-              <button class="btn btn-xs btn-info pull-right"
+              <button type="button" class="btn btn-xs btn-info pull-right"
                 data-ng-click="addItem()">
                 <span class="glyphicon glyphicon-plus"></span> Add {{ itemName }}</button>
             </div>
@@ -2256,9 +2291,9 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
                       </div>
                     </td>
                     <td>
-                      <button class="btn btn-xs btn-info" style="width: 5em"
+                      <button type="button" class="btn btn-xs btn-info" style="width: 5em"
                         data-ng-click="editItem(m)">Edit</button>
-                      <button data-ng-click="removeItem(m)"
+                      <button type="button" data-ng-click="removeItem(m)"
                         class="btn btn-danger btn-xs"><span
                           class="glyphicon glyphicon-remove"></span></button>
                     </td>
@@ -2666,7 +2701,7 @@ SIREPO.app.directive('simpleListEditor', function(panelState) {
                   data-field-size="10"
                   data-model="model[field][$index]"></div>
                 <div class="col-sm-2" style="margin-top: 5px">
-                  <button data-ng-click="removeIndex($index)"
+                  <button type="button" data-ng-click="removeIndex($index)"
                     class="btn btn-danger btn-xs"><span
                       class="glyphicon glyphicon-remove"></span></button>
                 </div>
