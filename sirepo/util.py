@@ -295,12 +295,14 @@ def import_submodule(submodule, type_or_data):
     from sirepo import template
 
     sim_type = template.assert_sim_type(
-        type_or_data.simulationType
-        if isinstance(
-            type_or_data,
-            PKDict,
-        )
-        else type_or_data,
+        (
+            type_or_data.simulationType
+            if isinstance(
+                type_or_data,
+                PKDict,
+            )
+            else type_or_data
+        ),
     )
     for p in feature_config.cfg().package_path:
         n = None

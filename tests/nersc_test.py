@@ -17,9 +17,9 @@ def test_nersc_project(monkeypatch):
     _NO_SUCH_PROJECT = "NOT_" + _VALID_PROJECT
 
     mock_output = PKDict()
-    mock_output[
-        _VALID_PROJECT
-    ] = f'[{{"fs": "user usage on HPSS charged to {_VALID_PROJECT}"}}]'
+    mock_output[_VALID_PROJECT] = (
+        f'[{{"fs": "user usage on HPSS charged to {_VALID_PROJECT}"}}]'
+    )
     mock_output[_NO_SUCH_PROJECT] = "[]"
     mock_output[_ERROR] = "arbitrary hpssquota error"
 
