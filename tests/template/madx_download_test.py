@@ -1,4 +1,4 @@
-"""test downloadDataFile
+"""test downloadRunFile
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,7 +15,7 @@ def test_madx_log_download(fc):
     lattice.LatticeUtil.find_first_command(d, "beam").npart = 1
     fc.sr_animation_run(d, "animation", PKDict())
     r = fc.sr_get(
-        "downloadDataFile",
+        "downloadRunFile",
         PKDict(
             simulation_type=d.simulationType,
             simulation_id=d.models.simulation.simulationId,

@@ -76,6 +76,21 @@ class API(sirepo.quest.API):
     async def api_downloadDataFile(
         self, simulation_type, simulation_id, model, frame, suffix=None
     ):
+        """Deprecated use `api_downloadRunFile`"""
+        return await self.api_downloadRunFile(
+            simulation_type, simulation_id, model, frame, suffix=suffix
+        )
+
+    @sirepo.quest.Spec(
+        "require_user",
+        sid="SimId",
+        model="AnalysisModel",
+        frame="DataFileIndex",
+        suffix="FileSuffix optional",
+    )
+    async def api_downloadRunFile(
+        self, simulation_type, simulation_id, model, frame, suffix=None
+    ):
         def _content_too_large(req):
             return sirepo.util.ContentTooLarge(
                 "sim_type={} sid={} report={}",

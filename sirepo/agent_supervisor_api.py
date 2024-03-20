@@ -64,6 +64,7 @@ class ReqBase(tornado.web.RequestHandler):
 
 
 def request(method, uri, token, data=None, json=None):
+    _check_size(method, data)
     return requests.request(
         method,
         uri,
@@ -76,3 +77,11 @@ def request(method, uri, token, data=None, json=None):
             }
         ),
     )
+
+
+def _check_size(method, data):
+    m = sirepo.job.cfg().max_message_bytes
+    if data and len(data) > m:
+        raise sirepo.util.ContentTooLarge(
+            f"len(data)={len(data)} > max_size={m} for method={method}"
+        )
