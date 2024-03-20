@@ -115,7 +115,7 @@
     color: var(--sr-active-item-dark-mode);
   }
 
-  .panel-body {
+  .panel-body, .modal-body {
     background-color: var(--sr-panel-bg-dark-mode);
     color: var(--sr-panel-text-dark-mode);
   }
@@ -123,17 +123,18 @@
     border-color: var(--sr-panel-border-dark-mode);
   }
 
-  .sr-dropdown {
+  .report-window-title-bar {
+    fill: var(--sr-item-bg-dark-mode) !important;
+  }
+
+  .sr-dropdown, .sr-nav-sidebar > li.active > a {
     background-color: var(--sr-panel-bg-dark-mode);
     color: var(--sr-active-item-dark-mode);  
   }
   .sr-dropdown .ui-state-active {
     background-color: var(--sr-action);
   }
-  .sr-nav-sidebar > li.active > a {
-      background-color: var(--sr-item-bg-dark-mode);
-      color: var(--sr-active-item-dark-mode);
-  }
+
 
   .sr-sidebar {
     background-color: var(--sr-panel-bg-dark-mode);
