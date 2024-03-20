@@ -28,5 +28,8 @@ def test_find_by_name(fc):
         ),
         redirect=False,
     )
-    r.assert_http_status(302)
-    pkeq(r.header_get("Location"), "/srw#/findByName/default/Undulator%20Radiation")
+    r.assert_http_redirect("/srw#/findByName/default/Undulator%20Radiation")
+
+
+def test_custom_errors(fc):
+    r = fc.sr_get
