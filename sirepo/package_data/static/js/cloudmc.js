@@ -323,11 +323,6 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
         return `Completed batch: ${self.simState.getFrameCount()}`;
     };
     self.startSimulation = function() {
-        if (appState.applicationState().settings.varianceReduction == 'weight_windows_tally'
-            && authState.jobRunModeMap.sbatch) {
-            errorMessage = 'Weight Windows are not yet available with sbatch';
-            return;
-        }
         tallyService.clearMesh();
         delete appState.models.openmcAnimation.tallies;
         self.simState.saveAndRunSimulation('openmcAnimation');
@@ -1764,7 +1759,8 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                         id="volume-{{ row.name }}-opacity-range" data-j-range-slider=""
                         data-ng-model="row" data-model-name="row.name"
                         data-field-name="'opacity'" data-model="row"
-                        data-field="row.opacity" data-on-change="volumeOpacityChanged(row)">
+                        data-field="row.opacity" data-hide-min-max="$index !== 0"
+                        data-on-change="volumeOpacityChanged(row)">
                       </div>
                   </div>
                 </div>
@@ -2727,13 +2723,14 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             model: '=',
             modelName: '<',
             onChange: '&',
+            hideMinMax: '=',
         },
         template: `
             <div class="{{ sliderClass }}"></div>
             <div style="display:flex; justify-content:space-between;">
-                <span>{{ formatFloat(field.min) }}</span>
+                <span>{{ formatMinMax(field.min) }}</span>
                 <span style="font-weight: bold;">{{ display(field) }}</span>
-                <span>{{ formatFloat(field.max) }}</span>
+                <span>{{ formatMinMax(field.max) }}</span>
             </div>
         `,
         controller: function($scope, $element) {
@@ -2823,16 +2820,21 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
 
             $scope.display = (range) => {
                 function toLog(val, r) {
-                    return $scope.formatFloat(SIREPO.UTILS.linearToLog(val, r.min, r.max, r.step));
+                    return formatFloat(SIREPO.UTILS.linearToLog(val, r.min, r.max, r.step));
                 }
 
                 const v = range.val;
                 if (range.space === 'linear') {
-                    return Array.isArray(v) ? v.map(x => $scope.formatFloat(x)) : $scope.formatFloat(v);
+                    return Array.isArray(v) ? v.map(x => formatFloat(x)) : formatFloat(v);
                 }
-                return Array.isArray(v) ? v.map(x => $scope.formatFloat(toLog(x, range))) : $scope.formatFloat(toLog(v));
+                return Array.isArray(v) ? v.map(x => formatFloat(toLog(x, range))) : formatFloat(toLog(v));
             };
-            $scope.formatFloat = val => SIREPO.UTILS.formatFloat(val, 4);
+
+            const formatFloat = (val) => {
+                return SIREPO.UTILS.formatFloat(val, 4);
+            };
+
+            $scope.formatMinMax = (val) => $scope.hideMinMax ? '' : formatFloat(val);
             $scope.hasSteps = () => hasSteps;
 
             panelState.waitForUI(updateSlider);
