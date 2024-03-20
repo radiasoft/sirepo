@@ -1,11 +1,12 @@
 :root {
   --sr-active-item-dark-mode: #ddd;
-  --sr-panel-border-dark-mode: #e7e7e7;
-  --sr-panel-text-dark-mode: #eee;
   --sr-item-bg-dark-mode: #555;
   --sr-item-focused-bg-dark-mode: #666;
   --sr-link-dark-mode: #5da1e1;
   --sr-panel-bg-dark-mode: #333;
+  --sr-panel-border-dark-mode: #e7e7e7;
+  --sr-panel-control-dark-mode: #444;
+  --sr-panel-text-dark-mode: #eee;
 }
 @media (prefers-color-scheme: dark) {
   a {
@@ -40,6 +41,11 @@
     background-color: var(--sr-item-focused-bg-dark-mode);
   }
 
+  .btn-default {
+    background-color: var(--sr-panel-control-dark-mode);
+    color: var(--sr-active-item-dark-mode);
+  }
+
   .dropdown-menu {
     background-color: var(--sr-panel-bg-dark-mode);
     color: var(--sr-active-item-dark-mode);
@@ -55,8 +61,8 @@
   }
 
   .form-control {
-    background-color: var(--sr-panel-bg-dark-mode) !important;
-    color: var(--sr-active-item-dark-mode) !important;
+    background-color: var(--sr-panel-control-dark-mode);
+    color: var(--sr-active-item-dark-mode);
   }
 
   .input-group-addon {
@@ -74,19 +80,19 @@
     color: var(--sr-active-item-dark-mode);
   }
   .navbar-default .navbar-nav > .active > a {
-    color: var(--sr-active-item-dark-mode);
     background-color: var(--sr-item-bg-dark-mode);
+    color: var(--sr-active-item-dark-mode);
   }
   .navbar-default .navbar-nav > .active > a:focus {
-    color: var(--sr-active-item-dark-mode);
     background-color: var(--sr-item-focused-bg-dark-mode);
+    color: var(--sr-active-item-dark-mode);
   }
   .navbar-default .navbar-nav > .active > a:hover {
     background-color: var(--sr-item-bg-dark-mode);
   }
   .navbar-default .navbar-nav > .open > a:focus {
-    color: var(--sr-active-item-dark-mode);
     background-color: var(--sr-item-focused-bg-dark-mode);
+    color: var(--sr-active-item-dark-mode);
   }
 
   .panel-body {
