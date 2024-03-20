@@ -173,16 +173,36 @@
   a.sr-item-icon:hover {
     color: var(--sr-link-dark-mode) !important;
   }
+  */
+  /*
   .sr-transparent-icon {
-    color: var(--sr-link-dark-mode);
+    color: var(--sr-item-active-dark-mode) !important;
+    text-shadow: 1px 0px 0 var(--sr-link-dark-mode), -1px 0px 0 var(--sr-link-dark-mode), 0px 1px 0 var(--sr-link-dark-mode), 0px -1px 0 var(--sr-link-dark-mode);
   }
+  .sr-transparent-icon-user {
+    color: #f8f8f8;
+    text-shadow: 1px 0px 0 #50da50, -1px 0px 0 #50da50, 0px 1px 0 #50da50, 0px -1px 0 #50da50;
+  }
+  */
+  /*
   .sr-transparent-icon:hover {
     color: white;
   }
-*/
+  */
+
+  /*
   .sr-user-item {
-    color: #109a10;
+    color: #50da50;
   }
+  */
+/*
+  .sr-user-item:hover {
+    color: #fff;
+  }
+  .sr-example-folder {
+    color: black;
+  }
+*/
   .table-hover > tbody > tr {
     color: #fff;
   }
