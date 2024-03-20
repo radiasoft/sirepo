@@ -166,7 +166,23 @@
   .sr-slack-img:hover {
     filter: invert(1.0);
   }
-
+  /*
+  a.sr-item-icon {
+    color: white;
+  }
+  a.sr-item-icon:hover {
+    color: var(--sr-link-dark-mode) !important;
+  }
+  .sr-transparent-icon {
+    color: var(--sr-link-dark-mode);
+  }
+  .sr-transparent-icon:hover {
+    color: white;
+  }
+*/
+  .sr-user-item {
+    color: #109a10;
+  }
   .table-hover > tbody > tr {
     color: #fff;
   }
