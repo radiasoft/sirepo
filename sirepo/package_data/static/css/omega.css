@@ -28,6 +28,26 @@
     color: var(--sr-active-item-dark-mode) !important;
   }
 
+  svg.sr-plot text {
+    fill: var(--sr-panel-text-dark-mode);
+  }
+
+  svg.sr-plot g.tick > line {
+    stroke: var(--sr-panel-text-dark-mode);
+  }
+
+  svg.sr-plot g.axis > path {
+    stroke: var(--sr-panel-text-dark-mode);
+  }
+
+  svg.sr-plot g.sr-plot-legend-item > text {
+    fill: var(--sr-link-dark-mode);
+  }
+
+  svg.sr-plot g.sr-plot-legend-item > text.focus-text {
+    fill: var(--sr-link-dark-mode);
+  }
+
   app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a {
     color: var(--sr-active-item-dark-mode);
     background-color: var(--sr-item-focused-bg-dark-mode);
@@ -114,6 +134,7 @@
       background-color: var(--sr-item-bg-dark-mode);
       color: var(--sr-active-item-dark-mode);
   }
+
   .sr-sidebar {
     background-color: var(--sr-panel-bg-dark-mode);
   }
