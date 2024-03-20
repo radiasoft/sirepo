@@ -213,10 +213,25 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
         }
     };
 
+    self.updateEnergyRange = (e, resetVals=false) => {
+        if (! e) {
+            return;
+        }
+        const s = appState.models.openmcAnimation.energyRangeSum;
+        s.space = e.space;
+        s.min = e.start;
+        s.max = e.stop;
+        s.step = Math.abs(e.stop - e.start) / e.num;
+        if (resetVals) {
+            s.val = [s.min, s.max];
+        }
+    };
+
     self.validateSelectedTally = () => {
         const a = appState.models.openmcAnimation;
         if (! a.tally || ! findTally()) {
             a.tally = a.tallies[0].name;
+            self.updateEnergyRange(self.findFilter('energyFilter'), true);
         }
         if (! a.score || ! findScore(a.score)) {
             a.score = findTally().scores[0].score;
@@ -346,6 +361,7 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
     self.startSimulation = function() {
         tallyService.clearMesh();
         delete appState.models.openmcAnimation.tallies;
+        delete appState.models.openmcAnimation.tally;
         self.simState.saveAndRunSimulation('openmcAnimation');
     };
     self.simState.logFileURL = function() {
@@ -362,6 +378,25 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
         return `Tally Results - ${a.tally} - ${a.score} - ${a.aspect}`;
     };
 
+    const sortTallies = () => {
+        for (const t of appState.models.settings.tallies) {
+            // sort and unique scores
+            const v = {};
+            const r = [];
+            for (const s of t.scores) {
+                if (! v[s.score]) {
+                    r.push(s);
+                    v[s.score] = true;
+                }
+            }
+            t.scores = r.sort((a, b) => a.score.localeCompare(b.score));
+            appState.saveQuietly('settings');
+        }
+    };
+
+    $scope.$on('settings.changed', sortTallies);
+
+    sortTallies();
     return self;
 });
 
@@ -1765,7 +1800,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                     <b>{{ row.name }}</b>
                   </div>
                   <div style="position: absolute; top: 0px; right: 5px">
-                    <button data-ng-click="editMaterial(row)"
+                    <button type="button" data-ng-click="editMaterial(row)"
                       class="btn btn-info btn-xs sr-hover-button">Edit</button>
                   </div>
                   <div data-ng-show="row.isVisible">
@@ -2230,7 +2265,7 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
         },
         template: `
             <div class="col-sm-7">
-              <button class="btn btn-xs btn-info pull-right"
+              <button type="button" class="btn btn-xs btn-info pull-right"
                 data-ng-click="addItem()">
                 <span class="glyphicon glyphicon-plus"></span> Add {{ itemName }}</button>
             </div>
@@ -2256,9 +2291,9 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
                       </div>
                     </td>
                     <td>
-                      <button class="btn btn-xs btn-info" style="width: 5em"
+                      <button type="button" class="btn btn-xs btn-info" style="width: 5em"
                         data-ng-click="editItem(m)">Edit</button>
-                      <button data-ng-click="removeItem(m)"
+                      <button type="button" data-ng-click="removeItem(m)"
                         class="btn btn-danger btn-xs"><span
                           class="glyphicon glyphicon-remove"></span></button>
                     </td>
@@ -2596,7 +2631,7 @@ SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, val
     }
 
     function validateFilter(field) {
-        const f = appState.models[$scope.modelName][ field.split('.')[1]];
+        const f = appState.models[$scope.modelName][field.split('.')[1]];
         if (f._type === 'None') {
             return;
         }
@@ -2666,7 +2701,7 @@ SIREPO.app.directive('simpleListEditor', function(panelState) {
                   data-field-size="10"
                   data-model="model[field][$index]"></div>
                 <div class="col-sm-2" style="margin-top: 5px">
-                  <button data-ng-click="removeIndex($index)"
+                  <button type="button" data-ng-click="removeIndex($index)"
                     class="btn btn-danger btn-xs"><span
                       class="glyphicon glyphicon-remove"></span></button>
                 </div>
@@ -2759,6 +2794,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`.replace(/ /g, '-');
 
             let hasSteps = false;
+            let isMulti = false;
             let slider = null;
             const watchFields = ['min', 'max', 'step'].map(x => `model[fieldName].${x}`);
 
@@ -2785,8 +2821,12 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     return;
                 }
                 const sel = $(`.${$scope.sliderClass}`);
+                if (! sel.length) {
+                    // slider has been destroyed prior to event
+                    return null;
+                }
                 let val = range.val;
-                const isMulti = Array.isArray(val);
+                isMulti = Array.isArray(val);
                 if (isMulti) {
                     val[0] = adjustToRange(val[0], range);
                     val[1] = adjustToRange(val[1], range);
@@ -2829,6 +2869,13 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                 return sel;
             }
 
+            function didChange(newValues, oldValues) {
+                if (Array.isArray(newValues)) {
+                    return newValues.some((x, i) => x !== oldValues[i]) && ! newValues.some(x => x == null);
+                }
+                return newValues != null && newValues !== oldValues;
+            }
+
             function isValid(range) {
                 const v = [range.min, range.max, range.step].every(x => x != null) &&
                     range.min !== range.max;
@@ -2863,8 +2910,17 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
             $scope.$watchGroup(
                 watchFields,
                 (newValues, oldValues) => {
-                    if (newValues.some((x, i) => x !== oldValues[i]) && ! newValues.some(x => x == null)) {
+                    if (didChange(newValues, oldValues)) {
                         updateSlider();
+                    }
+                }
+            );
+
+            $scope.$watch(
+                'model[fieldName].val',
+                (newValue, oldValue) => {
+                    if (didChange(newValue, oldValue)) {
+                        slider.slider('option', isMulti ? 'values' : 'value', newValue);
                     }
                 }
             );
@@ -2921,7 +2977,7 @@ SIREPO.app.directive('tallyList', function() {
     };
 });
 
-SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, validationService, $element, $scope) {
+SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, $scope) {
     const useCachedScore = () => {
         if (appState.models.openmcAnimation.prevScore) {
             appState.models.openmcAnimation.tallies.forEach(t => {
@@ -2961,22 +3017,14 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         panelState.showField('openmcAnimation', 'sourceColorMap', showSources && appState.models.openmcAnimation.numSampleSourceParticles);
     }
 
-    function updateEnergyRange() {
-        const e = cloudmcService.findFilter('energyFilter');
-        $scope.energyFilter = e;
-        if (! e || ! cloudmcService.findFilter('meshFilter')) {
-            return;
-        }
-
-        const s = appState.models.openmcAnimation.energyRangeSum;
-        s.space = e.space;
-        s.min = e.start;
-        s.max = e.stop;
-        s.step = Math.abs(e.stop - e.start) / e.num;
+    function updateEnergyRange(resetVals=false) {
+        $scope.energyFilter = cloudmcService.findFilter('energyFilter');
+        cloudmcService.updateEnergyRange($scope.energyFilter, resetVals);
     }
 
     function validateTally() {
         cloudmcService.validateSelectedTally();
+        updateEnergyRange(true);
         appState.saveChanges('openmcAnimation');
     }
 
