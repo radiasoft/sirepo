@@ -1,5 +1,5 @@
 :root {
-  --sr-active-item-dark-mode: #ddd;
+  --sr-item-active-dark-mode: #ddd;
   --sr-item-bg-dark-mode: #555;
   --sr-item-focused-bg-dark-mode: #666;
   --sr-link-dark-mode: #5da1e1;
@@ -25,7 +25,7 @@
 
   input {
     background-color: var(--sr-panel-bg-dark-mode) !important;
-    color: var(--sr-active-item-dark-mode) !important;
+    color: var(--sr-item-active-dark-mode) !important;
   }
 
   svg.sr-plot text {
@@ -48,31 +48,39 @@
     fill: var(--sr-link-dark-mode);
   }
 
+  svg.sr-plot g.text-block > text#x-text {
+    fill: var(--sr-panel-text-dark-mode) !important;
+  }
+
+  svg.sr-plot g.text-block g.text-group > g[id^="y-text"] > text {
+    fill: var(--sr-link-dark-mode);
+  } 
+
   app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a {
-    color: var(--sr-active-item-dark-mode);
+    color: var(--sr-item-active-dark-mode);
     background-color: var(--sr-item-focused-bg-dark-mode);
   }
   app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a:hover {
-    color: var(--sr-active-item-dark-mode);
+    color: var(--sr-item-active-dark-mode);
     background-color: var(--sr-item-focused-bg-dark-mode);
   }
   app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a:focus {
-    color: var(--sr-active-item-dark-mode);
+    color: var(--sr-item-active-dark-mode);
     background-color: var(--sr-item-focused-bg-dark-mode);
   }
 
   .btn-default {
     background-color: var(--sr-panel-control-dark-mode);
-    color: var(--sr-active-item-dark-mode);
+    color: var(--sr-item-active-dark-mode);
   }
 
   .dropdown-menu {
     background-color: var(--sr-panel-bg-dark-mode);
-    color: var(--sr-active-item-dark-mode);
+    color: var(--sr-item-active-dark-mode);
   }
 
   .dropdown-menu > li > a {
-    color: var(--sr-active-item-dark-mode);
+    color: var(--sr-item-active-dark-mode);
   }
 
   .dropdown-menu > li > a:hover {
@@ -82,12 +90,12 @@
 
   .form-control {
     background-color: var(--sr-panel-control-dark-mode);
-    color: var(--sr-active-item-dark-mode);
+    color: var(--sr-item-active-dark-mode);
   }
 
   .input-group-addon {
     background-color: var(--sr-panel-bg-dark-mode) !important;
-    color: var(--sr-active-item-dark-mode) !important;
+    color: var(--sr-item-active-dark-mode) !important;
   }
 
   .navbar  {
@@ -97,22 +105,22 @@
     color: var(--sr-panel-text-dark-mode);
   }
   .navbar-default .navbar-nav > li > a {
-    color: var(--sr-active-item-dark-mode);
+    color: var(--sr-item-active-dark-mode);
   }
   .navbar-default .navbar-nav > .active > a {
     background-color: var(--sr-item-bg-dark-mode);
-    color: var(--sr-active-item-dark-mode);
+    color: var(--sr-item-active-dark-mode);
   }
   .navbar-default .navbar-nav > .active > a:focus {
     background-color: var(--sr-item-focused-bg-dark-mode);
-    color: var(--sr-active-item-dark-mode);
+    color: var(--sr-item-active-dark-mode);
   }
   .navbar-default .navbar-nav > .active > a:hover {
     background-color: var(--sr-item-bg-dark-mode);
   }
   .navbar-default .navbar-nav > .open > a:focus {
     background-color: var(--sr-item-focused-bg-dark-mode);
-    color: var(--sr-active-item-dark-mode);
+    color: var(--sr-item-active-dark-mode);
   }
 
   .panel-body, .modal-body {
@@ -123,13 +131,26 @@
     border-color: var(--sr-panel-border-dark-mode);
   }
 
-  .report-window-title-bar {
+  .report-window {
     fill: var(--sr-item-bg-dark-mode) !important;
+    stroke: var(--sr-panel-border-dark-mode) !important;
+  }
+
+  .report-window-title-icon {
+    fill: var(--sr-link-dark-mode) !important;
+  }
+
+  .report-window-title-icon.close {
+    opacity: 0.5;
+  }
+
+  .report-window-title-icon.close:hover {
+    opacity: 0.75;
   }
 
   .sr-dropdown, .sr-nav-sidebar > li.active > a {
     background-color: var(--sr-panel-bg-dark-mode);
-    color: var(--sr-active-item-dark-mode);  
+    color: var(--sr-item-active-dark-mode);  
   }
   .sr-dropdown .ui-state-active {
     background-color: var(--sr-action);
