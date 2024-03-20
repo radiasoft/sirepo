@@ -226,7 +226,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
             s.val = [s.min, s.max];
         }
     };
-    
+
     self.validateSelectedTally = () => {
         const a = appState.models.openmcAnimation;
         if (! a.tally || ! findTally()) {
@@ -2786,6 +2786,10 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
                     return;
                 }
                 const sel = $(`.${$scope.sliderClass}`);
+                if (! sel.length) {
+                    // slider has been destroyed prior to event
+                    return null;
+                }
                 let val = range.val;
                 isMulti = Array.isArray(val);
                 if (isMulti) {
@@ -2969,7 +2973,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     }
 
     function validateTally() {
-        cloudmcService.validateSelectedTally(); 
+        cloudmcService.validateSelectedTally();
         updateEnergyRange(true);
         appState.saveChanges('openmcAnimation');
     }
