@@ -1,6 +1,5 @@
 import pytest
-
-
+import os
 from pykern.pkdebug import pkdp
 from sirepo import simulation_db
 import sirepo.uri
@@ -44,3 +43,18 @@ def test_custom_errors(fc):
         with open(sirepo.resource.static("html", v.url), "r") as f:
             s = f.read()
             pkre(v.msg, s)
+
+
+def setup_module(module):
+    os.environ.update(
+        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="jupyterhublogin",
+        SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL="x@x.x",
+    )
+
+
+def test_jupyterhub_redirect(fc):
+    fc.sr_get("redirectJupyterHub", redirect=False).assert_http_redirect("jupyterHub")
+
+
+def test_simulation_redirect(fc):
+    fc.sr_get("simulationRedirect", redirect=False).assert_http_redirect("simulations")
