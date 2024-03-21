@@ -27,8 +27,8 @@
   }
 
   input {
-    background-color: var(--sr-panel-bg-dark-mode) !important;
-    color: var(--sr-item-active-dark-mode) !important;
+    background-color: var(--sr-panel-bg-dark-mode);
+    color: var(--sr-item-active-dark-mode);
   }
 
   svg.sr-plot text {
@@ -139,6 +139,7 @@
   .report-window-title-icon.close {
     opacity: 0.5;
   }
+
   .report-window-title-icon.close:hover {
     opacity: 0.75;
   }
