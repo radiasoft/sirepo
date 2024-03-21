@@ -4030,13 +4030,6 @@ SIREPO.app.controller('LoginWithController', function (authState, errorService, 
             }
         );
     }
-    else if (m == 'github') {
-        self.msg = 'Logging in via GitHub. Please wait...';
-        requestSender.globalRedirect(
-            'authGithubLogin',
-            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
-        );
-    }
     else if (m == 'email') {
         // handled by the emailLogin directive
     }
