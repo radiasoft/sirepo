@@ -542,7 +542,7 @@
         },
         "404": {
             "url": "http-not-found.html",
-            "msg": "File Not Found",
+            "msg": "Not Found",
             "route": "notFound"
         },
         "413": {

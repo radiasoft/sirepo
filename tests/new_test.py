@@ -36,6 +36,11 @@ def test_find_by_name(fc):
 
 
 def test_custom_errors(fc):
+    from pykern.pkunit import pkre
+
     for k, v in simulation_db.SCHEMA_COMMON.customErrors.items():
         r = fc.sr_get(sirepo.uri.local_route(fc.sr_sim_type, v.route))
         r.assert_success()
+        with open(sirepo.resource.static("html", v.url), "r") as f:
+            s = f.read()
+            pkre(v.msg, s)
