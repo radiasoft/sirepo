@@ -2,6 +2,7 @@
   --sr-item-active-dark-mode: #ddd;
   --sr-item-bg-dark-mode: #555;
   --sr-item-focused-bg-dark-mode: #565656;
+  --sr-item-user: #46c246;
   --sr-link-dark-mode: #5da1e1;
   --sr-panel-bg-dark-mode: #333;
   --sr-panel-border-dark-mode: #e7e7e7;
@@ -156,54 +157,35 @@
     background-color: var(--sr-action);
   }
 
-
   .sr-sidebar {
     background-color: var(--sr-panel-bg-dark-mode);
   }
+
   .sr-slack-img {
     filter: invert(0.875);
   }
   .sr-slack-img:hover {
     filter: invert(1.0);
   }
-  /*
-  a.sr-item-icon {
-    color: white;
-  }
-  a.sr-item-icon:hover {
-    color: var(--sr-link-dark-mode) !important;
-  }
-  */
-  /*
+  
   .sr-transparent-icon {
     color: var(--sr-item-active-dark-mode) !important;
     text-shadow: 1px 0px 0 var(--sr-link-dark-mode), -1px 0px 0 var(--sr-link-dark-mode), 0px 1px 0 var(--sr-link-dark-mode), 0px -1px 0 var(--sr-link-dark-mode);
   }
-  .sr-transparent-icon-user {
-    color: #f8f8f8;
-    text-shadow: 1px 0px 0 #50da50, -1px 0px 0 #50da50, 0px 1px 0 #50da50, 0px -1px 0 #50da50;
-  }
-  */
-  /*
-  .sr-transparent-icon:hover {
-    color: white;
-  }
-  */
-
-
+  
   .sr-user-item {
-    color: #46c246;
+    color: var(--sr-item-user);
   }
-
-
+  
+  .sr-transparent-icon-user {
+    color: var(--sr-item-active-dark-mode);
+    text-shadow: 1px 0px 0 var(--sr-item-user), -1px 0px 0 var(--sr-item-user), 0px 1px 0 var(--sr-item-user), 0px -1px 0 var(--sr-item-user);
+  }
+  
   .sr-user-item:hover {
     color: #fff;
   }
-  /*
-  .sr-example-folder {
-    color: black;
-  }
-*/
+
   .table-hover > tbody > tr {
     color: #fff;
   }
