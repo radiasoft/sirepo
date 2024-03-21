@@ -118,7 +118,7 @@
         "authState": "/auth-state",
         "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
-        "checkAuthJupyterhub": "/check-auth-jupyterhub",
+        "checkAuthJupyterHub": "/check-auth-jupyterhub",
         "contentTooLarge": "/content-too-large",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
