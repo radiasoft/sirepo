@@ -82,7 +82,7 @@
 
   .dropdown-menu > li > a:hover {
     background-color: var(--sr-panel-bg-dark-mode);
-    color: var(--sr-link-hover-dark-mode) !important;
+    color: var(--sr-link-hover-dark-mode);
   }
 
   .form-control {
@@ -91,8 +91,8 @@
   }
 
   .input-group-addon {
-    background-color: var(--sr-panel-bg-dark-mode) !important;
-    color: var(--sr-item-active-dark-mode) !important;
+    background-color: var(--sr-panel-bg-dark-mode);
+    color: var(--sr-item-active-dark-mode);
   }
 
   .navbar  {
@@ -136,11 +136,9 @@
   .report-window-title-icon {
     fill: var(--sr-link-dark-mode) !important;
   }
-
   .report-window-title-icon.close {
     opacity: 0.5;
   }
-
   .report-window-title-icon.close:hover {
     opacity: 0.75;
   }
@@ -172,17 +170,15 @@
   .sr-user-item {
     color: var(--sr-item-user);
   }
-  
+  .sr-user-item:hover {
+    color: var(--sr-link-hover-dark-mode);
+  }
+
   .sr-transparent-icon-user {
     color: var(--sr-item-active-dark-mode);
     text-shadow: 1px 0px 0 var(--sr-item-user), -1px 0px 0 var(--sr-item-user), 0px 1px 0 var(--sr-item-user), 0px -1px 0 var(--sr-item-user);
   }
   
-  
-  .sr-user-item:hover {
-    color: var(--sr-link-hover-dark-mode);
-  }
-
   .table-hover > tbody > tr {
     color: var(--sr-link-hover-dark-mode);
   }
