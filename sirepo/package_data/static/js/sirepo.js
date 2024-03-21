@@ -2766,7 +2766,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
                 msg = 'Server unavailable';
             }
             else if (SIREPO.APP_SCHEMA.customErrors[status]) {
-                msg = SIREPO.APP_SCHEMA.customErrors[status].title;
+                msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
             }
             if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
                 // Try to parse javascript-redirect.html
