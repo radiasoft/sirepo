@@ -1,9 +1,13 @@
 import pytest
 
 
+from pykern.pkdebug import pkdp
+from sirepo import simulation_db
+import sirepo.uri
+
+
 def test_favicon(fc):
     from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq
     import sirepo.resource
     import sys
@@ -32,4 +36,6 @@ def test_find_by_name(fc):
 
 
 def test_custom_errors(fc):
-    r = fc.sr_get
+    for k, v in simulation_db.SCHEMA_COMMON.customErrors.items():
+        r = fc.sr_get(sirepo.uri.local_route(fc.sr_sim_type, v.route))
+        r.assert_success()

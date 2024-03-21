@@ -558,7 +558,7 @@
         "502": {
             "url": "http-proxy-error.html",
             "msg": "Proxy Error",
-            "route": "proxy-error"
+            "route": "proxyError"
         }
     }
 }
