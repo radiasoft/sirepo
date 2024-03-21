@@ -165,7 +165,7 @@
   }
   
   .sr-transparent-icon {
-    color: var(--sr-item-active-dark-mode) !important;
+    color: var(--sr-item-active-dark-mode);
     text-shadow: 1px 0px 0 var(--sr-link-dark-mode), -1px 0px 0 var(--sr-link-dark-mode), 0px 1px 0 var(--sr-link-dark-mode), 0px -1px 0 var(--sr-link-dark-mode);
   }
   
@@ -178,11 +178,11 @@
     text-shadow: 1px 0px 0 var(--sr-item-user), -1px 0px 0 var(--sr-item-user), 0px 1px 0 var(--sr-item-user), 0px -1px 0 var(--sr-item-user);
   }
   
-  /*
+  
   .sr-user-item:hover {
     color: var(--sr-link-hover-dark-mode);
   }
-*/
+
   .table-hover > tbody > tr {
     color: var(--sr-link-hover-dark-mode);
   }
