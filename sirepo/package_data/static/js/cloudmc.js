@@ -3026,6 +3026,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         cloudmcService.validateSelectedTally();
         updateEnergyRange(true);
         appState.saveChanges('openmcAnimation');
+        useCachedScore();
     }
 
     const preserveScore = () => {
@@ -3036,6 +3037,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     $scope.whenSelected = () => {
         updateEnergyRange();
         showFields();
+        useCachedScore();
     };
 
     $scope.watchFields = [
@@ -3056,8 +3058,5 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.numSampleSourceParticles',
         ], showFields,
         ['openmcAnimation.score'], preserveScore,
-        ['openmcAnimation.tally'], useCachedScore,
     ];
-
-    useCachedScore();
 });
