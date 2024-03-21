@@ -1,9 +1,11 @@
 :root {
+  --sr-bg-dark-mode: #000;
   --sr-item-active-dark-mode: #ddd;
   --sr-item-bg-dark-mode: #555;
   --sr-item-focused-bg-dark-mode: #565656;
   --sr-item-user: #46c246;
   --sr-link-dark-mode: #5da1e1;
+  --sr-link-hover-dark-mode: #fff;
   --sr-panel-bg-dark-mode: #333;
   --sr-panel-border-dark-mode: #e7e7e7;
   --sr-panel-control-dark-mode: #444;
@@ -14,14 +16,14 @@
     color: var(--sr-link-dark-mode);
   }
   a:hover {
-    color: #fff !important;
+    color: var(--sr-link-hover-dark-mode) !important;
   }
   a:visited {
     color: var(--sr-link-dark-mode);
   }
 
   body {
-    background-color: #000;
+    background-color: var(--sr-bg-dark-mode);
   }
 
   input {
@@ -32,27 +34,21 @@
   svg.sr-plot text {
     fill: var(--sr-panel-text-dark-mode);
   }
-
   svg.sr-plot g.tick > line {
     stroke: var(--sr-panel-text-dark-mode);
   }
-
   svg.sr-plot g.axis > path {
     stroke: var(--sr-panel-text-dark-mode);
   }
-
   svg.sr-plot g.sr-plot-legend-item > text {
     fill: var(--sr-link-dark-mode);
   }
-
   svg.sr-plot g.sr-plot-legend-item > text.focus-text {
     fill: var(--sr-link-dark-mode);
   }
-
   svg.sr-plot g.text-block > text#x-text {
     fill: var(--sr-panel-text-dark-mode) !important;
   }
-
   svg.sr-plot g.text-block g.text-group > g[id^="y-text"] > text {
     fill: var(--sr-link-dark-mode);
   } 
@@ -86,7 +82,7 @@
 
   .dropdown-menu > li > a:hover {
     background-color: var(--sr-panel-bg-dark-mode);
-    color: #fff !important;
+    color: var(--sr-link-hover-dark-mode) !important;
   }
 
   .form-control {
@@ -100,7 +96,7 @@
   }
 
   .navbar  {
-    background-color: #000;
+    background-color: var(--sr-bg-dark-mode);
   }
   .navbar-brand-text span {
     color: var(--sr-panel-text-dark-mode);
@@ -182,12 +178,13 @@
     text-shadow: 1px 0px 0 var(--sr-item-user), -1px 0px 0 var(--sr-item-user), 0px 1px 0 var(--sr-item-user), 0px -1px 0 var(--sr-item-user);
   }
   
+  /*
   .sr-user-item:hover {
-    color: #fff;
+    color: var(--sr-link-hover-dark-mode);
   }
-
+*/
   .table-hover > tbody > tr {
-    color: #fff;
+    color: var(--sr-link-hover-dark-mode);
   }
 
   .table-hover > tbody > tr:hover {
