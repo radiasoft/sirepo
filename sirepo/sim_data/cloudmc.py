@@ -67,6 +67,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 y = f._type
                 if y != "None":
                     cls.update_model_defaults(f, y)
+        for s in dm.settings.sources:
+            cls.update_model_defaults(s, "source")
         if th := dm.openmcAnimation.get("threshold"):
             dm.openmcAnimation.thresholds = sch.model.openmcAnimation.thresholds[2]
             dm.openmcAnimation.thresholds.val[0] = th
@@ -75,10 +77,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         for m, f in (
             ("tallyReport", "planePos"),
             ("openmcAnimation", "opacity"),
-            (
-                "geometry3DReport",
-                "opacity",
-            ),
+            ("geometry3DReport", "opacity"),
         ):
             dm[m][f] = _float_to_j_range(dm[m][f], sch.model[m][f])
         if "tally" in dm.weightWindows and not isinstance(dm.weightWindows.tally, str):
