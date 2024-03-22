@@ -123,8 +123,11 @@
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteFile": "/delete-file",
+        "deleteLibFile": "/delete-lib-file",
         "deleteSimulation": "/delete-simulation",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
+        "downloadLibFile": "/download-lib-file/<simulation_type>/<filename>",
+        "downloadRunFile": "/download-run-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
         "error": "/error",
         "errorLogging": "/error-logging",
@@ -170,7 +173,8 @@
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
-        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
+        "uploadLibFile": "/upload-lib-file/<simulation_type>/<simulation_id>/<file_type>"
     },
     "common": {
         "adm": {

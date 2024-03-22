@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 _MAX_SECS_PARALLEL_PREMIUM = "4"
 
 
@@ -73,7 +74,7 @@ def test_myapp_analysis(fc):
     # in analysis when we want the timeout below.
     r = fc.sr_run_sim(d, "heightWeightReport", expect_completed=True)
     r = fc.sr_get(
-        "downloadDataFile",
+        "downloadRunFile",
         PKDict(
             simulation_type=d.simulationType,
             simulation_id=d.models.simulation.simulationId,

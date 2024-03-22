@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkconst
@@ -348,7 +349,6 @@ class SimDataBase(object):
         p = cls._lib_file_abspath_or_exists(basename, qcall=qcall)
         if p:
             return p
-        from sirepo import auth
 
         raise sirepo.util.UserAlert(
             'Simulation library file "{}" does not exist'.format(basename),
@@ -401,7 +401,12 @@ class SimDataBase(object):
         Returns:
             bool: True if `basename` in use by `data`
         """
-        return any(f for f in cls.lib_file_basenames(data) if f == basename)
+        return any(
+            f
+            for f in cls.lib_file_basenames(data)
+            if cls.lib_file_name_without_type(f)
+            == cls.lib_file_name_without_type(basename)
+        )
 
     @classmethod
     def lib_file_names_for_type(cls, file_type, qcall=None):
