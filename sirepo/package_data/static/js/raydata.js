@@ -1173,16 +1173,16 @@ SIREPO.app.directive('scanDetail', function() {
         },
         template: `
             <div><strong>Scan Detail</strong></div>
-            <div class="well" style="height: 250px; overflow: scroll;">
+            <div class="well" style="height: 250px; overflow: auto;">
             <div data-ng-if="scan">
               <div><strong>Scan Id:</strong> {{ scan.rduid }}</div>
               <div data-ng-if="detailedStatusFile()">
                 <div><strong>Most Recent Status</strong></div>
-                <pre style="overflow: scroll; height: 100px">{{ currentStatus() }}</pre>
+                <pre>{{ currentStatus() }}</pre>
               </div>
               <div data-ng-if="detailedStatusFile()">
                 <div><strong>Detailed Status File</strong></div>
-                <pre style="overflow: scroll; height: 250px">{{ detailedStatus() }}</pre>
+                <pre>{{ detailedStatus() }}</pre>
               </div>
               <div data-ng-if="detailedStatusFile()">
                 <div><strong>Current Consecutive Failures:</strong> {{ consecutiveFailures() }}</div>
@@ -1191,7 +1191,7 @@ SIREPO.app.directive('scanDetail', function() {
             </div>
             </div>
 `,
-        controller: function($scope, columnsService) {
+        controller: function($scope, columnsService, utilities) {
             function failureInRun(run) {
                 let r = false;
                 for (const f of Object.values($scope.detailedStatusFile()[run])) {
@@ -1239,7 +1239,7 @@ SIREPO.app.directive('scanDetail', function() {
             };
 
             $scope.detailedStatus = () => {
-                return JSON.stringify($scope.detailedStatusFile(), undefined, 2);
+                return utilities.objectToText($scope.detailedStatusFile());
             };
 
             $scope.detailedStatusFile = () => {
