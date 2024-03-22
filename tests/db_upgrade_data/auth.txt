@@ -18,14 +18,6 @@ CREATE TABLE auth_email_user_t (
 	UNIQUE (user_name),
 	UNIQUE (token)
 );
-CREATE TABLE auth_github_user_t (
-	oauth_id VARCHAR(100) NOT NULL,
-	user_name VARCHAR(100) NOT NULL,
-	uid VARCHAR(8),
-	PRIMARY KEY (oauth_id),
-	UNIQUE (user_name),
-	UNIQUE (uid)
-);
 CREATE TABLE jupyterhub_user_t (
 	uid VARCHAR(8) NOT NULL,
 	user_name VARCHAR(100) NOT NULL,

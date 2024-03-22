@@ -17,9 +17,6 @@ _cfg = {
     "SIREPO_SMTP_PASSWORD": "x",
     "SIREPO_SMTP_SERVER": "dev",
     "SIREPO_SMTP_USER": "x",
-    "SIREPO_AUTH_GITHUB_CALLBACK_URI": "/uri",
-    "SIREPO_AUTH_GITHUB_KEY": "key",
-    "SIREPO_AUTH_GITHUB_SECRET": "secret",
     "SIREPO_AUTH_METHODS": "email:guest",
     "SIREPO_FEATURE_CONFIG_SIM_TYPES": _sim_type,
 }
