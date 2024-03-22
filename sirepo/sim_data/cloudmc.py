@@ -117,7 +117,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             for v in data.models.volumes:
                 res.append(PKDict(basename=f"{data.models.volumes[v].volId}.ply"))
         if data.report == "energyReport":
-            res.extend([
-                PKDict(basename=cls.statepoint_filename(data)),
-            ])
+            res.extend(
+                [
+                    PKDict(basename=cls.statepoint_filename(data)),
+                ]
+            )
         return res

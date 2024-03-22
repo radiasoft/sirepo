@@ -114,9 +114,7 @@ def extract_report_data(run_dir, sim_in):
     if sim_in.report == "tallyReport":
         template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
     if sim_in.report == "energyReport":
-        template_common.write_sequential_result(
-            _energy_plot(run_dir, sim_in)
-        )
+        template_common.write_sequential_result(_energy_plot(run_dir, sim_in))
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -395,9 +393,13 @@ def write_volume_outlines():
 
 
 def _bin(val, num_bins, min_val, max_val):
-    return 0 if min_val == max_val else numpy.floor(
-        num_bins * abs(val - min_val) / abs(max_val - min_val)
-    ).astype(int)
+    return (
+        0
+        if min_val == max_val
+        else numpy.floor(num_bins * abs(val - min_val) / abs(max_val - min_val)).astype(
+            int
+        )
+    )
 
 
 def _dagmc_animation_python(filename):
@@ -417,9 +419,9 @@ def _energy_plot(run_dir, data):
 
     plots = []
     tally_name = data.models.openmcAnimation.tally
-    t = openmc.StatePoint(
-        run_dir.join(_statepoint_filename(data))
-    ).get_tally(name=tally_name)
+    t = openmc.StatePoint(run_dir.join(_statepoint_filename(data))).get_tally(
+        name=tally_name
+    )
     try:
         e_f = t.find_filter(openmc.EnergyFilter)
     except ValueError:
@@ -432,10 +434,11 @@ def _energy_plot(run_dir, data):
     for s in [s.score for s in tally.scores]:
         mean = numpy.reshape(
             getattr(t, "mean")[:, :, t.get_score_index(s)].ravel(),
-            (*mesh.dimension, -1)
+            (*mesh.dimension, -1),
         )
         bins = [
-            _bin(r[dim].val, mesh.dimension[i], r[dim].min, r[dim].max) for i, dim in enumerate(('x', 'y', 'z'))
+            _bin(r[dim].val, mesh.dimension[i], r[dim].min, r[dim].max)
+            for i, dim in enumerate(("x", "y", "z"))
         ]
         plots.append(
             PKDict(
@@ -444,8 +447,8 @@ def _energy_plot(run_dir, data):
                 style="line",
             ),
         )
-        #std_dev = getattr(t, "std_dev")[:, :, t.get_score_index(s)].ravel()
-    
+        # std_dev = getattr(t, "std_dev")[:, :, t.get_score_index(s)].ravel()
+
     return template_common.parameter_plot(
         e_f.values.tolist(),
         plots,
