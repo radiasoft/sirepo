@@ -3284,7 +3284,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             const overlayDataClass = 'sr-overlay-data';
 
             let aspectRatio = 1.0;
-            let canvas, ctx, amrLine, heatmap, mouseMovePoint, pointer, zoom;
+            let canvas, ctx, amrLine, heatmap, mouseClickPoint, mouseMovePoint, pointer, zoom;
             let globalMin = 0.0;
             let globalMax = 1.0;
             let threshold = null;
@@ -3403,10 +3403,10 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             }
 
             function mouseClick() {
-                if (! d3.event.altKey || ! appState.models[$scope.modelName].enableSelection) {
+                if (! mouseClickPoint || ! d3.event.altKey || ! appState.models[$scope.modelName].enableSelection) {
                     return;
                 }
-                selectCell(d3.mouse(this));
+                selectCell(mouseClickPoint);
                 $scope.broadcastEvent({
                     name: SIREPO.PLOTTING.HeatmapSelectCellEvent,
                     cell: selectedCells[0],
@@ -3589,12 +3589,15 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 });
                 resetZoom();
                 canvas = select('canvas').node();
-                select('.mouse-rect').on('mousemove', function() {
-                    // mouseMove is debounced, so save the point before calling
-                    mouseMovePoint = d3.mouse(this);
-                    mouseMove();
-                });
-                select('.mouse-rect').on('click', mouseClick);
+                select('.mouse-rect')
+                    .on('mousemove', function() {
+                        // mouseMove is debounced, so save the point before calling
+                        mouseMovePoint = d3.mouse(this);
+                        mouseMove();})
+                    .on('click', function() {
+                        mouseClickPoint = d3.mouse(this);
+                        mouseClick();
+                    });
                 ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
                 colorbar = Colorbar()
