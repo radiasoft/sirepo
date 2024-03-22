@@ -82,6 +82,16 @@ def _percent_complete(run_dir, is_running):
     return res
 
 
+def stateful_compute_check_animation_dir(data, **kwargs):
+    return PKDict(
+        animationDirExists=simulation_db.simulation_dir(
+            "cloudmc", sid=data.simulationId
+        )
+        .join(data.args.modelName)
+        .exists()
+    )
+
+
 def background_percent_complete(report, run_dir, is_running):
     if report == "dagmcAnimation":
         if is_running:
@@ -206,8 +216,7 @@ def sim_frame(frame_args):
 
     v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
 
-    try:
-        t.find_filter(openmc.EnergyFilter)
+    if t.contains_filter(openmc.EnergyFilter):
         tally = _get_tally(frame_args.sim_in.models.settings.tallies, frame_args.tally)
         v = _sum_energy_bins(
             v,
@@ -215,8 +224,6 @@ def sim_frame(frame_args):
             _get_filter(tally, "energyFilter"),
             frame_args.energyRangeSum,
         )
-    except ValueError:
-        pass
 
     # volume normalize copied from openmc.UnstructuredMesh.write_data_to_vtk()
     v /= t.find_filter(openmc.MeshFilter).mesh.volumes.ravel()
