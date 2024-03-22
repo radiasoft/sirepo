@@ -485,7 +485,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         return [
             r[x].val,
             r[y].val,
-        ]
+        ];
     };
 
     self.decorateLabelWithIcon = (element, iconName, title) => {
@@ -1149,7 +1149,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     return ;
                 }
                 const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
-                updateRangeField(appState.models.tallyReport.planePos, r)
+                updateRangeField(appState.models.tallyReport.planePos, r);
                 updateSlice();
             }
 
@@ -2560,7 +2560,6 @@ SIREPO.viewLogic('energyReportView', function(appState, panelState, tallyService
 
     $scope.$on('modelChanged', (e, name) => {
         if (name === $scope.modelName) {
-            srdbg(name, 'MC', tallyService.getEnergyReportCoords());
             $rootScope.$broadcast('tallyReport.updateSelection', tallyService.getEnergyReportCoords());
         }
     });

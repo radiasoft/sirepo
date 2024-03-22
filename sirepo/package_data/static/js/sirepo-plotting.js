@@ -3267,14 +3267,12 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             $scope.dataCleared = true;
             $scope.margin = {top: 50, left: 70, right: 100, bottom: 50};
 
-            $scope.altKeyName = () => navigator.appVersion.indexOf("Mac")!=-1)
-
             $scope.readout = (coords=[0, 0], val=0) => {
                 if (! $scope.enableCrosshairs()) {
                     return '';
                 }
                 const labels = [axes.x.label, axes.y.label];
-                return `(${coords.map((x, i) => labels[i] + ': ' + SIREPO.UTILS.roundToPlaces(x, 4))}): ${SIREPO.UTILS.roundToPlaces(val, 4)}`
+                return `(${coords.map((x, i) => labels[i] + ': ' + SIREPO.UTILS.roundToPlaces(x, 4))}): ${SIREPO.UTILS.roundToPlaces(val, 4)}`;
             };
 
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
@@ -3342,7 +3340,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     c.exit().remove();
                     c.enter()
                         .append((d) => document.createElementNS(ns, 'rect'))
-                        .attr('class', cellHighlightClass)
+                        .attr('class', cellHighlightClass);
                     c.call(updateCellHighlight);
                 }
                 if (! overlayData) {
@@ -3681,11 +3679,10 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             });
 
             $scope.$on(`${$scope.modelName}.updateSelection`, (e, d) => {
-                srdbg('UPS DEL', d);
                 selectedCells[0] = {
                     coords: d,
                     point: getPixel(binnedCoords(d)),
-                }
+                };
                 drawOverlay();
             });
 
