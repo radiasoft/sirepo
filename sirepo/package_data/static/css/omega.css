@@ -3,7 +3,7 @@
   --sr-item-active-dark-mode: #ddd;
   --sr-item-bg-dark-mode: #555;
   --sr-item-focused-bg-dark-mode: #565656;
-  --sr-item-user: #46c246;
+  --sr-item-user-dark-mode: #46c246;
   --sr-link-dark-mode: #5da1e1;
   --sr-link-hover-dark-mode: #fff;
   --sr-panel-bg-dark-mode: #333;
@@ -169,7 +169,7 @@
   }
   
   .sr-user-item {
-    color: var(--sr-item-user);
+    color: var(--sr-item-user-dark-mode);
   }
   .sr-user-item:hover {
     color: var(--sr-link-hover-dark-mode);
