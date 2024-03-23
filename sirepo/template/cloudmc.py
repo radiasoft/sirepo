@@ -218,8 +218,7 @@ def sim_frame(frame_args):
 
     v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
 
-    try:
-        t.find_filter(openmc.EnergyFilter)
+    if t.contains_filter(openmc.EnergyFilter):
         tally = _get_tally(frame_args.sim_in.models.settings.tallies, frame_args.tally)
         v = _sum_energy_bins(
             v,
@@ -227,8 +226,6 @@ def sim_frame(frame_args):
             _get_filter(tally, "energyFilter"),
             frame_args.energyRangeSum,
         )
-    except ValueError:
-        pass
 
     # volume normalize copied from openmc.UnstructuredMesh.write_data_to_vtk()
     v /= t.find_filter(openmc.MeshFilter).mesh.volumes.ravel()
