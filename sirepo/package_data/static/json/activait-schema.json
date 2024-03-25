@@ -420,6 +420,7 @@
             "dimensionality": ["Dimensionality", "Integer", 32],
             "layer": ["Layer", "NeuralNetLayer", "Conv2D"],
             "kernel" : ["Kernel Size", "Integer", 3],
+            "kernel_initializer": ["Kernel Initializer", "String", "GlorotUniform"],
             "strides": ["Strides", "OptionalInteger", 1],
             "padding": ["Padding", "Padding", "valid"]
         },
@@ -622,6 +623,7 @@
             "columns": [
                 "dimensionality",
                 "kernel",
+                "kernel_initializer",
                 "strides",
                 "padding",
                 "activation"

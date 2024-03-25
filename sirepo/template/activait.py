@@ -504,9 +504,12 @@ def _build_model_py(v):
     def _conv_args(layer):
         if layer.layer not in ("Conv2D", "Conv2DTranspose", "SeparableConv2D"):
             return
+        # TODO (gurhar1133): get the kernel_initializer here
+        pkdp("\n\n\n layer={}", layer)
         return f"""{layer.dimensionality},
     activation="{layer.activation}",
     kernel_size=({layer.kernel}, {layer.kernel}),
+    kernel_initializer=keras.initializers.{layer.kernel_initializer}(),
     strides={layer.strides},
     padding="{layer.padding}"
     """
@@ -1547,13 +1550,17 @@ def _set_children(neural_net):
 
 def _set_fields_by_layer_type(l, new_layer):
     def _conv(l):
-        return PKDict(
+        pkdp("\n\n\nl.kernel_initializer.__class__.__name__)={}", l.kernel_initializer.__class__.__name__)
+        res = PKDict(
             strides=l.strides[0],
             padding=l.padding,
             kernel=l.kernel_size[0],
+            kernel_initializer=l.kernel_initializer.__class__.__name__,
             dimensionality=l._trainable_weights[0].shape[-1],
             activation=l.activation.__name__,
         )
+        pkdp("\n\n\n _conv() res={}", res)
+        return res
 
     def _dropout(layer):
         return PKDict(dropoutRate=layer.rate)
