@@ -623,11 +623,7 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     def _create(cls, req):
-        j = req.content.computeJid
-        if self := cls.instances.get(j):
-            # another request created self
-            return self
-        self = cls.instances[j] = cls(req, j)
+        self = cls.instances[j] = cls(req, req.content.computeJid)
         if self._is_running_pending():
             # TODO(robnagler) when we reconnect with running processes at startup,
             # we'll need to change this.
