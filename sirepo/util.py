@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Support routines and classes, mostly around errors and I/O.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 # NOTE: limit sirepo imports here
 from pykern import pkcompat
 from pykern import pkconfig
@@ -349,7 +349,6 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
         path (py.path): where to write (atomic) [None]
         pretty (bool): pretty print [False]
         kwargs (object): other arguments to `json.dumps`
-
     Returns:
         str: sorted and formatted JSON
     """
