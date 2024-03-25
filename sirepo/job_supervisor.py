@@ -438,7 +438,7 @@ class _ComputeJob(_Supervisor):
     instances = PKDict()
     _purged_jids_cache = set()
 
-    def __init__(self, req, jid):
+    def __init__(self, req):
         super().__init__(
             _active_req_count=0,
             is_destroyed=False,
@@ -447,7 +447,7 @@ class _ComputeJob(_Supervisor):
             run_dir_slot_q=SlotQueue(),
         )
         # At start we don't know anything about the run_dir so assume ready
-        if d := self.__db_load(jid):
+        if d := self.__db_load(req.content.computeJid):
             self.db = d
         else:
             self.__db_init(req)
@@ -623,7 +623,7 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     def _create(cls, req):
-        self = cls.instances[j] = cls(req, req.content.computeJid)
+        self = cls.instances[req.content.computeJid] = cls(req)
         if self._is_running_pending():
             # TODO(robnagler) when we reconnect with running processes at startup,
             # we'll need to change this.
