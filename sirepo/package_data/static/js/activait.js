@@ -1944,7 +1944,6 @@ SIREPO.app.directive('neuralNetLayersForm', function(appState, stringsService) {
                         },
                     ];
                     const layerSchema = SIREPO.APP_SCHEMA.model[stringsService.lcfirst(name)];
-                    srdbg("layerSchema", layerSchema);
                     if (layerSchema) {
                         for (const f of SIREPO.APP_SCHEMA.view[stringsService.lcfirst(name)].columns) {
                             cols.push({
