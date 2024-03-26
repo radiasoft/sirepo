@@ -1003,6 +1003,24 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
                 },
             };
 
+
+            // TODO (gurhar1133): might need to do something on server side too
+            const checkColumnsDim = () => {
+                if (! $scope.isImageData) {
+                    return;
+                }
+                const info = appState.models.columnInfo;
+                const shapes = [];
+                info.inputOutput.forEach((value, i) => {
+                    if (value != 'none') {
+                        shapes.push(info.shape[i][0]);
+                    }
+                });
+                if (! shapes.every(element => element === shapes[0])) {
+                    throw new Error(`Selected columns did not have matching first dimension`);
+                }
+            };
+
             const pageSize = 10;
             const radioGroups = {
                 inputOutput: ['input', 'output'],
@@ -1141,9 +1159,12 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
                 }
             };
 
+            $scope.$on('columnInfo.changed', checkColumnsDim);
+
             appState.whenModelsLoaded($scope, () => {
                 setModel();
                 updateIsAnalysis();
+                checkColumnsDim();
                 $scope.$on('columnInfo.changed', setModel);
                 $scope.$on('cancelChanges', (evt, name) => {
                     if (name == 'columnInfo') {
