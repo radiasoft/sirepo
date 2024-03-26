@@ -617,6 +617,11 @@
             "basic": [],
             "advanced": []
         },
+        "loadData": {
+            "title": "Data Loading Status",
+            "basic": [],
+            "advanced": []
+        },
         "concatenate": {
             "columns": []
         },
