@@ -65,3 +65,22 @@ def test_check_auth_jupyterhub(fc):
     fc.sr_get("checkAuthJupyterHub").assert_success()
     # user does exist
     fc.sr_get("checkAuthJupyterHub").assert_success()
+
+
+def test_simulation_schema(fc):
+    from pykern.pkcollections import PKDict
+    from pykern.pkunit import pkexcept
+
+    r = fc.sr_post_form(
+        "simulationSchema",
+        data=PKDict(simulationType=fc.sr_sim_type),
+    )
+
+    for k in ("model", "view"):
+        assert k in r.keys()
+
+    with pkexcept("unexpected status"):
+        fc.sr_post_form(
+            "simulationSchema",
+            data=PKDict(simulationType="xyzzy"),
+        )
