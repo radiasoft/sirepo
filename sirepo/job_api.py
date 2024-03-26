@@ -33,6 +33,11 @@ _MUST_HAVE_METHOD = ("api_analysisJob", "api_statefulCompute", "api_statelessCom
 
 _JSON_TYPE = re.compile(f"^{pkjson.MIME_TYPE}")
 
+_HTTP_CLIENT_CONNECTION_ERRORS = (
+    tornado.httpclient.HTTPClientError,
+    ConnectionRefusedError,
+)
+
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("internal_test", days="TimeDeltaDays")
@@ -133,8 +138,8 @@ class API(sirepo.quest.API):
                 if len(f) > 0:
                     assert len(f) == 1, "too many files={}".format(f)
                     return self.reply_attachment(f[0])
-            except tornado.httpclient.HTTPClientError:
-                # TODO(robnagler) HTTPClientError is too coarse a check
+            except _HTTP_CLIENT_CONNECTION_ERRORS:
+                # TODO(robnagler) is this too coarse a check?
                 pass
             finally:
                 if t:
@@ -171,7 +176,7 @@ class API(sirepo.quest.API):
                 if x == k:
                     return r
                 e = "expected={} but got ping={}".format(k, x)
-        except tornado.httpclient.HTTPClientError as e2:
+        except _HTTP_CLIENT_CONNECTION_ERRORS as e2:
             pkdlog("HTTPClientError={}", e2)
             e = "unable to connect to supervisor"
         except Exception as e2:

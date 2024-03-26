@@ -5,10 +5,10 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
     SIREPO.appFieldEditors += `
-        <div data-ng-switch-when="DateTimePicker" data-ng-class="fieldClass">
+        <div data-ng-switch-when="DateTimePicker" class="col-sm-7">
           <div data-date-time-picker="" data-model="model" data-field="field"></div>
         </div>
-        <div data-ng-switch-when="PresetTimePicker" data-ng-class="fieldClass">
+        <div data-ng-switch-when="PresetTimePicker" class="col-sm-7">
           <div class="text-right" data-preset-time-picker="" data-model="model" data-model-name="modelName"></div>
         </div>
         <div data-ng-switch-when="ExecutedScansTable" class="col-sm-12">
@@ -44,7 +44,7 @@ SIREPO.app.config(() => {
     `;
 });
 
-SIREPO.app.factory('raydataService', function(appState) {
+SIREPO.app.factory('raydataService', function(appState, $rootScope) {
     const self = {};
     let id = 0;
 
@@ -56,8 +56,14 @@ SIREPO.app.factory('raydataService', function(appState) {
     self.ANALYSIS_STATUS_NONE = "none";
     self.ANALYSIS_STATUS_PENDING = "pending";
 
+    self.detailScan = null;
+
     self.canViewOutput = scan => {
         return ! [self.ANALYSIS_STATUS_NONE, self.ANALYSIS_STATUS_PENDING].includes(scan.status);
+    };
+
+    self.setDetailScan = scan => {
+        self.detailScan = scan;
     };
 
     self.nextPngImageId = () => {
@@ -69,6 +75,8 @@ SIREPO.app.factory('raydataService', function(appState) {
     };
 
     appState.setAppService(self);
+
+    $rootScope.$on('modelsUnloaded', () => self.setDetailScan(null));
 
     return self;
 });
@@ -174,8 +182,14 @@ SIREPO.app.controller('AnalysisExecutedController', function() {
     return self;
 });
 
-SIREPO.app.controller('RunAnalysisController', function() {
+SIREPO.app.controller('ReplayController', function() {
     const self = this;
+    return self;
+});
+
+SIREPO.app.controller('RunAnalysisController', function(raydataService) {
+    const self = this;
+    self.raydataService = raydataService;
     return self;
 });
 
@@ -442,7 +456,7 @@ SIREPO.app.directive('scansTable', function() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr ng-repeat="s in scans track by $index">
+                    <tr ng-repeat="s in scans track by $index" data-ng-click="raydataService.setDetailScan(s)" style="{{ analysisStatus === 'allStatuses' ? 'cursor: pointer;' : '' }}">
                       <td style="width: 1%" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans[s.rduid]" data-ng-click="togglePdfSelectScan(s.rduid)"/></td>
                       <td width="1%"><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-if="analysisStatus == 'queued'">
@@ -556,6 +570,14 @@ SIREPO.app.directive('scansTable', function() {
                         delete $scope.pdfSelectedScans[p];
                     }
                 }
+                if (raydataService.detailScan) {
+                    for (const s in $scope.scans) {
+                        if ($scope.scans[s].rduid === raydataService.detailScan.rduid) {
+                            raydataService.setDetailScan($scope.scans[s]);
+                            break;
+                        }
+                    }
+                }
                 scanArgs.pageCount = scanInfo.pageCount || 0;
                 scanArgs.pageNumber = scanInfo.pageNumber;
                 scanArgs.sortColumn = scanInfo.sortColumn;
@@ -569,6 +591,7 @@ SIREPO.app.directive('scansTable', function() {
                     $scope.isRefreshingScans = false;
                     $scope.scans = [];
                     $scope.isLoadingNewScans = true;
+                    raydataService.setDetailScan(null);
                 }
                 if (resetPager) {
                     scanArgs.pageNumber = 0;
@@ -1087,6 +1110,91 @@ SIREPO.app.directive('columnList', function() {
         },
     };
 });
+
+SIREPO.app.directive('scanDetail', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            scan: '<',
+        },
+        template: `
+            <div><strong>Scan Detail</strong></div>
+            <div class="well" style="height: 250px; overflow: auto;">
+            <div data-ng-if="scan">
+              <div><strong>Scan Id:</strong> {{ scan.rduid }}</div>
+              <div data-ng-if="detailedStatusFile()">
+                <div><strong>Most Recent Status</strong></div>
+                <pre>{{ currentStatus() }}</pre>
+              </div>
+              <div data-ng-if="detailedStatusFile()">
+                <div><strong>Detailed Status File</strong></div>
+                <pre>{{ detailedStatus() }}</pre>
+              </div>
+              <div data-ng-if="detailedStatusFile()">
+                <div><strong>Current Consecutive Failures:</strong> {{ consecutiveFailures() }}</div>
+              </div>
+              <div data-ng-if="analysisElapsedTime()"><strong>Analysis Elapsed Time:</strong> {{ analysisElapsedTime() }} seconds</div>
+            </div>
+            </div>
+`,
+        controller: function($scope, columnsService, utilities) {
+            function failureInRun(run) {
+                let r = false;
+                for (const f of Object.values($scope.detailedStatusFile()[run])) {
+                    if (f.status === 'failed') {
+                        r = true;
+                    }
+                }
+                return r;
+            }
+
+            function getSortedRunIndexes() {
+                return Object.keys($scope.detailedStatusFile()).map((x) => parseInt(x)).sort();
+            }
+
+            function mostRecentAnalysisDetails() {
+                return $scope.detailedStatusFile()? $scope.detailedStatusFile()[Math.max(...getSortedRunIndexes())] : '';
+             }
+
+            $scope.analysisElapsedTime = () => {
+                return $scope.scan && $scope.scan.analysis_elapsed_time ? $scope.scan.analysis_elapsed_time : null;
+            };
+
+            $scope.consecutiveFailures = () => {
+                if (! $scope.detailedStatusFile()) {
+                    return '';
+                }
+                let r = 0;
+                for (const k of getSortedRunIndexes().reverse()) {
+                    if (failureInRun(k)) {
+                        r += 1;
+                    } else {
+                        return r;
+                    }
+                }
+
+                return r;
+            };
+
+            $scope.currentStatus = () => {
+                let r = '';
+                for (const k of Object.keys(mostRecentAnalysisDetails())) {
+                    r += k + ': ' + mostRecentAnalysisDetails()[k].status + '\n';
+                }
+                return r;
+            };
+
+            $scope.detailedStatus = () => {
+                return utilities.objectToText($scope.detailedStatusFile());
+            };
+
+            $scope.detailedStatusFile = () => {
+                return $scope.scan && $scope.scan.detailed_status && Object.keys($scope.scan.detailed_status).length > 0 ? $scope.scan.detailed_status : null;
+            };
+        },
+    };
+});
+
 
 SIREPO.app.directive('searchTerms', function() {
     return {
