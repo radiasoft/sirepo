@@ -22,7 +22,7 @@ def test_find_by_name(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkunit import pkeq
 
-    r = fc.sr_get(
+    fc.sr_get(
         "findByName",
         PKDict(
             simulation_type="srw",
@@ -30,8 +30,7 @@ def test_find_by_name(fc):
             simulation_name="Undulator Radiation",
         ),
         redirect=False,
-    )
-    r.assert_http_redirect("/srw#/findByName/default/Undulator%20Radiation")
+    ).assert_http_redirect("/srw#/findByName/default/Undulator%20Radiation")
 
 
 def test_custom_errors(fc):
@@ -58,3 +57,11 @@ def test_jupyterhub_redirect(fc):
 
 def test_simulation_redirect(fc):
     fc.sr_get("simulationRedirect", redirect=False).assert_http_redirect("simulations")
+
+
+def test_check_auth_jupyterhub(fc):
+    fc.sr_login_as_guest()
+    # user doesn't exist
+    fc.sr_get("checkAuthJupyterHub").assert_success()
+    # user does exist
+    fc.sr_get("checkAuthJupyterHub").assert_success()
