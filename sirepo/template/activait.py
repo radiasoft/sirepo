@@ -467,7 +467,7 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
         return PKDict()
     i = []
     n = _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", data.args.file)
-    for c in range(0, data.args.exampleFileCnt):
+    for c in range(data.args.exampleFileCnt):
         _lib_file_save_from_url(data.args.exampleDir + f"/{c}.h5")
         i.append(
             _SIM_DATA.lib_file_abspath(
@@ -480,8 +480,11 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
             with h5py.File(f, "r") as src:
                 cmb.attrs.update(src.attrs)
                 for g in src:
-                    g_id = cmb.require_group(src[g].parent.name)
-                    src.copy(f"/{g}", g_id, name=g)
+                    src.copy(
+                        f"/{g}",
+                        cmb.require_group(src[g].parent.name),
+                        name=g,
+                    )
     _SIM_DATA.lib_file_write(n, pkio.py_path(o))
     return PKDict()
 
