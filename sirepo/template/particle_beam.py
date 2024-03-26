@@ -259,9 +259,7 @@ def populate_uncoupled_beam(
     yp = transverse[3]
 
     # longitudinal distribuion
-    long_dist = rng.multivariate_normal(
-        [0, 0], [[dtau**2, 0], [0, dpt**2]], n_ptcl
-    ).T
+    long_dist = rng.multivariate_normal([0, 0], [[dtau**2, 0], [0, dpt**2]], n_ptcl).T
     ct = long_dist[0]
     pt = long_dist[1]
 

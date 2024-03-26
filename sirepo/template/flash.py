@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -542,9 +543,9 @@ def _generate_parameters_file(data, run_dir):
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
-            exe_name=run_dir.join(_SIM_DATA.flash_exe_basename(data))
-            if run_dir
-            else "",
+            exe_name=(
+                run_dir.join(_SIM_DATA.flash_exe_basename(data)) if run_dir else ""
+            ),
             is_setup_animation=data.get("report") == "setupAnimation",
             par=res,
             par_filename=_SIM_DATA.FLASH_PAR_FILE,
