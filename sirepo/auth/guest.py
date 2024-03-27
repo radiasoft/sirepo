@@ -23,7 +23,7 @@ AUTH_METHOD_VISIBLE = True
 #: module handle
 this_module = pkinspect.this_module()
 
-#: time to recheck login against db (prefix is "sraz", because github is "srag")
+#: time to recheck login against db (prefix is "sraz", because github was "srag")
 _COOKIE_EXPIRY_TIMESTAMP = "srazt"
 
 _ONE_DAY = datetime.timedelta(days=1)

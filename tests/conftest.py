@@ -157,17 +157,10 @@ def _auth_client_module(request):
         SIREPO_SMTP_PASSWORD="x",
         SIREPO_SMTP_SERVER="dev",
         SIREPO_SMTP_USER="x",
-        SIREPO_AUTH_GITHUB_CALLBACK_URI="/uri",
-        SIREPO_AUTH_GITHUB_KEY="key",
-        SIREPO_AUTH_GITHUB_SECRET="secret",
         SIREPO_AUTH_GUEST_EXPIRY_DAYS="1",
         SIREPO_AUTH_METHODS="basic:email:guest",
         SIREPO_FEATURE_CONFIG_API_MODULES="status",
     )
-    if "email3_test" in str(request.fspath.purebasename):
-        cfg.SIREPO_AUTH_METHODS += ":github"
-    else:
-        cfg.SIREPO_AUTH_DEPRECATED_METHODS = "github"
     from pykern import pkconfig
 
     pkconfig.reset_state_for_testing(cfg)

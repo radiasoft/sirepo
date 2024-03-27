@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Jupyterhub login
+"""JupyterHub login
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -69,7 +69,7 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
                 _handle_unauthenticated(m.group(1))
 
         r = requests.get(
-            # POSIT: sirepo.simulation_db.SCHEMA_COMMON.route.checkAuthJupyterhub
+            # POSIT: sirepo.simulation_db.SCHEMA_COMMON.route.checkAuthJupyterHub
             self.sirepo_uri + "/check-auth-jupyterhub",
             cookies={k: handler.get_cookie(k) for k in handler.cookies.keys()},
         )

@@ -75,6 +75,10 @@ def _20231120_deploy_flash_update(qcall):
             )
 
 
+def _20240322_remove_github_auth(qcall):
+    qcall.auth_db.drop_table("auth_github_user_t")
+
+
 @contextlib.contextmanager
 def _backup_db_and_prevent_upgrade_on_error():
     b = sirepo.auth_db.db_filename() + ".bak"
