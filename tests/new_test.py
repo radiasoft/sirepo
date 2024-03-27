@@ -44,27 +44,8 @@ def test_custom_errors(fc):
             pkre(v.msg, s)
 
 
-def setup_module(module):
-    os.environ.update(
-        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="jupyterhublogin",
-        SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL="x@x.x",
-    )
-
-
-def test_jupyterhub_redirect(fc):
-    fc.sr_get("redirectJupyterHub", redirect=False).assert_http_redirect("jupyterHub")
-
-
 def test_simulation_redirect(fc):
     fc.sr_get("simulationRedirect", redirect=False).assert_http_redirect("simulations")
-
-
-def test_check_auth_jupyterhub(fc):
-    fc.sr_login_as_guest()
-    # user doesn't exist
-    fc.sr_get("checkAuthJupyterHub").assert_success()
-    # user does exist
-    fc.sr_get("checkAuthJupyterHub").assert_success()
 
 
 def test_simulation_schema(fc):
