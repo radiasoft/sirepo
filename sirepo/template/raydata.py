@@ -51,10 +51,6 @@ def stateless_compute_analysis_run_log(data, **kwargs):
     return r
 
 
-def stateless_compute_begin_replay(data, **kwargs):
-    return PKDict(data=_request_scan_monitor(PKDict(method="begin_replay", data=data)))
-
-
 def stateless_compute_catalog_names(data, **kwargs):
     return _request_scan_monitor(PKDict(method="catalog_names", data=data))
 
