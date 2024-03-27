@@ -7,11 +7,15 @@
   --sr-link-dark-mode: #5da1e1;
   --sr-link-hover-dark-mode: #fff;
   --sr-panel-bg-dark-mode: #333;
-  --sr-panel-border-dark-mode: #e7e7e7;
+  --sr-panel-border-dark-mode: #999;
   --sr-panel-control-dark-mode: #444;
   --sr-panel-text-dark-mode: #eee;
 }
 @media (prefers-color-scheme: dark) {
+  :root {
+    --sr-panel-color: #eee;
+  }
+
   a {
     color: var(--sr-link-dark-mode);
   }
@@ -51,19 +55,25 @@
   }
   svg.sr-plot g.text-block g.text-group > g[id^="y-text"] > text {
     fill: var(--sr-link-dark-mode);
-  } 
+  }
 
   app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a {
     color: var(--sr-item-active-dark-mode);
-    background-color: var(--sr-item-focused-bg-dark-mode);
+    background-color: var(--sr-bg-dark-mode);
+    border-color: var(--sr-panel-border-dark-mode);
+    border-bottom-color: transparent;
   }
   app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a:hover {
     color: var(--sr-item-active-dark-mode);
-    background-color: var(--sr-item-focused-bg-dark-mode);
+    background-color: var(--sr-bg-dark-mode);
+    border-color: var(--sr-panel-border-dark-mode);
+    border-bottom-color: transparent;
   }
   app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a:focus {
     color: var(--sr-item-active-dark-mode);
-    background-color: var(--sr-item-focused-bg-dark-mode);
+    background-color: var(--sr-bg-dark-mode);
+    border-color: var(--sr-panel-border-dark-mode);
+    border-bottom-color: transparent;
   }
 
   .btn-default {
@@ -101,6 +111,9 @@
   .navbar-brand-text span {
     color: var(--sr-panel-text-dark-mode);
   }
+  .navbar-default {
+    border-color: var(--sr-panel-border-dark-mode);
+  }
   .navbar-default .navbar-nav > li > a {
     color: var(--sr-item-active-dark-mode);
   }
@@ -120,12 +133,27 @@
     color: var(--sr-item-active-dark-mode);
   }
 
-  .panel-body, .modal-body {
+  .panel, .modal-content {
     background-color: var(--sr-panel-bg-dark-mode);
     color: var(--sr-panel-text-dark-mode);
   }
   .panel-info {
     border-color: var(--sr-panel-border-dark-mode);
+  }
+  .panel-info > .panel-heading {
+    border-color: var(--sr-panel-border-dark-mode);
+    background-color: var(--sr-panel-bg-dark-mode);
+  }
+  .bg-warning, .bg-info {
+    background-color: var(--sr-panel-bg-dark-mode);
+  }
+  button.close {
+    color: var(--sr-panel-color);
+    opacity: 0.8;
+  }
+  button.close:focus, button.close:hover {
+    color: var(--sr-panel-color);
+    opacity: 1;
   }
 
   .report-window {
@@ -146,7 +174,7 @@
 
   .sr-dropdown, .sr-nav-sidebar > li.active > a {
     background-color: var(--sr-panel-bg-dark-mode);
-    color: var(--sr-item-active-dark-mode);  
+    color: var(--sr-item-active-dark-mode);
   }
   .sr-dropdown .ui-state-active {
     background-color: var(--sr-action);
@@ -162,12 +190,12 @@
   .sr-slack-img:hover {
     filter: invert(1.0);
   }
-  
+
   .sr-transparent-icon {
     color: var(--sr-item-active-dark-mode);
     text-shadow: 1px 0px 0 var(--sr-link-dark-mode), -1px 0px 0 var(--sr-link-dark-mode), 0px 1px 0 var(--sr-link-dark-mode), 0px -1px 0 var(--sr-link-dark-mode);
   }
-  
+
   .sr-user-item {
     color: var(--sr-item-user-dark-mode);
   }
@@ -179,7 +207,7 @@
     color: var(--sr-item-active-dark-mode);
     text-shadow: 1px 0px 0 var(--sr-item-user), -1px 0px 0 var(--sr-item-user), 0px 1px 0 var(--sr-item-user), 0px -1px 0 var(--sr-item-user);
   }
-  
+
   .table-hover > tbody > tr {
     color: var(--sr-link-hover-dark-mode);
   }
@@ -187,5 +215,4 @@
   .table-hover > tbody > tr:hover {
     background-color: var(--sr-item-bg-dark-mode);
   }
-
 }
