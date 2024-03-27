@@ -463,7 +463,7 @@ def stateful_compute_get_remote_data(data, **kwargs):
 
 def stateful_compute_download_remote_lib_file(data, **kwargs):
     if data.args.exampleFileCnt == 1:
-        _lib_file_save_from_url(data.args.exampleDir + "/0.h5")
+        _lib_file_save_from_url(data.args.exampleDir + f"/{data.args.file}")
         return PKDict()
     i = []
     n = _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", data.args.file)
