@@ -311,6 +311,11 @@
             "stop": ["Stop [MeV]", "Float", 1],
             "num": ["Number of samples", "Integer", 50]
         },
+        "energyReport": {
+            "x": ["x", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.5, "space": "linear"}],
+            "y": ["y", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.5, "space": "linear"}],
+            "z": ["z", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": 0.5, "space": "linear"}]
+        },
         "filter": {
             "_type": ["", "TallyFilter"],
             "_scale": ["", "Float", 1.0]
@@ -1051,6 +1056,8 @@
             "axis": ["Slice Axis", "Axis", "y"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "planePos": ["Plane Position [m]", "JRange", {"min": 0, "max": 1, "numSteps": 100, "step": 0.01, "val": 0.0, "space": "linear"}, ""],
+            "enableCrosshairs": ["", "Bool", false],
+            "enableSelection": ["", "Bool", false],
             "selectedGeometry": ["", "TallyGeometry", "3D"]
         },
         "tallyScore": {
@@ -1137,6 +1144,19 @@
                 "start",
                 "stop",
                 "num"
+            ]
+        },
+        "energyReport": {
+            "title": "Energy Spectrum",
+            "basic": [
+                "x",
+                "y",
+                "z"
+            ],
+            "advanced": [
+                "x",
+                "y",
+                "z"                
             ]
         },
         "geometryInput": {

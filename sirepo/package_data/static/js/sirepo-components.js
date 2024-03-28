@@ -2376,6 +2376,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
         transclude: true,
         scope: {
             reportContent: '@',
+            reportCfg: '<',
             modelKey: '@',
         },
         template: `

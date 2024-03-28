@@ -342,6 +342,8 @@ SIREPO.app.controller('VisualizationController', function(appState, authState, c
 
     self.eigenvalueHistory = () => appState.models.settings.eigenvalueHistory;
 
+    $scope.energyFilter = () => cloudmcService.findFilter('energyFilter');
+
     self.simHandleStatus = function(data) {
         errorMessage = data.error;
         self.eigenvalue = data.eigenvalue;
@@ -477,6 +479,15 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         );
     };
 
+    self.getEnergyReportCoords = () => {
+        const [x, y] = SIREPO.GEOMETRY.GeometryUtils.nextAxes(appState.models.tallyReport.axis).reverse();
+        const r = appState.models.energyReport;
+        return [
+            r[x].val,
+            r[y].val,
+        ];
+    };
+
     self.decorateLabelWithIcon = (element, iconName, title) => {
         $(element)
         .closest('div[data-ng-switch]')
@@ -589,6 +600,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
             min: r[0] + f * s,
             max: r[1] - f * s,
             step: s,
+            space: 'linear',
         };
     };
 
@@ -867,10 +879,22 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 }
             );
 
+            function setBins(hVal, vVal) {
+                const [z, x, y] = tallyReportAxes();
+                appState.models.energyReport[x].val = hVal;
+                appState.models.energyReport[y].val = vVal;
+                appState.models.energyReport[z].val = appState.models.tallyReport.planePos.val;
+                appState.saveChanges('energyReport');
+            }
+
             function buildTallyReport() {
                 if (! tallyService.mesh) {
                     return;
                 }
+
+                appState.models.tallyReport.enableCrosshairs = hasEnergyFilter();
+                appState.models.tallyReport.enableSelection = hasEnergyFilter();
+                
                 const [z, x, y] = tallyReportAxes();
                 const [n, m, l] = tallyReportAxisIndices();
                 const ranges = tallyService.getMeshRanges();
@@ -899,6 +923,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     z_matrix: reorderFieldData(tallyService.mesh.dimension)[fieldIndex(pos, ranges[n], n)],
                     z_range: ranges[n],
                     overlayData: getOutlines(pos, ranges[n], n),
+                    selectedCoords: $scope.energyFilter ? tallyService.getEnergyReportCoords() : null,
                 };
                 panelState.setData('tallyReport', r);
                 $scope.$broadcast('tallyReport.reload', r);
@@ -1096,9 +1121,16 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                 }
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
+                    updateRangeField(appState.models.energyReport[dim], tallyService.tallyRange(dim, true));
                 });
                 updateVisibleAxes();
                 updateSliceAxis();
+            }
+
+            function updateRangeField(f, range) {
+                ['min', 'max', 'step'].forEach((x) => {
+                    f[x] = range[x];
+                });
             }
 
             function updateSlice() {
@@ -1117,9 +1149,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
                     return ;
                 }
                 const r = tallyService.tallyRange(appState.models.tallyReport.axis, true);
-                ['min', 'max', 'step'].forEach((x) => {
-                    appState.models.tallyReport.planePos[x] = r[x];
-                });
+                updateRangeField(appState.models.tallyReport.planePos, r);
                 updateSlice();
             }
 
@@ -1145,6 +1175,17 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, frameCache
             function vectorScaleFactor() {
                 return 0.05 * tallyService.getMaxMeshExtent();
             }
+
+            function hasEnergyFilter() {
+                return ! ! $scope.energyFilter;
+            }
+
+            $scope.$on('sr-plotEvent', (e, d) => {
+                if (d.name !== SIREPO.PLOTTING.HeatmapSelectCellEvent) {
+                    return;
+                }
+                setBins(...d.cell.coords);
+            });
 
             $scope.$on('sr-volume-visibility-toggle', (event, volume, isVisible, doUpdate) => {
                 if (doUpdate) {
@@ -2502,6 +2543,27 @@ SIREPO.app.directive('tallyAspects', function() {
             };
         },
     };
+});
+
+SIREPO.viewLogic('energyReportView', function(appState, panelState, tallyService, $rootScope, $scope) {
+    function updateEditor() {
+        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+            panelState.showField($scope.modelName, dim, appState.models[$scope.modelName][dim].numSteps > 0);
+        });
+    }
+
+    $scope.whenSelected = updateEditor;
+
+    $scope.watchFields = [
+        SIREPO.GEOMETRY.GeometryUtils.BASIS().map(dim => `${$scope.modelName}.${dim}`), updateEditor,
+    ];
+
+    $scope.$on('modelChanged', (e, name) => {
+        if (name === $scope.modelName) {
+            $rootScope.$broadcast('tallyReport.updateSelection', tallyService.getEnergyReportCoords());
+        }
+    });
+    
 });
 
 SIREPO.viewLogic('settingsView', function(appState, panelState, validationService, $scope) {

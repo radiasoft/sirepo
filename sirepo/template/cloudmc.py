@@ -113,6 +113,8 @@ def extract_report_data(run_dir, sim_in):
     # dummy result
     if sim_in.report == "tallyReport":
         template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
+    if sim_in.report == "energyReport":
+        template_common.write_sequential_result(_energy_plot(run_dir, sim_in))
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -138,6 +140,11 @@ def post_execution_processing(
             ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
             for f in ply_files:
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
+        if compute_model == "openmcAnimation":
+            f = _statepoint_filename(
+                simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+            )
+            _SIM_DATA.put_sim_file(sim_id, f, f)
         return None
     return _parse_cloudmc_log(run_dir)
 
@@ -160,17 +167,6 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
 
 def sim_frame(frame_args):
     import openmc
-
-    def _get_filter(tally, type):
-        for i in range(1, SCHEMA.constants.maxFilters + 1):
-            f = tally[f"filter{i}"]
-            if f._type == type:
-                return f
-        return None
-
-    def _get_tally(tallies, name):
-        f = [x for x in tallies if x.name == name]
-        return f[0] if len(f) else None
 
     def _sample_sources(filename, num_samples):
         samples = []
@@ -396,6 +392,16 @@ def write_volume_outlines():
     simulation_db.write_json(_OUTLINES_FILE, all_outlines)
 
 
+def _bin(val, num_bins, min_val, max_val):
+    return (
+        0
+        if min_val == max_val
+        else numpy.floor(num_bins * abs(val - min_val) / abs(max_val - min_val)).astype(
+            int
+        )
+    )
+
+
 def _dagmc_animation_python(filename):
     return f"""
 import sirepo.pkcli.cloudmc
@@ -406,6 +412,54 @@ sirepo.simulation_db.write_json(
     sirepo.pkcli.cloudmc.extract_dagmc("{filename}"),
 )
 """
+
+
+def _energy_plot(run_dir, data):
+    import openmc
+
+    plots = []
+    tally_name = data.models.openmcAnimation.tally
+    t = openmc.StatePoint(run_dir.join(_statepoint_filename(data))).get_tally(
+        name=tally_name
+    )
+    try:
+        e_f = t.find_filter(openmc.EnergyFilter)
+    except ValueError:
+        return PKDict(error=f"No energy filter defined for tally {tally_name}")
+
+    tally = _get_tally(data.models.settings.tallies, tally_name)
+    mesh = _get_filter(tally, "meshFilter")
+    e = _get_filter(tally, "energyFilter")
+    r = data.models.energyReport
+    for s in [s.score for s in tally.scores]:
+        mean = numpy.reshape(
+            getattr(t, "mean")[:, :, t.get_score_index(s)].ravel(),
+            (*mesh.dimension, -1),
+        )
+        bins = [
+            _bin(r[dim].val, mesh.dimension[i], r[dim].min, r[dim].max)
+            for i, dim in enumerate(("x", "y", "z"))
+        ]
+        plots.append(
+            PKDict(
+                points=mean[bins[0]][bins[1]][bins[2]].tolist(),
+                label=s,
+                style="line",
+            ),
+        )
+        # std_dev = getattr(t, "std_dev")[:, :, t.get_score_index(s)].ravel()
+
+    return template_common.parameter_plot(
+        e_f.values.tolist(),
+        plots,
+        PKDict(),
+        PKDict(
+            title=f"Energy Spectrum at ({round(r.x.val, ndigits=6)}, {round(r.y.val, ndigits=6)}, {round(r.z.val, ndigits=6)})",
+            y_label="Score",
+            x_label="Energy [eV]",
+            summaryData=PKDict(),
+        ),
+    )
 
 
 def _generate_angle(angle):
@@ -550,6 +604,8 @@ def _generate_parameters_file(data, run_dir=None):
     if report == "dagmcAnimation":
         return _dagmc_animation_python(_SIM_DATA.dagmc_filename(data))
     if report == "tallyReport":
+        return ""
+    if report == "energyReport":
         return ""
     res, v = template_common.generate_parameters_file(data)
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
@@ -724,6 +780,19 @@ t{tally._index + 1}.scores = [{','.join(["'" + s.score + "'" for s in tally.scor
 t{tally._index + 1}.nuclides = [{','.join(["'" + s.nuclide + "'" for s in tally.nuclides if s.nuclide])}]
 """
     return res
+
+
+def _get_filter(tally, type):
+    for i in range(1, SCHEMA.constants.maxFilters + 1):
+        f = tally[f"filter{i}"]
+        if f._type == type:
+            return f
+    return None
+
+
+def _get_tally(tallies, name):
+    f = [x for x in tallies if x.name == name]
+    return f[0] if len(f) else None
 
 
 def _has_graveyard(data):

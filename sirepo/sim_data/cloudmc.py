@@ -27,6 +27,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         ]
 
     @classmethod
+    def statepoint_filename(cls, data):
+        return f"statepoint.{data.models.settings.batches}.h5"
+
+    @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         def _float_to_j_range(val, field_info):
             if not isinstance(val, (float, int)):
@@ -39,6 +43,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             dm,
             (
                 "dagmcAnimation",
+                "energyReport",
                 "geometry3DReport",
                 "geometryInput",
                 "openmcAnimation",
@@ -85,6 +90,8 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
+        if data.get("report") == "energyReport":
+            return ["energyReport.x", "energyReport.y", "energyReport.z"]
         return []
 
     @classmethod
@@ -109,4 +116,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         if data.report == "openmcAnimation":
             for v in data.models.volumes:
                 res.append(PKDict(basename=f"{data.models.volumes[v].volId}.ply"))
+        if data.report == "energyReport":
+            res.extend(
+                [
+                    PKDict(basename=cls.statepoint_filename(data)),
+                ]
+            )
         return res
