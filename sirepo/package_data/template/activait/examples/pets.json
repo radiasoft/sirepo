@@ -1,0 +1,924 @@
+{
+    "models": {
+        "activation": {
+            "activation": "relu",
+            "layer": "Activation"
+        },
+        "add": {
+            "layer": "Add"
+        },
+        "alphaDropout": {
+            "_super": "dropout",
+            "dropoutRate": 0.5,
+            "layer": "AlphaDropout"
+        },
+        "analysisCluster": {
+            "basic": "clusterCount",
+            "model": "a"
+        },
+        "analysisData": {
+            "title": "c"
+        },
+        "analysisFFT": {
+            "model": "a"
+        },
+        "analysisFit": {
+            "basic": "fitVariable",
+            "model": "a"
+        },
+        "analysisNone": {
+            "model": "a"
+        },
+        "analysisReport": {
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.1,
+            "clusterKmeansInit": 2,
+            "clusterMethod": "kmeans",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 0.8,
+            "clusterScaleMin": -0.8,
+            "fitEquation": "a * x + b",
+            "fitParameters": "a,b",
+            "fitVariable": "x",
+            "history": [],
+            "notes": "",
+            "x": "0",
+            "y1": "1",
+            "y2": "none",
+            "y3": "none"
+        },
+        "analysisTrim": {
+            "basic": "trimMax",
+            "model": "a"
+        },
+        "averagePooling2D": {
+            "_super": "poolingLayer",
+            "layer": "MaxPooling2D",
+            "padding": "valid",
+            "size": 2,
+            "strides": 1
+        },
+        "batchNormalization": {
+            "layer": "BatchNormalization",
+            "momentum": 0.99
+        },
+        "classificationAnimation": {
+            "classifier": "knn"
+        },
+        "columnInfo": {
+            "colsWithNonUniqueValues": {},
+            "dtypeKind": [
+                "u",
+                "u"
+            ],
+            "header": [
+                "images",
+                "masks"
+            ],
+            "inputOutput": [
+                "input",
+                "output"
+            ],
+            "outputShape": [
+                0,
+                0
+            ],
+            "selected": [
+                true,
+                true
+            ],
+            "shape": [
+                [
+                    7390,
+                    64,
+                    64,
+                    3
+                ],
+                [
+                    7390,
+                    64,
+                    64
+                ]
+            ],
+            "state": "completed"
+        },
+        "columnReports": [
+            0,
+            1
+        ],
+        "concatenate": {
+            "layer": "Concatenate"
+        },
+        "conv2D": {
+            "_super": "neuralNetLayer",
+            "activation": "relu",
+            "dimensionality": 32,
+            "kernel": 3,
+            "layer": "Conv2D",
+            "padding": "valid",
+            "strides": 1
+        },
+        "conv2DTranspose": {
+            "_super": "conv2D",
+            "activation": "relu",
+            "dimensionality": 32,
+            "kernel": 3,
+            "layer": "Conv2DTranspose",
+            "padding": "valid",
+            "strides": 1
+        },
+        "dataFile": {
+            "appMode": "regression",
+            "dataOrigin": "file",
+            "featureRangeMax": 1,
+            "featureRangeMin": 0,
+            "file": "pets.h5",
+            "inputsScaler": "MinMaxScaler",
+            "oldFile": "pets.h5",
+            "outputsScaler": "MinMaxScaler",
+            "url": "",
+            "exampleDir": "pets",
+            "exampleFileCnt": 2
+        },
+        "dataFileCache": {},
+        "dense": {
+            "_super": "neuralNetLayer",
+            "activation": "relu",
+            "dimensionality": 10,
+            "layer": "Dense"
+        },
+        "dropout": {
+            "dropoutRate": 0.5,
+            "layer": "Dropout"
+        },
+        "dtClassifierClassificationMetricsAnimation": {},
+        "dtClassifierConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "epochAnimation": {
+            "plotScale": "log10"
+        },
+        "fftReport": {
+            "column": "0"
+        },
+        "fileColumnReport": {
+            "x": -1
+        },
+        "fileColumnReport0": {
+            "columnNumber": 0,
+            "x": -1
+        },
+        "fileColumnReport1": {
+            "columnNumber": 1,
+            "x": -1
+        },
+        "fitAnimation": {
+            "colorMap": "viridis",
+            "columnNumber": 0,
+            "histogramBins": 30
+        },
+        "fitAnimation0": {
+            "columnNumber": 0
+        },
+        "fitReport": {},
+        "flatten": {
+            "layer": "Flatten"
+        },
+        "gaussianDropout": {
+            "_super": "dropout",
+            "dropoutRate": 0.5,
+            "layer": "GaussianDropout"
+        },
+        "gaussianNoise": {
+            "layer": "GaussianNoise",
+            "stddev": 0.01
+        },
+        "globalAveragePooling2D": {
+            "layer": "GlobalAveragePooling2D"
+        },
+        "hiddenReport": {
+            "subreports": []
+        },
+        "imageViewerShow": true,
+        "knnClassification": {
+            "kmax": 50,
+            "kmin": 1
+        },
+        "knnClassificationMetricsAnimation": {},
+        "knnConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "knnErrorRateAnimation": {},
+        "linearSvcClassification": {
+            "toleranceMax": 0.15,
+            "toleranceMin": 0.001,
+            "totalNumValues": 20
+        },
+        "linearSvcConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "linearSvcErrorRateAnimation": {},
+        "logisticRegressionClassification": {
+            "toleranceMax": 25,
+            "toleranceMin": 1,
+            "totalNumValues": 20
+        },
+        "logisticRegressionClassificationMetricsAnimation": {},
+        "logisticRegressionConfusionMatrixAnimation": {
+            "colorMap": "blues"
+        },
+        "logisticRegressionErrorRateAnimation": {},
+        "maxPooling2D": {
+            "_super": "poolingLayer",
+            "layer": "MaxPooling2D",
+            "padding": "valid",
+            "size": 2,
+            "strides": 1
+        },
+        "mlModel": {
+            "mlModule": "neuralnet",
+            "modelFile": "new_model.h5"
+        },
+        "neuralNet": {
+            "batch_size": 64,
+            "epochs": 10,
+            "layers": [
+                {
+                    "activation": "linear",
+                    "children": [
+                        {
+                            "layers": []
+                        },
+                        {
+                            "layers": []
+                        }
+                    ],
+                    "dimensionality": 16,
+                    "kernel": 3,
+                    "layer": "Conv2D",
+                    "padding": "same",
+                    "strides": 1
+                },
+                {
+                    "children": [
+                        {
+                            "layers": []
+                        },
+                        {
+                            "layers": []
+                        }
+                    ],
+                    "layer": "BatchNormalization",
+                    "momentum": 0.99
+                },
+                {
+                    "": "relu",
+                    "children": [
+                        {
+                            "layers": []
+                        },
+                        {
+                            "layers": []
+                        }
+                    ],
+                    "layer": "Activation"
+                },
+                {
+                    "children": [
+                        {
+                            "layers": [
+                                {
+                                    "children": [
+                                        {
+                                            "layers": []
+                                        },
+                                        {
+                                            "layers": []
+                                        }
+                                    ],
+                                    "layer": "MaxPooling2D",
+                                    "padding": "valid",
+                                    "size": 2,
+                                    "strides": 2
+                                },
+                                {
+                                    "children": [
+                                        {
+                                            "layers": []
+                                        },
+                                        {
+                                            "layers": []
+                                        }
+                                    ],
+                                    "dropoutRate": 0.1,
+                                    "layer": "Dropout"
+                                },
+                                {
+                                    "activation": "linear",
+                                    "children": [
+                                        {
+                                            "layers": []
+                                        },
+                                        {
+                                            "layers": []
+                                        }
+                                    ],
+                                    "dimensionality": 32,
+                                    "kernel": 3,
+                                    "layer": "Conv2D",
+                                    "padding": "same",
+                                    "strides": 1
+                                },
+                                {
+                                    "children": [
+                                        {
+                                            "layers": []
+                                        },
+                                        {
+                                            "layers": []
+                                        }
+                                    ],
+                                    "layer": "BatchNormalization",
+                                    "momentum": 0.99
+                                },
+                                {
+                                    "activation": "relu",
+                                    "children": [
+                                        {
+                                            "layers": []
+                                        },
+                                        {
+                                            "layers": []
+                                        }
+                                    ],
+                                    "layer": "Activation"
+                                },
+                                {
+                                    "children": [
+                                        {
+                                            "layers": [
+                                                {
+                                                    "children": [
+                                                        {
+                                                            "layers": []
+                                                        },
+                                                        {
+                                                            "layers": []
+                                                        }
+                                                    ],
+                                                    "layer": "MaxPooling2D",
+                                                    "padding": "valid",
+                                                    "size": 2,
+                                                    "strides": 2
+                                                },
+                                                {
+                                                    "children": [
+                                                        {
+                                                            "layers": []
+                                                        },
+                                                        {
+                                                            "layers": []
+                                                        }
+                                                    ],
+                                                    "dropoutRate": 0.1,
+                                                    "layer": "Dropout"
+                                                },
+                                                {
+                                                    "activation": "linear",
+                                                    "children": [
+                                                        {
+                                                            "layers": []
+                                                        },
+                                                        {
+                                                            "layers": []
+                                                        }
+                                                    ],
+                                                    "dimensionality": 64,
+                                                    "kernel": 3,
+                                                    "layer": "Conv2D",
+                                                    "padding": "same",
+                                                    "strides": 1
+                                                },
+                                                {
+                                                    "children": [
+                                                        {
+                                                            "layers": []
+                                                        },
+                                                        {
+                                                            "layers": []
+                                                        }
+                                                    ],
+                                                    "layer": "BatchNormalization",
+                                                    "momentum": 0.99
+                                                },
+                                                {
+                                                    "activation": "relu",
+                                                    "children": [
+                                                        {
+                                                            "layers": []
+                                                        },
+                                                        {
+                                                            "layers": []
+                                                        }
+                                                    ],
+                                                    "layer": "Activation"
+                                                },
+                                                {
+                                                    "children": [
+                                                        {
+                                                            "layers": [
+                                                                {
+                                                                    "children": [
+                                                                        {
+                                                                            "layers": []
+                                                                        },
+                                                                        {
+                                                                            "layers": []
+                                                                        }
+                                                                    ],
+                                                                    "layer": "MaxPooling2D",
+                                                                    "padding": "valid",
+                                                                    "size": 2,
+                                                                    "strides": 2
+                                                                },
+                                                                {
+                                                                    "children": [
+                                                                        {
+                                                                            "layers": []
+                                                                        },
+                                                                        {
+                                                                            "layers": []
+                                                                        }
+                                                                    ],
+                                                                    "dropoutRate": 0.1,
+                                                                    "layer": "Dropout"
+                                                                },
+                                                                {
+                                                                    "activation": "linear",
+                                                                    "children": [
+                                                                        {
+                                                                            "layers": []
+                                                                        },
+                                                                        {
+                                                                            "layers": []
+                                                                        }
+                                                                    ],
+                                                                    "dimensionality": 128,
+                                                                    "kernel": 3,
+                                                                    "layer": "Conv2D",
+                                                                    "padding": "same",
+                                                                    "strides": 1
+                                                                },
+                                                                {
+                                                                    "children": [
+                                                                        {
+                                                                            "layers": []
+                                                                        },
+                                                                        {
+                                                                            "layers": []
+                                                                        }
+                                                                    ],
+                                                                    "layer": "BatchNormalization",
+                                                                    "momentum": 0.99
+                                                                },
+                                                                {
+                                                                    "activation": "relu",
+                                                                    "children": [
+                                                                        {
+                                                                            "layers": []
+                                                                        },
+                                                                        {
+                                                                            "layers": []
+                                                                        }
+                                                                    ],
+                                                                    "layer": "Activation"
+                                                                },
+                                                                {
+                                                                    "children": [
+                                                                        {
+                                                                            "layers": [
+                                                                                {
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "layers": []
+                                                                                        },
+                                                                                        {
+                                                                                            "layers": []
+                                                                                        }
+                                                                                    ],
+                                                                                    "layer": "MaxPooling2D",
+                                                                                    "padding": "valid",
+                                                                                    "size": 2,
+                                                                                    "strides": 2
+                                                                                },
+                                                                                {
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "layers": []
+                                                                                        },
+                                                                                        {
+                                                                                            "layers": []
+                                                                                        }
+                                                                                    ],
+                                                                                    "dropoutRate": 0.1,
+                                                                                    "layer": "Dropout"
+                                                                                },
+                                                                                {
+                                                                                    "activation": "linear",
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "layers": []
+                                                                                        },
+                                                                                        {
+                                                                                            "layers": []
+                                                                                        }
+                                                                                    ],
+                                                                                    "dimensionality": 256,
+                                                                                    "kernel": 3,
+                                                                                    "layer": "Conv2D",
+                                                                                    "padding": "same",
+                                                                                    "strides": 1
+                                                                                },
+                                                                                {
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "layers": []
+                                                                                        },
+                                                                                        {
+                                                                                            "layers": []
+                                                                                        }
+                                                                                    ],
+                                                                                    "layer": "BatchNormalization",
+                                                                                    "momentum": 0.99
+                                                                                },
+                                                                                {
+                                                                                    "activation": "relu",
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "layers": []
+                                                                                        },
+                                                                                        {
+                                                                                            "layers": []
+                                                                                        }
+                                                                                    ],
+                                                                                    "layer": "Activation"
+                                                                                },
+                                                                                {
+                                                                                    "activation": "linear",
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "layers": []
+                                                                                        },
+                                                                                        {
+                                                                                            "layers": []
+                                                                                        }
+                                                                                    ],
+                                                                                    "dimensionality": 256,
+                                                                                    "kernel": 3,
+                                                                                    "layer": "Conv2DTranspose",
+                                                                                    "padding": "same",
+                                                                                    "strides": 2
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "layers": []
+                                                                        }
+                                                                    ],
+                                                                    "layer": "Concatenate"
+                                                                },
+                                                                {
+                                                                    "children": [
+                                                                        {
+                                                                            "layers": []
+                                                                        },
+                                                                        {
+                                                                            "layers": []
+                                                                        }
+                                                                    ],
+                                                                    "dropoutRate": 0.1,
+                                                                    "layer": "Dropout"
+                                                                },
+                                                                {
+                                                                    "activation": "linear",
+                                                                    "children": [
+                                                                        {
+                                                                            "layers": []
+                                                                        },
+                                                                        {
+                                                                            "layers": []
+                                                                        }
+                                                                    ],
+                                                                    "dimensionality": 128,
+                                                                    "kernel": 3,
+                                                                    "layer": "Conv2D",
+                                                                    "padding": "same",
+                                                                    "strides": 1
+                                                                },
+                                                                {
+                                                                    "children": [
+                                                                        {
+                                                                            "layers": []
+                                                                        },
+                                                                        {
+                                                                            "layers": []
+                                                                        }
+                                                                    ],
+                                                                    "layer": "BatchNormalization",
+                                                                    "momentum": 0.99
+                                                                },
+                                                                {
+                                                                    "activation": "relu",
+                                                                    "children": [
+                                                                        {
+                                                                            "layers": []
+                                                                        },
+                                                                        {
+                                                                            "layers": []
+                                                                        }
+                                                                    ],
+                                                                    "layer": "Activation"
+                                                                },
+                                                                {
+                                                                    "activation": "linear",
+                                                                    "children": [
+                                                                        {
+                                                                            "layers": []
+                                                                        },
+                                                                        {
+                                                                            "layers": []
+                                                                        }
+                                                                    ],
+                                                                    "dimensionality": 128,
+                                                                    "kernel": 3,
+                                                                    "layer": "Conv2DTranspose",
+                                                                    "padding": "same",
+                                                                    "strides": 2
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "layers": []
+                                                        }
+                                                    ],
+                                                    "layer": "Concatenate"
+                                                },
+                                                {
+                                                    "children": [
+                                                        {
+                                                            "layers": []
+                                                        },
+                                                        {
+                                                            "layers": []
+                                                        }
+                                                    ],
+                                                    "dropoutRate": 0.1,
+                                                    "layer": "Dropout"
+                                                },
+                                                {
+                                                    "activation": "linear",
+                                                    "children": [
+                                                        {
+                                                            "layers": []
+                                                        },
+                                                        {
+                                                            "layers": []
+                                                        }
+                                                    ],
+                                                    "dimensionality": 64,
+                                                    "kernel": 3,
+                                                    "layer": "Conv2D",
+                                                    "padding": "same",
+                                                    "strides": 1
+                                                },
+                                                {
+                                                    "children": [
+                                                        {
+                                                            "layers": []
+                                                        },
+                                                        {
+                                                            "layers": []
+                                                        }
+                                                    ],
+                                                    "layer": "BatchNormalization",
+                                                    "momentum": 0.99
+                                                },
+                                                {
+                                                    "activation": "relu",
+                                                    "children": [
+                                                        {
+                                                            "layers": []
+                                                        },
+                                                        {
+                                                            "layers": []
+                                                        }
+                                                    ],
+                                                    "layer": "Activation"
+                                                },
+                                                {
+                                                    "activation": "linear",
+                                                    "children": [
+                                                        {
+                                                            "layers": []
+                                                        },
+                                                        {
+                                                            "layers": []
+                                                        }
+                                                    ],
+                                                    "dimensionality": 64,
+                                                    "kernel": 3,
+                                                    "layer": "Conv2DTranspose",
+                                                    "padding": "same",
+                                                    "strides": 2
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "layers": []
+                                        }
+                                    ],
+                                    "layer": "Concatenate"
+                                },
+                                {
+                                    "children": [
+                                        {
+                                            "layers": []
+                                        },
+                                        {
+                                            "layers": []
+                                        }
+                                    ],
+                                    "dropoutRate": 0.1,
+                                    "layer": "Dropout"
+                                },
+                                {
+                                    "activation": "linear",
+                                    "children": [
+                                        {
+                                            "layers": []
+                                        },
+                                        {
+                                            "layers": []
+                                        }
+                                    ],
+                                    "dimensionality": 32,
+                                    "kernel": 3,
+                                    "layer": "Conv2D",
+                                    "padding": "same",
+                                    "strides": 1
+                                },
+                                {
+                                    "children": [
+                                        {
+                                            "layers": []
+                                        },
+                                        {
+                                            "layers": []
+                                        }
+                                    ],
+                                    "layer": "BatchNormalization",
+                                    "momentum": 0.99
+                                },
+                                {
+                                    "activation": "relu",
+                                    "children": [
+                                        {
+                                            "layers": []
+                                        },
+                                        {
+                                            "layers": []
+                                        }
+                                    ],
+                                    "layer": "Activation"
+                                },
+                                {
+                                    "activation": "linear",
+                                    "children": [
+                                        {
+                                            "layers": []
+                                        },
+                                        {
+                                            "layers": []
+                                        }
+                                    ],
+                                    "dimensionality": 32,
+                                    "kernel": 3,
+                                    "layer": "Conv2DTranspose",
+                                    "padding": "same",
+                                    "strides": 2
+                                }
+                            ]
+                        },
+                        {
+                            "layers": []
+                        }
+                    ],
+                    "layer": "Concatenate"
+                },
+                {
+                    "children": [
+                        {
+                            "layers": []
+                        },
+                        {
+                            "layers": []
+                        }
+                    ],
+                    "dropoutRate": 0.1,
+                    "layer": "Dropout"
+                },
+                {
+                    "activation": "linear",
+                    "children": [
+                        {
+                            "layers": []
+                        },
+                        {
+                            "layers": []
+                        }
+                    ],
+                    "dimensionality": 16,
+                    "kernel": 3,
+                    "layer": "Conv2D",
+                    "padding": "same",
+                    "strides": 1
+                },
+                {
+                    "children": [
+                        {
+                            "layers": []
+                        },
+                        {
+                            "layers": []
+                        }
+                    ],
+                    "layer": "BatchNormalization",
+                    "momentum": 0.99
+                }
+            ],
+            "losses": "mean_squared_error",
+            "optimizer": "rmsprop",
+            "shuffle": "1"
+        },
+        "neuralNetLayer": {
+            "activation": "relu",
+            "dimensionality": 10,
+            "layer": "Dense"
+        },
+        "panelState": {
+            "hidden": [
+                "neuralNetLayer"
+            ]
+        },
+        "partition": {
+            "cutoff0": null,
+            "cutoff1": null,
+            "method": "random",
+            "random_state": 42,
+            "section0": "validate",
+            "section1": "train_and_test",
+            "section2": "validate",
+            "testing": 12.5,
+            "trainTestPercent": 75,
+            "training": 75,
+            "validation": 12.5
+        },
+        "partitionColumnReport": {},
+        "partitionSelectionReport": {},
+        "poolingLayer": {
+            "padding": "valid",
+            "size": 2,
+            "strides": 1
+        },
+        "reshape": {
+            "layer": "Reshape",
+            "new_shape": "(64, 64)"
+        },
+        "separableConv2D": {
+            "_super": "conv2D",
+            "activation": "relu",
+            "dimensionality": 32,
+            "kernel": 3,
+            "layer": "SeparableConv2D",
+            "padding": "valid",
+            "strides": 1
+        },
+        "simFolder": {},
+        "simulation": {
+            "folder": "/Examples",
+            "name": "Oxford Pets",
+            "notes": "Dataset derived from the Oxford-IIIT Pet Dataset. https://www.robots.ox.ac.uk/~vgg/data/pets/"
+        },
+        "upSampling2D": {
+            "interpolation": "nearest",
+            "layer": "UpSampling2D",
+            "size": 2
+        },
+        "urlCache": {},
+        "zeroPadding2D": {
+            "layer": "ZeroPadding2D",
+            "padding": 1
+        }
+    },
+    "simulationType": "activait"
+}

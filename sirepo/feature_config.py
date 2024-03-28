@@ -135,6 +135,13 @@ def _init():
     _cfg = pkconfig.init(
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, "optional api modules, e.g. status"),
+        activait=dict(
+            data_storage_url=(
+                "https://github.com/radiasoft/sirepo-data-activait/raw/master/",
+                str,
+                "url base to reach activait example files",
+            ),
+        ),
         cloudmc=dict(
             data_storage_url=(
                 "https://github.com/radiasoft/sirepo-data-cloudmc/raw/master/",
