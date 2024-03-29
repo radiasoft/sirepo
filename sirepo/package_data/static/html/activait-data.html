@@ -1,6 +1,6 @@
 <div class="container-fluid">
   <div class="row">
-    <div>
+    <div data-ng-if="data.dataFileReady">
       <div class="col-md-10 col-lg-6" data-basic-editor-panel="" data-view-name="dataFile"></div>
       <div class="col-md-10 col-lg-6" data-ng-show="data.activaitService.hasDataFile()">
         <div data-basic-editor-panel="" data-view-name="columnChooser">
@@ -12,5 +12,12 @@
       </div>
     </div>
     <div data-ng-if="data.activaitService.isTextData()" data-column-reports=""></div>
+    <div class="col-md-10 col-lg-6" data-basic-editor-panel="" data-view-name="loadData" data-ng-if="! data.dataFileReady">
+      Loading remote datafile (this may take a minute)
+        <div class="progress">
+          <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+          </div>
+        </div>
+    </div>
   </div>
 </div>
