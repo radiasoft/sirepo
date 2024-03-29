@@ -535,7 +535,7 @@ def _build_model_py(v):
         return f"""{layer.dimensionality},
     activation="{layer.activation}",
     kernel_size=({layer.kernel}, {layer.kernel}),
-    kernel_initializer=keras.initializers.{layer.kernel_initializer}(),
+    kernel_initializer=keras.initializers.{layer.get("kernel_initializer", "RandomNormal")}(),
     strides={layer.strides},
     padding="{layer.padding}"
     """
