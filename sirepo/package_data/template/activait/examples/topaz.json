@@ -62,14 +62,18 @@
             "layer": "BatchNormalization",
             "momentum": 0.99
         },
+        "bestLossesAnimation": {},
+        "bestLossesComparisonAnimation": {
+            "otherSimId": ""
+        },
         "classificationAnimation": {
             "classifier": "knn"
         },
         "columnInfo": {
             "colsWithNonUniqueValues": {},
             "dtypeKind": [
-                "u",
-                "u"
+                "f",
+                "f"
             ],
             "header": [
                 "images",
@@ -89,15 +93,14 @@
             ],
             "shape": [
                 [
-                    7390,
-                    64,
-                    64,
-                    3
+                    611,
+                    128,
+                    128
                 ],
                 [
-                    7390,
-                    64,
-                    64
+                    611,
+                    128,
+                    128
                 ]
             ],
             "state": "completed"
@@ -106,6 +109,9 @@
             0,
             1
         ],
+        "comparisonSims": {
+            "compareSim": []
+        },
         "concatenate": {
             "layer": "Concatenate"
         },
@@ -114,7 +120,7 @@
             "activation": "relu",
             "dimensionality": 32,
             "kernel": 3,
-            "kernel_initializer": "RandomNormal",
+            "kernel_initializer": "",
             "layer": "Conv2D",
             "padding": "valid",
             "strides": 1
@@ -124,7 +130,7 @@
             "activation": "relu",
             "dimensionality": 32,
             "kernel": 3,
-            "kernel_initializer": "RandomNormal",
+            "kernel_initializer": "",
             "layer": "Conv2DTranspose",
             "padding": "valid",
             "strides": 1
@@ -132,22 +138,71 @@
         "dataFile": {
             "appMode": "regression",
             "dataOrigin": "file",
+            "exampleDir": "topaz",
+            "exampleFileCnt": 1,
             "featureRangeMax": 1,
             "featureRangeMin": 0,
-            "file": "pets.h5",
-            "inputsScaler": "MinMaxScaler",
-            "oldFile": "pets.h5",
-            "outputsScaler": "MinMaxScaler",
-            "url": "",
-            "exampleDir": "pets",
-            "exampleFileCnt": 2
+            "file": "topaz.h5",
+            "inputsScaler": "StandardScaler",
+            "oldFile": "topaz.h5",
+            "outputsScaler": "None",
+            "url": ""
         },
-        "dataFileCache": {},
+        "dataFileCache": {
+            "CIFAR-4.h5": {
+                "dataList": [
+                    "images",
+                    "metadata/image_types",
+                    "metadata/labels"
+                ]
+            },
+            "cifar4-intensity.h5": {
+                "dataList": [
+                    "images",
+                    "metadata/image_types",
+                    "metadata/labels"
+                ]
+            },
+            "srw-kb-mirror.h5": {
+                "dataList": [
+                    "images",
+                    "metadata"
+                ]
+            },
+            "srw-kb-mirror2.h5": {
+                "dataList": [
+                    "images",
+                    "metadata"
+                ]
+            },
+            "srw.h5": {
+                "dataList": [
+                    "images",
+                    "metadata/control_settings"
+                ]
+            },
+            "srw2.h5": {
+                "dataList": [
+                    "images",
+                    "metadata/control_settings"
+                ]
+            },
+            "srw3.h5": {
+                "dataList": [
+                    "images",
+                    "metadata/control_settings"
+                ]
+            }
+        },
         "dense": {
             "_super": "neuralNetLayer",
             "activation": "relu",
             "dimensionality": 10,
             "layer": "Dense"
+        },
+        "dicePlotAnimation": {},
+        "dicePlotComparisonAnimation": {
+            "otherSimId": ""
         },
         "dropout": {
             "dropoutRate": 0.5,
@@ -159,6 +214,10 @@
         },
         "epochAnimation": {
             "plotScale": "log10"
+        },
+        "epochComparisonAnimation": {
+            "otherSimId": "",
+            "plotScale": "linear"
         },
         "fftReport": {
             "column": "0"
@@ -174,6 +233,54 @@
             "columnNumber": 1,
             "x": -1
         },
+        "fileColumnReport10": {
+            "columnNumber": 10,
+            "x": -1
+        },
+        "fileColumnReport11": {
+            "columnNumber": 11,
+            "x": -1
+        },
+        "fileColumnReport12": {
+            "columnNumber": 12,
+            "x": -1
+        },
+        "fileColumnReport13": {
+            "columnNumber": 13,
+            "x": -1
+        },
+        "fileColumnReport2": {
+            "columnNumber": 2,
+            "x": -1
+        },
+        "fileColumnReport3": {
+            "columnNumber": 3,
+            "x": -1
+        },
+        "fileColumnReport4": {
+            "columnNumber": 4,
+            "x": -1
+        },
+        "fileColumnReport5": {
+            "columnNumber": 5,
+            "x": -1
+        },
+        "fileColumnReport6": {
+            "columnNumber": 6,
+            "x": -1
+        },
+        "fileColumnReport7": {
+            "columnNumber": 7,
+            "x": -1
+        },
+        "fileColumnReport8": {
+            "columnNumber": 8,
+            "x": -1
+        },
+        "fileColumnReport9": {
+            "columnNumber": 9,
+            "x": -1
+        },
         "fitAnimation": {
             "colorMap": "viridis",
             "columnNumber": 0,
@@ -181,6 +288,15 @@
         },
         "fitAnimation0": {
             "columnNumber": 0
+        },
+        "fitAnimation1": {
+            "columnNumber": 1
+        },
+        "fitAnimation2": {
+            "columnNumber": 2
+        },
+        "fitAnimation3": {
+            "columnNumber": 3
         },
         "fitReport": {},
         "flatten": {
@@ -201,6 +317,7 @@
         "hiddenReport": {
             "subreports": []
         },
+        "imageSamplesReport": {},
         "imageViewerShow": true,
         "knnClassification": {
             "kmax": 50,
@@ -239,14 +356,14 @@
         },
         "mlModel": {
             "mlModule": "neuralnet",
-            "modelFile": "new_model.h5"
+            "modelFile": "model_topaz_3.h5"
         },
         "neuralNet": {
             "batch_size": 64,
             "epochs": 10,
             "layers": [
                 {
-                    "activation": "linear",
+                    "activation": "relu",
                     "children": [
                         {
                             "layers": []
@@ -257,7 +374,7 @@
                     ],
                     "dimensionality": 16,
                     "kernel": 3,
-                    "kernel_initializer": "RandomNormal",
+                    "kernel_initializer": "HeNormal",
                     "layer": "Conv2D",
                     "padding": "same",
                     "strides": 1
@@ -271,11 +388,11 @@
                             "layers": []
                         }
                     ],
-                    "layer": "BatchNormalization",
-                    "momentum": 0.99
+                    "dropoutRate": 0.1,
+                    "layer": "Dropout"
                 },
                 {
-                    "": "relu",
+                    "activation": "relu",
                     "children": [
                         {
                             "layers": []
@@ -284,7 +401,12 @@
                             "layers": []
                         }
                     ],
-                    "layer": "Activation"
+                    "dimensionality": 16,
+                    "kernel": 3,
+                    "kernel_initializer": "HeNormal",
+                    "layer": "Conv2D",
+                    "padding": "same",
+                    "strides": 1
                 },
                 {
                     "children": [
@@ -305,19 +427,7 @@
                                     "strides": 2
                                 },
                                 {
-                                    "children": [
-                                        {
-                                            "layers": []
-                                        },
-                                        {
-                                            "layers": []
-                                        }
-                                    ],
-                                    "dropoutRate": 0.1,
-                                    "layer": "Dropout"
-                                },
-                                {
-                                    "activation": "linear",
+                                    "activation": "relu",
                                     "children": [
                                         {
                                             "layers": []
@@ -328,7 +438,7 @@
                                     ],
                                     "dimensionality": 32,
                                     "kernel": 3,
-                                    "kernel_initializer": "RandomNormal",
+                                    "kernel_initializer": "HeNormal",
                                     "layer": "Conv2D",
                                     "padding": "same",
                                     "strides": 1
@@ -342,8 +452,8 @@
                                             "layers": []
                                         }
                                     ],
-                                    "layer": "BatchNormalization",
-                                    "momentum": 0.99
+                                    "dropoutRate": 0.1,
+                                    "layer": "Dropout"
                                 },
                                 {
                                     "activation": "relu",
@@ -355,7 +465,12 @@
                                             "layers": []
                                         }
                                     ],
-                                    "layer": "Activation"
+                                    "dimensionality": 32,
+                                    "kernel": 3,
+                                    "kernel_initializer": "HeNormal",
+                                    "layer": "Conv2D",
+                                    "padding": "same",
+                                    "strides": 1
                                 },
                                 {
                                     "children": [
@@ -376,19 +491,7 @@
                                                     "strides": 2
                                                 },
                                                 {
-                                                    "children": [
-                                                        {
-                                                            "layers": []
-                                                        },
-                                                        {
-                                                            "layers": []
-                                                        }
-                                                    ],
-                                                    "dropoutRate": 0.1,
-                                                    "layer": "Dropout"
-                                                },
-                                                {
-                                                    "activation": "linear",
+                                                    "activation": "relu",
                                                     "children": [
                                                         {
                                                             "layers": []
@@ -399,7 +502,7 @@
                                                     ],
                                                     "dimensionality": 64,
                                                     "kernel": 3,
-                                                    "kernel_initializer": "RandomNormal",
+                                                    "kernel_initializer": "HeNormal",
                                                     "layer": "Conv2D",
                                                     "padding": "same",
                                                     "strides": 1
@@ -413,8 +516,8 @@
                                                             "layers": []
                                                         }
                                                     ],
-                                                    "layer": "BatchNormalization",
-                                                    "momentum": 0.99
+                                                    "dropoutRate": 0.2,
+                                                    "layer": "Dropout"
                                                 },
                                                 {
                                                     "activation": "relu",
@@ -426,7 +529,12 @@
                                                             "layers": []
                                                         }
                                                     ],
-                                                    "layer": "Activation"
+                                                    "dimensionality": 64,
+                                                    "kernel": 3,
+                                                    "kernel_initializer": "HeNormal",
+                                                    "layer": "Conv2D",
+                                                    "padding": "same",
+                                                    "strides": 1
                                                 },
                                                 {
                                                     "children": [
@@ -447,19 +555,7 @@
                                                                     "strides": 2
                                                                 },
                                                                 {
-                                                                    "children": [
-                                                                        {
-                                                                            "layers": []
-                                                                        },
-                                                                        {
-                                                                            "layers": []
-                                                                        }
-                                                                    ],
-                                                                    "dropoutRate": 0.1,
-                                                                    "layer": "Dropout"
-                                                                },
-                                                                {
-                                                                    "activation": "linear",
+                                                                    "activation": "relu",
                                                                     "children": [
                                                                         {
                                                                             "layers": []
@@ -470,7 +566,7 @@
                                                                     ],
                                                                     "dimensionality": 128,
                                                                     "kernel": 3,
-                                                                    "kernel_initializer": "RandomNormal",
+                                                                    "kernel_initializer": "HeNormal",
                                                                     "layer": "Conv2D",
                                                                     "padding": "same",
                                                                     "strides": 1
@@ -484,8 +580,8 @@
                                                                             "layers": []
                                                                         }
                                                                     ],
-                                                                    "layer": "BatchNormalization",
-                                                                    "momentum": 0.99
+                                                                    "dropoutRate": 0.2,
+                                                                    "layer": "Dropout"
                                                                 },
                                                                 {
                                                                     "activation": "relu",
@@ -497,7 +593,12 @@
                                                                             "layers": []
                                                                         }
                                                                     ],
-                                                                    "layer": "Activation"
+                                                                    "dimensionality": 128,
+                                                                    "kernel": 3,
+                                                                    "kernel_initializer": "HeNormal",
+                                                                    "layer": "Conv2D",
+                                                                    "padding": "same",
+                                                                    "strides": 1
                                                                 },
                                                                 {
                                                                     "children": [
@@ -518,19 +619,7 @@
                                                                                     "strides": 2
                                                                                 },
                                                                                 {
-                                                                                    "children": [
-                                                                                        {
-                                                                                            "layers": []
-                                                                                        },
-                                                                                        {
-                                                                                            "layers": []
-                                                                                        }
-                                                                                    ],
-                                                                                    "dropoutRate": 0.1,
-                                                                                    "layer": "Dropout"
-                                                                                },
-                                                                                {
-                                                                                    "activation": "linear",
+                                                                                    "activation": "relu",
                                                                                     "children": [
                                                                                         {
                                                                                             "layers": []
@@ -541,7 +630,7 @@
                                                                                     ],
                                                                                     "dimensionality": 256,
                                                                                     "kernel": 3,
-                                                                                    "kernel_initializer": "RandomNormal",
+                                                                                    "kernel_initializer": "HeNormal",
                                                                                     "layer": "Conv2D",
                                                                                     "padding": "same",
                                                                                     "strides": 1
@@ -555,8 +644,8 @@
                                                                                             "layers": []
                                                                                         }
                                                                                     ],
-                                                                                    "layer": "BatchNormalization",
-                                                                                    "momentum": 0.99
+                                                                                    "dropoutRate": 0.3,
+                                                                                    "layer": "Dropout"
                                                                                 },
                                                                                 {
                                                                                     "activation": "relu",
@@ -568,7 +657,12 @@
                                                                                             "layers": []
                                                                                         }
                                                                                     ],
-                                                                                    "layer": "Activation"
+                                                                                    "dimensionality": 256,
+                                                                                    "kernel": 3,
+                                                                                    "kernel_initializer": "HeNormal",
+                                                                                    "layer": "Conv2D",
+                                                                                    "padding": "same",
+                                                                                    "strides": 1
                                                                                 },
                                                                                 {
                                                                                     "activation": "linear",
@@ -581,8 +675,8 @@
                                                                                         }
                                                                                     ],
                                                                                     "dimensionality": 256,
-                                                                                    "kernel": 3,
-                                                                                    "kernel_initializer": "RandomNormal",
+                                                                                    "kernel": 2,
+                                                                                    "kernel_initializer": "GlorotUniform",
                                                                                     "layer": "Conv2DTranspose",
                                                                                     "padding": "same",
                                                                                     "strides": 2
@@ -596,19 +690,7 @@
                                                                     "layer": "Concatenate"
                                                                 },
                                                                 {
-                                                                    "children": [
-                                                                        {
-                                                                            "layers": []
-                                                                        },
-                                                                        {
-                                                                            "layers": []
-                                                                        }
-                                                                    ],
-                                                                    "dropoutRate": 0.1,
-                                                                    "layer": "Dropout"
-                                                                },
-                                                                {
-                                                                    "activation": "linear",
+                                                                    "activation": "relu",
                                                                     "children": [
                                                                         {
                                                                             "layers": []
@@ -619,7 +701,7 @@
                                                                     ],
                                                                     "dimensionality": 128,
                                                                     "kernel": 3,
-                                                                    "kernel_initializer": "RandomNormal",
+                                                                    "kernel_initializer": "HeNormal",
                                                                     "layer": "Conv2D",
                                                                     "padding": "same",
                                                                     "strides": 1
@@ -633,8 +715,8 @@
                                                                             "layers": []
                                                                         }
                                                                     ],
-                                                                    "layer": "BatchNormalization",
-                                                                    "momentum": 0.99
+                                                                    "dropoutRate": 0.2,
+                                                                    "layer": "Dropout"
                                                                 },
                                                                 {
                                                                     "activation": "relu",
@@ -646,7 +728,12 @@
                                                                             "layers": []
                                                                         }
                                                                     ],
-                                                                    "layer": "Activation"
+                                                                    "dimensionality": 128,
+                                                                    "kernel": 3,
+                                                                    "kernel_initializer": "HeNormal",
+                                                                    "layer": "Conv2D",
+                                                                    "padding": "same",
+                                                                    "strides": 1
                                                                 },
                                                                 {
                                                                     "activation": "linear",
@@ -659,8 +746,8 @@
                                                                         }
                                                                     ],
                                                                     "dimensionality": 128,
-                                                                    "kernel": 3,
-                                                                    "kernel_initializer": "RandomNormal",
+                                                                    "kernel": 2,
+                                                                    "kernel_initializer": "GlorotUniform",
                                                                     "layer": "Conv2DTranspose",
                                                                     "padding": "same",
                                                                     "strides": 2
@@ -674,19 +761,7 @@
                                                     "layer": "Concatenate"
                                                 },
                                                 {
-                                                    "children": [
-                                                        {
-                                                            "layers": []
-                                                        },
-                                                        {
-                                                            "layers": []
-                                                        }
-                                                    ],
-                                                    "dropoutRate": 0.1,
-                                                    "layer": "Dropout"
-                                                },
-                                                {
-                                                    "activation": "linear",
+                                                    "activation": "relu",
                                                     "children": [
                                                         {
                                                             "layers": []
@@ -697,7 +772,7 @@
                                                     ],
                                                     "dimensionality": 64,
                                                     "kernel": 3,
-                                                    "kernel_initializer": "RandomNormal",
+                                                    "kernel_initializer": "HeNormal",
                                                     "layer": "Conv2D",
                                                     "padding": "same",
                                                     "strides": 1
@@ -711,8 +786,8 @@
                                                             "layers": []
                                                         }
                                                     ],
-                                                    "layer": "BatchNormalization",
-                                                    "momentum": 0.99
+                                                    "dropoutRate": 0.2,
+                                                    "layer": "Dropout"
                                                 },
                                                 {
                                                     "activation": "relu",
@@ -724,7 +799,12 @@
                                                             "layers": []
                                                         }
                                                     ],
-                                                    "layer": "Activation"
+                                                    "dimensionality": 64,
+                                                    "kernel": 3,
+                                                    "kernel_initializer": "HeNormal",
+                                                    "layer": "Conv2D",
+                                                    "padding": "same",
+                                                    "strides": 1
                                                 },
                                                 {
                                                     "activation": "linear",
@@ -737,8 +817,8 @@
                                                         }
                                                     ],
                                                     "dimensionality": 64,
-                                                    "kernel": 3,
-                                                    "kernel_initializer": "RandomNormal",
+                                                    "kernel": 2,
+                                                    "kernel_initializer": "GlorotUniform",
                                                     "layer": "Conv2DTranspose",
                                                     "padding": "same",
                                                     "strides": 2
@@ -750,6 +830,23 @@
                                         }
                                     ],
                                     "layer": "Concatenate"
+                                },
+                                {
+                                    "activation": "relu",
+                                    "children": [
+                                        {
+                                            "layers": []
+                                        },
+                                        {
+                                            "layers": []
+                                        }
+                                    ],
+                                    "dimensionality": 32,
+                                    "kernel": 3,
+                                    "kernel_initializer": "HeNormal",
+                                    "layer": "Conv2D",
+                                    "padding": "same",
+                                    "strides": 1
                                 },
                                 {
                                     "children": [
@@ -764,35 +861,6 @@
                                     "layer": "Dropout"
                                 },
                                 {
-                                    "activation": "linear",
-                                    "children": [
-                                        {
-                                            "layers": []
-                                        },
-                                        {
-                                            "layers": []
-                                        }
-                                    ],
-                                    "dimensionality": 32,
-                                    "kernel": 3,
-                                    "kernel_initializer": "RandomNormal",
-                                    "layer": "Conv2D",
-                                    "padding": "same",
-                                    "strides": 1
-                                },
-                                {
-                                    "children": [
-                                        {
-                                            "layers": []
-                                        },
-                                        {
-                                            "layers": []
-                                        }
-                                    ],
-                                    "layer": "BatchNormalization",
-                                    "momentum": 0.99
-                                },
-                                {
                                     "activation": "relu",
                                     "children": [
                                         {
@@ -802,7 +870,12 @@
                                             "layers": []
                                         }
                                     ],
-                                    "layer": "Activation"
+                                    "dimensionality": 32,
+                                    "kernel": 3,
+                                    "kernel_initializer": "HeNormal",
+                                    "layer": "Conv2D",
+                                    "padding": "same",
+                                    "strides": 1
                                 },
                                 {
                                     "activation": "linear",
@@ -815,8 +888,8 @@
                                         }
                                     ],
                                     "dimensionality": 32,
-                                    "kernel": 3,
-                                    "kernel_initializer": "RandomNormal",
+                                    "kernel": 2,
+                                    "kernel_initializer": "GlorotUniform",
                                     "layer": "Conv2DTranspose",
                                     "padding": "same",
                                     "strides": 2
@@ -828,6 +901,23 @@
                         }
                     ],
                     "layer": "Concatenate"
+                },
+                {
+                    "activation": "relu",
+                    "children": [
+                        {
+                            "layers": []
+                        },
+                        {
+                            "layers": []
+                        }
+                    ],
+                    "dimensionality": 16,
+                    "kernel": 3,
+                    "kernel_initializer": "HeNormal",
+                    "layer": "Conv2D",
+                    "padding": "same",
+                    "strides": 1
                 },
                 {
                     "children": [
@@ -842,7 +932,7 @@
                     "layer": "Dropout"
                 },
                 {
-                    "activation": "linear",
+                    "activation": "relu",
                     "children": [
                         {
                             "layers": []
@@ -853,26 +943,14 @@
                     ],
                     "dimensionality": 16,
                     "kernel": 3,
-                    "kernel_initializer": "RandomNormal",
+                    "kernel_initializer": "HeNormal",
                     "layer": "Conv2D",
                     "padding": "same",
                     "strides": 1
-                },
-                {
-                    "children": [
-                        {
-                            "layers": []
-                        },
-                        {
-                            "layers": []
-                        }
-                    ],
-                    "layer": "BatchNormalization",
-                    "momentum": 0.99
                 }
             ],
-            "losses": "mean_squared_error",
-            "optimizer": "rmsprop",
+            "losses": "binary_crossentropy",
+            "optimizer": "adam",
             "shuffle": "1"
         },
         "neuralNetLayer": {
@@ -881,13 +959,11 @@
             "layer": "Dense"
         },
         "panelState": {
-            "hidden": [
-                "neuralNetLayer"
-            ]
+            "hidden": []
         },
         "partition": {
-            "cutoff0": null,
-            "cutoff1": null,
+            "cutoff0": 19,
+            "cutoff1": 137,
             "method": "random",
             "random_state": 42,
             "section0": "validate",
@@ -909,12 +985,13 @@
             "layer": "Reshape",
             "new_shape": "(64, 64)"
         },
+        "segmentSamplesAnimation": {},
         "separableConv2D": {
             "_super": "conv2D",
             "activation": "relu",
             "dimensionality": 32,
             "kernel": 3,
-            "kernel_initializer": "RandomNormal",
+            "kernel_initializer": "",
             "layer": "SeparableConv2D",
             "padding": "valid",
             "strides": 1
@@ -922,8 +999,8 @@
         "simFolder": {},
         "simulation": {
             "folder": "/Examples",
-            "name": "Oxford Pets",
-            "notes": "Dataset derived from the Oxford-IIIT Pet Dataset. https://www.robots.ox.ac.uk/~vgg/data/pets/"
+            "name": "Topaz",
+            "notes": ""
         },
         "upSampling2D": {
             "interpolation": "nearest",
@@ -931,6 +1008,10 @@
             "size": 2
         },
         "urlCache": {},
+        "worstLossesAnimation": {},
+        "worstLossesComparisonAnimation": {
+            "otherSimId": ""
+        },
         "zeroPadding2D": {
             "layer": "ZeroPadding2D",
             "padding": 1
