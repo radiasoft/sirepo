@@ -461,6 +461,34 @@ def stateful_compute_get_remote_data(data, **kwargs):
     return PKDict()
 
 
+def stateful_compute_download_remote_lib_file(data, **kwargs):
+    if data.args.exampleFileCnt == 1:
+        _lib_file_save_from_url(data.args.exampleDir + f"/{data.args.file}")
+        return PKDict()
+    i = []
+    n = _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", data.args.file)
+    for c in range(data.args.exampleFileCnt):
+        _lib_file_save_from_url(data.args.exampleDir + f"/{c}.h5")
+        i.append(
+            _SIM_DATA.lib_file_abspath(
+                _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", f"{c}.h5")
+            )
+        )
+    o = i[0].dirpath().join(n)
+    with h5py.File(o, "w") as cmb:
+        for f in i:
+            with h5py.File(f, "r") as src:
+                cmb.attrs.update(src.attrs)
+                for g in src:
+                    src.copy(
+                        f"/{g}",
+                        cmb.require_group(src[g].parent.name),
+                        name=g,
+                    )
+    _SIM_DATA.lib_file_write(n, pkio.py_path(o))
+    return PKDict()
+
+
 def stateful_compute_sample_images(data, **kwargs):
     return _ImagePreview(data).images()
 
@@ -1448,6 +1476,17 @@ def _levels_with_children(cur_node, neural_net):
             continue
         cur_node = _get_next_node(cur_node, neural_net)
     return cur_node, 1, l
+
+
+def _lib_file_save_from_url(basename):
+    _SIM_DATA.lib_file_save_from_url(
+        "{}/{}".format(
+            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+            basename,
+        ),
+        "dataFile",
+        "file",
+    )
 
 
 def _loss_function(loss_fn):

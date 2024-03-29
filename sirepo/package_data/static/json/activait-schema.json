@@ -324,7 +324,9 @@
             "featureRangeMax": ["Feature range maximum", "Integer", 1],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
-            "url": ["Data URL", "URL", ""]
+            "url": ["Data URL", "URL", ""],
+            "exampleDir": ["", "String", ""],
+            "exampleFileCnt": ["", "Integer", 1]
         },
         "dataFileCache": {},
         "dtClassifierClassificationMetricsAnimation": {},
@@ -622,6 +624,11 @@
         },
         "columnChooser": {
             "title": "Columns",
+            "basic": [],
+            "advanced": []
+        },
+        "loadData": {
+            "title": "Data Loading Status",
             "basic": [],
             "advanced": []
         },
