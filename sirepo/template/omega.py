@@ -315,8 +315,11 @@ def _generate_parameters_file(data):
     def _sim_call(idx, sim):
         r = (
             f"sim{idx + 1} = {_SIM_TYPE_TO_CODE[sim.sim_type]}("
-            + f'**code_kwargs("run{idx + 1 }", "{_SIM_TYPE_TO_INPUT_FILE[sim.sim_type]}"))\n'
+            + f'**code_kwargs("run{idx + 1 }", "{_SIM_TYPE_TO_INPUT_FILE[sim.sim_type]}")'
         )
+        if sim.sim_type in ("opal", "elegant"):
+            r += ", update_filenames=True"
+        r += ")\n"
         if idx > 0:
             r += f"sim{idx + 1}.set_particle_input(sim{idx}.final_particles())\n"
         r += f"run_and_save_particles(sim{idx + 1})"
