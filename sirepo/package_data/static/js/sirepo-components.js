@@ -4901,23 +4901,38 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
             route: '@',
         },
         template: `
-            <span data-loading-spinner data-sentinel="simList">
+            <span data-loading-spinner data-sentinel="items">
               <div style="white-space: nowrap">
-                <select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as itemName(item) disable when item.invalidMsg for item in simList"></select>
+                <select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as item.name disable when item.isInvalid for item in items"></select>
 
                 <button type="button" style="padding: 3px 10px 5px 10px; margin-top: -1px" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>
               </div>
             </span>
         `,
         controller: function($scope) {
-            $scope.simList = null;
 
-            // special processing of the item's name if necessary
-            $scope.itemName = function(item) {
-                return item.invalidMsg ? `${item.name} <${item.invalidMsg}>` : item.name;
-            };
+            function buildList(simList) {
+                $scope.items = [];
+                for (const s of simList) {
+                    $scope.items.push({
+                        simulationId: s.simulationId,
+                        isInvalid: s.invalidMsg ? true : false,
+                        name: itemName(s),
+                    });
+                }
+                $scope.items.sort((a, b) => a.name.localeCompare(b.name));
+            }
 
-            $scope.openSimulation = function() {
+            function itemName(sim) {
+                const n = sim.folder === '/'
+                        ? `/${sim.name}`
+                        : `${sim.folder}/${sim.name}`;
+                return sim.invalidMsg
+                     ? `${n} <${sim.invalidMsg}>`
+                     : n;
+            }
+
+            $scope.openSimulation = () => {
                 if ($scope.model && $scope.model[$scope.field]) {
                     requestSender.openSimulation(
                         $scope.code,
@@ -4926,14 +4941,13 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
                     );
                 }
             };
-            appState.whenModelsLoaded($scope, function() {
+
+            appState.whenModelsLoaded($scope, () => {
                 requestSender.sendStatefulCompute(
                     appState,
-                    function(data) {
+                    (data) => {
                         if (appState.isLoaded() && data.simList) {
-                            $scope.simList = data.simList.sort(function(a, b) {
-                                return a.name.localeCompare(b.name);
-                            });
+                            buildList(data.simList);
                         }
                     },
                     {
