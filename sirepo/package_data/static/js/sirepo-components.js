@@ -632,8 +632,10 @@ SIREPO.app.directive('listSearch', function(panelState, utilities) {
        `,
         controller: function($scope, $element) {
             let sel = null;
+            srdbg("SearchClass = ", searchClass);
             panelState.waitForUI(() => {
                 sel = utilities.buildSearch($scope, $element, searchClass);
+                srdbg("$scope.list ", $scope.list);
             });
         },
     };
@@ -5106,7 +5108,9 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
                 const text = req.term;
                 const l = scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1));
                 if (! supportsMulti) {
-                    res(l.filter(x => x.label.includes(text)));
+                    res(l.filter(x => {
+                        return x.label.toLowerCase().includes(text.toLowerCase());
+                    }));
                     return;
                 }
                 const t = findToken(text, s.get(0).selectionStart);
@@ -5123,6 +5127,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         const search = {
             container: s,
             update: () => {
+                srdbg("s = ", s);
                 s.autocomplete('option', 'disabled', ! scope.list.length);
             },
         };
