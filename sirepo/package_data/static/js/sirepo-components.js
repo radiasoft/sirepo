@@ -632,10 +632,8 @@ SIREPO.app.directive('listSearch', function(panelState, utilities) {
        `,
         controller: function($scope, $element) {
             let sel = null;
-            srdbg("SearchClass = ", searchClass);
             panelState.waitForUI(() => {
                 sel = utilities.buildSearch($scope, $element, searchClass);
-                srdbg("$scope.list ", $scope.list);
             });
         },
     };
@@ -5127,7 +5125,6 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         const search = {
             container: s,
             update: () => {
-                srdbg("s = ", s);
                 s.autocomplete('option', 'disabled', ! scope.list.length);
             },
         };

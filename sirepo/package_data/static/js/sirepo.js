@@ -3702,7 +3702,6 @@ SIREPO.app.factory('fileManager', function(requestSender) {
 
             while (path.length) {
                 var search = path.shift();
-                // srdbg("search", search);
                 var folder = null;
                 for (var i = 0; i < currentFolder.children.length; i++) {
                     if (search == currentFolder.children[i].name && currentFolder.children[i].isFolder) {
@@ -3773,7 +3772,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
             .filter(item => ! item.isFolder)
             .map(item => {
                 return {
-                    label: item.path + "==",
+                    label: item.path,
                     value: item,
                 };
             });
@@ -4450,7 +4449,6 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
     $scope.$on('simFolder.changed', function() {
         var name = appState.models.simFolder.name;
         name = name.replace(/[\/]/g, '');
-        // srdbg("name", name);
         fileManager.addToTree({
             name: name,
             parent: fileManager.getFolderWithPath(appState.models.simFolder.parent) || self.activeFolder,
