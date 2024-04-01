@@ -21,7 +21,7 @@ pykern.pksetup.setup(
         "matplotlib",
         "msgpack",
         "numconv",
-        "numpy",
+        "numpy<2.0",
         "Pillow",
         "pyIsEmail",
         "pykern",

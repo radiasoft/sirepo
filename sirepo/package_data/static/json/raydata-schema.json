@@ -38,13 +38,6 @@
                 "templateUrl": "/static/html/raydata-analysis-queue.html"
           }
         },
-        "replay": {
-            "route": "/replay/:simulationId",
-            "config": {
-                "controller": "ReplayController as replay",
-                "templateUrl": "/static/html/raydata-replay.html"
-          }
-        },
         "runAnalysis": {
             "route": "/run-analysis/:simulationId",
             "config": {
@@ -73,11 +66,6 @@
         },
         "queuedScans": {
             "scans": ["", "QueuedScansTable", ""]
-        },
-        "replay": {
-            "sourceCatalogName": ["Source Catalog", "CatalogNamePicker", ""],
-            "destinationCatalogName": ["Destination Catalog", "CatalogNamePicker", ""],
-            "numScans": ["Number of Scans", "Integer", null]
         },
         "runAnalysis": {
             "presetTimePicker": ["", "PresetTimePicker", ""],
@@ -134,15 +122,6 @@
             "title": "Input Files",
             "basic": [
                 "mask"
-            ],
-            "advanced": []
-        },
-        "replay": {
-            "title": "Replay",
-            "basic": [
-              "sourceCatalogName",
-              "destinationCatalogName",
-              "numScans"
             ],
             "advanced": []
         },

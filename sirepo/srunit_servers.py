@@ -52,21 +52,27 @@ def api_and_supervisor(pytest_req, fc_args):
         )
 
     def _ping_supervisor(uri):
-        l = None
+        from requests.exceptions import ConnectionError
+
         for _ in range(
             int(os.environ.get("SIREPO_SRUNIT_SERVERS_PING_TIMEOUT", 20)) * 10
         ):
+            d = None
+            s = None
             try:
-                r = requests.post(uri, json=None)
-                r.raise_for_status()
+                r = requests.post(uri, json=None, allow_redirects=False)
+            except ConnectionError as e:
+                s = 0
+            else:
+                if (s := r.status_code) != 200:
+                    break
                 d = pkjson.load_any(r.text)
-                if d.state == "ok":
+                if d.get("state") == "ok":
                     return
-                raise RuntimeError(f"state={d.get('state')}")
-            except Exception as e:
-                l = e
-                time.sleep(0.1)
-        pkunit.restart_or_fail("start failed uri={} exception={}", uri, l)
+                if "unable to connect" not in d.get("error", ""):
+                    break
+            time.sleep(0.1)
+        pkunit.restart_or_fail("uri={} status={} reply={}", uri, s, d)
 
     def _subprocess(cmd):
         p.append(subprocess.Popen(cmd, env=env, cwd=wd))

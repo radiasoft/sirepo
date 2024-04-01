@@ -1441,11 +1441,8 @@ def _compute_crystal_init(model):
             model.orientation = "x"
         else:
             model.orientation = "y"
-    except Exception:
-        pkdlog(
-            "{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py}: error: {}",
-            material_raw,
-        )
+    except Exception as e:
+        pkdlog("material_raw={} exception={}", material_raw, e)
         for key in parms_list:
             model[key] = None
     return model

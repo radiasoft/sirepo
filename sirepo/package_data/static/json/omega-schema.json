@@ -3,6 +3,9 @@
         "sirepoLibs": {
             "js": [
                 "omega.js"
+            ],
+            "css": [
+                "omega.css"
             ]
         }
     },
