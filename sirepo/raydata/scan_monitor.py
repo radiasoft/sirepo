@@ -20,6 +20,7 @@ import math
 import pymongo
 import re
 import requests
+import sirepo.raydata.adaptive_workflow
 import sirepo.raydata.analysis_driver
 import sirepo.raydata.databroker
 import sirepo.srdb
@@ -401,14 +402,6 @@ class _RequestHandler(_JsonPostRequestHandler):
     def _request_analysis_run_log(self, req_data):
         return sirepo.raydata.analysis_driver.get(req_data).get_run_log()
 
-    def _request_begin_replay(self, req_data):
-        sirepo.raydata.replay.begin(
-            req_data.sourceCatalogName,
-            req_data.destinationCatalogName,
-            req_data.numScans,
-        )
-        return PKDict(data="ok")
-
     def _request_catalog_names(self, _):
         return PKDict(
             data=PKDict(
@@ -503,6 +496,14 @@ class _RequestHandler(_JsonPostRequestHandler):
             sirepo.raydata.databroker.get_metadata(req_data.rduid, req_data.catalogName)
         )
         return PKDict(data="ok")
+
+    def _request_run_engine_event_callback(self, req_data):
+        # Start as a task. No need to hold request until task is
+        # completed because the caller does nothing with the response.
+        asyncio.create_task(
+            sirepo.raydata.adaptive_workflow.run_engine_event_callback(req_data)
+        )
+        return PKDict()
 
     def _request_scan_fields(self, req_data):
         return PKDict(
