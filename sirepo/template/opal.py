@@ -669,6 +669,7 @@ def sim_frame_plot2Animation(frame_args):
 def stateful_compute_import_file(data, **kwargs):
     from sirepo.template import opal_parser
 
+    pkdp("\n\n\n\n data.args={}", data.args)
     if data.args.ext_lower == ".in":
         res, input_files = opal_parser.parse_file(
             data.args.file_as_str,
@@ -683,9 +684,21 @@ def stateful_compute_import_file(data, **kwargs):
                 error="Missing data files",
                 missingFiles=missing_files,
             )
-    elif ext == ".madx":
+    elif data.args.ext_lower == ".madx":
         res = OpalMadxConverter().from_madx_text(data.args.file_as_str)
         res.models.simulation.name = data.args.purebasename
+    elif data.args.ext_lower == ".ele":
+        from sirepo.template import elegant
+        from sirepo.template import elegant_command_importer
+
+        el = elegant_command_importer.import_file(data.args.file_as_str, False)
+        r = LatticeUtil.find_first_command(el, "run_setup")
+        if r and r.lattice != "Lattice":
+            raise AssertionError("NO LATTICE: need to import .lte file too")
+        x = elegant.ElegantMadxConverter(qcall=None).to_madx_text(
+            el
+        )
+        res = OpalMadxConverter(None).from_madx_text(x)
     else:
         raise IOError(
             f"invalid file={data.args.basename} extension, expecting .in or .madx"
