@@ -301,8 +301,9 @@ class OpalMadxConverter(MadxConverter):
             data.models.beamlines[beam_idx]["items"].insert(
                 items_idx + 1, new_drift._id
             )
+            x = length[0] if length[0] else 0
             data.models.beamlines[beam_idx]["positions"].insert(
-                items_idx + 1, PKDict(elemedge=str(float(pos) + length[0]))
+                items_idx + 1, PKDict(elemedge=str(float(pos) + x))
             )
 
         def _get_distance_and_insert_drift(beamline, beam_idx):
@@ -314,7 +315,9 @@ class OpalMadxConverter(MadxConverter):
                 p = beamline.positions[i].elemedge
                 n = beamline.positions[i + 1].elemedge
                 l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
-                d = round(float(n) - float(p) - l[0], 10)
+                x = l[0] if l[0] else 0
+                pkdp("\n\n n = {}, p = {}, l[0]={}", n, p, l[0])
+                d = round(float(n) - float(p) - x, 10)
                 if d > 0:
                     _insert_drift(d, beam_idx, i, p, l)
 

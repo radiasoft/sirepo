@@ -18,6 +18,8 @@ from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
+from sirepo.template.opal import OpalMadxConverter
+from sirepo.template.opal_parser import OpalParser
 import copy
 import glob
 import math
@@ -786,6 +788,14 @@ def parse_input_text(
         return data
     if e == ".madx":
         return ElegantMadxConverter(qcall=qcall).from_madx_text(text)
+    if e == ".in":
+        import sirepo.template.opal_parser
+
+        return ElegantMadxConverter(qcall=qcall).from_madx_text(
+            OpalMadxConverter(qcall=qcall).to_madx_text(
+                sirepo.template.opal_parser.parse_file(text)[0]
+            )
+        )
     raise IOError(
         f"{path.basename}: invalid file format; expecting .madx, .ele, or .lte"
     )

@@ -103,6 +103,7 @@ def _example_data(simulation_name):
 
 
 def _opal_to_madx(basename):
+    from pykern.pkdebug import pkdp
     from pykern import pkunit
     from pykern.pkunit import pkeq, file_eq
     from sirepo import srunit
@@ -110,9 +111,11 @@ def _opal_to_madx(basename):
     from sirepo.template.opal import OpalMadxConverter
 
     with srunit.quest_start() as qcall:
+        d = srunit.template_import_file("opal", f"{basename}.in").imported_data
+        pkdp("\n\n\nd={}, type(d)={}", d, type(d))
         file_eq(
             f"{basename}.madx",
             actual=OpalMadxConverter(qcall=qcall).to_madx_text(
-                srunit.template_import_file("opal", f"{basename}.in").imported_data,
+                d,
             ),
         )

@@ -854,8 +854,8 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                           </div>
                           <div data-ng-show="isState('ready') || isState('lattice')">
                             <div data-ng-show="isState('ready')" class="form-group">
-                              <label>Select Command (.ele), Lattice (.lte or .madx), or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)</label>
-                              <input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.madx,.zip" />
+                              <label>Select Command (.ele), Lattice (.lte, .in, .madx), or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)</label>
+                              <input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.madx,.zip,.in" />
                               <br />
                               <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
                             </div>
