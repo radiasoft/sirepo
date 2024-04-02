@@ -58,5 +58,8 @@ hundli = "sirepo.hundli_console:main"
 [project.urls]
 Homepage = "https://sirepo.com"
 
+[tool.setuptools.package-data]
+sirepo = ["package_data/**"]
+
 [tool.setuptools.packages.find]
 include = ["sirepo*"]
