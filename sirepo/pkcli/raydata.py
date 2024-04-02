@@ -7,16 +7,11 @@
 from pykern.pkcollections import PKDict
 from sirepo.template import template_common
 import sirepo.raydata.scans
-import sirepo.raydata.replay
 import sirepo.raydata.scan_monitor
 
 
 def create_scans(num_scans, catalog_name, delay=True):
     sirepo.raydata.scans.create(num_scans, catalog_name, delay)
-
-
-def replay(source_catalog, destination_catalog, num_scans):
-    sirepo.raydata.replay.begin(source_catalog, destination_catalog, num_scans)
 
 
 def run(cfg_dir):

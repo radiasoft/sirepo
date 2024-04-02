@@ -6,8 +6,10 @@ build_vars() {
     : ${build_image_base:=radiasoft/beamsim}
     local boot_dir=$build_run_user_home/.radia-run
     sirepo_boot=$boot_dir/start
-    build_is_public=1
     build_docker_cmd='["'"$sirepo_boot"'"]'
+    build_is_public=1
+    build_passenv='PYKERN_COMMIT SIREPO_COMMIT'
+    : ${PYKERN_COMMIT:=} ${SIREPO_COMMIT:=}
 }
 
 build_as_root() {
@@ -25,16 +27,12 @@ build_as_run_user() {
     cd "$build_guest_conf"
     umask 022
     sirepo_boot_init
-    sirepo_fix_srw
-    git clone -q --depth=50 https://github.com/radiasoft/pykern
-    git clone ${SIREPO_COMMIT:+--branch $SIREPO_COMMIT} -q --depth=50 https://github.com/radiasoft/sirepo
-    cd pykern
-    pip uninstall -y pykern || true
+    _sirepo_clone pykern "$PYKERN_COMMIT"
     pip install .
-    cd ../sirepo
+    cd ..
+    _sirepo_clone sirepo "$SIREPO_COMMIT"
     pip install -e .
     sirepo srw create_predefined
-    pip uninstall -y sirepo
     pip install .
     cd ..
 }
@@ -45,15 +43,11 @@ sirepo_boot_init() {
     chmod +x "$sirepo_boot"
 }
 
-sirepo_fix_srw() {
-    # Remove print statements from SRW
-    # Patch srwlib.py to not print stuff
-    local srwlib="$(python -c 'import srwlib, sys; sys.stdout.write(srwlib.__file__)')"
-    if [[ ! -f $srwlib ]]; then
-        install_err 'failed to find srwlib'
-    fi
-    # Trim .pyc to .py (if there)
-    perl -pi.bak -e  's/^(\s+)(print)/$1pass#$2/' "${srwlib%c}"
+_sirepo_clone() {
+    declare repo=$1
+    declare commit=$2
+    git clone -q -c advice.detachedHead=false ${commit:+--branch "$commit"} --depth=1 https://github.com/radiasoft/"$repo"
+    cd $repo
 }
 
 build_vars
