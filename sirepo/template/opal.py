@@ -717,13 +717,15 @@ def stateful_compute_import_file(data, **kwargs):
         if d:
             d = pkjson.load_any(d)
         input_data = d
-        data = elegant_lattice_importer.import_file(data.args.file_as_str, d, False)
+        data = elegant_lattice_importer.import_file(data.args.file_as_str, d, True)
         if input_data:
             _map(data)
+        pkdp("ele data.models.simulation={}", data.models.simulation)
+        pkdp("ele data.simulationType={}", data.simulationType)
         madx_text = elegant.ElegantMadxConverter(qcall=None).to_madx_text(
             data
         )
-        return OpalMadxConverter(None).from_madx_text(madx_text)
+        res = OpalMadxConverter(None).from_madx_text(madx_text)
     else:
         raise IOError(
             f"invalid file={data.args.basename} extension, expecting .in or .madx"
