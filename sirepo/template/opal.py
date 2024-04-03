@@ -673,6 +673,7 @@ def sim_frame_plot2Animation(frame_args):
 def stateful_compute_import_file(data, **kwargs):
     from sirepo.template import opal_parser
 
+    # TODO (gurhar1133): copied from elegant.py, share better
     def _map(data):
         for cmd in data.models.commands:
             if cmd._type == "run_setup":
@@ -686,7 +687,6 @@ def stateful_compute_import_file(data, **kwargs):
                         cmd.use_beamline = bl.id
                         break
 
-    pkdp("\n\n\n\n data.args={}", data.args)
     if data.args.ext_lower == ".in":
         res, input_files = opal_parser.parse_file(
             data.args.file_as_str,
@@ -720,8 +720,6 @@ def stateful_compute_import_file(data, **kwargs):
         data = elegant_lattice_importer.import_file(data.args.file_as_str, d, True)
         if input_data:
             _map(data)
-        pkdp("ele data.models.simulation={}", data.models.simulation)
-        pkdp("ele data.simulationType={}", data.simulationType)
         madx_text = elegant.ElegantMadxConverter(qcall=None).to_madx_text(
             data
         )

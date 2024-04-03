@@ -787,13 +787,12 @@ def parse_input_text(
     if e == ".madx":
         return ElegantMadxConverter(qcall=qcall).from_madx_text(text)
     if e == ".in":
-        import sirepo.template.opal_parser
+        from sirepo.template import opal_parser
         from sirepo.template.opal import OpalMadxConverter
-        from sirepo.template.opal_parser import OpalParser
 
         return ElegantMadxConverter(qcall=qcall).from_madx_text(
             OpalMadxConverter(qcall=qcall).to_madx_text(
-                sirepo.template.opal_parser.parse_file(text)[0]
+                opal_parser.parse_file(text)[0]
             )
         )
     raise IOError(

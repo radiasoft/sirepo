@@ -420,6 +420,7 @@ def stateless_compute_calculate_bunch_parameters(data, **kwargs):
 
 
 def stateful_compute_import_file(data, **kwargs):
+    # TODO (gurhar1133): import from .in and .ele + .lte
     m = re.search(r"^(.+?)\.(?:madx|seq)$", data.args.basename, re.IGNORECASE)
     if not m:
         raise AssertionError(

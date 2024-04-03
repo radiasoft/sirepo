@@ -2657,6 +2657,7 @@ SIREPO.app.directive('fileChooser', function(appState, fileManager, fileUpload, 
     };
 });
 
+// TODO (gurhar1133): rename since shared?
 SIREPO.app.directive('elegantImportDialog', function(appState, commandService, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
@@ -3008,7 +3009,6 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             title: '@',
             description: '@',
             fileFormats: '@',
-            fileDependencies: '=',
         },
         template: `
             <div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">
@@ -3052,28 +3052,9 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             $scope.isUploading = false;
             $scope.title = $scope.title || 'Import ZIP File';
             $scope.description = $scope.description || 'Select File';
-
-            const extension = (filename) => '.' + filename.match(/\.([^.]+)$/)[1];
-
-            const dependency = (filename) => {
-                if ($scope.fileDependencies){
-                    srdbg($scope.fileDependencies);
-                    const ext = extension(filename);
-                    if (ext in $scope.fileDependencies) {
-                        return $scope.fileDependencies[ext];
-                    }
-                }
-                return false;
-            }
-
             $scope.importFile = function(inputFile) {
                 if (! inputFile) {
                     return;
-                }
-                const d = dependency(inputFile.name);
-                if (d) {
-                    srdbg("dependency for ", inputFile.name, " = ", d);
-
                 }
                 $scope.isUploading = true;
                 fileUpload.uploadFileToUrl(
@@ -3094,9 +3075,6 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                             $scope.errorData = data;
                             // clear input file to avoid Chrome bug if corrected file is re-uploaded
                             $($element).find('#file-import').val('');
-                        }
-                        if (d) {
-                            return;
                         }
                         else {
                             $('#simulation-import').modal('hide');
