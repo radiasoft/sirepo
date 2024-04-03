@@ -7,6 +7,7 @@
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
@@ -672,9 +673,18 @@ def sim_frame_plot2Animation(frame_args):
 def stateful_compute_import_file(data, **kwargs):
     from sirepo.template import opal_parser
 
-    def _read_ele_data(ele_filename):
-        return elegant_command_importer.import_file(ele_filename, False)
-
+    def _map(data):
+        for cmd in data.models.commands:
+            if cmd._type == "run_setup":
+                cmd.lattice = "Lattice"
+                break
+        for cmd in data.models.commands:
+            if cmd._type == "run_setup":
+                name = cmd.use_beamline.upper()
+                for bl in data.models.beamlines:
+                    if bl.name.upper() == name:
+                        cmd.use_beamline = bl.id
+                        break
 
     pkdp("\n\n\n\n data.args={}", data.args)
     if data.args.ext_lower == ".in":
@@ -695,13 +705,21 @@ def stateful_compute_import_file(data, **kwargs):
         res = OpalMadxConverter().from_madx_text(data.args.file_as_str)
         res.models.simulation.name = data.args.purebasename
     elif data.args.ext_lower == ".ele":
-        return PKDict()
+        res = elegant_command_importer.import_file(data.args.file_as_str, True)
+        res.models.simulation.name = data.args.purebasename
+        r = LatticeUtil.find_first_command(res, "run_setup")
+        if r and r.lattice != "Lattice":
+            return PKDict(importState="needLattice", eleData=res, latticeFileName=r.lattice)
+        return PKDict(imported_data=res)
+
     elif data.args.ext_lower == ".lte":
-        input_data = _read_ele_data(data.args.ele_filename)
-        data = elegant_lattice_importer.import_file(data.args.file_as_str, input_data, False)
+        d = data.args.pkunchecked_nested_get("import_file_arguments")
+        if d:
+            d = pkjson.load_any(d)
+        input_data = d
+        data = elegant_lattice_importer.import_file(data.args.file_as_str, d, False)
         if input_data:
             _map(data)
-        # r = LatticeUtil.find_first_command(data, "run_setup")
         madx_text = elegant.ElegantMadxConverter(qcall=None).to_madx_text(
             data
         )

@@ -223,9 +223,8 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-import-dialog="" data-title="Import Opal File" data-description="Select an OPAL .in, .madx or .ele + .lte files." data-file-dependencies="{'.ele': '.lte'}" data-file-formats=".in,.madx,.zip,.ele">
-              <div data-import-options=""></div>
-            </div>
+
+            <div data-elegant-import-dialog=""></div>
         `,
     };
 });

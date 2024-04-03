@@ -18,8 +18,6 @@ from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
-from sirepo.template.opal import OpalMadxConverter
-from sirepo.template.opal_parser import OpalParser
 import copy
 import glob
 import math
@@ -790,6 +788,8 @@ def parse_input_text(
         return ElegantMadxConverter(qcall=qcall).from_madx_text(text)
     if e == ".in":
         import sirepo.template.opal_parser
+        from sirepo.template.opal import OpalMadxConverter
+        from sirepo.template.opal_parser import OpalParser
 
         return ElegantMadxConverter(qcall=qcall).from_madx_text(
             OpalMadxConverter(qcall=qcall).to_madx_text(
