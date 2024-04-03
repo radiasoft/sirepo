@@ -2709,10 +2709,25 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             $scope.isUploading = false;
             $scope.title = $scope.title || 'Import ZIP File';
             $scope.description = $scope.description || 'Select File';
-            srdbg("File dep", $scope.fileDependencies);
+
+            const dependency = (filename) => {
+                if ($scope.fileDependencies){
+                    srdbg($scope.fileDependencies);
+                    const ext = '.' + filename.match(/\.([^.]+)$/)[1];
+                    if (ext in $scope.fileDependencies) {
+                        return $scope.fileDependencies[ext];
+                    }
+                }
+                return false;
+            }
+
             $scope.importFile = function(inputFile) {
                 if (! inputFile) {
                     return;
+                }
+                const d = dependency(inputFile.name);
+                if (d) {
+                    srdbg("dependency for ", inputFile.name, " = ", d);
                 }
                 $scope.isUploading = true;
                 fileUpload.uploadFileToUrl(
