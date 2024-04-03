@@ -95,6 +95,7 @@ def elegant_code_var(variables):
 
 def import_file(text, data=None, update_filenames=True):
     if not data:
+        pkdp("\n\n\n NOT DATA \n\n\n\n")
         data = simulation_db.default_data(elegant_common.SIM_TYPE)
     models = elegant_lattice_parser.parse_file(
         text,

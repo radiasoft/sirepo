@@ -2898,7 +2898,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
                         }
                         else {
                             srdbg("data = ", data);
-                            $scope.id = data.models.simulation.simulationId ? data.models.simulation.simulationId : "EuKl8abc";
+                            $scope.id = data.models.simulation.simulationId;
                             $scope.simulationName = data.models.simulation.name;
                             verifyInputFiles(data);
                         }

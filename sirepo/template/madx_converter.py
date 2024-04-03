@@ -98,6 +98,7 @@ class MadxConverter:
 
     def _convert(self, data):
         self.result = simulation_db.default_data(self.to_class.sim_type())
+        pkdp("\n\n\n\n RESULT = \n {} \n\n\n", self.result)
         self._copy_beamlines(data)
         self._copy_elements(data)
         self._copy_code_variables(data)
