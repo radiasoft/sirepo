@@ -761,19 +761,6 @@ def get_data_file(run_dir, model, frame, options):
 def parse_input_text(
     path, text=None, input_data=None, update_filenames=True, qcall=None
 ):
-    def _map(data):
-        for cmd in data.models.commands:
-            if cmd._type == "run_setup":
-                cmd.lattice = "Lattice"
-                break
-        for cmd in data.models.commands:
-            if cmd._type == "run_setup":
-                name = cmd.use_beamline.upper()
-                for bl in data.models.beamlines:
-                    if bl.name.upper() == name:
-                        cmd.use_beamline = bl.id
-                        break
-
     if text is None:
         text = pkio.read_text(path)
     e = path.ext.lower()
@@ -782,7 +769,7 @@ def parse_input_text(
     if e == ".lte":
         data = elegant_lattice_importer.import_file(text, input_data, update_filenames)
         if input_data:
-            _map(data)
+            map_elegant_data(data)
         return data
     if e == ".madx":
         return ElegantMadxConverter(qcall=qcall).from_madx_text(text)
@@ -798,6 +785,21 @@ def parse_input_text(
     raise IOError(
         f"{path.basename}: invalid file format; expecting .madx, .ele, or .lte"
     )
+
+
+def map_elegant_data(data):
+    for cmd in data.models.commands:
+        if cmd._type == "run_setup":
+            cmd.lattice = "Lattice"
+            break
+    for cmd in data.models.commands:
+        if cmd._type == "run_setup":
+            name = cmd.use_beamline.upper()
+            for bl in data.models.beamlines:
+                if bl.name.upper() == name:
+                    cmd.use_beamline = bl.id
+                    break
+
 
 
 def parse_elegant_log(run_dir):
