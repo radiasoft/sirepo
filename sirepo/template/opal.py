@@ -702,7 +702,7 @@ def stateful_compute_import_file(data, **kwargs):
                 missingFiles=missing_files,
             )
     elif data.args.ext_lower == ".madx":
-        res = OpalMadxConverter().from_madx_text(data.args.file_as_str)
+        res = OpalMadxConverter(qcall=None).from_madx_text(data.args.file_as_str)
         res.models.simulation.name = data.args.purebasename
     elif data.args.ext_lower == ".ele":
         res = elegant_command_importer.import_file(data.args.file_as_str, True)
