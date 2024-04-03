@@ -16,6 +16,9 @@ from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
+from sirepo.template import elegant
+from sirepo.template import elegant_command_importer
+from sirepo.template import elegant_lattice_importer
 import h5py
 import math
 import numpy as np
@@ -669,6 +672,10 @@ def sim_frame_plot2Animation(frame_args):
 def stateful_compute_import_file(data, **kwargs):
     from sirepo.template import opal_parser
 
+    def _read_ele_data(ele_filename):
+        return elegant_command_importer.import_file(ele_filename, False)
+
+
     pkdp("\n\n\n\n data.args={}", data.args)
     if data.args.ext_lower == ".in":
         res, input_files = opal_parser.parse_file(
@@ -688,17 +695,17 @@ def stateful_compute_import_file(data, **kwargs):
         res = OpalMadxConverter().from_madx_text(data.args.file_as_str)
         res.models.simulation.name = data.args.purebasename
     elif data.args.ext_lower == ".ele":
-        from sirepo.template import elegant
-        from sirepo.template import elegant_command_importer
-
-        el = elegant_command_importer.import_file(data.args.file_as_str, False)
-        r = LatticeUtil.find_first_command(el, "run_setup")
-        if r and r.lattice != "Lattice":
-            raise AssertionError("NO LATTICE: need to import .lte file too")
-        x = elegant.ElegantMadxConverter(qcall=None).to_madx_text(
-            el
+        return PKDict()
+    elif data.args.ext_lower == ".lte":
+        input_data = _read_ele_data(data.args.ele_filename)
+        data = elegant_lattice_importer.import_file(data.args.file_as_str, input_data, False)
+        if input_data:
+            _map(data)
+        # r = LatticeUtil.find_first_command(data, "run_setup")
+        madx_text = elegant.ElegantMadxConverter(qcall=None).to_madx_text(
+            data
         )
-        res = OpalMadxConverter(None).from_madx_text(x)
+        return OpalMadxConverter(None).from_madx_text(madx_text)
     else:
         raise IOError(
             f"invalid file={data.args.basename} extension, expecting .in or .madx"

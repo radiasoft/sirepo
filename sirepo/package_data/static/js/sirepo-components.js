@@ -2665,6 +2665,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             title: '@',
             description: '@',
             fileFormats: '@',
+            fileDependencies: '=',
         },
         template: `
             <div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">
@@ -2708,6 +2709,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             $scope.isUploading = false;
             $scope.title = $scope.title || 'Import ZIP File';
             $scope.description = $scope.description || 'Select File';
+            srdbg("File dep", $scope.fileDependencies);
             $scope.importFile = function(inputFile) {
                 if (! inputFile) {
                     return;
