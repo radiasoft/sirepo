@@ -789,7 +789,6 @@ def parse_input_text(
     if e == ".madx":
         return ElegantMadxConverter(qcall=qcall).from_madx_text(text)
     if e == ".in":
-
         return ElegantMadxConverter(qcall=qcall).from_madx_text(
             OpalMadxConverter(qcall=qcall).to_madx_text(
                 opal_parser.parse_file(text)[0]

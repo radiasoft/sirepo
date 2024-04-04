@@ -2657,7 +2657,6 @@ SIREPO.app.directive('fileChooser', function(appState, fileManager, fileUpload, 
     };
 });
 
-// TODO (gurhar1133): rename since shared?
 SIREPO.app.directive('elegantImportDialog', function(appState, commandService, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
@@ -2747,7 +2746,6 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
             }
 
             function hideAndRedirect() {
-                srdbg("$scope = ", $scope);
                 $('#simulation-import').modal('hide');
                 requestSender.localRedirect('lattice', {
                     ':simulationId': $scope.id,
@@ -2755,7 +2753,6 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
             }
 
             function loadFileLists() {
-                srdbg("loading files");
                 $scope.state = 'load-file-lists';
                 if (! $scope.missingFileLists.length) {
                     verifyMissingFiles();
@@ -2898,7 +2895,6 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
                             $scope.latticeFileName = data.latticeFileName;
                         }
                         else {
-                            srdbg("data = ", data);
                             $scope.id = data.models.simulation.simulationId;
                             $scope.simulationName = data.models.simulation.name;
                             verifyInputFiles(data);
