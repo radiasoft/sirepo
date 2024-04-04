@@ -302,7 +302,7 @@ class OpalMadxConverter(MadxConverter):
                 items_idx + 1, new_drift._id
             )
             data.models.beamlines[beam_idx]["positions"].insert(
-                items_idx + 1, PKDict(elemedge=str(float(pos) + length[0] if length[0] else 0))
+                items_idx + 1, PKDict(elemedge=str(float(pos) + length[0]))
             )
 
         def _get_distance_and_insert_drift(beamline, beam_idx):
@@ -313,8 +313,9 @@ class OpalMadxConverter(MadxConverter):
                     continue
                 p = beamline.positions[i].elemedge
                 n = beamline.positions[i + 1].elemedge
+                pkdp("\n\n\n _get_len_by_id(data, e)={}", _get_len_by_id(data, e))
                 l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
-                d = round(float(n) - float(p) - l[0] if l[0] else 0, 10)
+                d = round(float(n) - float(p) - l[0], 10)
                 if d > 0:
                     _insert_drift(d, beam_idx, i, p, l)
 
@@ -479,7 +480,9 @@ def code_var(variables):
         def eval_var(self, expr, depends, variables):
             if re.match(r"^\{.+\}$", expr):
                 # It is an array of values
+                pkdp("\n\n\nmatch\n\n\n\n")
                 return expr, None
+            pkdp("\n\n\nNO MATCH (expr, depends, variables) ={}\n\n\n\n", (expr, depends, variables))
             return super().eval_var(expr, depends, variables)
 
     return code_variable.CodeVar(

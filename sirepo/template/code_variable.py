@@ -353,6 +353,7 @@ class PurePythonEval:
                 variables,
             )
             if err:
+                pkdp("\n\n\n\n err={}", err)
                 return None, err
             variables[d] = v
         return self.__eval_python_stack(
