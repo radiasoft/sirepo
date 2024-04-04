@@ -314,6 +314,7 @@ class OpalMadxConverter(MadxConverter):
                 p = beamline.positions[i].elemedge
                 n = beamline.positions[i + 1].elemedge
                 pkdp("\n\n\n _get_len_by_id(data, e)={}", _get_len_by_id(data, e))
+                pkdp("\n\n\n code_var(data.models.elements).eval_var(_get_len_by_id(data, e))= {}", code_var(data.models.elements).eval_var(_get_len_by_id(data, e)))
                 l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
                 d = round(float(n) - float(p) - l[0], 10)
                 if d > 0:

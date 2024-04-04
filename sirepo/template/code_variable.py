@@ -53,6 +53,7 @@ class CodeVar:
 
     def eval_var(self, expr):
         if not self.is_var_value(expr):
+            pkdp("\n\n\n HIT expr={}\n\n\n", expr)
             return expr, None
         expr = self.infix_to_postfix(self.canonicalize(expr))
         return self.evaluator.eval_var(
@@ -411,6 +412,7 @@ class PurePythonEval:
 
     def __eval_python_stack(self, expr, variables):
         if not CodeVar.is_var_value(expr):
+            pkdp("\n\n\nexpr={}", expr)
             return expr, None
         if isinstance(expr, list):
             evs = []
@@ -418,6 +420,7 @@ class PurePythonEval:
             for e in expr:
                 ev = self.__eval_python_stack(CodeVar.infix_to_postfix(e), variables)
                 if ev[1] is not None:
+                    pkdp("\n\n\nNone, ev[1]={}", (None, ev[1]))
                     return None, ev[1]
                 evs.append(ev[0])
             return evs, None
