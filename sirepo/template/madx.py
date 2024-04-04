@@ -6,14 +6,11 @@
 
 from pykern import pkcompat
 from pykern import pkio
-from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import elegant
-from sirepo.template import elegant_command_importer
-from sirepo.template import elegant_lattice_importer
 from sirepo.template import lattice
 from sirepo.template import madx_parser
 from sirepo.template import opal_parser
@@ -433,25 +430,12 @@ def stateful_compute_import_file(data, **kwargs):
         )
         return PKDict(imported_data=OpalMadxConverter(qcall=None).to_madx(d))
     elif data.args.ext_lower == ".ele":
-        # TODO (gurhar1133): probably can be shared with opal and maybe elegant?
-        res = elegant_command_importer.import_file(data.args.file_as_str, True)
-        res.models.simulation.name = data.args.purebasename
-        r = LatticeUtil.find_first_command(res, "run_setup")
-        if r and r.lattice != "Lattice":
-            return PKDict(importState="needLattice", eleData=res, latticeFileName=r.lattice)
-        return PKDict(imported_data=res)
+        return elegant.elegant_file_import(data)
     elif data.args.ext_lower == ".lte":
-        # TODO (gurhar1133): probably can be shared with opal and maybe elegant?
-        d = data.args.pkunchecked_nested_get("import_file_arguments")
-        if d:
-            d = pkjson.load_any(d)
-        input_data = d
-        data = elegant_lattice_importer.import_file(data.args.file_as_str, d, True)
-        if input_data:
-            elegant.map_elegant_data(data)
         return PKDict(imported_data=elegant.ElegantMadxConverter(qcall=None).to_madx(
-            data
-        ))
+                elegant.elegant_file_import(data).imported_data
+            )
+        )
     elif data.args.ext_lower in (".madx", ".seq"):
         d = madx_parser.parse_file(data.args.file_as_str, downcase_variables=True)
         d.models.simulation.name = data.args.purebasename

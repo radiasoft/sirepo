@@ -15,9 +15,11 @@ from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
 from sirepo.template import lattice
+from sirepo.template import opal_parser
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
+from sirepo.template.opal import OpalMadxConverter
 import copy
 import glob
 import math
@@ -761,6 +763,19 @@ def get_data_file(run_dir, model, frame, options):
 def parse_input_text(
     path, text=None, input_data=None, update_filenames=True, qcall=None
 ):
+    def _map(data):
+        for cmd in data.models.commands:
+            if cmd._type == "run_setup":
+                cmd.lattice = "Lattice"
+                break
+        for cmd in data.models.commands:
+            if cmd._type == "run_setup":
+                name = cmd.use_beamline.upper()
+                for bl in data.models.beamlines:
+                    if bl.name.upper() == name:
+                        cmd.use_beamline = bl.id
+                        break
+
     if text is None:
         text = pkio.read_text(path)
     e = path.ext.lower()
@@ -769,13 +784,11 @@ def parse_input_text(
     if e == ".lte":
         data = elegant_lattice_importer.import_file(text, input_data, update_filenames)
         if input_data:
-            map_elegant_data(data)
+            _map(data)
         return data
     if e == ".madx":
         return ElegantMadxConverter(qcall=qcall).from_madx_text(text)
     if e == ".in":
-        from sirepo.template import opal_parser
-        from sirepo.template.opal import OpalMadxConverter
 
         return ElegantMadxConverter(qcall=qcall).from_madx_text(
             OpalMadxConverter(qcall=qcall).to_madx_text(
@@ -783,23 +796,8 @@ def parse_input_text(
             )
         )
     raise IOError(
-        f"{path.basename}: invalid file format; expecting .madx, .ele, or .lte"
+        f"{path.basename}: invalid file format; expecting .madx, .ele, .in or .lte"
     )
-
-
-def map_elegant_data(data):
-    for cmd in data.models.commands:
-        if cmd._type == "run_setup":
-            cmd.lattice = "Lattice"
-            break
-    for cmd in data.models.commands:
-        if cmd._type == "run_setup":
-            name = cmd.use_beamline.upper()
-            for bl in data.models.beamlines:
-                if bl.name.upper() == name:
-                    cmd.use_beamline = bl.id
-                    break
-
 
 
 def parse_elegant_log(run_dir):
@@ -903,7 +901,7 @@ def stateful_compute_get_beam_input_type(data, **kwargs):
     return data
 
 
-def stateful_compute_import_file(data, **kwargs):
+def elegant_file_import(data):
     d = data.args.pkunchecked_nested_get("import_file_arguments")
     if d:
         d = pkjson.load_any(d)
@@ -918,6 +916,10 @@ def stateful_compute_import_file(data, **kwargs):
     if r and r.lattice != "Lattice":
         return PKDict(importState="needLattice", eleData=res, latticeFileName=r.lattice)
     return PKDict(imported_data=res)
+
+
+def stateful_compute_import_file(data, **kwargs):
+    return elegant_file_import(data)
 
 
 def validate_file(file_type, path):
