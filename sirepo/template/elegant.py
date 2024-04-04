@@ -15,11 +15,9 @@ from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
 from sirepo.template import lattice
-from sirepo.template import opal_parser
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
-from sirepo.template.opal import OpalMadxConverter
 import copy
 import glob
 import math
@@ -763,6 +761,9 @@ def get_data_file(run_dir, model, frame, options):
 def parse_input_text(
     path, text=None, input_data=None, update_filenames=True, qcall=None
 ):
+    from sirepo.template import opal_parser
+    from sirepo.template.opal import OpalMadxConverter
+
     def _map(data):
         for cmd in data.models.commands:
             if cmd._type == "run_setup":

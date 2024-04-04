@@ -16,7 +16,6 @@ from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
-from sirepo.template import elegant
 import h5py
 import math
 import numpy as np
@@ -665,6 +664,7 @@ def sim_frame_plot2Animation(frame_args):
 
 
 def stateful_compute_import_file(data, **kwargs):
+    from sirepo.template import elegant
     from sirepo.template import opal_parser
 
     if data.args.ext_lower == ".in":
