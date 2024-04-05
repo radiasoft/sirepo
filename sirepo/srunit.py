@@ -701,13 +701,12 @@ class _Response:
         from pykern import pkjson, pkunit, pkdebug
         from sirepo import uri
 
-        if not (getattr(self, "_is_sr_exception", False) and self.status_code == 200):
+        if self.status_code != 200:
             self.assert_http_status(302)
             pkunit.pkre(expect_re, self.header_get("Location"))
             return
         # srException case is raw response
         r = self._maybe_json_decode()
-        pkdebug.pkdp(r)
         u = None
         if (x := r.get("srException")) and x.routeName == "httpRedirect":
             u = x.params.uri
@@ -775,7 +774,6 @@ class _HTTPResponse(_Response):
     def process(self, raw_response):
         from sirepo import util, reply
 
-        self._is_sr_exception = False
         # Emulate code in sirepo.js to deal with redirects
         if self.status_code == 200 and self.mimetype == "text/html":
             m = _JAVASCRIPT_REDIRECT_RE.search(pkcompat.from_bytes(self.data))
@@ -785,10 +783,6 @@ class _HTTPResponse(_Response):
                         PKDict(error="server error uri={}".format(m.group(1))),
                     )
                 return self.change_to_redirect(m.group(1))
-        d = self._maybe_json_decode()
-        if isinstance(d, dict) and d.get("state") == reply.SR_EXCEPTION_STATE:
-            # Even in raw_response, we need to know this
-            self._is_sr_exception = True
         if raw_response:
             return self
         return self._assert_not_exception()
@@ -797,6 +791,12 @@ class _HTTPResponse(_Response):
         from pykern import pkjson
         from sirepo import reply, util
 
+        if self.status_code != 200:
+            raise util.Error(
+                f"unexpected status={self.status_code}",
+                "reply={}",
+                self.data,
+            )
         d = self._maybe_json_decode()
         if isinstance(d, dict) and d.get("state") == reply.SR_EXCEPTION_STATE:
             # Treat SRException as a real exception (so we don't ignore them)
@@ -1026,6 +1026,7 @@ class _WebSocketResponse(_Response):
     def _assert_not_exception(self):
         from sirepo import util
 
+        # All websocket exceptions are sr exceptions
         if not self._is_sr_exception:
             return self._maybe_json_decode()
         if self.status_code != 200:
