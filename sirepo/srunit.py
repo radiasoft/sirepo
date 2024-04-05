@@ -6,7 +6,6 @@
 """
 from pykern import pkcollections
 from pykern import pkcompat
-from pykern.pkdebug import pkdp
 from pykern.pkcollections import PKDict
 import base64
 import contextlib
