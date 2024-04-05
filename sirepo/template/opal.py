@@ -340,9 +340,9 @@ class OpalMadxConverter(MadxConverter):
         LatticeUtil.find_first_command(data, "option").version = 20000
         LatticeUtil.find_first_command(data, "beam").particle = mb.particle.upper()
         LatticeUtil.find_first_command(data, "beam").pc = self.particle_energy.pc
-        LatticeUtil.find_first_command(
-            data, "track"
-        ).line = data.models.simulation.visualizationBeamlineId
+        LatticeUtil.find_first_command(data, "track").line = (
+            data.models.simulation.visualizationBeamlineId
+        )
         self.__fixup_distribution(madx, data)
         return data
 
