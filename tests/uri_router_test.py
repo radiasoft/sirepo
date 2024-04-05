@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Test sirepo.uri_router
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 import pytest
 
 pytest.importorskip("srwpy.srwl_bl")
@@ -41,7 +41,13 @@ def test_error_user_agents(fc):
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.128 Safari/537.36 OPR/75.0.3969.250",
     ):
-        fc.sr_post(uri, headers=PKDict({"User-Agent": a}), data=d, want_http=True)
+        fc.sr_post(
+            uri,
+            headers=PKDict({"User-Agent": a}),
+            data=d,
+            raw_response=True,
+            want_http=True,
+        )
         r.assert_http_status(500)
         pkre("doctype.*server.error", r.data)
 
