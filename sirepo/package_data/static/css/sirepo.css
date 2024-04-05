@@ -640,6 +640,11 @@
     .sr-plot-particle-3d {
     }
 
+    .sr-scrollable {
+        overflow-y: scroll;
+        max-height: 90vh;
+    }
+
     /* Full-screen styles */
     div:not([data-report-panel='3d']) > .panel:-webkit-full-screen {
         width: 75vw !important;
