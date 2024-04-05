@@ -1,0 +1,65 @@
+[build-system]
+requires = ["chronver", "setuptools>=66"]
+build-backend = "setuptools.build_meta"
+
+[project]
+authors = [
+    { name = "RadiaSoft LLC", email = "pip@radiasoft.net" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+dependencies = [
+    "SQLAlchemy>=1.4,<2",
+    "aenum",
+    "aiofiles",
+    "aiohttp",
+    "asyncssh",
+    "cryptography>=2.8",
+    "matplotlib",
+    "msgpack",
+    "numconv",
+    "numpy<2.0",
+    "Pillow",
+    "pyIsEmail",
+    "pykern",
+    "pytest-asyncio",
+    "pytz",
+    "requests",
+    "tornado",
+    "user-agents",
+    # only needed for testing (srunit)
+    "websockets",
+    # Optional dependencies
+    # required for email login and smtp
+    "Authlib>=0.13",
+    "dnspython",
+    # required for sbatch agent
+    "asyncssh",
+]
+description = "Sirepo provides browser access to physics codes like elegant, Warp, SRW, JSPEC, Zgoubi, and more."
+dynamic = ["version"]
+name = "sirepo"
+readme = "README.md"
+
+[project.scripts]
+sirepo = "sirepo.sirepo_console:main"
+hundli = "sirepo.hundli_console:main"
+
+[project.urls]
+Homepage = "https://sirepo.com"
+
+[tool.setuptools.package-data]
+sirepo = ["package_data/**"]
+
+[tool.setuptools.packages.find]
+include = ["sirepo*"]
