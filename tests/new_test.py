@@ -48,6 +48,14 @@ def test_simulation_redirect(fc):
     fc.sr_get("simulationRedirect", redirect=False).assert_http_redirect("simulations")
 
 
+def test_error_logging(fc, capsys):
+    from pykern.pkcollections import PKDict
+    from pykern.pkunit import pkeq
+
+    r = fc.sr_post("errorLogging", PKDict(message="error message"))
+    pkeq("ok", r.state)
+
+
 def test_simulation_schema(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkunit import pkexcept
