@@ -23,11 +23,6 @@
         "queuedScans": {
             "scans": []
         },
-        "replay": {
-            "sourceCatalogName": null,
-            "destinationCatalogName": null,
-            "numScans": null
-        },
         "runAnalysis": {
             "searchStartTime": null,
             "searchStopTime": null,

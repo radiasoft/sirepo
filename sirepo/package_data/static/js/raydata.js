@@ -219,7 +219,6 @@ SIREPO.app.directive('appHeader', function(appState) {
                 <div data-ng-if="nav.isLoaded()" data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('run-analysis')}"><a href data-ng-click="nav.openSection('runAnalysis')"><span class="glyphicon glyphicon-picture"></span> Run Analysis</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('analysis-queue')}"><a href data-ng-click="nav.openSection('analysisQueue')"><span class="glyphicon glyphicon-picture"></span> Queued</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('replay')}"><a href data-ng-click="nav.openSection('replay')"><span class="glyphicon glyphicon-picture"></span> Replay</a></li>
                 </div>
               </app-header-right-sim-loaded>
             </div>
@@ -424,59 +423,6 @@ SIREPO.app.directive('presetTimePicker', function() {
 
             $scope.setDefaultStartStopTime();
         }
-    };
-});
-
-SIREPO.app.directive('replayPanel', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            modelName: '=',
-        },
-        template: `
-          <div class="text-center">
-            <button type="submit" class="btn btn-primary" style="margin-top: 10px" data-ng-click="startReplay()" data-ng-disabled="disableReplayButton()">Start Replay</button>
-            <div ng-if="replaying">
-              <div data-dots-animation="" data-text="Replaying scans"></div>
-            </div>
-          </div>
-        `,
-        controller: function(appState, errorService, panelState, raydataService, requestSender, $scope) {
-            $scope.replaying = false;
-
-            $scope.disableReplayButton = () => {
-                if (! (appState.models.replay.sourceCatalogName && appState.models.replay.destinationCatalogName && appState.models.replay.numScans)) {
-                    return true;
-                } else {
-                    return $scope.replaying;
-                }
-            };
-
-            $scope.startReplay = () => {
-                $scope.replaying = true;
-                requestSender.sendStatelessCompute(
-                    appState,
-                    () => {
-                        $scope.replaying = false;
-                    },
-                    {
-                        method: 'begin_replay',
-                        sourceCatalogName: appState.models.replay.sourceCatalogName,
-                        destinationCatalogName: appState.models.replay.destinationCatalogName,
-                        numScans: appState.models.replay.numScans,
-                    },
-                    {
-                        modelName: $scope.modelName,
-                        onError: data => {
-                            errorService.alertText(data.error);
-                            panelState.setLoading($scope.modelName, false);
-                            $scope.replaying = false;
-                        },
-                        panelState: panelState,
-                    }
-                );
-            };
-        },
     };
 });
 
