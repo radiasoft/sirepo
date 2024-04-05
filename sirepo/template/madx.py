@@ -17,7 +17,6 @@ from sirepo.template import opal_parser
 from sirepo.template import particle_beam
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
-from sirepo.template.opal import OpalMadxConverter
 import copy
 import functools
 import math
@@ -424,6 +423,8 @@ def stateless_compute_calculate_bunch_parameters(data, **kwargs):
 
 def stateful_compute_import_file(data, **kwargs):
     if data.args.ext_lower == ".in":
+        from sirepo.template.opal import OpalMadxConverter
+
         return PKDict(
             imported_data=OpalMadxConverter(qcall=None).to_madx(
                 opal_parser.parse_file(
