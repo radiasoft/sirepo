@@ -48,7 +48,7 @@ def test_simulation_redirect(fc):
     fc.sr_get("simulationRedirect", redirect=False).assert_http_redirect("simulations")
 
 
-def test_error_logging(fc, capsys):
+def test_error_logging(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkunit import pkeq
 
@@ -73,3 +73,12 @@ def test_simulation_schema(fc):
             "simulationSchema",
             data=PKDict(simulationType="xyzzy"),
         )
+
+
+def test_srw_light(fc):
+    from pykern.pkunit import pkre
+
+    r = fc.sr_get("srwLight")
+    r.assert_success()
+    pkre("<!DOCTYPE html>", r.data)
+    pkre('data-ng-app="SRWLightGateway"', r.data)
