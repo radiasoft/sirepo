@@ -2866,7 +2866,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
 
             $scope.fileTypes = function() {
                 return `Select Command (.ele), Lattice (.lte, .in, .madx${SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName == "MAD-X" ? ", .seq" : ""}), or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)`;
-            }
+            };
 
             $scope.importElegantFile = function(elegantFile) {
                 if (! elegantFile) {
