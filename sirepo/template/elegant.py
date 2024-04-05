@@ -586,9 +586,9 @@ def background_percent_complete(report, run_dir, is_running):
                     if name not in beamline_map:
                         beamline_map[name] = 0
                     beamline_map[name] += 1
-                    beamline_map["{}#{}".format(name.upper(), beamline_map[name])] = (
-                        index
-                    )
+                    beamline_map[
+                        "{}#{}".format(name.upper(), beamline_map[name])
+                    ] = index
                     index += 1
                 else:
                     index = _walk(
@@ -791,9 +791,7 @@ def parse_input_text(
         return ElegantMadxConverter(qcall=qcall).from_madx_text(text)
     if e == ".in":
         return ElegantMadxConverter(qcall=qcall).from_madx_text(
-            OpalMadxConverter(qcall=qcall).to_madx_text(
-                opal_parser.parse_file(text)[0]
-            )
+            OpalMadxConverter(qcall=qcall).to_madx_text(opal_parser.parse_file(text)[0])
         )
     raise IOError(
         f"{path.basename}: invalid file format; expecting .madx, .ele, .in or .lte"

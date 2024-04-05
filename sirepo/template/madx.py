@@ -424,15 +424,19 @@ def stateless_compute_calculate_bunch_parameters(data, **kwargs):
 
 def stateful_compute_import_file(data, **kwargs):
     if data.args.ext_lower == ".in":
-        d, input_files = opal_parser.parse_file(
-            data.args.file_as_str,
-            filename=data.args.basename,
+        return PKDict(
+            imported_data=OpalMadxConverter(qcall=None).to_madx(
+                opal_parser.parse_file(
+                    data.args.file_as_str,
+                    filename=data.args.basename,
+                )[0]
+            )
         )
-        return PKDict(imported_data=OpalMadxConverter(qcall=None).to_madx(d))
     elif data.args.ext_lower == ".ele":
         return elegant.elegant_file_import(data)
     elif data.args.ext_lower == ".lte":
-        return PKDict(imported_data=elegant.ElegantMadxConverter(qcall=None).to_madx(
+        return PKDict(
+            imported_data=elegant.ElegantMadxConverter(qcall=None).to_madx(
                 elegant.elegant_file_import(data).imported_data
             )
         )
@@ -443,7 +447,6 @@ def stateful_compute_import_file(data, **kwargs):
     raise AssertionError(
         f"invalid file={data.args.basename}, expecting .madx, .seq, .in or .ele/.lte"
     )
-
 
 
 def to_float(value):

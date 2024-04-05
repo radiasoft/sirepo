@@ -313,9 +313,7 @@ class OpalMadxConverter(MadxConverter):
                     continue
                 p = beamline.positions[i].elemedge
                 n = beamline.positions[i + 1].elemedge
-                pkdp("\n\n\n _get_len_by_id(data, e)={}", _get_len_by_id(data, e))
-                pkdp("\n\n\n code_var(data.models.elements).eval_var(_get_len_by_id(data, e))= {}", code_var(data.models.elements).eval_var(_get_len_by_id(data, e)))
-                l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
+                l = code_var(data.models.rpnVariables).eval_var(_get_len_by_id(data, e))
                 d = round(float(n) - float(p) - l[0], 10)
                 if d > 0:
                     _insert_drift(d, beam_idx, i, p, l)
@@ -342,9 +340,9 @@ class OpalMadxConverter(MadxConverter):
         LatticeUtil.find_first_command(data, "option").version = 20000
         LatticeUtil.find_first_command(data, "beam").particle = mb.particle.upper()
         LatticeUtil.find_first_command(data, "beam").pc = self.particle_energy.pc
-        LatticeUtil.find_first_command(data, "track").line = (
-            data.models.simulation.visualizationBeamlineId
-        )
+        LatticeUtil.find_first_command(
+            data, "track"
+        ).line = data.models.simulation.visualizationBeamlineId
         self.__fixup_distribution(madx, data)
         return data
 
@@ -481,9 +479,7 @@ def code_var(variables):
         def eval_var(self, expr, depends, variables):
             if re.match(r"^\{.+\}$", expr):
                 # It is an array of values
-                pkdp("\n\n\nmatch\n\n\n\n")
                 return expr, None
-            pkdp("\n\n\nNO MATCH (expr, depends, variables) ={}\n\n\n\n", (expr, depends, variables))
             return super().eval_var(expr, depends, variables)
 
     return code_variable.CodeVar(
