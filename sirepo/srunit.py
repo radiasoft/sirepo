@@ -701,13 +701,12 @@ class _Response:
         from pykern import pkjson, pkunit, pkdebug
         from sirepo import uri
 
-        if not (getattr(self, "_is_sr_exception", False) and self.status_code == 200):
+        if self.status_code != 200:
             self.assert_http_status(302)
             pkunit.pkre(expect_re, self.header_get("Location"))
             return
         # srException case is raw response
         r = self._maybe_json_decode()
-        pkdebug.pkdp(r)
         u = None
         if (x := r.get("srException")) and x.routeName == "httpRedirect":
             u = x.params.uri
