@@ -761,9 +761,6 @@ def get_data_file(run_dir, model, frame, options):
 def parse_input_text(
     path, text=None, input_data=None, update_filenames=True, qcall=None
 ):
-    from sirepo.template import opal_parser
-    from sirepo.template.opal import OpalMadxConverter
-
     def _map(data):
         for cmd in data.models.commands:
             if cmd._type == "run_setup":
@@ -790,6 +787,9 @@ def parse_input_text(
     if e == ".madx":
         return ElegantMadxConverter(qcall=qcall).from_madx_text(text)
     if e == ".in":
+        from sirepo.template import opal_parser
+        from sirepo.template.opal import OpalMadxConverter
+
         return ElegantMadxConverter(qcall=qcall).from_madx_text(
             OpalMadxConverter(qcall=qcall).to_madx_text(opal_parser.parse_file(text)[0])
         )

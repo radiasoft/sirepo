@@ -10,7 +10,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import code_variable
-from sirepo.template import elegant
 from sirepo.template import lattice
 from sirepo.template import madx_parser
 from sirepo.template import opal_parser
@@ -434,8 +433,12 @@ def stateful_compute_import_file(data, **kwargs):
             )
         )
     elif data.args.ext_lower == ".ele":
+        from sirepo.template import elegant
+
         return elegant.elegant_file_import(data)
     elif data.args.ext_lower == ".lte":
+        from sirepo.template import elegant
+
         return PKDict(
             imported_data=elegant.ElegantMadxConverter(qcall=None).to_madx(
                 elegant.elegant_file_import(data).imported_data
