@@ -6,12 +6,6 @@
 
 
 def test_api_server():
-    import os
-
-    assert (
-        0
-    ), f"GITHUB_TOKEN={os.getenv('GITHUB_TOKEN')} SIREPO_FEATURE_CONFIG_PROPRIETARY_OAUTH_SIM_TYPES={os.getenv('SIREPO_FEATURE_CONFIG_PROPRIETARY_OAUTH_SIM_TYPES') }"
-
     _setup("SIREPO_PKCLI_SERVICE")
 
     from sirepo.pkcli import service
