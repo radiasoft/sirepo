@@ -999,7 +999,7 @@
         "simFolder": {},
         "simulation": {
             "folder": "/Examples",
-            "name": "Topaz",
+            "name": "TOPAZ Single-Crystal Diffractometer Dataset",
             "notes": ""
         },
         "upSampling2D": {
