@@ -97,9 +97,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 layer[new] = layer[old]
                 layer.pop(old)
 
-        pkdp("\n\n\nlayers={}", layers)
         for l in layers:
-            pkdp("\n\n\nl={}", l)
             if l.layer == "Add" or l.layer == "Concatenate":
                 for c in l.children:
                     if c.layers:
