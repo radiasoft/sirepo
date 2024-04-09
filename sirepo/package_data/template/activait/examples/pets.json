@@ -114,7 +114,6 @@
             "activation": "relu",
             "dimensionality": 32,
             "kernel": 3,
-            "kernel_initializer": "RandomNormal",
             "layer": "Conv2D",
             "padding": "valid",
             "strides": 1
@@ -124,7 +123,6 @@
             "activation": "relu",
             "dimensionality": 32,
             "kernel": 3,
-            "kernel_initializer": "RandomNormal",
             "layer": "Conv2DTranspose",
             "padding": "valid",
             "strides": 1
@@ -257,7 +255,6 @@
                     ],
                     "dimensionality": 16,
                     "kernel": 3,
-                    "kernel_initializer": "RandomNormal",
                     "layer": "Conv2D",
                     "padding": "same",
                     "strides": 1
@@ -328,7 +325,6 @@
                                     ],
                                     "dimensionality": 32,
                                     "kernel": 3,
-                                    "kernel_initializer": "RandomNormal",
                                     "layer": "Conv2D",
                                     "padding": "same",
                                     "strides": 1
@@ -399,7 +395,6 @@
                                                     ],
                                                     "dimensionality": 64,
                                                     "kernel": 3,
-                                                    "kernel_initializer": "RandomNormal",
                                                     "layer": "Conv2D",
                                                     "padding": "same",
                                                     "strides": 1
@@ -470,7 +465,6 @@
                                                                     ],
                                                                     "dimensionality": 128,
                                                                     "kernel": 3,
-                                                                    "kernel_initializer": "RandomNormal",
                                                                     "layer": "Conv2D",
                                                                     "padding": "same",
                                                                     "strides": 1
@@ -541,7 +535,6 @@
                                                                                     ],
                                                                                     "dimensionality": 256,
                                                                                     "kernel": 3,
-                                                                                    "kernel_initializer": "RandomNormal",
                                                                                     "layer": "Conv2D",
                                                                                     "padding": "same",
                                                                                     "strides": 1
@@ -582,7 +575,6 @@
                                                                                     ],
                                                                                     "dimensionality": 256,
                                                                                     "kernel": 3,
-                                                                                    "kernel_initializer": "RandomNormal",
                                                                                     "layer": "Conv2DTranspose",
                                                                                     "padding": "same",
                                                                                     "strides": 2
@@ -619,7 +611,6 @@
                                                                     ],
                                                                     "dimensionality": 128,
                                                                     "kernel": 3,
-                                                                    "kernel_initializer": "RandomNormal",
                                                                     "layer": "Conv2D",
                                                                     "padding": "same",
                                                                     "strides": 1
@@ -660,7 +651,6 @@
                                                                     ],
                                                                     "dimensionality": 128,
                                                                     "kernel": 3,
-                                                                    "kernel_initializer": "RandomNormal",
                                                                     "layer": "Conv2DTranspose",
                                                                     "padding": "same",
                                                                     "strides": 2
@@ -697,7 +687,6 @@
                                                     ],
                                                     "dimensionality": 64,
                                                     "kernel": 3,
-                                                    "kernel_initializer": "RandomNormal",
                                                     "layer": "Conv2D",
                                                     "padding": "same",
                                                     "strides": 1
@@ -738,7 +727,6 @@
                                                     ],
                                                     "dimensionality": 64,
                                                     "kernel": 3,
-                                                    "kernel_initializer": "RandomNormal",
                                                     "layer": "Conv2DTranspose",
                                                     "padding": "same",
                                                     "strides": 2
@@ -775,7 +763,6 @@
                                     ],
                                     "dimensionality": 32,
                                     "kernel": 3,
-                                    "kernel_initializer": "RandomNormal",
                                     "layer": "Conv2D",
                                     "padding": "same",
                                     "strides": 1
@@ -816,7 +803,6 @@
                                     ],
                                     "dimensionality": 32,
                                     "kernel": 3,
-                                    "kernel_initializer": "RandomNormal",
                                     "layer": "Conv2DTranspose",
                                     "padding": "same",
                                     "strides": 2
@@ -853,7 +839,6 @@
                     ],
                     "dimensionality": 16,
                     "kernel": 3,
-                    "kernel_initializer": "RandomNormal",
                     "layer": "Conv2D",
                     "padding": "same",
                     "strides": 1
@@ -914,7 +899,6 @@
             "activation": "relu",
             "dimensionality": 32,
             "kernel": 3,
-            "kernel_initializer": "RandomNormal",
             "layer": "SeparableConv2D",
             "padding": "valid",
             "strides": 1
