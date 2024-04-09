@@ -5102,11 +5102,17 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
                     s[0].dispatchEvent(new Event('change'));
                 });
             },
+            focus: (e, ui) => {
+                s.val(ui.item.label);
+                return false;
+            },
             source: (req, res) => {
                 const text = req.term;
                 const l = scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1));
                 if (! supportsMulti) {
-                    res(l.filter(x => x.label.includes(text)));
+                    res(l.filter(x => {
+                        return x.label.toLowerCase().includes(text.toLowerCase());
+                    }));
                     return;
                 }
                 const t = findToken(text, s.get(0).selectionStart);
