@@ -699,7 +699,7 @@ SIREPO.viewLogic('beamlineView', function(appState, latticeService, panelState, 
         ]);
     }
 
-    const trackHasBeam = (line) => {
+    const trackHasExistingBeam = (line) => {
         for (const b of appState.models.beamlines) {
             if (b.id == line) {
                 return true;
@@ -712,7 +712,7 @@ SIREPO.viewLogic('beamlineView', function(appState, latticeService, panelState, 
     $scope.$on('beamlines.changed', function() {
         appState.models.commands.forEach(command => {
             if (command._type == 'track') {
-                if (! trackHasBeam(command.line)) {
+                if (! trackHasExistingBeam(command.line)) {
                     command.line = appState.models.beamlines[0].id;
                 }
             }
