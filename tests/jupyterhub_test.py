@@ -24,17 +24,17 @@ def test_check_auth_jupyterhub(fc):
         return len(pkio.sorted_glob(sirepo.srdb.root().join("jupyterhub/user/**"))) - 1
 
     def _jupyter_user_dir_exists(uid):
-        for x in [
-            os.path.basename(d)
-            for d in pkio.sorted_glob(sirepo.srdb.root().join("jupyterhub/user/**"))
-        ]:
-            if uid.lower() in x:
-                return True
-        return False
+        return bool(
+            len(
+                pkio.sorted_glob(
+                    sirepo.srdb.root().join("jupyterhub", "user", f"*{uid.lower()}*")
+                )
+            )
+        )
 
     fc.sr_logout()
     n = _get_num_jupyterhub_user_dirs()
-    fc.sr_get("checkAuthJupyterHub")
+    fc.sr_get("checkAuthJupyterHub", redirect=False).assert_http_redirect("login")
     pkeq(n, _get_num_jupyterhub_user_dirs())
     fc.sr_login_as_guest()
     pkok(
