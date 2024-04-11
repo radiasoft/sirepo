@@ -758,6 +758,7 @@ class LatticeUtil(object):
             if "visualizationBeamlineId" not in sim or not sim.visualizationBeamlineId:
                 sim.visualizationBeamlineId = self.data.models.beamlines[0].id
             beamline_id = sim.visualizationBeamlineId
+        pkdp("\n\n\n idmap={}", self.id_map[int(beamline_id)])
         return self.id_map[int(beamline_id)]
 
     def sort_elements_and_beamlines(self):
