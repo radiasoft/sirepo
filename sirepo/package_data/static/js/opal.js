@@ -691,7 +691,7 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
     };
 });
 
-SIREPO.viewLogic('beamlineView', function(latticeService, panelState, $scope) {
+SIREPO.viewLogic('beamlineView', function(appState, latticeService, panelState, $scope) {
 
     function updateAbsolutePositionFields() {
         panelState.showFields('beamline', [
@@ -700,6 +700,10 @@ SIREPO.viewLogic('beamlineView', function(latticeService, panelState, $scope) {
     }
 
     $scope.whenSelected = updateAbsolutePositionFields;
+    $scope.$on('beamlines.changed', function() {
+        srdbg("beamlines changed", appState.models.beamlines);
+        srdbg("commands=", appState.models.commands);
+    });
 });
 
 SIREPO.viewLogic('simulationView', function(appState, panelState, $scope) {
