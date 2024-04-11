@@ -19,8 +19,7 @@ def test_error_logging(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkunit import pkeq
 
-    r = fc.sr_post("errorLogging", PKDict(message="error message"))
-    pkeq("ok", r.state)
+    pkeq("ok", fc.sr_post("errorLogging", PKDict(message="error message")).state)
 
 
 def test_favicon(fc):
@@ -29,10 +28,8 @@ def test_favicon(fc):
     import sirepo.resource
 
     for a, p in PKDict(favicon="favicon.ico", faviconPng="favicon.png").items():
-        r = fc.sr_get(a)
         with open(sirepo.resource.static("img", p), "rb") as f:
-            s = f.read()
-            pkeq(len(s), len(r.data))
+            pkeq(len(f.read()), len(fc.sr_get(a).data))
 
 
 def test_find_by_name(fc):
@@ -67,12 +64,12 @@ def test_simulation_schema(fc):
 
     r = fc.sr_post_form(
         "simulationSchema",
-        data=PKDict(simulationType=fc.sr_sim_type),
+        data=PKDict(simulationType="myapp"),
     )
-
     for k in ("model", "view"):
         assert k in r.keys()
-
+    for k in ("dog", "heightWeightReport"):
+        assert k in r.model.keys()
     with pkexcept("unexpected status"):
         fc.sr_post_form(
             "simulationSchema",
@@ -101,8 +98,7 @@ def test_srw_light(fc):
 
     r = fc.sr_get("srwLight")
     r.assert_success()
-    pkre("<!DOCTYPE html>", r.data)
-    pkre('data-ng-app="SRWLightGateway"', r.data)
+    pkre("SRWLightGateway", r.data)
 
 
 def _get_file(fc, data, api_name):

@@ -17,5 +17,4 @@ def test_custom_errors(fc):
         r = fc.sr_get(sirepo.uri.local_route(fc.sr_sim_type, v.route))
         r.assert_success()
         with open(sirepo.resource.static("html", v.url), "r") as f:
-            s = f.read()
-            pkre(v.msg, s)
+            pkre(v.msg, f.read())

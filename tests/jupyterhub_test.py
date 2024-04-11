@@ -16,11 +16,33 @@ def setup_module(module):
 
 
 def test_check_auth_jupyterhub(fc):
+    import sirepo.srdb
+    from pykern import pkio
+    from pykern.pkunit import pkeq
+
+    def _get_num_jupyterhub_user_dirs():
+        return len(pkio.sorted_glob(sirepo.srdb.root().join("jupyterhub/user/**"))) - 1
+
+    def _jupyter_user_dir_exists(uid):
+        for x in [
+            os.path.basename(d)
+            for d in pkio.sorted_glob(sirepo.srdb.root().join("jupyterhub/user/**"))
+        ]:
+            if uid.lower() in x:
+                return True
+        return False
+
+    fc.sr_logout()
+    n = _get_num_jupyterhub_user_dirs()
+    fc.sr_get("checkAuthJupyterHub")
+    pkeq(n, _get_num_jupyterhub_user_dirs())
     fc.sr_login_as_guest()
-    # user doesn't exist
+    pkeq(False, _jupyter_user_dir_exists(fc.sr_uid))
     fc.sr_get("checkAuthJupyterHub").assert_success()
-    # user does exist
+    pkeq(True, _jupyter_user_dir_exists(fc.sr_uid))
+    n = _get_num_jupyterhub_user_dirs()
     fc.sr_get("checkAuthJupyterHub").assert_success()
+    pkeq(n, _get_num_jupyterhub_user_dirs())
 
 
 def test_jupyterhub_redirect(fc):
