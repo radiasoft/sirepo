@@ -37,6 +37,10 @@ build_as_run_user() {
     cd ..
     rm -rf sirepo pykern
     _sirepo_test_static_files
+    _sirepo_clone rslume ''
+    pip install .
+    cd ..
+    rm -rf rslume
 }
 
 sirepo_boot_init() {
