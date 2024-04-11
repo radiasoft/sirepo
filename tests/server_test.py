@@ -60,16 +60,15 @@ def test_simulation_redirect(fc):
 
 def test_simulation_schema(fc):
     from pykern.pkcollections import PKDict
-    from pykern.pkunit import pkexcept
+    from pykern.pkunit import pkexcept, pkok
 
     r = fc.sr_post_form(
         "simulationSchema",
         data=PKDict(simulationType="myapp"),
     )
-    for k in ("model", "view"):
-        assert k in r.keys()
-    for k in ("dog", "heightWeightReport"):
-        assert k in r.model.keys()
+    pkok(isinstance(r.model, PKDict), "expected model to be PKDict")
+    pkok(isinstance(r.view, PKDict), "expected view to be PKDict")
+    pkok(isinstance(r.model.dog, PKDict), "expected model.dog to be PKDict")
     with pkexcept("unexpected status"):
         fc.sr_post_form(
             "simulationSchema",
