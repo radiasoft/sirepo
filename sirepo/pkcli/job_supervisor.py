@@ -10,9 +10,6 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 import asyncio
-import copy
-import functools
-import importlib
 import signal
 import sirepo.const
 import sirepo.events
@@ -181,7 +178,7 @@ async def _incoming(content, handler):
             handler.sr_on_exception()
         except Exception as e:
             pkdlog("sr_on_exception: exception={}", e)
-        return PKDict(state=job.ERROR, error="unexpected error")
+        return PKDict(state=sirepo.job.ERROR, error="unexpected error")
 
 
 def _sigterm(signum, frame):
