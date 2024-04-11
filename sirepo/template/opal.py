@@ -738,7 +738,6 @@ class _Generate(sirepo.lib.GenerateBase):
 
     def _format_field_value(self, state, model, field, el_type):
         value = model[field]
-        pkdp("model ={}, field={}", model, field)
         if el_type == "Boolean":
             value = "true" if value == "1" else "false"
         elif el_type == "RPNValue":
@@ -750,7 +749,6 @@ class _Generate(sirepo.lib.GenerateBase):
         elif el_type == "OutputFile":
             value = self._output_file(model, field)
         elif re.search(r"List$", el_type):
-            pkdp("\n\n\n state.id_map.keys()={}", state.id_map.keys())
             value = state.id_map[int(value)].name
         elif re.search(r"String", el_type):
             if str(value):
@@ -798,7 +796,6 @@ class _Generate(sirepo.lib.GenerateBase):
                 if c._type not in _HEADER_COMMANDS:
                     commands.append(c)
         util.data.models[key] = commands
-        pkdp("\n\n\n KEY={}\n\n\n", key)
         res = util.render_lattice(
             util.iterate_models(
                 OpalElementIterator(self._format_field_value),
@@ -830,7 +827,6 @@ class _Generate(sirepo.lib.GenerateBase):
         )
 
     def _generate_lattice(self, util, code_var, beamline_id):
-        pkdp("\n\n\n beamline id in _generate_lattice={}", beamline_id)
         if util.data.models.simulation.elementPosition == "absolute":
             beamline, visited = _generate_absolute_beamline(util, beamline_id)
         else:

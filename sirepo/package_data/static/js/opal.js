@@ -699,7 +699,7 @@ SIREPO.viewLogic('beamlineView', function(appState, latticeService, panelState, 
         ]);
     }
 
-    const trackPointsAtBeam = (line) => {
+    const trackHasBeam = (line) => {
         for (const b of appState.models.beamlines) {
             if (b.id == line) {
                 return true;
@@ -710,14 +710,10 @@ SIREPO.viewLogic('beamlineView', function(appState, latticeService, panelState, 
 
     $scope.whenSelected = updateAbsolutePositionFields;
     $scope.$on('beamlines.changed', function() {
-        srdbg("beamlines changed", appState.models.beamlines);
-        // TODO: check visualizationBeamlineId is set correctly
         appState.models.commands.forEach(command => {
             if (command._type == 'track') {
-                if (! trackPointsAtBeam(command.line)) {
-                    srdbg("command", command.name, "old id =", command.line);
+                if (! trackHasBeam(command.line)) {
                     command.line = appState.models.beamlines[0].id;
-                    srdbg("command", command.name, "new id =", command.line);
                 }
             }
             appState.saveChanges('commands');
