@@ -33,8 +33,8 @@ def test_import_zip(fc):
 def _do(fc, file_ext, parse):
     from pykern.pkcollections import PKDict
     from pykern import pkio, pkcompat
+    from pykern import pkjson
     from pykern import pkunit
-    from pykern import pkcollections
     from pykern.pkdebug import pkdp, pkdlog
     from pykern.pkunit import pkeq, pkok, pkre
     import re
@@ -61,6 +61,6 @@ def _do(fc, file_ext, parse):
             elif file_ext == "py":
                 sim_name = f.purebasename
             else:
-                sim_name = pkcollections.json_load_any(json).models.simulation.name
+                sim_name = pkjson.load_any(json).models.simulation.name
             pkok("models" in res, "no models file={} res={}", f, res)
             pkeq(sim_name + suffix, res.models.simulation.name)
