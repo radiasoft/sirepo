@@ -6,6 +6,7 @@
 """
 from pykern import pkcollections
 from pykern import pkcompat
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 import base64
 import contextlib
@@ -213,7 +214,7 @@ class _TestClient:
             r"(\{.*\})",
             pkcompat.from_bytes(self.sr_get("authState").data),
         )
-        s = pkcollections.json_load_any(m.group(1))
+        s = pkjson.load_any(m.group(1))
         for k, v in kwargs.items():
             pkunit.pkeq(
                 v,
