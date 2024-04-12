@@ -460,15 +460,7 @@ class _TestClient:
                 raise AssertionError("cancel failed")
 
     def sr_sbatch_animation_run(self, sim_name, compute_model, reports, **kwargs):
-        from pykern.pkunit import pkexcept
-
-        d = self.sr_sim_data(sim_name)
-        if not self.sr_sbatch_logged_in:
-            with pkexcept("SRException.*no-creds"):
-                # Must try to run sim first to seed job_supervisor.db
-                self.sr_run_sim(d, compute_model, expect_completed=False)
-            self.sr_sbatch_login(compute_model, d)
-            self.sr_sbatch_logged_in = True
+        self.sr_sbatch_login(compute_model, sim_name)
         self.sr_animation_run(
             self.sr_sim_data(sim_name),
             compute_model,
@@ -478,20 +470,28 @@ class _TestClient:
             **kwargs,
         )
 
-    def sr_sbatch_login(self, compute_model, data):
+    def sr_sbatch_login(self, compute_model, sim_name):
+        from pykern.pkunit import pkexcept
         import getpass
 
+        if self.sr_sbatch_logged_in:
+            return
+        d = self.sr_sim_data(sim_name)
+        with pkexcept("SRException.*no-creds"):
+            # Must try to run sim first to seed job_supervisor.db
+            self.sr_run_sim(d, compute_model, expect_completed=False)
         p = getpass.getuser()
         self.sr_post(
             "sbatchLogin",
             PKDict(
                 password=p,
                 report=compute_model,
-                simulationId=data.models.simulation.simulationId,
-                simulationType=data.simulationType,
+                simulationId=d.models.simulation.simulationId,
+                simulationType=d.simulationType,
                 username=p,
             ),
         )
+        self.sr_sbatch_logged_in = True
 
     def sr_sim_data(self, sim_name=None, sim_type=None):
         """Return simulation data by name
