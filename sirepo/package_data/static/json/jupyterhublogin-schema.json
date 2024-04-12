@@ -6,17 +6,7 @@
             ]
         }
     },
-    "appDefaults": {
-        "route": "migrateJupyter"
-    },
     "localRoutes": {
-        "migrateJupyter": {
-            "route": "/migrate-jupyter",
-            "config": {
-                "controller": "JupyterhubMigrateController as jupyterhubmigrate",
-                "templateUrl": "/static/html/jupyterhub-migrate.html"
-            }
-        },
         "jupyterNameConflict": {
             "route": "/jupyter-name-conflict",
             "config": {
