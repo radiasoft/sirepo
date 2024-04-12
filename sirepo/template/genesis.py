@@ -425,15 +425,15 @@ def _parse_maginfile(filepath):
     u = 1
     with pkio.open_text(filepath) as f:
         for line in f:
-            m = re.match(r"\?\s+(\w+)\s*=\s*([\S]+)", line)
-            if m:
-                if m.group(1) == "UNITLENGTH":
-                    u = float(m.group(2))
-                continue
             row = line.split()
             if row:
                 if row[0] == _MAGIN_PLOT_FIELD:
                     p.append(row[1])
+                if row[0] == "?" and "UNITLENGTH" in row[1]:
+                    if row[2] == "=":
+                        u = row[3]
+                    else:
+                        u = row[2]
     if p:
         return PKDict(unit_length=u, points=p)
     raise AssertionError(f"No AW fields present in maginfile={filepath.basename}")

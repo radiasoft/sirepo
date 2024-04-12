@@ -3148,7 +3148,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
         restrict: 'A',
         scope: {},
         template: `
-            <div data-ng-show="isJupyterhub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">
+            <div data-ng-show="isJupyterHub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">
             We're improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. Simply follow the directions below to complete this process.
             </div>
             <form class="form-horizontal" autocomplete="off" novalidate>
@@ -3192,7 +3192,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             }
 
             $scope.data = {};
-            $scope.isJupyterhub = SIREPO.APP_SCHEMA.simulationType == 'jupyterhublogin';
+            $scope.isJupyterHub = SIREPO.APP_SCHEMA.simulationType == 'jupyterhublogin';
             $scope.login = function() {
                 var e = $scope.data.email;
                 errorService.alertText('');
@@ -4901,38 +4901,23 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
             route: '@',
         },
         template: `
-            <span data-loading-spinner data-sentinel="items">
+            <span data-loading-spinner data-sentinel="simList">
               <div style="white-space: nowrap">
-                <select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as item.name disable when item.isInvalid for item in items"></select>
+                <select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as itemName(item) disable when item.invalidMsg for item in simList"></select>
 
                 <button type="button" style="padding: 3px 10px 5px 10px; margin-top: -1px" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>
               </div>
             </span>
         `,
         controller: function($scope) {
+            $scope.simList = null;
 
-            function buildList(simList) {
-                $scope.items = [];
-                for (const s of simList) {
-                    $scope.items.push({
-                        simulationId: s.simulationId,
-                        isInvalid: s.invalidMsg ? true : false,
-                        name: itemName(s),
-                    });
-                }
-                $scope.items.sort((a, b) => a.name.localeCompare(b.name));
-            }
+            // special processing of the item's name if necessary
+            $scope.itemName = function(item) {
+                return item.invalidMsg ? `${item.name} <${item.invalidMsg}>` : item.name;
+            };
 
-            function itemName(sim) {
-                const n = sim.folder === '/'
-                        ? `/${sim.name}`
-                        : `${sim.folder}/${sim.name}`;
-                return sim.invalidMsg
-                     ? `${n} <${sim.invalidMsg}>`
-                     : n;
-            }
-
-            $scope.openSimulation = () => {
+            $scope.openSimulation = function() {
                 if ($scope.model && $scope.model[$scope.field]) {
                     requestSender.openSimulation(
                         $scope.code,
@@ -4941,13 +4926,14 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
                     );
                 }
             };
-
-            appState.whenModelsLoaded($scope, () => {
+            appState.whenModelsLoaded($scope, function() {
                 requestSender.sendStatefulCompute(
                     appState,
-                    (data) => {
+                    function(data) {
                         if (appState.isLoaded() && data.simList) {
-                            buildList(data.simList);
+                            $scope.simList = data.simList.sort(function(a, b) {
+                                return a.name.localeCompare(b.name);
+                            });
                         }
                     },
                     {
@@ -5116,11 +5102,17 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
                     s[0].dispatchEvent(new Event('change'));
                 });
             },
+            focus: (e, ui) => {
+                s.val(ui.item.label);
+                return false;
+            },
             source: (req, res) => {
                 const text = req.term;
                 const l = scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1));
                 if (! supportsMulti) {
-                    res(l.filter(x => x.label.includes(text)));
+                    res(l.filter(x => {
+                        return x.label.toLowerCase().includes(text.toLowerCase());
+                    }));
                     return;
                 }
                 const t = findToken(text, s.get(0).selectionStart);
