@@ -4,6 +4,7 @@
         "children": [],
         "dimensionality": 10,
         "kernel": 3,
+        "kernel_initializer": "GlorotUniform",
         "layer": "Conv2D",
         "padding": "same",
         "strides": 1
@@ -13,6 +14,7 @@
         "children": [],
         "dimensionality": 10,
         "kernel": 3,
+        "kernel_initializer": "GlorotUniform",
         "layer": "Conv2D",
         "padding": "same",
         "strides": 1
@@ -38,6 +40,7 @@
                         "children": [],
                         "dimensionality": 10,
                         "kernel": 3,
+                        "kernel_initializer": "GlorotUniform",
                         "layer": "Conv2D",
                         "padding": "same",
                         "strides": 1
@@ -47,6 +50,7 @@
                         "children": [],
                         "dimensionality": 10,
                         "kernel": 3,
+                        "kernel_initializer": "GlorotUniform",
                         "layer": "Conv2D",
                         "padding": "same",
                         "strides": 1
@@ -72,6 +76,7 @@
                                         "children": [],
                                         "dimensionality": 10,
                                         "kernel": 3,
+                                        "kernel_initializer": "GlorotUniform",
                                         "layer": "Conv2D",
                                         "padding": "same",
                                         "strides": 1
@@ -81,6 +86,7 @@
                                         "children": [],
                                         "dimensionality": 10,
                                         "kernel": 3,
+                                        "kernel_initializer": "GlorotUniform",
                                         "layer": "Conv2D",
                                         "padding": "same",
                                         "strides": 1
@@ -106,6 +112,7 @@
                                                         "children": [],
                                                         "dimensionality": 10,
                                                         "kernel": 3,
+                                                        "kernel_initializer": "GlorotUniform",
                                                         "layer": "Conv2D",
                                                         "padding": "same",
                                                         "strides": 1
@@ -115,6 +122,7 @@
                                                         "children": [],
                                                         "dimensionality": 10,
                                                         "kernel": 3,
+                                                        "kernel_initializer": "GlorotUniform",
                                                         "layer": "Conv2D",
                                                         "padding": "same",
                                                         "strides": 1
@@ -140,6 +148,7 @@
                                                                         "children": [],
                                                                         "dimensionality": 10,
                                                                         "kernel": 3,
+                                                                        "kernel_initializer": "GlorotUniform",
                                                                         "layer": "Conv2D",
                                                                         "padding": "same",
                                                                         "strides": 1
@@ -149,6 +158,7 @@
                                                                         "children": [],
                                                                         "dimensionality": 10,
                                                                         "kernel": 3,
+                                                                        "kernel_initializer": "GlorotUniform",
                                                                         "layer": "Conv2D",
                                                                         "padding": "same",
                                                                         "strides": 1
@@ -158,6 +168,7 @@
                                                                         "children": [],
                                                                         "dimensionality": 10,
                                                                         "kernel": 3,
+                                                                        "kernel_initializer": "GlorotUniform",
                                                                         "layer": "Conv2DTranspose",
                                                                         "padding": "same",
                                                                         "strides": 1
@@ -180,6 +191,7 @@
                                                         "children": [],
                                                         "dimensionality": 10,
                                                         "kernel": 3,
+                                                        "kernel_initializer": "GlorotUniform",
                                                         "layer": "Conv2D",
                                                         "padding": "same",
                                                         "strides": 1
@@ -189,6 +201,7 @@
                                                         "children": [],
                                                         "dimensionality": 10,
                                                         "kernel": 3,
+                                                        "kernel_initializer": "GlorotUniform",
                                                         "layer": "Conv2D",
                                                         "padding": "same",
                                                         "strides": 1
@@ -198,6 +211,7 @@
                                                         "children": [],
                                                         "dimensionality": 10,
                                                         "kernel": 3,
+                                                        "kernel_initializer": "GlorotUniform",
                                                         "layer": "Conv2DTranspose",
                                                         "padding": "same",
                                                         "strides": 1
@@ -220,6 +234,7 @@
                                         "children": [],
                                         "dimensionality": 10,
                                         "kernel": 3,
+                                        "kernel_initializer": "GlorotUniform",
                                         "layer": "Conv2D",
                                         "padding": "same",
                                         "strides": 1
@@ -229,6 +244,7 @@
                                         "children": [],
                                         "dimensionality": 10,
                                         "kernel": 3,
+                                        "kernel_initializer": "GlorotUniform",
                                         "layer": "Conv2D",
                                         "padding": "same",
                                         "strides": 1
@@ -238,6 +254,7 @@
                                         "children": [],
                                         "dimensionality": 10,
                                         "kernel": 3,
+                                        "kernel_initializer": "GlorotUniform",
                                         "layer": "Conv2DTranspose",
                                         "padding": "same",
                                         "strides": 1
@@ -260,6 +277,7 @@
                         "children": [],
                         "dimensionality": 10,
                         "kernel": 3,
+                        "kernel_initializer": "GlorotUniform",
                         "layer": "Conv2D",
                         "padding": "same",
                         "strides": 1
@@ -269,6 +287,7 @@
                         "children": [],
                         "dimensionality": 10,
                         "kernel": 3,
+                        "kernel_initializer": "GlorotUniform",
                         "layer": "Conv2D",
                         "padding": "same",
                         "strides": 1
@@ -278,6 +297,7 @@
                         "children": [],
                         "dimensionality": 10,
                         "kernel": 3,
+                        "kernel_initializer": "GlorotUniform",
                         "layer": "Conv2DTranspose",
                         "padding": "same",
                         "strides": 1
@@ -300,6 +320,7 @@
         "children": [],
         "dimensionality": 10,
         "kernel": 3,
+        "kernel_initializer": "GlorotUniform",
         "layer": "Conv2D",
         "padding": "same",
         "strides": 1
