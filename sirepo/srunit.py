@@ -202,7 +202,7 @@ class _TestClient:
                         )
 
     def sr_auth_state(self, **kwargs):
-        """Gets authState and prases
+        """Gets authState and parses
 
         Returns:
             dict: parsed auth_state

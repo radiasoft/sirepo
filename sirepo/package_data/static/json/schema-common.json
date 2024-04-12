@@ -110,15 +110,13 @@
         "authCompleteRegistration": "/auth-complete-registration",
         "authEmailAuthorized": "/auth-email-authorized/<simulation_type>/<token>",
         "authEmailLogin": "/auth-email-login",
-        "authGithubAuthorized": "/auth-github-authorized",
-        "authGithubLogin": "/auth-github-login/<simulation_type>",
         "authGuestLogin": "/auth-guest-login/<simulation_type>",
         "authLdapLogin": "/auth-ldap-login",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
         "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
-        "checkAuthJupyterhub": "/check-auth-jupyterhub",
+        "checkAuthJupyterHub": "/check-auth-jupyterhub",
         "contentTooLarge": "/content-too-large",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
@@ -146,9 +144,7 @@
         "jupyterHub": "/jupyter",
         "listFiles": "/file-list",
         "listSimulations": "/simulation-list",
-        "migrateJupyterhub": "/migrate-jupyterhub",
         "newSimulation": "/new-simulation",
-        "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "ownJobs": "/own-jobs",
         "proxyError": "/proxy-error",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
@@ -543,7 +539,7 @@
         },
         "404": {
             "url": "http-not-found.html",
-            "msg": "File Not Found",
+            "msg": "Not Found",
             "route": "notFound"
         },
         "413": {
@@ -559,7 +555,7 @@
         "502": {
             "url": "http-proxy-error.html",
             "msg": "Proxy Error",
-            "route": "proxy-error"
+            "route": "proxyError"
         }
     }
 }
