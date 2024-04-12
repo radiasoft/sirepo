@@ -21,12 +21,11 @@ import sirepo.util
 class LibAdapterBase:
     """Common functionality between code specific LibAdapter implementations."""
 
-    def __init__(self, ignore_files=None, update_filenames=False):
+    def __init__(self, ignore_files=None):
         m = inspect.getmodule(self)
         self._sim_data, _, self._schema = sirepo.sim_data.template_globals(m.SIM_TYPE)
         self._code_var = m.code_var
         self._ignore_files = ignore_files if ignore_files else []
-        self._update_filenames = update_filenames
 
     def _convert(self, data):
         def _model(model, name):
@@ -78,9 +77,7 @@ class LibAdapterBase:
         for f in set(
             LatticeUtil(data, self._schema)
             .iterate_models(
-                lattice.InputFileIterator(
-                    self._sim_data, update_filenames=self._update_filenames
-                ),
+                lattice.InputFileIterator(self._sim_data, update_filenames=False),
             )
             .result,
         ):
@@ -115,12 +112,11 @@ class Importer:
         ignore_files (list): files ignored during verification and symlink routines [None]
     """
 
-    def __init__(self, sim_type, ignore_files=None, update_filenames=False):
+    def __init__(self, sim_type, ignore_files=None):
         import sirepo.template
 
         self.__adapter = sirepo.template.import_module(sim_type).LibAdapter(
-            ignore_files or [],
-            update_filenames,
+            ignore_files or []
         )
 
     def parse_file(self, path):
