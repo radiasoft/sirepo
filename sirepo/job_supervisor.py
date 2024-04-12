@@ -4,9 +4,9 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
 from sirepo import job
@@ -710,7 +710,7 @@ class _ComputeJob(_Supervisor):
                 pkdlog("disappeared path={}", p)
                 return None
             raise
-        d = pkcollections.json_load_any(d)
+        d = pkjson.load_any(d)
         for k in [
             "alert",
             "canceledAfterSecs",
