@@ -706,7 +706,7 @@ SIREPO.viewLogic('beamlineView', function(appState, latticeService, panelState, 
             }
         }
         return false;
-    }
+    };
 
     $scope.whenSelected = updateAbsolutePositionFields;
     $scope.$on('beamlines.changed', function() {
@@ -717,7 +717,7 @@ SIREPO.viewLogic('beamlineView', function(appState, latticeService, panelState, 
                 }
             }
             appState.saveChanges('commands');
-        })
+        });
     });
 });
 
