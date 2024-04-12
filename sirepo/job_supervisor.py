@@ -736,14 +736,6 @@ class _ComputeJob(_Supervisor):
                 h.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=v)
         return d
 
-    def __db_restore(self, curr_db, prev_db):
-        if curr_db.dbUpdateTime != self.db.dbUpdateTime:
-            pkdlog("update collision jid={}, ignoring", curr_db.computeJid)
-            return False
-        self.db = prev_db
-        self.__db_write()
-        return True
-
     def __db_update(self, **kwargs):
         self.db.pkupdate(**kwargs)
         return self.__db_write()
@@ -955,8 +947,11 @@ class _ComputeJob(_Supervisor):
                     "isSbatchLogin"
                 ):
                     pkdlog("isSbatchLogin op={}", op)
-                    if self.__db_restore(curr_db=curr_db, prev_db=prev_db):
-                        self._sr_exception_in_run = e
+                    if curr_db.dbUpdateTime != self.db.dbUpdateTime:
+                        pkdlog("update collision jid={}, ignoring", curr_db.computeJid)
+                        return False
+                    self.__db_update(status=job.MISSING)
+                    self._sr_exception_in_run = e
                     return False
                 pkdlog("exception={} op={} stack={}", e, op, pkdexc())
                 self.__db_update(
