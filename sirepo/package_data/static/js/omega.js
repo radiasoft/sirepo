@@ -164,6 +164,9 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
             };
 
             $scope.$on('modelChanged', (e, name) => {
+                if (! $scope.reports) {
+                    return;
+                }
                 for (const sim of $scope.reports) {
                     if (name === sim[1][0].modelKey) {
                         const updated = [];

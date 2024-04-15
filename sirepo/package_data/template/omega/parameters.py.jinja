@@ -1,39 +1,33 @@
-
 from pykern import pkio
-from pykern.pkcollections import PKDict
+from rslume import Elegant, OPAL, Genesis2
+import h5py
 import os
-import sirepo.pkcli.elegant
-import sirepo.pkcli.genesis
-import sirepo.pkcli.opal
 
-assert os.environ['SIREPO_SIMULATION_DB_LOGGED_IN_USER'], 'missing user id env var'
-
-
-def run_sims(sim_list):
-    for idx in range(len(sim_list)):
-        _run(
-            pkio.py_path(f'run{idx + 1}'),
-            sim_list[idx].sim_type,
-        )
+# patch numpy
+import numpy
+numpy.float = float
 
 
-def _run(run_dir, sim_type):
-    with pkio.save_chdir(run_dir):
-        if sim_type == 'opal':
-            sirepo.pkcli.opal.run_opal(with_mpi=True)
-        elif sim_type == 'elegant':
-            sirepo.pkcli.elegant.run_elegant()
-        elif sim_type == 'genesis':
-            sirepo.pkcli.genesis.run_genesis(run_dir)
-        else:
-            raise AssertionError(f"unhandled sim_type={sim_type}")
+def code_kwargs(src_dir, input_file):
+    workdir = f"{src_dir}/out"
+    pkio.mkdir_parent(workdir)
+    return dict(
+        input_file=f"{src_dir}/{input_file}",
+        workdir=workdir,
+        verbose=True,
+        use_temp_dir=False,
+    )
 
 
-run_sims([
-{% for sim in simList %}
-    PKDict(
-        sim_type="{{sim.sim_type}}",
-        sim_id="{{sim.sim_id}}",
-    ),
+def run_and_save_particles(sim):
+    sim.run()
+    p = sim.final_particles()
+    if p:
+        with h5py.File(os.path.join(sim.workdir, "{{ particleOutfile }}"), "w") as f:
+            p.write(f)
+
+
+{% for sim in simCall %}
+{{ sim }}
+
 {% endfor %}
-])
