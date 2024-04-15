@@ -9,7 +9,7 @@ build_vars() {
     build_docker_cmd='["'"$sirepo_boot"'"]'
     build_is_public=1
     build_passenv='PYKERN_BRANCH SIREPO_BRANCH'
-    : ${PYKERN_BRANCH:=} ${SIREPO_BRANCH:=}
+    : ${PYKERN_BRANCH:=}  ${RSLUME_BRANCH:=} ${SIREPO_BRANCH:=}
 }
 
 build_as_root() {
@@ -27,20 +27,10 @@ build_as_run_user() {
     cd "$build_guest_conf"
     umask 022
     sirepo_boot_init
-    _sirepo_clone pykern "$PYKERN_BRANCH"
-    pip install .
-    cd ..
-    _sirepo_clone sirepo "$SIREPO_BRANCH"
-    pip install -e .
-    sirepo srw create_predefined
-    pip install .
-    cd ..
-    rm -rf sirepo pykern
+    _sirepo_pip_install pykern
+    _sirepo_pip_install sirepo
+    _sirepo_pip_install rslume
     _sirepo_test_static_files
-    _sirepo_clone rslume ''
-    pip install .
-    cd ..
-    rm -rf rslume
 }
 
 sirepo_boot_init() {
@@ -51,9 +41,18 @@ sirepo_boot_init() {
 
 _sirepo_clone() {
     declare repo=$1
+
     declare branch=$2
+ "$RSLUME_BRANCH"
     git clone -q -c advice.detachedHead=false ${branch:+--branch "$branch"} --depth=1 https://github.com/radiasoft/"$repo"
-    cd $repo
+    cd "$repo"
+    if [[ $repo == sirepo ]]; then
+        pip install -e .
+        sirepo srw create_predefined
+    fi
+    pip install .
+    cd - &> /dev/null
+    rm -rf "$repo"
 }
 
 _sirepo_test_static_files() {
