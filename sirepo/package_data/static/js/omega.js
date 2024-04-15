@@ -37,13 +37,23 @@ SIREPO.app.factory('omegaService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('SourceController', function (appState, frameCache, omegaService, persistentSimulation, $scope) {
+SIREPO.app.controller('SourceController', function (appState, frameCache, omegaService, persistentSimulation, requestSender, $scope) {
     const self = this;
     let errorMessage;
     self.omegaService = omegaService;
     self.simScope = $scope;
     self.reports = null;
     self.simAnalysisModel = 'animation';
+
+    function requestSimListByType(simType) {
+        requestSender.sendRequest(
+            'listSimulations',
+            () => {},
+            {
+                simulationType: simType,
+            }
+        );
+    }
 
     self.simHandleStatus = data => {
         errorMessage = data.error;
@@ -73,6 +83,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, omegaS
         }
     };
 
+    SIREPO.APP_SCHEMA.relatedSimTypes.forEach(simType => requestSimListByType(simType));
     self.simState = persistentSimulation.initSimulationState(self);
     //TODO(pjm): this should be default behavior in simStatusPanel
     self.simState.errorMessage = () => errorMessage;
@@ -186,7 +197,7 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
     };
 });
 
-SIREPO.app.directive('dynamicSimList', function(appState, requestSender) {
+SIREPO.app.directive('dynamicSimList', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -199,20 +210,6 @@ SIREPO.app.directive('dynamicSimList', function(appState, requestSender) {
           </div>
         `,
         controller: function($scope) {
-            const requestSimListByType = (simType) => {
-                requestSender.sendRequest(
-                    'listSimulations',
-                    () => {},
-                    {
-                        simulationType: simType,
-                    }
-                );
-            };
-            if (SIREPO.APP_SCHEMA.relatedSimTypes) {
-                SIREPO.APP_SCHEMA.relatedSimTypes.forEach(simType => {
-                    requestSimListByType(simType);
-                });
-            }
             $scope.selectedCode = () => {
                 if ($scope.model) {
                     $scope.code = $scope.model.simulationType;
