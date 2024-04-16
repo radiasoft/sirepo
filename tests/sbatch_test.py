@@ -44,8 +44,7 @@ def test_srw_cancel(fc):
         ),
         expect_completed=False,
     )
-
-    for _ in range(5):
+    for _ in fc.sr_iter_sleep("slurm", "runStatus"):
         pkok(
             r.state in ("running", "pending"),
             "runSimulation did not start: reply={}",
@@ -53,17 +52,11 @@ def test_srw_cancel(fc):
         )
         if r.state == "running" and _squeue_num_jobs() == 1:
             break
-        time.sleep(5)
         r = fc.sr_post("runStatus", r.nextRequest)
-    else:
-        pkfail("failed to start running in sirepo and slurm reply={}", r)
     r = fc.sr_post("runCancel", r.nextRequest)
-    for _ in range(5):
+    for _ in fc.sr_iter_sleep("slurm", "runCancel"):
         if _squeue_num_jobs() == 0:
             break
-        time.sleep(5)
-    else:
-        pkfail("runCancel: failed to cancel in slurm")
 
 
 def test_srw_data_file(fc):

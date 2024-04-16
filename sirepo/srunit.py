@@ -16,8 +16,8 @@ import os.path
 import pykern.pkinspect
 import re
 import requests
-import urllib
 import threading
+import urllib
 
 #: Default "app"
 MYAPP = "myapp"
@@ -34,6 +34,14 @@ SR_SIM_NAME_DEFAULT = "Scooby Doo"
 
 #: Sirepo db dir
 _DB_DIR = "db"
+
+#: How many checks and how long to wait between checks for scenarios
+_ITER_SLEEP = PKDict(
+    slurm=PKDict(
+        count=5,
+        sleep_secs=5,
+    )
+)
 
 
 __cfg = None
@@ -317,6 +325,27 @@ class _TestClient:
             **kwargs,
         )
 
+    def sr_iter_sleep(self, kind, op_desc):
+        import time
+
+        def _setup():
+            rv = PKDict(_ITER_SLEEP[kind])
+            rv.countdown = range(rv.count, -1, -1)
+            return rv
+
+        s = _setup()
+        for i in s.countdown:
+            yield
+            if i > 0:
+                time.sleep(s.sleep_secs)
+        else:
+            pkfail(
+                "timeout secs={} kind={} op_desc={}",
+                s.sleep_secs * s.count,
+                kind,
+                op_desc,
+            )
+
     def sr_login_as_guest(self, sim_type=None):
         """Sets up a guest login
 
@@ -490,7 +519,8 @@ class _TestClient:
                 simulationType=d.simulationType,
                 username=p,
             ),
-        )
+            raw_response=True,
+        ).assert_success()
         self.sr_sbatch_logged_in = True
 
     def sr_sim_data(self, sim_name=None, sim_type=None):
