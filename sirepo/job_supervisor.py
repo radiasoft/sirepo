@@ -887,6 +887,15 @@ class _ComputeJob(_Supervisor):
             return self._init_db_missing_response(req)
         return r
 
+    async def _receive_api_sbatchAgentStatus(self, req):
+        r = False
+        o = self._create_op(job.OP_SBATCH_AGENT_READY, req)
+        try:
+            r = o.assign_driver().agent_is_ready()
+        finally:
+            o.destroy()
+        return PKDict(ready=r)
+
     async def _receive_api_sbatchLogin(self, req):
         return await self._send_with_single_reply(job.OP_SBATCH_LOGIN, req)
 
@@ -1095,7 +1104,6 @@ class _Op(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.update(
-            do_not_send=False,
             internal_error=None,
             op_id=job.unique_key(),
             _reply_q=sirepo.tornado.Queue(),
@@ -1104,6 +1112,10 @@ class _Op(PKDict):
             self.run_dir_slot = self._supervisor.run_dir_slot_q.sr_slot_proxy(self)
         self.msg.update(opId=self.op_id, opName=self.op_name)
         pkdlog("{} runDir={}", self, self.msg.get("runDir"))
+
+    def assign_driver(self):
+        self.driver = job_driver.assign_instance_op(self)
+        return self.driver
 
     def destroy(self, internal_error=None):
         """Idempotently destroy op
@@ -1154,7 +1166,7 @@ class _Op(PKDict):
             bool: If False, op is destroyed, exit immediately
         """
         if "driver" not in self:
-            self.driver = job_driver.assign_instance_op(self)
+            self.assign_driver()
             pkdlog("assigned driver={} to op={}", self.driver, self)
             self.cpu_slot = self.driver.cpu_slot_q.sr_slot_proxy(self)
             if q := self.driver.op_slot_q.get(self.op_name):

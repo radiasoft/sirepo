@@ -96,6 +96,9 @@ class DriverBase(PKDict):
         self.__instances[self._agent_id] = self
         pkdlog("{}", self)
 
+    def agent_is_ready(self):
+        return self._websocket_ready.is_set()
+
     def destroy_op(self, op):
         """Remove op from our list of sends"""
         self._prepared_sends.pkdel(op.op_id)
@@ -253,7 +256,7 @@ class DriverBase(PKDict):
         return not self._prepared_sends and not self._websocket_ready_timeout
 
     async def _agent_ready(self, op):
-        if self._websocket_ready.is_set():
+        if self.agent_is_ready():
             return True
         await self._agent_start(op)
         if op.is_destroyed:

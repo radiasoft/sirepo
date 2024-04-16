@@ -396,18 +396,13 @@ SIREPO.app.directive('canceledDueToTimeoutAlert', function(authState) {
         `,
         controller: function($scope, appState) {
             $scope.authState = authState;
-            let hideAlert = false;
-
-            $scope.$on('sbatchLoginDone', function() {
-                hideAlert = true;
-            });
 
             $scope.getTime = function() {
                 return appState.formatTime($scope.simState.getCanceledAfterSecs());
             };
 
             $scope.showAlert = function() {
-                return $scope.simState.getCanceledAfterSecs() && ! hideAlert;
+                return $scope.simState.getCanceledAfterSecs();
             };
         },
     };
@@ -581,6 +576,123 @@ SIREPO.app.directive('exportPythonLink', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
+    return {
+        restrict: 'A',
+        scope: {
+		simState: '<',
+		startSimulation: '&'
+        },
+        template: `
+                <div data-ng-if="simState.showJobSettings()">
+                  <div class="form-group form-group-sm">
+                    <div data-model-field="'jobRunMode'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
+                  </div>
+                  <div data-sbatch-options="simState"></div>
+                </div>
+                <div data-ng-if="needSbatchAgentLogin">
+		<button ng-disabled="loadingSbatchAgentStatus" class="col-sm-6 pull-right btn btn-default" data-ng-click="sbatchLogin()">{{ loginButtonLabel }}</button>
+                </div>
+                <div class="col-sm-6 pull-right" data-ng-if="! needSbatchAgentLogin">
+                  <button class="btn btn-default" ng-disabled="loadingSbatchAgentStatus" data-ng-click="startSimulation()">{{ startButtonLabel }}</button>
+                </div>
+	`,
+        controller: function($rootScope, $scope, appState, authState, errorService, requestSender, stringsService) {
+	    $scope.loadingSbatchAgentStatus = true;
+	    $scope.needSbatchAgentLogin = true;
+            $scope.startButtonLabel = stringsService.startButtonLabel();
+	    setLoginButtonLabel();
+
+	    function requestsbatchAgentStatus() {
+		if (appState.models[$scope.simState.model].jobRunMode !== 'sbatch') {
+		    $scope.needSbatchAgentLogin = false;
+		    $scope.loadingSbatchAgentStatus = false;
+		    return;
+		}
+		$scope.loadingSbatchAgentStatus = true;
+		requestSender.sendRequest(
+		    'sbatchAgentStatus',
+		    data => {
+			$scope.loadingSbatchAgentStatus = false;
+			$scope.needSbatchAgentLogin = ! data.ready;
+		    },
+		    {
+			computeModel: $scope.simState.model,
+			models: appState.models,
+			simulationId: appState.models.simulation.simulationId,
+			simulationType: SIREPO.APP_SCHEMA.simulationType,
+		    },
+		    err => {
+			$scope.loadingSbatchAgentStatus = false;
+			srlog('Error getting sbatchAgentStatus ', err);
+			errorService.alertText('Error checking login status. Please refresh the page. If the issue persists contact support@sirepo.com');
+		    },
+		);
+	    };
+
+	    function setLoginButtonLabel() {
+		$scope.loginButtonLabel = stringsService.sbatchLoginButtonLabel($scope.loadingSbatchAgentStatus);
+	    }
+
+	    $scope.sbatchLogin = () => {
+		$rootScope.$broadcast(
+		    'showSbatchLoginModal',
+		    {
+			reason: 'no-creds',
+			computeModel: $scope.simState.model,
+			simulationId: appState.models.simulation.simulationId,
+			simulationType: SIREPO.APP_SCHEMA.simulationType,
+		    },
+		);
+	    };
+
+            $scope.$on('sbatchLoginModalHidden', function(event, broadcastArg) {
+		$scope.needSbatchAgentLogin = ! broadcastArg.loginSuccess;
+		// Called from hidden.bs.modal which is outside of
+		// angularjs digest cycle so must force apply
+		$scope.$apply()
+		// User clicked Start Simulation then was prompted to log in
+		if (broadcastArg.restartRunSimulation) {
+		    // Refresh in all cases
+		    // loginSuccess: The start simulation after will
+		    // become the state of the panel
+		    // ! loginSuccess: We want to show that the job is
+		    // missing (tried to start but needed login)
+		    $scope.simState.resetSimulation();
+		    if (broadcastArg.loginSuccess) {
+			// POSIT: Supervisor protects if sim was started in another window
+			$scope.startSimulation();
+		    }
+		}
+		// User got here from clicking login button or through
+		// SRExceptpion from api_simulationFrame. If
+		// loginSuccess then resetSimulation so we go and try
+		// to get api_simulationFrame again. In the login
+		// button case a reset isn't necessary but it is hard
+		// to test for that case specifically so just reset too.
+		else if (broadcastArg.loginSuccess) {
+		    $scope.simState.resetSimulation();
+		}
+		// User wasn't trying to Start Simulation and they
+		// closed the login button. Two possible cases:
+		// 1. We got here through api_simulationFrame raising
+		// SRExceptpion. panelState.needSbatchAgentLogin was
+		// called so leave that in the panel
+		// 2. Or user clicked login button and then closed the
+		// modal so we just present them the panel they had
+		// before which has the login button.
+	    });
+
+	    $scope.$watch('loadingSbatchAgentStatus', function() {
+		setLoginButtonLabel();
+	    });
+
+            appState.whenModelsLoaded($scope, requestsbatchAgentStatus);
+            appState.watchModelFields($scope, [`${$scope.simState.model}.jobRunMode`], requestsbatchAgentStatus);
+        },
+    };
+});
+
 SIREPO.app.directive('randomSeed', function() {
     return {
         restrict: 'A',
@@ -704,49 +816,6 @@ SIREPO.app.directive('labelWithTooltip', function(appState, mathRendering, $inte
         controller: function($scope) {
             $scope.isDynamic = () => ! ! $scope.label.match(/{{\s*.+\s*}}/);
         },
-    };
-});
-
-SIREPO.app.directive('loadingAndErrorPanel', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        transclude: true,
-        scope: {
-            childArgs: '&',
-            modelKey: '@',
-        },
-        template: `
-            <div class="panel panel-info">
-              <div class="panel-heading clearfix" data-panel-heading="{{ panelHeading() }}" data-model-key="modelKey"></div>
-              <div data-show-loading-and-error="" data-model-key="{{ modelKey }}">
-                <div data-ng-show="showTranscludedElement()">
-                  <transcluded-element></transcluded-element>
-                </div>
-              </div>
-            </div>
-        `,
-        controller: function($scope) {
-            $scope.panelState = panelState;
-            $scope.panelHeading = () => {
-                return appState.viewInfo($scope.modelKey).title;
-            };
-
-            $scope.showTranscludedElement = () => {
-                return ! (panelState.isLoading($scope.modelKey) || panelState.getError($scope.modelKey));
-            };
-        },
-        link: function(scope, element, attrs, ctrls, transclude){
-            transclude(scope, function(clonedContent, transcludeScope){
-                transcludeScope.args = {
-                    modelKey: scope.modelKey
-                };
-                const c =  scope.childArgs();
-                if (c) {
-                    $.extend(transcludeScope.args, c);
-                }
-                element.find('transcluded-element').replaceWith(clonedContent);
-            });
-        }
     };
 });
 
@@ -4689,20 +4758,20 @@ SIREPO.app.directive('sbatchLoginModal', function() {
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
-                    <span class="lead modal-title text-info">Login to {{ host }}</span>
+                    <span class="lead modal-title text-info">Login to {{ sbatchHostDisplayName }}</span>
                     <button  type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                     </div>
                     <div class="modal-body">
                         <form name="sbatchLoginModalForm">
-                            <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
+                            <div class="sr-input-warning" data-ng-show="warningText">{{warningText}}</div>
                             <div class="form-group">
-                                <input type="text" class="form-control" name="username" placeholder="username" data-ng-model="username" />
+                                <input type="text" class="form-control" name="username" placeholder="username" autocomplete="username" data-ng-model="username" />
                             </div>
                             <div class="form-group">
-                                <input type="password" class="form-control" name="password" placeholder="password" data-ng-model="password" />
+                                <input type="password" class="form-control" name="password" placeholder="password" autocomplete="current-password" data-ng-model="password" />
                             </div>
                             <div class="form-group">
-                                <input type="password" class="form-control" name="otp" placeholder="one time password" data-ng-show="showOtp" data-ng-model="otp"/>
+                                <input type="password" class="form-control" name="otp" placeholder="one time password" autocomplete="one-time-code" data-ng-show="showOtp" data-ng-model="otp"/>
                             </div>
                             <button  data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="submitDisabled()">Submit</button>
                              <button  data-dismiss="modal" class="btn btn-default">Cancel</button>
@@ -4713,78 +4782,92 @@ SIREPO.app.directive('sbatchLoginModal', function() {
               </div>
             </div>
         `,
-        controller: function(requestSender, sbatchLoginStatusService, $element, $scope, $rootScope) {
-            $scope.otp = '';
-            $scope.password = '';
-            $scope.username = '';
-            var awaitingSendResponse = false;
-            var el = $('#sbatch-login-modal');
-            var errorResponse = null;
-            var onHidden = null;
+        controller: function($element, $scope, $rootScope, authState, errorService, panelState, requestSender) {
+	    resetLoginFormTextFields();
+            let awaitingLoginResponse = false;
+	    let loginSuccess = false;
+	    let restartRunSimulation = false;
+            const el = $('#sbatch-login-modal');
+	    $scope.sbatchHostDisplayName = authState.sbatchHostDisplayName;
 
-            el.on('hidden.bs.modal', function() {
-                var r = {'state': 'error', 'error': 'Please try again.'};
-                if (errorResponse) {
-                    r = {'state': 'error', 'error': errorResponse};
-                }
-                sbatchLoginStatusService.loginSuccess();
-                onHidden(r);
-                onHidden = null;
-                errorResponse = null;
-                $scope.otp = '';
-                $scope.password = '';
-                $scope.username = '';
-                $scope.sbatchLoginModalForm.$setPristine();
-                $scope.$apply();
-            });
-
-            function handleResponse(data) {
-                if (data.state === 'error') {
-                    errorResponse = data.error;
-                }
-                sbatchLoginStatusService.loggedIn = data.loginSuccess ? true: false;
-                $rootScope.$broadcast('sbatchLoginDone');
+            function handleLoginResponse(response) {
+		if (response.isSRException && response.data.routeName.toLowerCase().includes('sbatch')) {
+		    // POSIT: showing sbatch login modal is handled by requestSender.handleSRException
+		    return;
+		}
+		// This shouldn't happen
+		if (! response.loginSuccess) {
+		    srlog('Error with sbatchLogin response=', response);
+		    errorService.alertText('Error logging in. Please try again.');
+		    return;
+		}
+		loginSuccess = true;
                 el.modal('hide');
             }
 
-            $scope.$on('showSbatchLoginModal', function(e, broadcastArg) {
-                // When a user enters invalid login creds 'showSbatchLoginModal' is
-                // broadcast again. onHidden keeps a references to the
-                // errorCallback of only the first broadcast's errorCallback
-                const p = broadcastArg.srExceptionParams;
-                if (onHidden === null) {
-                    onHidden = broadcastArg.errorCallback;
-                }
-                sbatchLoginStatusService.loggedIn = false;
-                $scope.otp = '';
-                $scope.password = '';
-                awaitingSendResponse = false;
-                $scope.host = p.host;
-                $scope.showOtp = p.host.indexOf('nersc') >= 0;
-                $scope.showWarning = p.reason === 'invalid-creds';
-                $scope.warningText = 'Your credentials were invalid. Please try again.';
+	    function resetLoginForm() {
+		resetLoginFormTextFields();
+		$scope.sbatchLoginModalForm.$setPristine();
+                awaitingLoginResponse = false;
+	    }
+
+	    function resetLoginFormTextFields() {
+		$scope.otp = '';
+		$scope.password = '';
+		$scope.username = '';
+	    }
+
+            $scope.$on('showSbatchLoginModal', function(event, broadcastArg) {
+		restartRunSimulation = broadcastArg.shouldRestartRunSimulation;
+		resetLoginForm();
+                $scope.showOtp = authState.sbatchHostIsNersc;
+		$scope.warningText = {
+		    'invalid-creds': 'Your credentials were invalid. Please try again.',
+		    'general-connection-error': `There was a problem connecting to ${$scope.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`,
+		}[broadcastArg.reason] || '';
                 $scope.submit = function() {
-                    awaitingSendResponse = true;
+                    awaitingLoginResponse = true;
                     requestSender.sendRequest(
                         'sbatchLogin',
-                        handleResponse,
-                        {
-                            otp: $scope.otp,
-                            password: $scope.password,
-                            computeModel: p.computeModel,
-                            simulationId: p.simulationId,
-                            simulationType: SIREPO.APP_SCHEMA.simulationType,
-                            username: $scope.username,
-                        },
-                        handleResponse
+			handleLoginResponse,
+			{
+			    computeModel: broadcastArg.computeModel,
+			    simulationId: broadcastArg.simulationId,
+			    simulationType: SIREPO.APP_SCHEMA.simulationType,
+			    sbatchCredentials: {
+				otp: $scope.otp,
+				password: $scope.password,
+				username: $scope.username,
+			    },
+			    // Handles the case where user clicked on run simulation,
+			    // they weren't logged in (agent dead), so
+			    // they are prompted to login. We want to
+			    // automatically run the simulation for them
+			    // since that is what they were trying to do
+			    // before being prompted to login.
+			    shouldRestartRunSimulation: broadcastArg.shouldRestartRunSimulation,
+			},
+			handleLoginResponse,
                     );
                 };
                 el.modal('show');
             });
 
             $scope.submitDisabled = function() {
-                return $scope.password.length < 1 || $scope.username.length < 1 || awaitingSendResponse;
+                return $scope.password.length < 1 || $scope.username.length < 1 || awaitingLoginResponse;
             };
+
+            el.on('hidden.bs.modal', function() {
+		$rootScope.$broadcast(
+		    'sbatchLoginModalHidden' ,
+		    {
+			restartRunSimulation: restartRunSimulation,
+			loginSuccess: loginSuccess
+		    },
+		);
+		restartRunSimulation = false;
+		loginSuccess = false;
+            });
         },
     };
 
@@ -4801,15 +4884,14 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
               <div class="form-group form-group-sm" data-ng-repeat="pair in sbatchFields track by $index">
                 <div data-ng-repeat="sbatchField in pair" data-model-field='sbatchField' data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
               </div>
-              <div class="col-sm-12 text-right {{textClass()}}" data-ng-show="connectionStatusMessage()">{{ connectionStatusMessage() }}</div>
             </div>
         `,
-        controller: function($scope, authState, sbatchLoginStatusService, stringsService) {
+        controller: function($scope, authState, stringsService) {
             $scope.sbatchFields = getSbatchFields();
 
             function getSbatchFields() {
                 const f = [...SIREPO.APP_SCHEMA.constants.sbatch.fields];
-                if (isNersc()) {
+                if (authState.sbatchHostIsNersc) {
                     f.push(...SIREPO.APP_SCHEMA.constants.sbatch.nersc);
                 }
                 // group fields in pairs
@@ -4818,11 +4900,6 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                     g.push(f.slice(i, i + 2));
                 }
                 return g;
-            }
-
-            function isNersc() {
-                var n = authState.jobRunModeMap.sbatch;
-                return n && n.toLowerCase().indexOf('nersc') >= 0;
             }
 
             function trimHoursAndCores() {
@@ -4844,28 +4921,9 @@ SIREPO.app.directive('sbatchOptions', function(appState) {
                 appState.watchModelFields($scope, [$scope.simState.model + '.' + e], trimHoursAndCores);
             });
 
-            $scope.connectionStatusMessage = function () {
-                if  (sbatchLoginStatusService.loggedIn === undefined) {
-                    return null;
-                }
-                var s = 'connected to ' +
-                    authState.jobRunModeMap[appState.models[$scope.simState.model].jobRunMode];
-                if (sbatchLoginStatusService.loggedIn) {
-                    s += `. To start, press "${stringsService.startButtonLabel()}"`;
-                }
-                else {
-                    s = 'not ' + s;
-                }
-                return s.charAt(0).toUpperCase() + s.slice(1);
-            };
-
             $scope.showSbatchOptions = function() {
                 var m = appState.models[$scope.simState.model];
                 return m && m.jobRunMode === 'sbatch';
-            };
-
-            $scope.textClass = function () {
-                return sbatchLoginStatusService.loggedIn ? 'text-info' : 'text-danger';
             };
         }
     };
@@ -4915,15 +4973,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               <div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0">
                 <div class="col-sm-12" data-simulation-status-timer="simState"></div>
               </div>
-              <div data-ng-if="simState.showJobSettings()">
-                <div class="form-group form-group-sm">
-                  <div data-model-field="'jobRunMode'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
-                </div>
-                <div data-sbatch-options="simState"></div>
-              </div>
-              <div class="col-sm-6 pull-right">
-                <button class="btn btn-default" data-ng-click="start()">{{ startButtonLabel() }}</button>
-              </div>
+              <div data-job-settings-sbatch-login-and-start-simulation data-sim-state="simState" data-start-simulation="start()"></div>
             </form>
             <div class="clearfix"></div>
             <div class="well well-lg" style="margin-top: 5px;" data-ng-if="logFileURL()" data-ng-show="(simState.isStopped() && simState.getFrameCount() > 0) || simState.isStateError() || errorMessage()">
@@ -4978,10 +5028,6 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
                 else {
                     appState.saveChanges($scope.simState.model, $scope.simState.runSimulation);
                 }
-            };
-
-            $scope.startButtonLabel = function() {
-                return stringsService.startButtonLabel($scope.simState.model);
             };
 
             $scope.stateAsText = function() {
@@ -5221,19 +5267,6 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
             }
         }
     };
-});
-
-SIREPO.app.service('sbatchLoginStatusService', function($rootScope) {
-    var self = this;
-    self.loggedIn = undefined;
-
-    self.loginSuccess = function() {
-        if (! self.loggedIn) {
-            return;
-        }
-        $rootScope.$broadcast('sbatchLoginSuccess');
-    };
-
 });
 
 SIREPO.app.directive('simList', function(appState, requestSender) {

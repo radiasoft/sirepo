@@ -212,11 +212,18 @@ class API(sirepo.quest.API):
         return await self._request_api(_request_content=self._request_content(PKDict()))
 
     @sirepo.quest.Spec("require_user")
+    async def api_sbatchAgentStatus(self):
+        return await self._request_api()
+
+    @sirepo.quest.Spec("require_user")
     async def api_sbatchLogin(self):
         r = self._request_content(
             PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),
         )
-        r.sbatchCredentials = r.pkdel("data")
+        # SECURITY: Send as little data through to the agent as possible (ex don't send creds)
+        r.sbatchCredentials = r.data.pkdel("sbatchCredentials")
+        r.shouldRestartRunSimulation = r.data.pkdel("shouldRestartRunSimulation")
+        r.pkdel("data")
         return await self._request_api(_request_content=r)
 
     @sirepo.quest.Spec("require_user", frame_id="SimFrameId")

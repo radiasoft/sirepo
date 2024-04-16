@@ -206,22 +206,18 @@ disown
                     username=self._creds.username,
                 )
                 await get_agent_log(c, before_start=False)
-        except asyncssh.misc.PermissionDenied:
-            pkdlog("{}", pkdexc())
+        except Exception as e:
+            # TODO(e-carlin): https://github.com/radiasoft/sirepo/issues/7041 handle specific message for nersc down for maintenance
+            pkdlog("error={} stack={}", e, pkdexc())
             self._srdb_root = None
-            self._raise_sbatch_login_srexception("invalid-creds", original_msg)
-        except asyncssh.misc.ProtocolError:
-            pkdlog("{}", pkdexc())
-            raise sirepo.util.UserAlert(
-                f"Unable to connect to {self.cfg.host}. Please try again later.",
+            self._raise_sbatch_login_srexception(
+                (
+                    "invalid-creds"
+                    if isinstance(e, asyncssh.misc.PermissionDenied)
+                    else "general-connection-error"
+                ),
+                original_msg,
             )
-        except OSError as e:
-            pkdlog("{}", pkdexc())
-            if e.errno == errno.EHOSTUNREACH:
-                raise sirepo.util.UserAlert(
-                    f"Host {self.cfg.host} unreachable. Please try again later.",
-                )
-            raise
         finally:
             self.pkdel("_creds")
 
@@ -239,15 +235,28 @@ scancel -u $USER >& /dev/null || true
         return res
 
     def _raise_sbatch_login_srexception(self, reason, msg):
+        # shouldRestartRunSimulation is not None when we have already been
+        # through this code before. The user has entered bad creds,
+        # faced other connection issues, and/or is trying to login
+        # after clicking run simulation and the agent was dead. If
+        # they were originally trying to run a simulation we want to
+        # keep that context. This context allows us to restart the
+        # simulation for them once they finally login.
+        if msg.get("shouldRestartRunSimulation") is not None:
+            assert (
+                msg.api == "api_sbatchLogin"
+            ), f"msg.api={msg.api} and msg.shouldRestartRunSimulation={msg.shouldRestartRunSimulation} but expecting only msg.api == api_sbatchLogin"
         raise util.SRException(
             "sbatchLogin",
             PKDict(
-                host=self.cfg.host,
                 isModal=True,
                 isSbatchLogin=True,
                 reason=reason,
                 computeModel=msg.computeModel,
                 simulationId=msg.simulationId,
+                shouldRestartRunSimulation=msg.get(
+                    "shouldRestartRunSimulation", msg.api == "api_runSimulation"
+                ),
             ),
         )
 

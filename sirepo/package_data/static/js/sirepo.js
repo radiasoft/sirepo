@@ -307,6 +307,10 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         return SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
     };
 
+    self.sbatchHostDisplayName = self.jobRunModeMap.sbatch;
+
+    self.sbatchHostIsNersc = self.sbatchHostDisplayName.toLowerCase().indexOf('nersc') >= 0;
+
     self.upgradePlanLink = function() {
         return '<a href="' + SIREPO.APP_SCHEMA.constants.plansUrl +
             '" target="_blank">' +
@@ -940,7 +944,7 @@ SIREPO.app.factory('appDataService', function() {
     return self;
 });
 
-SIREPO.app.factory('stringsService', function() {
+SIREPO.app.factory('stringsService', function(authState) {
     const strings = SIREPO.APP_SCHEMA.strings;
 
     function typeOfSimulation(modelName) {
@@ -981,6 +985,10 @@ SIREPO.app.factory('stringsService', function() {
         newSimulationLabel: () => {
             return strings.newSimulationLabel || `New ${ucfirst(strings.simulationDataType)}`;
         },
+	sbatchLoginButtonLabel: (loadingSbatchAgentStatus) => {
+		return loadingSbatchAgentStatus ? 'Requesting login status...': `Login to ${authState.jobRunModeMap.sbatch}`
+
+	},
         startButtonLabel: (modelName) => {
             return `Start New ${typeOfSimulation(modelName)}`;
         },
@@ -1246,15 +1254,49 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         if (! appState.isLoaded()) {
             return;
         }
-        function onError() {
-            panelState.reportNotGenerated(modelName);
+
+        let isHidden = panelState.isHidden(modelName);
+        let frameRequestTime = now();
+        let setPanelStateIsLoadingTimer = null;
+	const computeJobSerial = getComputeJobSerial();
+
+	function cancelSetPanelStateIsLoadingTimer() {
+	    if (setPanelStateIsLoadingTimer && computeJobSerialIsCurrent()) {
+		$timeout.cancel(setPanelStateIsLoadingTimer);
+		setPanelStateIsLoadingTimer = null;
+	    }
+	}
+
+	function computeJobSerialIsCurrent() {
+	    //Validate whether the current computeJobSerial is the
+	    //same as the one the frame request was for
+	    if (! appState.isLoaded()) {
+		return false;
+	    }
+	    return computeJobSerial === getComputeJobSerial();
+	}
+
+	function getComputeJobSerial() {
+	    return appState.models.simulationStatus[appState.appService.computeModel(modelName)].computeJobSerial;
+	}
+
+        function onError(response) {
+	    if (! computeJobSerialIsCurrent()) {
+		return;
+	    }
+	    cancelSetPanelStateIsLoadingTimer();
+	    if (response && response.isSRException && response.data.routeName.toLowerCase().includes('sbatch')) {
+		// POSIT: showing sbatch login modal is handled by requestSender.handleSRException
+		panelState.needSbatchLogin(modelName)
+		return;
+	    }
+	    panelState.reportNotGenerated(modelName);
         }
+
         function now() {
             return new Date().getTime();
         }
-        let isHidden = panelState.isHidden(modelName);
-        let frameRequestTime = now();
-        let waitTimeHasElapsed = false;
+
         const framePeriod = () => {
             if (! isPlaying || isHidden) {
                 return 0;
@@ -1268,24 +1310,22 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         };
 
         const requestFunction = function() {
-            const i = appState.models.simulation.simulationId;
-            $timeout(() => {
-                if (! waitTimeHasElapsed) {
-                    panelState.setLoading(modelName, true);
-                }
-            }, 5000);
+            setPanelStateIsLoadingTimer = $timeout(() => {
+		if (computeJobSerialIsCurrent()) {
+		    panelState.setLoading(modelName, true);
+		}
+	    }, 5000);
             requestSender.sendRequest(
                 {
                     routeName: 'simulationFrame',
                     frame_id: self.frameId(modelName, index),
                 },
                 function(data) {
-                    waitTimeHasElapsed = true;
+		    cancelSetPanelStateIsLoadingTimer();
                     if (! appState.isLoaded()) {
                         return;
                     }
-                    const c = appState.models.simulation.simulationId;
-                    if (! c || c !== i) {
+                    if (! computeJobSerialIsCurrent()) {
                         return;
                     }
                     panelState.setLoading(modelName, false);
@@ -1428,7 +1468,7 @@ SIREPO.app.factory('authService', function(authState, uri, stringsService) {
  *     return self;
  * });
  * */
-SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilities, $compile, $rootScope, $timeout, $window) {
+SIREPO.app.factory('panelState', function(appState, authState, uri, simulationQueue, utilities, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -1715,6 +1755,11 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
 
     self.isWaiting = name => {
         return getPanelValue(name, 'waiting') ? true : false;
+    };
+
+    self.needSbatchLogin = function(modelName) {
+        self.setLoading(modelName, false);
+        self.setError(modelName, `Please login to ${authState.sbatchHostDisplayName}`);
     };
 
     self.maybeSetState = function(model, state) {
@@ -2627,15 +2672,9 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
             return;
         }
         if (e.params && e.params.isModal && e.routeName.toLowerCase().includes('sbatch')) {
-            e.params.errorCallback = errorCallback;
-            $rootScope.$broadcast(
-                'showSbatchLoginModal',
-                {
-                    errorCallback: errorCallback,
-                    srExceptionParams: e.params,
-                },
-            );
-            return;
+	    $rootScope.$broadcast('showSbatchLoginModal', e.params);
+	    errorCallback({isSRException: true, data: e});
+	    return
         }
         if (e.routeName == LOGIN_ROUTE_NAME) {
             saveLoginRedirect();
@@ -3410,9 +3449,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
 
         state.resetSimulation();
         controller.simScope.$on('$destroy', clearSimulation);
-        controller.simScope.$on('sbatchLoginSuccess', function() {
-            state.resetSimulation();
-        });
         return state;
     };
     return self;

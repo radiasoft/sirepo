@@ -156,6 +156,7 @@
         "runStatus": "/run-status",
         "saveModerationReason": "/save-moderation-reason",
         "saveSimulationData": "/save-simulation",
+        "sbatchAgentStatus": "/sbatch-agent-status",
         "sbatchLogin": "/sbatch-login",
         "serverStatus": "/server-status",
         "simOauthFlashAuthorized": "/sim-oauth-flash-authorized",
