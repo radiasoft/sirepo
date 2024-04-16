@@ -44,7 +44,7 @@ def test_srw_cancel(fc):
         ),
         expect_completed=False,
     )
-    for _ in fc.sr_iter_sleep("slurm", "runStatus"):
+    for _ in fc.iter_sleep("slurm", "runStatus"):
         pkok(
             r.state in ("running", "pending"),
             "runSimulation did not start: reply={}",
@@ -54,7 +54,7 @@ def test_srw_cancel(fc):
             break
         r = fc.sr_post("runStatus", r.nextRequest)
     r = fc.sr_post("runCancel", r.nextRequest)
-    for _ in fc.sr_iter_sleep("slurm", "runCancel"):
+    for _ in fc.iter_sleep("slurm", "runCancel"):
         if _squeue_num_jobs() == 0:
             break
 

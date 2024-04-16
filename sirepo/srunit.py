@@ -153,6 +153,27 @@ class _TestClient:
         if feature_config.cfg().ui_websocket:
             self._websocket = _WebSocket(self)
 
+    def iter_sleep(self, kind, op_desc):
+        import time
+
+        def _setup():
+            rv = PKDict(_ITER_SLEEP[kind])
+            rv.countdown = range(rv.count, -1, -1)
+            return rv
+
+        s = _setup()
+        for i in s.countdown:
+            yield
+            if i > 0:
+                time.sleep(s.sleep_secs)
+        else:
+            pkfail(
+                "timeout secs={} kind={} op_desc={}",
+                s.sleep_secs * s.count,
+                kind,
+                op_desc,
+            )
+
     @contextlib.contextmanager
     def sr_adjust_time(self, days):
         from sirepo import srtime
@@ -324,27 +345,6 @@ class _TestClient:
             raw_response=True,
             **kwargs,
         )
-
-    def sr_iter_sleep(self, kind, op_desc):
-        import time
-
-        def _setup():
-            rv = PKDict(_ITER_SLEEP[kind])
-            rv.countdown = range(rv.count, -1, -1)
-            return rv
-
-        s = _setup()
-        for i in s.countdown:
-            yield
-            if i > 0:
-                time.sleep(s.sleep_secs)
-        else:
-            pkfail(
-                "timeout secs={} kind={} op_desc={}",
-                s.sleep_secs * s.count,
-                kind,
-                op_desc,
-            )
 
     def sr_login_as_guest(self, sim_type=None):
         """Sets up a guest login
