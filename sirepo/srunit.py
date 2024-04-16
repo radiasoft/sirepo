@@ -16,8 +16,8 @@ import os.path
 import pykern.pkinspect
 import re
 import requests
-import urllib
 import threading
+import urllib
 
 #: Default "app"
 MYAPP = "myapp"
@@ -34,6 +34,14 @@ SR_SIM_NAME_DEFAULT = "Scooby Doo"
 
 #: Sirepo db dir
 _DB_DIR = "db"
+
+#: How many checks and how long to wait between checks for scenarios
+_ITER_SLEEP = PKDict(
+    slurm=PKDict(
+        count=5,
+        sleep_secs=5,
+    )
+)
 
 
 __cfg = None
@@ -144,6 +152,27 @@ class _TestClient:
         self._threads = PKDict()
         if feature_config.cfg().ui_websocket:
             self._websocket = _WebSocket(self)
+
+    def iter_sleep(self, kind, op_desc):
+        import time
+
+        def _setup():
+            rv = PKDict(_ITER_SLEEP[kind])
+            rv.countdown = range(rv.count, -1, -1)
+            return rv
+
+        s = _setup()
+        for i in s.countdown:
+            yield
+            if i > 0:
+                time.sleep(s.sleep_secs)
+        else:
+            pkfail(
+                "timeout secs={} kind={} op_desc={}",
+                s.sleep_secs * s.count,
+                kind,
+                op_desc,
+            )
 
     @contextlib.contextmanager
     def sr_adjust_time(self, days):
@@ -460,15 +489,7 @@ class _TestClient:
                 raise AssertionError("cancel failed")
 
     def sr_sbatch_animation_run(self, sim_name, compute_model, reports, **kwargs):
-        from pykern.pkunit import pkexcept
-
-        d = self.sr_sim_data(sim_name)
-        if not self.sr_sbatch_logged_in:
-            with pkexcept("SRException.*no-creds"):
-                # Must try to run sim first to seed job_supervisor.db
-                self.sr_run_sim(d, compute_model, expect_completed=False)
-            self.sr_sbatch_login(compute_model, d)
-            self.sr_sbatch_logged_in = True
+        self.sr_sbatch_login(compute_model, sim_name)
         self.sr_animation_run(
             self.sr_sim_data(sim_name),
             compute_model,
@@ -478,20 +499,29 @@ class _TestClient:
             **kwargs,
         )
 
-    def sr_sbatch_login(self, compute_model, data):
+    def sr_sbatch_login(self, compute_model, sim_name):
+        from pykern.pkunit import pkexcept
         import getpass
 
+        if self.sr_sbatch_logged_in:
+            return
+        d = self.sr_sim_data(sim_name)
+        with pkexcept("SRException.*no-creds"):
+            # Must try to run sim first to seed job_supervisor.db
+            self.sr_run_sim(d, compute_model, expect_completed=False)
         p = getpass.getuser()
         self.sr_post(
             "sbatchLogin",
             PKDict(
                 password=p,
                 report=compute_model,
-                simulationId=data.models.simulation.simulationId,
-                simulationType=data.simulationType,
+                simulationId=d.models.simulation.simulationId,
+                simulationType=d.simulationType,
                 username=p,
             ),
-        )
+            raw_response=True,
+        ).assert_success()
+        self.sr_sbatch_logged_in = True
 
     def sr_sim_data(self, sim_name=None, sim_type=None):
         """Return simulation data by name
