@@ -14,7 +14,6 @@ def test_myapp_user_dir_deleted(fc):
     fc.sr_post(
         "listSimulations",
         PKDict(simulationType=fc.sr_sim_type),
-        raw_response=True,
         redirect=False,
     ).assert_http_redirect("^/$")
     fc.sr_auth_state(displayName=None, isLoggedIn=False, method=None)
