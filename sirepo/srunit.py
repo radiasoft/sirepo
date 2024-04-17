@@ -162,7 +162,7 @@ class _TestClient:
         easier for now.
 
         """
-        from pykern.pkdebug import pkexcept
+        from pykern.pkunit import pkexcept
 
         return pkexcept("(SRException|Error)\(")
 
