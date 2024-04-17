@@ -44,11 +44,11 @@ class SbatchDriver(job_driver.DriverBase):
             # is essentially a no-op (sbatch constrains its own cpu
             # resources) but makes it easier to code the other cases.
             cpu_slot_q=sirepo.job_supervisor.SlotQueue(
-                len(job_driver.SLOT_OPS) + self.cfg.run_slots - 1,
+                len(job.SLOT_OPS) + self.cfg.run_slots - 1,
             ),
             op_slot_q={
                 k: sirepo.job_supervisor.SlotQueue(maxsize=_op_queue_size(k))
-                for k in job_driver.SLOT_OPS
+                for k in job.SLOT_OPS
             },
         )
         self.__instances[self.uid] = self
@@ -116,20 +116,21 @@ class SbatchDriver(job_driver.DriverBase):
             self._srdb_root = self.cfg.srdb_root.format(
                 sbatch_user=self._creds.username,
             )
-        m.userDir = "/".join(
-            (
-                str(self._srdb_root),
-                sirepo.simulation_db.USER_ROOT_DIR,
-                m.uid,
+        if op.op_name in job.SLOT_OPS:
+            m.userDir = "/".join(
+                (
+                    str(self._srdb_root),
+                    sirepo.simulation_db.USER_ROOT_DIR,
+                    self.uid,
+                )
             )
-        )
-        m.runDir = "/".join((m.userDir, m.simulationType, m.computeJid))
-        if op.op_name == job.OP_RUN:
-            assert m.sbatchHours
-            if self.cfg.cores:
-                m.sbatchCores = min(m.sbatchCores, self.cfg.cores)
-            m.mpiCores = m.sbatchCores
-        m.shifterImage = self.cfg.shifter_image
+            m.runDir = "/".join((m.userDir, m.simulationType, m.computeJid))
+            if op.op_name == job.OP_RUN:
+                assert m.sbatchHours
+                if self.cfg.cores:
+                    m.sbatchCores = min(m.sbatchCores, self.cfg.cores)
+                m.mpiCores = m.sbatchCores
+            m.shifterImage = self.cfg.shifter_image
         return await super().prepare_send(op)
 
     def _agent_env(self, op):

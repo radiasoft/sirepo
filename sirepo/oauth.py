@@ -20,13 +20,13 @@ _COOKIE_NONCE = "sroan"
 _COOKIE_SIM_TYPE = "sroas"
 
 
-def check_authorized_callback(qcall, github_auth=False):
+def check_authorized_callback(qcall):
     # clear temporary cookie values first
     s = qcall.cookie.unchecked_remove(_COOKIE_NONCE)
     t = qcall.cookie.unchecked_remove(_COOKIE_SIM_TYPE)
     assert t
     qcall.sim_type_set(t)
-    c = _client(qcall, t, github_auth)
+    c = _client(qcall, t)
     try:
         c.fetch_token(
             authorization_response=qcall.sreq.http_request_uri,
@@ -43,30 +43,21 @@ def check_authorized_callback(qcall, github_auth=False):
     raise sirepo.util.Forbidden(f"user denied access from sim_type={t}")
 
 
-def raise_authorize_redirect(qcall, sim_type, github_auth=False):
+def raise_authorize_redirect(qcall, sim_type):
     qcall.cookie.set_value(_COOKIE_SIM_TYPE, sim_type)
-    c = _cfg(sim_type, github_auth)
-    u, s = _client(qcall, sim_type, github_auth).create_authorization_url(
-        c.authorize_url
-    )
+    c = _cfg(sim_type)
+    u, s = _client(qcall, sim_type).create_authorization_url(c.authorize_url)
     qcall.cookie.set_value(_COOKIE_NONCE, s)
     raise sirepo.util.Redirect(u)
 
 
-def _cfg(sim_type, github_auth):
-    if github_auth:
-        # We are authenticating to sirepo using github oauth
-        # or doing jupyter migration.
-        from sirepo.auth import github
-
-        return github.cfg
-    # We are doing oauth for a sim type
+def _cfg(sim_type):
     return sirepo.sim_oauth.import_module(sim_type).cfg
 
 
-def _client(qcall, sim_type, github_auth):
-    """Makes it easier to mock, see github_srunit.py"""
-    c = _cfg(sim_type, github_auth)
+def _client(qcall, sim_type):
+    """Makes it easier to mock"""
+    c = _cfg(sim_type)
     return authlib.integrations.requests_client.OAuth2Session(
         c.key,
         c.secret,
