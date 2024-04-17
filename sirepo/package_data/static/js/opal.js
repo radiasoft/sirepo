@@ -381,7 +381,7 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
 
     appState.whenModelsLoaded($scope, function() {
         var cmd = commandService.findFirstCommand('track');
-        if (! cmd.line) {
+        if (! cmd.line || ! latticeService.elementForId(cmd.line)) {
             cmd.line = appState.models.simulation.activeBeamlineId;
             appState.saveQuietly('commands');
         }
