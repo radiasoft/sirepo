@@ -29,6 +29,3 @@ def test_assert_success_sr_exception(fc):
     r.assert_http_redirect("login")
     with fc.error_or_sr_exception():
         r.assert_success()
-
-
-#    r.assert_success()

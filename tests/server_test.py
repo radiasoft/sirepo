@@ -71,7 +71,6 @@ def test_simulation_schema(fc):
         "expected model.dog to be PKDict dog={}",
         r.model.dog,
     )
-    # TODO(robnagler) need to resolve websockets or not in srunit
     with fc.error_or_sr_exception():
         fc.sr_post_form(
             "simulationSchema",
