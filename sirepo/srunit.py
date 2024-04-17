@@ -1089,6 +1089,7 @@ class _WebSocketResponse(_Response):
             self.status_code = self.data.params.code
         elif self.data.routeName == "httpRedirect":
             self.change_to_redirect(self.data.params.uri)
+            return self
         if raw_response:
             return _data_to_json()
         # Always raises, because _sr_exception is truthy at this point
