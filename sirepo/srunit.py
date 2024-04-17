@@ -805,17 +805,27 @@ class _HTTPResponse(_Response):
         pkunit.pkre(expect_re, self.header_get("Location"))
 
     def process(self, raw_response):
+        from pykern import pkdebug
         from sirepo import util, reply
 
         # Emulate code in sirepo.js to deal with redirects
-        if self.status_code == 200 and self.mimetype == "text/html":
-            m = _JAVASCRIPT_REDIRECT_RE.search(pkcompat.from_bytes(self.data))
-            if m:
-                if m.group(1).endswith("#/error"):
-                    raise util.Error(
-                        PKDict(error="server error uri={}".format(m.group(1))),
-                    )
-                return self.change_to_redirect(m.group(1))
+        if self.status_code == 200:
+            if self.mimetype == "text/html":
+                m = _JAVASCRIPT_REDIRECT_RE.search(pkcompat.from_bytes(self.data))
+                if m:
+                    if m.group(1).endswith("#/error"):
+                        raise util.Error(
+                            PKDict(error="server error uri={}".format(m.group(1))),
+                        )
+                    return self.change_to_redirect(m.group(1))
+            else:
+                d = self._maybe_json_decode()
+                if (
+                    isinstance(d, dict)
+                    and d.get("state") == reply.SR_EXCEPTION_STATE
+                    and d.srException.routeName == "httpRedirect"
+                ):
+                    return self.change_to_redirect(d.srException.params.uri)
         if raw_response:
             return self
         return self._assert_not_exception()
