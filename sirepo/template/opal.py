@@ -769,11 +769,11 @@ class _Generate(sirepo.lib.GenerateBase):
         v.lattice = self._generate_lattice(
             self.util,
             self._code_var,
-            self.util.select_beamline().id
-            or LatticeUtil.find_first_command(
+            LatticeUtil.find_first_command(
                 self.util.data,
                 "track",
-            ).line,
+            ).line
+            or self.util.select_beamline().id,
         )
         v.use_beamline = self.util.select_beamline().name
         self._generate_commands_and_variables()

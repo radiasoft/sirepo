@@ -381,7 +381,7 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
 
     appState.whenModelsLoaded($scope, function() {
         var cmd = commandService.findFirstCommand('track');
-        if (! cmd.line) {
+        if (! cmd.line || ! latticeService.elementForId(cmd.line)) {
             cmd.line = appState.models.simulation.activeBeamlineId;
             appState.saveQuietly('commands');
         }
@@ -691,7 +691,7 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
     };
 });
 
-SIREPO.viewLogic('beamlineView', function(appState, latticeService, panelState, $scope) {
+SIREPO.viewLogic('beamlineView', function(latticeService, panelState, $scope) {
 
     function updateAbsolutePositionFields() {
         panelState.showFields('beamline', [
@@ -699,26 +699,7 @@ SIREPO.viewLogic('beamlineView', function(appState, latticeService, panelState, 
         ]);
     }
 
-    const trackHasExistingBeam = (line) => {
-        for (const b of appState.models.beamlines) {
-            if (b.id == line) {
-                return true;
-            }
-        }
-        return false;
-    };
-
     $scope.whenSelected = updateAbsolutePositionFields;
-    $scope.$on('beamlines.changed', function() {
-        appState.models.commands.forEach(command => {
-            if (command._type == 'track') {
-                if (! trackHasExistingBeam(command.line)) {
-                    command.line = appState.models.beamlines[0].id;
-                }
-            }
-            appState.saveChanges('commands');
-        });
-    });
 });
 
 SIREPO.viewLogic('simulationView', function(appState, panelState, $scope) {
