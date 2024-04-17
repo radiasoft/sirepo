@@ -69,6 +69,14 @@ def test_srw(fc):
     )
 
 
+def test_srw_brightness(fc):
+    _r(
+        fc,
+        "Young's Double Slit Experiment",
+        "brillianceReport",
+    )
+
+
 def test_warppba(fc):
     _r(
         fc,

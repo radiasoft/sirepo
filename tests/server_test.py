@@ -15,12 +15,63 @@ def test_elegant_run_file(fc):
     _get_file(fc, _run_elegant(fc), "downloadRunFile")
 
 
+def test_error_logging(fc):
+    from pykern.pkcollections import PKDict
+    from pykern.pkunit import pkeq
+
+    pkeq("ok", fc.sr_post("errorLogging", PKDict(message="error message")).state)
+
+
+def test_favicon(fc):
+    from pykern.pkcollections import PKDict
+    from pykern.pkunit import pkeq
+    import sirepo.resource
+
+    for a, p in PKDict(favicon="favicon.ico", faviconPng="favicon.png").items():
+        with open(sirepo.resource.static("img", p), "rb") as f:
+            pkeq(len(f.read()), len(fc.sr_get(a).data))
+
+
+def test_find_by_name(fc):
+    from pykern.pkcollections import PKDict
+
+    fc.sr_get(
+        "findByName",
+        PKDict(
+            simulation_type="srw",
+            application_mode="default",
+            simulation_name="Undulator Radiation",
+        ),
+        redirect=False,
+    ).assert_http_redirect("/srw#/findByName/default/Undulator%20Radiation")
+
+
 def test_myapp_basic(fc):
     from pykern import pkunit, pkcompat
     from pykern.pkunit import pkok, pkeq
 
     r = fc.sr_get("/robots.txt")
     pkunit.pkre("elegant.*myapp.*srw", pkcompat.from_bytes(r.data))
+
+
+def test_simulation_redirect(fc):
+    fc.sr_get("simulationRedirect", redirect=False).assert_http_redirect("simulations")
+
+
+def test_simulation_schema(fc):
+    from pykern.pkcollections import PKDict
+    from pykern.pkunit import pkexcept, pkok
+
+    r = fc.sr_post_form(
+        "simulationSchema",
+        data=PKDict(simulationType="myapp"),
+    )
+    pkok(isinstance(r.model.dog, PKDict), "expected model.dog to be PKDict")
+    with pkexcept("unexpected status"):
+        fc.sr_post_form(
+            "simulationSchema",
+            data=PKDict(simulationType="xyzzy"),
+        )
 
 
 def test_srw(fc):
@@ -37,6 +88,14 @@ def test_srw(fc):
     for sep in (" ", "%20"):
         r = fc.sr_get("/find-by-name-auth/srw/default/Undulator{}Radiation".format(sep))
         r.assert_http_status(200)
+
+
+def test_srw_light(fc):
+    from pykern.pkunit import pkre
+
+    r = fc.sr_get("srwLight")
+    r.assert_success()
+    pkre("SRWLightGateway", r.data)
 
 
 def _get_file(fc, data, api_name):

@@ -2766,7 +2766,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
                 msg = 'Server unavailable';
             }
             else if (SIREPO.APP_SCHEMA.customErrors[status]) {
-                msg = SIREPO.APP_SCHEMA.customErrors[status].title;
+                msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
             }
             if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
                 // Try to parse javascript-redirect.html
@@ -4028,13 +4028,6 @@ SIREPO.app.controller('LoginWithController', function (authState, errorService, 
             function (data) {
                 authState.handleLogin(data, self);
             }
-        );
-    }
-    else if (m == 'github') {
-        self.msg = 'Logging in via GitHub. Please wait...';
-        requestSender.globalRedirect(
-            'authGithubLogin',
-            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
         );
     }
     else if (m == 'email') {
