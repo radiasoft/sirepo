@@ -1058,15 +1058,12 @@ class _WebSocketResponse(_Response):
         from sirepo import util
 
         # All websocket exceptions are sr exceptions
+        d = self._maybe_json_decode()
         if not self._is_sr_exception:
-            return self._maybe_json_decode()
+            return d
         if self.status_code != 200:
-            raise util.Error(
-                f"unexpected status={self.status_code}",
-                "reply={}",
-                self.data,
-            )
-        raise util.SRException(self.data.routeName, self.data.params)
+            raise util.Error(f"unexpected status={self.status_code}", "reply={}", d)
+        raise util.SRException(d.routeName, d.params)
 
     def _async_msg_setCookies(self, content):
         self._test_client.cookie_jar.extract_cookies(
