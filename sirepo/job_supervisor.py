@@ -4,9 +4,9 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdformat, pkdlog, pkdexc
 from sirepo import job
@@ -710,7 +710,7 @@ class _ComputeJob(_Supervisor):
                 pkdlog("disappeared path={}", p)
                 return None
             raise
-        d = pkcollections.json_load_any(d)
+        d = pkjson.load_any(d)
         for k in [
             "alert",
             "canceledAfterSecs",
@@ -735,14 +735,6 @@ class _ComputeJob(_Supervisor):
             for h in d.history:
                 h.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=v)
         return d
-
-    def __db_restore(self, curr_db, prev_db):
-        if curr_db.dbUpdateTime != self.db.dbUpdateTime:
-            pkdlog("update collision jid={}, ignoring", curr_db.computeJid)
-            return False
-        self.db = prev_db
-        self.__db_write()
-        return True
 
     def __db_update(self, **kwargs):
         self.db.pkupdate(**kwargs)
@@ -955,8 +947,11 @@ class _ComputeJob(_Supervisor):
                     "isSbatchLogin"
                 ):
                     pkdlog("isSbatchLogin op={}", op)
-                    if self.__db_restore(curr_db=curr_db, prev_db=prev_db):
-                        self._sr_exception_in_run = e
+                    if curr_db.dbUpdateTime != self.db.dbUpdateTime:
+                        pkdlog("update collision jid={}, ignoring", curr_db.computeJid)
+                        return False
+                    self.__db_update(status=job.MISSING)
+                    self._sr_exception_in_run = e
                     return False
                 pkdlog("exception={} op={} stack={}", e, op, pkdexc())
                 self.__db_update(
