@@ -15,9 +15,8 @@ def setup_module(module):
 
 def test_assert_status_in_post_form(fc):
     from pykern.pkcollections import PKDict
-    from pykern.pkunit import pkexcept
 
-    with pkexcept("unexpected status"):
+    with fc.error_or_sr_exception():
         fc.sr_post_form(
             "simulationSchema",
             data=PKDict(simulationType="xyzzy"),
@@ -25,10 +24,11 @@ def test_assert_status_in_post_form(fc):
 
 
 def test_assert_success_sr_exception(fc):
-    from pykern.pkunit import pkexcept
-    from sirepo import util
-
     fc.sr_logout()
     r = fc.sr_get("checkAuthJupyterHub", redirect=False)
-    with pkexcept(util.SRException):
+    r.assert_http_redirect("login")
+    with fc.error_or_sr_exception():
         r.assert_success()
+
+
+#    r.assert_success()
