@@ -24,8 +24,10 @@ def test_assert_status_in_post_form(fc):
 
 
 def test_assert_success_sr_exception(fc):
+    from pykern import pkunit, pkdebug
+
     fc.sr_logout()
     r = fc.sr_get("checkAuthJupyterHub", redirect=False)
     r.assert_http_redirect("login")
-    #    with fc.error_or_sr_exception():
-    r.assert_success()
+    with pkunit.pkexcept(pkunit.PKFail):
+        r.assert_success()
