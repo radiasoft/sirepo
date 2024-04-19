@@ -784,6 +784,32 @@ class _Response:
     def header_get(self, name):
         return self._headers[name]
 
+    def _convert_http_status(self, sr_args):
+        """set self.status_code
+
+        Returns:
+            bool: True if is a redirect
+        """
+        from pykern import pkdebug
+        from sirepo import uri
+
+        if sr_args.routeName == "httpException":
+            self.status_code = sr_args.params.code
+            return False
+        elif sr_args.routeName == "httpRedirect":
+            self.change_to_redirect(sr_args.params.uri)
+            return True
+        elif not uri.is_sr_exception_only(
+            self._test_client.sr_sim_type, sr_args.routeName
+        ):
+            self.change_to_redirect(
+                uri.local_route(
+                    self._test_client.sr_sim_type, sr_args.routeName, sr_args.params
+                )
+            )
+            return True
+        return False
+
     def _maybe_json_decode(self):
         from pykern import pkjson
 
@@ -823,9 +849,9 @@ class _HTTPResponse(_Response):
                 if (
                     isinstance(d, dict)
                     and d.get("state") == reply.SR_EXCEPTION_STATE
-                    and d.srException.routeName == "httpRedirect"
+                    and self._convert_http_status(d.srException)
                 ):
-                    return self.change_to_redirect(d.srException.params.uri)
+                    return self
         if raw_response:
             return self
         return self._assert_not_exception()
@@ -1041,8 +1067,6 @@ class _WebSocketResponse(_Response):
     def assert_http_status(self, expect):
         from pykern import pkunit, pkdebug
 
-        #        if self._sr_exception:
-        #            self._convert_http_status(self._sr_exception.sr_args)
         if expect != 200 and not self._sr_exception:
             pkunit.pkfail("not an srException data={}", self.data)
         super().assert_http_status(expect)
@@ -1100,32 +1124,6 @@ class _WebSocketResponse(_Response):
             ),
         )
         self._websocket.save_cookie_hash()
-
-    def _convert_http_status(self, sr_args):
-        """set self.status_code
-
-        Returns:
-            bool: True if is a redirect
-        """
-        from pykern import pkdebug
-        from sirepo import uri
-
-        if sr_args.routeName == "httpException":
-            self.status_code = sr_args.params.code
-            return False
-        elif sr_args.routeName == "httpRedirect":
-            self.change_to_redirect(sr_args.params.uri)
-            return True
-        elif not uri.is_sr_exception_only(
-            self._test_client.sr_sim_type, sr_args.routeName
-        ):
-            self.change_to_redirect(
-                uri.local_route(
-                    self._test_client.sr_sim_type, sr_args.routeName, sr_args.params
-                )
-            )
-            return True
-        return False
 
 
 def _cfg():
