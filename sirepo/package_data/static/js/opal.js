@@ -224,6 +224,7 @@ SIREPO.app.directive('appFooter', function() {
         template: `
             <div data-common-footer="nav"></div>
             <div data-elegant-import-dialog=""></div>
+            <div data-import-options=""></div>
         `,
     };
 });

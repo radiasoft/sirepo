@@ -2688,7 +2688,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
                             </div>
                             <div data-ng-show="isState('lattice')" class="form-group">
                               <label>Select Lattice File ({{ latticeFileName }})</label>
-                              <input id="elegant-lattice-import" type="file" data-file-model="elegantFile" accept=".lte" />
+                              <input id="elegant-lattice-import" type="file" data-file-model="elegantFile" accept="{ extension }" />
                               <br />
                               <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
                             </div>
@@ -2889,10 +2889,19 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
                     requestSender.formatUrl('importFile'),
                     function(data) {
                         if (data.error) {
+                            srdbg("data", data);
+                            if (data.missingFiles.length) {
+                                $scope.state = 'lattice';
+                                $scope.elegantFile = null;
+                                $scope.latticeFileName = data.missingFiles[0].lib_filename;
+                                $scope.extension = ".T7";
+                                return;
+                            }
                             $scope.resetState();
                             $scope.fileUploadError = data.error;
                         }
                         else if (data.importState && data.importState === "needLattice") {
+                            $scope.extension = ".lte";
                             $scope.state = 'lattice';
                             $scope.elegantFile = null;
                             $scope.eleData = data.eleData;
