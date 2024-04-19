@@ -17,6 +17,29 @@ import re
 import sirepo.sim_data
 import sirepo.template
 
+
+_AXES_LABELS = PKDict(
+    Cross=PKDict(
+        x_label="x",
+        y_label="y",
+        title="Cross-Section",
+    ),
+    Horizontal=PKDict(
+        x_label="x",
+        y_label="px",
+        title="Horizontal",
+    ),
+    Vertical=PKDict(
+        x_label="y",
+        y_label="py",
+        title="Vertical",
+    ),
+    Longitudinal=PKDict(
+        x_label="z",
+        y_label="pz",
+        title="Longitudinal",
+    ),
+)
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _PHASE_PLOT_COUNT = 4
 _PHASE_PLOTS = PKDict(
@@ -418,67 +441,68 @@ def _plot_field_dist(sim_type, frame_args):
 
 
 def _plot_phase(sim_type, frame_args):
-
-    def _clean(column):
-        column = numpy.array(column)
-        column[numpy.isnan(column)] = 0.0
-        return column
-
     def _col(column_name, data):
         if column_name in ("x", "y"):
-            return data.position[column_name]
-        return PKDict(
-            elegant=PKDict(
-                t=data.time,
-                xp=data.momentum.x,
-                yp=data.momentum.y,
-                p=data.momentum.z,
-            ),
-            opal=PKDict(
-                z=data.position.z,
-                px=data.momentum.x,
-                py=data.momentum.y,
-                pz=data.momentum.z,
-            ),
-            genesis=PKDict(
-                psi=data.time,
-                pxmc=data.momentum.x,
-                pymc=data.momentum.y,
-                gamma=data.momentum.z,
-            ),
-        )[sim_type][column_name]
+            c = data.position[column_name]
+        else:
+            c = PKDict(
+                elegant=PKDict(
+                    t=data.time,
+                    xp=data.momentum.x,
+                    yp=data.momentum.y,
+                    p=data.momentum.z,
+                ),
+                opal=PKDict(
+                    z=data.position.z,
+                    px=data.momentum.x,
+                    py=data.momentum.y,
+                    pz=data.momentum.z,
+                ),
+                genesis=PKDict(
+                    psi=data.time,
+                    pxmc=data.momentum.x,
+                    pymc=data.momentum.y,
+                    gamma=data.momentum.z,
+                ),
+            )[sim_type][column_name]
+        c = numpy.array(c)
+        c[numpy.isnan(c)] = 0.0
+        return c
 
-    def _title(x, y):
+    def _title_and_label(x, y):
         if x + y == "xy":
-            return "Cross-Section"
-        return PKDict(
-            elegant=PKDict(
-                xxp="Horizontal",
-                yyp="Vertical",
-                tp="Longitudinal",
-            ),
-            opal=PKDict(
-                xpx="Horizontal",
-                ypy="Vertical",
-                zpz="Longitudinal",
-            ),
-            genesis=PKDict(
-                xpxmc="Horizontal",
-                ypymc="Vertical",
-                psigamma="Longitudinal",
-            ),
-        )[sim_type][x + y]
+            return _AXES_LABELS["Cross"]
+        return _AXES_LABELS[
+            PKDict(
+                elegant=PKDict(
+                    xxp="Horizontal",
+                    yyp="Vertical",
+                    tp="Longitudinal",
+                ),
+                opal=PKDict(
+                    xpx="Horizontal",
+                    ypy="Vertical",
+                    zpz="Longitudinal",
+                ),
+                genesis=PKDict(
+                    xpxmc="Horizontal",
+                    ypymc="Vertical",
+                    psigamma="Longitudinal",
+                ),
+            )[sim_type][x + y]
+        ]
 
     d = template_common.read_dict_from_h5(frame_args.run_dir.join("openpmd.h5"))
     _phase_plot_args(sim_type, frame_args)
     if sim_type in ("elegant", "opal", "genesis"):
+        t = _title_and_label(frame_args.x, frame_args.y)
         return template_common.heatmap(
-            values=[_clean(_col(frame_args.x, d)), _clean(_col(frame_args.y, d))],
+            values=[_col(frame_args.x, d), _col(frame_args.y, d)],
             model=frame_args,
             plot_fields=PKDict(
-                x_label=frame_args.x,
-                y_label=frame_args.y,
-                title=_title(frame_args.x, frame_args.y),
+                x_label=t.x_label,
+                y_label=t.y_label,
+                title=t.title,
             ),
         )
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
