@@ -418,94 +418,69 @@ def _plot_field_dist(sim_type, frame_args):
 
 
 def _plot_phase(sim_type, frame_args):
-    _phase_plot_args(sim_type, frame_args)
 
-    out_data = template_common.read_dict_from_h5(frame_args.run_dir.join("openpmd.h5"))
-    if sim_type == "opal":
-        col_map = PKDict(
-            x=out_data.position.x,
-            y=out_data.position.y,
-            z=out_data.position.z,
-            px=out_data.momentum.x,
-            py=out_data.momentum.y,
-            pz=out_data.momentum.z,
-        )
-        title_map = PKDict(
-            xy="Cross-Section",
-            xpx="Horizontal",
-            ypy="Vertical",
-            zpz="Longitudinal",
-        )
-    elif sim_type == "elegant":
-        col_map = PKDict(
-            x=out_data.position.x,
-            y=out_data.position.y,
-            t=out_data.time,
-            xp=out_data.momentum.x,
-            yp=out_data.momentum.y,
-            p=out_data.momentum.z,
-        )
-        title_map = PKDict(
-            xy="Cross-Section",
-            xxp="Horizontal",
-            yyp="Vertical",
-            tp="Longitudinal",
-        )
-    else:
-        col_map = PKDict(
-            x=out_data.position.x,
-            y=out_data.position.y,
-            psi=out_data.time,
-            pxmc=out_data.momentum.x,
-            pymc=out_data.momentum.y,
-            gamma=out_data.momentum.z,
-        )
-        title_map = PKDict(
-            xy="Cross-Section",
-            xpxmc="Horizontal",
-            ypymc="Vertical",
-            psigamma="Longitudinal",
-        )
+    def _clean(column):
+        column = numpy.array(column)
+        column[numpy.isnan(column)] = 0.0
+        return column
+
+    def _col(column_name, data):
+        if column_name in ("x", "y"):
+            return data.position[column_name]
+        return PKDict(
+            elegant=PKDict(
+                t=data.time,
+                xp=data.momentum.x,
+                yp=data.momentum.y,
+                p=data.momentum.z,
+            ),
+            opal=PKDict(
+                z=data.position.z,
+                px=data.momentum.x,
+                py=data.momentum.y,
+                pz=data.momentum.z,
+            ),
+            genesis=PKDict(
+                psi=data.time,
+                pxmc=data.momentum.x,
+                pymc=data.momentum.y,
+                gamma=data.momentum.z,
+            ),
+        )[sim_type][column_name]
+
+    def _title(x, y):
+        if x + y == "xy":
+            return "Cross-Section"
+        return PKDict(
+            elegant=PKDict(
+                xxp="Horizontal",
+                yyp="Vertical",
+                tp="Longitudinal",
+            ),
+            opal=PKDict(
+                xpx="Horizontal",
+                ypy="Vertical",
+                zpz="Longitudinal",
+            ),
+            genesis=PKDict(
+                xpxmc="Horizontal",
+                ypymc="Vertical",
+                psigamma="Longitudinal",
+            ),
+        )[sim_type][x + y]
+
+    d = template_common.read_dict_from_h5(frame_args.run_dir.join("openpmd.h5"))
+    _phase_plot_args(sim_type, frame_args)
     if sim_type in ("elegant", "opal", "genesis"):
-        y_col = numpy.array(col_map[frame_args.y])
-        y_col[numpy.isnan(y_col)] = .0
-        v = [col_map[frame_args.x], y_col]
         return template_common.heatmap(
-            values=v,
+            values=[_clean(_col(frame_args.x, d)), _clean(_col(frame_args.y, d))],
             model=frame_args,
             plot_fields=PKDict(
                 x_label=frame_args.x,
                 y_label=frame_args.y,
-                title=title_map[frame_args.x + frame_args.y],
+                title=_title(frame_args.x, frame_args.y),
             ),
         )
-    #     r = _template_for_sim_type(sim_type).bunch_plot(
-    #         frame_args,
-    #         frame_args.run_dir,
-    #         frame_args.frameIndex,
-    #     )
-    #     return r.pkupdate(
-    #         title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
-    #         y_label=_PLOT_Y_LABEL[sim_type].get(
-    #             frame_args.x + "-" + frame_args.y, r.y_label
-    #         ),
-    #     )
-    # if sim_type == "elegant":
-    #     pkdp("\n\n\nelegant cols={}", frame_args.x + " " + frame_args.y)
-    #     return _template_for_sim_type(sim_type).extract_report_data(
-    #         str(frame_args.run_dir.join(_SUCCESS_OUTPUT_FILE[sim_type])),
-    #         frame_args,
-    #     )
-    # if sim_type == "genesis":
-    #     pkdp("\n\n\ngenesis cols={}", frame_args.x + " " + frame_args.y)
-    #     frame_args.frameIndex = 0
-    #     return (
-    #         _template_for_sim_type(sim_type)
-    #         .sim_frame_finalParticleAnimation(frame_args)
-    #         .pkupdate(
-    #             title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
-    #         )
-    #     )
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
 
 
