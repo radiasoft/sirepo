@@ -1,16 +1,16 @@
-# -*- coding: utf-8 -*-
 """test moderated sim types
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
-import getpass
-import os
-import pytest
 
 
 def setup_module(module):
+    import getpass
+    import os
+
     os.environ.update(
         SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES="myapp",
         SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL=getpass.getuser()
@@ -28,8 +28,9 @@ def test_moderation(auth_fc):
     with srunit.quest_start() as qcall:
         qcall.auth_db.model("UserRole").delete_all()
         qcall.auth_db.model("UserRoleInvite").delete_all()
-    with pkunit.pkexcept("SRException.*moderationRequest"):
-        auth_fc.sr_sim_data()
+    auth_fc.sr_post(
+        "listSimulations", PKDict(simulationType=auth_fc.sr_sim_type), redirect=False
+    ).assert_http_redirect("moderation-request")
     auth_fc.sr_post(
         "saveModerationReason",
         PKDict(
