@@ -1041,9 +1041,9 @@ class _WebSocketResponse(_Response):
     def assert_http_status(self, expect):
         from pykern import pkunit, pkdebug
 
-        if self._sr_exception:
-            self._convert_http_status(self._sr_exception.sr_args)
-        elif expect != 200:
+        #        if self._sr_exception:
+        #            self._convert_http_status(self._sr_exception.sr_args)
+        if expect != 200 and not self._sr_exception:
             pkunit.pkfail("not an srException data={}", self.data)
         super().assert_http_status(expect)
 
