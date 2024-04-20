@@ -25,6 +25,9 @@ def test_serialization(fc):
     from pykern import pkunit
 
     # Server: TypeError: can not serialize 'datetime.datetime' object
-    fc.sr_post(
-        "srUnitCase", PKDict(type=False, filename="serialization"), redirect=False
-    ).assert_http_redirect("/error")
+    fc.assert_post_will_redirect(
+        "/error",
+        "srUnitCase",
+        PKDict(type=False, filename="serialization"),
+        redirect=False,
+    )

@@ -54,8 +54,9 @@ def test_timeout(auth_fc):
         isLoggedIn=True,
         isLoginExpired=True,
     )
-    fc.sr_post(
+    fc.assert_post_will_redirect(
+        "guest-expired",
         "listSimulations",
         {"simulationType": fc.sr_sim_type},
         redirect=False,
-    ).assert_http_redirect("guest-expired")
+    )

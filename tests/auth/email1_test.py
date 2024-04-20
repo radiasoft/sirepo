@@ -78,9 +78,9 @@ def test_force_login(auth_fc):
     )
     fc.sr_email_confirm(r)
     fc.sr_logout()
-    fc.sr_post(
-        "listSimulations", {"simulationType": fc.sr_sim_type}, redirect=False
-    ).assert_http_redirect("login")
+    fc.assert_post_will_redirect(
+        "login", "listSimulations", {"simulationType": fc.sr_sim_type}, redirect=False
+    )
     r = fc.sr_post(
         "authEmailLogin", {"email": "force@b.c", "simulationType": fc.sr_sim_type}
     )

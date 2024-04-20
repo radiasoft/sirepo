@@ -153,6 +153,11 @@ class _TestClient:
         if feature_config.cfg().ui_websocket:
             self._websocket = _WebSocket(self)
 
+    def assert_post_will_redirect(self, expect_re, *args, **kwargs):
+        rv = self.sr_post(*args, **kwargs)
+        rv.assert_http_redirect(expect_re)
+        return rv
+
     def error_or_sr_exception(self):
         """Hack to check for SRException or Error
 

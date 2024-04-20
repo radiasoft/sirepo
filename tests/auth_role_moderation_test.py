@@ -28,9 +28,12 @@ def test_moderation(auth_fc):
     with srunit.quest_start() as qcall:
         qcall.auth_db.model("UserRole").delete_all()
         qcall.auth_db.model("UserRoleInvite").delete_all()
-    auth_fc.sr_post(
-        "listSimulations", PKDict(simulationType=auth_fc.sr_sim_type), redirect=False
-    ).assert_http_redirect("moderation-request")
+    auth_fc.assert_post_will_redirect(
+        "moderation-request",
+        "listSimulations",
+        PKDict(simulationType=auth_fc.sr_sim_type),
+        redirect=False,
+    )
     auth_fc.sr_post(
         "saveModerationReason",
         PKDict(
