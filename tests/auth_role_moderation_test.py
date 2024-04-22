@@ -44,6 +44,8 @@ def test_moderation(auth_fc):
     )
     r.assert_http_status(403)
     roles.add(auth_fc.sr_auth_state().uid, auth_role.ROLE_ADM)
+    r = auth_fc.sr_get("admModerateRedirect")
+    r.assert_http_status(200)
     r = auth_fc.sr_post("getModerationRequestRows", PKDict())
     pkunit.pkeq(len(r.rows), 1)
     auth_fc.sr_post(

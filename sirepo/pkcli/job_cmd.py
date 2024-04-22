@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Operations run inside the report directory to extract data.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkconst
@@ -76,33 +76,38 @@ def _background_percent_complete(msg, template, is_running):
     ).pksetdefault(
         # TODO(robnagler) this is incorrect, because we want to see file updates
         #   not just our polling frequency
-        lastUpdateTime=lambda: _mtime_or_now(msg.runDir),
+        lastUpdateTime=lambda: int(msg.runDir.mtime()),
         frameCount=0,
         percentComplete=0.0,
     )
 
 
 def _dispatch_compute(msg, template):
+    def _err(error, **kwargs):
+        pkdlog(
+            "method={}.{}_{} error={} {}",
+            template.SIM_TYPE,
+            msg.jobCmd,
+            msg.data.method,
+            error,
+            kwargs,
+        )
+        return PKDict(state=job.ERROR, error=error)
+
     def _op(expect_file):
         r = getattr(template_common, f"{msg.jobCmd}_dispatch")(
-            msg.data, data_file_uri=msg.get("dataFileUri")
+            msg.data,
+            data_file_uri=msg.get("dataFileUri"),
+            run_dir=msg.get("runDir", pkio.py_path()),
         )
-        if not isinstance(r, template_common.JobCmdFile):
-            # ok to not return JobCmdFile if there was an error
+        if not isinstance(r, PKDict):
+            return _err("invalid return", res=r)
+        if not isinstance(r, template_common.JobCmdFile) or r.error:
+            # ok to not return JobCmdFile of if there was an error
             return r
         if not expect_file:
-            return PKDict(
-                state=job.ERROR,
-                error=f"method={template.SIM_TYPE}.{msg.jobCmd}_{msg.data.method} unexpected return=JobCmdFile uri={r.uri}",
-            )
-        if e := _error_if_response_too_large(r.content):
-            return e
-        requests.put(
-            msg.dataFileUri + r.uri,
-            data=r.content,
-            verify=job.cfg().verify_tls,
-        ).raise_for_status()
-        return job.ok_reply()
+            return _err("returned a file", reply_uri=r.get("reply_uri"))
+        return _file_reply(r, msg)
 
     try:
         x = sirepo.sim_data.get_class(
@@ -134,6 +139,7 @@ def _do_compute(msg, template):
 
     if pkconfig.in_dev_mode() and pkunit.is_test_run():
         sys.stderr.write(pkio.read_text(msg.runDir.join(template_common.RUN_LOG)))
+    status = None
     while True:
         for j in range(20):
             # Not asyncio.sleep: not in coroutine
@@ -150,7 +156,7 @@ def _do_compute(msg, template):
         if msg.isParallel:
             # TODO(e-carlin): This has a potential to fail. We likely
             # don't want the job to fail in this case
-            _write_parallel_status(msg, template, i)
+            status = _write_parallel_status(status, msg, template, i)
         if i:
             continue
         return _on_do_compute_exit(
@@ -168,6 +174,10 @@ def _do_analysis_job(msg, template):
 
 
 def _do_download_data_file(msg, template):
+    return _do_download_run_file(msg, template)
+
+
+def _do_download_run_file(msg, template):
     try:
         r = template.get_data_file(
             msg.runDir,
@@ -175,28 +185,13 @@ def _do_download_data_file(msg, template):
             msg.frame,
             options=PKDict(suffix=msg.suffix),
         )
-        if not isinstance(r, PKDict):
+        if not isinstance(r, template_common.JobCmdFile):
             if isinstance(r, str):
                 r = msg.runDir.join(r, abs=1)
-            r = PKDict(filename=r)
-        u = r.get("uri")
-        if u is None:
-            u = r.filename.basename
-        c = r.get("content")
-        if e := _error_if_response_too_large(c if c else r.filename):
-            return e
-        if c is None:
-            c = (
-                pkcompat.to_bytes(pkio.read_text(r.filename))
-                if u.endswith((".py", ".txt", ".csv"))
-                else r.filename.read_binary()
-            )
-        requests.put(
-            msg.dataFileUri + u,
-            data=c,
-            verify=job.cfg().verify_tls,
-        ).raise_for_status()
-        return PKDict()
+            elif not isinstance(r, pkconst.PY_PATH_LOCAL_TYPE):
+                raise AssertionError(f"unexpected return value type={type(r)}")
+            r = template_common.JobCmdFile(reply_path=r)
+        return _file_reply(r, msg)
     except Exception as e:
         return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
@@ -207,9 +202,13 @@ def _do_fastcgi(msg, template):
     @contextlib.contextmanager
     def _update_run_dir_and_maybe_chdir(msg):
         msg.runDir = pkio.py_path(msg.runDir) if msg.runDir else None
-        with pkio.save_chdir(
-            msg.runDir,
-        ) if msg.runDir else contextlib.nullcontext():
+        with (
+            pkio.save_chdir(
+                msg.runDir,
+            )
+            if msg.runDir
+            else contextlib.nullcontext()
+        ):
             yield
 
     def _recv():
@@ -240,7 +239,14 @@ def _do_fastcgi(msg, template):
                 r = globals()["_do_" + m.jobCmd](
                     m, sirepo.template.import_module(m.simulationType)
                 )
-            r = PKDict(r).pksetdefault(state=job.COMPLETED)
+            if isinstance(r, dict):
+                # Backwards compatibility
+                r = PKDict(r)
+            if isinstance(r, PKDict):
+                r.setdefault("state", job.COMPLETED)
+            else:
+                pkdlog("func={} failed to return a PKDict", m.jobCmd)
+                r = PKDict(state=job.ERROR, error="invalid return value")
             c = 0
         except _AbruptSocketCloseError:
             return
@@ -263,8 +269,6 @@ def _do_get_simulation_frame(msg, template):
 
 
 def _do_prepare_simulation(msg, template):
-    if "libFileList" in msg:
-        msg.data.libFileList = msg.libFileList
     return PKDict(
         cmd=simulation_db.prepare_simulation(
             msg.data,
@@ -275,15 +279,16 @@ def _do_prepare_simulation(msg, template):
 
 def _do_sbatch_status(msg, template):
     s = pkio.py_path(msg.stopSentinel)
+    status = None
     while True:
         if s.exists():
             if job.COMPLETED not in s.read():
                 # told to stop for an error or otherwise
                 return None
-            _write_parallel_status(msg, template, False)
+            status = _write_parallel_status(status, msg, template, False)
             pkio.unchecked_remove(s)
             return PKDict(state=job.COMPLETED)
-        _write_parallel_status(msg, template, True)
+        status = _write_parallel_status(status, msg, template, True)
         # Not asyncio.sleep: not in coroutine
         time.sleep(msg.nextRequestSeconds)
     # DOES NOT RETURN
@@ -321,6 +326,17 @@ def _error_if_response_too_large(payload):
             errorCode=job.ERROR_CODE_RESPONSE_TOO_LARGE,
         )
     return None
+
+
+def _file_reply(resp, msg):
+    if e := _error_if_response_too_large(resp.reply_content):
+        return e
+    requests.put(
+        msg.dataFileUri + resp.reply_uri,
+        data=resp.reply_content,
+        verify=job.cfg().verify_tls,
+    ).raise_for_status()
+    return job.ok_reply()
 
 
 def _maybe_parse_user_alert(exception, error=None):
@@ -364,18 +380,6 @@ def _on_do_compute_exit(
         return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
-def _mtime_or_now(path):
-    """mtime for path if exists else time.time()
-
-    Args:
-        path (py.path):
-
-    Returns:
-        int: modification time
-    """
-    return int(path.mtime() if path.exists() else time.time())
-
-
 def _parse_python_errors(text):
     m = re.search(
         r"^Traceback .*?^\w*(?:Error|Exception):\s*(.*)",
@@ -394,14 +398,18 @@ def _validate_msg_and_jsonl(msg):
     return m + b"\n"
 
 
-def _write_parallel_status(msg, template, is_running):
-    sys.stdout.write(
-        pkjson.dump_pretty(
-            PKDict(
-                state=job.RUNNING,
-                parallelStatus=_background_percent_complete(msg, template, is_running),
-            ),
-            pretty=False,
-        )
-        + "\n",
+def _write_parallel_status(prev_res, msg, template, is_running):
+    if prev_res is None:
+        prev_res = PKDict(py=None, json=None)
+    res = PKDict(py=_background_percent_complete(msg, template, is_running))
+    if prev_res.py == res.py:
+        return prev_res
+    res.json = pkjson.dump_str(
+        PKDict(
+            state=job.RUNNING if is_running else job.PENDING,
+            parallelStatus=res.py,
+        ),
     )
+    if prev_res.json != res.json:
+        sys.stdout.write(res.json + "\n")
+    return res

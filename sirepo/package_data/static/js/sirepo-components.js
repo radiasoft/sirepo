@@ -52,7 +52,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
             fieldDef: '@',
         },
         template: `
-            <h5 data-ng-if="::description && fieldDef == \'advanced\'"><span data-text-with-math="description"></span></h5>
+            <h5 data-ng-if="::description && fieldDef == 'advanced'"><span data-text-with-math="description"></span></h5>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate>
               <ul data-ng-if="pages" class="nav nav-tabs">
                 <li data-ng-repeat="page in pages" role="presentation" class="{{page.class}}" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">{{ page.name }}</a></li>
@@ -225,24 +225,42 @@ SIREPO.app.directive('srAlert', function(errorService) {
     };
 });
 
-SIREPO.app.directive('srNotify', function(notificationService) {
-
+SIREPO.app.directive('getStarted', function(browserStorage, stringsService) {
     return {
         restrict: 'A',
-        scope: {
-            notificationName: '<',
-            notificationClass: '<',
-        },
+        scope: {},
         template: `
-            <div data-ng-show="notificationService.shouldPresent(notificationName)" class="alert alert-dismissible sr-notify" role="alert" data-ng-class="notificationClass">
-                <button type="button" class="close" aria-label="Close" data-ng-click="notificationService.dismiss(notificationName)">
+            <div data-ng-show="show()" class="alert alert-dismissible sr-get-started" role="alert" data-ng-class="'alert-info'">
+                <button type="button" class="close" aria-label="Close" data-ng-click="dismiss()">
                     <span aria-hidden="true">&times;</span>
                 </button>
-                <span data-ng-bind-html="notificationService.getContent(notificationName)"></span>
+                <span>
+                    <div class="text-center"><strong>Welcome to Sirepo - ${SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName}!</strong></div>
+                    Below are some example ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
+                    and folders containing ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
+                    Click on the ${SIREPO.APP_SCHEMA.strings.simulationDataType}
+                    to open and view the ${SIREPO.APP_SCHEMA.strings.simulationDataType} results.
+                    You can create a new ${SIREPO.APP_SCHEMA.strings.simulationDataType}
+                    by selecting the "${stringsService.newSimulationLabel()}" link above.
+                </span>
             </div>
         `,
         controller: function($scope) {
-            $scope.notificationService = notificationService;
+            const storageKey = 'getStarted';
+            let isActive = true;
+
+            $scope.dismiss = () => {
+                browserStorage.setBoolean(storageKey, false);
+                //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
+                isActive = false;
+            };
+            $scope.show = () => {
+                if (! isActive) {
+                    return false;
+                }
+                isActive = browserStorage.getBoolean(storageKey, true);
+                return isActive;
+            };
         },
     };
 });
@@ -260,7 +278,7 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
             panelTitle: '@',
         },
         template: `
-            <div class="panel panel-info" id="{{ \'sr-\' + viewName + \'-basicEditor\' }}">
+            <div class="panel panel-info" id="sr-{{ viewName }}-basicEditor">
               <div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-key="modelKey" data-view-name="{{ viewName }}"></div>
                 <div class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">
                   <div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="{{ wantButtons }}" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
@@ -298,8 +316,8 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
         },
         template: `
             <div data-ng-show="isFormDirty()">
-              <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! isFormValid()">Save Changes</button>
-              <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
+              <button data-ng-click="saveChanges()" class="btn btn-primary sr-button-save-cancel" data-ng-disabled="! isFormValid()">Save</button>
+              <button data-ng-click="cancelChanges()" class="btn btn-default sr-button-save-cancel">Cancel</button>
             </div>
         `,
         controller: function($scope) {
@@ -409,11 +427,11 @@ SIREPO.app.directive('confirmationModal', function() {
             isRequired: '@',
         },
         template: `
-            <div class="modal fade" data-backdrop="{{ isRequired ? \'static\' : true }}" id="{{ id }}" tabindex="-1" role="dialog">
+            <div class="modal fade" data-backdrop="{{ isRequired ? 'static' : true }}" id="{{ id }}" tabindex="-1" role="dialog">
               <div class="modal-dialog">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
-                    <button data-ng-if="! isRequired" type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <button type="button" data-ng-if="! isRequired" class="close" data-dismiss="modal"><span>&times;</span></button>
                     <span class="lead modal-title text-info">{{ title }}</span>
                   </div>
                   <div class="modal-body">
@@ -426,7 +444,7 @@ SIREPO.app.directive('confirmationModal', function() {
                       <div class="row">
                         <div class="col-sm-6 pull-right" style="margin-top: 1em">
                           <button data-ng-if="okText" data-ng-disabled="! isValid()" data-ng-click="clicked()" class="btn btn-default sr-button-size">{{ okText }}</button>
-                           <button data-ng-if="! isRequired" data-dismiss="modal" class="btn btn-default sr-button-size">{{ cancelText || \'Cancel\' }}</button>
+                           <button data-ng-if="! isRequired" data-dismiss="modal" class="btn btn-default sr-button-size">{{ cancelText || 'Cancel' }}</button>
                         </div>
                       </div>
                     </div>
@@ -481,7 +499,7 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager, strings
             disabled: '<',
         },
         template: `
-            <div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy {{ ::stringsService.formatKey(\'simulationDataType\') }}" data-ok-text="Create Copy" data-ok-clicked="copy()">
+            <div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy {{ ::stringsService.formatKey('simulationDataType') }}" data-ok-text="Create Copy" data-ok-clicked="copy()">
               <form class="form-horizontal" autocomplete="off">
                 <div class="form-group">
                 <label class="col-sm-3 control-label">New Name</label>
@@ -493,7 +511,7 @@ SIREPO.app.directive('copyConfirmation', function(appState, fileManager, strings
                 <div class="form-group" data-ng-if="showFolders()">
                   <label class="col-sm-3 control-label">Folder</label>
                   <div class="col-sm-9">
-                    <div data-user-folder-list="" data-model="copyCfg" data-field="\'copyFolder\'"></div>
+                    <div data-user-folder-list="" data-model="copyCfg" data-field="'copyFolder'"></div>
                   </div>
               </div>
               </form>
@@ -579,8 +597,8 @@ SIREPO.app.directive('randomSeed', function() {
               <div class="col-sm-3">
                 <input data-string-to-number="integer" data-ng-model="model[field]" data-min="0" data-max="max" class="form-control" style="text-align: right" data-lpignore="true"/>
               </div>
-              <button class="btn btn-default" data-ng-click="setSeedRandom()" title="generate random seed"><span class="glyphicon glyphicon-random"></span></button>
-              <button class="btn btn-default" data-ng-click="setSeedTime()" title="use current time"><span class="glyphicon glyphicon-time"></span></button>
+              <button type="button" class="btn btn-default" data-ng-click="setSeedRandom()" title="generate random seed"><span class="glyphicon glyphicon-random"></span></button>
+              <button type="button" class="btn btn-default" data-ng-click="setSeedTime()" title="use current time"><span class="glyphicon glyphicon-time"></span></button>
             </div>
         `,
         controller: function($scope) {
@@ -627,6 +645,7 @@ SIREPO.app.directive('srTooltip', function(appState, mathRendering, utilities) {
         restrict: 'A',
         scope: {
             'tooltip': '@srTooltip',
+            'placement': '@',
         },
         template: `
             <span data-ng-show="hasTooltip()" class="glyphicon glyphicon-info-sign sr-info-pointer"></span>
@@ -650,7 +669,7 @@ SIREPO.app.directive('srTooltip', function(appState, mathRendering, utilities) {
                         return res;
                     },
                     html: true,
-                    placement: 'bottom',
+                    placement: $scope.placement || 'bottom',
                     container: 'body',
                 });
                 $scope.$on('$destroy', function() {
@@ -775,7 +794,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
               </div>
               <div data-ng-switch-when="SimulationName" data-ng-class="fieldClass">
-                <input data-safe-path="" data-ng-model="model[field]" class="form-control" required data-ng-readonly="model[\'isExample\']" data-lpignore="true" />
+                <input data-safe-path="" data-ng-model="model[field]" class="form-control" required data-ng-readonly="model['isExample']" data-lpignore="true" />
                 <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
               </div>
               <div data-ng-switch-when="InputFile" class="col-sm-7">
@@ -784,9 +803,12 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               <div data-ng-switch-when="Bool" class="col-sm-7">
                   <input type="checkbox" data-ng-model="model[field]">
               </div>
-               <div data-ng-switch-when="Boolean" class="fieldClass">
-                 <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
-               </div>
+              <div data-ng-switch-when="Boolean" data-ng-class="fieldClass">
+                <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
+              </div>
+              <div data-ng-switch-when="Color" data-ng-class="fieldClass">
+                <input data-ng-if="model" type="color" data-ng-model="model[field]" class="sr-color-button">
+              </div>
               <div data-ng-switch-when="ColorMap" class="col-sm-7">
                 <div data-color-map-menu="" class="dropdown"></div>
               </div>
@@ -812,7 +834,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               ${SIREPO.appFieldEditors}
               <div data-ng-switch-default data-ng-class="fieldClass">
                 <div data-ng-if="wantEnumButtons" class="btn-group">
-                  <button class="btn sr-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>
+                  <button type="button" class="btn sr-enum-button" data-ng-repeat="item in enum[info[1]]" data-ng-click="model[field] = item[0]" data-ng-class="{'active btn-primary': isSelectedValue(item[0]), 'btn-default': ! isSelectedValue(item[0])}">{{ item[1] }}</button>
                 </div>
                 <select data-ng-if="! wantEnumButtons" number-to-string class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in enum[info[1]]"></select>
                 <div class="sr-input-warning"></div>
@@ -984,7 +1006,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
         },
         template: `
           <div class="btn-group" role="group">
-            <button type="button" class="btn btn-default dropdown-toggle" data-ng-class="{\'btn-invalid\': selectionRequired && ! hasValidFileSelected()}" data-toggle="dropdown">{{ model[fileField] || emptySelectionText }} <span class="caret"></span></button>
+            <button type="button" class="btn btn-default dropdown-toggle" data-ng-class="{'btn-invalid': selectionRequired && ! hasValidFileSelected()}" data-toggle="dropdown">{{ model[fileField] || emptySelectionText }} <span class="caret"></span></button>
             <ul class="dropdown-menu">
               <li data-ng-repeat="item in itemList()" class="sr-model-list-item"><a href data-ng-click="selectItem(item)">{{ item }}<span data-ng-show="! isSelectedItem(item)" data-ng-click="confirmDeleteItem(item, $event)" class="glyphicon glyphicon-remove"></span></a></li>
               <li class="divider"></li>
@@ -995,7 +1017,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
           </div>
           <div data-ng-if="hasValidFileSelected()" class="btn-group" role="group">
             <div class="pull-left" data-ng-transclude=""></div>
-            <div class="pull-left"><a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a></div>
+            <div class="pull-left"><a data-ng-href="{{ downloadLibFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a></div>
           </div>
           <div class="sr-input-warning" data-ng-show="selectionRequired && ! hasValidFileSelected()">Select a file</div>
         `,
@@ -1036,7 +1058,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                 if (! $scope.isDeletingFile) {
                     $scope.isDeletingFile = true;
                     requestSender.sendRequest(
-                        'deleteFile',
+                        'deleteLibFile',
                         function(data) {
                             $scope.isDeletingFile = false;
                             if (data.error) {
@@ -1058,9 +1080,9 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                 return false;
             };
 
-            $scope.downloadFileUrl = function() {
+            $scope.downloadLibFileUrl = function() {
                 if ($scope.model) {
-                    return requestSender.formatUrl('downloadFile', {
+                    return requestSender.formatUrl('downloadLibFile', {
                         simulation_id: 'unused',
                         simulation_type: SIREPO.APP_SCHEMA.simulationType,
                         filename: SIREPO.APP_NAME === 'srw'
@@ -1269,8 +1291,8 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         <div class="clearfix"></div>
                         <div class="col-sm-6 pull-right">
                           <button data-ng-show="isConfirming" data-ng-click="uploadFile(inputFile)" class="btn btn-warning" data-ng-disabled="isUploading">Replace File</button>
-                          <button data-ng-hide="isConfirming" data-ng-click="uploadFile(inputFile)" class="btn btn-primary" data-ng-disabled="isUploading">Save Changes</button>
-                           <button data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>
+                          <button data-ng-hide="isConfirming" data-ng-click="uploadFile(inputFile)" class="btn btn-primary sr-button-save-cancel" data-ng-disabled="isUploading">Save</button>
+                          <button data-dismiss="modal" class="btn btn-default sr-button-save-cancel" data-ng-disabled="isUploading">Cancel</button>
                         </div>
                       </form>
                     </div>
@@ -1304,7 +1326,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         }
                         : null,
                     requestSender.formatUrl(
-                        'uploadFile',
+                        'uploadLibFile',
                         {
                             simulation_id: appState.models.simulation.simulationId,
                             simulation_type: SIREPO.APP_SCHEMA.simulationType,
@@ -1398,7 +1420,7 @@ SIREPO.app.directive('helpButton', function(requestSender) {
             helpTopic: '@helpButton',
         },
         template: `
-            <button data-ng-if="::showHelp()" class="close sr-help-icon" title="{{ ::helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>
+            <button type="button" data-ng-if="::showHelp()" class="close sr-help-icon" title="{{ ::helpTopic }} Help" data-ng-click="openHelp()"><span class="glyphicon glyphicon-question-sign"></span></button>
         `,
         controller: function($scope) {
             $scope.openHelp = function() {
@@ -1445,7 +1467,7 @@ SIREPO.app.directive('videoButton', function(appState, requestSender) {
             viewName: '@videoButton',
         },
         template: `
-            <div data-ng-if="showLink"><button class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>
+            <div data-ng-if="showLink"><button type="button" class="close sr-help-icon" data-ng-click="openVideo()" title="{{ ::tooltip }}"><span class="glyphicon glyphicon-film"></span></button></div>
         `,
         controller: function($scope) {
             var viewInfo = appState.viewInfo($scope.viewName);
@@ -1995,10 +2017,10 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
     return {
         restrict: 'A',
         template: `
-            <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown"><span class="sr-color-map-indicator" data-ng-style="itemStyle[model[field]]"></span> {{ colorMapDescription(model[field]) }} <span class="caret"></span></button>
+            <button type="button" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown"><span class="sr-color-map-indicator" data-ng-style="itemStyle[model[field]]"></span> {{ colorMapDescription(model[field]) }} <span class="caret"></span></button>
             <ul class="dropdown-menu sr-button-menu">
                 <li data-ng-repeat="item in items" class="sr-button-menu">
-                    <button class="btn btn-block"  data-ng-class="{\'sr-button-menu-selected\': isSelectedMap(item[0]), \'sr-button-menu-unselected\': ! isSelectedMap(item[0])}" data-ng-click="setColorMap(item[0])">
+                    <button type="button" class="btn btn-block"  data-ng-class="{'sr-button-menu-selected': isSelectedMap(item[0]), 'sr-button-menu-unselected': ! isSelectedMap(item[0])}" data-ng-click="setColorMap(item[0])">
                         <span class="sr-color-map-indicator" data-ng-style="itemStyle[item[0]]"></span> {{item[1]}} <span data-ng-if="isDefaultMap(item[0])" class="glyphicon glyphicon-star-empty"></span><span data-ng-if="isSelectedMap(item[0])" class="glyphicon glyphicon-ok"></span>
                     </button>
                 </li>
@@ -2060,7 +2082,7 @@ SIREPO.app.directive('collapsableNotes', function() {
         template: `
             <div>
             <a href data-ng-click="toggleNotes()" style="text-decoration: none;">
-            <span class="glyphicon" data-ng-class="{\'glyphicon-chevron-down\': ! showNotes, \'glyphicon-chevron-up\': showNotes}" style="font-size:16px;"></span>
+            <span class="glyphicon" data-ng-class="{'glyphicon-chevron-down': ! showNotes, 'glyphicon-chevron-up': showNotes}" style="font-size:16px;"></span>
              <span data-ng-show="! openNotes() && hasNotes()">...</span>
              <span data-ng-show="! openNotes() && ! hasNotes()" style="font-style: italic; font-size: small">click to enter notes</span>
             </a>
@@ -2122,7 +2144,7 @@ SIREPO.app.directive('numberList', function(appState, utilities) {
         },
         template: `
             <div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >
-            <label data-text-with-math="valueLabels[$index] || \'Plane \' + $index" style="margin-right: 1ex"></label>
+            <label data-text-with-math="valueLabels[$index] || 'Plane ' + $index" style="margin-right: 1ex"></label>
             <input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right; {{ customStyle }}" required />
             </div>
         `,
@@ -2185,7 +2207,7 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
         template: `
             <span class="sr-panel-heading">{{ simpleHeading }}</span>
             <div class="sr-panel-options pull-right">
-              <a href data-ng-class="{\'sr-disabled-link\': utilities.isFullscreen()}" data-ng-click="toggleHidden()" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a>
+              <a href data-ng-class="{'sr-disabled-link': utilities.isFullscreen()}" data-ng-click="toggleHidden()" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a>
               <a href data-ng-click="panelState.toggleHiddenAndNotify(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>
             </div>
             <div class="sr-panel-options pull-right" data-ng-transclude="" ></div>
@@ -2209,7 +2231,6 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             panelHeading: '@',
             modelKey: '=',
             isReport: '@',
-            reportId: '<',
             viewName: '@',
         },
         template: `
@@ -2230,7 +2251,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   <li data-ng-if="::hasDataFile" data-ng-repeat="l in panelDownloadLinks"><a data-ng-href="{{ dataFileURL(l.suffix) }}" target="_blank">{{ l.title }}</a></li>
                 </ul>
               </div>
-              <a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a>
+              <a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{'glyphicon-resize-full': ! utilities.isFullscreen(), 'glyphicon-resize-small': utilities.isFullscreen()}"></span></a>
             </div>
         `,
         controller: function($scope, $element) {
@@ -2268,7 +2289,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                     if (suffix) {
                         params.suffix = suffix;
                     }
-                    return requestSender.formatUrl('downloadDataFile', params);
+                    return requestSender.formatUrl('downloadRunFile', params);
                 }
                 return '';
             };
@@ -2354,23 +2375,20 @@ SIREPO.app.directive('reportContent', function(panelState) {
         restrict: 'A',
         transclude: true,
         scope: {
-            reportId: '<',
             reportContent: '@',
-            reportCfg: '<',
             modelKey: '@',
         },
         template: `
             <div data-show-loading-and-error="" data-model-key="{{ modelKey }}">
-              <div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? \'sr-hide-report\' : \'\' }}">
-                <div data-ng-switch-when="2d" data-plot2d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="3d" data-plot3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+              <div data-ng-switch="reportContent" class="{{ panelState.getError(modelKey) ? 'sr-hide-report' : '' }}">
+                <div data-ng-switch-when="2d" data-plot2d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
+                <div data-ng-switch-when="3d" data-plot3d="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="particle" data-particle="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
-                <div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+                <div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
+                <div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 <div data-ng-switch-when="lattice" data-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
-                <div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
-                <div data-ng-switch-when="rawSVG" data-svg-plot="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"></div>
+                <div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot sr-screenshot" data-model-name="{{ modelKey }}"></div>
                 ${SIREPO.appReportTypes || ''}
               </div>
               <div data-ng-transclude=""></div>
@@ -2387,7 +2405,6 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
         restrict: 'A',
         transclude: true,
         scope: {
-            reportCfg: '=',
             reportPanel: '@',
             modelName: '@',
             panelTitle: '@',
@@ -2396,14 +2413,12 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
             requestPriority: '@',
         },
         template: `
-            <div class="panel panel-info" data-ng-attr-id="{{ ::reportId }}">
-              <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1" data-report-id="reportId"></div>
-              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId" data-report-cfg="reportCfg"><div data-ng-transclude=""></div></div>
-              <button data-ng-if="notes()" class="close sr-help-icon notes" title="{{ notes() }}"><span class="glyphicon glyphicon-question-sign"></span></button>
+            <div class="panel panel-info">
+              <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1"></div>
+              <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}"><div data-ng-transclude=""></div></div>
+              <div data-ng-if="notes()"><span class="pull-right sr-notes" data-sr-tooltip="{{ notes() }}" data-placement="top"></span><div class="clearfix"></div></div>
         `,
         controller: function($scope) {
-            // random id for the keypress service to track
-            $scope.reportId = utilities.reportId();  //Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
             if ($scope.modelName && $scope.modelName.includes('{') ) {
                 throw new Error('Expected simple name for modelName, got: ' + $scope.modelName);
             }
@@ -2442,7 +2457,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
         template: `
             <div class="navbar-header">
               <a class="navbar-brand" href="/"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="Sirepo"></a>
-              <div class="navbar-brand">
+              <div class="navbar-brand navbar-brand-text">
                 <div data-ng-if="appUrl">
                   <a data-ng-href="{{ appUrl }}">
                     ${brand()}
@@ -2465,7 +2480,7 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
         },
         template: `
             <ul class="nav navbar-nav" data-ng-if=":: authState.isLoggedIn">
-              <li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> {{ simulationsLinkText }}</a></li>
+              <li data-ng-class="{active: nav.isActive('simulations')}"><a href data-ng-click="nav.openSection('simulations')"><span class="glyphicon glyphicon-th-list"></span> {{ simulationsLinkText }}</a></li>
             </ul>
             <div data-ng-if="showTitle()" class="navbar-text">
                 <a href data-ng-click="showSimulationModal()"><span data-ng-if="nav.sectionTitle()" class="glyphicon glyphicon-pencil"></span> <strong data-ng-bind="nav.sectionTitle()"></strong></a>
@@ -2798,7 +2813,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
                         info.file,
                         null,
                         requestSender.formatUrl(
-                            'uploadFile',
+                            'uploadLibFile',
                             {
                                 // dummy id because no simulation id is available or required
                                 simulation_id: SIREPO.nonSimulationId,
@@ -2840,7 +2855,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
     };
 });
 
-SIREPO.app.directive('numArray', function(appState, utilities) {
+SIREPO.app.directive('numArray', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -2857,6 +2872,7 @@ SIREPO.app.directive('numArray', function(appState, utilities) {
               <input class="form-control sr-number-list" data-string-to-number="{{ numType }}"
                 data-ng-model="model[fieldName][$index]" data-min="info[5][$index]" data-max="info[6][$index]"
                 style="text-align: right" required />
+              <div data-ng-if="$last" class="sr-input-warning"></div>
             </div>
         `,
         controller: $scope => {
@@ -3132,13 +3148,13 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
         restrict: 'A',
         scope: {},
         template: `
-            <div data-ng-show="isJupyterhub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">
-            We\'re improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. Simply follow the directions below to complete this process.
+            <div data-ng-show="isJupyterHub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">
+            We're improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. Simply follow the directions below to complete this process.
             </div>
             <form class="form-horizontal" autocomplete="off" novalidate>
               <div class="form-group">
                 <div class="col-sm-offset-2 col-sm-10">
-                  <p>Enter your email address and we\'ll send an authorization link to your inbox.</p>
+                  <p>Enter your email address and we'll send an authorization link to your inbox.</p>
                 </div>
               </div>
               <div class="form-group">
@@ -3153,12 +3169,12 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                    <div data-disable-after-click="">
                     <button data-ng-click="login()" class="btn btn-primary">Continue</button>
                   </div>
-                  <p class="help-block">By signing up for Sirepo you agree to Sirepo\'s <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
+                  <p class="help-block">By signing up for Sirepo you agree to Sirepo's <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
                 </div>
               </div>
             </form>
             <div data-confirmation-modal="" data-is-required="true" data-id="sr-email-login-done" data-title="Check your inbox" data-ok-text="" data-cancel-text="">
-              <p>We just emailed a confirmation link to {{ data.sentEmail }}. Click the link and you\'ll be signed in. You may close this window.</p>
+              <p>We just emailed a confirmation link to {{ data.sentEmail }}. Click the link and you'll be signed in. You may close this window.</p>
             </div>
         `,
         controller: function($scope) {
@@ -3176,7 +3192,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             }
 
             $scope.data = {};
-            $scope.isJupyterhub = SIREPO.APP_SCHEMA.simulationType == 'jupyterhublogin';
+            $scope.isJupyterHub = SIREPO.APP_SCHEMA.simulationType == 'jupyterhublogin';
             $scope.login = function() {
                 var e = $scope.data.email;
                 errorService.alertText('');
@@ -3252,7 +3268,7 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
                     <button data-ng-click="login()" class="btn btn-primary">Continue</button>
                   </div>
                   <div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>
-                  <p class="help-block">By signing up for Sirepo you agree to Sirepo\'s <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
+                  <p class="help-block">By signing up for Sirepo you agree to Sirepo's <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
                 </div>
               </div>
             </form>
@@ -3295,6 +3311,14 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
 });
 
 SIREPO.app.directive('commonFooter', function() {
+    const _refreshModals = () => {
+        return Object.values(SIREPO.refreshModalMap).reduce(
+            (rv, x) => {
+                return rv + `<div data-confirmation-modal="" data-is-required="true" data-id="${x.modal}" data-title="${x.title}" data-ok-text="Refresh" data-ok-clicked="refreshPage()">${x.msg}. Select <b>Refresh</b> to update this simulation.</div>\n`;
+            },
+            '',
+        );
+    };
     return {
         restrict: 'A',
         scope: {
@@ -3306,9 +3330,10 @@ SIREPO.app.directive('commonFooter', function() {
             <div data-modal-editor="" view-name="simulation" modal-title="simulationModalTitle"></div>
             <div data-sbatch-login-modal=""></div>
             <div data-jobs-list-modal="" data-title="Jobs" data-id="sr-jobsListModal-editor"></div>
-        `,
+        ` + _refreshModals(),
         controller: function($scope, appState, stringsService) {
             $scope.simulationModalTitle = stringsService.formatKey('simulationDataType');
+            $scope.refreshPage = () => window.location.reload();
         }
     };
 });
@@ -3321,7 +3346,7 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             convMethod: '@',
         },
         template: `
-            <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? \'Close\' : \'Cancel\' }}" data-ok-text="{{ displayLink() ? \'\' : \'Create\' }}" data-ok-clicked="openConvertedSimulation()">
+            <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? 'Close' : 'Cancel' }}" data-ok-text="{{ displayLink() ? '' : 'Create' }}" data-ok-clicked="openConvertedSimulation()">
               <div data-ng-if="! displayLink()"> Create a {{ title }} simulation with an equivalent beamline? </div>
               <div data-ng-if="displayLink()">
                 {{ title }} simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
@@ -3445,7 +3470,6 @@ SIREPO.app.directive('downloadStatus', function() {
             </div>
         `,
         controller: function($scope) {
-
             $scope.cancel = () => {
                 $scope.simState.cancelSimulation(() => {
                     $('#sr-download-status').modal('hide');
@@ -3468,7 +3492,6 @@ SIREPO.app.directive('splitPanels', function($window) {
     var TOP_PAD = 12;
     return {
         controller: function($scope) {
-
             function totalHeight() {
                 return $($window).height() - $scope.el.offset().top;
             }
@@ -3851,7 +3874,7 @@ SIREPO.app.directive('modelArray', function() {
                   </div>
                 </div>
                 <div class="col-sm-1">
-                  <button style="margin-left: -15px; margin-top: 5px"
+                  <button type="button" style="margin-left: -15px; margin-top: 5px"
                     data-ng-show="! isEmpty($index)" data-ng-click="deleteRow($index)"
                     class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span>
                   </button>
@@ -3979,7 +4002,7 @@ SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
             <div class="input-group input-group-sm">
               <input data-string-to-number="" data-ng-model="model[field]" data-min="min" data-max="max" class="form-control" style="text-align: right" data-lpignore="true" required />
               <div class="input-group-btn">
-                <button data-ng-attr-class="btn btn-{{ buttonName() }} dropdown-toggle" data-toggle="dropdown" type="button" title="Optimization Settings"><span class="glyphicon glyphicon-cog"></span></button>
+                <button type="button" data-ng-attr-class="btn btn-{{ buttonName() }} dropdown-toggle" data-toggle="dropdown" title="Optimization Settings"><span class="glyphicon glyphicon-cog"></span></button>
                 <ul class="dropdown-menu pull-right">
                   <li><a href data-ng-click="toggleCheck()" ><span data-ng-attr-class="glyphicon glyphicon-{{ checkedName() }}"></span> Select this field for optimization</a></li>
                 </ul>
@@ -4509,7 +4532,7 @@ SIREPO.app.directive('simSections', function(utilities) {
         restrict: 'A',
         transclude: true,
         template: `
-            <ul data-ng-transclude="" class="nav navbar-nav sr-navbar-right" data-ng-class="{\'nav-tabs\': isWide()}"></ul>
+            <ul data-ng-transclude="" class="nav navbar-nav sr-navbar-right" data-ng-class="{'nav-tabs': isWide()}"></ul>
         `,
         controller: function($scope) {
             $scope.isWide = function() {
@@ -4549,7 +4572,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               </div>
               <div data-ng-if="simState.showJobSettings()">
                 <div class="form-group form-group-sm">
-                  <div data-model-field="\'jobRunMode\'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
+                  <div data-model-field="'jobRunMode'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
                 </div>
                 <div data-sbatch-options="simState"></div>
               </div>
@@ -4753,134 +4776,6 @@ SIREPO.app.service('mathRendering', function() {
     };
 });
 
-SIREPO.app.service('keypressService', function() {
-
-    var listeners = {};
-    var reports = {};
-    var activeListeners = [];
-    var activeListenerId = null;
-
-    this.addListener = function(listenerId, listener, reportId) {
-        if(! reportId) {
-            return;
-        }
-        listeners[listenerId] = listener;
-        if (! reports[reportId]) {
-                reports[reportId] = [];
-        }
-        reports[reportId].push(listenerId);
-        if(activeListeners.indexOf(listenerId) < 0) {
-            activeListeners.push(listenerId);
-        }
-
-        // turn off highlighting for active report panel, if any
-        showPanelActive(reportForListener(activeListenerId), false);
-
-        activeListenerId = listenerId;
-        this.enableListener(true);
-    };
-    this.hasListener = function(listenerId) {
-        return activeListeners.indexOf(listenerId) >= 0;
-    };
-    this.hasReport = function(reportId) {
-        return ! ! reports[reportId];
-    };
-
-    this.removeListener = function(listenerId) {
-        var lIndex = activeListeners.indexOf(listenerId);
-        if(lIndex >= 0) {
-            activeListeners.splice(lIndex, 1);
-        }
-        delete listeners[listenerId];
-
-        var reportId = reportForListener(listenerId);
-        showPanelActive(reportId, false);
-        if(reportId) {
-            reports[reportId].splice(reports[reportId].indexOf(listenerId), 1);
-        }
-
-        // activate the last one added, if any remain
-        if(activeListeners.length > 0) {
-            activeListenerId = activeListeners[activeListeners.length - 1];
-            this.enableListener(true);
-        }
-        else {
-            activeListenerId = null;
-            this.enableListener(false);
-        }
-    };
-
-    this.removeListenersForReport = function(reportId) {
-        if(! reportId || ! reports[reportId]) {
-            return;
-        }
-        var rlArr = reports[reportId];
-        for(var rlIndex = 0; rlIndex < rlArr.length; ++rlIndex) {
-            this.removeListener(rlArr[rlIndex]);
-        }
-    };
-    this.removeReport = function(reportId) {
-        if(! reportId) {
-            return;
-        }
-        this.removeListenersForReport(reportId);
-        delete reports[reportId];
-    };
-
-
-    // set the active listener, or
-    // remove keydown listener from body element leaving the keys in place
-    this.enableListener = function(doListen, listenerId) {
-        if(! listenerId)  {
-            listenerId = activeListenerId;
-        }
-        activeListenerId = listenerId;
-        var reportId = reportForListener(activeListenerId);
-        if(doListen && activeListenerId) {
-            d3.select('body').on('keydown', listeners[activeListenerId]);
-            showPanelActive(reportId, true);
-            return;
-        }
-        d3.select('body').on('keydown', null);
-        showPanelActive(reportId, false);
-    };
-    this.enableNextListener = function(direction) {
-        var lIndex = activeListeners.indexOf(activeListenerId);
-        if(lIndex < 0) {
-            return;
-        }
-        this.enableListener(false);
-        var d = direction < 0 ? -1 : 1;
-        var newIndex = (lIndex + d + activeListeners.length) % activeListeners.length;
-        this.enableListener(true, activeListeners[newIndex]);
-    };
-
-    function reportForListener(listenerId) {
-        if(! listenerId) {
-            return null;
-        }
-        for(var reportId in reports) {
-            var rlIndex = reports[reportId].indexOf(listenerId);
-            if(rlIndex < 0) {
-                continue;
-            }
-            return reportId;
-        }
-    }
-
-    function showPanelActive(reportId, isActive) {
-        if(! reportId) {
-            return;
-        }
-        if(isActive) {
-            $('#' + reportId).addClass('sr-panel-active');
-            return;
-        }
-        $('#' + reportId).removeClass('sr-panel-active');
-    }
-
-});
-
 SIREPO.app.service('plotRangeService', function(appState, panelState, requestSender) {
     var self = this;
     var runningModels = [];
@@ -5054,6 +4949,10 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
 
     var self = this;
 
+    this.arrayMin = array => SIREPO.UTILS.arrayMin(array);
+
+    this.arrayMax = array => SIREPO.UTILS.arrayMax(array);
+
     this.modelFieldID = function(modelName, fieldName) {
         return 'model-' + modelName + '-' + fieldName;
     };
@@ -5071,10 +4970,6 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
 
     this.ngModelForInput = function(modelName, fieldName) {
         return angular.element($('.' + this.modelFieldID(modelName, fieldName) + ' input')).controller('ngModel');
-    };
-
-    this.reportId = function() {
-        return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
     };
 
     this.isWide = function() {
@@ -5102,12 +4997,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         return $interpolate(str)(context);
     };
 
-    this.wordSplits = function(str) {
-        var wds = str.split(/(\s+)/);
-        return wds.map(function (value, index) {
-            return wds.slice(0, index).join('') + value;
-        });
-    };
+    this.wordSplits = str => SIREPO.UTILS.wordSplits(str);
 
     this.splitCommaDelimitedString = function(str, parser=null) {
         let a = str.split(/\s*,\s*/);
@@ -5186,6 +5076,9 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
 
         const s = $(element).find(`.${searchClass}`);
         s.autocomplete({
+            classes: {
+                'ui-autocomplete': 'sr-dropdown',
+            },
             delay: 0,
             select: (e, ui) => {
                 scope.$apply(() => {
@@ -5209,11 +5102,17 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
                     s[0].dispatchEvent(new Event('change'));
                 });
             },
+            focus: (e, ui) => {
+                s.val(ui.item.label);
+                return false;
+            },
             source: (req, res) => {
                 const text = req.term;
                 const l = scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1));
                 if (! supportsMulti) {
-                    res(l.filter(x => x.label.includes(text)));
+                    res(l.filter(x => {
+                        return x.label.toLowerCase().includes(text.toLowerCase());
+                    }));
                     return;
                 }
                 const t = findToken(text, s.get(0).selectionStart);
@@ -5261,21 +5160,9 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         };
     };
 
-    this.indexArray = function(size) {
-        var res = [];
-        for (var i = 0; i < size; res.push(i++)) {}
-        return res;
-    };
+    this.indexArray = size => SIREPO.UTILS.indexArray(size);
 
-    this.normalize = function(seq) {
-        var sMax = Math.max.apply(null, seq);
-        var sMin = Math.min.apply(null, seq);
-        var sRange = sMax - sMin;
-        sRange = sRange > 0 ? sRange : 1.0;
-        return seq.map(function (v) {
-            return (v - sMin) / sRange;
-        });
-    };
+    this.normalize = seq => SIREPO.UTILS.normalize(seq);
 
     // Returns a minimal formatted json-like value
     this.objectToText = function(obj) {
@@ -5289,13 +5176,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
             .replace(/\"/g, '');
     };
 
-    this.roundToPlaces = function(val, p) {
-        if (p < 0) {
-            return val;
-        }
-        var r = Math.pow(10, p);
-        return Math.round(val * r) / r;
-    };
+    this.roundToPlaces = (val, p) => SIREPO.UTILS.roundToPlaces(val, p);
 
     this.trimText = function(text, maxLines, maxLength) {
         const m = text.match(new RegExp(`^(.*\n+){${maxLines}}`));
@@ -5310,24 +5191,134 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         return text;
     };
 
-    // returns an array containing the unique elements of the input,
-    // according to a two-input equality function (null means use ===)
-    this.unique = function(arr, equals) {
-        var uniqueArr = [];
-        arr.forEach(function (a, i) {
-            var found = false;
-            for(var j = 0; j < uniqueArr.length; ++j) {
-                var b = uniqueArr[j];
-                found = equals ? equals(a, b) : a === b;
-                if (found) {
-                    break;
+    this.unique = (arr, equals) => SIREPO.UTILS.unique(arr, equals);
+});
+
+SIREPO.app.directive('srItemHolder', function() {
+    return {
+        transclude: true,
+        scope: {
+            handleDrop: '&',
+            handleDragenter: '&',
+        },
+        template: `
+            <div class="sr-item-holder" data-sr-droppable=""
+              data-handle-drop="drop(item)" data-handle-dragenter="dragenter()">
+              <div data-ng-transclude=""></div>
+             </div>
+         `,
+        controller: function($scope) {
+            $scope.drop = item => {
+                $scope.handleDrop({
+                    item: item,
+                });
+            };
+            $scope.dragenter = () => {
+                $scope.handleDragenter();
+            };
+        },
+    };
+});
+
+SIREPO.srDragEffect = 'move';
+
+SIREPO.app.directive('srDraggable', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            item: '=srDraggable',
+            handleSelected: '&',
+        },
+        controller: function ($scope, $element) {
+            $scope.item.isDragging = false;
+            $element[0].draggable = true;
+
+            function setSelected() {
+                $scope.handleSelected({
+                    item: $scope.item,
+                });
+                $scope.$applyAsync();
+            }
+
+            $element.on('dragstart', e => {
+                e.dataTransfer.effectAllowed = SIREPO.srDragEffect;
+                e.dataTransfer.setData('text', JSON.stringify($scope.item));
+                $element.addClass('sr-hide-menu');
+            });
+            $element.on('drag', e => {
+                if (! $scope.item.isDragging) {
+                    $scope.item.isDragging = true;
+                    $element.addClass('sr-dragging');
+                    setSelected();
+                }
+            });
+            $element.on('dragend', e => {
+                $scope.item.isDragging = false;
+                $element.removeClass('sr-dragging');
+                $element.removeClass('sr-hide-menu');
+                $scope.$applyAsync();
+            });
+            // need handlers for both to support desktop and tablet
+            $element.on('click', setSelected);
+            $element.on('mousedown', setSelected);
+            $scope.$on('$destroy', () => {
+                $element.off();
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('srDroppable', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            handleDrop: '&',
+            handleDragenter: '&',
+        },
+        controller: function($scope, $element) {
+            let dragCount = 0;
+
+            function updateCount(newCount) {
+                dragCount = newCount;
+                if (dragCount === 0) {
+                    $element.removeClass('sr-drag-over');
+                }
+                else if (dragCount === 1) {
+                    $element.addClass('sr-drag-over');
                 }
             }
-            if (! found) {
-                uniqueArr.push(a);
-            }
-        });
-        return uniqueArr;
-    };
 
+            $element.on('dragenter', e => {
+                e.preventDefault();
+                $scope.handleDragenter();
+                if (e.currentTarget == $element[0]) {
+                    updateCount(dragCount + 1);
+                }
+                $scope.$applyAsync();
+            });
+            $element.on('dragover', e => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = SIREPO.srDragEffect;
+            });
+            $element.on('dragleave', e => {
+                if (e.currentTarget == $element[0]) {
+                    updateCount(dragCount - 1);
+                }
+            });
+            $element.on('drop', e => {
+                e.preventDefault();
+                updateCount(0);
+                const item = JSON.parse(e.dataTransfer.getData('text'));
+                if (item) {
+                    $scope.handleDrop({
+                        item: item,
+                    });
+                    $scope.$applyAsync();
+                }
+            });
+            $scope.$on('$destroy', () => {
+                $element.off();
+            });
+        },
+    };
 });

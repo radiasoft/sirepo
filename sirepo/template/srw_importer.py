@@ -111,7 +111,7 @@ class Struct(object):
         self.__dict__.update(entries)
 
 
-def import_python(code, tmp_dir, user_filename=None, arguments=None, qcall=None):
+def import_python(code, user_filename=None, arguments=None, qcall=None):
     """Converts script_text into json and stores as new simulation.
 
     Avoids too much data back to the user in the event of an error.
@@ -134,19 +134,17 @@ def import_python(code, tmp_dir, user_filename=None, arguments=None, qcall=None)
     code = _patch_mirror_profile(code, qcall=qcall)
 
     try:
-        with pkio.save_chdir(tmp_dir):
-            # This string won't show up anywhere
-            script = pkio.write_text(
-                "in.py",
-                re.sub(r"^main\(", "#", code, flags=re.MULTILINE),
-            )
-            o = SRWParser(
-                script,
-                user_filename=user_filename,
-                arguments=arguments,
-                qcall=qcall,
-            )
-            return o.data
+        # This string won't show up anywhere
+        script = pkio.write_text(
+            "in.py",
+            re.sub(r"^main\(", "#", code, flags=re.MULTILINE),
+        )
+        return SRWParser(
+            script,
+            user_filename=user_filename,
+            arguments=arguments,
+            qcall=qcall,
+        ).data
     except Exception as e:
         lineno = script and _find_line_in_trace(script)
         if hasattr(e, "args"):
@@ -168,9 +166,11 @@ def import_python(code, tmp_dir, user_filename=None, arguments=None, qcall=None)
         )
         m = m[:50]
         raise ValueError(
-            "Error on line {}: {}".format(lineno, m)
-            if lineno
-            else "Error: {}".format(m),
+            (
+                "Error on line {}: {}".format(lineno, m)
+                if lineno
+                else "Error: {}".format(m)
+            ),
         )
 
 
@@ -754,11 +754,11 @@ def _parsed_dict(v, op):
                 "length": _default_value("und_len", v, std_options, 1.5),
                 "longitudinalPosition": _default_value("und_zc", v, std_options, 1.305),
                 "period": _default_value("und_per", v, std_options, 0.021) * 1e3,
-                "verticalAmplitude": _default_value(
-                    "und_by", v, std_options, 0.88770981
-                )
-                if hasattr(v, "und_by")
-                else _default_value("und_b", v, std_options, 0.88770981),
+                "verticalAmplitude": (
+                    _default_value("und_by", v, std_options, 0.88770981)
+                    if hasattr(v, "und_by")
+                    else _default_value("und_b", v, std_options, 0.88770981)
+                ),
                 "verticalInitialPhase": _default_value("und_phy", v, std_options, 0.0),
                 "verticalSymmetry": str(
                     int(_default_value("und_sy", v, std_options, -1))

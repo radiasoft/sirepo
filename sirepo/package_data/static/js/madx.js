@@ -263,7 +263,9 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                     y3: 'None',
                 };
                 // better twiss defaults
-                if (info.filename.indexOf('twiss') >= 0 || info.modelKey.indexOf('twiss') >= 0) {
+                if (
+                    (info.filename.indexOf('twiss') >= 0 || info.modelKey.indexOf('twiss') >= 0)
+                    && info.filename.indexOf('sectorfile') < 0) {
                     $.extend(appState.models[modelKey], {
                         includeLattice: "1",
                         x: 's',
@@ -292,7 +294,7 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
         return self.errorMessage;
     };
     self.simState.logFileURL = function() {
-        return requestSender.formatUrl('downloadDataFile', {
+        return requestSender.formatUrl('downloadRunFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             '<model>': self.simState.model,

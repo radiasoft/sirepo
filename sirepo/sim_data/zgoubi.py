@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
 """simulation data operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
+import sirepo.util
 
 
 class SimData(sirepo.sim_data.SimDataBase):
@@ -56,19 +56,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         for e in dm.elements:
             cls.update_model_defaults(e, e.type)
         cls._organize_example(data)
-
-    @classmethod
-    def zgoubi_lib_files_with_zip(cls):
-        """Return sorted list of zip files
-
-        Only works locally
-
-        Args:
-            ext (str): does not include suffix
-        Returns:
-            list: list of absolute paths to lib files
-        """
-        return cls._lib_file_list("*.zip")
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):

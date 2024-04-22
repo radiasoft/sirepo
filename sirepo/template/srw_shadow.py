@@ -461,9 +461,11 @@ class Convert:
     def __crystal_to_shadow(self, item):
         material_map = self._MATERIAL_MAP
         angle, rotate, offset = self.__compute_angle(
-            "vertical"
-            if item.diffractionAngle == "0" or item.diffractionAngle == "3.14159265"
-            else "horizontal",
+            (
+                "vertical"
+                if item.diffractionAngle == "0" or item.diffractionAngle == "3.14159265"
+                else "horizontal"
+            ),
             item,
         )
         self.beamline.append(
@@ -780,15 +782,15 @@ class Convert:
                 + srw.undulator.verticalDeflectingParameter**2,
             )
         for d in ("horizontal", "vertical"):
-            srw.undulator[
-                f"{d}Amplitude"
-            ] = sirepo.template.srw.process_undulator_definition(
-                PKDict(
-                    undulator_definition="K",
-                    undulator_parameter=srw.undulator[f"{d}DeflectingParameter"],
-                    undulator_period=srw.undulator.period / 1000,
-                )
-            ).amplitude
+            srw.undulator[f"{d}Amplitude"] = (
+                sirepo.template.srw.process_undulator_definition(
+                    PKDict(
+                        undulator_definition="K",
+                        undulator_parameter=srw.undulator[f"{d}DeflectingParameter"],
+                        undulator_period=srw.undulator.period / 1000,
+                    )
+                ).amplitude
+            )
 
     def __simulation_to_shadow(self, srw, shadow):
         shadow.simulation.update(

@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Auth database
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import importlib
@@ -130,12 +130,12 @@ def init_module():
 
 
 def init_quest(qcall):
-    qcall.attr_set("auth_db", _AuthDb(qcall=qcall))
+    _AuthDb(qcall=qcall)
 
 
 class _AuthDb(sirepo.quest.Attr):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._orm_session = None
 
     def add_column_if_not_exists(self, model, column, column_type):
@@ -231,3 +231,12 @@ class _AuthDb(sirepo.quest.Attr):
 
     def _execute_sql(self, text):
         return self.execute(sqlalchemy.text(text + ";"))
+
+    def init_quest_for_child(self, *args, **kwargs):
+        # TODO(robnagler): Consider nested transactions
+        #
+        # For now, we have to commit because we don't have nesting.
+        # Commit at the end of this child-qcall which shares auth_db.
+        # auth_db is robust here since it dynamically creates sessions.
+        self.commit()
+        return super().init_quest_for_child(*args, **kwargs)

@@ -496,8 +496,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
     function noOp() {}
 
     function normalizeValues(yValues, shift) {
-        var yMin = Math.min.apply(Math, yValues);
-        var yMax = Math.max.apply(Math, yValues);
+        var yMin = utilities.arrayMin(yValues);
+        var yMax = utilities.arrayMax(yValues);
         var yRange = yMax - yMin;
         for (var i = 0; i < yValues.length; i++) {
             yValues[i] = (yValues[i] - yMin) / yRange - shift;  // roots are at Y=0
@@ -728,7 +728,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         getAspectRatio: function(modelName, json, defaultRatio) {
-            if (appState.isLoaded() && appState.applicationState()[modelName]) {
+            if (! json.aspectRatio && appState.isLoaded() && appState.applicationState()[modelName]) {
                 var ratioEnum = appState.applicationState()[modelName].aspectRatio;
                 if (ratioEnum) {
                     return parseFloat(ratioEnum);
@@ -778,7 +778,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     img.data[++p] = c.b;
                     let a = 255;
                     if (threshold !== null) {
-                        a = v > threshold ? 255 : 0;
+                        a = v < threshold[1] && v > threshold[0] ? 255 : 0;
                     }
                     img.data[++p] = a;
                 }
@@ -1173,102 +1173,6 @@ SIREPO.app.directive('animationButtons', function() {
               <button type="button" class="btn btn-default" data-ng-disabled="isLastFrame()" data-ng-click="lastFrame()"><span class="glyphicon glyphicon-forward"></span></button>
             </div>
         `,
-    };
-});
-
-SIREPO.app.directive('colorPicker', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        scope: {
-            color: '<',
-            defaultColor: '<',
-            field: '=',
-            modelName: '<',
-            model: '=',
-            form: '<',
-        },
-        template: `
-            <div>
-                <button class="dropdown-toggle sr-color-button" data-ng-style="bgColorStyle()" data-toggle="dropdown"></button>
-                <ul class="dropdown-menu">
-                    <div class="container col-sm-8">
-                        <div data-ng-repeat="r in range(rows) track by $index" class="row">
-                            <li data-ng-repeat="c in range(cols) track by $index" style="display: inline-block">
-                                <button data-ng-if="pcIndex(r, c) < pickerColors.length" class="sr-color-button" data-ng-class="{\'selected\': getColor(model[field]).toUpperCase() == getPickerColor(r, c).toUpperCase()}" data-ng-style="bgColorStyle(getPickerColor(r, c))" data-ng-click="setColor(getPickerColor(r, c))"></button>
-                            </li>
-                        <div>
-                    <div>
-                </ul>
-            </div>
-        `,
-        controller: function($scope) {
-
-            var origColor = null;
-            $scope.pickerColors = [
-                '#000000', '#222222', '#444444', '#666666', '#888888', '#aaaaaa', '#cccccc', '#ffffff',
-                '#0000ff', '#337777', '#3377bf', '#6992ff', '#33bb33', '#33ff33', '#00ff00', '#bbff77',
-                '#ffff00', '#fff44f', '#ffbb77', '#ffa500', '#ff0000', '#bb33ff', '#ff77ff', '#f3d4c8',
-            ];
-
-            $scope.cols = 8;
-            $scope.rows = Math.ceil($scope.pickerColors.length / $scope.cols);
-            $scope.range = function(n) {
-                var arr = [];
-                for (var i = 0; i < n; ++i) {
-                    arr.push(i);
-                }
-                return arr;
-            };
-            $scope.pcIndex = function(row, col) {
-                return $scope.cols * row + col;
-            };
-
-            $scope.getPickerColor = function(row, col) {
-                return $scope.pickerColors[$scope.pcIndex(row, col)];
-            };
-            $scope.getColor = function(color) {
-                //return color || $scope.color || $scope.defaultColor;
-                return color || ($scope.model || {})[$scope.field] || $scope.defaultColor;
-            };
-
-            $scope.bgColorStyle = function(c) {
-                return {
-                    'background-color': $scope.getColor(c)
-                };
-            };
-
-            $scope.setColor = function(color) {
-                $scope.model[$scope.field] = color;
-                // emit change for immediate feedback
-                $scope.$emit($scope.modelName + '.' + $scope.field, color);
-                if ($scope.form) {
-                    $scope.form.$setDirty();
-                }
-                //TODO(mvk): since this is not a normal control we need to store the original state somehow
-                /*
-                if (color !== origColor) {
-                    $scope.form.$setDirty();
-                }
-                else {
-                    if ($scope.form.$$controls.filter(function (c) {
-                            return c.$dirty;
-                        }).length) {
-                        $scope.form.$setDirty();
-                    }
-                    else {
-                        $scope.form.$setPristine();
-                    }
-                }
-                 */
-            };
-
-            appState.whenModelsLoaded($scope, function () {
-                if (! $scope.model) {
-                    return;
-                }
-                origColor = $scope.model[$scope.field];
-            });
-        },
     };
 });
 
@@ -2081,14 +1985,13 @@ SIREPO.app.directive('interactiveOverlay', function(focusPointService, keypressS
             focusStrategy: '=',
         },
         controller: function($scope, $element) {
-            if (! $scope.focusPoints) {
+            if (! $scope.reportId || ! $scope.focusPoints) {
                 // interactiveOverlay only applies if focusPoints are defined on the plot
                 return;
             }
             plotting.setupSelector($scope, $element);
 
-            // random id for this listener
-            var listenerId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+            var listenerId = SIREPO.UTILS.randomId();
             var geometries = [];
             var plotScope;
 
@@ -2627,6 +2530,118 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
     };
 });
 
+SIREPO.app.service('keypressService', function() {
+    const svc = this;
+    const listeners = {};
+    const reports = {};
+    const activeListeners = [];
+    let activeListenerId = null;
+
+    function removeListenersForReport(reportId) {
+        if (! reports[reportId]) {
+            return;
+        }
+        const rlArr = reports[reportId];
+        for(let rlIndex = 0; rlIndex < rlArr.length; ++rlIndex) {
+            svc.removeListener(rlArr[rlIndex]);
+        }
+    }
+
+    function reportForListener(listenerId) {
+        if (! listenerId) {
+            return null;
+        }
+        for(const reportId in reports) {
+            const rlIndex = reports[reportId].indexOf(listenerId);
+            if (rlIndex < 0) {
+                continue;
+            }
+            return reportId;
+        }
+    }
+
+    function showPanelActive(reportId, isActive) {
+        if (isActive) {
+            $('#' + reportId).parents('.panel').addClass('sr-panel-active');
+            return;
+        }
+        $('#' + reportId).parents('.panel').removeClass('sr-panel-active');
+    }
+
+    svc.addListener = (listenerId, listener, reportId) => {
+        listeners[listenerId] = listener;
+        if (! reports[reportId]) {
+                reports[reportId] = [];
+        }
+        reports[reportId].push(listenerId);
+        if (activeListeners.indexOf(listenerId) < 0) {
+            activeListeners.push(listenerId);
+        }
+
+        // turn off highlighting for active report panel, if any
+        showPanelActive(reportForListener(activeListenerId), false);
+
+        activeListenerId = listenerId;
+        svc.enableListener(true);
+    };
+
+    // set the active listener, or
+    // remove keydown listener from body element leaving the keys in place
+    svc.enableListener = (doListen, listenerId) => {
+        if (listenerId)  {
+            activeListenerId = listenerId;
+        }
+        const reportId = reportForListener(activeListenerId);
+        if (doListen && activeListenerId) {
+            d3.select('body').on('keydown', listeners[activeListenerId]);
+            showPanelActive(reportId, true);
+            return;
+        }
+        d3.select('body').on('keydown', null);
+        showPanelActive(reportId, false);
+    };
+
+    svc.enableNextListener = (direction) => {
+        const lIndex = activeListeners.indexOf(activeListenerId);
+        if (lIndex < 0) {
+            return;
+        }
+        svc.enableListener(false);
+        const d = direction < 0 ? -1 : 1;
+        const newIndex = (lIndex + d + activeListeners.length) % activeListeners.length;
+        svc.enableListener(true, activeListeners[newIndex]);
+    };
+
+    svc.removeListener = (listenerId) => {
+        const lIndex = activeListeners.indexOf(listenerId);
+        if (lIndex >= 0) {
+            activeListeners.splice(lIndex, 1);
+        }
+        delete listeners[listenerId];
+
+        const reportId = reportForListener(listenerId);
+        showPanelActive(reportId, false);
+        if (reportId) {
+            reports[reportId].splice(reports[reportId].indexOf(listenerId), 1);
+        }
+
+        // activate the last one added, if any remain
+        if (activeListeners.length > 0) {
+            activeListenerId = activeListeners[activeListeners.length - 1];
+            svc.enableListener(true);
+        }
+        else {
+            activeListenerId = null;
+            svc.enableListener(false);
+        }
+    };
+
+    svc.removeReport = function(reportId) {
+        removeListenersForReport(reportId);
+        delete reports[reportId];
+    };
+});
+
 SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dService) {
     return {
         restrict: 'A',
@@ -2637,6 +2652,7 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             var points;
+            $scope.reportId = SIREPO.UTILS.randomId();
             $scope.focusPoints = [];
 
             $scope.formatFocusPointData = function(fp) {
@@ -2710,6 +2726,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
         templateUrl: '/static/html/plot3d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             var MIN_PIXEL_RESOLUTION = 10;
+            $scope.reportId = SIREPO.UTILS.randomId();
             $scope.margin = {
                 top: 50,
                 left: 50,
@@ -3173,6 +3190,10 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 resizefocusPointText();
             };
 
+            $scope.showPlotSize = () => {
+                return appState.models[$scope.modelName].showPlotSize == '1';
+            };
+
             $scope.$on(SIREPO.PLOTTING_LINE_CSV_EVENT, function(evt, axisName) {
                 var title = $($scope.element).closest('.panel-body')
                         .parent().parent().find('.sr-panel-heading').text();
@@ -3280,20 +3301,24 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return [values[0], values[values.length - 1]];
             }
 
-            var mouseMove = utilities.debounce(function() {
+            const mouseMove = utilities.debounce(() => {
                 /*jshint validthis: true*/
                 if (! heatmap || heatmap[0].length <= 2) {
                     return;
                 }
-                var point = mouseMovePoint;
-                var xRange = getRange(axes.x.values);
-                var yRange = getRange(axes.y.values);
-                var x0 = axes.x.scale.invert(point[0] - 1);
-                var y0 = axes.y.scale.invert(point[1] - 1);
-                var x = Math.round((heatmap[0].length - 1) * (x0 - xRange[0]) / (xRange[1] - xRange[0]));
-                var y = Math.round((heatmap.length - 1) * (y0 - yRange[0]) / (yRange[1] - yRange[0]));
+                const fp = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL;
+                const point = mouseMovePoint;
+                const xRange = getRange(axes.x.values);
+                const yRange = getRange(axes.y.values);
+                const x0 = axes.x.scale.invert(point[0] - 1);
+                const y0 = axes.y.scale.invert(point[1] - 1);
+                const n = fp ? 0 : 1;
+                let i = (heatmap[0].length - n) * (x0 - xRange[0]) / (xRange[1] - xRange[0]);
+                let j = (heatmap.length - n) * (y0 - yRange[0]) / (yRange[1] - yRange[0]);
+                i = fp ? Math.max(0, Math.floor(i)) : Math.round(i);
+                j = fp ? Math.max(0, Math.floor(j)) : Math.round(j);
                 try {
-                    pointer.pointTo(heatmap[heatmap.length - 1 - y][x]);
+                    pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
                 }
                 catch (err) {
                     // ignore range errors due to mouse move after heatmap is reset
@@ -3390,15 +3415,17 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     })
                     .attr('clip-path', 'url(#sr-plot-window)')
                     .attr('stroke', d => d.color)
+                    .attr('stroke-dasharray', d => d.dashes)
                     .attr('stroke-width', 2.0)
                     .attr('fill', 'none')
+                    .attr('marker-end', d => `url(#${d.marker})`)
                     .attr('d', d => {
                         // we don't use the SVGPath directly, but it is a convenient way to build
                         // a path string
                         return new SIREPO.DOM.SVGPath(
                             null,
                             d.data.map(c => [axes.x.scale(c[0]), axes.y.scale(c[1])])
-                        ).pathString();
+                        ).pathString(d.doClose);
                     })
                     .select('title').text(d => d.name);
             }
@@ -3511,7 +3538,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
     };
 });
 
-SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, mathRendering, plotting, plot2dService) {
+SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, mathRendering, plotting, plot2dService, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -3520,16 +3547,18 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
-            var includeForDomain = [];
-            var childPlots = {};
-            var scaleFunction;
-            var plotVisibilty = {};
+            let childPlots = {};
             let dynamicYLabel = false;
+            let includeForDomain = [];
+            let plotVisibility = {};
+            let scaleFunction;
+            let selectedPlotLabels = [];
 
             // for built-in d3 symbols - the units are *pixels squared*
             var symbolSize = 144.0;
             var legendSymbolSize = 48.0;
 
+            $scope.reportId = SIREPO.UTILS.randomId();
             $scope.domPadding = {
                 x: 0,
                 y: 0
@@ -3596,14 +3625,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return true;
             }
 
-            function cachedPlotVisibilty(pIndex, modelName) {
-                plotVisibilty[modelName] = plotVisibilty[modelName] || {};
-                if (! plotVisibilty[modelName].hasOwnProperty(pIndex)) {
-                    plotVisibilty[modelName][pIndex] = false;
-                  }
-                return plotVisibilty[modelName][pIndex];
-            }
-
             function createLegend() {
                 const plots = $scope.axes.y.plots;
                 var legend = $scope.select('.sr-plot-legend');
@@ -3627,7 +3648,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         .attr('y', 17 + count * 20)
                         .text(vIconText(true))
                         .on('click', function() {
-                            togglePlot(i, $scope.modelName);
+                            togglePlot(i);
                             $scope.$applyAsync();
                         });
                     itemWidth = item.node().getBBox().width;
@@ -3753,12 +3774,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 });
             }
 
-            function togglePlot(pIndex, modelName) {
+            function togglePlot(pIndex) {
                 setPlotVisible(pIndex, ! isPlotVisible(pIndex));
                 updateYLabel();
-                if (plotVisibilty) {
-                    plotVisibilty[modelName][pIndex] = ! plotVisibilty[modelName][pIndex];
-                }
+                plotVisibility[pIndex] = ! plotVisibility[pIndex];
             }
 
             function updateYLabel() {
@@ -3833,14 +3852,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             // get the broadest domain from the visible plots
             function visibleDomain() {
-                var ydomMin = Math.min.apply(null,
+                var ydomMin = utilities.arrayMin(
                     includeForDomain.map(function(index) {
-                        return Math.min.apply(null, $scope.axes.y.plots[index].points);
+                        return utilities.arrayMin($scope.axes.y.plots[index].points);
                     })
                 );
-                var ydomMax = Math.max.apply(null,
+                var ydomMax = utilities.arrayMax(
                     includeForDomain.map(function(index) {
-                        return Math.max.apply(null, $scope.axes.y.plots[index].points);
+                        return utilities.arrayMax($scope.axes.y.plots[index].points);
                     })
                 );
                 return plotting.ensureDomain([ydomMin, ydomMax], scaleFunction);
@@ -4077,26 +4096,26 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         : 20;
                 $scope.margin.bottom = 50 + 20 * legendCount;
                 $scope.updatePlot(json);
+
+                if (! appState.deepEquals(getPlotLabels(), selectedPlotLabels)) {
+                    plotVisibility = {};
+                    selectedPlotLabels = getPlotLabels();
+                }
+                // initially set all states visible
                 plots.forEach(function(plot, ip) {
-                    // make sure everything is visible when reloading
                     includeDomain(ip, true);
                     setPlotVisible(ip, true);
                 });
-                updateYLabel();
-                plots.forEach(function(plot, i) {
-                    if (cachedPlotVisibilty(i, $scope.modelName)) {
-                        setPlotVisible(i, ! isPlotVisible(i));
+                // hide previously hidden plots
+                plots.forEach(function(plot, ip) {
+                    if (! plotVisibility.hasOwnProperty(ip)) {
+                        plotVisibility[ip] = true;
+                    }
+                    if (! plotVisibility[ip]) {
+                        setPlotVisible(ip, false);
                     }
                 });
-
-                $scope.$on(
-                    $scope.modelName + '.changed',
-                    () => {
-                        plots.forEach((plot, i) => {
-                            plotVisibilty[$scope.modelName][i] = false;
-                        });
-                    }
-                );
+                updateYLabel();
             };
 
             $scope.recalculateYDomain = function() {
@@ -4300,41 +4319,6 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
-        },
-    };
-});
-
-// use this to display a raw SVG string
-SIREPO.app.directive('svgPlot', function(appState, focusPointService, panelState) {
-    return {
-        restrict: 'A',
-        scope: {
-            reportId: '<',
-            modelName: '@',
-            reportCfg: '<',
-        },
-        template: `
-            <div class="sr-svg-plot">
-                <svg></svg>
-            </div>
-        `,
-        controller: function($scope, $element) {
-
-            function load() {
-                var reload = (($scope.reportCfg || {}).reload || function() {return true;})();
-                panelState.requestData($scope.modelName, function(data) {
-                    var svg = data.svg;
-                    if ($scope.reportCfg && $scope.reportCfg.process) {
-                        svg = $scope.reportCfg.process(svg);
-                    }
-                    $($element).find('.sr-svg-plot > svg').replaceWith(svg);
-                }, reload);
-            }
-
-            appState.whenModelsLoaded($scope, function() {
-                load();
-            });
-
         },
     };
 });

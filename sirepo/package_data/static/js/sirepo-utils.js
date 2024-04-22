@@ -2,6 +2,26 @@
 
 class SirepoUtils {
 
+    static arrayMax(array) {
+        let m;
+        for (const v of array) {
+            if (m === undefined || v > m) {
+                m = v;
+            }
+        }
+        return m;
+    }
+
+    static arrayMin(array) {
+        let m;
+        for (const v of array) {
+            if (m === undefined || v < m) {
+                m = v;
+            }
+        }
+        return m;
+    }
+
     static camelToKebabCase(v) {
         v = v.charAt(0).toLowerCase() + v.slice(1);
         return v.replace(/([A-Z])/g, '-$1').toLowerCase();
@@ -35,24 +55,6 @@ class SirepoUtils {
         const res = [];
         for (let i = 0; i < size; res.push(offset + i++)) {}
         return res;
-    }
-
-    /**
-     * The min value of an array
-     * @param {number[]} array
-     * @returns {number}
-     */
-    static arrayMin(array) {
-        return this.applyInChunks(Math.min, array, Number.MAX_VALUE);
-    }
-
-    /**
-     * The max value of an array
-     * @param {number[]} array
-     * @returns {number}
-     */
-    static arrayMax(array) {
-        return this.applyInChunks(Math.max, array, -Number.MAX_VALUE);
     }
 
     // regular cloning etc. does not include methods on class instances
@@ -91,13 +93,17 @@ class SirepoUtils {
     }
 
     static normalize(seq) {
-        const sMax = Math.max.apply(null, seq);
-        const sMin = Math.min.apply(null, seq);
+        const sMax = SirepoUtils.arrayMax(seq);
+        const sMin = SirepoUtils.arrayMin(seq);
         let sRange = sMax - sMin;
         sRange = sRange > 0 ? sRange : 1.0;
         return seq.map(function (v) {
             return (v - sMin) / sRange;
         });
+    }
+
+    static randomId() {
+        return 'sr' + SirepoUtils.randomString();
     }
 
     static randomString(length=32) {
@@ -114,26 +120,6 @@ class SirepoUtils {
         }
         const r = Math.pow(10, p);
         return Math.round(val * r) / r;
-    }
-
-    /**
-     * Functions that take "varargs" (e.g. Math.min) can break the stack if the number of args is too
-     * large. This applies the function to an array in chunks to avoid such cases
-     * @param {function} fn - the function to apply
-     * @param {*[]} array - the array of interest
-     * @param {*} initVal - default return value for empty arrays
-     * @returns {*}
-     */
-    static applyInChunks(fn, arr, initVal) {
-        let res = initVal;
-        let i = 0;
-        while (i < arr.length) {
-            const j = Math.min(i + 1000, arr.length);
-            const sub = fn.apply(null, arr.slice(i, j));
-            res = fn.apply(null, [res, sub]);
-            i = j;
-        }
-        return res;
     }
 
     // returns an array containing the unique elements of the input,
@@ -156,12 +142,8 @@ class SirepoUtils {
         return uniqueArr;
     }
 
-    static maxForIndex(arr, i) {
-        return Math.max(...arr.map(x => x[i]));
-    }
-
     static minForIndex(arr, i) {
-        return Math.min(...arr.map(x => x[i]));
+        return SirepoUtils.arrayMin(arr.map(x => x[i]));
     }
 
     static reshape(arr, dims) {

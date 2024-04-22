@@ -634,7 +634,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
               <div data-ng-transclude=""></div>
             </div>
             <div data-confirmation-modal="" data-id="sr-delete-lattice-item-dialog" data-title="{{ latticeService.selectedItem.name }}" data-ok-text="Delete" data-ok-clicked="deleteSelectedItem()">Delete item <strong>{{ latticeService.selectedItem.name }}</strong>?</div>
-            <div data-confirmation-modal="" data-id="sr-beamline-from-elements-dialog" data-title="Create Beamline From Elements" data-ok-text="Save Changes" data-ok-clicked="createBeamlineFromElements()">
+            <div data-confirmation-modal="" data-id="sr-beamline-from-elements-dialog" data-title="Create Beamline From Elements" data-ok-text="Save" data-ok-clicked="createBeamlineFromElements()">
               <form class="form-horizontal" autocomplete="off">
                 <label class="col-sm-4 control-label">Beamline Name</label>
                 <div class="col-sm-8">
@@ -656,8 +656,8 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 <input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" style="text-align: right" data-lpignore="true" required />
               </div>
               <div class="text-center">
-                <button class="btn btn-primary" data-ng-click="setElementPosition()">Save Changes</button>
-                 <button class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>
+                <button class="btn btn-primary sr-button-save-cancel" data-ng-click="setElementPosition()">Save</button>
+                 <button class="btn btn-default sr-button-save-cancel" data-ng-click="clearPopover()">Cancel</button>
               </div>
             </div>
             </div>
@@ -1275,14 +1275,13 @@ SIREPO.app.directive('parameterWithLattice', function(appState) {
         restrict: 'A',
         scope: {
             modelName: '@',
-            reportId: '<',
             beamlineId: '<',
             pathToModels: '@',
             showTable: '@',
         },
         template: `
             <div data-ng-if="showLattice()"><div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelName }}" data-show-table-"{{ showTable }}" data-path-to-models="{{ pathToModels }}" data-flatten="1"></div></div>
-            <div id="sr-parameters" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelName }}" data-report-id="reportId"></div>
+            <div id="sr-parameters" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelName }}"></div>
         `,
         controller: function($scope, $element) {
             var latticeScope, plotScope;
@@ -2702,7 +2701,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
                     <div class="container-fluid">
                       <div class="row">
                         <div class="col-sm-12" data-ng-if="twissReportShown">
-                          <div data-report-content="parameterWithLattice" data-model-key="twissReport" data-report-id="reportId"></div>
+                          <div data-report-content="parameterWithLattice" data-model-key="twissReport"></div>
                         </div>
                       </div>
                       <br />
@@ -2718,7 +2717,6 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
             </div>
         `,
         controller: function($scope) {
-            $scope.reportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
             $scope.latticeService = latticeService;
 
             function hasTwissReport() {
@@ -2962,7 +2960,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                         </div>
                         <div class="row">
                           <div class="col-sm-6 pull-right">
-                            <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button>
+                            <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save</button>
                             <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
                           </div>
                         </div>

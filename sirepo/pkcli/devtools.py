@@ -13,7 +13,7 @@ _RENAMER_EXCLUDE_FILES = re.compile(
     + r"|^run/"
     + r"|__pycache__/ "
     + r"|\/js\/ext"
-    + r"|^.*\.(git|cache)|node_modules|react/public"
+    + r"|^.*\.(git|cache)|node_modules"
     + r"|^.*\.(sdds|bun|png|jpg|woff|eot|ttf|tif|gif|ico|h5m|zip|log|db|csv|h5|stl|dat|log|npy|pyc|paramOpt|gz|woff2)$"
 )
 

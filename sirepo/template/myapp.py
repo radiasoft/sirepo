@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
 """Myapp execution template.
 
 :copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
+
+from pykern.pkcollections import PKDict
+from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
@@ -33,6 +33,14 @@ def stateless_compute_global_resources(data, **kwargs):
     )
 
 
+def stateful_compute_sim_data(data, **kwargs):
+    assert pkconfig.channel_in_internal_test()
+    m = data.args.test_method
+    if m.startswith("[a-z]"):
+        raise AssertionError(f"invalid method={m}")
+    return getattr(sim_data, m)(**data.args.test_kwargs)
+
+
 def get_data_file(run_dir, model, frame, options):
     if options.suffix == "sr_long_analysis":
         # Not asyncio.sleep: not in coroutine (job_cmd)
@@ -56,10 +64,9 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _generate_parameters_file(data):
     if "report" in data:
-        assert data["report"] == "heightWeightReport", "unknown report: {}".format(
-            data["report"]
-        )
-    v = copy.deepcopy(data["models"], pkcollections.Dict())
+        if data.report != "heightWeightReport":
+            raise AssertionError(f"unknown report: {data.report}")
+    v = copy.deepcopy(data.models, PKDict())
     v.input_name = INPUT_NAME
     v.output_name = OUTPUT_NAME
     return template_common.render_jinja(

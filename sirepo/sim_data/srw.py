@@ -32,6 +32,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             "plotScale",
             "rotateAngle",
             "rotateReshape",
+            "showPlotSize",
             "useIntensityLimits",
             "usePlotRange",
             "verticalOffset",
@@ -138,6 +139,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if "fieldUnits" in dm[m]:
                     dm.simulation.fieldUnits = dm[m].fieldUnits
                     del dm[m]["fieldUnits"]
+            if "beamlineAnimation" in m:
+                cls.update_model_defaults(dm[m], cls.WATCHPOINT_REPORT)
         # default sourceIntensityReport.method based on source type
         if "method" not in dm.sourceIntensityReport:
             if cls.srw_is_undulator_source(dm.simulation):
@@ -230,9 +233,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def srw_compute_crystal_grazing_angle(cls, model):
-        model.grazingAngle = (
-            math.acos(math.sqrt(1 - model.tvx**2 - model.tvy**2)) * 1e3
-        )
+        model.grazingAngle = math.acos(math.sqrt(1 - model.tvx**2 - model.tvy**2)) * 1e3
 
     @classmethod
     def srw_find_closest_angle(cls, angle, allowed_angles):

@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
 """elegant execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+
 from pykern import pkcompat
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
@@ -208,9 +208,11 @@ class OutputFileIterator(lattice.ModelIterator):
                     suffix = self._command_file_extension(model)
                     filename = "{}{}.{}.{}".format(
                         model._type,
-                        self.model_index[self.model_name]
-                        if self.model_index[self.model_name] > 1
-                        else "",
+                        (
+                            self.model_index[self.model_name]
+                            if self.model_index[self.model_name] > 1
+                            else ""
+                        ),
                         field,
                         suffix,
                     )
@@ -584,9 +586,9 @@ def background_percent_complete(report, run_dir, is_running):
                     if name not in beamline_map:
                         beamline_map[name] = 0
                     beamline_map[name] += 1
-                    beamline_map[
-                        "{}#{}".format(name.upper(), beamline_map[name])
-                    ] = index
+                    beamline_map["{}#{}".format(name.upper(), beamline_map[name])] = (
+                        index
+                    )
                     index += 1
                 else:
                     index = _walk(
@@ -719,7 +721,8 @@ def generate_variables(data):
 def get_data_file(run_dir, model, frame, options):
     def _sdds(filename):
         path = run_dir.join(filename)
-        assert path.check(file=True, exists=True), "{}: not found".format(path)
+        if not path.check(file=True, exists=True):
+            raise AssertionError(f"not found path={path}")
         if not options.suffix:
             return path
         if options.suffix != "csv":
@@ -736,10 +739,13 @@ def get_data_file(run_dir, model, frame, options):
                 str(path),
             ],
         )
-        assert out, f"{path}: invalid or empty output from sddsprintout"
-        return PKDict(
-            uri=path.purebasename + ".csv",
-            content=out,
+        if not out:
+            raise AssertionError(
+                f"invalid or empty output from sddsprintout path={path}"
+            )
+        return template_common.JobCmdFile(
+            reply_uri=path.purebasename + ".csv",
+            reply_content=out,
         )
 
     if frame >= 0:
@@ -750,23 +756,6 @@ def get_data_file(run_dir, model, frame, options):
     if model == "animation":
         return template_common.text_data_file(ELEGANT_LOG_FILE, run_dir)
     return _sdds(_report_output_filename("bunchReport"))
-
-
-async def import_file(req, test_data=None, **kwargs):
-    # input_data is passed by test cases only
-    d = test_data
-    if "id" in req:
-        d = simulation_db.read_simulation_json(SIM_TYPE, sid=req.id, qcall=req.qcall)
-    p = pkio.py_path(req.filename)
-    res = parse_input_text(p, req.form_file.as_str(), d, qcall=req.qcall)
-    res.models.simulation.name = p.purebasename
-    if d and not test_data:
-        simulation_db.delete_simulation(
-            SIM_TYPE,
-            d.models.simulation.simulationId,
-            qcall=req.qcall,
-        )
-    return res
 
 
 def parse_input_text(
@@ -901,6 +890,23 @@ def stateful_compute_get_beam_input_type(data, **kwargs):
             _SIM_DATA.lib_file_abspath(data.args.input_file),
         )
     return data
+
+
+def stateful_compute_import_file(data, **kwargs):
+    d = data.args.pkunchecked_nested_get("import_file_arguments")
+    if d:
+        d = pkjson.load_any(d)
+    res = parse_input_text(
+        path=pkio.py_path(data.args.basename),
+        text=data.args.file_as_str,
+        input_data=d,
+    )
+    if not d:
+        res.models.simulation.name = data.args.purebasename
+    r = LatticeUtil.find_first_command(res, "run_setup")
+    if r and r.lattice != "Lattice":
+        return PKDict(importState="needLattice", eleData=res, latticeFileName=r.lattice)
+    return PKDict(imported_data=res)
 
 
 def validate_file(file_type, path):

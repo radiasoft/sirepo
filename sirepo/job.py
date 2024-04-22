@@ -30,6 +30,12 @@ OP_RUN = "run"
 OP_SBATCH_LOGIN = "sbatch_login"
 OP_BEGIN_SESSION = "begin_session"
 
+
+#: Types of slots required by op types
+CPU_SLOT_OPS = frozenset((OP_ANALYSIS, OP_RUN))
+SLOT_OPS = frozenset().union(*[CPU_SLOT_OPS, (OP_IO,)])
+
+
 _OK_REPLY = PKDict(state="ok")
 
 #: path supervisor registers to receive messages from agent
@@ -41,9 +47,6 @@ SERVER_SRTIME_URI = "/job-api-srtime"
 #: path supervisor registers to receive requests from server
 SERVER_URI = "/job-api-request"
 
-#: path supervisor registers to receive runMulti requests from server
-SERVER_RUN_MULTI_URI = "/job-api-run-multi-request"
-
 #: path supervisor registers to receive pings from server
 SERVER_PING_URI = "/job-api-ping"
 
@@ -52,15 +55,6 @@ DATA_FILE_URI = "/job-cmd-data-file"
 
 #: path supervisor registers to receive requests from job_process for global resources
 GLOBAL_RESOURCES_URI = "/global-resources"
-
-#: how jobs request files
-LIB_FILE_URI = "/job-cmd-lib-file"
-
-#: how jobs request list of files (relative to `LIB_FILE_URI`)
-LIB_FILE_LIST_URI = "/list.json"
-
-#: where user lib file directories are linked for static download (job_supervisor)
-LIB_FILE_ROOT = None
 
 # POSIT: These are the same queues as in schema-common.common.enum.SbatchQueue
 NERSC_QUEUES = frozenset(("debug", "premium", "realtime", "regular"))
@@ -137,6 +131,7 @@ UNIQUE_KEY_CHARS_RE = r"\w+"
 
 #: A standalone unique key
 UNIQUE_KEY_RE = re.compile(r"^{}$".format(UNIQUE_KEY_CHARS_RE))
+
 
 _QUASI_SID_PREFIX = "_1_"
 
@@ -288,10 +283,9 @@ def init_module():
             "do not validate (self-signed) certs",
         ),
     )
-    global SUPERVISOR_SRV_ROOT, LIB_FILE_ROOT, DATA_FILE_ROOT
+    global SUPERVISOR_SRV_ROOT, DATA_FILE_ROOT
 
     SUPERVISOR_SRV_ROOT = sirepo.srdb.root().join(SUPERVISOR_SRV_SUBDIR)
-    LIB_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(LIB_FILE_URI[1:])
     DATA_FILE_ROOT = SUPERVISOR_SRV_ROOT.join(DATA_FILE_URI[1:])
     return _cfg
 

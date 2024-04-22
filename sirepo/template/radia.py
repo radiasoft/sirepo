@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Radia execution template.
 
 All Radia calls have to be done from here, NOT in jinja files, because otherwise the
@@ -8,7 +7,6 @@ Radia "instance" goes away and references no longer have any meaning.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-import inspect
 from pykern import pkcompat
 from pykern import pkinspect
 from pykern import pkio
@@ -25,6 +23,7 @@ import csv
 import h5py
 import math
 import numpy
+import os.path
 import re
 import sdds
 import sirepo.csv
@@ -260,10 +259,9 @@ def get_data_file(run_dir, model, frame, options):
             )
         return f
     if model == "kickMapReport":
-        _save_kick_map_sdds(
+        return _save_kick_map_sdds(
             name, f, _read_or_generate_kick_map(get_g_id(), data.models.kickMapReport)
         )
-        return f
     if model == "fieldLineoutAnimation":
         beam_axis = _rotate_axis(to_axis="z", from_axis=sim.beamAxis)
         f_type = rpt.fieldType
@@ -284,33 +282,21 @@ def get_data_file(run_dir, model, frame, options):
     if model == "optimizerAnimation":
         return template_common.text_data_file("optimize.out", run_dir)
     if model == "geometryReport":
-        return PKDict(
-            uri=f"{name}.{sfx}",
-            filename=pkio.py_path(_DMP_FILE),
+        return template_common.JobCmdFile(
+            reply_uri=f"{name}.{sfx}",
+            reply_path=pkio.py_path(_DMP_FILE),
         )
     if model == "fieldIntegralReport":
-        _save_field_integrals_csv(
+        return _save_field_integrals_csv(
             data.models.fieldPaths.paths,
             simulation_db.read_json(run_dir.join(template_common.OUTPUT_BASE_NAME)),
             f,
         )
-        return f
+    raise AssertionError(f"unknown model={model}")
 
 
 def get_g_id():
     return radia_util.load_bin(pkio.read_binary(_DMP_FILE))
-
-
-async def import_file(req, tmp_dir=None, **kwargs):
-    data = simulation_db.default_data(req.type)
-    data.models.simulation.pkupdate(
-        {k: v for k, v in req.req_data.items() if k in data.models.simulation}
-    )
-    data.models.simulation.pkupdate(
-        _parse_input_file_arg_str(req.import_file_arguments)
-    )
-    _prep_new_sim(data)
-    return data
 
 
 def new_simulation(data, new_sim_data, qcall, **kwargs):
@@ -366,6 +352,18 @@ def sim_frame_fieldLineoutAnimation(frame_args):
 
 def sim_frame_optimizerAnimation(frame_args):
     return _extract_optimization_results(frame_args)
+
+
+def stateful_compute_import_file(data, **kwargs):
+    res = simulation_db.default_data(SIM_TYPE)
+    res.models.simulation.pkupdate(
+        dmpImportFile=data.args.basename,
+        name=data.args.purebasename,
+    )
+    _prep_new_sim(res)
+    # _prep_new_sim sets _MAGNET_NOTES for notes so overwrite after
+    res.models.simulation.notes = f"Imported from {data.args.basename}"
+    return PKDict(imported_data=res)
 
 
 def stateful_compute_recompute_rpn_cache_values(data, **kwargs):
@@ -1004,7 +1002,9 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
         try:
             # use the previous results
             _SIM_DATA.sim_files_to_run_dir(data, run_dir, post_init=True)
-        except sirepo.sim_data.SimDbFileNotFound:
+        except Exception as e:
+            if not pkio.exception_is_not_found(e):
+                raise
             do_generate = True
 
     if not do_generate:
@@ -1327,7 +1327,7 @@ def _calculate_objective_def(models):
             c
             + f"""
     import numpy
-    
+
     f = numpy.array([])
     p1 = {q.begin}
     p2 = {q.end}
@@ -1350,16 +1350,6 @@ def _orient_stemmed_points(o, points, plane_ctr):
         [2 * plane_ctr[i] * idx[i] + (-1) ** idx[i] * v for (i, v) in enumerate(p)]
         for p in points
     ]
-
-
-def _parse_input_file_arg_str(s):
-    d = PKDict()
-    for kvp in s.split(SCHEMA.constants.inputFileArgDelims.list):
-        if not kvp:
-            continue
-        kv = kvp.split(SCHEMA.constants.inputFileArgDelims.item)
-        d[kv[0]] = kv[1]
-    return d
 
 
 def _prep_new_sim(data, new_sim_data=None):
@@ -1579,8 +1569,7 @@ def _save_field_csv(field_type, vectors, scipy_rotation, path):
         r = pts[j : j + 3]
         r = numpy.append(r, mags[i] * dirs[j : j + 3])
         data.append(",".join(map(str, r)))
-    pkio.write_text(path, "\n".join(data))
-    return path
+    return pkio.write_text(path, "\n".join(data))
 
 
 # zip file - data plus index.  This will likely be used to generate files for a range

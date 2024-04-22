@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkio
@@ -74,7 +75,7 @@ class AnalysisDriverBase(PKDict):
             *self._get_papermill_args(),
         ]:
             res.extend(["-p", f"'{n}'", f"'{v}'"])
-            res.extend(("--report-mode", "--log-output", "--no-progress-bar"))
+        res.extend(("--report-mode", "--log-output", "--progress-bar"))
         return res
 
     def get_run_log(self):

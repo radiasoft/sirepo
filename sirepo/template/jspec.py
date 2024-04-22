@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """JSPEC execution template.
 
 :copyright: Copyright (c) 2017-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja

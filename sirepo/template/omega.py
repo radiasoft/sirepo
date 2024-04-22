@@ -1,18 +1,18 @@
-# -*- coding: utf-8 -*-
 """omega execution template.
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pmd_beamphysics import ParticleGroup
+
 from pykern import pkio
-from pykern.pkcollections import PKDict
 from pykern import pkjson
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
 import h5py
 import numpy
+import pmd_beamphysics
 import pmd_beamphysics.interfaces.elegant
 import pmd_beamphysics.interfaces.genesis
 import pmd_beamphysics.interfaces.opal
@@ -135,6 +135,7 @@ def copy_related_sims(data, qcall=None):
                 simulation_db.find_global_simulation(
                     sim_obj.simulationType,
                     sim_obj.simulationId,
+                    checked=True,
                 )
             ).join("sirepo-data.json")
             c = pkjson.load_any(p)
@@ -149,56 +150,66 @@ def copy_related_sims(data, qcall=None):
                 simulation_db.lib_dir_from_sim_dir(p),
                 qcall=qcall,
             )
-            data.models.simWorkflow.coupledSims[
-                index
-            ].simulationId = s.models.simulation.simulationId
+            data.models.simWorkflow.coupledSims[index].simulationId = (
+                s.models.simulation.simulationId
+            )
     return data
 
 
 def get_data_file(run_dir, model, frame, options):
-    i = int(re.search(r"Animation(\d+)\-", model).groups(1)[0])
-    sim_type, sim_id = _sim_info(
-        simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models,
-        i - 1,
-    )
-    particle_file = pkio.py_path(f"run{i}").join(_SUCCESS_OUTPUT_FILE[sim_type])
-    if options.suffix is None:
-        return particle_file
-    assert options.suffix == "openpmd", f"unknown data type={options.suffix} requested"
-    n = f"{sim_type}_openpmd.h5"
-    d = None
-    if sim_type == "elegant":
-        p = ParticleGroup(
-            data=pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file),
-        ).write(n)
-    elif sim_type == "opal":
-        step = _template_for_sim_type(sim_type).read_frame_count(pkio.py_path("."))
-        with h5py.File(particle_file, "r") as f:
-            p = ParticleGroup(
-                data=pmd_beamphysics.interfaces.opal.opal_to_data(f[f"/Step#{step}"]),
-            ).write(n)
-    elif sim_type == "genesis":
-        dm = simulation_db.read_json(
-            pkio.py_path(f"run{i}").join(template_common.INPUT_BASE_NAME + ".json")
-        ).models
-        v = numpy.fromfile(
-            particle_file.dirpath().join(particle_file.purebasename + ".dpa"),
-            dtype=numpy.float64,
+    def _particle_file_and_sim_info():
+        i = int(re.search(r"Animation(\d+)\-", model).groups(1)[0])
+        s = _sim_info(
+            simulation_db.read_json(
+                run_dir.join(template_common.INPUT_BASE_NAME)
+            ).models,
+            i - 1,
         )
-        v = v.reshape(
-            int(len(v) / 6 / dm.electronBeam.npart),
-            6,
-            dm.electronBeam.npart,
-        )
-        p = ParticleGroup(
-            data=pmd_beamphysics.interfaces.genesis.genesis2_dpa_to_data(
-                v,
-                xlamds=dm.radiation.xlamds,
-                current=numpy.array([dm.electronBeam.curpeak]),
+        return (pkio.py_path(f"run{i}").join(_SUCCESS_OUTPUT_FILE[s.sim_type]), s)
+
+    def _particle_group(sim_type, particle_file):
+        if sim_type == "elegant":
+            return pmd_beamphysics.ParticleGroup(
+                data=pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file),
             )
-        ).write(n)
-    else:
-        raise AssertionError(f"unsupported sim_type={sim_type}")
+        elif sim_type == "opal":
+            step = _template_for_sim_type(sim_type).read_frame_count(run_dir)
+            with h5py.File(particle_file, "r") as f:
+                return pmd_beamphysics.ParticleGroup(
+                    data=pmd_beamphysics.interfaces.opal.opal_to_data(
+                        f[f"/Step#{step}"]
+                    ),
+                )
+        elif sim_type == "genesis":
+            dm = simulation_db.read_json(
+                particle_file.dirpath().join(template_common.INPUT_BASE_NAME + ".json")
+            ).models
+            v = numpy.fromfile(
+                particle_file.dirpath().join(particle_file.purebasename + ".dpa"),
+                dtype=numpy.float64,
+            )
+            v = v.reshape(
+                int(len(v) / 6 / dm.electronBeam.npart),
+                6,
+                dm.electronBeam.npart,
+            )
+            return pmd_beamphysics.ParticleGroup(
+                data=pmd_beamphysics.interfaces.genesis.genesis2_dpa_to_data(
+                    v,
+                    xlamds=dm.radiation.xlamds,
+                    current=numpy.array([dm.electronBeam.curpeak]),
+                )
+            )
+        else:
+            raise AssertionError(f"unsupported sim_type={sim_type}")
+
+    f, s = _particle_file_and_sim_info()
+    if options.suffix is None:
+        return f
+    if options.suffix != "openpmd":
+        raise AssertionError(f"unknown data type={options.suffix} requested")
+    n = f"{s.sim_type}_openpmd.h5"
+    _particle_group(s.sim_type, f).write(n)
     return n
 
 
@@ -213,25 +224,24 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
                     return m.group(1)
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
     for idx in reversed(range(len(dm.simWorkflow.coupledSims))):
-        sim_type, sim_id = _sim_info(dm, idx)
-        if not sim_type or not sim_id:
+        s = _sim_info(dm, idx)
+        if not s.sim_type or not s.sid:
             continue
         sim_dir = _sim_dir(run_dir, idx + 1)
-        sim_template = _template_for_sim_type(sim_type)
-        res = f"{sim_type.upper()} failed\n"
+        sim_template = _template_for_sim_type(s.sim_type)
+        res = f"{s.sim_type.upper()} failed\n"
         if success_exit:
             # no error
             return
-        if sim_type and sim_id:
-            if sim_dir.exists():
-                if sim_type == "opal":
-                    return res + sim_template.parse_opal_log(sim_dir)
-                if sim_type == "elegant":
-                    return res + sim_template.parse_elegant_log(sim_dir)
-                if sim_type == "genesis":
-                    # genesis gets error from main run.log
-                    return res + sim_template.parse_genesis_error(run_dir)
-                return res
+        if s.sim_type and s.sid and sim_dir.exists():
+            if s.sim_type == "opal":
+                return res + sim_template.parse_opal_log(sim_dir)
+            if s.sim_type == "elegant":
+                return res + sim_template.parse_elegant_log(sim_dir)
+            if s.sim_type == "genesis":
+                # genesis gets error from main run.log
+                return res + sim_template.parse_genesis_error(run_dir)
+            return res
 
     return "An unknown error occurred"
 
@@ -319,12 +329,12 @@ def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     sim_list = []
     for idx in range(len(dm.simWorkflow.coupledSims)):
-        sim_type, sim_id = _sim_info(dm, idx)
-        if sim_type and sim_id:
+        s = _sim_info(dm, idx)
+        if s.sim_type and s.sid:
             sim_list.append(
                 PKDict(
-                    sim_type=sim_type,
-                    sim_id=sim_id,
+                    sim_type=s.sim_type,
+                    sim_id=s.sid,
                 )
             )
         else:
@@ -381,11 +391,15 @@ def _output_info(run_dir):
 
 
 def _is_genesis(run_dir, index):
-    t, i = _sim_info(
-        simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models,
-        index,
+    return (
+        "genesis"
+        == _sim_info(
+            simulation_db.read_json(
+                run_dir.join(template_common.INPUT_BASE_NAME)
+            ).models,
+            index,
+        ).sim_type
     )
-    return t == "genesis"
 
 
 def _phase_plot_args(sim_type, frame_args):
@@ -457,8 +471,9 @@ def _sim_dir(run_dir, sim_count):
 def _sim_info(dm, idx):
     s = dm.simWorkflow.coupledSims
     if len(s) > idx:
-        return s[idx].simulationType, s[idx].simulationId
-    return None, None
+        return PKDict(sim_type=s[idx].simulationType, sid=s[idx].simulationId)
+    # TODO(robnagler) could this return None instead PKDict
+    return PKDict(sim_type=None, sid=None)
 
 
 def _sim_list(sim_type):

@@ -201,11 +201,11 @@ def stateful_compute_get_madx_sim_list(data, **kwargs):
             PKDict(
                 name=m.simulation.name,
                 simulationId=m.simulation.simulationId,
-                invalidMsg=None
-                if _has_kickers(m)
-                else "No beamlines"
-                if not _has_beamline(m)
-                else "No kickers",
+                invalidMsg=(
+                    None
+                    if _has_kickers(m)
+                    else "No beamlines" if not _has_beamline(m) else "No kickers"
+                ),
             )
         )
     return PKDict(simList=res)
@@ -392,9 +392,11 @@ def _generate_parameters_file(data):
             SIM_TYPE,
             v,
             "{}.py".format(
-                "device-server"
-                if v.controlSettings_operationMode == "DeviceServer"
-                else "madx",
+                (
+                    "device-server"
+                    if v.controlSettings_operationMode == "DeviceServer"
+                    else "madx"
+                ),
             ),
         )
     )

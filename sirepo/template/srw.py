@@ -1,27 +1,30 @@
-# -*- coding: utf-8 -*-
 """SRW execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
+from pykern import pkcompat
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
 import array
+import asyncio
 import copy
 import glob
 import math
 import numpy as np
 import os
 import pickle
-import pykern.pkjson
 import re
 import sirepo.mpi
 import sirepo.sim_data
+import sirepo.sim_run
 import sirepo.util
 import srwpy.srwl_bl
 import srwpy.srwlib
@@ -513,12 +516,24 @@ def sim_frame(frame_args):
             frame_args.sim_in.report = "initialIntensityReport"
             frame_args.sim_in.models.initialIntensityReport = m
             data_file = _OUTPUT_FOR_MODEL.initialIntensityReport.filename
+        detector = None
+        m = frame_args.sim_in.models[r]
+        if str(m.get("useDetector", "0")) == "1":
+            detector = srwpy.srwl_bl.SRWLBeamline().set_detector(
+                _x=float(m.d_x),
+                _y=float(m.d_y),
+                _nx=int(m.d_nx),
+                _ny=int(m.d_ny),
+                _rx=float(m.d_rx),
+                _ry=float(m.d_ry),
+            )
         srwpy.srwl_bl.SRWLBeamline().calc_int_from_wfr(
             wfr,
             _pol=int(frame_args.polarization),
             _int_type=int(frame_args.characteristic),
             _fname=data_file,
             _pr=False,
+            _det=detector,
         )
     if "beamlineAnimation" not in r:
         # some reports may be written at the same time as the reader
@@ -532,93 +547,6 @@ def sim_frame(frame_args):
                 # Not asyncio.sleep: not in coroutine (job_cmd)
                 time.sleep(2)
     return extract_report_data(frame_args.sim_in)
-
-
-async def import_file(req, tmp_dir, qcall, **kwargs):
-    import sirepo.server
-
-    i = None
-    r = None
-    try:
-        r = kwargs["srw_save_sim"](simulation_db.default_data(SIM_TYPE))
-        d = r.content_as_object()
-        r.destroy()
-        r = None
-        i = d.models.simulation.simulationId
-        serial = d.models.simulation.simulationSerial
-        b = d.models.backgroundImport = PKDict(
-            arguments=req.import_file_arguments,
-            python=req.form_file.as_str(),
-            userFilename=req.filename,
-        )
-        # POSIT: import.py uses ''', but we just don't allow quotes in names
-        if "'" in b.arguments:
-            raise sirepo.util.UserAlert("arguments may not contain quotes")
-        if "'" in b.userFilename:
-            raise sirepo.util.UserAlert("filename may not contain quotes")
-        d.pkupdate(
-            report="backgroundImport",
-            forceRun=True,
-            simulationId=i,
-        )
-        r = await qcall.call_api("runSimulation", data=d)
-        for _ in range(_IMPORT_PYTHON_POLLS):
-            try:
-                x = r.content_as_object()
-                r.destroy()
-                r = None
-            except Exception as e:
-                raise sirepo.util.UserAlert(
-                    "error parsing python",
-                    "error={} parsing reply={}",
-                    e,
-                    r,
-                )
-            if "error" in x:
-                pkdc("runSimulation error msg={}", x)
-                raise sirepo.util.UserAlert(x.get("error"))
-            if PARSED_DATA_ATTR in x:
-                break
-            if "nextRequest" not in x:
-                raise sirepo.util.UserAlert(
-                    "error parsing python",
-                    "unable to find nextRequest in response={}",
-                    PARSED_DATA_ATTR,
-                    x,
-                )
-            time.sleep(x.nextRequestSeconds)
-            r = await qcall.call_api("runStatus", data=x.nextRequest)
-        else:
-            raise sirepo.util.UserAlert(
-                "error parsing python",
-                "polled too many times, last response={}",
-                r,
-            )
-        x = x.get(PARSED_DATA_ATTR)
-        x.models.simulation.simulationId = i
-        x.models.simulation.simulationSerial = serial
-        x = simulation_db.save_simulation_json(
-            x, do_validate=True, fixup=True, qcall=qcall
-        )
-    except Exception:
-        # TODO(robnagler) need to clean up simulations except in dev
-        raise
-        if i:
-            try:
-                simulation_db.delete_simulation(req.type, i, qcall=qcall)
-            except Exception:
-                pass
-        raise
-    finally:
-        if r:
-            r.destroy()
-            r = None
-    raise sirepo.util.SReplyExc(
-        await qcall.call_api(
-            "simulationData",
-            kwargs=PKDict(simulation_type=x.simulationType, simulation_id=i),
-        ),
-    )
 
 
 def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
@@ -669,7 +597,7 @@ def post_execution_processing(
             f = _SIM_DATA.ML_OUTPUT
             _SIM_DATA.put_sim_file(sim_id, run_dir.join(f), f)
         return None
-    return _parse_srw_log(run_dir)
+    return template_common.LogParser(run_dir).parse_for_errors()
 
 
 def prepare_for_client(data, qcall, **kwargs):
@@ -732,8 +660,21 @@ def prepare_for_save(data, qcall):
             user_model_list = _load_user_model_list(model_name, qcall=qcall)
             models_by_id = _user_model_map(user_model_list, "id")
 
-            if model.id not in models_by_id:
+            if "id" not in model or model.id not in models_by_id:
                 pkdc("adding new model: {}", model.name)
+                if model.name in _user_model_map(user_model_list, "name"):
+                    model.name = _unique_name(
+                        user_model_list, "name", model.name + " {}"
+                    )
+                    selectorName = (
+                        "beamSelector"
+                        if model_name == "electronBeam"
+                        else "undulatorSelector"
+                    )
+                    model[selectorName] = model.name
+                model.id = _unique_name(
+                    user_model_list, "id", data.models.simulation.simulationId + " {}"
+                )
                 user_model_list.append(_create_user_model(data, model_name))
                 _save_user_model_list(model_name, user_model_list, qcall=qcall)
             elif models_by_id[model.id] != model:
@@ -856,6 +797,62 @@ def run_epilogue():
     sirepo.mpi.restrict_op_to_first_rank(_op)
 
 
+def stateful_compute_create_shadow_simulation(data, **kwargs):
+    from sirepo.template.srw_shadow import Convert
+
+    return Convert().to_shadow(data)
+
+
+def stateful_compute_delete_user_models(data, **kwargs):
+    """Remove the beam and undulator user model list files"""
+
+    def _delete(model_name, model):
+        if model and "id" in model:
+            # optimistic: model is very likely to be there
+            _save_user_model_list(
+                model_name,
+                list(
+                    filter(
+                        lambda m: m.id != model.id,
+                        _load_user_model_list(model_name),
+                    ),
+                ),
+            )
+
+    _delete("electronBeam", data.args.get("electron_beam"))
+    _delete("tabulatedUndulator", data.args.get("tabulated_undulator"))
+    return PKDict()
+
+
+def stateful_compute_import_file(data, **kwargs):
+    from sirepo.template import srw_importer
+
+    with sirepo.sim_run.tmp_dir():
+        return PKDict(
+            imported_data=srw_importer.import_python(
+                code=data.args.file_as_str,
+                user_filename=data.args.basename,
+                arguments=data.args.import_file_arguments,
+            ),
+        )
+
+
+def stateful_compute_model_list(data, **kwargs):
+    res = []
+    m = data.args.model_name
+    if m == "electronBeam":
+        res.extend(get_predefined_beams())
+    res.extend(_load_user_model_list(m))
+    if m == "electronBeam":
+        for beam in res:
+            srw_common.process_beam_parameters(beam)
+    return PKDict(modelList=res)
+
+
+def stateless_compute_PGM_value(data, **kwargs):
+    return _compute_PGM_value(data.optical_element)
+
+
 def stateful_compute_sample_preview(data, **kwargs):
     """Process image and return
 
@@ -893,9 +890,11 @@ def stateful_compute_sample_preview(data, **kwargs):
     if m.sampleSource == "file":
         s = srwpy.srwl_uti_smp.SRWLUtiSmp(
             file_path=_input_file(data),
-            area=None
-            if not int(m.cropArea)
-            else (m.areaXStart, m.areaXEnd, m.areaYStart, m.areaYEnd),
+            area=(
+                None
+                if not int(m.cropArea)
+                else (m.areaXStart, m.areaXEnd, m.areaYStart, m.areaYEnd)
+            ),
             rotate_angle=float(m.rotateAngle),
             rotate_reshape=int(m.rotateReshape),
             cutoff_background_noise=float(m.cutoffBackgroundNoise),
@@ -933,50 +932,11 @@ def stateful_compute_sample_preview(data, **kwargs):
         )
         p = d.join(f"sample_processed.{m.outputImageFormat}")
         s.save(p.basename)
-    return template_common.JobCmdFile(path=p)
+    return template_common.JobCmdFile(reply_path=p)
 
 
 def stateful_compute_undulator_length(data, **kwargs):
     return compute_undulator_length(data.args["tabulated_undulator"])
-
-
-def stateful_compute_create_shadow_simulation(data, **kwargs):
-    from sirepo.template.srw_shadow import Convert
-
-    return Convert().to_shadow(data)
-
-
-def stateful_compute_delete_user_models(data, **kwargs):
-    """Remove the beam and undulator user model list files"""
-    electron_beam = data.args.electron_beam
-    tabulated_undulator = data.args.tabulated_undulator
-    for model_name in _USER_MODEL_LIST_FILENAME.keys():
-        model = electron_beam if model_name == "electronBeam" else tabulated_undulator
-        if not model or "id" not in model:
-            continue
-        user_model_list = _load_user_model_list(model_name, qcall=qcall)
-        for i, m in enumerate(user_model_list):
-            if m.id == model.id:
-                del user_model_list[i]
-                _save_user_model_list(model_name, user_model_list, qcall=qcall)
-                break
-    return PKDict()
-
-
-def stateful_compute_model_list(data, **kwargs):
-    res = []
-    model_name = data.args["model_name"]
-    if model_name == "electronBeam":
-        res.extend(get_predefined_beams())
-    res.extend(_load_user_model_list(model_name))
-    if model_name == "electronBeam":
-        for beam in res:
-            srw_common.process_beam_parameters(beam)
-    return PKDict(modelList=res)
-
-
-def stateless_compute_PGM_value(data, **kwargs):
-    return _compute_PGM_value(data.optical_element)
 
 
 def stateless_compute_crl_characteristics(data, **kwargs):
@@ -1148,10 +1108,12 @@ def validate_magnet_data_file(zf):
     )
     return (
         files_match,
-        ""
-        if files_match
-        else "Files in index {} do not match files in zip {}".format(
-            file_names_in_index, file_names_in_zip
+        (
+            ""
+            if files_match
+            else "Files in index {} do not match files in zip {}".format(
+                file_names_in_index, file_names_in_zip
+            )
         ),
     )
 
@@ -1226,9 +1188,9 @@ def _beamline_animation_percent_complete(run_dir, res):
 
 def _best_data_file(primary):
     def _lines(path):
-        return len(pykern.pkio.open_text(path).readlines())
+        return len(pkio.open_text(path).readlines())
 
-    p = pykern.pkio.py_path(primary)
+    p = pkio.py_path(primary)
     s = p.new(ext="dat.bkp")
     if not s.check():
         return p.basename
@@ -1479,11 +1441,8 @@ def _compute_crystal_init(model):
             model.orientation = "x"
         else:
             model.orientation = "y"
-    except Exception:
-        pkdlog(
-            "{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py}: error: {}",
-            material_raw,
-        )
+    except Exception as e:
+        pkdlog("material_raw={} exception={}", material_raw, e)
         for key in parms_list:
             model[key] = None
     return model
@@ -1996,6 +1955,10 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None, qcall=None
         v.python_file = run_dir.join("user_python.py")
         pkio.write_text(v.python_file, dm.backgroundImport.python)
         return template_common.render_jinja(SIM_TYPE, v, "import.py")
+    if report in dm and str(dm[report].get("useDetector", "0")) == "1":
+        v.useDetector = "1"
+        for f in ("d_x", "d_rx", "d_nx", "d_y", "d_ry", "d_ny"):
+            v[f"detector_{f}"] = dm[report][f]
     _set_parameters(v, data, plot_reports, run_dir, qcall=qcall)
     v.in_server = run_dir is not None
     return _trim(res + template_common.render_jinja(SIM_TYPE, v))
@@ -2179,16 +2142,18 @@ def _is_true(model, field):
 
 
 def _load_user_model_list(model_name, qcall=None):
-    f = _SIM_DATA.lib_file_write_path(
-        _USER_MODEL_LIST_FILENAME[model_name], qcall=qcall
-    )
+    b = _USER_MODEL_LIST_FILENAME[model_name]
     try:
-        if f.exists():
-            return simulation_db.read_json(f)
-    except Exception:
-        pkdlog("user list read failed, resetting contents: {}", f)
-    _save_user_model_list(model_name, [], qcall=qcall)
-    return _load_user_model_list(model_name, qcall=qcall)
+        return pkjson.load_any(_SIM_DATA.lib_file_read_text(b, qcall=qcall))
+    except Exception as e:
+        if not pkio.exception_is_not_found(e):
+            pkdlog(
+                "resetting model_list={} due to lib_file_read error={} stack={}",
+                b,
+                e,
+                pkdexc(),
+            )
+    return _save_user_model_list(model_name, [], qcall=qcall)
 
 
 def _machine_learning_percent_complete(run_dir, res):
@@ -2202,21 +2167,6 @@ def _machine_learning_percent_complete(run_dir, res):
     res.frameCount = count
     res.percentComplete = 100 * count / dm.exportRsOpt.totalSamples
     return res
-
-
-def _parse_srw_log(run_dir):
-    res = ""
-    p = run_dir.join(template_common.RUN_LOG)
-    if not p.exists():
-        return res
-    with pkio.open_text(p) as f:
-        for line in f:
-            m = re.search(r"Error: (.*)", line)
-            if m:
-                res += m.group(1) + "\n"
-    if res:
-        return res
-    return "An unknown error occurred"
 
 
 def _process_rsopt_elements(els):
@@ -2244,7 +2194,7 @@ def _remap_3d(info, allrange, out, report):
         z_range = [report.minIntensityLimit, report.maxIntensityLimit]
     else:
         z_range = [np.min(ar2d), np.max(ar2d)]
-    return PKDict(
+    res = PKDict(
         x_range=x_range,
         y_range=y_range,
         x_label=info.x_label,
@@ -2256,6 +2206,13 @@ def _remap_3d(info, allrange, out, report):
         z_range=z_range,
         summaryData=info.summaryData,
     )
+    if (
+        str(report.get("useDetector", "0")) == "1"
+        and str(report.get("useDetectorAspectRatio", "0")) == "1"
+        and float(report.d_rx) != 0
+    ):
+        res.aspectRatio = float(report.d_ry) / float(report.d_rx)
+    return res
 
 
 def _reshape_3d(ar1d, allrange, report):
@@ -2277,7 +2234,7 @@ def _reshape_3d(ar1d, allrange, report):
 
 def _resize_report(report, ar2d, x_range, y_range):
     width_pixels = int(report.get("intensityPlotsWidth", 0))
-    if not width_pixels:
+    if not width_pixels or str(report.get("useDetector", "0")) == "1":
         # upper limit is browser's max html canvas size
         width_pixels = _CANVAS_MAX_SIZE
     # rescale width and height to maximum of width_pixels
@@ -2411,14 +2368,13 @@ def _safe_beamline_item_name(name, names):
     return current
 
 
-def _save_user_model_list(model_name, beam_list, qcall):
-    pkdc("saving {} list", model_name)
-    simulation_db.write_json(
-        _SIM_DATA.lib_file_write_path(
-            _USER_MODEL_LIST_FILENAME[model_name], qcall=qcall
-        ),
-        beam_list,
+def _save_user_model_list(model_name, beam_list, qcall=None):
+    _SIM_DATA.lib_file_write(
+        _USER_MODEL_LIST_FILENAME[model_name],
+        pkjson.dump_bytes(beam_list),
+        qcall=qcall,
     )
+    return beam_list
 
 
 def _set_magnetic_measurement_parameters(run_dir, v, qcall=None):
@@ -2738,9 +2694,11 @@ def _write_rsopt_files(data, run_dir, ctx):
     for f in _export_rsopt_files().values():
         pkio.write_text(
             run_dir.join(f),
-            python_source_for_model(data, data.report, None, plot_reports=False)
-            if f == f"{_SIM_DATA.EXPORT_RSOPT}.py"
-            else template_common.render_jinja(SIM_TYPE, ctx, f),
+            (
+                python_source_for_model(data, data.report, None, plot_reports=False)
+                if f == f"{_SIM_DATA.EXPORT_RSOPT}.py"
+                else template_common.render_jinja(SIM_TYPE, ctx, f)
+            ),
         )
 
 
@@ -2748,9 +2706,11 @@ def _write_rsopt_zip(data, ctx):
     def _write(zip_file, path):
         zip_file.writestr(
             path,
-            python_source_for_model(data, data.report, None, plot_reports=False)
-            if path == f"{_SIM_DATA.EXPORT_RSOPT}.py"
-            else template_common.render_jinja(SIM_TYPE, ctx, path),
+            (
+                python_source_for_model(data, data.report, None, plot_reports=False)
+                if path == f"{_SIM_DATA.EXPORT_RSOPT}.py"
+                else template_common.render_jinja(SIM_TYPE, ctx, path)
+            ),
         )
 
     filename = f"{_SIM_DATA.EXPORT_RSOPT}.zip"

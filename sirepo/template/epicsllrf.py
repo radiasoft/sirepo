@@ -150,18 +150,6 @@ def _generate_parameters_file(data):
     )
 
 
-def _parse_epics_log(run_dir):
-    res = ""
-    with pkio.open_text(run_dir.join(template_common.RUN_LOG)) as f:
-        for line in f:
-            m = re.match(
-                r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)", line
-            )
-            if m:
-                return m.group(1)
-    return res
-
-
 def _read_epics_data(run_dir, computed_values):
     s = run_dir.join(_STATUS_FILE)
     if s.exists():
@@ -180,6 +168,15 @@ def _read_epics_data(run_dir, computed_values):
             _calculate_computed_values(d, computed_values)
         return d
     return PKDict()
+
+
+def _parse_epics_log(run_dir, log_filename="run.log"):
+    return template_common.LogParser(
+        run_dir,
+        log_filename=log_filename,
+        error_patterns=(r"sirepo.template.epicsllrf.EpicsDisconnectError:\s+(.+)",),
+        default_msg="",
+    ).parse_for_errors()
 
 
 def _set_zcu_signal(server_address, model):

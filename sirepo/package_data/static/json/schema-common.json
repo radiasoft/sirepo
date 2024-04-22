@@ -110,22 +110,22 @@
         "authCompleteRegistration": "/auth-complete-registration",
         "authEmailAuthorized": "/auth-email-authorized/<simulation_type>/<token>",
         "authEmailLogin": "/auth-email-login",
-        "authGithubAuthorized": "/auth-github-authorized",
-        "authGithubLogin": "/auth-github-login/<simulation_type>",
         "authGuestLogin": "/auth-guest-login/<simulation_type>",
         "authLdapLogin": "/auth-ldap-login",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
-        "authState2": "/auth-state2",
         "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
-        "checkAuthJupyterhub": "/check-auth-jupyterhub",
+        "checkAuthJupyterHub": "/check-auth-jupyterhub",
         "contentTooLarge": "/content-too-large",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteFile": "/delete-file",
+        "deleteLibFile": "/delete-lib-file",
         "deleteSimulation": "/delete-simulation",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
+        "downloadLibFile": "/download-lib-file/<simulation_type>/<filename>",
+        "downloadRunFile": "/download-run-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
         "error": "/error",
         "errorLogging": "/error-logging",
@@ -144,18 +144,14 @@
         "jupyterHub": "/jupyter",
         "listFiles": "/file-list",
         "listSimulations": "/simulation-list",
-        "migrateJupyterhub": "/migrate-jupyterhub",
         "newSimulation": "/new-simulation",
-        "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "ownJobs": "/own-jobs",
         "proxyError": "/proxy-error",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
-        "pythonSource2": "/python-source2/<simulation_type>",
         "redirectJupyterHub": "/redirect-jupyterhub",
         "robotsTxt": "/robots.txt",
         "root": "/*<path_info>",
         "runCancel": "/run-cancel",
-        "runMulti": "/run-multi",
         "runSimulation": "/run-simulation",
         "runStatus": "/run-status",
         "saveModerationReason": "/save-moderation-reason",
@@ -173,7 +169,8 @@
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
-        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
+        "uploadLibFile": "/upload-lib-file/<simulation_type>/<simulation_id>/<file_type>"
     },
     "common": {
         "adm": {
@@ -200,7 +197,6 @@
             "canDownloadInputFile": true,
             "canExportArchive": true,
             "canShowDocumentationUrl": true,
-            "clientCookie": "sirepo_cookie_js",
             "hasJupyterExport": false,
             "hasMadxExport": false,
             "logFileFrameId": -1,
@@ -227,11 +223,6 @@
                 "name": "lv",
                 "value": false,
                 "valType": "b"
-            },
-            "login": {
-                "name": "login",
-                "value": "a",
-                "timeout": 1
             },
             "previousRoute": {
                 "name": "prev",
@@ -483,21 +474,6 @@
                 "notes": ["Notes", "Text", ""]
             }
         },
-        "notifications": {
-            "getStarted": {
-                "name": "getStarted",
-                "cookie": "getStarted",
-                "content": "",
-                "active": true
-            },
-            "login": {
-                "name": "login",
-                "cookie": "login",
-                "content": "",
-                "active": false,
-                "delay": 1
-            }
-        },
         "staticFiles": {
             "externalLibs": {
                 "js": [
@@ -563,7 +539,7 @@
         },
         "404": {
             "url": "http-not-found.html",
-            "msg": "File Not Found",
+            "msg": "Not Found",
             "route": "notFound"
         },
         "413": {
@@ -579,7 +555,7 @@
         "502": {
             "url": "http-proxy-error.html",
             "msg": "Proxy Error",
-            "route": "proxy-error"
+            "route": "proxyError"
         }
     }
 }

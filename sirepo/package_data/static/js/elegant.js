@@ -281,7 +281,7 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
         if (! appState.isLoaded()) {
             return '';
         }
-        return requestSender.formatUrl('downloadDataFile', {
+        return requestSender.formatUrl('downloadRunFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             '<model>': model,
@@ -918,15 +918,6 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                 }
             }
 
-            function hasMissingLattice(data) {
-                var runSetup = elegantService.findFirstCommand('run_setup', data.models.commands);
-                if (! runSetup || runSetup.lattice == 'Lattice') {
-                    return false;
-                }
-                $scope.latticeFileName = runSetup.lattice;
-                return true;
-            }
-
             function hideAndRedirect() {
                 $('#simulation-import').modal('hide');
                 requestSender.localRedirect('lattice', {
@@ -963,11 +954,6 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
             }
 
             function verifyInputFiles(data) {
-                if (hasMissingLattice(data)) {
-                    $scope.state = 'lattice';
-                    $scope.elegantFile = null;
-                    return;
-                }
                 var requiredFiles = {};
                 var i;
                 for (i = 0; i < data.models.elements.length; i++) {
@@ -1059,7 +1045,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                     folder: fileManager.getActiveFolderPath(),
                 };
                 if ($scope.state == 'lattice') {
-                    args.simulationId = $scope.id;
+                    args.arguments = JSON.stringify($scope.eleData);
                 }
                 else {
                     $scope.resetState();
@@ -1069,15 +1055,17 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                 fileUpload.uploadFileToUrl(
                     elegantFile,
                     args,
-                    requestSender.formatUrl(
-                        'importFile',
-                        {
-                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        }),
+                    requestSender.formatUrl('importFile'),
                     function(data) {
                         if (data.error) {
                             $scope.resetState();
                             $scope.fileUploadError = data.error;
+                        }
+                        else if (data.importState && data.importState === "needLattice") {
+                            $scope.state = 'lattice';
+                            $scope.elegantFile = null;
+                            $scope.eleData = data.eleData;
+                            $scope.latticeFileName = data.latticeFileName;
                         }
                         else {
                             $scope.id = data.models.simulation.simulationId;
@@ -1095,8 +1083,11 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                         $scope.fileUploadError = data.error;
                         return;
                     }
-                    requestSender.getListFilesData(data.fileType).push(data.filename);
-                    hideAndRedirect();
+                    // the callback may occur after the simulation has loaded and file lists cleared
+                    if (requestSender.getListFilesData(data.fileType)) {
+                        requestSender.getListFilesData(data.fileType).push(data.filename);
+                        hideAndRedirect();
+                    }
                 };
                 for (var i = 0; i < $scope.missingFiles.length; i++) {
                     var f = $scope.missingFiles[i][5];
@@ -1106,7 +1097,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, e
                         f,
                         null,
                         requestSender.formatUrl(
-                            'uploadFile',
+                            'uploadLibFile',
                             {
                                 '<simulation_id>': $scope.id,
                                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
@@ -1467,7 +1458,7 @@ SIREPO.app.directive('viewLogIframeWrapper', function() {
                 if (! m) {
                     return '';
                 }
-                return requestSender.formatUrl('downloadDataFile', {
+                return requestSender.formatUrl('downloadRunFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<model>': m,

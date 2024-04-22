@@ -144,32 +144,6 @@ _op_no_smtp_mail() {
     _exec_all
 }
 
-_op_react() {
-    export SIREPO_FEATURE_CONFIG_UI_REACT=1
-    # Only one auth method allowed
-    export SIREPO_AUTH_METHODS=email
-    # Websockets don't work
-    export SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=0
-    _op_mail
-}
-
-_op_react_build() {
-    if [[ ! ${run_react_build_no_compile:-} ]]; then
-        cd "$(dirname "$0")"/../react
-        rm -rf build
-        npm run-script build
-        (
-            # These aren't likely to fail so run in subshell
-            cd ..
-            rm -f sirepo/package_data/static/react
-            ln -s ../../../react/build sirepo/package_data/static/react
-        )
-    fi
-    export SIREPO_PKCLI_SERVICE_REACT_PORT=
-    export SIREPO_SERVER_REACT_SERVER=build
-    _op_react
-}
-
 _op_server_status() {
     declare u=$(cd "$(dirname "$0")"/../run/user && ls -d ???????? 2>/dev/null | head -1)
     if [[ ! $u ]]; then
@@ -217,19 +191,16 @@ END
     for f in postfix procmail; do
         if ! rpm -q "$f" &> /dev/null; then
             _msg "installing $f"
-            sudo dnf install -y -q postfix procmail
+            sudo dnf install -y -q "$f"
         fi
     done
-    # Necessary for docker on Ubuntu tries to open ipv6
-    if ! grep ^::1 /etc/hosts &> /dev/null; then
-        sudo sed -i '/^::1\s/d' /etc/hosts
-    fi
     if [[ ! $(postconf -n recipient_delimiter) ]]; then
         _msg 'configuring postfix'
         sudo su - <<'END'
         postconf -e \
-            'mydestination=$myhostname, localhost.$mydomain, localhost, localhost.localdomain' \
+            inet_protocols=ipv4 \
             mailbox_command=/usr/bin/procmail \
+            'mydestination=$myhostname, localhost.$mydomain, localhost, localhost.localdomain' \
             recipient_delimiter=+
         systemctl enable postfix
         systemctl restart postfix

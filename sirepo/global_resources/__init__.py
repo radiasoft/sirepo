@@ -6,6 +6,7 @@ with any other ports on the node.
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
@@ -63,8 +64,8 @@ def for_simulation(sim_type, sid, uid=None, for_gui=True):
     if _in_agent():
         r = sirepo.agent_supervisor_api.request(
             "post",
-            _cfg.supervisor_uri,
-            _cfg.supervisor_token,
+            _cfg.server_uri,
+            _cfg.server_token,
             json=PKDict(simulationType=sim_type, simulationId=sid),
         )
         r.raise_for_status()
@@ -87,7 +88,7 @@ def for_simulation(sim_type, sid, uid=None, for_gui=True):
 
 
 def _in_agent():
-    return _cfg.supervisor_uri is not None
+    return _cfg.server_uri is not None
 
 
 def _init():
@@ -95,21 +96,13 @@ def _init():
     if _MANAGER:
         return
     _cfg = pkconfig.init(
-        supervisor_token=(
-            None,
-            str,
-            "token for supervisor api global resources access",
-        ),
-        supervisor_uri=(
-            None,
-            str,
-            "uri for accessing global resources api in supervisor",
-        ),
-        public_ports_min=(12000, int, "start of range for public ports"),
-        public_ports_max=(12100, int, "end of range for public ports (exclusive)"),
-        ports_min=(12100, int, "start of range of private ports"),
-        ports_max=(12200, int, "end of range of private ports (exclusive)"),
         ips=("127.2.0.0/16", str, "cidr range of available ip addresses"),
+        ports_max=(12200, int, "end of range of private ports (exclusive)"),
+        ports_min=(12100, int, "start of range of private ports"),
+        public_ports_max=(12100, int, "end of range for public ports (exclusive)"),
+        public_ports_min=(12000, int, "start of range for public ports"),
+        server_token=(None, str, "credential for api"),
+        server_uri=(None, str, "how to connect to api"),
     )
     _MANAGER = _Manager()
 

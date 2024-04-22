@@ -10,9 +10,6 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 import asyncio
-import copy
-import functools
-import importlib
 import signal
 import sirepo.const
 import sirepo.events
@@ -50,22 +47,17 @@ def default_command():
     )
     sirepo.modules.import_and_init("sirepo.job_supervisor")
     pkio.mkdir_parent(sirepo.job.DATA_FILE_ROOT)
-    pkio.mkdir_parent(sirepo.job.LIB_FILE_ROOT)
     app = tornado.web.Application(
         [
             (sirepo.job.AGENT_URI, _AgentMsg),
             (sirepo.job.SERVER_URI, _ServerReq),
-            (sirepo.job.SERVER_RUN_MULTI_URI, _ServerReqRunMulti),
             (sirepo.job.SERVER_PING_URI, _ServerPing),
             (sirepo.job.SERVER_SRTIME_URI, _ServerSrtime),
             (sirepo.job.DATA_FILE_URI + "/(.*)", _DataFileReq),
-            (sirepo.job.SIM_DB_FILE_URI + "/(.+)", sirepo.sim_db_file.FileReq),
+            (sirepo.job.SIM_DB_FILE_URI + "/(.+)", sirepo.sim_db_file.SimDbServer),
             (sirepo.job.GLOBAL_RESOURCES_URI, sirepo.global_resources.api.Req),
         ],
         debug=_cfg.debug,
-        static_path=sirepo.job.SUPERVISOR_SRV_ROOT.join(sirepo.job.LIB_FILE_URI),
-        # tornado expects a trailing slash
-        static_url_prefix=sirepo.job.LIB_FILE_URI + "/",
         websocket_max_message_size=sirepo.job.cfg().max_message_bytes,
         websocket_ping_interval=sirepo.job.cfg().ping_interval_secs,
         websocket_ping_timeout=sirepo.job.cfg().ping_timeout_secs,
@@ -167,40 +159,6 @@ class _ServerSrtime(_JsonPostRequestHandler):
         self.write(PKDict())
 
 
-class _ServerReqRunMulti(_ServerReq):
-    async def post(self):
-        async def _await_reply(content, handler):
-            r = copy.deepcopy(content.data)
-            del r["models"]
-            return PKDict(
-                # OPTIMIZATION: return just a few details of the
-                # reuqest (ex computeModel) so we know which request
-                # the response is for. But, not the whole thing which
-                # may be a lot (all of models) and is not used
-                request=r,
-                response=await _incoming(content, handler),
-            )
-
-        b = pkjson.load_any(self.request.body)
-        futures = []
-        for m in b.data:
-            i = functools.partial(
-                _await_reply,
-                m.pkupdate(serverSecret=b.serverSecret, api=m.data.api),
-                self,
-            )
-            if m.data.get("awaitReply"):
-                futures.append(i())
-                continue
-            tornado.ioloop.IOLoop.current().add_callback(i)
-        r = PKDict()
-        if futures:
-            r.pkupdate(
-                data=await asyncio.gather(*futures, return_exceptions=True),
-            )
-        self.write(r)
-
-
 async def _incoming(content, handler):
     try:
         c = content
@@ -220,6 +178,7 @@ async def _incoming(content, handler):
             handler.sr_on_exception()
         except Exception as e:
             pkdlog("sr_on_exception: exception={}", e)
+        return PKDict(state=sirepo.job.ERROR, error="unexpected error")
 
 
 def _sigterm(signum, frame):

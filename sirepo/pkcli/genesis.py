@@ -6,8 +6,17 @@
 """
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdlog
+from sirepo import simulation_db
 from sirepo.template import template_common
 import sirepo.template.genesis
+
+
+def run(cfg_dir):
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    if data.report == "maginPlotReport":
+        template_common.write_sequential_result(
+            sirepo.template.genesis.plot_magin(data.models.io.maginfile)
+        )
 
 
 def run_background(cfg_dir):

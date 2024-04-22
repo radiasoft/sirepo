@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
 """Test purging of free users "old" simulations.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import pytest
-import os
-import time
 
 _CACHE_AND_SIM_PURGE_PERIOD = 3
 _PURGE_FREE_AFTER_DAYS = 1
@@ -28,10 +24,19 @@ def test_myapp_free_user_sim_purged(auth_fc):
     from pykern import pkunit, pkcollections, pkio, pkunit
     from pykern.pkdebug import pkdp
     from sirepo import auth_role, const, srdb
+    import time
+
+    model = "heightWeightReport"
 
     def _check_run_dir(should_exist=0):
-        f = pkio.walk_tree(fc.sr_user_dir(), file_re=m)
-        pkunit.pkeq(should_exist, len(f), "incorrect file count")
+        f = pkio.walk_tree(fc.sr_user_dir(), file_re=model)
+        pkunit.pkeq(
+            should_exist,
+            len(f),
+            "incorrect file count user_dir={} file_re={model}",
+            fc.sr_user_dir(),
+            model,
+        )
 
     def _make_invalid_job():
         d = srdb.supervisor_dir()
@@ -52,9 +57,9 @@ def test_myapp_free_user_sim_purged(auth_fc):
         pkunit.pkeq(r, [uid], "expecting one premium user with same id")
 
     def _run_sim(data):
-        r = fc.sr_run_sim(data, m)
+        r = fc.sr_run_sim(data, model)
         r.simulationType = fc.sr_sim_type
-        r.report = m
+        r.report = model
         r.update(data)
         return r
 
@@ -62,7 +67,6 @@ def test_myapp_free_user_sim_purged(auth_fc):
         pkunit.pkeq(status, fc.sr_post("runStatus", next_req).state)
 
     fc = auth_fc
-    m = "heightWeightReport"
     user_free = "free@b.c"
     user_premium = "premium@x.y"
     fc.sr_email_login(user_free)
@@ -78,10 +82,11 @@ def test_myapp_free_user_sim_purged(auth_fc):
         _check_run_dir(should_exist=0)
         fc.sr_email_login(user_premium)
         _status_eq(next_req_premium, "completed")
-        _check_run_dir(should_exist=7)
+        _check_run_dir(should_exist=6)
 
 
 def test_elegant_no_frame_after_purge(auth_fc):
+    """This test fails if test_myapp_free_user_sim_purged fails"""
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp

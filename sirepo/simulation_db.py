@@ -1,14 +1,14 @@
-# -*- coding: utf-8 -*-
 """Simulation database
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import feature_config
@@ -42,8 +42,8 @@ JOB_RUN_MODE_MAP = None
 #: Schema common values, e.g. version
 SCHEMA_COMMON = None
 
-#: Simulation file name is globally unique to avoid collisions with simulation output
-SIMULATION_DATA_FILE = "sirepo-data" + sirepo.const.JSON_SUFFIX
+#: DEPRECATED use sirepo.const.SIM_DATA_BASENAME
+SIMULATION_DATA_FILE = sirepo.const.SIM_DATA_BASENAME
 
 #: where users live under db_dir
 USER_ROOT_DIR = "user"
@@ -61,7 +61,7 @@ _ID_PARTIAL_RE_STR = "[{}]{{{}}}".format(_ID_CHARS, _ID_LEN)
 _ID_RE = re.compile("^{}$".format(_ID_PARTIAL_RE_STR))
 
 #: where users live under db_dir
-_LIB_DIR = "lib"
+_LIB_DIR = sirepo.const.LIB_DIR
 
 #: lib relative to sim_dir
 _REL_LIB_DIR = "../" + _LIB_DIR
@@ -81,7 +81,8 @@ _SCHEMA_SUPERCLASS_FIELD = "_super"
 #: configuration
 _cfg = None
 
-_SIM_DB_FILE_PATH_RE = re.compile(r"^[a-zA-Z0-9-_\.]{1,128}$")
+#: begin alnum/under, end with alnum, 128 chars max
+_SIM_DB_BASENAME_RE = re.compile(r"^[a-zA-Z0-9_][a-zA-Z0-9_\.-]{1,126}[a-zA-Z0-9]$")
 
 #: For re-entrant `user_lock`
 _USER_LOCK = PKDict(paths=set())
@@ -107,8 +108,8 @@ def assert_sid(sid):
     raise AssertionError(f"invalid sid={sid}")
 
 
-def assert_sim_db_file_path(basename):
-    assert _SIM_DB_FILE_PATH_RE.search(basename), f"basename={basename} is invalid"
+def assert_sim_db_basename(basename):
+    assert _SIM_DB_BASENAME_RE.search(basename), f"basename={basename} is invalid"
     return basename
 
 
@@ -278,7 +279,7 @@ def get_schema(sim_type):
 
     """
     t = (
-        sirepo.template.assert_sim_type(sim_type)
+        util.assert_sim_type(sim_type)
         if sim_type is not None
         else list(feature_config.cfg().sim_types)[0]
     )
@@ -305,7 +306,7 @@ def init_module():
 def iterate_simulation_datafiles(simulation_type, op, search=None, qcall=None):
     res = []
     sim_dir = simulation_dir(simulation_type, qcall=qcall)
-    for p in pkio.sorted_glob(sim_dir.join("*", SIMULATION_DATA_FILE)):
+    for p in pkio.sorted_glob(sim_dir.join("*", sirepo.const.SIM_DATA_BASENAME)):
         try:
             data = open_json_file(
                 simulation_type,
@@ -339,7 +340,7 @@ def json_filename(filename, run_dir=None):
 
 
 def json_load(*args, **kwargs):
-    return pkcollections.json_load_any(*args, **kwargs)
+    return pkjson.load_any(*args, **kwargs)
 
 
 def lib_dir_from_sim_dir(sim_dir):
@@ -393,7 +394,7 @@ def migrate_guest_to_persistent_user(guest_uid, to_uid, qcall):
     with user_lock(uid=guest_uid, qcall=qcall) as g:
         with user_lock(uid=to_uid, qcall=qcall):
             for p in glob.glob(
-                str(g.join("*", "*", SIMULATION_DATA_FILE)),
+                str(g.join("*", "*", sirepo.const.SIM_DATA_BASENAME)),
             ):
                 if read_json(p).models.simulation.get("isExample"):
                     continue
@@ -618,7 +619,6 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
 
     def _version_validate(data):
         # If there is no version, ignore.
-        # TODO(robnagler) only case seems to be srw.import_file
         if data.get("version", SCHEMA_COMMON.version) != SCHEMA_COMMON.version:
             raise util.SRException(
                 "serverUpgraded",
@@ -631,12 +631,10 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
     _version_validate(data)
     if fixup:
         data = fixup_old_data(data, qcall=qcall)[0]
-        # we cannot change the logged in user so we need to
-        # not run these fixups here, or we'll get recursion as
-        # prepare_for_save may ask for the logged in user
         if modified:
             t = sirepo.template.import_module(data.simulationType)
             if hasattr(t, "prepare_for_save"):
+                # TODO(robnagler) only case seems to be srw.import_file
                 data = t.prepare_for_save(data, qcall=qcall)
     # old implementation value
     data.pkdel("computeJobHash")
@@ -699,26 +697,6 @@ def sim_data_file(sim_type, sim_id, qcall=None):
         py.path.local: simulation path
     """
     return simulation_dir(sim_type, sim_id, qcall=qcall).join(SIMULATION_DATA_FILE)
-
-
-def sim_db_file_uri(simulation_type, sid, basename):
-    return "/".join(
-        [
-            sirepo.template.assert_sim_type(simulation_type),
-            assert_sid(sid),
-            assert_sim_db_file_path(basename),
-        ]
-    )
-
-
-def sim_db_file_uri_to_path(path, expect_uid):
-    p = path.split("/")
-    assert len(p) == 4, f"path={p} has too many parts"
-    assert p[0] == expect_uid, f"uid={p[0]} is not expect_uid={expect_uid}"
-    sirepo.template.assert_sim_type(p[1]),
-    assert_sid(p[2]),
-    assert_sim_db_file_path(p[3]),
-    return user_path_root().join(*p)
 
 
 def sim_from_path(path):
@@ -964,7 +942,6 @@ def _init_schemas():
             "constants",
             "cookies",
             "enum",
-            "notifications",
             "localRoutes",
             "model",
             "strings",

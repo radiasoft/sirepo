@@ -92,9 +92,11 @@ def _extract_twiss_report(data):
         plots.append(
             {
                 "points": _float_list(values[report[f]]),
-                "label": "{} [{}]".format(report[f], _FIELD_UNITS[report[f]])
-                if report[f] in _FIELD_UNITS
-                else report[f],
+                "label": (
+                    "{} [{}]".format(report[f], _FIELD_UNITS[report[f]])
+                    if report[f] in _FIELD_UNITS
+                    else report[f]
+                ),
             }
         )
     return {

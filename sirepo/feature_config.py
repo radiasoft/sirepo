@@ -97,10 +97,6 @@ def for_sim_type(sim_type):
     )
 
 
-def is_react_sim_type(sim_type):
-    return cfg().ui_react and sim_type in cfg().react_sim_types
-
-
 def proprietary_sim_types():
     """All sim types that have proprietary information and require granted access to use
 
@@ -139,6 +135,13 @@ def _init():
     _cfg = pkconfig.init(
         # No secrets should be stored here (see sirepo.job.agent_env)
         api_modules=((), set, "optional api modules, e.g. status"),
+        activait=dict(
+            data_storage_url=(
+                "https://github.com/radiasoft/sirepo-data-activait/raw/master/",
+                str,
+                "url base to reach activait example files",
+            ),
+        ),
         cloudmc=dict(
             data_storage_url=(
                 "https://github.com/radiasoft/sirepo-data-cloudmc/raw/master/",
@@ -189,13 +192,6 @@ def _init():
                 "url to reach scan monitor daemon",
             ),
         ),
-        react_sim_types=(
-            ("jspec", "genesis", "warppba", "myapp", "shadow", "madx")
-            if pkconfig.channel_in("dev")
-            else (),
-            set,
-            "React apps",
-        ),
         schema_common=dict(
             hide_guest_warning=_dev("Hide the guest warning in the UI"),
         ),
@@ -217,7 +213,6 @@ def _init():
             bool,
             "Trust Bash env to run Python and agents",
         ),
-        ui_react=(False, bool, "global control for React UI"),
         ui_websocket=(
             pkconfig.in_dev_mode(),
             bool,

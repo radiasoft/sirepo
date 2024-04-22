@@ -27,7 +27,7 @@ SIREPO.app.config(function() {
         </div>
     `;
     SIREPO.appReportTypes = `
-        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>
+        <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
     `;
     SIREPO.lattice = {
         canReverseBeamline: true,
@@ -371,7 +371,7 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
     };
 
     self.simState.logFileURL = function() {
-        return requestSender.formatUrl('downloadDataFile', {
+        return requestSender.formatUrl('downloadRunFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             '<model>': self.simState.model,
@@ -381,7 +381,7 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
 
     appState.whenModelsLoaded($scope, function() {
         var cmd = commandService.findFirstCommand('track');
-        if (! cmd.line) {
+        if (! cmd.line || ! latticeService.elementForId(cmd.line)) {
             cmd.line = appState.models.simulation.activeBeamlineId;
             appState.saveQuietly('commands');
         }
@@ -588,12 +588,11 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
         restrict: 'A',
         scope: {
             modelName: '@',
-            reportId: '<',
         },
         template: `
             <div class="row">
               <div data-ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
-                <div data-vtk-display="" data-report-id="reportId" data-model-name="{{ modelName }}" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-reset-side="y"></div>
+                <div data-vtk-display="" data-model-name="{{ modelName }}" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-reset-side="y"></div>
               </div>
             </div>`,
         controller: function($scope, $element) {

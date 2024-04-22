@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Agent for managing the execution of jobs.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
@@ -37,7 +37,11 @@ import tornado.netutil
 #: Long enough for job_cmd to write result in run_dir
 _TERMINATE_SECS = 3
 
+#: How often to poll in loop()
 _RETRY_SECS = 1
+
+#: Reasonable over the Internet connection
+_CONNECT_SECS = 10
 
 _IN_FILE = "in-{}.json"
 
@@ -66,21 +70,21 @@ def start():
             "directory of fastcfgi socket, must be less than 50 chars",
         ),
         start_delay=(0, pkconfig.parse_seconds, "delay startup in internal_test mode"),
-        supervisor_global_resources_token=pkconfig.Required(
+        global_resources_server_token=pkconfig.Required(
             str,
-            "token for supervisor global resources access",
+            "credential for global resources server",
         ),
-        supervisor_global_resources_uri=pkconfig.Required(
+        global_resources_server_uri=pkconfig.Required(
             str,
-            "uri for accessing global resources api in supervisor",
+            "how to connect to global resources",
         ),
-        supervisor_sim_db_file_token=pkconfig.Required(
+        sim_db_file_server_token=pkconfig.Required(
             str,
-            "token for supervisor simulation db file access",
+            "credential for sim db files",
         ),
-        supervisor_sim_db_file_uri=pkconfig.Required(
+        sim_db_file_server_uri=pkconfig.Required(
             str,
-            "how to get/put simulation db files from/to supervisor",
+            "how to connect to sim db files",
         ),
         supervisor_uri=pkconfig.Required(
             str,
@@ -198,11 +202,11 @@ class _Dispatcher(PKDict):
         while True:
             self._websocket = None
             try:
-                # TODO(robnagler) connect_timeout, ping_interval, ping_timeout
                 self._websocket = await tornado.websocket.websocket_connect(
                     tornado.httpclient.HTTPRequest(
+                        connect_timeout=_CONNECT_SECS,
                         url=_cfg.supervisor_uri,
-                        validate_cert=sirepo.job.cfg().verify_tls,
+                        validate_cert=job.cfg().verify_tls,
                     ),
                     max_message_size=job.cfg().max_message_bytes,
                     ping_interval=job.cfg().ping_interval_secs,
@@ -222,8 +226,8 @@ class _Dispatcher(PKDict):
                         raise tornado.iostream.StreamClosedError()
                     s = await self._op(r)
             except Exception as e:
-                pkdlog("error={} stack={}", e, pkdexc())
-                # TODO(e-carlin): exponential backoff?
+                if not isinstance(e, tornado.iostream.StreamClosedError):
+                    pkdlog("retry websocket; error={} stack={}", e, pkdexc())
                 await tornado.gen.sleep(_RETRY_SECS)
             finally:
                 if self._websocket:
@@ -436,17 +440,15 @@ class _Dispatcher(PKDict):
 class _Cmd(PKDict):
     def __init__(self, *args, send_reply=True, **kwargs):
         super().__init__(*args, send_reply=send_reply, **kwargs)
+        if self.msg.opName not in job.SLOT_OPS:
+            raise AssertionError(
+                f"self.msg.opName={self.msg.opName} must be one of job.SLOT_OPS={job.SLOT_OPS} to create _Cmd"
+            )
         self.run_dir = pkio.py_path(self.msg.runDir)
         self._is_compute = self.msg.jobCmd == "compute"
         if self._is_compute:
             pkio.unchecked_remove(self.run_dir)
             pkio.mkdir_parent(self.run_dir)
-        self._lib_file_uri = self.msg.get("libFileUri", "")
-        self._lib_file_list_f = ""
-        if self._lib_file_uri:
-            f = self.run_dir.join("sirepo-lib-file-list.txt")
-            pkio.write_text(f, "\n".join(self.msg.libFileList))
-            self._lib_file_list_f = str(f)
         self._in_file = self._create_in_file()
         self._process = _Process(self)
         self._terminating = False
@@ -478,13 +480,11 @@ class _Cmd(PKDict):
     def job_cmd_env(self, env=None):
         return job.agent_env(
             env=(env or PKDict()).pksetdefault(
-                SIREPO_GLOBAL_RESOURCES_SUPERVISOR_TOKEN=_cfg.supervisor_global_resources_token,
-                SIREPO_GLOBAL_RESOURCES_SUPERVISOR_URI=_cfg.supervisor_global_resources_uri,
+                SIREPO_GLOBAL_RESOURCES_SERVER_TOKEN=_cfg.global_resources_server_token,
+                SIREPO_GLOBAL_RESOURCES_SERVER_URI=_cfg.global_resources_server_uri,
                 SIREPO_MPI_CORES=self.msg.get("mpiCores", 1),
-                SIREPO_SIM_DATA_LIB_FILE_LIST=self._lib_file_list_f,
-                SIREPO_SIM_DATA_LIB_FILE_URI=self._lib_file_uri,
-                SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_TOKEN=_cfg.supervisor_sim_db_file_token,
-                SIREPO_SIM_DATA_SUPERVISOR_SIM_DB_FILE_URI=_cfg.supervisor_sim_db_file_uri,
+                SIREPO_SIM_DB_FILE_SERVER_TOKEN=_cfg.sim_db_file_server_token,
+                SIREPO_SIM_DB_FILE_SERVER_URI=_cfg.sim_db_file_server_uri,
             ),
             uid=self._uid,
         )

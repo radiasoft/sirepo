@@ -1,4 +1,11 @@
-from pykern.pkdebug import pkdc, pkdp, pkdlog
+"""wrappers to Python csv
+
+:copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 import csv
 
 _ENCODINGS = ("cp1252", "utf-8", "utf-8-sig")

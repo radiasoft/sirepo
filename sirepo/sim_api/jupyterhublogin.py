@@ -28,7 +28,7 @@ _SIM_TYPE = "jupyterhublogin"
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
-    async def api_checkAuthJupyterhub(self):
+    async def api_checkAuthJupyterHub(self):
         self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(
             self,
@@ -37,19 +37,6 @@ class API(sirepo.quest.API):
         if not u:
             u = create_user(self)
         return self.reply_ok(PKDict(username=u))
-
-    @sirepo.quest.Spec(
-        "require_user", do_migration="Bool", sim_type=f"SimType const={_SIM_TYPE}"
-    )
-    async def api_migrateJupyterhub(self):
-        self.parse_params(type=_SIM_TYPE)
-        if not _cfg.rs_jupyter_migrate:
-            raise sirepo.util.Forbidden("migrate not enabled")
-        d = self.parse_json()
-        if not d.doMigration:
-            create_user(self)
-            return self.reply_redirect("jupyterHub")
-        sirepo.oauth.raise_authorize_redirect(self, _SIM_TYPE, github_auth=True)
 
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
     async def api_redirectJupyterHub(self):
@@ -215,8 +202,8 @@ def _event_end_api_call(qcall, kwargs):
     # Trailing slash is required in paths
     kwargs.resp.delete_third_party_cookies(
         (
-            ("jupyterhub-hub-login", f"/{_cfg.uri_root}/hub/"),
-            (f"jupyterhub-user-{u}", f"/{_cfg.uri_root}/user/{u}/"),
+            PKDict(key="jupyterhub-hub-login", path=f"/{_cfg.uri_root}/hub/"),
+            PKDict(key=f"jupyterhub-user-{u}", path=f"/{_cfg.uri_root}/user/{u}/"),
         )
     )
 

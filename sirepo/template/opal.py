@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """OPAL execution template.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
@@ -22,6 +22,7 @@ import numpy as np
 import re
 import sirepo.lib
 import sirepo.sim_data
+import os.path
 
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -114,6 +115,17 @@ class OpalElementIterator(lattice.ElementIterator):
 
     def is_ignore_field(self, field):
         return field == "name" or field == self.IS_DISABLED_FIELD
+
+
+class _OpalLogParser(template_common.LogParser):
+    def _parse_log_line(self, line):
+        if re.search(r"^Error.*?>\s*[\w\"]", line):
+            l = re.sub(r"Error.*?>\s*", "", line.rstrip()).rstrip()
+            if re.search(r"1DPROFILE1-DEFAULT", l):
+                return None
+            if l:
+                return l + "\n"
+        return None
 
 
 class OpalOutputFileIterator(lattice.ModelIterator):
@@ -328,9 +340,9 @@ class OpalMadxConverter(MadxConverter):
         LatticeUtil.find_first_command(data, "option").version = 20000
         LatticeUtil.find_first_command(data, "beam").particle = mb.particle.upper()
         LatticeUtil.find_first_command(data, "beam").pc = self.particle_energy.pc
-        LatticeUtil.find_first_command(
-            data, "track"
-        ).line = data.models.simulation.visualizationBeamlineId
+        LatticeUtil.find_first_command(data, "track").line = (
+            data.models.simulation.visualizationBeamlineId
+        )
         self.__fixup_distribution(madx, data)
         return data
 
@@ -493,32 +505,7 @@ def get_data_file(run_dir, model, frame, options):
                 frameReport=model,
             )
         )
-    raise AssertionError("unknown model={}".format(model))
-
-
-async def import_file(req, unit_test_mode=False, **kwargs):
-    from sirepo.template import opal_parser
-
-    text = req.form_file.as_str()
-    if re.search(r"\.in$", req.filename, re.IGNORECASE):
-        data, input_files = opal_parser.parse_file(text, filename=req.filename)
-        missing_files = []
-        for infile in input_files:
-            if not _SIM_DATA.lib_file_exists(infile.lib_filename, qcall=req.qcall):
-                missing_files.append(infile)
-        if missing_files:
-            return PKDict(
-                error="Missing data files",
-                missingFiles=missing_files,
-            )
-    elif re.search(r"\.madx$", req.filename, re.IGNORECASE):
-        data = OpalMadxConverter(qcall=req.qcall).from_madx_text(text)
-        data.models.simulation.name = re.sub(
-            r"\.madx$", "", req.filename, flags=re.IGNORECASE
-        )
-    else:
-        raise IOError("invalid file extension, expecting .in or .madx")
-    return data
+    raise AssertionError(f"unknown model={model}")
 
 
 def new_simulation(data, new_simulation_data, qcall, **kwargs):
@@ -538,23 +525,7 @@ def read_frame_count(run_dir):
 
 
 def parse_opal_log(run_dir):
-    res = ""
-    p = run_dir.join((OPAL_OUTPUT_FILE))
-    if not p.exists():
-        return res
-    with pkio.open_text(p) as f:
-        visited = set()
-        for line in f:
-            if re.search(r"^Error.*?>\s*\w", line):
-                line = re.sub(r"Error.*?>\s*", "", line.rstrip()).rstrip()
-                if re.search(r"1DPROFILE1-DEFAULT", line):
-                    continue
-                if line and line not in visited:
-                    res += line + "\n"
-                    visited.add(line)
-    if res:
-        return res
-    return "An unknown error occurred"
+    return _OpalLogParser(run_dir, log_filename=OPAL_OUTPUT_FILE).parse_for_errors()
 
 
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
@@ -690,6 +661,33 @@ def sim_frame_plot2Animation(frame_args):
             dynamicYLabel=True,
         )
     )
+
+
+def stateful_compute_import_file(data, **kwargs):
+    from sirepo.template import opal_parser
+
+    if data.args.ext_lower == ".in":
+        res, input_files = opal_parser.parse_file(
+            data.args.file_as_str,
+            filename=data.args.basename,
+        )
+        missing_files = []
+        for infile in input_files:
+            if not _SIM_DATA.lib_file_exists(infile.lib_filename):
+                missing_files.append(infile)
+        if missing_files:
+            return PKDict(
+                error="Missing data files",
+                missingFiles=missing_files,
+            )
+    elif data.args.ext_lower == ".madx":
+        res = OpalMadxConverter(qcall=None).from_madx_text(data.args.file_as_str)
+        res.models.simulation.name = data.args.purebasename
+    else:
+        raise IOError(
+            f"invalid file={data.args.basename} extension, expecting .in or .madx"
+        )
+    return PKDict(imported_data=res)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -948,7 +946,7 @@ def _file_name_for_element_animation(frame_args):
     for info in _output_info(frame_args.run_dir):
         if info.modelKey == r:
             return info.filename
-    raise AssertionError(f"no output file for frameReport={r}")
+    raise AssertionError(f"no output for frameReport={r}")
 
 
 def _find_run_method(commands):

@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """FLASH execution template.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -127,18 +127,16 @@ def get_data_file(run_dir, model, frame, options):
     if n:
         # TODO(pjm): client does not know which log files exists
         if not run_dir.join(n).exists():
-            return PKDict(filename=run_dir.join(n), content="No file output available")
+            # TODO(robnagler) could this be "error=No file..." with reply_path?
+            return template_common.JobCmdFile(
+                reply_path=run_dir.join(n), reply_content="No file output available"
+            )
         return template_common.text_data_file(n, run_dir)
     if model == "gridEvolutionAnimation":
         return _GRID_EVOLUTION_FILE
     if model == "oneDimensionProfileAnimation" or model == "varAnimation":
         return str(_h5_file_list(run_dir)[frame])
-    raise AssertionError(
-        "unknown model for get_data_file: {} {}".format(
-            model,
-            frame,
-        ),
-    )
+    raise AssertionError(f"unknown model={model} frame={frame}")
 
 
 def post_execution_processing(success_exit, is_parallel, run_dir, **kwargs):
@@ -341,7 +339,7 @@ def sort_problem_files(files):
     return sorted(files, key=lambda x: (_sort_suffix(x), x["name"]))
 
 
-def stateless_compute_delete_archive_file(data, **kwargs):
+def stateful_compute_delete_archive_file(data, **kwargs):
     # TODO(pjm): python may have ZipFile.remove() method eventually
     pksubprocess.check_call_with_signals(
         [
@@ -358,7 +356,7 @@ def stateless_compute_delete_archive_file(data, **kwargs):
     return PKDict()
 
 
-def stateless_compute_format_text_file(data, **kwargs):
+def stateful_compute_format_text_file(data, **kwargs):
     if data.args.filename == _SIM_DATA.FLASH_PAR_FILE and data.args.models.get(
         "flashSchema"
     ):
@@ -390,7 +388,7 @@ def stateless_compute_format_text_file(data, **kwargs):
     )
 
 
-def stateless_compute_get_archive_file(data, **kwargs):
+def stateful_compute_get_archive_file(data, **kwargs):
     if data.args.filename == _SIM_DATA.FLASH_PAR_FILE and data.args.models.get(
         "flashSchema"
     ):
@@ -407,30 +405,13 @@ def stateless_compute_get_archive_file(data, **kwargs):
     )
 
 
-def stateless_compute_update_lib_file(data, **kwargs):
-    p = _SIM_DATA.lib_file_write_path(
-        _SIM_DATA.flash_app_lib_basename(data.args.simulationId),
-    )
-    if data.args.get("archiveLibId"):
-        _SIM_DATA.lib_file_abspath(
-            _SIM_DATA.flash_app_lib_basename(data.args.archiveLibId),
-        ).copy(p)
-    else:
-        simulation_db.simulation_dir(SIM_TYPE, data.args.simulationId,).join(
-            _SIM_DATA.flash_app_archive_basename()
-        ).rename(p)
-    return PKDict(
-        archiveLibId=data.args.simulationId,
-    )
-
-
-def stateless_compute_replace_file_in_zip(data, **kwargs):
+def stateful_compute_replace_file_in_zip(data, **kwargs):
     found = False
     for f in data.args.archiveFiles:
         if f.name == data.args.filename:
             found = True
     if found:
-        stateless_compute_delete_archive_file(data)
+        stateful_compute_delete_archive_file(data)
     lib_file = _SIM_DATA.lib_file_abspath(
         _SIM_DATA.lib_file_name_with_type(
             data.args.filename,
@@ -465,6 +446,22 @@ def stateless_compute_replace_file_in_zip(data, **kwargs):
         data.args.archiveFiles = sort_problem_files(data.args.archiveFiles)
     res.archiveFiles = data.args.archiveFiles
     return res
+
+
+def stateful_compute_update_lib_file(data, **kwargs):
+    c = _SIM_DATA.sim_db_client()
+    t = c.uri(c.LIB_DIR, _SIM_DATA.flash_app_lib_basename(data.args.simulationId))
+    if data.args.get("archiveLibId"):
+        c.copy(
+            c.uri(c.LIB_DIR, _SIM_DATA.flash_app_lib_basename(data.args.archiveLibId)),
+            t,
+        )
+    else:
+        c.move(
+            c.uri(data.args.simulationId, _SIM_DATA.flash_app_archive_basename()),
+            t,
+        )
+    return PKDict(archiveLibId=data.args.simulationId)
 
 
 def stateless_compute_setup_command(data, **kwargs):
@@ -546,9 +543,9 @@ def _generate_parameters_file(data, run_dir):
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
-            exe_name=run_dir.join(_SIM_DATA.flash_exe_basename(data))
-            if run_dir
-            else "",
+            exe_name=(
+                run_dir.join(_SIM_DATA.flash_exe_basename(data)) if run_dir else ""
+            ),
             is_setup_animation=data.get("report") == "setupAnimation",
             par=res,
             par_filename=_SIM_DATA.FLASH_PAR_FILE,

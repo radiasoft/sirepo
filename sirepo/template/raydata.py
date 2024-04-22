@@ -32,7 +32,9 @@ def stateless_compute_analysis_output(data, **kwargs):
 
 def stateless_compute_analysis_run_log(data, **kwargs):
     def _filter_log(log):
-        return re.sub("Ending Cell.*\n", "", log)
+        for f in ("Ending Cell.*\n", "Executing Cell.*\n"):
+            log = re.sub(f, "", log)
+        return log
 
     def _log_to_html(log):
         return pygments.highlight(
@@ -49,10 +51,6 @@ def stateless_compute_analysis_run_log(data, **kwargs):
     return r
 
 
-def stateless_compute_begin_replay(data, **kwargs):
-    return PKDict(data=_request_scan_monitor(PKDict(method="begin_replay", data=data)))
-
-
 def stateless_compute_catalog_names(data, **kwargs):
     return _request_scan_monitor(PKDict(method="catalog_names", data=data))
 
@@ -61,6 +59,10 @@ def stateless_compute_download_analysis_pdfs(data, data_file_uri=None, **kwargs)
     assert data_file_uri, f"expected data_file_uri={data_file_uri}"
     data.args.dataFileUri = data_file_uri
     return _request_scan_monitor(PKDict(method="download_analysis_pdfs", data=data))
+
+
+def stateless_compute_reorder_scan(data, **kwargs):
+    return _request_scan_monitor(PKDict(method="reorder_scan", data=data))
 
 
 def stateless_compute_run_analysis(data, **kwargs):
