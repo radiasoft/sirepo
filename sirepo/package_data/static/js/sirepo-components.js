@@ -2856,7 +2856,6 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
             };
 
             $scope.auxFileName = function(item) {
-                srdbg('item = ', item);
                 return item[4]
                     + ': '
                     + (commandService.isCommandModelName(item[0])
@@ -2890,12 +2889,17 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
                     requestSender.formatUrl('importFile'),
                     function(data) {
                         if (data.error) {
-                            srdbg("data", data);
-                            if (data.missingFiles.length) {
+                            if (data.error == 'Missing data files' && SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName == 'OPAL') {
                                 $scope.state = 'missing-files';
-                                $scope.missingFiles = data.missingFiles;
-                                $scope.missingFiles = data.missingFiles.map(f => [f.type, f.field, f.filename, f.file_type, f.label]);
-                                srdbg($scope.missingFiles);
+                                srdbg("data = ", data);
+                                $scope.missingFiles = data.missingFiles.map(f => [
+                                        f.type,
+                                        f.field,
+                                        f.filename,
+                                        f.file_type,
+                                        f.label
+                                    ]
+                                );
                                 return;
                             }
                             $scope.resetState();
@@ -2909,6 +2913,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
                             $scope.latticeFileName = data.latticeFileName;
                         }
                         else {
+                            srdbg("data", data);
                             $scope.id = data.models.simulation.simulationId;
                             $scope.simulationName = data.models.simulation.name;
                             verifyInputFiles(data);
