@@ -436,7 +436,7 @@ class ElegantMadxConverter(MadxConverter):
         ],
         [
             "SROTATION",
-            ["SROT", "tilt=angle"],
+            ["ROTATE", "tilt=angle"],
         ],
     ]
     _FIELD_SCALE = PKDict(
