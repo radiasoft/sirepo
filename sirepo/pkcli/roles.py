@@ -62,7 +62,7 @@ def list_roles(*args):
 
 
 # TODO(e-carlin): This only works for email auth or using a uid
-# doesn't work for other auth methods (ex GitHub)
+# doesn't work for other auth methods
 @contextlib.contextmanager
 def _parse_args(uid_or_email, roles):
     with sirepo.quest.start() as qcall:

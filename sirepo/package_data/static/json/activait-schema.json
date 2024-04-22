@@ -47,6 +47,15 @@
             ["mitchellcubic", "Mitchell Cubic"],
             ["nearest", "Nearest"]
         ],
+        "KernelInitializer": [
+            ["HeNormal", "HeNormal"],
+            ["HeUniform", "HeUniform"],
+            ["GlorotNormal", "GlorotNormal"],
+            ["GlorotUniform", "GlorotUniform"],
+            ["RandomNormal", "RandomNormal"],
+            ["RandomUniform", "RandomUniform"],
+            ["Zeros", "Zeros"]
+        ],
         "MLModule": [
             ["neuralnet", "Neural Network"],
             ["modelFile", "From Model Archive File"]
@@ -315,7 +324,9 @@
             "featureRangeMax": ["Feature range maximum", "Integer", 1],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
-            "url": ["Data URL", "URL", ""]
+            "url": ["Data URL", "URL", ""],
+            "exampleDir": ["", "String", ""],
+            "exampleFileCnt": ["", "Integer", 1]
         },
         "dataFileCache": {},
         "dtClassifierClassificationMetricsAnimation": {},
@@ -420,6 +431,7 @@
             "dimensionality": ["Dimensionality", "Integer", 32],
             "layer": ["Layer", "NeuralNetLayer", "Conv2D"],
             "kernel" : ["Kernel Size", "Integer", 3],
+            "kernel_initializer": ["Kernel Initializer", "KernelInitializer", "GlorotUniform"],
             "strides": ["Strides", "OptionalInteger", 1],
             "padding": ["Padding", "Padding", "valid"]
         },
@@ -615,6 +627,11 @@
             "basic": [],
             "advanced": []
         },
+        "loadData": {
+            "title": "Data Loading Status",
+            "basic": [],
+            "advanced": []
+        },
         "concatenate": {
             "columns": []
         },
@@ -622,6 +639,7 @@
             "columns": [
                 "dimensionality",
                 "kernel",
+                "kernel_initializer",
                 "strides",
                 "padding",
                 "activation"

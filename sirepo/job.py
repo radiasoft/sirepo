@@ -30,6 +30,12 @@ OP_RUN = "run"
 OP_SBATCH_LOGIN = "sbatch_login"
 OP_BEGIN_SESSION = "begin_session"
 
+
+#: Types of slots required by op types
+CPU_SLOT_OPS = frozenset((OP_ANALYSIS, OP_RUN))
+SLOT_OPS = frozenset().union(*[CPU_SLOT_OPS, (OP_IO,)])
+
+
 _OK_REPLY = PKDict(state="ok")
 
 #: path supervisor registers to receive messages from agent
@@ -125,6 +131,7 @@ UNIQUE_KEY_CHARS_RE = r"\w+"
 
 #: A standalone unique key
 UNIQUE_KEY_RE = re.compile(r"^{}$".format(UNIQUE_KEY_CHARS_RE))
+
 
 _QUASI_SID_PREFIX = "_1_"
 

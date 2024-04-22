@@ -15,18 +15,8 @@
         "catalog": {
             "catalogName": "csx"
         },
-        "executedScans": {
-            "searchStartTime": null,
-            "searchStopTime": null,
-            "scans": []
-        },
         "queuedScans": {
             "scans": []
-        },
-        "replay": {
-            "sourceCatalogName": null,
-            "destinationCatalogName": null,
-            "numScans": null
         },
         "runAnalysis": {
             "searchStartTime": null,

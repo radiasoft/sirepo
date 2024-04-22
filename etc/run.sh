@@ -191,19 +191,16 @@ END
     for f in postfix procmail; do
         if ! rpm -q "$f" &> /dev/null; then
             _msg "installing $f"
-            sudo dnf install -y -q postfix procmail
+            sudo dnf install -y -q "$f"
         fi
     done
-    # Necessary for docker on Ubuntu tries to open ipv6
-    if ! grep ^::1 /etc/hosts &> /dev/null; then
-        sudo sed -i '/^::1\s/d' /etc/hosts
-    fi
     if [[ ! $(postconf -n recipient_delimiter) ]]; then
         _msg 'configuring postfix'
         sudo su - <<'END'
         postconf -e \
-            'mydestination=$myhostname, localhost.$mydomain, localhost, localhost.localdomain' \
+            inet_protocols=ipv4 \
             mailbox_command=/usr/bin/procmail \
+            'mydestination=$myhostname, localhost.$mydomain, localhost, localhost.localdomain' \
             recipient_delimiter=+
         systemctl enable postfix
         systemctl restart postfix

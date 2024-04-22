@@ -24,25 +24,11 @@
         "animation": []
     },
     "localRoutes": {
-        "analysisExecuted": {
-            "route": "/analysis-executed/:simulationId",
-            "config": {
-                "controller": "AnalysisExecutedController as analysisExecuted",
-                "templateUrl": "/static/html/raydata-analysis-executed.html"
-          }
-        },
         "analysisQueue": {
             "route": "/analysis-queue/:simulationId",
             "config": {
                 "controller": "AnalysisQueueController as analysisQueue",
                 "templateUrl": "/static/html/raydata-analysis-queue.html"
-          }
-        },
-        "replay": {
-            "route": "/replay/:simulationId",
-            "config": {
-                "controller": "ReplayController as replay",
-                "templateUrl": "/static/html/raydata-replay.html"
           }
         },
         "runAnalysis": {
@@ -57,11 +43,6 @@
         "catalog": {
             "catalogName": ["Catalog Name", "CatalogNameDisplay", ""]
         },
-        "executedScans": {
-            "searchStartTime":["Start", "DateTimePicker", null],
-            "searchStopTime":["Stop", "DateTimePicker", null],
-            "scans": ["", "ExecutedScansTable", ""]
-        },
         "recentlyExecutedScans": {
             "scans": ["", "RecentlyExecutedScansTable", ""]
         },
@@ -73,11 +54,6 @@
         },
         "queuedScans": {
             "scans": ["", "QueuedScansTable", ""]
-        },
-        "replay": {
-            "sourceCatalogName": ["Source Catalog", "CatalogNamePicker", ""],
-            "destinationCatalogName": ["Destination Catalog", "CatalogNamePicker", ""],
-            "numScans": ["Number of Scans", "Integer", null]
         },
         "runAnalysis": {
             "presetTimePicker": ["", "PresetTimePicker", ""],
@@ -114,15 +90,6 @@
             ],
             "advanced": []
         },
-        "executedScans": {
-            "title": "Executed Scans",
-            "basic": [
-                "searchStartTime",
-                "searchStopTime",
-                "scans"
-            ],
-            "advanced": []
-        },
         "recentlyExecutedScans": {
             "title": "Recently Executed",
             "basic": [
@@ -134,15 +101,6 @@
             "title": "Input Files",
             "basic": [
                 "mask"
-            ],
-            "advanced": []
-        },
-        "replay": {
-            "title": "Replay",
-            "basic": [
-              "sourceCatalogName",
-              "destinationCatalogName",
-              "numScans"
             ],
             "advanced": []
         },

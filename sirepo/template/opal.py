@@ -680,8 +680,8 @@ def stateful_compute_import_file(data, **kwargs):
                 error="Missing data files",
                 missingFiles=missing_files,
             )
-    elif ext == ".madx":
-        res = OpalMadxConverter().from_madx_text(data.args.file_as_str)
+    elif data.args.ext_lower == ".madx":
+        res = OpalMadxConverter(qcall=None).from_madx_text(data.args.file_as_str)
         res.models.simulation.name = data.args.purebasename
     else:
         raise IOError(

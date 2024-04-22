@@ -2457,7 +2457,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
         template: `
             <div class="navbar-header">
               <a class="navbar-brand" href="/"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="Sirepo"></a>
-              <div class="navbar-brand">
+              <div class="navbar-brand navbar-brand-text">
                 <div data-ng-if="appUrl">
                   <a data-ng-href="{{ appUrl }}">
                     ${brand()}
@@ -3148,7 +3148,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
         restrict: 'A',
         scope: {},
         template: `
-            <div data-ng-show="isJupyterhub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">
+            <div data-ng-show="isJupyterHub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">
             We're improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. Simply follow the directions below to complete this process.
             </div>
             <form class="form-horizontal" autocomplete="off" novalidate>
@@ -3192,7 +3192,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             }
 
             $scope.data = {};
-            $scope.isJupyterhub = SIREPO.APP_SCHEMA.simulationType == 'jupyterhublogin';
+            $scope.isJupyterHub = SIREPO.APP_SCHEMA.simulationType == 'jupyterhublogin';
             $scope.login = function() {
                 var e = $scope.data.email;
                 errorService.alertText('');
@@ -5076,6 +5076,9 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
 
         const s = $(element).find(`.${searchClass}`);
         s.autocomplete({
+            classes: {
+                'ui-autocomplete': 'sr-dropdown',
+            },
             delay: 0,
             select: (e, ui) => {
                 scope.$apply(() => {
@@ -5099,11 +5102,17 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
                     s[0].dispatchEvent(new Event('change'));
                 });
             },
+            focus: (e, ui) => {
+                s.val(ui.item.label);
+                return false;
+            },
             source: (req, res) => {
                 const text = req.term;
                 const l = scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1));
                 if (! supportsMulti) {
-                    res(l.filter(x => x.label.includes(text)));
+                    res(l.filter(x => {
+                        return x.label.toLowerCase().includes(text.toLowerCase());
+                    }));
                     return;
                 }
                 const t = findToken(text, s.get(0).selectionStart);
