@@ -2856,6 +2856,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
             };
 
             $scope.auxFileName = function(item) {
+                srdbg('item = ', item);
                 return item[4]
                     + ': '
                     + (commandService.isCommandModelName(item[0])
@@ -2891,10 +2892,10 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
                         if (data.error) {
                             srdbg("data", data);
                             if (data.missingFiles.length) {
-                                $scope.state = 'lattice';
-                                $scope.elegantFile = null;
-                                $scope.latticeFileName = data.missingFiles[0].lib_filename;
-                                $scope.extension = ".T7";
+                                $scope.state = 'missing-files';
+                                $scope.missingFiles = data.missingFiles;
+                                // $scope.missingFiles = data.missingFiles.map(f => f.filename);
+                                srdbg($scope.missingFiles);
                                 return;
                             }
                             $scope.resetState();
