@@ -24,13 +24,6 @@
         "animation": []
     },
     "localRoutes": {
-        "analysisExecuted": {
-            "route": "/analysis-executed/:simulationId",
-            "config": {
-                "controller": "AnalysisExecutedController as analysisExecuted",
-                "templateUrl": "/static/html/raydata-analysis-executed.html"
-          }
-        },
         "analysisQueue": {
             "route": "/analysis-queue/:simulationId",
             "config": {
@@ -49,11 +42,6 @@
     "model": {
         "catalog": {
             "catalogName": ["Catalog Name", "CatalogNameDisplay", ""]
-        },
-        "executedScans": {
-            "searchStartTime":["Start", "DateTimePicker", null],
-            "searchStopTime":["Stop", "DateTimePicker", null],
-            "scans": ["", "ExecutedScansTable", ""]
         },
         "recentlyExecutedScans": {
             "scans": ["", "RecentlyExecutedScansTable", ""]
@@ -99,15 +87,6 @@
             "title": "Analysis Queue",
             "basic": [
                 "queuedScans.scans"
-            ],
-            "advanced": []
-        },
-        "executedScans": {
-            "title": "Executed Scans",
-            "basic": [
-                "searchStartTime",
-                "searchStopTime",
-                "scans"
             ],
             "advanced": []
         },
