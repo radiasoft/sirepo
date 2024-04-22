@@ -389,6 +389,7 @@ def _plot_phase(sim_type, frame_args):
         # pkdp("\n\n\n x={}, y={}, z={}\n\n\n", p.x, p.y, p.z)
         if sim_type != "opal":
             pkdp("\n\n\n\n BEFORE p.z={}", p.z)
+            # TODO (gurhar1133): not working with genesis
             t0 = p.avg('t')
             p.drift_to_t(t0)
             # p.drift_to_t()
