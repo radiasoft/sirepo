@@ -678,9 +678,8 @@ def stateful_compute_import_file(data, **kwargs):
                 missing_files.append(infile)
         if missing_files:
             return PKDict(
-                error="Missing data files",
                 missingFiles=missing_files,
-                res=res,
+                imported_data=res,
             )
     elif data.args.ext_lower == ".madx":
         res = OpalMadxConverter(qcall=None).from_madx_text(data.args.file_as_str)

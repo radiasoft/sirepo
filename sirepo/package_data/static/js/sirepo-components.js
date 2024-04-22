@@ -2889,19 +2889,6 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
                     requestSender.formatUrl('importFile'),
                     function(data) {
                         if (data.error) {
-                            if (data.error == 'Missing data files' && SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName == 'OPAL') {
-                                $scope.state = 'missing-files';
-                                srdbg("data = ", data);
-                                $scope.missingFiles = data.missingFiles.map(f => [
-                                        f.type,
-                                        f.field,
-                                        f.filename,
-                                        f.file_type,
-                                        f.label
-                                    ]
-                                );
-                                return;
-                            }
                             $scope.resetState();
                             $scope.fileUploadError = data.error;
                         }
@@ -2913,7 +2900,6 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
                             $scope.latticeFileName = data.latticeFileName;
                         }
                         else {
-                            srdbg("data", data);
                             $scope.id = data.models.simulation.simulationId;
                             $scope.simulationName = data.models.simulation.name;
                             verifyInputFiles(data);
