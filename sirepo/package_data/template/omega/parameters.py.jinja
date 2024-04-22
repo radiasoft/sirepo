@@ -1,3 +1,4 @@
+from pmd_beamphysics import pmd_init
 from pykern import pkio
 from rslume import Elegant, OPAL, Genesis2
 import h5py
@@ -24,6 +25,7 @@ def run_and_save_particles(sim):
     p = sim.final_particles()
     if p:
         with h5py.File(os.path.join(sim.workdir, "{{ particleOutfile }}"), "w") as f:
+            pmd_init(f, basePath='/', particlesPath='/' )
             p.write(f)
 
 

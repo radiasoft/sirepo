@@ -382,13 +382,25 @@ def _plot_field_dist(sim_type, frame_args):
 
 def _plot_phase(sim_type, frame_args):
     def _col(data, column_name):
+        from pmd_beamphysics import ParticleGroup
+
+        # pkdp("\n\n\n h5path={}", frame_args.run_dir.join("openpmd.h5"))
+        p = ParticleGroup(h5=str(frame_args.run_dir.join("openpmd.h5")))
+        # pkdp("\n\n\n x={}, y={}, z={}\n\n\n", p.x, p.y, p.z)
+        if sim_type != "opal":
+            pkdp("\n\n\n\n BEFORE p.z={}", p.z)
+            t0 = p.avg('t')
+            p.drift_to_t(t0)
+            # p.drift_to_t()
+            pkdp("\n\n\n\n AFTER p.z={}", p.z)
         c = PKDict(
-            x=data.position.x,
-            y=data.position.y,
-            z=data.position.z if sim_type == "opal" else data.time,
-            px=data.momentum.x,
-            py=data.momentum.y,
-            pz=data.momentum.z,
+            x=p.x,
+            y=p.y,
+            # z=data.position.z if sim_type == "opal" else data.time,
+            z=p.z,
+            px=p.px,
+            py=p.py,
+            pz=p.pz,
         )[column_name]
         c = numpy.array(c)
         c[numpy.isnan(c)] = 0.0
