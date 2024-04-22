@@ -2894,7 +2894,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
                             if (data.missingFiles.length) {
                                 $scope.state = 'missing-files';
                                 $scope.missingFiles = data.missingFiles;
-                                $scope.missingFiles = data.missingFiles.map(f => [f.filename, f.label, f.file_type, f.type, f.field]);
+                                $scope.missingFiles = data.missingFiles.map(f => [f.type, f.field, f.filename, f.file_type, f.label]);
                                 srdbg($scope.missingFiles);
                                 return;
                             }
