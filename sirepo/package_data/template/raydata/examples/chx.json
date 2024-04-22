@@ -15,11 +15,6 @@
         "catalog": {
             "catalogName": "chx"
         },
-        "executedScans": {
-            "searchStartTime": null,
-            "searchStopTime": null,
-            "scans": []
-        },
         "queuedScans": {
             "scans": []
         },
