@@ -49,17 +49,17 @@ class _MoabGroupCollector:
 
     def _groups_and_volumes(self):
         res = PKDict()
-        for g in dagmc.DAGModel(self.dagmc_filename).groups.values():
+        for g in dagmc.DAGModel(self.dagmc_filename).groups_by_name.values():
             if not g.name.startswith("mat:"):
                 continue
-            v = g.get_volumes()
+            v = g.volumes
             if not v:
                 continue
             res[g.name] = PKDict(
                 name=g.name,
                 volume_count=len(v),
                 # for historical reasons the vol_id for the group is the last volume's id
-                vol_id=str(list(v)[-1]),
+                vol_id=str(v[-1].id),
             )
         for g in res.values():
             if re.search(r"\_comp$", g.name):
@@ -154,7 +154,7 @@ class _MoabGroupExtractor:
     def _extract_moab_vertices_and_triangles(self, item):
         t, v = (
             dagmc.DAGModel(item.dagmc_filename)
-            .groups[item.name]
+            .groups_by_name[item.name]
             .get_triangle_conn_and_coords(True)
         )
         return (v, t)
