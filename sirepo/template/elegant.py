@@ -436,7 +436,7 @@ class ElegantMadxConverter(MadxConverter):
         ],
         [
             "SROTATION",
-            ["SROT", "tilt=angle"],
+            ["ROTATE", "tilt=angle"],
         ],
     ]
     _FIELD_SCALE = PKDict(
@@ -784,10 +784,17 @@ def parse_input_text(
         if input_data:
             _map(data)
         return data
-    if e == ".madx":
+    if e == ".madx" or e == ".seq":
         return ElegantMadxConverter(qcall=qcall).from_madx_text(text)
+    if e == ".in":
+        from sirepo.template import opal_parser
+        from sirepo.template.opal import OpalMadxConverter
+
+        return ElegantMadxConverter(qcall=qcall).from_madx_text(
+            OpalMadxConverter(qcall=qcall).to_madx_text(opal_parser.parse_file(text)[0])
+        )
     raise IOError(
-        f"{path.basename}: invalid file format; expecting .madx, .ele, or .lte"
+        f"{path.basename}: invalid file format; expecting .madx, .ele, .in or .lte"
     )
 
 
@@ -892,7 +899,7 @@ def stateful_compute_get_beam_input_type(data, **kwargs):
     return data
 
 
-def stateful_compute_import_file(data, **kwargs):
+def elegant_file_import(data):
     d = data.args.pkunchecked_nested_get("import_file_arguments")
     if d:
         d = pkjson.load_any(d)
@@ -907,6 +914,10 @@ def stateful_compute_import_file(data, **kwargs):
     if r and r.lattice != "Lattice":
         return PKDict(importState="needLattice", eleData=res, latticeFileName=r.lattice)
     return PKDict(imported_data=res)
+
+
+def stateful_compute_import_file(data, **kwargs):
+    return elegant_file_import(data)
 
 
 def validate_file(file_type, path):
