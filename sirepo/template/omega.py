@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -383,17 +384,10 @@ def _plot_field_dist(sim_type, frame_args):
 def _plot_phase(sim_type, frame_args):
     def _col(column_name):
         p = pmd_beamphysics.ParticleGroup(h5=str(frame_args.run_dir.join("openpmd.h5")))
-        if sim_type != "opal":
-            try:
-                t0 = p.avg('t')
-                p.drift_to_t(t0)
-            except Exception as e:
-                # t0 = 0
-                pass
         c = PKDict(
             x=p.x,
             y=p.y,
-            z=p.z,
+            z=p.z if sim_type == "opal" else p.t,
             px=p.px,
             py=p.py,
             pz=p.pz,
@@ -402,13 +396,18 @@ def _plot_phase(sim_type, frame_args):
         c[numpy.isnan(c)] = 0.0
         return c
 
+    def _x_label(x_name):
+        if x_name == "z" and sim_type != "opal":
+            return "t"
+        return x_name
+
     _phase_plot_args(sim_type, frame_args)
     if sim_type in ("elegant", "opal", "genesis"):
         return template_common.heatmap(
             values=[_col(frame_args.x), _col(frame_args.y)],
             model=frame_args,
             plot_fields=PKDict(
-                x_label=frame_args.x,
+                x_label=_x_label(frame_args.x),
                 y_label=frame_args.y,
                 title=_PLOT_TITLE[frame_args.x + "-" + frame_args.y],
             ),
