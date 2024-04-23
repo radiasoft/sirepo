@@ -82,7 +82,7 @@ def is_sr_exception_only(sim_type, route_name):
         sim_type (str): simulation type (must be valid)
         route_name (str): a local route
     Returns:
-        bool: True if srExceptionOnly; None if route not found
+        object: True if srExceptionOnly, else False; None if route not found
     """
     rv = simulation_db.get_schema(sim_type).localRoutes.get(route_name)
     return rv and "srExceptionOnly" in rv
