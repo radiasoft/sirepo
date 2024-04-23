@@ -387,13 +387,17 @@ def _plot_phase(sim_type, frame_args):
         # pkdp("\n\n\n h5path={}", frame_args.run_dir.join("openpmd.h5"))
         p = ParticleGroup(h5=str(frame_args.run_dir.join("openpmd.h5")))
         # pkdp("\n\n\n x={}, y={}, z={}\n\n\n", p.x, p.y, p.z)
-        if sim_type != "opal":
+        if sim_type == "elegant":
             pkdp("\n\n\n\n BEFORE p.z={}", p.z)
             # TODO (gurhar1133): not working with genesis
             t0 = p.avg('t')
             p.drift_to_t(t0)
             # p.drift_to_t()
             pkdp("\n\n\n\n AFTER p.z={}", p.z)
+        if sim_type == "genesis":
+            pkdp("\n\n\n genesis weight = {}", p.weight)
+            # z0 = p.avg('z')
+            p.drift_to_t(0.1)
         c = PKDict(
             x=p.x,
             y=p.y,
