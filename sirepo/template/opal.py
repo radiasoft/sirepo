@@ -237,7 +237,7 @@ class OpalMadxConverter(MadxConverter):
         ],
         [
             "RFCAVITY",
-            ["RFCAVITY", "l", "volt", "lag", "harmon", "freq"],
+            ["RFCAVITY", "l", "volt", "lag", "freq"],
         ],
         [
             "TWCAVITY",
@@ -313,7 +313,7 @@ class OpalMadxConverter(MadxConverter):
                     continue
                 p = beamline.positions[i].elemedge
                 n = beamline.positions[i + 1].elemedge
-                l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
+                l = code_var(data.models.rpnVariables).eval_var(_get_len_by_id(data, e))
                 d = round(float(n) - float(p) - l[0], 10)
                 if d > 0:
                     _insert_drift(d, beam_idx, i, p, l)
@@ -664,6 +664,7 @@ def sim_frame_plot2Animation(frame_args):
 
 
 def stateful_compute_import_file(data, **kwargs):
+    from sirepo.template import elegant
     from sirepo.template import opal_parser
 
     if data.args.ext_lower == ".in":
@@ -677,15 +678,23 @@ def stateful_compute_import_file(data, **kwargs):
                 missing_files.append(infile)
         if missing_files:
             return PKDict(
-                error="Missing data files",
                 missingFiles=missing_files,
+                imported_data=res,
             )
-    elif data.args.ext_lower == ".madx":
+    elif data.args.ext_lower == ".madx" or data.args.ext_lower == ".seq":
         res = OpalMadxConverter(qcall=None).from_madx_text(data.args.file_as_str)
         res.models.simulation.name = data.args.purebasename
+    elif data.args.ext_lower == ".ele":
+        return elegant.elegant_file_import(data)
+    elif data.args.ext_lower == ".lte":
+        res = OpalMadxConverter(None).from_madx_text(
+            elegant.ElegantMadxConverter(qcall=None).to_madx_text(
+                elegant.elegant_file_import(data).imported_data
+            )
+        )
     else:
         raise IOError(
-            f"invalid file={data.args.basename} extension, expecting .in or .madx"
+            f"invalid file={data.args.basename} extension, expecting .in, .ele, .lte or .madx"
         )
     return PKDict(imported_data=res)
 

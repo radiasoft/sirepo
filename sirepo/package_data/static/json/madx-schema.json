@@ -1323,7 +1323,7 @@
     },
     "strings": {
         "completionState": "",
-        "importText": "Import a lattice (.madx) file",
+        "importText": "Import a lattice file (.ele, .lte, .in, .madx, or .seq)",
         "simulationSource": "MAD-X Source (*.madx)"
     },
     "view": {

@@ -37,10 +37,6 @@ _DEFAULT_MODULE = "local"
 
 _cfg = None
 
-_CPU_SLOT_OPS = frozenset((job.OP_ANALYSIS, job.OP_RUN))
-
-SLOT_OPS = frozenset().union(*[_CPU_SLOT_OPS, (job.OP_IO,)])
-
 _UNTIMED_OPS = frozenset(
     (job.OP_ALIVE, job.OP_CANCEL, job.OP_ERROR, job.OP_KILL, job.OP_OK)
 )
@@ -77,7 +73,7 @@ class DriverBase(PKDict):
             # TODO(robnagler) sbatch could override OP_RUN, but not OP_ANALYSIS
             # because OP_ANALYSIS touches the directory sometimes. Reasonably
             # there should only be one OP_ANALYSIS running on an agent at one time.
-            op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in SLOT_OPS}),
+            op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in job.SLOT_OPS}),
             uid=op.msg.uid,
             _agent_id=job.unique_key(),
             _agent_life_change_lock=tornado.locks.Lock(),
@@ -407,7 +403,7 @@ class DriverBase(PKDict):
             op.run_dir_slot.alloc,
             "Waiting for access to simulation state await=run_dir_slot",
         )
-        if n not in _CPU_SLOT_OPS:
+        if n not in job.CPU_SLOT_OPS:
             return res
         # once job-op relative resources are acquired, ask for global resources
         # so we only acquire on global resources, once we know we are ready to go.
