@@ -29,7 +29,6 @@ _SIM_TYPE = "jupyterhublogin"
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
     async def api_checkAuthJupyterHub(self):
-        self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(
             self,
             have_simulation_db=False,
@@ -40,48 +39,19 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
     async def api_redirectJupyterHub(self):
-        self.parse_params(type=_SIM_TYPE)
-        u = _unchecked_jupyterhub_user_name(self)
-        if u:
-            return self.reply_redirect("jupyterHub")
-        if not _cfg.rs_jupyter_migrate:
-            if not u:
-                create_user(self)
-            return self.reply_redirect("jupyterHub")
-        return self.reply_ok()
+        if not _unchecked_jupyterhub_user_name(self):
+            create_user(self)
+        return self.reply_redirect("jupyterHub")
 
 
 def cfg():
     return _init()
 
 
-def create_user(qcall, github_handle=None, check_dir=False):
-    """Create a Jupyter user and possibly migrate their data from old jupyter.
-
-    Terminology:
-      migration user: A user with data at the old jupyter
-      jupyter user: The user of new jupyter
-
-    A few interesting cases to keep in mind:
-      1. If a user is migrating (has a github handle) we should never modify
-         the handle and if they are able to migrate then their username should be
-         their github handle (downcased).
-      2. User signs into sirepo under one@any.com. They migrate their data using
-         GitHub handle y. They sign into sirepo under two@any.com. They choose
-         to migrate GitHub handle y again. We should let them know that they
-         have already migrated.
-      3. one@any.com signs up for jupyter and does not migrate data. They are
-         given the username one. two@any.com signs up for jupyter and they
-         migrate their data, but they have no data to migrate. They have the
-         github handle one and no previous data. They should be alerted that
-         they can't migrate that GitHub handle.
-      4. A new user signs in with foo@any.com and they do not select to
-         migrate. There is an existing foo migration user which has not registered
-         yet. We should uniquify the new user (foo_xyz) to ensure the name
-         doesn't collide with the existing (yet to register) user.
+def create_user(qcall, check_dir=False):
+    """Create a Jupyter user
 
     Args:
-        github_handle (str): The user's github handle
         check_dir (bool): assert that an existing user does not have a dir with
                           the same name (before modifying the name to eliminate
                           conflicts)
@@ -94,21 +64,11 @@ def create_user(qcall, github_handle=None, check_dir=False):
             r"\W+",
             _HUB_USER_SEP,
             # Get the local part of the email. Or in the case of another auth
-            # method (ex github) it won't have an '@' so it will just be their
-            # user name, handle, etc.
-            (github_handle or qcall.auth.logged_in_user_name()).split("@")[0],
+            # method it won't have an '@' so it will just be their user name, handle, etc.
+            qcall.auth.logged_in_user_name().split("@")[0],
         ).lower()
 
     def __user_name():
-        if github_handle:
-            if (
-                qcall.auth_db.model("JupyterhubUser").unchecked_search_by(
-                    user_name=github_handle
-                )
-                or not _user_dir(qcall, user_name=github_handle).exists()
-            ):
-                raise sirepo.util.SRException("jupyterNameConflict", None)
-            return github_handle
         n = __handle_or_name_sanitized()
         if qcall.auth_db.model("JupyterhubUser").unchecked_search_by(user_name=n):
             # The username already exists. Add some randomness to try and create
@@ -145,12 +105,6 @@ def delete_user_dir(qcall):
 
 def init_apis(*args, **kwargs):
     _init()
-    if _cfg.rs_jupyter_migrate:
-        sirepo.events.register(
-            PKDict(
-                github_authorized=_event_github_authorized,
-            )
-        )
     sirepo.events.register(
         PKDict(
             auth_logout=_event_auth_logout,
@@ -169,11 +123,6 @@ def _init():
             pkio.py_path(sirepo.srdb.root()).join("jupyterhub", "user"),
             pkio.py_path,
             "Jupyterhub user db",
-        ),
-        rs_jupyter_migrate=(
-            False,
-            bool,
-            "give user option to migrate data from jupyter.radiasoft.org",
         ),
         uri_root=("jupyter", str, "the root uri of jupyterhub"),
     )
@@ -206,14 +155,6 @@ def _event_end_api_call(qcall, kwargs):
             PKDict(key=f"jupyterhub-user-{u}", path=f"/{_cfg.uri_root}/user/{u}/"),
         )
     )
-
-
-def _event_github_authorized(qcall, kwargs):
-    create_user(qcall, github_handle=kwargs.user_name.lower())
-    # User may not have been a user originally so need to create their dir.
-    # If it exists (they were a user) it is a no-op.
-    pkio.mkdir_parent(_user_dir(qcall))
-    raise sirepo.util.Redirect(qcall.uri_for_app_root("jupyter"))
 
 
 def _unchecked_hub_user(qcall, uid):
