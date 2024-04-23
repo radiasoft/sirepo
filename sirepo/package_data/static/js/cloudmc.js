@@ -123,6 +123,12 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
         return a.tallies.filter(v => v.name === a.tally)[0];
     }
 
+    self.findScore = (score) => findScore(
+        appState.models.openmcAnimation.tallies,
+        appState.models.openmcAnimation.tally,
+        score,
+    );
+
     // volumes are measured in centimeters
     self.GEOMETRY_SCALE = SIREPO.APP_SCHEMA.constants.geometryScale;
 
@@ -2853,7 +2859,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
         `,
         controller: function($scope, $element) {
             $scope.appState = appState;
-            $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`.replace(/ /g, '-');
+            $scope.sliderClass = SIREPO.UTILS.randomId();
 
             let hasSteps = false;
             let isMulti = false;
@@ -3040,6 +3046,14 @@ SIREPO.app.directive('tallyList', function() {
 });
 
 SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, utilities, $scope) {
+    const useCachedScore = () => {
+        if (appState.models.openmcAnimation.prevScore) {
+            if (cloudmcService.findScore(appState.models.openmcAnimation.prevScore)) {
+                appState.models.openmcAnimation.score = appState.models.openmcAnimation.prevScore;
+            }
+        }
+    };
+
     const autoUpdate = utilities.debounce(() => {
         if ($scope.form.$valid) {
             appState.saveChanges('openmcAnimation');
@@ -3073,11 +3087,18 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
         cloudmcService.validateSelectedTally();
         updateEnergyRange(true);
         appState.saveChanges('openmcAnimation');
+        useCachedScore();
     }
+
+    const preserveScore = () => {
+        appState.models.openmcAnimation.prevScore = appState.models.openmcAnimation.score;
+        appState.saveChanges('openmcAnimation');
+    };
 
     $scope.whenSelected = () => {
         updateEnergyRange();
         showFields();
+        useCachedScore();
     };
 
     $scope.watchFields = [
@@ -3097,6 +3118,6 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'openmcAnimation.showSources',
             'openmcAnimation.numSampleSourceParticles',
         ], showFields,
+        ['openmcAnimation.score'], preserveScore,
     ];
-
 });

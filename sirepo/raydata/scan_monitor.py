@@ -13,12 +13,14 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdformat
 import aenum
 import asyncio
 import databroker.queries
+import datetime
 import functools
 import io
 import math
 import pymongo
 import re
 import requests
+import sirepo.raydata.adaptive_workflow
 import sirepo.raydata.analysis_driver
 import sirepo.raydata.databroker
 import sirepo.srdb
@@ -86,6 +88,10 @@ class _Analysis(_DbBase):
         sqlalchemy.String(20), nullable=False, primary_key=True
     )
     status = sqlalchemy.Column(sqlalchemy.String(20), nullable=False)
+    analysis_elapsed_time = sqlalchemy.Column(
+        sqlalchemy.Integer(),
+        nullable=True,
+    )
     last_updated = sqlalchemy.Column(
         sqlalchemy.DateTime(),
         nullable=False,
@@ -101,7 +107,15 @@ class _Analysis(_DbBase):
             .order_by(sqlalchemy.desc("last_updated"))
             .limit(num_scans)
         ):
-            r.append(PKDict(rduid=x.rduid, status=x.status, catalog_name=catalog_name))
+            r.append(
+                PKDict(
+                    rduid=x.rduid,
+                    status=x.status,
+                    detailed_status=_get_detailed_status(catalog_name, x.rduid),
+                    analysis_elapsed_time=x.analysis_elapsed_time,
+                    catalog_name=catalog_name,
+                )
+            )
         return r
 
     @classmethod
@@ -127,7 +141,13 @@ class _Analysis(_DbBase):
         for s in statuses:
             for x in cls.search_all_by(catalog_name=catalog_name, status=s):
                 r.append(
-                    PKDict(rduid=x.rduid, status=x.status, catalog_name=catalog_name)
+                    PKDict(
+                        rduid=x.rduid,
+                        status=x.status,
+                        detailed_status=_get_detailed_status(catalog_name, x.rduid),
+                        analysis_elapsed_time=x.analysis_elapsed_time,
+                        catalog_name=catalog_name,
+                    )
                 )
         return r
 
@@ -140,7 +160,7 @@ class _Analysis(_DbBase):
         return cls.session.query(cls).filter_by(**kwargs).first()
 
     @classmethod
-    def set_scan_status(cls, analysis_driver, status):
+    def set_scan_status(cls, analysis_driver, status, analysis_elapsed_time=None):
         r = cls.search_by(
             rduid=analysis_driver.rduid, catalog_name=analysis_driver.catalog_name
         )
@@ -149,9 +169,11 @@ class _Analysis(_DbBase):
                 rduid=analysis_driver.rduid,
                 catalog_name=analysis_driver.catalog_name,
                 status=status,
+                analysis_elapsed_time=analysis_elapsed_time,
             ).save()
             return
         r.status = status
+        r.analysis_elapsed_time = analysis_elapsed_time
         r.save()
 
     @classmethod
@@ -163,7 +185,31 @@ class _Analysis(_DbBase):
         )
 
     @classmethod
+    def analysis_elapsed_time_for_scans(cls, catalog_name, rduids):
+        return (
+            cls.session.query(cls.rduid, cls.analysis_elapsed_time)
+            .filter(cls.catalog_name == catalog_name, cls.rduid.in_(rduids))
+            .all()
+        )
+
+    @classmethod
     def _db_upgrade(cls):
+        def _add_analysis_elapsed_time_column():
+            if _analysis_elapsed_time_in_schema():
+                return
+            cls.session.execute(
+                sqlalchemy.text(
+                    f"ALTER TABLE {cls.__tablename__} ADD COLUMN analysis_elapsed_time INTEGER"
+                )
+            )
+            cls.session.commit()
+
+        def _analysis_elapsed_time_in_schema():
+            for c in sqlalchemy.inspect(engine).get_columns(cls.__tablename__):
+                if c.get("name") == "analysis_elapsed_time":
+                    return True
+            return False
+
         def _fixup_running_statuses():
             for x in cls.session.query(cls).filter(
                 cls.status.in_(_AnalysisStatus.NON_STOPPED)
@@ -190,6 +236,7 @@ class _Analysis(_DbBase):
             )
             cls.session.commit()
 
+        _add_analysis_elapsed_time_column()
         _rename_uid_column_to_rduid()
         _fixup_running_statuses()
 
@@ -336,8 +383,17 @@ class _RequestHandler(_JsonPostRequestHandler):
                 catalog_name=req_data.catalogName, rduids=[s.rduid for s in l]
             )
         )
+
+        e = PKDict(
+            _Analysis.analysis_elapsed_time_for_scans(
+                catalog_name=req_data.catalogName, rduids=[s.rduid for s in l]
+            )
+        )
+
         for s in l:
             s.status = d.get(s.rduid, _AnalysisStatus.NONE)
+            s.analysis_elapsed_time = e.get(s.rduid, None)
+            s.detailed_status = _get_detailed_status(req_data.catalogName, s.rduid)
         return l, pc
 
     def _request_analysis_output(self, req_data):
@@ -345,14 +401,6 @@ class _RequestHandler(_JsonPostRequestHandler):
 
     def _request_analysis_run_log(self, req_data):
         return sirepo.raydata.analysis_driver.get(req_data).get_run_log()
-
-    def _request_begin_replay(self, req_data):
-        sirepo.raydata.replay.begin(
-            req_data.sourceCatalogName,
-            req_data.destinationCatalogName,
-            req_data.numScans,
-        )
-        return PKDict(data="ok")
 
     def _request_catalog_names(self, _):
         return PKDict(
@@ -388,25 +436,6 @@ class _RequestHandler(_JsonPostRequestHandler):
         s = 1
         if req_data.analysisStatus == "allStatuses":
             l, s = self._databroker_search(req_data)
-        elif req_data.analysisStatus == "executed":
-            assert req_data.searchStartTime and req_data.searchStopTime, pkdformat(
-                "must have both searchStartTime and searchStopTime req_data={}",
-                req_data,
-            )
-            l = []
-            # TODO(pjm): this could be very slow if there were a lot of old analysis records in the db
-            # it makes a mongo call per row with no datetime window
-            for s in _Analysis.scans_with_status(
-                req_data.catalogName, _AnalysisStatus.EXECUTED
-            ):
-                m = sirepo.raydata.databroker.get_metadata(
-                    s.rduid, req_data.catalogName
-                )
-                if (
-                    m.start() >= req_data.searchStartTime
-                    and m.stop() <= req_data.searchStopTime
-                ):
-                    l.append(s)
         elif req_data.analysisStatus == "queued":
             l = _Analysis.scans_with_status(
                 req_data.catalogName, _AnalysisStatus.NON_STOPPED
@@ -449,6 +478,14 @@ class _RequestHandler(_JsonPostRequestHandler):
         )
         return PKDict(data="ok")
 
+    def _request_run_engine_event_callback(self, req_data):
+        # Start as a task. No need to hold request until task is
+        # completed because the caller does nothing with the response.
+        asyncio.create_task(
+            sirepo.raydata.adaptive_workflow.run_engine_event_callback(req_data)
+        )
+        return PKDict()
+
     def _request_scan_fields(self, req_data):
         return PKDict(
             columns=_display_columns(
@@ -469,12 +506,15 @@ async def _init_analysis_processors():
                 continue
             d = sirepo.raydata.analysis_driver.get(_SCANS_AWAITING_ANALYSIS.pop(0))
             s = _AnalysisStatus.ERROR
+            start = None
+            end = None
             try:
                 _Analysis.set_scan_status(d, _AnalysisStatus.RUNNING)
                 with pkio.save_chdir(d.get_output_dir(), mkdir=True), pkio.open_text(
                     "run.log", mode="w"
                 ) as l:
                     try:
+                        start = datetime.datetime.now()
                         for n in d.get_notebooks():
                             p = await asyncio.create_subprocess_exec(
                                 "bash",
@@ -490,7 +530,9 @@ async def _init_analysis_processors():
                                 r == 0
                             ), f"error returncode={r} catalog={d.catalog_name} scan={d.rduid} notebook={n} log={pkio.py_path().join('run.log')}"
                             s = _AnalysisStatus.COMPLETED
+                            end = datetime.datetime.now()
                     except Exception as e:
+                        end = datetime.datetime.now()
                         pkdlog(
                             "error analyzing scan={} error={} stack={}",
                             d.rduid,
@@ -498,7 +540,8 @@ async def _init_analysis_processors():
                             pkdexc(),
                         )
             finally:
-                _Analysis.set_scan_status(d, s)
+                t = int((end - start).total_seconds()) if (end and start) else None
+                _Analysis.set_scan_status(d, s, t)
 
     assert not _ANALYSIS_PROCESSOR_TASKS
     _ANALYSIS_PROCESSOR_TASKS = [
@@ -509,6 +552,16 @@ async def _init_analysis_processors():
 
 def _display_columns(columns):
     return [k for k in columns if k not in _NON_DISPLAY_SCAN_FIELDS]
+
+
+def _get_detailed_status(catalog_name, rduid):
+    d = sirepo.raydata.analysis_driver.get(
+        PKDict(catalog_name=catalog_name, rduid=rduid)
+    )
+    if hasattr(d, "get_detailed_status_file"):
+        return d.get_detailed_status_file(rduid)
+    else:
+        return None
 
 
 async def _init_catalog_monitors():
@@ -591,11 +644,15 @@ def _scan_index(rduid, req_data):
     return _SCANS_AWAITING_ANALYSIS.index(s) if s in _SCANS_AWAITING_ANALYSIS else -1
 
 
-def _scan_info(rduid, status, req_data, all_columns):
+def _scan_info(
+    rduid, status, detailed_status, analysis_elapsed_time, req_data, all_columns
+):
     m = sirepo.raydata.databroker.get_metadata(rduid, req_data.catalogName)
     d = PKDict(
         rduid=rduid,
         status=status,
+        detailed_status=detailed_status,
+        analysis_elapsed_time=analysis_elapsed_time,
         pdf=sirepo.raydata.analysis_driver.get(
             PKDict(rduid=rduid, **req_data)
         ).has_analysis_pdfs(),
@@ -635,7 +692,17 @@ def _scan_info_result(scans, page_count, req_data):
         return -1 if v1 < v2 else 1
 
     all_columns = set()
-    s = [_scan_info(x.rduid, x.status, req_data, all_columns) for x in scans]
+    s = [
+        _scan_info(
+            x.rduid,
+            x.status,
+            x.detailed_status,
+            x.analysis_elapsed_time,
+            req_data,
+            all_columns,
+        )
+        for x in scans
+    ]
     if req_data.analysisStatus in ("recentlyExecuted", "queued"):
         s = sorted(
             s,

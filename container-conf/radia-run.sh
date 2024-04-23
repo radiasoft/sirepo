@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Docker CMD to start Sirepo in development mode.
+# OCI CMD to start Sirepo in development mode.
 #
 # DO NOT USE on a public server or in an environment with multiple users.
 #

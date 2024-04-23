@@ -926,6 +926,7 @@ li.sr-dropdown-submenu > a {
   overflow-y: auto;
   border: 1px solid #e7e7e7;
   min-height: 80ex;
+  max-height: calc(100vh - 65px);
   border-radius: 4px;
   margin-left: 1ex;
   margin-right: -1ex;
