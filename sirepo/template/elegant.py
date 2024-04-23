@@ -784,7 +784,7 @@ def parse_input_text(
         if input_data:
             _map(data)
         return data
-    if e == ".madx":
+    if e == ".madx" or e == ".seq":
         return ElegantMadxConverter(qcall=qcall).from_madx_text(text)
     if e == ".in":
         from sirepo.template import opal_parser

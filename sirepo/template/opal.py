@@ -237,7 +237,7 @@ class OpalMadxConverter(MadxConverter):
         ],
         [
             "RFCAVITY",
-            ["RFCAVITY", "l", "volt", "lag", "harmon", "freq"],
+            ["RFCAVITY", "l", "volt", "lag", "freq"],
         ],
         [
             "TWCAVITY",
@@ -681,7 +681,7 @@ def stateful_compute_import_file(data, **kwargs):
                 missingFiles=missing_files,
                 imported_data=res,
             )
-    elif data.args.ext_lower == ".madx":
+    elif data.args.ext_lower == ".madx" or data.args.ext_lower == ".seq":
         res = OpalMadxConverter(qcall=None).from_madx_text(data.args.file_as_str)
         res.models.simulation.name = data.args.purebasename
     elif data.args.ext_lower == ".ele":
