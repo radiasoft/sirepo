@@ -3,7 +3,6 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -14,6 +13,7 @@ from sirepo.template.lattice import LatticeUtil
 import h5py
 import numpy
 import re
+import pmd_beamphysics
 import sirepo.sim_data
 import sirepo.template
 
@@ -381,27 +381,18 @@ def _plot_field_dist(sim_type, frame_args):
 
 
 def _plot_phase(sim_type, frame_args):
-    def _col(data, column_name):
-        from pmd_beamphysics import ParticleGroup
-
-        # pkdp("\n\n\n h5path={}", frame_args.run_dir.join("openpmd.h5"))
-        p = ParticleGroup(h5=str(frame_args.run_dir.join("openpmd.h5")))
-        # pkdp("\n\n\n x={}, y={}, z={}\n\n\n", p.x, p.y, p.z)
-        if sim_type == "elegant":
-            pkdp("\n\n\n\n BEFORE p.z={}", p.z)
-            # TODO (gurhar1133): not working with genesis
-            t0 = p.avg('t')
-            p.drift_to_t(t0)
-            # p.drift_to_t()
-            pkdp("\n\n\n\n AFTER p.z={}", p.z)
-        if sim_type == "genesis":
-            pkdp("\n\n\n genesis weight = {}", p.weight)
-            # z0 = p.avg('z')
-            p.drift_to_t(0.1)
+    def _col(column_name):
+        p = pmd_beamphysics.ParticleGroup(h5=str(frame_args.run_dir.join("openpmd.h5")))
+        if sim_type != "opal":
+            try:
+                t0 = p.avg('t')
+                p.drift_to_t(t0)
+            except Exception as e:
+                # t0 = 0
+                pass
         c = PKDict(
             x=p.x,
             y=p.y,
-            # z=data.position.z if sim_type == "opal" else data.time,
             z=p.z,
             px=p.px,
             py=p.py,
@@ -411,11 +402,10 @@ def _plot_phase(sim_type, frame_args):
         c[numpy.isnan(c)] = 0.0
         return c
 
-    d = template_common.read_dict_from_h5(frame_args.run_dir.join("openpmd.h5"))
     _phase_plot_args(sim_type, frame_args)
     if sim_type in ("elegant", "opal", "genesis"):
         return template_common.heatmap(
-            values=[_col(d, frame_args.x), _col(d, frame_args.y)],
+            values=[_col(frame_args.x), _col(frame_args.y)],
             model=frame_args,
             plot_fields=PKDict(
                 x_label=frame_args.x,
