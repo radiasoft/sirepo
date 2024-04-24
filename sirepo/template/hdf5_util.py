@@ -7,8 +7,10 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo.template import template_common
+import contextlib
 import h5py
 import numpy as np
+import time
 
 
 class HDF5Util:
@@ -88,3 +90,15 @@ class HDF5Util:
                 x_label=x.label,
             ),
         )
+
+    @contextlib.contextmanager
+    def read_while_writing(self, retries=10, timeout=3):
+        for _ in range(retries):
+            try:
+                pkdp("\n\n\n TRYING!!!")
+                with h5py.File(self.filename, "r") as p:
+                    yield p
+                    return
+            except (BlockingIOError, IOError, KeyError) as e:
+                time.sleep(timeout)
+        raise AssertionError(f"{self.filename} is unavailable")
