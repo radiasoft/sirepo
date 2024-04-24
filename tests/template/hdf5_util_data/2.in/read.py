@@ -4,7 +4,6 @@ import sys
 
 def _read():
     with HDF5Util(sys.argv[1]).read_while_writing() as f:
-        print("trying to read", f)
-    print("Read complete")
+        pass
 
 _read()
