@@ -124,7 +124,7 @@ def sim_frame_crystal3dAnimation(frame_args):
 
 
 def sim_frame_tempProfileAnimation(frame_args):
-    with h5py.File(frame_args.run_dir.join(_TEMP_PROFILE_FILE), "r") as f:
+    with hdf5_util.HDF5Util(frame_args.run_dir.join(_TEMP_PROFILE_FILE)).read_while_writing() as f:
         d = PKDict(
             radialPlot=template_common.h5_to_dict(f).radial,
             longitudinalPlot=template_common.h5_to_dict(f).longitudinal,
@@ -150,7 +150,7 @@ def sim_frame_tempProfileAnimation(frame_args):
 
 
 def sim_frame_tempHeatMapAnimation(frame_args):
-    with h5py.File(frame_args.run_dir.join(_TEMP_HEATMAP_FILE), "r") as f:
+    with hdf5_util.HDF5Util(frame_args.run_dir.join(_TEMP_HEATMAP_FILE)).read_while_writing() as f:
         d = template_common.h5_to_dict(f)
         r = d.ranges
         z = d.intensity
