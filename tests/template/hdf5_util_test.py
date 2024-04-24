@@ -13,18 +13,22 @@ def test_read_while_writing():
     from sirepo.template.hdf5_util import HDF5Util
     from pykern import pkunit
 
+    # TODO (gurhar1133): try subprocess instead
     for d in pkunit.case_dirs():
         h = HDF5Util(d.join("does_not_exist_at_first.h5"))
 
         async def _write_to_filename():
             # async with lock:
                 # time.sleep(4)
-            os.rename(d.join("x.h5"), d.join("does_not_exist_at_first.h5"))
+            # os.rename(d.join("x.h5"), d.join("does_not_exist_at_first.h5"))
+            await asyncio.sleep(4)
+            await asyncio.to_thread(os.rename, d.join("x.h5"), d.join("does_not_exist_at_first.h5"))
 
         async def _read():
             # async with lock:
-            with h.read_while_writing() as f:
-                print("trying to read non existent")
+            # with h.read_while_writing() as f:
+            #     print("trying to read non existent")
+            await asyncio.to_thread(h.read_while_writing)
 
         async def _run():
             # lock = asyncio.Lock()
