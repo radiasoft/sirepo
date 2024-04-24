@@ -4,34 +4,41 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import asyncio
 import os
+import subprocess
 import time
 
 
-def test_read_while_writing():
-    from sirepo.template.hdf5_util import HDF5Util
+def test_read_not_written():
     from pykern import pkunit
 
-    # TODO (gurhar1133): try subprocess instead
-    for d in pkunit.case_dirs():
-        h = HDF5Util(d.join("does_not_exist_at_first.h5"))
+    for d in pkunit.case_dirs(group_prefix="1"):
+        p = subprocess.Popen(
+            ["python", d.join("read.py"), d.join("does_not_exist_at_first.h5")],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        time.sleep(10)
+        os.rename(d.join("x.h5"), d.join("does_not_exist_at_first.h5"))
+        _, e = p.communicate()
+        if e:
+            raise AssertionError(e.decode())
 
-        async def _write_to_filename():
-            # async with lock:
-                # time.sleep(4)
-            # os.rename(d.join("x.h5"), d.join("does_not_exist_at_first.h5"))
-            await asyncio.sleep(4)
-            await asyncio.to_thread(os.rename, d.join("x.h5"), d.join("does_not_exist_at_first.h5"))
 
-        async def _read():
-            # async with lock:
-            # with h.read_while_writing() as f:
-            #     print("trying to read non existent")
-            await asyncio.to_thread(h.read_while_writing)
+def test_read_while_writing():
+    from pykern import pkunit
 
-        async def _run():
-            # lock = asyncio.Lock()
-            await asyncio.gather(_read(), _write_to_filename())
-
-        asyncio.run(_run())
+    for d in pkunit.case_dirs(group_prefix="2"):
+        subprocess.Popen(
+            ["python", d.join("write.py"), d.join("x.h5")],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        r = subprocess.Popen(
+            ["python", d.join("read.py"), d.join("x.h5")],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        _, e = r.communicate()
+        if e:
+            raise AssertionError(e.decode())

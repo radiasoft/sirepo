@@ -95,7 +95,6 @@ class HDF5Util:
     def read_while_writing(self, retries=10, timeout=3):
         for _ in range(retries):
             try:
-                pkdp("\n\n\n TRYING on {}!!!", self.filename)
                 with h5py.File(self.filename, "r") as p:
                     yield p
                     return
