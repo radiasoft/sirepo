@@ -29,7 +29,6 @@ _SIM_TYPE = "jupyterhublogin"
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
     async def api_checkAuthJupyterHub(self):
-        # TODO remove
         self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(
             self,
@@ -41,7 +40,6 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
     async def api_redirectJupyterHub(self):
-        # TODO remove
         self.parse_params(type=_SIM_TYPE)
         if not _unchecked_jupyterhub_user_name(self):
             create_user(self)
