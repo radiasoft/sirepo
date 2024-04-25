@@ -5,5 +5,8 @@
                 "jupyterhublogin.js"
             ]
         }
+    },
+    "appDefaults": {
+        "route": "jupyterhublogin"
     }
 }
