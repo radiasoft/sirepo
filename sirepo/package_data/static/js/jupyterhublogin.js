@@ -3,6 +3,10 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.app.controller('JupyterhubloginController', function() {
+    var self = this;
+});
+
 SIREPO.app.directive('appHeader', function(jupyterhubloginService) {
     return {
         restrict: 'A',

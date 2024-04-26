@@ -8,5 +8,14 @@
     },
     "appDefaults": {
         "route": "jupyterhublogin"
+    },
+    "localRoutes": {
+        "jupyterhublogin": {
+            "route": "/jupyterhublogin",
+            "config": {
+                "controller": "JupyterhubloginController as jupyterhublogin",
+                "templateUrl": "/static/html/jupyterhublogin.html"
+            }
+        }
     }
 }
