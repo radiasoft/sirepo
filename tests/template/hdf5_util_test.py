@@ -24,17 +24,21 @@ def test_read_while_writing():
         _proc(case_work_dir, "write.py", "x.h5")
         _raise(_proc(case_work_dir, "read.py", "x.h5"))
 
-    _case_dirs_from_same_data_dir(
+    def _key_error(case_work_dir):
+        p = _proc(case_work_dir, "read.py", "x.h5", flags=["check_key"])
+        _proc(case_work_dir, "write.py", "x.h5", flags=["check_key"])
+        _raise(p)
+
+    _cases_from_same_data_dir(
         [
             _read_not_written,
             _read_while_write,
-            # TODO (gurhar1133): test KeyError case
-            # TODO (gurhar1133): also, maybe these should be different tests?
+            _key_error,
         ]
     )
 
 
-def _case_dirs_from_same_data_dir(cases):
+def _cases_from_same_data_dir(cases):
     from pykern import pkunit
 
     w = pkunit.work_dir()
@@ -44,9 +48,9 @@ def _case_dirs_from_same_data_dir(cases):
         cases[i](c)
 
 
-def _proc(dir, exe_name, data_name):
+def _proc(dir, exe_name, data_name, flags=[]):
     return subprocess.Popen(
-        ["python", dir.join(exe_name), dir.join(data_name)],
+        ["python", dir.join(exe_name), dir.join(data_name), *flags],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
