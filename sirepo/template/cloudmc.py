@@ -112,9 +112,7 @@ def background_percent_complete(report, run_dir, is_running):
 def extract_report_data(run_dir, sim_in):
     # dummy result
     if sim_in.report == "tallyReport":
-        template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
-    if sim_in.report == "energyReport":
-        template_common.write_sequential_result(_energy_plot(run_dir, sim_in))
+        template_common.write_sequential_result(PKDict(x_range=[]))
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -140,11 +138,6 @@ def post_execution_processing(
             ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
             for f in ply_files:
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
-        if compute_model == "openmcAnimation":
-            f = _statepoint_filename(
-                simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-            )
-            _SIM_DATA.put_sim_file(sim_id, f, f)
         return None
     return _parse_cloudmc_log(run_dir)
 
@@ -168,6 +161,12 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
 def sim_frame(frame_args):
     import openmc
 
+    if frame_args.frameReport == "energyAnimation":
+        frame_args.sim_in.models.energyAnimation = (
+            template_common.model_from_frame_args(frame_args)
+        )
+        return _energy_plot(frame_args.run_dir, frame_args.sim_in)
+
     def _sample_sources(filename, num_samples):
         samples = []
         try:
@@ -188,13 +187,11 @@ def sim_frame(frame_args):
         return samples
 
     def _sum_energy_bins(values, mesh_filter, energy_filter, sum_range):
-        f = (lambda x: x) if energy_filter.space == "linear" else numpy.log10
         bins = numpy.ceil(
-            energy_filter.num
-            * numpy.abs(f(numpy.array(sum_range.val)) - f(sum_range.min))
-            / numpy.abs(f(sum_range.max) - f(sum_range.min))
+            (energy_filter.num - 1)
+            * numpy.abs(numpy.array(sum_range) - energy_filter.start)
+            / numpy.abs(energy_filter.stop - energy_filter.start)
         ).astype(int)
-
         vv = numpy.reshape(values, (*mesh_filter.dimension, -1))
         z = numpy.zeros((*mesh_filter.dimension, 1))
         for i in range(len(vv)):
@@ -392,16 +389,6 @@ def write_volume_outlines():
     simulation_db.write_json(_OUTLINES_FILE, all_outlines)
 
 
-def _bin(val, num_bins, min_val, max_val):
-    return (
-        0
-        if min_val == max_val
-        else numpy.floor(num_bins * abs(val - min_val) / abs(max_val - min_val)).astype(
-            int
-        )
-    )
-
-
 def _dagmc_animation_python(filename):
     return f"""
 import sirepo.pkcli.cloudmc
@@ -417,8 +404,16 @@ sirepo.simulation_db.write_json(
 def _energy_plot(run_dir, data):
     import openmc
 
+    def _bin(val, mesh, idx):
+        # mesh units are in cm
+        return numpy.floor(
+            mesh.dimension[idx]
+            * abs(val * 1e2 - mesh.lower_left[idx])
+            / abs(mesh.upper_right[idx] - mesh.lower_left[idx])
+        ).astype(int)
+
     plots = []
-    tally_name = data.models.openmcAnimation.tally
+    tally_name = data.models.energyAnimation.tally
     t = openmc.StatePoint(run_dir.join(_statepoint_filename(data))).get_tally(
         name=tally_name
     )
@@ -430,34 +425,37 @@ def _energy_plot(run_dir, data):
     tally = _get_tally(data.models.settings.tallies, tally_name)
     mesh = _get_filter(tally, "meshFilter")
     e = _get_filter(tally, "energyFilter")
-    r = data.models.energyReport
-    for s in [s.score for s in tally.scores]:
-        mean = numpy.reshape(
-            getattr(t, "mean")[:, :, t.get_score_index(s)].ravel(),
-            (*mesh.dimension, -1),
-        )
-        bins = [
-            _bin(r[dim].val, mesh.dimension[i], r[dim].min, r[dim].max)
-            for i, dim in enumerate(("x", "y", "z"))
-        ]
-        plots.append(
-            PKDict(
-                points=mean[bins[0]][bins[1]][bins[2]].tolist(),
-                label=s,
-                style="line",
-            ),
-        )
-        # std_dev = getattr(t, "std_dev")[:, :, t.get_score_index(s)].ravel()
+    r = data.models.energyAnimation
+    mean = numpy.reshape(
+        getattr(t, "mean")[:, :, t.get_score_index(r.score)].ravel(),
+        (*mesh.dimension, -1),
+    )
+    # std_dev = getattr(t, "std_dev")[:, :, t.get_score_index(r.score)].ravel()
 
+    x = e_f.values.tolist()
+    y = mean[_bin(r.x, mesh, 0)][_bin(r.y, mesh, 1)][_bin(r.z, mesh, 2)].tolist()
+    x1 = []
+    y1 = []
+    for i in range(len(y)):
+        if i > 0 and y[i - 1] == y[i]:
+            pass
+        else:
+            x1.append(x[i])
+            y1.append(y[i])
+        x1.append(x[i + 1])
+        y1.append(y[i])
     return template_common.parameter_plot(
-        e_f.values.tolist(),
-        plots,
+        x1,
+        [
+            PKDict(
+                points=y1,
+                label=r.score,
+            ),
+        ],
         PKDict(),
         PKDict(
-            title=f"Energy Spectrum at ({round(r.x.val, ndigits=6)}, {round(r.y.val, ndigits=6)}, {round(r.z.val, ndigits=6)})",
-            y_label="Score",
+            title=f"Energy Spectrum at ({round(r.x, ndigits=4)}, {round(r.y, ndigits=4)}, {round(r.z, ndigits=4)})",
             x_label="Energy [eV]",
-            summaryData=PKDict(),
         ),
     )
 
@@ -605,8 +603,6 @@ def _generate_parameters_file(data, run_dir=None):
         return _dagmc_animation_python(_SIM_DATA.dagmc_filename(data))
     if report == "tallyReport":
         return ""
-    if report == "energyReport":
-        return ""
     res, v = template_common.generate_parameters_file(data)
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
     v.isPythonSource = False if run_dir else True
@@ -637,13 +633,13 @@ def _generate_parameters_file(data, run_dir=None):
     )
 
 
-def _generate_range(filter):
+def _generate_energy_range(filter):
     space = "linspace"
-    start = filter._scale * filter.start
-    stop = filter._scale * filter.stop
-    if filter.space == "log":
+    start = filter.start * 1e6
+    stop = filter.stop * 1e6
+    if filter.space == "log" and filter.start > 0:
         space = "logspace"
-        start = numpy.log10(start) if start > 0 else -307
+        start = numpy.log10(start)
         stop = numpy.log10(stop)
     return "numpy.{}({}, {}, {})".format(space, start, stop, filter.num)
 
@@ -760,11 +756,11 @@ t{tally._index + 1}.filters = ["""
 """
         elif f._type == "energyFilter":
             res += f"""
-    openmc.EnergyFilter({_generate_range(f)}),
+    openmc.EnergyFilter({_generate_energy_range(f)}),
 """
         elif f._type == "energyoutFilter":
             res += f"""
-    openmc.EnergyoutFilter({_generate_range(f)}),
+    openmc.EnergyoutFilter({_generate_energy_range(f)}),
 """
         elif f._type == "particleFilter":
             res += f"""

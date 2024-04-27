@@ -575,11 +575,6 @@
     .sr-plot-cleared {
       opacity: 0;
     }
-    .sr-plot .cross-hair {
-      stroke-width: 1px;
-      shape-rendering: crispEdges;
-      stroke: steelblue;
-    }
     .sr-plot .x-base, .sr-plot .y-base {
       font-size: 13px;
     }
@@ -624,15 +619,7 @@
         pointer-events: none;
     }
 
-    .sr-plot .sr-crosshair {
-      clip-path: url(#sr-plot-window);
-      mix-blend-mode: difference;
-      pointer-events: none;
-      stroke: white;
-      stroke-width: 1.0;
-    }
-
-    .sr-plot .sr-crosshair-readout {
+    .sr-plot .sr-heatmap-readout {
       pointer-events: none;
     }
 
@@ -644,7 +631,6 @@
       stroke-width: 2.0;
     }
 
-    
     .sr-download-png .plot-visibility {
       visibility: hidden;
     }
@@ -1240,8 +1226,4 @@ img.sr-disabled-image {
 
 .running-icon {
   animation: icon-rotate 2s linear 0s infinite;
-}
-
-.sr-slider {
-  background: var(--sr-action) !important;
 }

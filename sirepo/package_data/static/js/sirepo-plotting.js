@@ -779,7 +779,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     img.data[++p] = c.b;
                     let a = 255;
                     if (threshold !== null) {
-                        a = v < threshold[1] && v > threshold[0] ? 255 : 0;
+                        if (threshold[0] === 0 && v === 0) {
+                            a = 0;
+                        }
+                        else {
+                            a = v <= threshold[1] && v >= threshold[0] ? 255 : 0;
+                        }
                     }
                     img.data[++p] = a;
                 }
@@ -2758,7 +2763,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             $scope.subTitleCenter = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 55;
             $scope.dataCleared = true;
-            $scope.wantCrossHairs = ! SIREPO.PLOTTING_SUMMED_LINEOUTS;
             $scope.focusTextCloseSpace = 18;
             $scope.focusPoints = [];
 
@@ -3256,6 +3260,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
         restrict: 'A',
         scope: {
             modelName: '@',
+            isClientOnly: '@',
         },
         templateUrl: '/static/html/heatplot.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
@@ -3266,14 +3271,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             };
             $scope.dataCleared = true;
             $scope.margin = {top: 50, left: 70, right: 100, bottom: 50};
-
-            $scope.readout = (coords=[0, 0], val=0) => {
-                if (! $scope.enableCrosshairs()) {
-                    return '';
-                }
-                const labels = [axes.x.label, axes.y.label];
-                return `(${coords.map((x, i) => labels[i] + ': ' + SIREPO.UTILS.roundToPlaces(x, 4))}): ${SIREPO.UTILS.roundToPlaces(val, 4)}`;
-            };
 
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
@@ -3292,8 +3289,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             let colorbar, hideColorBar;
             const overlaySelector = 'svg.sr-plot g.sr-overlay-data-group';
             const cellHighlightClass = 'sr-cell-highlight';
-            const crosshairClass = 'sr-crosshair';
-            const selectedCells = [];
+            let selectedCell;
 
             let overlayData = null;
 
@@ -3301,8 +3297,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const [i, j] = heatmapIndices(point);
                 const [dx, dy] = coordBinSize();
                 return [
-                    getRange(axes.x.values)[0] + i * dx,
-                    getRange(axes.y.values)[0] + j * dy,
+                    getRange(axes.x.values)[0] + i * dx + dx / 2,
+                    getRange(axes.y.values)[0] + j * dy + dy / 2,
                 ];
             }
 
@@ -3333,10 +3329,10 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             function drawOverlay() {
                 const ns = 'http://www.w3.org/2000/svg';
                 const overlay = select(overlaySelector);
-                if (appState.models[$scope.modelName].enableSelection) {
+                if ($scope.enableSelection && selectedCell) {
                     const c = overlay
                         .selectAll(`rect.${cellHighlightClass}`)
-                        .data(selectedCells);
+                        .data([selectedCell]);
                     c.exit().remove();
                     c.enter()
                         .append((d) => document.createElementNS(ns, 'rect'))
@@ -3373,56 +3369,32 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 ];
             }
 
-            function getCell(point) {
-                return {
-                    coords: binnedCoords(point),
-                    point: point,
-                };
-            }
-
-            function getPixel(coords) {
-                const fp = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL;
-                const sz = plotting.pixelSize(
-                    axes.x.scale,
-                    axes.y.scale,
-                    $scope.canvasSize.width,
-                    $scope.canvasSize.height,
-                    axes.x.values,
-                    axes.y.values
-                );
-                return {
-                    x: Math.round(axes.x.scale(coords[0]) + (fp ? sz.x / 2 : 0)),
-                    y: Math.round(axes.y.scale(coords[1]) + (fp ? -sz.y / 2 : 0)),
-                    width: sz.x,
-                    height: sz.y,
-                };
-            }
-
             function getRange(values) {
                 return [values[0], values[values.length - 1]];
             }
 
             function mouseClick() {
-                if (! mouseClickPoint || ! d3.event.altKey || ! appState.models[$scope.modelName].enableSelection) {
+                if (! mouseClickPoint || ! d3.event.altKey || ! $scope.enableSelection) {
                     return;
                 }
-                selectCell(mouseClickPoint);
+                selectedCell = binnedCoords(mouseClickPoint);
+                drawOverlay();
                 $scope.broadcastEvent({
                     name: SIREPO.PLOTTING.HeatmapSelectCellEvent,
-                    cell: selectedCells[0],
+                    cell: selectedCell,
                 });
             }
 
             const mouseMove = utilities.debounce(() => {
                 /*jshint validthis: true*/
-                if (! heatmap || heatmap[0].length <= 2) {
+                if (! heatmap || heatmap[0].length <= 2 || ! mouseMovePoint) {
                     return;
                 }
                 const [i, j] = heatmapIndices(mouseMovePoint);
                 try {
                     pointer.pointTo(heatmap[heatmap.length - 1 - j][i]);
-                    if ($scope.enableCrosshairs) {
-                        updateCrosshairs(mouseMovePoint);
+                    if ($scope.enableSelection) {
+                        updateReadout(mouseMovePoint, i, j);
                     }
                 }
                 catch (err) {
@@ -3483,12 +3455,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return selector ? e.select(selector) : e;
             }
 
-            function selectCell(point) {
-                // single selection for now
-                selectedCells[0] = getCell(point);
-                drawOverlay();
-            }
-            
             function setColorScale() {
                 var plotMin = globalMin != null ? globalMin : plotting.min2d(heatmap);
                 var plotMax = globalMax != null ? globalMax : plotting.max2d(heatmap);
@@ -3517,30 +3483,20 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             }
 
             function updateCellHighlight(selection) {
-                const p = (c) => getPixel(c);
+                const fp = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL;
+                const sz = plotting.pixelSize(
+                    axes.x.scale,
+                    axes.y.scale,
+                    $scope.canvasSize.width,
+                    $scope.canvasSize.height,
+                    axes.x.values,
+                    axes.y.values
+                );
                 selection
-                    .attr('x', (d) => p(d.coords).x - 0.5 * p(d.coords).width)
-                    .attr('y', (d) => p(d.coords).y - 0.5 * p(d.coords).height)
-                    .attr('width', (d) => p(d.coords).width)
-                    .attr('height', (d) =>  p(d.coords).height);
-            }
-
-            function updateCrosshairs(point) {
-                if (! point) {
-                    return;
-                }
-                const c = binnedCoords(point);
-                const [i, j] = heatmapIndices(point);
-                const p = getPixel(c);
-                const s = select(overlaySelector).selectAll(`line.${crosshairClass}`);
-                s.filter(`.${crosshairClass}-x`)
-                    .attr('y1', p.y)
-                    .attr('y2', p.y);
-                s.filter(`.${crosshairClass}-y`)
-                    .attr('x1', p.x)
-                    .attr('x2', p.x);
-                select(overlaySelector).selectAll('text.sr-crosshair-readout')
-                    .text($scope.readout(c, heatmap[heatmap.length - 1 - j][i]));
+                    .attr('x', (d) => Math.round(axes.x.scale(d[0]) - (fp ? sz.x / 2 : 0)))
+                    .attr('y', (d) => Math.round(axes.y.scale(d[1]) - (fp ? sz.y / 2 : 0)))
+                    .attr('width', (d) => sz.x)
+                    .attr('height', (d) =>  sz.y);
             }
 
             function updateOverlay(selection) {
@@ -3566,6 +3522,20 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     .select('title').text(d => d.name);
             }
 
+            function updateReadout(point, i, j) {
+                let text;
+                if (point) {
+                    const c = binnedCoords(point).map(v => SIREPO.UTILS.roundToPlaces(v, 4));
+                    const labels = [axes.x.label, axes.y.label];
+                    const val = SIREPO.UTILS.roundToPlaces(heatmap[heatmap.length - 1 - j][i], 4);
+                    text = `(${axes.x.label}: ${c[0]}, ${axes.y.label}: ${c[1]}): ${val}`;
+                }
+                else {
+                    text = '';
+                }
+                select(overlaySelector).selectAll('text.sr-heatmap-readout').text(text);
+            }
+
             $scope.clearData = function() {
                 $scope.dataCleared = true;
                 $scope.prevFrameIndex = SIREPO.nonDataFileFrame;
@@ -3577,10 +3547,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 zoom.on('zoom', null);
                 document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
-
-            $scope.enableCrosshairs = () => appState.models[$scope.modelName].enableCrosshairs;
-
-            $scope.enableSelection = () => appState.models[$scope.modelName].enableSelection;
 
             $scope.init = function() {
                 select('svg.sr-plot').attr('height', plotting.initialHeight($scope));
@@ -3597,6 +3563,10 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     .on('click', function() {
                         mouseClickPoint = d3.mouse(this);
                         mouseClick();
+                    })
+                    .on('mouseout', () => {
+                        mouseMovePoint = null;
+                        updateReadout();
                     });
                 ctx = canvas.getContext('2d', { willReadFrequently: true });
                 cacheCanvas = document.createElement('canvas');
@@ -3620,12 +3590,9 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     return;
                 }
                 overlayData = json.overlayData;
-                if (json.selectedCoords) {
-                    selectedCells[0] = {
-                        coords: json.selectedCoords,
-                    };
-                }
+                selectedCell = json.selectedCoords;
                 $scope.dataCleared = false;
+                $scope.enableSelection = json.enableSelection;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
                 heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
                 globalMin = json.global_min;
@@ -3682,10 +3649,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             });
 
             $scope.$on(`${$scope.modelName}.updateSelection`, (e, d) => {
-                selectedCells[0] = {
-                    coords: d,
-                    point: getPixel(binnedCoords(d)),
-                };
+                selectedCell = d;
                 drawOverlay();
             });
 
@@ -4349,9 +4313,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             }
                         });
                 });
-                $scope.broadcastEvent({
-                    name: 'retranslate'
-                });
 
                 $scope.focusPoints.forEach(function(fp) {
                     focusPointService.refreshFocusPoint(fp, $scope);
@@ -4482,7 +4443,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
 });
 
 SIREPO.PLOTTING = {
-    HeatmapSelectCellEvent: 'heatmapSelectCell', 
+    HeatmapSelectCellEvent: 'heatmapSelectCell',
     PlotLine: PlotLine,
     PlotPolygon: PlotPolygon,
     PlotRect: PlotRect,

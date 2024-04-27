@@ -56,7 +56,11 @@
       <div data-simple-panel="tallySettings">
           <div data-tally-settings=""></div>
       </div>
-      <div data-ng-if="energyFilter()" data-report-panel="parameter" data-model-name="energyReport" data-panel-title="Energy Spectrum"></div>
+      <div data-ng-if="showEnergyPlot()">
+        <div data-report-panel="parameter" data-model-name="energyAnimation" data-panel-title="Energy Spectrum">
+          <div data-advanced-editor-pane="" data-view-name="'energyAnimation'" data-field-def="basic"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
