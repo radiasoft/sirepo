@@ -175,6 +175,13 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
     return "An unknown error occurred"
 
 
+def prepare_for_client(data, qcall, **kwargs):
+    # ensure the related codes are present
+    for s in SCHEMA.relatedSimTypes:
+        simulation_db.simulation_dir(s, qcall=qcall)
+    return data
+
+
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 

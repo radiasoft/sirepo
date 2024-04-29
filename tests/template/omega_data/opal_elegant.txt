@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+
+from pmd_beamphysics import pmd_init
+from pykern import pkio
+from rslume import Elegant, OPAL, Genesis2
+import h5py
+import os
+
+# patch numpy
+import numpy
+numpy.float = float
+
+
+def code_kwargs(src_dir, input_file):
+    workdir = f"{src_dir}/out"
+    pkio.mkdir_parent(workdir)
+    return dict(
+        input_file=f"{src_dir}/{input_file}",
+        workdir=workdir,
+        verbose=True,
+        use_temp_dir=False,
+    )
+
+
+def run_and_save_particles(sim):
+    sim.run()
+    p = sim.final_particles()
+    if p:
+        with h5py.File(os.path.join(sim.workdir, "openpmd.h5"), "w") as f:
+            pmd_init(f, basePath='/', particlesPath='/' )
+            p.write(f)
+
+
+sim1 = OPAL(**code_kwargs("run1", "opal.in"), update_filenames=True)
+run_and_save_particles(sim1)
+
+sim2 = Elegant(**code_kwargs("run2", "elegant.ele"), update_filenames=True)
+sim2.set_particle_input(sim1.final_particles())
+run_and_save_particles(sim2)
+

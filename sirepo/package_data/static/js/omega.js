@@ -37,23 +37,13 @@ SIREPO.app.factory('omegaService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('SourceController', function (appState, frameCache, omegaService, persistentSimulation, requestSender, $scope) {
+SIREPO.app.controller('SourceController', function (appState, frameCache, omegaService, persistentSimulation, $scope) {
     const self = this;
     let errorMessage;
     self.omegaService = omegaService;
     self.simScope = $scope;
     self.reports = null;
     self.simAnalysisModel = 'animation';
-
-    function requestSimListByType(simType) {
-        requestSender.sendRequest(
-            'listSimulations',
-            () => {},
-            {
-                simulationType: simType,
-            }
-        );
-    }
 
     self.simHandleStatus = data => {
         errorMessage = data.error;
@@ -83,7 +73,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, omegaS
         }
     };
 
-    SIREPO.APP_SCHEMA.relatedSimTypes.forEach(simType => requestSimListByType(simType));
     self.simState = persistentSimulation.initSimulationState(self);
     //TODO(pjm): this should be default behavior in simStatusPanel
     self.simState.errorMessage = () => errorMessage;
