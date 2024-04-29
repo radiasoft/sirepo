@@ -3465,6 +3465,7 @@ SIREPO.app.directive('completeRegistration', function() {
     return {
         restrict: 'A',
         template: `
+          <div class="sr-login-panel">
             <form class="form-horizontal" autocomplete="off" novalidate>
               <div class="form-group">
                 <div class="col-sm-offset-3 col-sm-10">
@@ -3484,6 +3485,7 @@ SIREPO.app.directive('completeRegistration', function() {
                 </div>
               </div>
             </form>
+          </div>
         `,
     };
 });
@@ -3493,6 +3495,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
         restrict: 'A',
         scope: {},
         template: `
+          <div class="sr-login-panel">
             <div data-ng-show="isJupyterHub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">
             We're improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. Simply follow the directions below to complete this process.
             </div>
@@ -3521,6 +3524,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             <div data-confirmation-modal="" data-is-required="true" data-id="sr-email-login-done" data-title="Check your inbox" data-ok-text="" data-cancel-text="">
               <p>We just emailed a confirmation link to {{ data.sentEmail }}. Click the link and you'll be signed in. You may close this window.</p>
             </div>
+          </div>
         `,
         controller: function($scope) {
             function handleResponse(data) {
@@ -3570,6 +3574,7 @@ SIREPO.app.directive('emailLoginConfirm', function() {
     return {
         restrict: 'A',
         template: `
+          <div class="sr-login-panel">
             <div class="row text-center">
               <p>Please click the button below to complete the login process.</p>
             </div>
@@ -3579,6 +3584,7 @@ SIREPO.app.directive('emailLoginConfirm', function() {
                  <button data-ng-click="loginConfirm.submit()" class="btn btn-primary">Confirm</button>
               </div>
             </form>
+          </div>
         `,
     };
 });

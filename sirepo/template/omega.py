@@ -68,6 +68,7 @@ _ELEGANT_BEAM_PARAMETER_FILE = PKDict(
     Cx="run_setup.centroid.sdds",
     Cy="run_setup.centroid.sdds",
 )
+_OUT_DIR = "out"
 _PARTICLE_OUTFILE = "openpmd.h5"
 _RELATED_SIMS_FOLDER = "/Omega"
 _SUCCESS_OUTPUT_FILE = PKDict(
@@ -283,23 +284,19 @@ def _coupled_sims_list(data):
 
 
 def _generate_parameters_file(data):
-    def _sim_call(idx, sim):
-        r = (
-            f"sim{idx + 1} = {_SIM_TYPE_TO_CODE[sim.sim_type]}("
-            + f'**code_kwargs("run{idx + 1 }", "{_SIM_TYPE_TO_INPUT_FILE[sim.sim_type]}")'
-        )
-        if sim.sim_type in ("opal", "elegant"):
-            r += ", update_filenames=True"
-        r += ")\n"
-        if idx > 0:
-            r += f"sim{idx + 1}.set_particle_input(sim{idx}.final_particles())\n"
-        r += f"run_and_save_particles(sim{idx + 1})"
-        return r
-
     res, v = template_common.generate_parameters_file(data)
     v.simCall = []
     for idx, s in enumerate(_coupled_sims_list(data)):
-        v.simCall.append(_sim_call(idx, s))
+        v.simCall.append(
+            PKDict(
+                name=f"run{idx + 1}",
+                input_file=_SIM_TYPE_TO_INPUT_FILE[s.sim_type],
+                code=_SIM_TYPE_TO_CODE[s.sim_type],
+                out=_OUT_DIR,
+                initial_particles=f"run{idx}.final_particles()" if idx else "None",
+                update_filenames=True if s.sim_type in ("opal", "elegant") else False,
+            )
+        )
     v.particleOutfile = _PARTICLE_OUTFILE
     return res + template_common.render_jinja(SIM_TYPE, v)
 
@@ -480,7 +477,7 @@ def _sim_in_dir(run_dir, sim_count):
 
 
 def _sim_out_dir(run_dir, sim_count):
-    return _sim_in_dir(run_dir, sim_count).join("out")
+    return _sim_in_dir(run_dir, sim_count).join(_OUT_DIR)
 
 
 def _sim_info(dm, idx):
