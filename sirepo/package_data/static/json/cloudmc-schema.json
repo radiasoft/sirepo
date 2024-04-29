@@ -1225,19 +1225,23 @@
             "title": "Tally Settings",
             "model": "openmcAnimation",
             "basic": [
-                "tally",
-                "score",
-                "aspect",
-                "sourceNormalization",
-                "energyRangeSum",
-                "showSources",
-                "numSampleSourceParticles",
-                "sourceColorMap",
-                "colorMap",
-                "thresholds",
-                "opacity",
-                "tallyReport.axis",
-                "tallyReport.planePos"
+                ["Tally", [
+                    "tally",
+                    "score",
+                    "aspect",
+                    "energyRangeSum",
+                    "colorMap",
+                    "thresholds",
+                    "opacity",
+                    "tallyReport.axis",
+                    "tallyReport.planePos"
+                ]],
+                ["Source", [
+                    "showSources",
+                    "numSampleSourceParticles",
+                    "sourceNormalization",
+                    "sourceColorMap"
+                ]]
             ],
             "advanced": []
         },
