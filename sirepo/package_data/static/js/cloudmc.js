@@ -2797,7 +2797,7 @@ SIREPO.app.directive('jRangeSlider', function(appState, panelState) {
         `,
         controller: function($scope, $element) {
             $scope.appState = appState;
-            $scope.sliderClass = `${$scope.modelName}-${$scope.fieldName}-slider`.replace(/ /g, '-');
+            $scope.sliderClass = SIREPO.UTILS.randomId();
 
             let hasSteps = false;
             let isMulti = false;
