@@ -7,13 +7,13 @@
         }
     },
     "appDefaults": {
-        "route": "jupyterhublogin"
+        "route": "jupyterHubLogin"
     },
     "localRoutes": {
-        "jupyterhublogin": {
+        "jupyterHubLogin": {
             "route": "/jupyterhublogin",
             "config": {
-                "controller": "JupyterhubloginController as jupyterhublogin",
+                "controller": "JupyterHubLoginController as jupyterhublogin",
                 "templateUrl": "/static/html/jupyterhublogin.html"
             }
         }
