@@ -366,9 +366,6 @@
             "httpRedirect": {
                 "route": "/http-redirect/:srExceptionOnly"
             },
-            "invalidSimulationSerial": {
-                "route": "/invalid-simulation-serial/:srExceptionOnly"
-            },
             "login": {
                 "route": "/login",
                 "config": {
