@@ -5,6 +5,8 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.controller('JupyterHubLoginController', function(requestSender) {
     var self = this;
+
+    srdbg("in controller");
     requestSender.sendRequest('redirectJupyterHub');
 });
 
