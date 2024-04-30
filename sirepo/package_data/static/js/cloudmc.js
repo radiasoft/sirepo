@@ -229,7 +229,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
     self.isRangeValid = (model, field) => {
         return model[field] && (model[field][0] || model[field][1]);
     };
-    
+
     self.toggleAllVolumes = (isVisible, visibleKey) => {
         for (const vId of self.getNonGraveyardVolumes()) {
             const v = self.getVolumeById(vId);
@@ -1858,7 +1858,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                     );
                 }
             });
-            
+
             function loadRows() {
                 $scope.rows = [];
                 for (const n in appState.models.volumes) {
@@ -2258,12 +2258,12 @@ SIREPO.app.directive('minMax', function(validationService) {
                     return;
                 }
                 const err = t.some(x => x === null || x === undefined)
-                    ? 'Enter values'
-                    : (t[0] === 0 && t[1] === 0)
-                        ? ''
-                        : t[0] >= t[1]
-                            ? 'Lower limit must be less than upper limit'
-                            : '';
+                          ? 'Enter values'
+                          : (t[0] === 0 && t[1] === 0)
+                          ? ''
+                          : t[0] >= t[1]
+                          ? 'Lower limit must be less than upper limit'
+                          : '';
                 ngModel.$setValidity('', validationService.validateField(
                     scope.modelName,
                     scope.field,
@@ -3107,7 +3107,7 @@ SIREPO.app.directive('energyRangeSlider', function(appState, cloudmcService, pan
             $scope.tallyService = tallyService;
 
             function updateRange() {
-                const f = cloudmcService.findFilter('energyFilter');                
+                const f = cloudmcService.findFilter('energyFilter');
                 if (f) {
                     $scope.min = f.start;
                     $scope.max = f.stop;
