@@ -2139,6 +2139,10 @@ SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
     };
 
     self.localRedirect = (routeNameOrUri, params) => {
+        srdbg(routeNameOrUri, params);
+        if (routeNameOrUri === '/jupyterhublogin') {
+            throw new Error("eeee");
+        }
         var u = routeNameOrUri;
         if (u.indexOf('/') < 0) {
             u = self.formatLocal(u, params);
@@ -2542,6 +2546,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     const storageKey = "previousRoute";
 
     function checkLoginRedirect(event, route) {
+        srdbg("222", event, route)
         if (! SIREPO.authState.isLoggedIn
             || SIREPO.authState.needCompleteRegistration
             // Any controller that has 'login' in it will stay on page
@@ -2565,6 +2570,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         // always unique in our routes.
         if (uri.firstComponent($location.url()) !== r) {
             event.preventDefault();
+            srdbg("1111");
             uri.localRedirect(decodeURIComponent(p[1]));
         }
     }
@@ -2617,6 +2623,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     };
 
     self.handleSRException = function(srException, errorCallback) {
+        srdbg(srException);
         const e = srException;
         if (e.routeName == "httpRedirect") {
             uri.globalRedirect(e.params.uri, undefined);

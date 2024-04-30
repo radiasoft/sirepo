@@ -1,1 +1,7 @@
-<button data-ng-click="jupyterhublogin.redir()" class="btn btn-large btn-primary">Yes</button>
+<div data-ng-if="jupyterhublogin.isLoading" class="sr-page-load" style="display: block">
+    <img class="sr-page-load-image" src="/static/img/sirepo_animated.gif" />
+    <div class="sr-page-load-text">Loading</div>
+</div>
+<div data-ng-if="! jupyterhublogin.isLoading" class="container-fluid">
+    <button data-ng-click="jupyterhublogin.redir()" class="btn btn-large btn-primary">Yes</button>
+</div>

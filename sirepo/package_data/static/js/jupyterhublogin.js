@@ -7,6 +7,12 @@ SIREPO.app.controller('JupyterHubLoginController', function(requestSender) {
     var self = this;
 
     srdbg("in controller");
+    self.isLoading = true;
+    requestSender.sendRequest(
+        'redirectJupyterHub',
+	() => {self.isLoading = false;}
+    );
+
     self.redir = () => {
         requestSender.sendRequest('redirectJupyterHub');
     };
