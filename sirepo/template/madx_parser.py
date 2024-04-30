@@ -132,7 +132,7 @@ class MadXParser(lattice.LatticeParser):
                 "centre",
                 "exit",
             ), "invalid sequence alignment: {}".format(alignment)
-            prev = None
+            prev = 0
             for item in seq["items"]:
                 el = util.id_map[item[0]]
                 at = self._eval_var(code_var, item[1])
@@ -142,10 +142,9 @@ class MadXParser(lattice.LatticeParser):
                     entry = at - length / 2
                 elif alignment == "exit":
                     entry = at - length
-                if prev is not None:
-                    d = self._get_drift(drifts, entry - prev)
-                    if d:
-                        beamline["items"].append(d)
+                d = self._get_drift(drifts, entry - prev)
+                if d:
+                    beamline["items"].append(d)
                 beamline["items"].append(el._id)
                 prev = entry + length
             if beamline["items"]:

@@ -11,9 +11,6 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="PresetTimePicker" class="col-sm-7">
           <div class="text-right" data-preset-time-picker="" data-model="model" data-model-name="modelName"></div>
         </div>
-        <div data-ng-switch-when="ExecutedScansTable" class="col-sm-12">
-          <div data-scans-table="" data-model-name="modelName" data-analysis-status="executed"></div>
-        </div>
         <div data-ng-switch-when="RecentlyExecutedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="recentlyExecuted"></div>
         </div>
@@ -173,11 +170,6 @@ SIREPO.app.factory('scanService', function($rootScope) {
 });
 
 SIREPO.app.controller('AnalysisQueueController', function() {
-    const self = this;
-    return self;
-});
-
-SIREPO.app.controller('AnalysisExecutedController', function() {
     const self = this;
     return self;
 });
@@ -496,7 +488,7 @@ SIREPO.app.directive('scansTable', function() {
             $scope.raydataService = raydataService;
             $scope.runLogScanId = null;
             $scope.scans = [];
-            $scope.showPdfColumn = $scope.analysisStatus === 'executed' || $scope.analysisStatus === 'allStatuses';
+            $scope.showPdfColumn = $scope.analysisStatus === 'allStatuses';
 
             let scanOutputIndex = 1;
             let pendingRunAnalysis = {};

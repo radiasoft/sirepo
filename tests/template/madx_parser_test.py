@@ -40,12 +40,13 @@ def test_parse_madx_file():
     from sirepo.template import madx, madx_parser
 
     with pkunit.save_chdir_work():
-        for name in ("particle_track", "alba"):
+        for name in ("particle_track.madx", "alba.madx", "simple_cell.seq"):
             actual = madx_parser.parse_file(
-                pkio.read_text(pkunit.data_dir().join(f"{name}.madx"))
+                pkio.read_text(pkunit.data_dir().join(name))
             )
             del actual["version"]
             actual.models.simulation.pkdel("lastModified")
+            name = name.split(".")[0]
             outfile = f"{name}.json"
             pkjson.dump_pretty(actual, outfile)
             expect = pkjson.load_any(pkunit.data_dir().join(outfile))

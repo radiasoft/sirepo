@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test simulationSerial
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
@@ -26,8 +25,12 @@ def test_elegant_server_upgraded(fc):
 
     d = fc.sr_sim_data("Backtracking")
     d.version = d.version[:-1] + str(int(d.version[-1]) - 1)
-    with pkexcept("newRelease.*serverupgraded"):
-        fc.sr_post("saveSimulationData", d)
+    fc.assert_post_will_redirect(
+        "server-upgraded/newRelease",
+        "saveSimulationData",
+        d,
+        redirect=False,
+    )
 
 
 def test_home_page_file(fc):
@@ -65,8 +68,12 @@ def test_srw_serial_stomp(fc):
         curr_serial,
     )
     prev_data.models.beamline[4].position = "60.5"
-    with pkexcept("invalidSimulationSerial.*serverUpgraded"):
-        fc.sr_post("saveSimulationData", prev_data)
+    fc.assert_post_will_redirect(
+        "server-upgraded/invalidSimulationSerial",
+        "saveSimulationData",
+        prev_data,
+        redirect=False,
+    )
     curr_data.models.beamline[4].position = "60.5"
     new_data = fc.sr_post("saveSimulationData", curr_data)
     new_serial = new_data.models.simulation.simulationSerial

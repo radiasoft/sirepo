@@ -7,10 +7,6 @@
           <text class="focus-text-close close" text-anchor="end" ng-attr-x="{{ canvasSize.width }}" y="-10" dy=".35em">&times;</text>
           <text class="main-title" ng-attr-x="{{ titleCenter }}" ng-attr-y="{{ -margin.top / 2 }}"></text>
           <text class="sub-title" ng-attr-x="{{ subTitleCenter }}" y="0" dy="-.5em"></text>
-          <g data-ng-if="wantCrossHairs">
-            <line class="cross-hair" ng-attr-x1="{{ canvasSize.width / 2 }}" y1="0" ng-attr-x2="{{ canvasSize.width / 2 }}" ng-attr-y2="{{ canvasSize.height }}"></line>
-            <line class="cross-hair" x1="0" ng-attr-y1="{{ canvasSize.height / 2 }}" ng-attr-x2="{{ canvasSize.width }}" ng-attr-y2="{{ canvasSize.height / 2 }}"></line>
-          </g>
           <g class="y axis grid"></g>
           <defs>
             <clippath id="{{ modelName }}-bottomclip">

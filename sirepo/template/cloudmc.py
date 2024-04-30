@@ -112,7 +112,7 @@ def background_percent_complete(report, run_dir, is_running):
 def extract_report_data(run_dir, sim_in):
     # dummy result
     if sim_in.report == "tallyReport":
-        template_common.write_sequential_result(PKDict(x_range=[], summaryData={}))
+        template_common.write_sequential_result(PKDict(x_range=[]))
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -161,16 +161,11 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
 def sim_frame(frame_args):
     import openmc
 
-    def _get_filter(tally, type):
-        for i in range(1, SCHEMA.constants.maxFilters + 1):
-            f = tally[f"filter{i}"]
-            if f._type == type:
-                return f
-        return None
-
-    def _get_tally(tallies, name):
-        f = [x for x in tallies if x.name == name]
-        return f[0] if len(f) else None
+    if frame_args.frameReport == "energyAnimation":
+        frame_args.sim_in.models.energyAnimation = (
+            template_common.model_from_frame_args(frame_args)
+        )
+        return _energy_plot(frame_args.run_dir, frame_args.sim_in)
 
     def _sample_sources(filename, num_samples):
         samples = []
@@ -192,13 +187,11 @@ def sim_frame(frame_args):
         return samples
 
     def _sum_energy_bins(values, mesh_filter, energy_filter, sum_range):
-        f = (lambda x: x) if energy_filter.space == "linear" else numpy.log10
         bins = numpy.ceil(
-            energy_filter.num
-            * numpy.abs(f(numpy.array(sum_range.val)) - f(sum_range.min))
-            / numpy.abs(f(sum_range.max) - f(sum_range.min))
+            (energy_filter.num - 1)
+            * numpy.abs(numpy.array(sum_range) - energy_filter.start)
+            / numpy.abs(energy_filter.stop - energy_filter.start)
         ).astype(int)
-
         vv = numpy.reshape(values, (*mesh_filter.dimension, -1))
         z = numpy.zeros((*mesh_filter.dimension, 1))
         for i in range(len(vv)):
@@ -408,6 +401,65 @@ sirepo.simulation_db.write_json(
 """
 
 
+def _energy_plot(run_dir, data):
+    import openmc
+
+    def _bin(val, mesh, idx):
+        # mesh units are in cm
+        return numpy.floor(
+            mesh.dimension[idx]
+            * abs(val * 1e2 - mesh.lower_left[idx])
+            / abs(mesh.upper_right[idx] - mesh.lower_left[idx])
+        ).astype(int)
+
+    plots = []
+    tally_name = data.models.energyAnimation.tally
+    t = openmc.StatePoint(run_dir.join(_statepoint_filename(data))).get_tally(
+        name=tally_name
+    )
+    try:
+        e_f = t.find_filter(openmc.EnergyFilter)
+    except ValueError:
+        return PKDict(error=f"No energy filter defined for tally {tally_name}")
+
+    tally = _get_tally(data.models.settings.tallies, tally_name)
+    mesh = _get_filter(tally, "meshFilter")
+    e = _get_filter(tally, "energyFilter")
+    r = data.models.energyAnimation
+    mean = numpy.reshape(
+        getattr(t, "mean")[:, :, t.get_score_index(r.score)].ravel(),
+        (*mesh.dimension, -1),
+    )
+    # std_dev = getattr(t, "std_dev")[:, :, t.get_score_index(r.score)].ravel()
+
+    x = e_f.values.tolist()
+    y = mean[_bin(r.x, mesh, 0)][_bin(r.y, mesh, 1)][_bin(r.z, mesh, 2)].tolist()
+    x1 = []
+    y1 = []
+    for i in range(len(y)):
+        if i > 0 and y[i - 1] == y[i]:
+            pass
+        else:
+            x1.append(x[i])
+            y1.append(y[i])
+        x1.append(x[i + 1])
+        y1.append(y[i])
+    return template_common.parameter_plot(
+        x1,
+        [
+            PKDict(
+                points=y1,
+                label=r.score,
+            ),
+        ],
+        PKDict(),
+        PKDict(
+            title=f"Energy Spectrum at ({round(r.x, ndigits=4)}, {round(r.y, ndigits=4)}, {round(r.z, ndigits=4)})",
+            x_label="Energy [eV]",
+        ),
+    )
+
+
 def _generate_angle(angle):
     if angle._type == "None":
         return angle._type
@@ -581,13 +633,13 @@ def _generate_parameters_file(data, run_dir=None):
     )
 
 
-def _generate_range(filter):
+def _generate_energy_range(filter):
     space = "linspace"
-    start = filter._scale * filter.start
-    stop = filter._scale * filter.stop
-    if filter.space == "log":
+    start = filter.start * 1e6
+    stop = filter.stop * 1e6
+    if filter.space == "log" and filter.start > 0:
         space = "logspace"
-        start = numpy.log10(start) if start > 0 else -307
+        start = numpy.log10(start)
         stop = numpy.log10(stop)
     return "numpy.{}({}, {}, {})".format(space, start, stop, filter.num)
 
@@ -704,11 +756,11 @@ t{tally._index + 1}.filters = ["""
 """
         elif f._type == "energyFilter":
             res += f"""
-    openmc.EnergyFilter({_generate_range(f)}),
+    openmc.EnergyFilter({_generate_energy_range(f)}),
 """
         elif f._type == "energyoutFilter":
             res += f"""
-    openmc.EnergyoutFilter({_generate_range(f)}),
+    openmc.EnergyoutFilter({_generate_energy_range(f)}),
 """
         elif f._type == "particleFilter":
             res += f"""
@@ -724,6 +776,19 @@ t{tally._index + 1}.scores = [{','.join(["'" + s.score + "'" for s in tally.scor
 t{tally._index + 1}.nuclides = [{','.join(["'" + s.nuclide + "'" for s in tally.nuclides if s.nuclide])}]
 """
     return res
+
+
+def _get_filter(tally, type):
+    for i in range(1, SCHEMA.constants.maxFilters + 1):
+        f = tally[f"filter{i}"]
+        if f._type == type:
+            return f
+    return None
+
+
+def _get_tally(tallies, name):
+    f = [x for x in tallies if x.name == name]
+    return f[0] if len(f) else None
 
 
 def _has_graveyard(data):

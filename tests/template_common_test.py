@@ -1,19 +1,14 @@
-# -*- coding: utf-8 -*-
 """PyTest for :mod:`sirepo.template.srw.py`
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import pytest
-import zipfile
-
-from pykern import pkunit
-from sirepo.template import template_common
 
 
 def test_validate_safe_zip():
+    from pykern import pkunit
     from sirepo.template import srw
+    from sirepo.template import template_common
 
     zip_dir = str(pkunit.data_dir() + "/zip_dir")
 
@@ -48,7 +43,9 @@ def test_validate_safe_zip():
 
 def test_dict_to_from_h5():
     from pykern import pkio
+    from pykern import pkunit
     from pykern.pkcollections import PKDict
+    from sirepo.template import template_common
     import h5py
 
     # _TEST_DICT includes single-valued entries (str and int), an array,

@@ -10,8 +10,13 @@
         <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
           <text class="main-title" ng-attr-x="{{ canvasSize.width / 2 }}" ng-attr-y="{{ -margin.top / 2 }}"></text>
           <text class="sub-title" ng-attr-x="{{ canvasSize.width / 2 }}" y="0" dy="-.5em"></text>
+          <text class="select-cell-text" data-ng-if="enableSelection" ng-attr-x="{{ canvasSize.width - 8 }}" y="0" dy="-0.5em">Alt click to select a cell</text>
           <rect class="mouse-rect mouse-zoom" ng-attr-width="{{ canvasSize.width }}" ng-attr-height="{{ canvasSize.height }}" style="pointer-events: all; fill: none;"></rect>
-          <g class="sr-overlay-data-group" ng-attr-width="{{ canvasSize.width }}" ng-attr-height="{{ canvasSize.height }}"></g>
+          <g class="sr-overlay-data-group" ng-attr-width="{{ canvasSize.width }}" ng-attr-height="{{ canvasSize.height }}">
+            <g data-ng-if="enableSelection">
+              <text class="sr-heatmap-readout" x="8" y="-0.5em"></text>
+            </g>
+          </g>
           <text class="x-base" text-anchor="end" ng-attr-x="{{ canvasSize.width + margin.right - 5 }}" ng-attr-y="{{ canvasSize.height + 40 }}"></text>
           <g class="x axis" ng-attr-transform="translate(0, {{ canvasSize.height }})">
             <text class="x-axis-label" ng-attr-x="{{ canvasSize.width / 2 }}" y="40"></text>

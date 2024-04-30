@@ -4577,7 +4577,7 @@
     },
     "strings": {
         "completionState": "",
-        "importText": "Import an elegant command (.ele) or lattice (.lte or .madx) file"
+        "importText": "Import a lattice file (.ele, .lte, .in, .madx, or .seq)"
     },
     "view": {
         "beamlineReport": {

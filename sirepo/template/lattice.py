@@ -358,9 +358,9 @@ class LatticeParser(object):
                 parent = self.elements_by_name[cmd]
                 assert parent
                 assert len(res) >= 3
-                if len(res) == 3:
-                    self.container["items"].append([parent._id, at])
-                    return
+                # if len(res) == 3:
+                #     self.container["items"].append([parent._id, at])
+                #     return
             self.container["items"].append([res._id, at])
         assert "at" not in res
         # copy in superclass values

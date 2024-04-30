@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """Test auth.email
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import pytest
+
 import re
 
 
@@ -79,8 +78,9 @@ def test_force_login(auth_fc):
     )
     fc.sr_email_confirm(r)
     fc.sr_logout()
-    with pkexcept("SRException.*routeName.*login"):
-        fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
+    fc.assert_post_will_redirect(
+        "login", "listSimulations", {"simulationType": fc.sr_sim_type}, redirect=False
+    )
     r = fc.sr_post(
         "authEmailLogin", {"email": "force@b.c", "simulationType": fc.sr_sim_type}
     )

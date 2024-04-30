@@ -1176,7 +1176,8 @@
         }
     },
     "strings": {
-        "simulationSource": "OPAL Source (*.in)"
+        "simulationSource": "OPAL Source (*.in)",
+        "importText": "Import a lattice file (.ele, .lte, .in, .madx, or .seq)"
     },
     "view": {
         "beamline": {

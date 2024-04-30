@@ -11,10 +11,10 @@ def test_myapp_user_dir_deleted(fc):
     import sirepo.srdb
 
     sirepo.srdb.root().join("user", fc.sr_uid).remove(rec=1)
-    fc.sr_post(
+    fc.assert_post_will_redirect(
+        "^/$",
         "listSimulations",
         PKDict(simulationType=fc.sr_sim_type),
-        raw_response=True,
         redirect=False,
-    ).assert_http_redirect("^/$")
+    )
     fc.sr_auth_state(displayName=None, isLoggedIn=False, method=None)

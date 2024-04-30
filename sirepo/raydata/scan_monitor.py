@@ -436,25 +436,6 @@ class _RequestHandler(_JsonPostRequestHandler):
         s = 1
         if req_data.analysisStatus == "allStatuses":
             l, s = self._databroker_search(req_data)
-        elif req_data.analysisStatus == "executed":
-            assert req_data.searchStartTime and req_data.searchStopTime, pkdformat(
-                "must have both searchStartTime and searchStopTime req_data={}",
-                req_data,
-            )
-            l = []
-            # TODO(pjm): this could be very slow if there were a lot of old analysis records in the db
-            # it makes a mongo call per row with no datetime window
-            for s in _Analysis.scans_with_status(
-                req_data.catalogName, _AnalysisStatus.EXECUTED
-            ):
-                m = sirepo.raydata.databroker.get_metadata(
-                    s.rduid, req_data.catalogName
-                )
-                if (
-                    m.start() >= req_data.searchStartTime
-                    and m.stop() <= req_data.searchStopTime
-                ):
-                    l.append(s)
         elif req_data.analysisStatus == "queued":
             l = _Analysis.scans_with_status(
                 req_data.catalogName, _AnalysisStatus.NON_STOPPED

@@ -1,0 +1,355 @@
+{
+    "models": {
+        "beamlines": [
+            {
+                "id": 119,
+                "items": [
+                    115,
+                    108,
+                    116,
+                    109,
+                    117,
+                    110,
+                    118,
+                    111,
+                    116,
+                    112,
+                    117,
+                    113,
+                    114
+                ],
+                "name": "sequ"
+            }
+        ],
+        "bunch": {
+            "alfx": 0.0,
+            "alfy": 0.0,
+            "beamDefinition": "energy",
+            "betx": 1.0,
+            "bety": 1.0,
+            "ex": 1e-06,
+            "ey": 1e-06,
+            "matchTwissParameters": "0",
+            "numberOfParticles": 1000,
+            "px": 0.0,
+            "py": 0.0,
+            "randomSeed": 123456789,
+            "x": 0.0,
+            "y": 0.0
+        },
+        "bunchReport1": {
+            "colorMap": "afmhot",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "x",
+            "y": "px"
+        },
+        "bunchReport2": {
+            "colorMap": "afmhot",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "y",
+            "y": "py"
+        },
+        "bunchReport3": {
+            "colorMap": "afmhot",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "x",
+            "y": "y"
+        },
+        "bunchReport4": {
+            "colorMap": "afmhot",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "t",
+            "y": "pt"
+        },
+        "commands": [
+            {
+                "_id": 101,
+                "_super": "_COMMAND",
+                "_type": "beam",
+                "bcurrent": 0.0,
+                "beta": 0.0,
+                "brho": 0.0,
+                "bunched": "1",
+                "bv": 1,
+                "charge": 1.0,
+                "energy": 0.0,
+                "et": 0.001,
+                "ex": 1.0,
+                "exn": 0.0,
+                "ey": 1.0,
+                "eyn": 0.0,
+                "gamma": 0.0,
+                "isDisabled": "0",
+                "kbunch": 1,
+                "mass": 0.0005109989461,
+                "name": null,
+                "npart": 1,
+                "particle": "positron",
+                "pc": 0.0,
+                "radiate": "0",
+                "sequence": "",
+                "sige": 0.001,
+                "sigt": 1.0
+            }
+        ],
+        "elements": [
+            {
+                "_id": 118,
+                "l": 1.21,
+                "name": "D1.21",
+                "type": "DRIFT"
+            },
+            {
+                "_id": 115,
+                "l": 1.57,
+                "name": "D1.57",
+                "type": "DRIFT"
+            },
+            {
+                "_id": 117,
+                "l": 0.28,
+                "name": "D2.8R01",
+                "type": "DRIFT"
+            },
+            {
+                "_id": 116,
+                "l": 0.56,
+                "name": "D5.6R01",
+                "type": "DRIFT"
+            },
+            {
+                "_id": 114,
+                "_super": "_APERTURE_ELEMENT",
+                "aper_offset": "0",
+                "aper_tol": "0 0 0",
+                "aperture": "0",
+                "apertype": "circle",
+                "name": "endm",
+                "type": "MARKER"
+            },
+            {
+                "_id": 104,
+                "_super": "_APERTURE_ELEMENT",
+                "aper_offset": "0",
+                "aper_tol": "0 0 0",
+                "aperture": "0",
+                "apertype": "circle",
+                "k1": 0.022683642,
+                "k1s": 0.0,
+                "l": 1.6,
+                "name": "qd",
+                "thick": "0",
+                "tilt": 0.0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 113,
+                "_super": "_APERTURE_ELEMENT",
+                "aper_offset": "0",
+                "aper_tol": "0 0 0",
+                "aperture": "0",
+                "apertype": "circle",
+                "k1": 0.022683642,
+                "k1s": 0.0,
+                "l": 1.6,
+                "name": "qd1",
+                "thick": "0",
+                "tilt": 0.0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 103,
+                "_super": "_APERTURE_ELEMENT",
+                "aper_offset": "0",
+                "aper_tol": "0 0 0",
+                "aperture": "0",
+                "apertype": "circle",
+                "k1": -0.02268553,
+                "k1s": 0.0,
+                "l": 1.6,
+                "name": "qf",
+                "thick": "0",
+                "tilt": 0.0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 110,
+                "_super": "_APERTURE_ELEMENT",
+                "aper_offset": "0",
+                "aper_tol": "0 0 0",
+                "aperture": "0",
+                "apertype": "circle",
+                "k1": -0.02268553,
+                "k1s": 0.0,
+                "l": 1.6,
+                "name": "qf1",
+                "thick": "0",
+                "tilt": 0.0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 102,
+                "_super": "_APERTURE_ELEMENT",
+                "angle": 0.011306116,
+                "aper_offset": "0",
+                "aper_tol": "0 0 0",
+                "aperture": "0",
+                "apertype": "circle",
+                "e1": 0.0,
+                "e2": 0.0,
+                "fint": 0.0,
+                "fintx": -1.0,
+                "h1": 0.0,
+                "h2": 0.0,
+                "hgap": 0.0,
+                "k1": 0.0,
+                "k2": 0.0,
+                "l": 35.09,
+                "name": "b",
+                "thick": "0",
+                "tilt": 0.0,
+                "type": "SBEND"
+            },
+            {
+                "_id": 108,
+                "_super": "_APERTURE_ELEMENT",
+                "angle": 0.011306116,
+                "aper_offset": "0",
+                "aper_tol": "0 0 0",
+                "aperture": "0",
+                "apertype": "circle",
+                "e1": 0.0,
+                "e2": 0.0,
+                "fint": 0.0,
+                "fintx": -1.0,
+                "h1": 0.0,
+                "h2": 0.0,
+                "hgap": 0.0,
+                "k1": 0.0,
+                "k2": 0.0,
+                "l": 35.09,
+                "name": "b1",
+                "thick": "0",
+                "tilt": 0.0,
+                "type": "SBEND"
+            },
+            {
+                "_id": 111,
+                "_super": "_APERTURE_ELEMENT",
+                "angle": "b1.angle",
+                "aper_offset": "0",
+                "aper_tol": "0 0 0",
+                "aperture": "0",
+                "apertype": "circle",
+                "e1": 0.0,
+                "e2": 0.0,
+                "fint": 0.0,
+                "fintx": -1.0,
+                "h1": 0.0,
+                "h2": 0.0,
+                "hgap": 0.0,
+                "k1": 0.0,
+                "k2": 0.0,
+                "l": 35.09,
+                "name": "b2",
+                "thick": "0",
+                "tilt": 0.0,
+                "type": "SBEND"
+            },
+            {
+                "_id": 106,
+                "_super": "_APERTURE_ELEMENT",
+                "aper_offset": "0",
+                "aper_tol": "0 0 0",
+                "aperture": "0",
+                "apertype": "circle",
+                "k2": 0.26328,
+                "k2s": 0.0,
+                "l": 0.76,
+                "name": "sd",
+                "tilt": 0.0,
+                "type": "SEXTUPOLE"
+            },
+            {
+                "_id": 112,
+                "_super": "_APERTURE_ELEMENT",
+                "aper_offset": "0",
+                "aper_tol": "0 0 0",
+                "aperture": "0",
+                "apertype": "circle",
+                "k2": 0.26328,
+                "k2s": 0.0,
+                "l": 0.76,
+                "name": "sd1",
+                "tilt": 0.0,
+                "type": "SEXTUPOLE"
+            },
+            {
+                "_id": 105,
+                "_super": "_APERTURE_ELEMENT",
+                "aper_offset": "0",
+                "aper_tol": "0 0 0",
+                "aperture": "0",
+                "apertype": "circle",
+                "k2": -0.13129,
+                "k2s": 0.0,
+                "l": 0.4,
+                "name": "sf",
+                "tilt": 0.0,
+                "type": "SEXTUPOLE"
+            },
+            {
+                "_id": 109,
+                "_super": "_APERTURE_ELEMENT",
+                "aper_offset": "0",
+                "aper_tol": "0 0 0",
+                "aperture": "0",
+                "apertype": "circle",
+                "k2": -0.13129,
+                "k2s": 0.0,
+                "l": 0.4,
+                "name": "sf1",
+                "tilt": 0.0,
+                "type": "SEXTUPOLE"
+            }
+        ],
+        "rpnCache": {},
+        "rpnVariables": [
+            {
+                "name": "b1.angle",
+                "value": 0.011306116
+            }
+        ],
+        "simulation": {
+            "activeBeamlineId": 119,
+            "commandTemplate": "particle",
+            "computeTwissFromParticles": "0",
+            "documentationUrl": "",
+            "enableParticleTracking": "1",
+            "folder": "/",
+            "name": "",
+            "notes": "",
+            "simulationSerial": 0,
+            "visualizationBeamlineId": 119
+        },
+        "twissEllipseReport1": {
+            "dim": "x",
+            "notes": ""
+        },
+        "twissEllipseReport2": {
+            "dim": "y",
+            "notes": ""
+        },
+        "twissReport": {
+            "includeLattice": "1",
+            "y1": "betx",
+            "y2": "bety",
+            "y3": "dx"
+        }
+    },
+    "simulationType": "madx"
+}

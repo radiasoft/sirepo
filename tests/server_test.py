@@ -66,8 +66,12 @@ def test_simulation_schema(fc):
         "simulationSchema",
         data=PKDict(simulationType="myapp"),
     )
-    pkok(isinstance(r.model.dog, PKDict), "expected model.dog to be PKDict")
-    with pkexcept("unexpected status"):
+    pkok(
+        isinstance(r.model.dog, PKDict),
+        "expected model.dog to be PKDict dog={}",
+        r.model.dog,
+    )
+    with fc.error_or_sr_exception():
         fc.sr_post_form(
             "simulationSchema",
             data=PKDict(simulationType="xyzzy"),

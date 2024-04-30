@@ -1,0 +1,18 @@
+! define a default beam (otherwise fatal error)
+beam;
+! Define element classes for a simple cell:
+b:     sbend,l=35.09, angle = 0.011306116;
+qf:    quadrupole,l=1.6,k1=-0.02268553;
+qd:    quadrupole,l=1.6,k1=0.022683642;
+sf:    sextupole,l=0.4,k2=-0.13129;
+sd:    sextupole,l=0.76,k2=0.26328;
+! define the cell as a sequence:
+sequ:  sequence,l=79;
+b1: b,at=19.115;
+sf1:sf,  at=37.42;
+qf1:qf,  at=38.70;
+b2: b,at=58.255,angle=b1->angle;
+sd1:sd,  at=76.74;
+qd1:qd,  at=78.20;
+endm:  marker, at=79.0;
+endsequence;

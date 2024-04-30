@@ -233,6 +233,7 @@
         },
         "sirepoLibs": {
             "css": [
+                "cloudmc.css",
                 "vtk.css"
             ],
             "js": [
@@ -249,6 +250,13 @@
             "aspect",
             "energyRangeSum",
             "numSampleSourceParticles"
+        ],
+        "energyAnimation": [
+            "tally",
+            "score",
+            "x",
+            "y",
+            "z"
         ]
     },
     "localRoutes": {
@@ -297,23 +305,26 @@
         },
         "energyFilter": {
             "_super": ["_", "model", "filter"],
-            "_scale": ["", "Float", 1e6],
             "space": ["Space", "BinSpace", "linear"],
             "start": ["Start [MeV]", "Float", 0, "A logarithmic space treats 0 as $10^{-307}$", 0],
             "stop": ["Stop [MeV]", "Float", 25],
-            "num": ["Number of samples", "Integer", 50, "", 2]
+            "num": ["Number of samples", "Integer", 5, "", 2]
         },
         "energyoutFilter": {
             "_super": ["_", "model", "filter"],
-            "_scale": ["", "Float", 1e6],
             "space": ["Space", "BinSpace", "linear"],
             "start": ["Start [MeV]", "Float", 0],
             "stop": ["Stop [MeV]", "Float", 1],
-            "num": ["Number of samples", "Integer", 50]
+            "num": ["Number of samples", "Integer", 5]
+        },
+        "energyAnimation": {
+            "tally": ["Tally", "PlotTallyList"],
+            "x": ["x [m]", "XPlanePosition", 0],
+            "y": ["y [m]", "YPlanePosition", 0],
+            "z": ["z [m]", "ZPlanePosition", 0]
         },
         "filter": {
-            "_type": ["", "TallyFilter"],
-            "_scale": ["", "Float", 1.0]
+            "_type": ["", "TallyFilter"]
         },
         "geometryInput": {
             "dagmcFile": ["DAGMC file", "InputFile", ""],
@@ -321,7 +332,7 @@
         },
         "geometry3DReport": {
             "bgColor": ["Background color", "Color", "#fff9ed"],
-            "opacity": ["Global alpha", "JRange", {"min": 0, "max": 1.0, "numSteps": 100, "step": 0.01, "val": 1.0, "space": "linear"}],
+            "opacity": ["Global alpha", "Opacity", 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"]
         },
@@ -933,17 +944,18 @@
             "aspect": ["Aspect", "TallyAspect", "mean"],
             "bgColor": ["Background color", "Color", "#fff9ed"],
             "colorMap": ["Tally Color Map", "ColorMap", "viridis"],
-            "energyRangeSum": ["Sum over energies [MeV]", "JRange", {"min": 0, "max": 1, "numSteps": 100, "step": 0.01, "val": [0, 1], "space": "linear"}],
+            "energyRangeSum": ["Sum over energies [MeV]", "EnergyRange", [0, 0]],
             "numSampleSourceParticles": ["Source Particles to Display", "Integer", 10, "", 0, 100],
-            "opacity": ["Global alpha", "JRange", {"min": 0, "max": 1.0, "numSteps": 100, "step": 0.01, "val": 1.0, "space": "linear"}],
+            "opacity": ["Global alpha", "Opacity", 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
             "showSources": ["Show Sources", "Boolean", "1"],
             "sourceColorMap": ["Source Energy Color Map", "ColorMap", "jet"],
             "tally": ["Tally", "PlotTallyList"],
-            "thresholds": ["Threshold", "MinMax", {"val": [null, null], "global": [0, 1e+308], "labels": ["Lower", "Upper"]}, "Tally cells with a value outside this range will not be displayed"],
+            "thresholds": ["Threshold", "Threshold", [0, 0], "Tally cells with a value outside this range will not be displayed"],
             "score": ["Score", "PlotScoreList"],
             "sourceNormalization": ["Normalize to particle count", "Float", 1e12, "Per-particle tally scores are normalized to this many source particles (a factor of {{ appState.models.openmcAnimation.sourceNormalization / appState.models.settings.particles }})", 1.0],
+            "isEnergySelected": ["", "Boolean", "0"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "tasksPerNode": ["Tasks per node", "Integer", 8, "", 1],
             "sbatchHours": ["Hours", "Float", 0.4],
@@ -1050,7 +1062,9 @@
         "tallyReport": {
             "axis": ["Slice Axis", "Axis", "y"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "planePos": ["Plane Position [m]", "JRange", {"min": 0, "max": 1, "numSteps": 100, "step": 0.01, "val": 0.0, "space": "linear"}, ""],
+            "planePos": ["{{ appState.models.tallyReport.axis }} [m]", "PlanePosition", 0],
+            "enableCrosshairs": ["", "Bool", false],
+            "enableSelection": ["", "Bool", false],
             "selectedGeometry": ["", "TallyGeometry", "3D"]
         },
         "tallyScore": {
@@ -1138,6 +1152,15 @@
                 "stop",
                 "num"
             ]
+        },
+        "energyAnimation": {
+            "title": "Energy Spectrum",
+            "basic": [
+                "x",
+                "y",
+                "z"
+            ],
+            "advanced": []
         },
         "geometryInput": {
             "title": "Geometry Input",
