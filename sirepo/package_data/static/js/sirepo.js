@@ -2542,6 +2542,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     const storageKey = "previousRoute";
 
     function checkLoginRedirect(event, route) {
+        srdbg("222", event, route);
         if (! SIREPO.authState.isLoggedIn
             || SIREPO.authState.needCompleteRegistration
             // Any controller that has 'login' in it will stay on page
@@ -2563,6 +2564,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         // After a reload from a login. Only redirect if
         // the route is different. The firstComponent is
         // always unique in our routes.
+        srdbg(uri.firstComponent($location.url()), r, decodeURIComponent(p[1]));
         if (uri.firstComponent($location.url()) !== r) {
             event.preventDefault();
             uri.localRedirect(decodeURIComponent(p[1]));
