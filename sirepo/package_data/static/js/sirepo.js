@@ -2140,9 +2140,6 @@ SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
 
     self.localRedirect = (routeNameOrUri, params) => {
         srdbg(routeNameOrUri, params);
-        if (routeNameOrUri === '/jupyterhublogin') {
-            throw new Error("eeee");
-        }
         var u = routeNameOrUri;
         if (u.indexOf('/') < 0) {
             u = self.formatLocal(u, params);
