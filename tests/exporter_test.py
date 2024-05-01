@@ -18,7 +18,7 @@ def test_create_zip(fc):
     import base64
     import re
     import zipfile
-
+    # TODO (gurhar1133): test opal.in gets exported
     imported = _import(fc)
     for sim_type, sim_name, expect in imported + [
         (
