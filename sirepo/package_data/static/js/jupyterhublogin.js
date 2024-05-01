@@ -6,9 +6,10 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.controller('JupyterhubMigrateController', function(authState, jupyterhubloginService, requestSender, $scope) {
     const self = this;
     self.isLoading = true;
+    srdbg("1 calling redirect");
     requestSender.sendRequest(
         'redirectJupyterHub',
-        () => {self.isLoading = false;}
+        () => {self.isLoading = false; srdbg("2 called redirect");}
     );
     self.migrate = function(doMigration) {
         jupyterhubloginService.doMigration(doMigration);
