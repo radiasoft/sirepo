@@ -396,9 +396,7 @@ def _plot_phase(sim_type, frame_args):
             py=p.py,
             pz=p.pz,
         )[column_name]
-        c = numpy.array(c)
-        c[numpy.isnan(c)] = 0.0
-        return c
+        return numpy.array(c)
 
     def _x_label(x_name):
         if x_name == "z" and sim_type != "opal":
@@ -407,8 +405,17 @@ def _plot_phase(sim_type, frame_args):
 
     _phase_plot_args(sim_type, frame_args)
     if sim_type in ("elegant", "opal", "genesis"):
+        # remove any NaN particles
+        x = _col(frame_args.x)
+        y = _col(frame_args.y)
+        if numpy.isnan(x).any():
+            x = x[~numpy.isnan(x)]
+            y = y[~numpy.isnan(x)]
+        if numpy.isnan(y).any():
+            x = x[~numpy.isnan(y)]
+            y = y[~numpy.isnan(y)]
         return template_common.heatmap(
-            values=[_col(frame_args.x), _col(frame_args.y)],
+            values=[x, y],
             model=frame_args,
             plot_fields=PKDict(
                 x_label=_x_label(frame_args.x),

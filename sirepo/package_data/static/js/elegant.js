@@ -484,6 +484,37 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return columns[1];
     }
 
+    const defaultColumns = {
+        twiss_output: {
+            "y1": "betax",
+            "y2": "betay",
+            "y3": "etax",
+        },
+        "run_setup.sigma": {
+            "y1": "Sx",
+            "y2": "Sy",
+            "y3": "Ss",
+        },
+        "run_setup.centroid": {
+            "y1": "Cx",
+            "y2": "Cy",
+        },
+    };
+
+    function setDefaultColumns(model, plottableColumns) {
+        model.x = plottableColumns[0];
+        for (const f in defaultColumns) {
+            if (model.xFile.includes(f)) {
+                for (const y in defaultColumns[f]) {
+                    if (plottableColumns.includes(defaultColumns[f][y])) {
+                        model[y] = defaultColumns[f][y];
+                    }
+                }
+                model.includeLattice = "1";
+            }
+        }
+    }
+
     self.simHandleStatus = function (data) {
         self.simulationAlerts = data.alert || '';
         if (data.frameCount) {
@@ -561,9 +592,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 m = appState.models[modelKey] = {
                     xFile: info.filename,
                     y1File: info.filename,
-                    x: info.plottableColumns[0],
                     xFileId: info.id,
                 };
+                setDefaultColumns(m, info.plottableColumns);
                 // Only display the first outputFile
                 if (i > 0 && ! panelState.isHidden(modelKey)) {
                     panelState.toggleHidden(modelKey);
