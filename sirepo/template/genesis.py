@@ -361,7 +361,7 @@ def _generate_parameters_file(data):
             r += f"{fmap.get(f, f.upper())} = {v}\n"
     if io.maginfile:
         r += "MAGIN = 1\n"
-    return  "\n".join(["$newrun", r, "$end\n"])
+    return "\n".join(["$newrun", r, "$end\n"])
 
 
 def _get_lattice_and_slice_data(run_dir, lattice_index):
