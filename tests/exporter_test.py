@@ -37,6 +37,11 @@ def test_create_zip(fc):
             "CSR Bend Drift",
             ["opal.in", "sirepo-data.json"],
         ),
+        (
+            "genesis",
+            "PEGASUS FEL",
+            ["genesis.in", "sirepo-data.json"],
+        ),
     ]:
         sim_id = fc.sr_sim_data(sim_name, sim_type)["models"]["simulation"][
             "simulationId"

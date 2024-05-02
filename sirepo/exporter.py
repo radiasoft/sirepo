@@ -97,7 +97,8 @@ def _run_file(data, sim, qcall):
     import copy
 
     template = sirepo.template.import_module(data)
-    res = pkio.py_path("run.py" if data.simulationType != "opal" else "opal.in")
+    s = data.simulationType
+    res = pkio.py_path("run.py" if s not in ("opal", "genesis") else s + ".in")
     d = copy.deepcopy(data)
     d.file_ext = ".zip"
     t = template.python_source_for_model(d, model=None, qcall=qcall)
