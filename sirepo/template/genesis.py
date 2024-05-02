@@ -361,11 +361,7 @@ def _generate_parameters_file(data):
             r += f"{fmap.get(f, f.upper())} = {v}\n"
     if io.maginfile:
         r += "MAGIN = 1\n"
-    return "\n".join(["$newrun", r, "$end"])
-    # return template_common.render_jinja(
-    #     SIM_TYPE,
-    #     PKDict(input_filename=_INPUT_FILENAME, variables=r),
-    # )
+    return  "\n".join(["$newrun", r, "$end\n"])
 
 
 def _get_lattice_and_slice_data(run_dir, lattice_index):
