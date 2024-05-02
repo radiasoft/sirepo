@@ -91,13 +91,11 @@ class HDF5Util:
             ),
         )
 
-    @contextlib.contextmanager
-    def read_while_writing(self, retries=10, timeout=3):
+    def read_while_writing(self, callback, retries=10, timeout=3):
         for _ in range(retries):
             try:
                 with h5py.File(self.filename, "r") as p:
-                    yield p
-                    return
+                    return callback(p)
             except (BlockingIOError, IOError, KeyError) as e:
                 time.sleep(timeout)
         raise AssertionError(f"{self.filename} is unavailable")
