@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """test token reuse
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.

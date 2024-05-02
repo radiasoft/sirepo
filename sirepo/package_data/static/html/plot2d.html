@@ -1,6 +1,9 @@
   <div ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}" data-ng-attr-id="{{ ::reportId }}">
     <div class="latex-title"></div>
     <div><svg class="sr-plot" xmlns:xlink="http://www.w3.org/1999/xlink">
+      <defs>
+        <symbol id="errorBar"></symbol>
+      </defs>
       <text class="y-base" x="5" ng-attr-y="{{ margin.top - 10 }}"></text>
       <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
         <text class="focus-hint" text-anchor="start" x="0" y="-10" dy=".35em"></text>

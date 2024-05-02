@@ -92,7 +92,9 @@ def api_and_supervisor(pytest_req, fc_args):
             PYKERN_PKDEBUG_WANT_PID_TIME="1",
             SIREPO_PKCLI_JOB_SUPERVISOR_IP=pkunit.LOCALHOST_IP,
             SIREPO_PKCLI_JOB_SUPERVISOR_PORT=p,
+            SIREPO_PKCLI_JOB_SUPERVISOR_USE_RELOADER="0",
             SIREPO_PKCLI_SERVICE_IP=pkunit.LOCALHOST_IP,
+            SIREPO_PKCLI_SERVICE_USE_RELOADER="0",
             SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
         )
         cfg.SIREPO_PKCLI_SERVICE_PORT = _port()
