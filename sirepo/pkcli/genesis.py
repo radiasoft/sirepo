@@ -27,11 +27,11 @@ def run_background(cfg_dir):
 
 def run_genesis(cfg_dir):
     # template_common.exec_parameters()
-    # pksubprocess.check_call_with_signals(
-    #     ["genesis", sirepo.template.genesis.GENESIS_INPUT_FILE],
-    #     output=sirepo.template.genesis.GENESIS_INPUT_FILE,
-    #     msg=pkdlog,
-    # )
-    # # GENESIS does not return a bad exit code, so need to look for a failure
-    # if not sirepo.template.genesis.genesis_success_exit(pkio.py_path(cfg_dir)):
-    #     raise RuntimeError("GENESIS execution failed")
+    pksubprocess.check_call_with_signals(
+        ["genesis", sirepo.template.genesis.GENESIS_INPUT_FILE],
+        output=sirepo.template.genesis.GENESIS_INPUT_FILE,
+        msg=pkdlog,
+    )
+    # GENESIS does not return a bad exit code, so need to look for a failure
+    if not sirepo.template.genesis.genesis_success_exit(pkio.py_path(cfg_dir)):
+        raise RuntimeError("GENESIS execution failed")

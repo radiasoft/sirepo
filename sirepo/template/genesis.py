@@ -10,6 +10,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
 import numpy
+import os
 import re
 import sirepo.job
 import sirepo.sim_data
@@ -91,7 +92,7 @@ _DATA_FILES = PKDict(
 
 
 def background_percent_complete(report, run_dir, is_running):
-    if is_running:
+    if is_running or (not os.path.exists(run_dir.join(GENESIS_OUTPUT_FILE))):
         return PKDict(percentComplete=0, frameCount=0)
     c = _get_frame_counts(run_dir)
     return PKDict(
