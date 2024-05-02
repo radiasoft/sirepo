@@ -18,7 +18,7 @@ def test_create_zip(fc):
     import base64
     import re
     import zipfile
-    # TODO (gurhar1133): test opal.in gets exported
+
     imported = _import(fc)
     for sim_type, sim_name, expect in imported + [
         (
@@ -32,6 +32,11 @@ def test_create_zip(fc):
             ["anything/magnetic_measurements.zip", "run.py", "sirepo-data.json"],
         ),
         ("warppba", "Laser Pulse", ["run.py", "sirepo-data.json"]),
+        (
+            "opal",
+            "CSR Bend Drift",
+            ["opal.in", "sirepo-data.json"],
+        ),
     ]:
         sim_id = fc.sr_sim_data(sim_name, sim_type)["models"]["simulation"][
             "simulationId"
