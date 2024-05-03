@@ -198,8 +198,6 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
-    # TODO (gurhar1133): needs to export .in file and
-    # in UI should show export .in instead of 'python source'
     return _generate_parameters_file(data)
 
 

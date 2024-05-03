@@ -110,7 +110,7 @@ def _run_file(data, sim, qcall):
 def _run_filename(data):
     t = data.simulationType
     s = simulation_db.get_schema(t).constants.simulationSourceExtension
-    if s == "in":
+    if s != "py":
         return "{}.{}".format(t, s)
     return "run.py"
 
