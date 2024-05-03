@@ -949,7 +949,7 @@
             "opacity": ["Global alpha", "Opacity", 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
-            "showSources": ["Show Sources", "Boolean", "1"],
+            "showSources": ["Show Sources", "Boolean", "0"],
             "sourceColorMap": ["Source Energy Color Map", "ColorMap", "jet"],
             "tally": ["Tally", "PlotTallyList"],
             "thresholds": ["Threshold", "Threshold", [0, 0], "Tally cells with a value outside this range will not be displayed"],
@@ -1065,7 +1065,7 @@
             "planePos": ["{{ appState.models.tallyReport.axis }} [m]", "PlanePosition", 0],
             "enableCrosshairs": ["", "Bool", false],
             "enableSelection": ["", "Bool", false],
-            "selectedGeometry": ["", "TallyGeometry", "3D"]
+            "selectedGeometry": ["", "TallyGeometry", "2D"]
         },
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
@@ -1252,6 +1252,7 @@
                     "tally",
                     "score",
                     "aspect",
+                    "sourceNormalization",
                     "energyRangeSum",
                     "colorMap",
                     "thresholds",
@@ -1262,7 +1263,6 @@
                 ["Source", [
                     "showSources",
                     "numSampleSourceParticles",
-                    "sourceNormalization",
                     "sourceColorMap"
                 ]]
             ],
