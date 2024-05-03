@@ -13,7 +13,7 @@ import time
 def test_read_while_writing():
     def _read_not_written(case_work_dir):
         p = _proc(case_work_dir, "read.py", "does_not_exist_at_first.h5")
-        time.sleep(10)
+        time.sleep(1)
         os.rename(
             case_work_dir.join("x.h5"),
             case_work_dir.join("does_not_exist_at_first.h5"),
@@ -26,6 +26,7 @@ def test_read_while_writing():
 
     def _key_error(case_work_dir):
         p = _proc(case_work_dir, "read.py", "x.h5", flags=["check_key"])
+        time.sleep(1)
         _proc(case_work_dir, "write.py", "x.h5", flags=["check_key"])
         _raise(p)
 
@@ -51,12 +52,10 @@ def _cases_from_same_data_dir(cases):
 def _proc(dir, exe_name, data_name, flags=[]):
     return subprocess.Popen(
         ["python", dir.join(exe_name), dir.join(data_name), *flags],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
     )
 
 
 def _raise(process):
-    _, e = process.communicate()
+    e = process.wait()
     if e:
-        raise AssertionError(e.decode())
+        raise AssertionError(f"Process failed with errorcode: {e}")

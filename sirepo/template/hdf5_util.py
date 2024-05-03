@@ -5,9 +5,8 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp
+from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
-import contextlib
 import h5py
 import numpy as np
 import time
@@ -92,10 +91,19 @@ class HDF5Util:
         )
 
     def read_while_writing(self, callback, retries=10, timeout=3):
+        e = None
         for _ in range(retries):
             try:
                 with h5py.File(self.filename, "r") as p:
                     return callback(p)
-            except (BlockingIOError, IOError, KeyError) as e:
+            except (BlockingIOError, IOError, KeyError) as err:
+                e = err
+                pkdlog(
+                    "{} when reading file {}, will retry",
+                    type(e).__name__,
+                    self.filename,
+                )
                 time.sleep(timeout)
-        raise AssertionError(f"{self.filename} is unavailable")
+        raise AssertionError(
+            f"{self.filename} read failed with {type(e).__name__}: {e}"
+        )
