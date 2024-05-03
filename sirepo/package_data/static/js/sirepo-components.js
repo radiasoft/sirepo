@@ -2252,14 +2252,20 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 </ul>
               </div>
               <a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{'glyphicon-resize-full': ! utilities.isFullscreen(), 'glyphicon-resize-small': utilities.isFullscreen()}"></span></a>
+
+            <div data-fullscreen-plot-modal="" data-modal-id="{{ fullScreenPlotModalId }}" data-first="123" data-second="abc" data-plot-panel="plotPanel"></div>
+
+
             </div>
         `,
         controller: function($scope, $element) {
-            $scope.panelState = panelState;
-            $scope.utilities = utilities;
             let viewKey = $scope.viewName || $scope.modelKey;
             let dl = SIREPO.APP_SCHEMA.constants.dataDownloads || {};
             let df = ((dl._default || [])[0] || {});
+            $scope.fullScreenPlotModalId = viewKey + "-fullscreen-plot-modal";
+            $scope.plotPanel = "";
+            $scope.panelState = panelState;
+            $scope.utilities = utilities;
             $scope.panelDownloadLinks = dl[viewKey] || [];
             $scope.dataDownloadTitle = df.title  || 'Raw Data File';
             $scope.dataDownloadSuffix = df.suffix  || '';
@@ -2327,6 +2333,8 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 return 'Exit Full Screen';
             };
 
+
+
             function getFullScreenElement() {
                 return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
             }
@@ -2335,23 +2343,21 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 if(panelState.isHidden($scope.modelKey)) {
                     return;
                 }
-
-                var svg = $($scope.panel).find('svg.sr-plot')[0];
-                var el = $($element).closest('.panel')[0];
-
-                if(! utilities.isFullscreen()) {
-                    // Firefox does its own thing
-                    if(utilities.requestFullscreenFn(el) == el.mozRequestFullScreen) {
-                        el.parentElement.mozRequestFullScreen();
-                    }
-                    else {
-                        utilities.requestFullscreenFn(el).call(el);
-                    }
-                }
-                else {
-                    utilities.exitFullscreenFn().call(document);
-                }
+                $scope.plotPanel = $($element).closest('.panel')[0];
+                showFullscreenPlotModal();
             };
+
+            function showFullscreenPlotModal() {
+                srdbg('called showfullscreenplotmodal');
+                    const el = $('#' + $scope.fullScreenPlotModalId);
+                srdbg('el', el);
+                el.modal('show');
+                el.on('hidden.bs.modal', () => {
+                    srdbg('hid showfullscreenplotmodal');
+                    el.off();
+                    $scope.$apply();
+                });
+            }
 
 
         },
@@ -2369,6 +2375,42 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         },
     };
 });
+
+
+SIREPO.app.directive('fullscreenPlotModal', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            modalId: '@',
+            first: '@',
+            second: '=',
+            plotPanel: '=',
+        },
+        template: `
+           <div class="modal fade" id="{{ modalId }}" tabindex="-1" role="dialog">
+             <div class="modal-dialog" style="width: 100%;margin:0;">
+               <div class="modal-content"  style="height: 100vh;">
+                 <div class="modal-header bg-warning">
+                   <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                   <span class="lead modal-title text-info">my title</span>
+                 </div>
+                 <div class="modal-body">
+                   my content {{ first }} {{ second }}
+                   <div id="{{ modalContentId }}"></div>
+                 </div>
+               </div>
+             </div>
+           </div>
+    `,
+        controller: function($scope) {
+            $scope.modalContentId = $scope.modalId + "-contents";
+            document.getElementById($scope.modalContentId).innerHTML = $scope.plotPanel;
+            srdbg('modal controller', $scope.plotPanel);
+        },
+    };
+});
+
+
 
 SIREPO.app.directive('reportContent', function(panelState) {
     return {
@@ -2417,6 +2459,7 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
               <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1"></div>
               <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}"><div data-ng-transclude=""></div></div>
               <div data-ng-if="notes()"><span class="pull-right sr-notes" data-sr-tooltip="{{ notes() }}" data-placement="top"></span><div class="clearfix"></div></div>
+            </div>
         `,
         controller: function($scope) {
             if ($scope.modelName && $scope.modelName.includes('{') ) {
