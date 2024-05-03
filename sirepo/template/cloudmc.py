@@ -200,6 +200,16 @@ def sim_frame(frame_args):
                     z[i][j][k][0] = numpy.sum(vv[i][j][k][bins[0] : bins[1]])
         return z.ravel()
 
+    def _tally_index(frame_args):
+        for tally in frame_args.sim_in.models.settings.tallies:
+            if tally.name == frame_args.tally:
+                for i, s in enumerate(tally.scores):
+                    if s.score == frame_args.score:
+                        return i
+        raise AssertionError(
+            f"Could not find index for tally={frame_args.tally} score={frame_args.score}"
+        )
+
     t = openmc.StatePoint(
         frame_args.run_dir.join(_statepoint_filename(frame_args.sim_in))
     ).get_tally(name=frame_args.tally)
@@ -208,9 +218,7 @@ def sim_frame(frame_args):
         t.find_filter(openmc.MeshFilter)
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
-
-    v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
-
+    v = getattr(t, frame_args.aspect)[:, :, _tally_index(frame_args)].ravel()
     if t.contains_filter(openmc.EnergyFilter):
         tally = _get_tally(frame_args.sim_in.models.settings.tallies, frame_args.tally)
         v = _sum_energy_bins(
