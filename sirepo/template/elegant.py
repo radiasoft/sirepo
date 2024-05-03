@@ -1182,8 +1182,8 @@ class _Generate(sirepo.lib.GenerateBase):
         twiss_output = LatticeUtil.find_first_command(d, "twiss_output") or PKDict(
             _id=max_id + 2,
             _type="twiss_output",
-            filename="1",
         )
+        twiss_output.filename = "1"
         twiss_output.final_values_only = "0"
         twiss_output.output_at_each_step = "0"
         change_particle = LatticeUtil.find_first_command(d, "change_particle")
