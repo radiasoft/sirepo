@@ -1,6 +1,7 @@
 {
     "constants": {
-        "helpUserManualURL": "http://genesis.web.psi.ch/index.html"
+        "helpUserManualURL": "http://genesis.web.psi.ch/index.html",
+        "simulationSourceExtension": "in"
     },
     "dynamicFiles": {
         "sirepoLibs": {
@@ -1110,7 +1111,8 @@
     },
     "strings": {
         "completionState": "",
-        "importText": "Import a Genesis 1.3 input (.in) file"
+        "importText": "Import a Genesis 1.3 input (.in) file",
+        "simulationSource": "GENESIS 1.3 Source (*.in)"
     },
     "view": {
         "electronBeam": {
