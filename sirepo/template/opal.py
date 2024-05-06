@@ -1078,8 +1078,9 @@ def _generate_beamline(
 
 
 def _iterate_hdf5_steps(path, callback, state):
-    with hdf5_util.HDF5Util(str(path)).read_while_writing() as f:
-        _iterate_hdf5_steps_from_handle(f, callback, state)
+    def _read(file_obj):
+        _iterate_hdf5_steps_from_handle(file_obj, callback, state)
+    hdf5_util.HDF5Util(str(path)).read_while_writing(_read)
     return state
 
 
