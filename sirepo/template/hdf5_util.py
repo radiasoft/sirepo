@@ -7,7 +7,6 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
-import contextlib
 import h5py
 import numpy as np
 import time
