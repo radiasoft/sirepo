@@ -3,9 +3,11 @@ import sys
 
 
 def _read():
-    with HDF5Util(sys.argv[1]).read_while_writing() as f:
+    def _do(file_obj):
         if len(sys.argv) > 2 and sys.argv[2] == "check_key":
-                f["this_key_wont_exist_at_first"]
+            file_obj["this_key_wont_exist_at_first"]
+
+    HDF5Util(sys.argv[1]).read_while_writing(_do, timeout=1)
 
 
 _read()

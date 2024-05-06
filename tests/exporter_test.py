@@ -32,6 +32,21 @@ def test_create_zip(fc):
             ["anything/magnetic_measurements.zip", "run.py", "sirepo-data.json"],
         ),
         ("warppba", "Laser Pulse", ["run.py", "sirepo-data.json"]),
+        (
+            "opal",
+            "CSR Bend Drift",
+            ["opal.in", "sirepo-data.json"],
+        ),
+        (
+            "genesis",
+            "PEGASUS FEL",
+            ["genesis.in", "sirepo-data.json"],
+        ),
+        (
+            "madx",
+            "FODO PTC",
+            ["madx.madx", "sirepo-data.json"],
+        ),
     ]:
         sim_id = fc.sr_sim_data(sim_name, sim_type)["models"]["simulation"][
             "simulationId"

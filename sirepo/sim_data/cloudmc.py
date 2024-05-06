@@ -28,10 +28,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
-        def _float_to_j_range(val, field_info):
-            if not isinstance(val, (float, int)):
-                return val
-            return PKDict(field_info[2]).pkupdate(val=val)
+        def _fix_val(model, field):
+            if isinstance(model[field], dict):
+                model[field] = model[field].val
 
         sch = cls.schema()
         dm = data.models
@@ -39,6 +38,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             dm,
             (
                 "dagmcAnimation",
+                "energyAnimation",
                 "geometry3DReport",
                 "geometryInput",
                 "openmcAnimation",
@@ -56,11 +56,14 @@ class SimData(sirepo.sim_data.SimDataBase):
                 continue
             if not dm.volumes[v].material.get("standardType"):
                 dm.volumes[v].material.standardType = "None"
-            dm.volumes[v].opacity = _float_to_j_range(
-                dm.volumes[v].opacity, sch.model.geometry3DReport.opacity
-            )
+            _fix_val(dm.volumes[v], "opacity")
         if "tally" in dm:
             del dm["tally"]
+        if "energyReport" in dm:
+            del dm["energyReport"]
+        if "tally" in dm.openmcAnimation:
+            dm.energyAnimation.tally = dm.openmcAnimation.tally
+            dm.energyAnimation.score = dm.openmcAnimation.score
         for t in dm.settings.tallies:
             for i in range(1, sch.constants.maxFilters + 1):
                 f = t[f"filter{i}"]
@@ -69,17 +72,16 @@ class SimData(sirepo.sim_data.SimDataBase):
                     cls.update_model_defaults(f, y)
         for s in dm.settings.sources:
             cls.update_model_defaults(s, "source")
-        if th := dm.openmcAnimation.get("threshold"):
-            dm.openmcAnimation.thresholds = sch.model.openmcAnimation.thresholds[2]
-            dm.openmcAnimation.thresholds.val[0] = th
+        if "threshold" in dm.openmcAnimation:
             del dm["openmcAnimation"]["threshold"]
-
         for m, f in (
             ("tallyReport", "planePos"),
             ("openmcAnimation", "opacity"),
             ("geometry3DReport", "opacity"),
+            ("openmcAnimation", "thresholds"),
+            ("openmcAnimation", "energyRangeSum"),
         ):
-            dm[m][f] = _float_to_j_range(dm[m][f], sch.model[m][f])
+            _fix_val(dm[m], f)
         if "tally" in dm.weightWindows and not isinstance(dm.weightWindows.tally, str):
             del dm.weightWindows["tally"]
 
@@ -91,6 +93,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if analysis_model == "geometry3DReport":
             return "dagmcAnimation"
+        if analysis_model == "energyAnimation":
+            return "openmcAnimation"
         return analysis_model
 
     @classmethod
