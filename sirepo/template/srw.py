@@ -455,7 +455,7 @@ def get_data_file(run_dir, model, frame, options):
         return template_common.text_data_file(
             _get_most_recent_log_file(pkio.sorted_glob(d.join("*.log"))), d
         )
-    return get_filename_for_model(model)
+    return _best_data_file(get_filename_for_model(model))
 
 
 def _get_most_recent_log_file(files):
