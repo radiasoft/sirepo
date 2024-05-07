@@ -628,7 +628,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
 			errorService.alertText('Error checking login status. Please refresh the page. If the issue persists contact support@sirepo.com');
 		    },
 		);
-	    };
+	    }
 
 	    function setLoginButtonLabel() {
 		$scope.loginButtonLabel = stringsService.sbatchLoginButtonLabel($scope.loadingSbatchAgentStatus);
@@ -650,7 +650,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
 		$scope.needSbatchAgentLogin = ! broadcastArg.loginSuccess;
 		// Called from hidden.bs.modal which is outside of
 		// angularjs digest cycle so must force apply
-		$scope.$apply()
+		$scope.$apply();
 		// User clicked Start Simulation then was prompted to log in
 		if (broadcastArg.restartRunSimulation) {
 		    // Refresh in all cases

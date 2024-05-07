@@ -986,7 +986,7 @@ SIREPO.app.factory('stringsService', function(authState) {
             return strings.newSimulationLabel || `New ${ucfirst(strings.simulationDataType)}`;
         },
 	sbatchLoginButtonLabel: (loadingSbatchAgentStatus) => {
-		return loadingSbatchAgentStatus ? 'Requesting login status...': `Login to ${authState.jobRunModeMap.sbatch}`
+	    return loadingSbatchAgentStatus ? 'Requesting login status...': `Login to ${authState.jobRunModeMap.sbatch}`;
 
 	},
         startButtonLabel: (modelName) => {
@@ -1287,7 +1287,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 	    cancelSetPanelStateIsLoadingTimer();
 	    if (response && response.isSRException && response.data.routeName.toLowerCase().includes('sbatch')) {
 		// POSIT: showing sbatch login modal is handled by requestSender.handleSRException
-		panelState.needSbatchLogin(modelName)
+		panelState.needSbatchLogin(modelName);
 		return;
 	    }
 	    panelState.reportNotGenerated(modelName);
@@ -2674,7 +2674,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         if (e.params && e.params.isModal && e.routeName.toLowerCase().includes('sbatch')) {
 	    $rootScope.$broadcast('showSbatchLoginModal', e.params);
 	    errorCallback({isSRException: true, data: e});
-	    return
+	    return;
         }
         if (e.routeName == LOGIN_ROUTE_NAME) {
             saveLoginRedirect();
