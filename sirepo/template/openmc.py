@@ -84,9 +84,7 @@ def _percent_complete(run_dir, is_running):
 
 def stateful_compute_check_animation_dir(data, **kwargs):
     return PKDict(
-        animationDirExists=simulation_db.simulation_dir(
-            "openmc", sid=data.simulationId
-        )
+        animationDirExists=simulation_db.simulation_dir("openmc", sid=data.simulationId)
         .join(data.args.modelName)
         .exists()
     )
