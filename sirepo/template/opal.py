@@ -16,7 +16,6 @@ from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
-import h5py
 import math
 import numpy as np
 import re
@@ -1079,8 +1078,10 @@ def _generate_beamline(
 
 
 def _iterate_hdf5_steps(path, callback, state):
-    with h5py.File(str(path), "r") as f:
-        _iterate_hdf5_steps_from_handle(f, callback, state)
+    def _read(file_obj):
+        _iterate_hdf5_steps_from_handle(file_obj, callback, state)
+
+    hdf5_util.HDF5Util(str(path)).read_while_writing(_read)
     return state
 
 
