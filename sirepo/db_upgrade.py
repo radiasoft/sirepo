@@ -79,6 +79,10 @@ def _20240322_remove_github_auth(qcall):
     qcall.auth_db.drop_table("auth_github_user_t")
 
 
+def _20240507_cloucmc_to_openmc(qcall):
+    _migrate_sim_type("cloudmc", "openmc", qcall)
+
+
 @contextlib.contextmanager
 def _backup_db_and_prevent_upgrade_on_error():
     b = sirepo.auth_db.db_filename() + ".bak"
