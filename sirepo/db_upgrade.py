@@ -79,6 +79,11 @@ def _20240322_remove_github_auth(qcall):
     qcall.auth_db.drop_table("auth_github_user_t")
 
 
+def _20240507_cloudmc_to_openmc(qcall):
+    for u in qcall.auth_db.all_uids():
+        _migrate_sim_type("cloudmc", "openmc", qcall, u)
+
+
 @contextlib.contextmanager
 def _backup_db_and_prevent_upgrade_on_error():
     b = sirepo.auth_db.db_filename() + ".bak"
@@ -96,9 +101,11 @@ def _db_upgrade_file_lock_path():
     return sirepo.srdb.root().join("db_upgrade_in_progress")
 
 
-def _migrate_sim_type(old_sim_type, new_sim_type, qcall):
+def _migrate_sim_type(old_sim_type, new_sim_type, qcall, uid):
     # can't use simulation_dir (or simulation_lib_dir) because the old sim doesn't exist
-    old_sim_dir = sirepo.simulation_db.user_path(qcall=qcall).join(old_sim_type)
+    old_sim_dir = sirepo.simulation_db.user_path(qcall=qcall, uid=uid).join(
+        old_sim_type
+    )
     if not old_sim_dir.exists():
         return
     new_sim_dir = sirepo.simulation_db.simulation_dir(new_sim_type, qcall=qcall)
