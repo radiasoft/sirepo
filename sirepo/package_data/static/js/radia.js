@@ -380,7 +380,7 @@ SIREPO.app.factory('radiaService', function(appState, fileUpload, geometry, pane
             inputFile,
             {},
             requestSender.formatUrl(
-                'uploadFile',
+                'uploadLibFile',
                 {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
@@ -508,7 +508,7 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
         return recomputeRequired;
     };
 
-    self.updateRPNVars = () => {
+    self.updateRPNVars = (callback) => {
         if (! appState.models.rpnVariables) {
             appState.models.rpnVariables = [];
         }
@@ -550,7 +550,10 @@ SIREPO.app.factory('radiaVariableService', function(appState, radiaService, rpnS
             }
         }
         if (doSave) {
-            appState.saveChanges(['rpnVariables', 'rpnCache']);
+            appState.saveChanges(['rpnVariables', 'rpnCache'], callback);
+        }
+        else if (callback) {
+            callback();
         }
     };
 
@@ -1181,7 +1184,7 @@ SIREPO.app.controller('RadiaOptimizationController', function (appState, frameCa
 
     self.simState.errorMessage = () => self.errorMessage;
 
-    self.simState.logFileURL = () => requestSender.formatUrl('downloadDataFile', {
+    self.simState.logFileURL = () => requestSender.formatUrl('downloadRunFile', {
         '<simulation_id>': appState.models.simulation.simulationId,
         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
         '<model>': self.simState.model,
@@ -1315,7 +1318,7 @@ SIREPO.app.directive('appHeader', function(activeSection, appState, panelState, 
                 if (! appState.isLoaded()) {
                     return null;
                 }
-                return requestSender.formatUrl('downloadDataFile', {
+                return requestSender.formatUrl('downloadRunFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<frame>': SIREPO.nonDataFileFrame,
@@ -3570,9 +3573,7 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
                 loadPoints();
             }
             else {
-                radiaService.updateExtruded($scope.modelData, () => {
-                    radiaService.saveGeometry(true, false, updateShapes);
-                });
+                updateShapes();
             }
         }
         if (modelName === 'stl') {
@@ -3608,13 +3609,15 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
             $scope.modelData.referencePoints = [];
             return;
         }
-        radiaService.buildShapePoints($scope.modelData, setPoints, res => {
-            radiaService.deleteObject($scope.modelData);
-            // The filename in the error is encumbered with model and field which is nonsense to the
-            // average user, so replace it with the original file name
-            throw new Error(res.error.replace(
-                new RegExp(/file \".*\"/, 'i'), `file "${$scope.modelData.pointsFile}"`
-            ));
+        radiaVariableService.updateRPNVars(() => {
+            radiaService.buildShapePoints($scope.modelData, setPoints, res => {
+                radiaService.deleteObject($scope.modelData);
+                // The filename in the error is encumbered with model and field which is nonsense to the
+                // average user, so replace it with the original file name
+                throw new Error(res.error.replace(
+                    new RegExp(/file \".*\"/, 'i'), `file "${$scope.modelData.pointsFile}"`
+                ));
+            });
         });
     }
 
@@ -3645,14 +3648,15 @@ SIREPO.viewLogic('geomObjectView', function(appState, panelState, radiaService, 
     }
 
     function updateShapes() {
-        radiaService.saveGeometry(true, false, () => {
+        radiaService.updateExtruded($scope.modelData, () => {
             ctl.loadObjectViews();
+            radiaService.saveGeometry(true);
         });
     }
 
     function setPoints(data) {
         $scope.modelData.referencePoints = data.points;
-        radiaService.updateExtruded($scope.modelData, updateShapes);
+        updateShapes();
     }
 
     function setSTLSize(data) {

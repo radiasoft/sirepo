@@ -47,6 +47,15 @@
             ["mitchellcubic", "Mitchell Cubic"],
             ["nearest", "Nearest"]
         ],
+        "KernelInitializer": [
+            ["HeNormal", "HeNormal"],
+            ["HeUniform", "HeUniform"],
+            ["GlorotNormal", "GlorotNormal"],
+            ["GlorotUniform", "GlorotUniform"],
+            ["RandomNormal", "RandomNormal"],
+            ["RandomUniform", "RandomUniform"],
+            ["Zeros", "Zeros"]
+        ],
         "MLModule": [
             ["neuralnet", "Neural Network"],
             ["modelFile", "From Model Archive File"]
@@ -167,6 +176,13 @@
                 "templateUrl": "/static/html/activait-analysis.html"
             }
         },
+        "comparison": {
+            "route": "/comparison/:simulationId",
+            "config": {
+                "controller": "ComparisonController as comparison",
+                "templateUrl": "/static/html/activait-comparison.html"
+            }
+        },
         "partition": {
             "route": "/partition/:simulationId",
             "config": {
@@ -191,9 +207,14 @@
     },
     "frameIdFields": {
         "animation": ["columnNumber", "appMode"],
+        "bestLossesAnimation": [],
+        "dicePlotComparisonAnimation": ["otherSimId"],
+        "bestLossesComparisonAnimation": ["otherSimId"],
+        "worstLossesComparisonAnimation": ["otherSimId"],
         "dtClassifierClassificationMetricsAnimation": [],
         "dtClassifierConfusionMatrixAnimation": [],
         "epochAnimation": [],
+        "epochComparisonAnimation": ["otherSimId"],
         "knnClassificationMetricsAnimation": [],
         "knnConfusionMatrixAnimation": [],
         "knnErrorRateAnimation": [],
@@ -201,7 +222,9 @@
         "linearSvcErrorRateAnimation": [],
         "logisticRegressionClassificationMetricsAnimation": [],
         "logisticRegressionConfusionMatrixAnimation": [],
-        "logisticRegressionErrorRateAnimation": []
+        "logisticRegressionErrorRateAnimation": [],
+        "segmentSamplesAnimation": [],
+        "worstLossesAnimation": []
     },
     "model": {
         "analysisCluster": {
@@ -246,6 +269,15 @@
             "advanced": []
         },
         "dicePlotAnimation": {},
+        "dicePlotComparisonAnimation": {
+            "otherSimId": ["", "String", ""]
+        },
+        "bestLossesComparisonAnimation": {
+            "otherSimId": ["", "String", ""]
+        },
+        "worstLossesComparisonAnimation": {
+            "otherSimId": ["", "String", ""]
+        },
         "analysisReport": {
             "x": ["X Value", "AnalysisParameter", "0"],
             "y1": ["Y1 Value", "AnalysisParameter", "1"],
@@ -292,7 +324,9 @@
             "featureRangeMax": ["Feature range maximum", "Integer", 1],
             "inputsScaler": ["Inputs Scaler", "Scaler", "RobustScaler"],
             "outputsScaler": ["Outputs Scaler", "Scaler", "RobustScaler"],
-            "url": ["Data URL", "URL", ""]
+            "url": ["Data URL", "URL", ""],
+            "exampleDir": ["", "String", ""],
+            "exampleFileCnt": ["", "Integer", 1]
         },
         "dataFileCache": {},
         "dtClassifierClassificationMetricsAnimation": {},
@@ -301,6 +335,10 @@
         },
         "epochAnimation": {
             "plotScale": ["Plot Scale", "PlotScale", "linear"]
+        },
+        "epochComparisonAnimation": {
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
+            "otherSimId": ["", "String", ""]
         },
         "fftReport": {
             "column":  ["Column", "AnalysisParameter", "0"]
@@ -359,6 +397,9 @@
             "dimensionality": ["Dimensionality", "Integer", 10],
             "activation": ["Activation", "NeuralNetActivation", "relu"]
         },
+        "comparisonSims": {
+            "compareSim": ["Other Model", "SimList", []]
+        },
         "activation": {
             "layer": ["Layer", "NeuralNetLayer", "Activation"],
             "activation": ["Activation", "NeuralNetActivation", "relu"]
@@ -390,6 +431,7 @@
             "dimensionality": ["Dimensionality", "Integer", 32],
             "layer": ["Layer", "NeuralNetLayer", "Conv2D"],
             "kernel" : ["Kernel Size", "Integer", 3],
+            "kernel_initializer": ["Kernel Initializer", "KernelInitializer", "GlorotUniform"],
             "strides": ["Strides", "OptionalInteger", 1],
             "padding": ["Padding", "Padding", "valid"]
         },
@@ -418,6 +460,7 @@
             "layer": ["Layer", "NeuralNetLayer", "GaussianNoise"],
             "stddev": ["Standard Deviation", "Float", 0.01]
         },
+        "imageSamplesReport": {},
         "maxPooling2D": {
             "_super": ["-", "model", "poolingLayer"],
             "layer": ["layer", "NeuralNetLayer", "MaxPooling2D"]
@@ -431,6 +474,9 @@
             "_super": ["-", "model", "conv2D"],
             "layer": ["Layer", "NeuralNetLayer", "SeparableConv2D"]
         },
+        "segmentSamplesAnimation": {},
+        "bestLossesAnimation": {},
+        "worstLossesAnimation": {},
         "upSampling2D": {
             "layer": ["layer", "NeuralNetLayer", "UpSampling2D"],
             "size": ["Size", "Integer", 2],
@@ -517,7 +563,22 @@
             ],
             "advanced": []
         },
+        "bestLossesAnimation": {
+            "title": "Best Loss Images",
+            "basic": [],
+            "advanced": []
+        },
+        "bestLossesComparisonAnimation": {
+            "title": "Best Loss Images",
+            "advanced": [],
+            "basic": []
+        },
         "dicePlotAnimation": {
+            "title": "Dice Coefficient",
+            "advanced": [],
+            "basic": []
+        },
+        "dicePlotComparisonAnimation": {
             "title": "Dice Coefficient",
             "advanced": [],
             "basic": []
@@ -566,6 +627,11 @@
             "basic": [],
             "advanced": []
         },
+        "loadData": {
+            "title": "Data Loading Status",
+            "basic": [],
+            "advanced": []
+        },
         "concatenate": {
             "columns": []
         },
@@ -573,6 +639,7 @@
             "columns": [
                 "dimensionality",
                 "kernel",
+                "kernel_initializer",
                 "strides",
                 "padding",
                 "activation"
@@ -629,6 +696,12 @@
                 "plotScale"
             ]
         },
+        "epochComparisonAnimation": {
+            "title": "Training Error",
+            "advanced": [
+                "plotScale"
+            ]
+        },
         "fftReport": {
             "title": "FFT",
             "basic": [],
@@ -659,6 +732,10 @@
         },
         "globalAveragePooling2D": {
             "columns": []
+        },
+        "imageSamplesReport": {
+            "title": "Image Samples",
+            "advanced": []
         },
         "knnClassificationMetricsAnimation": {
             "title": "KNN Classification Metrics",
@@ -732,6 +809,13 @@
             "title": "Neural Network Layers",
             "advanced": []
         },
+        "comparisonSims": {
+            "title": "Compare With",
+            "basic": [
+                "compareSim"
+            ],
+            "advanced": []
+        },
         "partition": {
             "title": "Partition",
             "basic": [
@@ -757,24 +841,8 @@
             "basic": [],
             "advanced": []
         },
-        "imageViewer": {
-            "title": "Image Samples",
-            "basic": [],
-            "advanced": []
-        },
-        "segmentViewer": {
+        "segmentSamplesAnimation": {
             "title": "Segments Sample",
-            "basic": [],
-            "advanced": []
-        },
-        "bestLosses": {
-            "title": "Best Loss Images",
-            "basic": [],
-            "advanced": []
-        },
-        "worstLosses": {
-            "title": "Worst Loss Images",
-            "basic": [],
             "advanced": []
         },
         "separableConv2D": {
@@ -810,6 +878,16 @@
                 "size",
                 "interpolation"
             ]
+        },
+        "worstLossesAnimation": {
+            "title": "Worst Loss Images",
+            "basic": [],
+            "advanced": []
+        },
+        "worstLossesComparisonAnimation": {
+            "title": "Worst Loss Images",
+            "advanced": [],
+            "basic": []
         },
         "zeroPadding2D": {
             "columns": [

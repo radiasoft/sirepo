@@ -85,11 +85,13 @@ class SirepoUtils {
         return res;
     }
 
-    static linearToLog(val, min, max, step) {
-        const bin = Math.floor(Math.abs(val - min) / step);
-        const n = Math.abs(max - min) / step;
-        const lv = (bin * Math.log10(max) + (n - bin) * Math.log10(min)) / n;
-        return 10**lv;
+    static linearToLog(val, min, max, nsteps) {
+        if (val === min || val === max) {
+            return val;
+        }
+        const bin = Math.floor(Math.abs(val - min) / ((max - min) / nsteps));
+        const n = (Math.log10(max) - Math.log10(min)) / nsteps;
+        return 10 ** (Math.log10(min) + bin * n);
     }
 
     static normalize(seq) {

@@ -294,7 +294,7 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
         return self.errorMessage;
     };
     self.simState.logFileURL = function() {
-        return requestSender.formatUrl('downloadDataFile', {
+        return requestSender.formatUrl('downloadRunFile', {
             '<simulation_id>': appState.models.simulation.simulationId,
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             '<model>': self.simState.model,
@@ -312,7 +312,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-import-dialog="" data-title="Import MAD-X File" data-description="Select a MAD-X file." data-file-formats=".madx,.zip,.seq"></div>
+            <div data-elegant-import-dialog=""></div>
         `,
     };
 });

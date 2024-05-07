@@ -3,10 +3,12 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
+from sirepo.template import hdf5_util
 from sirepo.template import template_common
 import csv
 import h5py
@@ -122,45 +124,50 @@ def sim_frame_crystal3dAnimation(frame_args):
 
 
 def sim_frame_tempProfileAnimation(frame_args):
-    with h5py.File(frame_args.run_dir.join(_TEMP_PROFILE_FILE), "r") as f:
-        d = PKDict(
-            radialPlot=template_common.h5_to_dict(f).radial,
-            longitudinalPlot=template_common.h5_to_dict(f).longitudinal,
+    def _read(file_obj):
+        return PKDict(
+            radialPlot=template_common.h5_to_dict(file_obj).radial,
+            longitudinalPlot=template_common.h5_to_dict(file_obj).longitudinal,
         )[frame_args.tempProfilePlot]
-        return template_common.parameter_plot(
-            [n * 1e-2 for n in 0.98 * numpy.array(d[0])],
-            [
-                PKDict(
-                    points=[n for n in 0.98 * numpy.array(d[1])],
-                    label="(T-T₀), K",
-                ),
-            ],
-            PKDict(),
+
+    d = hdf5_util.HDF5Util(
+        frame_args.run_dir.join(_TEMP_PROFILE_FILE)
+    ).read_while_writing(_read)
+    return template_common.parameter_plot(
+        [n * 1e-2 for n in 0.98 * numpy.array(d[0])],
+        [
             PKDict(
-                x_label=(
-                    "Radial"
-                    if frame_args.tempProfilePlot == "radialPlot"
-                    else "Longitudinal"
-                )
-                + " Position [m]",
+                points=[n for n in 0.98 * numpy.array(d[1])],
+                label="(T-T₀), K",
             ),
-        )
+        ],
+        PKDict(),
+        PKDict(
+            x_label=(
+                "Radial"
+                if frame_args.tempProfilePlot == "radialPlot"
+                else "Longitudinal"
+            )
+            + " Position [m]",
+        ),
+    )
 
 
 def sim_frame_tempHeatMapAnimation(frame_args):
-    with h5py.File(frame_args.run_dir.join(_TEMP_HEATMAP_FILE), "r") as f:
-        d = template_common.h5_to_dict(f)
-        r = d.ranges
-        z = d.intensity
-        return PKDict(
-            title="",
-            x_range=[r.x[0], r.x[1], len(z)],
-            y_range=[r.y[0], r.y[1], len(z[0])],
-            x_label="Longitudinal Position [m]",
-            y_label="Radial Position [m]",
-            z_label="Temperature (T-T₀), K",
-            z_matrix=z,
-        )
+    d = hdf5_util.HDF5Util(
+        frame_args.run_dir.join(_TEMP_HEATMAP_FILE)
+    ).read_while_writing(template_common.h5_to_dict)
+    r = d.ranges
+    z = d.intensity
+    return PKDict(
+        title="",
+        x_range=[r.x[0], r.x[1], len(z)],
+        y_range=[r.y[0], r.y[1], len(z[0])],
+        x_label="Longitudinal Position [m]",
+        y_label="Radial Position [m]",
+        z_label="Temperature (T-T₀), K",
+        z_matrix=z,
+    )
 
 
 def stateful_compute_mesh_dimensions(data, **kwargs):
@@ -560,31 +567,27 @@ class _LaserPulsePlot(PKDict):
         )
 
     def gen(self):
-        for _ in range(_MAX_H5_READ_TRIES):
-            try:
-                with h5py.File(
-                    self.run_dir.join(self._fname().format(self.element_index)), "r"
-                ) as f:
-                    if self._is_longitudinal_plot():
-                        return self._gen_longitudinal(f)
-                    if self.plot_type == "total_excited_states":
-                        self.slice_index = 0
-                    d = template_common.h5_to_dict(f, str(self.slice_index))
-                    r = d.ranges
-                    z = d[self.plot_type]
-                    return PKDict(
-                        title=self._plot_label(),
-                        x_range=[r.x[0], r.x[1], len(z)],
-                        y_range=[r.y[0], r.y[1], len(z[0])],
-                        x_label="Horizontal Position [m]",
-                        y_label="Vertical Position [m]",
-                        z_label=self._z_label(),
-                        z_matrix=z,
-                    )
-            except BlockingIOError as e:
-                # Not asyncio.sleep: not in coroutine (job_cmd)
-                time.sleep(3)
-        raise AssertionError("Report is unavailable")
+        def _read(file_obj):
+            if self._is_longitudinal_plot():
+                return self._gen_longitudinal(file_obj)
+            if self.plot_type == "total_excited_states":
+                self.slice_index = 0
+            return template_common.h5_to_dict(file_obj, str(self.slice_index))
+
+        d = hdf5_util.HDF5Util(
+            self.run_dir.join(self._fname().format(self.element_index))
+        ).read_while_writing(_read)
+        r = d.ranges
+        z = d[self.plot_type]
+        return PKDict(
+            title=self._plot_label(),
+            x_range=[r.x[0], r.x[1], len(z)],
+            y_range=[r.y[0], r.y[1], len(z[0])],
+            x_label="Horizontal Position [m]",
+            y_label="Vertical Position [m]",
+            z_label=self._z_label(),
+            z_matrix=z,
+        )
 
 
 def _convert_laser_pulse_units(laserPulse):

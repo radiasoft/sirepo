@@ -3,10 +3,13 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
+import os.path
 import sirepo.raydata.analysis_driver
 
 _cfg = None
@@ -15,6 +18,13 @@ _cfg = None
 class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
     def get_conda_env(self):
         return _cfg.conda_env
+
+    def get_detailed_status_file(self, rduid):
+        p = self.get_output_dir().join(f"progress_dict_{rduid}.json")
+        if os.path.exists(p):
+            with open(p, "r") as f:
+                return pkjson.load_any(f)
+        return PKDict()
 
     def get_notebooks(self):
         return [

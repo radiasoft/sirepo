@@ -445,6 +445,9 @@
       font-size: 14px;
       text-anchor: middle;
     }
+    .sr-plot .select-cell-text {
+      text-anchor: end;
+    }
     .sr-plot .line {
       fill: none;
       stroke: steelblue;
@@ -572,11 +575,6 @@
     .sr-plot-cleared {
       opacity: 0;
     }
-    .sr-plot .cross-hair {
-      stroke-width: 1px;
-      shape-rendering: crispEdges;
-      stroke: steelblue;
-    }
     .sr-plot .x-base, .sr-plot .y-base {
       font-size: 13px;
     }
@@ -616,6 +614,23 @@
         cursor: pointer;
         font-size: 16px;
     }
+
+    .sr-plot .sr-cell-highlight {
+        pointer-events: none;
+    }
+
+    .sr-plot .sr-heatmap-readout {
+      pointer-events: none;
+    }
+
+    .sr-plot .sr-cell-highlight {
+      clip-path: url(#sr-plot-window);
+      fill: none;
+      pointer-events: none;
+      stroke: red;
+      stroke-width: 2.0;
+    }
+
     .sr-download-png .plot-visibility {
       visibility: hidden;
     }
@@ -897,6 +912,7 @@ li.sr-dropdown-submenu > a {
   overflow-y: auto;
   border: 1px solid #e7e7e7;
   min-height: 80ex;
+  max-height: calc(100vh - 65px);
   border-radius: 4px;
   margin-left: 1ex;
   margin-right: -1ex;
@@ -1210,8 +1226,4 @@ img.sr-disabled-image {
 
 .running-icon {
   animation: icon-rotate 2s linear 0s infinite;
-}
-
-.sr-slider {
-  background: var(--sr-action) !important;
 }

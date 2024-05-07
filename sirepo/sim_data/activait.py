@@ -48,7 +48,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         for m in dm:
             if "fileColumnReport" in m:
                 cls.update_model_defaults(dm[m], "fileColumnReport")
-        cls._fixup_neural_net(dm)
+        cls._fixup_neural_net(dm.neuralNet.layers)
         dm.analysisReport.pksetdefault(history=[])
         dm.hiddenReport.pksetdefault(subreports=[])
 
@@ -83,7 +83,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
     @classmethod
-    def _fixup_neural_net(cls, dm):
+    def _fixup_neural_net(cls, layers):
         def _layer_fields(layer):
             f = []
             n = layer.layer.lower()
@@ -97,7 +97,13 @@ class SimData(sirepo.sim_data.SimDataBase):
                 layer[new] = layer[old]
                 layer.pop(old)
 
-        for l in dm.neuralNet.layers:
+        for l in layers:
+            if l.layer == "Add" or l.layer == "Concatenate":
+                for c in l.children:
+                    if c.layers:
+                        cls._fixup_neural_net(c.layers)
+            if l.layer == "Conv2D":
+                cls.update_model_defaults(l, "conv2D")
             for old, new in _layer_fields(l):
                 _update(l, old, new)
             for f in cls._OLD_NEURAL_NET_FIELDS:

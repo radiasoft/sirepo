@@ -14,9 +14,26 @@
             "aspect": "mean",
             "bgColor": "#fff9ed",
             "colorMap": "viridis",
+            "energyRangeSum": [
+                0,
+                16
+            ],
+            "isEnergySelected": "0",
+            "jobRunMode": "parallel",
+            "numSampleSourceParticles": 10,
+            "ompThreads": 16,
             "opacity": 1,
-            "score": "heating",
+            "sbatchCores": 16,
+            "sbatchHours": 0.4,
+            "sbatchNodes": 32,
+            "sbatchProject": "",
+            "sbatchQueue": "debug",
+            "score": "absorption",
             "showEdges": "0",
+            "showMarker": "1",
+            "showSources": "0",
+            "sourceColorMap": "jet",
+            "sourceNormalization": 1000000000000,
             "tallies": [
                 {
                     "_index": 0,
@@ -40,7 +57,12 @@
                         ]
                     },
                     "filter2": {
-                        "_type": "None"
+                        "_super": "filter",
+                        "_type": "energyFilter",
+                        "num": 9,
+                        "space": "linear",
+                        "start": 0,
+                        "stop": 16
                     },
                     "filter3": {
                         "_type": "None"
@@ -55,13 +77,13 @@
                     "nuclides": [],
                     "scores": [
                         {
-                            "score": "heating"
+                            "score": "absorption"
                         },
                         {
                             "score": "flux"
                         },
                         {
-                            "score": "absorption"
+                            "score": "heating"
                         }
                     ]
                 },
@@ -102,10 +124,10 @@
                     "nuclides": [],
                     "scores": [
                         {
-                            "score": "flux"
+                            "score": "absorption"
                         },
                         {
-                            "score": "absorption"
+                            "score": "flux"
                         },
                         {
                             "score": "heating"
@@ -114,7 +136,11 @@
                 }
             ],
             "tally": "t1",
-            "voxelInsetPct": 0
+            "tasksPerNode": 8,
+            "thresholds": [
+                0,
+                155.62884411192465
+            ]
         },
         "panelState": {
             "hidden": []
@@ -251,7 +277,12 @@
                         ]
                     },
                     "filter2": {
-                        "_type": "None"
+                        "_super": "filter",
+                        "_type": "energyFilter",
+                        "num": 9,
+                        "space": "linear",
+                        "start": 0,
+                        "stop": 16
                     },
                     "filter3": {
                         "_type": "None"
@@ -266,13 +297,13 @@
                     "nuclides": [],
                     "scores": [
                         {
-                            "score": "heating"
+                            "score": "absorption"
                         },
                         {
                             "score": "flux"
                         },
                         {
-                            "score": "absorption"
+                            "score": "heating"
                         }
                     ]
                 },
@@ -313,10 +344,10 @@
                     "nuclides": [],
                     "scores": [
                         {
-                            "score": "flux"
+                            "score": "absorption"
                         },
                         {
-                            "score": "absorption"
+                            "score": "flux"
                         },
                         {
                             "score": "heating"
@@ -335,6 +366,7 @@
             "blanket": {
                 "color": "#cc5ab2",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "blanket",
                 "material": {
                     "components": [
@@ -387,6 +419,7 @@
             "divertor_lower": {
                 "color": "#8b99f3",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "divertor_lower",
                 "material": {
                     "components": [
@@ -413,6 +446,7 @@
             "divertor_upper": {
                 "color": "#339868",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "divertor_upper",
                 "material": {
                     "components": [
@@ -439,6 +473,7 @@
             "inboard_tf_coils": {
                 "color": "#f7fda4",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "inboard_tf_coils",
                 "material": {
                     "components": [
@@ -465,6 +500,7 @@
             "outboard_firstwall": {
                 "color": "#960baa",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "outboard_firstwall",
                 "material": {
                     "components": [
@@ -491,6 +527,7 @@
             "outboard_rear_blanket_wall": {
                 "color": "#0bd85f",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "outboard_rear_blanket_wall",
                 "material": {
                     "components": [
@@ -517,6 +554,7 @@
             "pf_coil_1": {
                 "color": "#5062d6",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "pf_coil_1",
                 "material": {
                     "components": [
@@ -543,6 +581,7 @@
             "pf_coil_2": {
                 "color": "#a83841",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "pf_coil_2",
                 "material": {
                     "components": [
@@ -569,6 +608,7 @@
             "pf_coil_3": {
                 "color": "#b713b3",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "pf_coil_3",
                 "material": {
                     "components": [
@@ -595,6 +635,7 @@
             "pf_coil_4": {
                 "color": "#29ae21",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "pf_coil_4",
                 "material": {
                     "components": [
@@ -621,6 +662,7 @@
             "pf_coil_case_1": {
                 "color": "#529e98",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "pf_coil_case_1",
                 "material": {
                     "components": [
@@ -647,6 +689,7 @@
             "pf_coil_case_2": {
                 "color": "#c63265",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "pf_coil_case_2",
                 "material": {
                     "components": [
@@ -673,6 +716,7 @@
             "pf_coil_case_3": {
                 "color": "#091ed5",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "pf_coil_case_3",
                 "material": {
                     "components": [
@@ -699,6 +743,7 @@
             "pf_coil_case_4": {
                 "color": "#86bda8",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "pf_coil_case_4",
                 "material": {
                     "components": [
@@ -725,6 +770,7 @@
             "plasma": {
                 "color": "#3a0914",
                 "isVisible": true,
+                "isVisibleWithTallies": false,
                 "key": "plasma",
                 "material": {
                     "components": [
@@ -751,6 +797,7 @@
             "supports": {
                 "color": "#cb3ad1",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "supports",
                 "material": {
                     "components": [
@@ -777,6 +824,7 @@
             "tf_coils": {
                 "color": "#042f8a",
                 "isVisible": true,
+                "isVisibleWithTallies": true,
                 "key": "tf_coils",
                 "material": {
                     "components": [

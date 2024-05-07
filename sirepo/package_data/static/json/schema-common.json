@@ -111,21 +111,22 @@
         "authCompleteRegistration": "/auth-complete-registration",
         "authEmailAuthorized": "/auth-email-authorized/<simulation_type>/<token>",
         "authEmailLogin": "/auth-email-login",
-        "authGithubAuthorized": "/auth-github-authorized",
-        "authGithubLogin": "/auth-github-login/<simulation_type>",
         "authGuestLogin": "/auth-guest-login/<simulation_type>",
         "authLdapLogin": "/auth-ldap-login",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
         "beginSession": "/begin-session",
         "blueskyAuth": "/bluesky-auth",
-        "checkAuthJupyterhub": "/check-auth-jupyterhub",
+        "checkAuthJupyterHub": "/check-auth-jupyterhub",
         "contentTooLarge": "/content-too-large",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteFile": "/delete-file",
+        "deleteLibFile": "/delete-lib-file",
         "deleteSimulation": "/delete-simulation",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
+        "downloadLibFile": "/download-lib-file/<simulation_type>/<filename>",
+        "downloadRunFile": "/download-run-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
         "error": "/error",
         "errorLogging": "/error-logging",
@@ -144,9 +145,7 @@
         "jupyterHub": "/jupyter",
         "listFiles": "/file-list",
         "listSimulations": "/simulation-list",
-        "migrateJupyterhub": "/migrate-jupyterhub",
         "newSimulation": "/new-simulation",
-        "oauthAuthorized": "/oauth-authorized/<oauth_type>",
         "ownJobs": "/own-jobs",
         "proxyError": "/proxy-error",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
@@ -171,7 +170,8 @@
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
-        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
+        "uploadLibFile": "/upload-lib-file/<simulation_type>/<simulation_id>/<file_type>"
     },
     "common": {
         "adm": {
@@ -367,9 +367,6 @@
             "httpRedirect": {
                 "route": "/http-redirect/:srExceptionOnly"
             },
-            "invalidSimulationSerial": {
-                "route": "/invalid-simulation-serial/:srExceptionOnly"
-            },
             "login": {
                 "route": "/login",
                 "config": {
@@ -540,7 +537,7 @@
         },
         "404": {
             "url": "http-not-found.html",
-            "msg": "File Not Found",
+            "msg": "Not Found",
             "route": "notFound"
         },
         "413": {
@@ -556,7 +553,7 @@
         "502": {
             "url": "http-proxy-error.html",
             "msg": "Proxy Error",
-            "route": "proxy-error"
+            "route": "proxyError"
         }
     }
 }

@@ -1017,7 +1017,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
           </div>
           <div data-ng-if="hasValidFileSelected()" class="btn-group" role="group">
             <div class="pull-left" data-ng-transclude=""></div>
-            <div class="pull-left"><a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a></div>
+            <div class="pull-left"><a data-ng-href="{{ downloadLibFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a></div>
           </div>
           <div class="sr-input-warning" data-ng-show="selectionRequired && ! hasValidFileSelected()">Select a file</div>
         `,
@@ -1058,7 +1058,7 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                 if (! $scope.isDeletingFile) {
                     $scope.isDeletingFile = true;
                     requestSender.sendRequest(
-                        'deleteFile',
+                        'deleteLibFile',
                         function(data) {
                             $scope.isDeletingFile = false;
                             if (data.error) {
@@ -1080,9 +1080,9 @@ SIREPO.app.directive('fileField', function(errorService, panelState, requestSend
                 return false;
             };
 
-            $scope.downloadFileUrl = function() {
+            $scope.downloadLibFileUrl = function() {
                 if ($scope.model) {
-                    return requestSender.formatUrl('downloadFile', {
+                    return requestSender.formatUrl('downloadLibFile', {
                         simulation_id: 'unused',
                         simulation_type: SIREPO.APP_SCHEMA.simulationType,
                         filename: SIREPO.APP_NAME === 'srw'
@@ -1326,7 +1326,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                         }
                         : null,
                     requestSender.formatUrl(
-                        'uploadFile',
+                        'uploadLibFile',
                         {
                             simulation_id: appState.models.simulation.simulationId,
                             simulation_type: SIREPO.APP_SCHEMA.simulationType,
@@ -2289,7 +2289,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                     if (suffix) {
                         params.suffix = suffix;
                     }
-                    return requestSender.formatUrl('downloadDataFile', params);
+                    return requestSender.formatUrl('downloadRunFile', params);
                 }
                 return '';
             };
@@ -2457,7 +2457,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
         template: `
             <div class="navbar-header">
               <a class="navbar-brand" href="/"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="Sirepo"></a>
-              <div class="navbar-brand">
+              <div class="navbar-brand navbar-brand-text">
                 <div data-ng-if="appUrl">
                   <a data-ng-href="{{ appUrl }}">
                     ${brand()}
@@ -2657,6 +2657,351 @@ SIREPO.app.directive('fileChooser', function(appState, fileManager, fileUpload, 
     };
 });
 
+SIREPO.app.directive('elegantImportDialog', function(appState, commandService, fileManager, fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div class="modal fade" data-backdrop="static" id="simulation-import" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <div data-help-button="{{ title }}"></div>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                        <form class="form-horizontal" name="importForm">
+                          <div data-ng-show="filename" class="form-group">
+                            <label class="col-xs-4 control-label">Importing file</label>
+                            <div class="col-xs-8">
+                              <p class="form-control-static">{{ filename }}</p>
+                            </div>
+                          </div>
+                          <div data-ng-show="isState('ready') || isState('lattice')">
+                            <div data-ng-show="isState('ready')" class="form-group">
+                              <label>{{ fileTypes() }}</label>
+                              <input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.madx,.zip,.in,.seq" />
+                              <br />
+                              <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
+                            </div>
+                            <div data-ng-show="isState('lattice')" class="form-group">
+                              <label>Select Lattice File ({{ latticeFileName }})</label>
+                              <input id="elegant-lattice-import" type="file" data-file-model="elegantFile" accept="{ extension }" />
+                              <br />
+                              <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
+                            </div>
+                            <div class="col-sm-6 pull-right">
+                              <button data-ng-click="importElegantFile(elegantFile)" data-ng-disabled="isMissingImportFile()" class="btn btn-primary">Import File</button>
+                               <button data-dismiss="modal" class="btn btn-default">Cancel</button>
+                            </div>
+                          </div>
+                          <div data-ng-show="isState('import') || isState('load-file-lists')" class="col-sm-6 col-sm-offset-6">
+                            Uploading file - please wait.
+                            <br /><br />
+                          </div>
+                          <div data-ng-show="isState('missing-files')">
+                            <p>Please upload the files below which are referenced in the ${SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName} file.</p>
+                            <div class="form-group" data-ng-repeat="item in missingFiles">
+                              <div class="col-sm-11 col-sm-offset-1">
+                                <span data-ng-if="item[5] && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span>
+                                <span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="item[5] && ! isCorrectMissingFile(item)" class="text-danger">Filename does not match, expected: </span>
+                                <label>{{ auxFileLabel(item) }}</label> ({{ auxFileName(item) }})
+                                <input type="file" data-file-model="item[5]" />
+                              </div>
+                            </div>
+                            <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
+                            <div class="col-sm-6 pull-right">
+                              <button data-ng-click="importMissingFiles()" data-ng-disabled="isMissingFiles()"" class="btn btn-primary">{{ importMissingFilesButtonText() }}</button>
+                               <button data-dismiss="modal" class="btn btn-default">Cancel</button>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.title = 'Import ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName + ' File';
+            // states: ready, import, lattice, load-file-lists, missing-files
+            $scope.state = 'ready';
+
+            function classifyInputFiles(model, modelType, modelName, requiredFiles) {
+                var inputFiles = modelInputFiles(modelType);
+                for (var i = 0; i < inputFiles.length; i++) {
+                    if (model[inputFiles[i]]) {
+                        if (! requiredFiles[modelType]) {
+                            requiredFiles[modelType] = {};
+                        }
+                        if (! requiredFiles[modelType][inputFiles[i]]) {
+                            requiredFiles[modelType][inputFiles[i]] = {};
+                        }
+                        requiredFiles[modelType][inputFiles[i]][model[inputFiles[i]]] = modelName;
+                    }
+                }
+            }
+
+            function hideAndRedirect() {
+                $('#simulation-import').modal('hide');
+                requestSender.localRedirect('lattice', {
+                    ':simulationId': $scope.id,
+                });
+            }
+
+            function loadFileLists() {
+                $scope.state = 'load-file-lists';
+                if (! $scope.missingFileLists.length) {
+                    verifyMissingFiles();
+                    return;
+                }
+                var fileType = $scope.missingFileLists.pop();
+                requestSender.loadListFiles(
+                    fileType,
+                    {
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
+                        fileType: fileType,
+                    },
+                    loadFileLists,
+                );
+            }
+
+            function modelInputFiles(type) {
+                var res = [];
+                var elementSchema = SIREPO.APP_SCHEMA.model[type];
+                for (var f in elementSchema) {
+                    if (elementSchema[f][1].indexOf('InputFile') >= 0) {
+                        res.push(f);
+                    }
+                }
+                return res;
+            }
+
+            function verifyInputFiles(data) {
+                var requiredFiles = {};
+                var i;
+                for (i = 0; i < data.models.elements.length; i++) {
+                    var el = data.models.elements[i];
+                    classifyInputFiles(el, el.type, el.name, requiredFiles);
+                }
+                for (i = 0; i < data.models.commands.length; i++) {
+                    var cmd = data.models.commands[i];
+                    classifyInputFiles(cmd, commandService.commandModelName(cmd._type), cmd._type, requiredFiles);
+                }
+                $scope.inputFiles = [];
+                for (var type in requiredFiles) {
+                    for (var field in requiredFiles[type]) {
+                        for (var filename in requiredFiles[type][field]) {
+                            var fileType = type + '-' + field;
+                            //TODO(pjm): special case for BeamInputFile which shares files between bunchFile and command_sdds_beam
+                            if (type == 'command_sdds_beam' && field == 'input') {
+                                fileType = 'bunchFile-sourceFile';
+                            }
+                            $scope.inputFiles.push([type, field, filename, fileType, requiredFiles[type][field][filename]]);
+                        }
+                    }
+                }
+                verifyFileLists();
+            }
+
+            function verifyFileLists() {
+                var res = [];
+                for (var i = 0; i < $scope.inputFiles.length; i++) {
+                    var fileType = $scope.inputFiles[i][3];
+                    if (! requestSender.getListFilesData(fileType)) {
+                        res.push(fileType);
+                    }
+                }
+                $scope.missingFileLists = res;
+                loadFileLists();
+            }
+
+            function verifyMissingFiles() {
+                var res = [];
+                for (var i = 0; i < $scope.inputFiles.length; i++) {
+                    var filename = $scope.inputFiles[i][2];
+                    var fileType = $scope.inputFiles[i][3];
+                    var list = requestSender.getListFilesData(fileType);
+                    if (list.indexOf(filename) < 0) {
+                        res.push($scope.inputFiles[i]);
+                    }
+                }
+                if (! res.length) {
+                    hideAndRedirect();
+                    return;
+                }
+                $scope.state = 'missing-files';
+                $scope.missingFiles = res.sort(function(a, b) {
+                    if (a[0] < b[0]) {
+                        return -1;
+                    }
+                    if (a[0] > b[0]) {
+                        return 1;
+                    }
+                    if (a[1] < b[1]) {
+                        return -1;
+                    }
+                    if (a[1] > b[1]) {
+                        return 1;
+                    }
+                    return 0;
+                });
+            }
+
+            $scope.auxFileLabel = function(item) {
+                return item[2];
+            };
+
+            $scope.auxFileName = function(item) {
+                return item[4]
+                    + ': '
+                    + (commandService.isCommandModelName(item[0])
+                       ? ''
+                       : (item[0] + ' '))
+                    + item[1];
+            };
+
+            $scope.fileTypes = function() {
+                return `Select Command (.ele), Lattice (.lte, .in, .madx, .seq), or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)`;
+            };
+
+            $scope.importElegantFile = function(elegantFile) {
+                if (! elegantFile) {
+                    return;
+                }
+                var args = {
+                    folder: fileManager.getActiveFolderPath(),
+                };
+                if ($scope.state == 'lattice') {
+                    args.arguments = JSON.stringify($scope.eleData);
+                }
+                else {
+                    $scope.resetState();
+                    $scope.filename = elegantFile.name;
+                }
+                $scope.state = 'import';
+                fileUpload.uploadFileToUrl(
+                    elegantFile,
+                    args,
+                    requestSender.formatUrl('importFile'),
+                    function(data) {
+                        if (data.error) {
+                            $scope.resetState();
+                            $scope.fileUploadError = data.error;
+                        }
+                        else if (data.importState && data.importState === "needLattice") {
+                            $scope.extension = ".lte";
+                            $scope.state = 'lattice';
+                            $scope.elegantFile = null;
+                            $scope.eleData = data.eleData;
+                            $scope.latticeFileName = data.latticeFileName;
+                        }
+                        else {
+                            $scope.id = data.models.simulation.simulationId;
+                            $scope.simulationName = data.models.simulation.name;
+                            verifyInputFiles(data);
+                        }
+                    });
+            };
+
+            $scope.importMissingFiles = function() {
+                $scope.state = 'import';
+                var dataResponseHandler = function(data) {
+                    if (data.error) {
+                        $scope.state = 'missing-files';
+                        $scope.fileUploadError = data.error;
+                        return;
+                    }
+                    // the callback may occur after the simulation has loaded and file lists cleared
+                    if (requestSender.getListFilesData(data.fileType)) {
+                        requestSender.getListFilesData(data.fileType).push(data.filename);
+                        hideAndRedirect();
+                    }
+                };
+                for (var i = 0; i < $scope.missingFiles.length; i++) {
+                    var f = $scope.missingFiles[i][5];
+                    var fileType = $scope.missingFiles[i][3];
+
+                    fileUpload.uploadFileToUrl(
+                        f,
+                        null,
+                        requestSender.formatUrl(
+                            'uploadLibFile',
+                            {
+                                '<simulation_id>': $scope.id,
+                                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                                '<file_type>': fileType,
+                            }),
+                        dataResponseHandler);
+                }
+            };
+
+            $scope.importMissingFilesButtonText = function() {
+                if (! $scope.missingFiles) {
+                    return '';
+                }
+                return 'Import File' + ($scope.missingFiles.length > 1 ? 's' : '');
+            };
+
+            $scope.isCorrectMissingFile = function(item) {
+                if (! item[5]) {
+                    return false;
+                }
+                return item[2] == item[5].name;
+            };
+
+            $scope.isMissingFiles = function() {
+                if (! $scope.missingFiles) {
+                    return true;
+                }
+                for (var i = 0; i < $scope.missingFiles.length; i++) {
+                    if (! $scope.missingFiles[i][5]) {
+                        return true;
+                    }
+                    if (! $scope.isCorrectMissingFile($scope.missingFiles[i])) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            $scope.isMissingImportFile = function() {
+                return ! $scope.elegantFile;
+            };
+
+            $scope.isState = function(state) {
+                return $scope.state == state;
+            };
+
+            $scope.resetState = function() {
+                $scope.id = null;
+                $scope.elegantFile = null;
+                $scope.filename = '';
+                $scope.simulationName = '';
+                $scope.state = 'ready';
+                $scope.fileUploadError = '';
+                $scope.latticeFileName = '';
+                $scope.inputFiles = null;
+            };
+
+            $scope.resetState();
+        },
+        link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                $('#elegant-file-import').val(null);
+                $('#elegant-lattice-import').val(null);
+                scope.resetState();
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
@@ -2813,7 +3158,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
                         info.file,
                         null,
                         requestSender.formatUrl(
-                            'uploadFile',
+                            'uploadLibFile',
                             {
                                 // dummy id because no simulation id is available or required
                                 simulation_id: SIREPO.nonSimulationId,
@@ -2855,7 +3200,7 @@ SIREPO.app.directive('importOptions', function(fileUpload, requestSender) {
     };
 });
 
-SIREPO.app.directive('numArray', function(appState, utilities) {
+SIREPO.app.directive('numArray', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -2872,6 +3217,7 @@ SIREPO.app.directive('numArray', function(appState, utilities) {
               <input class="form-control sr-number-list" data-string-to-number="{{ numType }}"
                 data-ng-model="model[fieldName][$index]" data-min="info[5][$index]" data-max="info[6][$index]"
                 style="text-align: right" required />
+              <div data-ng-if="$last" class="sr-input-warning"></div>
             </div>
         `,
         controller: $scope => {
@@ -3147,7 +3493,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
         restrict: 'A',
         scope: {},
         template: `
-            <div data-ng-show="isJupyterhub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">
+            <div data-ng-show="isJupyterHub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">
             We're improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. Simply follow the directions below to complete this process.
             </div>
             <form class="form-horizontal" autocomplete="off" novalidate>
@@ -3191,7 +3537,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             }
 
             $scope.data = {};
-            $scope.isJupyterhub = SIREPO.APP_SCHEMA.simulationType == 'jupyterhublogin';
+            $scope.isJupyterHub = SIREPO.APP_SCHEMA.simulationType == 'jupyterhublogin';
             $scope.login = function() {
                 var e = $scope.data.email;
                 errorService.alertText('');
@@ -5075,6 +5421,9 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
 
         const s = $(element).find(`.${searchClass}`);
         s.autocomplete({
+            classes: {
+                'ui-autocomplete': 'sr-dropdown',
+            },
             delay: 0,
             select: (e, ui) => {
                 scope.$apply(() => {
@@ -5098,11 +5447,17 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
                     s[0].dispatchEvent(new Event('change'));
                 });
             },
+            focus: (e, ui) => {
+                s.val(ui.item.label);
+                return false;
+            },
             source: (req, res) => {
                 const text = req.term;
                 const l = scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1));
                 if (! supportsMulti) {
-                    res(l.filter(x => x.label.includes(text)));
+                    res(l.filter(x => {
+                        return x.label.toLowerCase().includes(text.toLowerCase());
+                    }));
                     return;
                 }
                 const t = findToken(text, s.get(0).selectionStart);
@@ -5146,7 +5501,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
             if (debounceInterval) {
                 $interval.cancel(debounceInterval);
             }
-            debounceInterval = $interval(later, milliseconds, 1);
+            debounceInterval = $interval(later, milliseconds || SIREPO.debounce_timeout, 1);
         };
     };
 
@@ -5246,6 +5601,7 @@ SIREPO.app.directive('srDraggable', function() {
                 $scope.item.isDragging = false;
                 $element.removeClass('sr-dragging');
                 $element.removeClass('sr-hide-menu');
+                $scope.$applyAsync();
             });
             // need handlers for both to support desktop and tablet
             $element.on('click', setSelected);

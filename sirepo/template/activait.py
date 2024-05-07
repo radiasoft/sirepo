@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -202,7 +203,7 @@ def new_simulation(data, new_sim_data, qcall, **kwargs):
 
 def prepare_sequential_output_file(run_dir, data):
     report = data["report"]
-    if "fileColumnReport" in report or "partitionColumnReport":
+    if "fileColumnReport" in report or report == "partitionColumnReport":
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
@@ -237,6 +238,10 @@ def save_sequential_report_data(run_dir, sim_in):
         _extract_analysis_report(run_dir, sim_in)
     elif "fftReport" in sim_in.report:
         _extract_fft_report(run_dir, sim_in)
+    elif sim_in.report == "imageSamplesReport":
+        template_common.write_sequential_result(
+            _image_preview("imagePreview", sim_in, run_dir)
+        )
     else:
         raise AssertionError("unknown report: {}".format(sim_in.report))
 
@@ -264,9 +269,17 @@ def sim_frame_dicePlotAnimation(frame_args):
     return _dice(frame_args.sim_in, frame_args.run_dir)
 
 
-def sim_frame_epochAnimation(frame_args):
-    # TODO(pjm): improve heading text
-    d = pandas.read_csv(str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile)))
+def sim_frame_dicePlotComparisonAnimation(frame_args):
+    return _dice(
+        frame_args.sim_in,
+        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
+            "animation"
+        ),
+    )
+
+
+def _epoch_plot(run_dir):
+    d = pandas.read_csv(str(run_dir.join(_OUTPUT_FILE.fitCSVFile)))
     return _report_info(
         list(d.index),
         [
@@ -279,6 +292,33 @@ def sim_frame_epochAnimation(frame_args):
     ).pkupdate(
         PKDict(
             x_label="epoch",
+        )
+    )
+
+
+def sim_frame_bestLossesAnimation(frame_args):
+    return _image_preview("bestLosses", frame_args.sim_in, frame_args.run_dir)
+
+
+def sim_frame_bestLossesComparisonAnimation(frame_args):
+    return _image_preview(
+        "bestLosses",
+        frame_args.sim_in,
+        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
+            "animation"
+        ),
+    )
+
+
+def sim_frame_epochAnimation(frame_args):
+    # TODO(pjm): improve heading text
+    return _epoch_plot(frame_args.run_dir)
+
+
+def sim_frame_epochComparisonAnimation(frame_args):
+    return _epoch_plot(
+        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
+            "animation"
         )
     )
 
@@ -354,6 +394,24 @@ def sim_frame_logisticRegressionErrorRateAnimation(frame_args):
     )
 
 
+def sim_frame_segmentSamplesAnimation(frame_args):
+    return _image_preview("segmentViewer", frame_args.sim_in, frame_args.run_dir)
+
+
+def sim_frame_worstLossesAnimation(frame_args):
+    return _image_preview("worstLosses", frame_args.sim_in, frame_args.run_dir)
+
+
+def sim_frame_worstLossesComparisonAnimation(frame_args):
+    return _image_preview(
+        "worstLosses",
+        frame_args.sim_in,
+        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
+            "animation"
+        ),
+    )
+
+
 def stateful_compute_column_info(data, **kwargs):
     f = data.args.dataFile.file
     if pkio.has_file_extension(f, "csv"):
@@ -364,11 +422,70 @@ def stateful_compute_column_info(data, **kwargs):
 
 
 def analysis_job_sample_images(data, run_dir, **kwargs):
-    return _ImagePreview(data, run_dir).images()
+    d = run_dir
+    if data.args.otherSimId:
+        d = simulation_db.simulation_dir("activait", sid=data.args.otherSimId).join(
+            "animation"
+        )
+    return _ImagePreview(data, d).images()
+
+
+def stateful_compute_get_activait_sim_list(data, run_dir, **kwargs):
+    def _data_file_name(simulation_id):
+        p = pkio.py_path(
+            simulation_db.find_global_simulation(
+                "activait",
+                simulation_id,
+                checked=True,
+            )
+        )
+        if p.join("animation").exists() or simulation_id == data.simulationId:
+            return sirepo.simulation_db.read_json(
+                p.join("sirepo-data.json")
+            ).models.dataFile.file
+        return ""
+
+    res = []
+    for sim in _sims():
+        if (
+            sim.simulationId != data.simulationId
+            and _sim_path(data.simulationId).join("animation").exists()
+        ):
+            if _data_file_name(sim.simulationId) == _data_file_name(data.simulationId):
+                res.append(sim)
+    return PKDict(simList=res)
 
 
 def stateful_compute_get_remote_data(data, **kwargs):
     _SIM_DATA.lib_file_save_from_url(data.args.url, "dataFile", "file")
+    return PKDict()
+
+
+def stateful_compute_download_remote_lib_file(data, **kwargs):
+    if data.args.exampleFileCnt == 1:
+        _lib_file_save_from_url(data.args.exampleDir + f"/{data.args.file}")
+        return PKDict()
+    i = []
+    n = _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", data.args.file)
+    for c in range(data.args.exampleFileCnt):
+        _lib_file_save_from_url(data.args.exampleDir + f"/{c}.h5")
+        i.append(
+            _SIM_DATA.lib_file_abspath(
+                _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", f"{c}.h5")
+            )
+        )
+    o = i[0].dirpath().join(n)
+    with h5py.File(o, "w") as cmb:
+        for f in i:
+            with h5py.File(f, "r") as src:
+                cmb.attrs.update(src.attrs)
+                for g in src:
+                    src.copy(
+                        f"/{g}",
+                        cmb.require_group(src[g].parent.name),
+                        name=g,
+                    )
+    _SIM_DATA.lib_file_write(n, pkio.py_path(o))
     return PKDict()
 
 
@@ -418,6 +535,7 @@ def _build_model_py(v):
         return f"""{layer.dimensionality},
     activation="{layer.activation}",
     kernel_size=({layer.kernel}, {layer.kernel}),
+    kernel_initializer=keras.initializers.{layer.get("kernel_initializer", "RandomNormal")}(),
     strides={layer.strides},
     padding="{layer.padding}"
     """
@@ -938,6 +1056,8 @@ def _param_to_image(info):
 
 def _generate_parameters_file(data):
     report = data.get("report", "")
+    if report == "imageSamplesReport":
+        return ""
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
     v.imageOut = _image_out(dm.columnInfo)
@@ -1106,6 +1226,24 @@ def _histogram_plot(values, vrange, bins=20):
     x.insert(0, x[0])
     y.insert(0, 0)
     return x, y
+
+
+def _image_preview(method, data, run_dir, other_sim_id=None):
+    return PKDict(
+        x_range=[],
+        images=_ImagePreview(
+            PKDict(
+                args=PKDict(
+                    method=method,
+                    imageFilename="sample",
+                    dataFile=data.models.dataFile,
+                    columnInfo=data.models.columnInfo,
+                    otherSimId=other_sim_id,
+                ),
+            ),
+            run_dir,
+        ).images(),
+    )
 
 
 class _ImagePreview:
@@ -1340,6 +1478,17 @@ def _levels_with_children(cur_node, neural_net):
     return cur_node, 1, l
 
 
+def _lib_file_save_from_url(basename):
+    _SIM_DATA.lib_file_save_from_url(
+        "{}/{}".format(
+            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+            basename,
+        ),
+        "dataFile",
+        "file",
+    )
+
+
 def _loss_function(loss_fn):
     l = "".join(w.title() for w in loss_fn.split("_"))
     if loss_fn == "sparse_categorical_crossentropy":
@@ -1442,6 +1591,7 @@ def _set_fields_by_layer_type(l, new_layer):
             strides=l.strides[0],
             padding=l.padding,
             kernel=l.kernel_size[0],
+            kernel_initializer=l.kernel_initializer.__class__.__name__,
             dimensionality=l._trainable_weights[0].shape[-1],
             activation=l.activation.__name__,
         )
@@ -1518,6 +1668,26 @@ def _set_outbound(neural_net):
             if "outbound" in c:
                 c.outbound.append(l.obj)
     return neural_net
+
+
+def _sims():
+    return sorted(
+        simulation_db.iterate_simulation_datafiles(
+            "activait",
+            simulation_db.process_simulation_list,
+        ),
+        key=lambda row: row["name"],
+    )
+
+
+def _sim_path(sim_id):
+    return pkio.py_path(
+        simulation_db.find_global_simulation(
+            "activait",
+            sim_id,
+            checked=True,
+        )
+    )
 
 
 def _update_range(vrange, values):

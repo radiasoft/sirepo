@@ -5,7 +5,16 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
     SIREPO.PLOTTING_COLOR_MAP = 'blues';
-    SIREPO.SINGLE_FRAME_ANIMATION = ['epochAnimation', 'dicePlotAnimation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = [
+        'epochAnimation',
+        'epochComparisonAnimation',
+        'dicePlotAnimation',
+        'dicePlotComparisonAnimation',
+        'bestLossesAnimation',
+        'bestLossesComparisonAnimation',
+        'worstLossesAnimation',
+        'worstLosssComparisonAnimation',
+    ];
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.FILE_UPLOAD_TYPE = {
         'dataFile-file': '.h5,.csv',
@@ -47,10 +56,14 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="XColumn" data-field-class="fieldClass">
           <div data-x-column="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="SimList" data-ng-class="fieldClass">
+          <div data-activait-sim-list="" data-model="model" data-field="field"></div>
+        </div>
     `;
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="classificationMetrics" data-table-panel="" data-model-name="{{ modelKey }}" class="sr-plot sr-screenshot"></div>
         <div data-ng-switch-when="confusionMatrix" data-table-panel="" data-model-name="{{ modelKey }}" class="sr-plot sr-screenshot"></div>
+        <div data-ng-switch-when="imageViewer" data-image-viewer="" data-model-name="{{ modelKey }}" class="sr-plot sr-screenshot"></div>
     `;
 });
 
@@ -224,10 +237,11 @@ SIREPO.app.directive('appHeader', function(appState, activaitService) {
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive('data')}"><a href data-ng-click="nav.openSection('data')"><span class="glyphicon glyphicon-picture"></span> Data Source</a></li>
-                  <li class="sim-section" data-ng-if="activaitService.hasDataFile() && activaitService.isAnalysis()" data-ng-class="{active: nav.isActive('analysis')}"><a href data-ng-click="nav.openSection('analysis')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>
+                  <li class="sim-section" data-ng-if="appState.isLoaded() && activaitService.hasDataFile() && activaitService.isAnalysis()" data-ng-class="{active: nav.isActive('analysis')}"><a href data-ng-click="nav.openSection('analysis')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>
                   <li class="sim-section" data-ng-if="hasInputsAndOutputs() && ! activaitService.isAnalysis()" data-ng-class="{active: nav.isActive('partition')}"><a href data-ng-click="nav.openSection('partition')"><span class="glyphicon glyphicon-scissors"></span> Partition</a></li>
                   <li class="sim-section" data-ng-if="hasInputsAndOutputs() && activaitService.isAppMode('regression')" data-ng-class="{active: nav.isActive('regression')}"><a href data-ng-click="nav.openSection('regression')"><span class="glyphicon glyphicon-qrcode"></span> Regression</a></li>
                   <li class="sim-section" data-ng-if="hasInputsAndOutputs() && activaitService.isAppMode('classification')" data-ng-class="{active: nav.isActive('classification')}"><a href data-ng-click="nav.openSection('classification')"><span class="glyphicon glyphicon-tag"></span> Classification</a></li>
+                  <li class="sim-section" data-ng-if="isImageToImage()" data-ng-class="{active: nav.isActive('comparison')}"><a href data-ng-click="nav.openSection('comparison')"><span class="glyphicon glyphicon-tasks"></span> Model Comparison</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
@@ -240,12 +254,24 @@ SIREPO.app.directive('appHeader', function(appState, activaitService) {
             </div>
         `,
         controller: function($scope) {
+            $scope.appState = appState;
             $scope.activaitService = activaitService;
             $scope.hasInputsAndOutputs = () => {
-                if (activaitService.hasDataFile() && appState.applicationState().columnInfo) {
+                if (appState.isLoaded() && activaitService.hasDataFile()
+                    && appState.applicationState().columnInfo) {
                     const inputOutput = appState.applicationState().columnInfo.inputOutput;
                     return inputOutput && inputOutput.indexOf('input') >= 0
                         && inputOutput.indexOf('output') >= 0;
+                }
+                return false;
+            };
+            $scope.isImageToImage = () => {
+                var info = appState.models.columnInfo;
+                if (info && info.inputOutput.indexOf('output') >= 0) {
+                    if (info.shape) {
+                        var idx = info.inputOutput.indexOf('output');
+                        return info.shape[idx].slice(1, info.shape[idx].length).length > 1;
+                    }
                 }
                 return false;
             };
@@ -280,11 +306,34 @@ SIREPO.app.controller('AnalysisController', function (appState, activaitService,
     buildSubplots();
 });
 
-SIREPO.app.controller('DataController', function (activaitService, appState, $scope) {
+SIREPO.app.controller('DataController', function (activaitService, appState, requestSender, $scope) {
     const self = this;
+    self.dataFileReady = false;
     self.activaitService = activaitService;
 
     const hasInOut = inputOutput => ['input', 'output'].map(x => inputOutput.includes(x)).reduce((p, c) => p && c);
+
+    function downloadRemoteLibFile() {
+        requestSender.sendStatefulCompute(
+            appState,
+            data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                self.dataFileReady = true;
+                appState.models.dataFile.exampleDir = "";
+                appState.saveChanges('dataFile');
+            },
+            {
+                method: 'download_remote_lib_file',
+                args: {
+                    exampleDir: appState.models.dataFile.exampleDir,
+                    exampleFileCnt: appState.models.dataFile.exampleFileCnt,
+                    file: appState.models.dataFile.file
+                },
+            }
+        );
+    }
 
     $scope.$on('columnInfo.changed', () => {
         const c = appState.models.columnInfo;
@@ -298,6 +347,55 @@ SIREPO.app.controller('DataController', function (activaitService, appState, $sc
     });
 
     self.showImageViewer = () => activaitService.isImageData() && appState.models.imageViewerShow;
+
+    if (appState.models.dataFile.exampleDir) {
+        downloadRemoteLibFile();
+    }
+    else {
+        self.dataFileReady = true;
+    }
+});
+
+SIREPO.app.controller('ComparisonController', function (activaitService, appState, frameCache, persistentSimulation, $scope) {
+    const self = this;
+    self.simScope = $scope;
+    self.simAnalysisModel = 'fitAnimation';
+    self.activaitService = activaitService;
+    var compare = false;
+    var otherSimId = null;
+
+    self.showComparisons = () => compare;
+
+    self.comparisonId = () => otherSimId;
+
+    const setComparisonSim = () => {
+        if (appState.models.comparisonSims.compareSim.length) {
+            compare = true;
+            otherSimId = appState.models.comparisonSims.compareSim;
+            appState.models.dicePlotComparisonAnimation.otherSimId = otherSimId;
+            appState.models.epochComparisonAnimation.otherSimId = otherSimId;
+            appState.models.bestLossesComparisonAnimation.otherSimId = otherSimId;
+            appState.models.worstLossesComparisonAnimation.otherSimId = otherSimId;
+            appState.saveChanges('bestLossesComparisonAnimation');
+            appState.saveChanges('worstLossesComparisonAnimation');
+            appState.saveChanges('dicePlotComparisonAnimation');
+            appState.saveChanges('epochComparisonAnimation');
+            return;
+        }
+        otherSimId = null;
+        compare = false;
+    };
+
+    self.simHandleStatus = data => {
+        self.reports = null;
+        frameCache.setFrameCount(data.frameCount || 0);
+    };
+
+    self.simState = persistentSimulation.initSimulationState(self);
+
+    setComparisonSim();
+
+    $scope.$on('comparisonSims.changed', setComparisonSim);
 });
 
 SIREPO.app.controller('ClassificationController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
@@ -348,14 +446,12 @@ SIREPO.app.controller('ClassificationController', function(appState, frameCache,
 
     self.simState.errorMessage = () => errorMessage;
 
-    appState.whenModelsLoaded($scope, () => {
-        showClassifierSettings();
-        appState.watchModelFields(
-            $scope,
-            ['classificationAnimation.classifier'],
-            showClassifierSettings
-        );
-    });
+    showClassifierSettings();
+    appState.watchModelFields(
+        $scope,
+        ['classificationAnimation.classifier'],
+        showClassifierSettings
+    );
 });
 
 SIREPO.app.controller('RegressionController', function (appState, frameCache, activaitService, persistentSimulation, $scope) {
@@ -621,25 +717,6 @@ SIREPO.app.directive('analysisActions', function(appState, panelState, activaitS
                 return '';
             };
 
-            appState.whenModelsLoaded($scope, () => {
-                $scope.$on(modelKey + '.summaryData', (e, data) => {
-                    let str = '';
-                    if (data.p_vals) {
-                        const pNames = ($scope.model().fitParameters || '').split(/\s*,\s*/);
-                        const pVals = data.p_vals.map(roundTo3Places);
-                        const pErrs = data.p_errs.map(roundTo3Places);
-                        pNames.forEach((p, i) => {
-                            str = str + p + ' = ' + pVals[i] + ' ± ' + pErrs[i];
-                            str = str + (i < pNames.length - 1 ? '; ' : '');
-                        });
-                    }
-                    $($element).closest('.panel-body').find('.focus-hint').text(str);
-                });
-                appState.watchModelFields($scope, [modelKey + '.action'], processTrimRange);
-                appState.watchModelFields($scope, [modelKey + '.clusterMethod', modelKey + '.action'], processClusterMethod);
-                processClusterMethod();
-            });
-
             // hook up listener on report content to get the plot events
             $scope.$parent.$parent.$parent.$on('sr-plotLinked', event => {
                 const reportScope = event.targetScope;
@@ -655,6 +732,24 @@ SIREPO.app.directive('analysisActions', function(appState, panelState, activaitS
             $scope.$on('$destroy', () => {
                 $('.scatter-point').popover('destroy');
             });
+
+            $scope.$on(modelKey + '.summaryData', (e, data) => {
+                let str = '';
+                if (data.p_vals) {
+                    const pNames = ($scope.model().fitParameters || '').split(/\s*,\s*/);
+                    const pVals = data.p_vals.map(roundTo3Places);
+                    const pErrs = data.p_errs.map(roundTo3Places);
+                    pNames.forEach((p, i) => {
+                        str = str + p + ' = ' + pVals[i] + ' ± ' + pErrs[i];
+                        str = str + (i < pNames.length - 1 ? '; ' : '');
+                    });
+                }
+                $($element).closest('.panel-body').find('.focus-hint').text(str);
+            });
+
+            appState.watchModelFields($scope, [modelKey + '.action'], processTrimRange);
+            appState.watchModelFields($scope, [modelKey + '.clusterMethod', modelKey + '.action'], processClusterMethod);
+            processClusterMethod();
         },
     };
 });
@@ -1075,18 +1170,38 @@ SIREPO.app.directive('columnSelector', function(appState, activaitService, panel
                 }
             };
 
-            appState.whenModelsLoaded($scope, () => {
-                setModel();
-                updateIsAnalysis();
-                $scope.$on('columnInfo.changed', setModel);
-                $scope.$on('cancelChanges', (evt, name) => {
-                    if (name == 'columnInfo') {
-                        setModel();
-                    }
-                });
-                $scope.$on('dataFile.changed', updateIsAnalysis);
+            setModel();
+            updateIsAnalysis();
+            $scope.$on('columnInfo.changed', setModel);
+            $scope.$on('cancelChanges', (evt, name) => {
+                if (name == 'columnInfo') {
+                    setModel();
+                }
             });
+            $scope.$on('dataFile.changed', updateIsAnalysis);
+        },
+    };
+});
 
+SIREPO.app.directive('imageViewer', function(appState, plotting) {
+    return {
+        scope: {
+            modelName: "@"
+        },
+        template: `
+          <div data-ng-if="imageInfo">
+              <div data-image-preview="imageInfo"></div>
+          </div>
+        `,
+        controller: function($scope) {
+            plotting.setTextOnlyReport($scope);
+            $scope.load = function(json) {
+                $scope.imageInfo = json.images;
+                $scope.imageInfo.method = "imagePreview";
+            };
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
         },
     };
 });
@@ -1096,9 +1211,50 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
         restrict: 'A',
         scope: {
             method: '@',
+            comparisonId: '=',
         },
         template: `
         <div class="container-fluid">
+          <div data-ng-if="isLoading" data-sim-state-progress-bar="" data-sim-state="simState"></div>
+          <div data-ng-if="imageInfo">
+              <div data-image-preview="imageInfo"></div>
+          </div>
+        </div>
+        `,
+        controller: function($scope, $element) {
+            $scope.isLoading = true;
+            const f = $scope.method == 'imagePreview' ? requestSender.sendStatefulCompute : requestSender.sendAnalysisJob;
+            f(
+                appState,
+                response => {
+                    $scope.isLoading = false;
+                    response.method = $scope.method;
+                    $scope.imageInfo = response;
+                },
+                {
+                    method: 'sample_images',
+                    modelName: 'animation',
+                    args: {
+                        method: $scope.method,
+                        imageFilename: 'sample',
+                        dataFile: appState.applicationState().dataFile,
+                        columnInfo: appState.applicationState().columnInfo,
+                        otherSimId: $scope.comparisonId ? $scope.comparisonId : null,
+                    }
+                }
+            );
+        }
+    };
+});
+
+SIREPO.app.directive('imagePreview', function(appState, requestSender, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            imageInfo: '=imagePreview',
+        },
+        template: `
+          <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
           <div data-ng-if="colA" class="row">
             <div class="{{ colClass() }}">
               <div class="lead text-center">{{ colAName }}</div>
@@ -1125,9 +1281,7 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
               </div>
             </div>
           </div>
-          <div data-ng-if="isLoading()" data-sim-state-progress-bar="" data-sim-state="simState"></div>
-          <div data-ng-if="dataFileMissing">Data file {{ fileName }} is missing</div>
-          <div data-ng-if="! isLoading() && multiPage">
+          <div data-ng-if="multiPage">
             <div data-ng-if="numPages > 1" class="pull-left">
               <button class="btn btn-primary" title="first" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="first()">|<</button>
               <button class="btn btn-primary" title="previous" data-ng-disabled="! canUpdateUri(-1)" data-ng-click="prev()"><</button>
@@ -1138,10 +1292,8 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
               <button class="btn btn-primary" title="last" data-ng-disabled="! canUpdateUri(1)" data-ng-click="last()">>|</button>
             </div>
           </div>
-        </div>
         `,
         controller: function($scope, $element) {
-            let loading = true;
             $scope.numPages = 0;
             $scope.imagesPerPage = 3;
             $scope.pageImages = SIREPO.UTILS.indexArray($scope.imagesPerPage);
@@ -1166,8 +1318,6 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
             $scope.first = () => {
                 setIndex($scope.imageIdx = 0);
             };
-
-            $scope.isLoading = () => loading;
 
             $scope.last = () => {
                 setIndex($scope.imageIdx = $scope.numPages * $scope.imagesPerPage - $scope.imagesPerPage);
@@ -1235,52 +1385,36 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
                 }
             }
 
-            const loadImageFile = () => {
-                const f = $scope.method == 'imagePreview' ? requestSender.sendStatefulCompute : requestSender.sendAnalysisJob;
-                f(
-                    appState,
-                    response => {
-                        $scope.numPages = Math.ceil(response.colA.length / $scope.imagesPerPage);
-                        $scope.colA = response.colA;
-                        $scope.colB = response.colB;
-                        $scope.xIsParams = response.xIsParameters;
-                        $scope.imageToLabels = response.imageToLabels;
-                        $scope.pred = response.pred || null;
-                        if ($scope.xIsParams) {
-                            $scope.parameters = [];
-                        }
-                        if ($scope.imageToLabels) {
-                            $scope.labels = [];
-                            $scope.colBName = 'Labels';
-                        }
-                        if ($scope.colA) {
-                            $scope.multiPage = $scope.colA.length > 1;
-                            setIndex(0);
-                        }
-                        loading = false;
-                        if (response.paramToImage) {
-                            if (! response.xIsParameters) {
-                                $scope.colBName = 'Prediction';
-                                return;
-                            }
-                            $scope.colAName = 'Parameters';
-                            $scope.colBName = 'Images';
-                        }
-                    },
-                    {
-                        method: 'sample_images',
-                        modelName: 'animation',
-                        args: {
-                            method: $scope.method,
-                            imageFilename: 'sample',
-                            dataFile: appState.applicationState().dataFile,
-                            columnInfo: appState.applicationState().columnInfo,
-                        }
+            // .colAimagePreview1
+            function initFromResponse(response) {
+                $scope.method = response.method;
+                $scope.numPages = Math.ceil(response.colA.length / $scope.imagesPerPage);
+                $scope.colA = response.colA;
+                $scope.colB = response.colB;
+                $scope.xIsParams = response.xIsParameters;
+                $scope.imageToLabels = response.imageToLabels;
+                $scope.pred = response.pred || null;
+                if ($scope.xIsParams) {
+                    $scope.parameters = [];
+                }
+                if ($scope.imageToLabels) {
+                    $scope.labels = [];
+                    $scope.colBName = 'Labels';
+                }
+                if ($scope.colA) {
+                    $scope.multiPage = $scope.colA.length > 1;
+                    panelState.waitForUI(() => setIndex(0));
+                }
+                if (response.paramToImage) {
+                    if (! response.xIsParameters) {
+                        $scope.colBName = 'Prediction';
+                        return;
                     }
-                );
-            };
-
-            loadImageFile();
+                    $scope.colAName = 'Parameters';
+                    $scope.colBName = 'Images';
+                }
+            }
+            initFromResponse($scope.imageInfo);
         }
     };
 });
@@ -1530,6 +1664,31 @@ SIREPO.app.directive('plotActionButtons', function(appState) {
     };
 });
 
+SIREPO.app.directive('activaitSimList', function(appState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: `
+          <div data-sim-list="" data-model="model" data-field="field" data-code="activait"></div>
+        `,
+        controller: function($scope) {
+            const requestSimListByType = (simType) => {
+                requestSender.sendRequest(
+                    'listSimulations',
+                    () => {},
+                    {
+                        simulationType: simType,
+                    }
+                );
+            };
+            requestSimListByType('activait');
+        },
+    };
+});
+
 SIREPO.app.controller('PartitionController', function (appState, activaitService, $scope) {
     const self = this;
     self.reports = [];
@@ -1563,7 +1722,7 @@ SIREPO.app.controller('PartitionController', function (appState, activaitService
         return false;
     };
 
-    appState.whenModelsLoaded($scope, loadReports);
+    loadReports();
 });
 
 SIREPO.app.directive('modelDownloadLink', function(appState, frameCache, requestSender) {
@@ -1586,7 +1745,7 @@ SIREPO.app.directive('modelDownloadLink', function(appState, frameCache, request
             };
 
             function logFileRequest() {
-                return  requestSender.formatUrl('downloadDataFile', {
+                return  requestSender.formatUrl('downloadRunFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<model>': 'animation',

@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat, pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty, pkdformat
@@ -31,6 +32,11 @@ _MAX_FRAME_SEARCH_DEPTH = 6
 _MUST_HAVE_METHOD = ("api_analysisJob", "api_statefulCompute", "api_statelessCompute")
 
 _JSON_TYPE = re.compile(f"^{pkjson.MIME_TYPE}")
+
+_HTTP_CLIENT_CONNECTION_ERRORS = (
+    tornado.httpclient.HTTPClientError,
+    ConnectionRefusedError,
+)
 
 
 class API(sirepo.quest.API):
@@ -75,6 +81,21 @@ class API(sirepo.quest.API):
     async def api_downloadDataFile(
         self, simulation_type, simulation_id, model, frame, suffix=None
     ):
+        """Deprecated use `api_downloadRunFile`"""
+        return await self.api_downloadRunFile(
+            simulation_type, simulation_id, model, frame, suffix=suffix
+        )
+
+    @sirepo.quest.Spec(
+        "require_user",
+        sid="SimId",
+        model="AnalysisModel",
+        frame="DataFileIndex",
+        suffix="FileSuffix optional",
+    )
+    async def api_downloadRunFile(
+        self, simulation_type, simulation_id, model, frame, suffix=None
+    ):
         def _content_too_large(req):
             return sirepo.util.ContentTooLarge(
                 "sim_type={} sid={} report={}",
@@ -117,8 +138,8 @@ class API(sirepo.quest.API):
                 if len(f) > 0:
                     assert len(f) == 1, "too many files={}".format(f)
                     return self.reply_attachment(f[0])
-            except tornado.httpclient.HTTPClientError:
-                # TODO(robnagler) HTTPClientError is too coarse a check
+            except _HTTP_CLIENT_CONNECTION_ERRORS:
+                # TODO(robnagler) is this too coarse a check?
                 pass
             finally:
                 if t:
@@ -155,7 +176,7 @@ class API(sirepo.quest.API):
                 if x == k:
                     return r
                 e = "expected={} but got ping={}".format(k, x)
-        except tornado.httpclient.HTTPClientError as e2:
+        except _HTTP_CLIENT_CONNECTION_ERRORS as e2:
             pkdlog("HTTPClientError={}", e2)
             e = "unable to connect to supervisor"
         except Exception as e2:
