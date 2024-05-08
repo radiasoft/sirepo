@@ -21,10 +21,10 @@ def create_geometry():
     for plane in {{ planesList }}:
         planes.append(
             openmc.Plane(
-                a=plane.A,
-                b=plane.B,
-                c=plane.C,
-                b=plane.D,
+                a=plane['A'],
+                b=plane['B'],
+                c=plane['C'],
+                d=plane['D'],
                 boundary_type="reflective",
             )
         )
@@ -32,7 +32,7 @@ def create_geometry():
     plane1 = planes[0]
     plane2 = planes[1]
     univ = openmc.Cell(
-        region=-vac_surf & -plane1 & +plane2,1,
+        region=-vac_surf & -plane1 & +plane2,
         fill=univ,
     )
     openmc.Geometry([univ]).export_to_xml()
