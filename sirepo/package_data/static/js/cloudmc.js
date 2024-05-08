@@ -2597,7 +2597,7 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
         }
 
         panelState.showFields('reflectivePlanes', [
-            ['plane1a', 'plane1b', 'plane2a', 'plane2b'],
+            ['plane1a', 'plane1b', 'plane1c', 'plane1d', 'plane2a', 'plane2b', 'plane2c', 'plane2d'],
             appState.models.reflectivePlanes.useReflectivePlanes === '1',
         ]);
         panelState.showFields(

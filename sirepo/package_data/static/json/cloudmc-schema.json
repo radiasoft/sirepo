@@ -996,8 +996,12 @@
             "useReflectivePlanes": ["Use reflective planes", "Boolean", "0", "Add reflective planes for sector models. $Ax + By + Cz = D$"],
             "plane1a": ["Plane 1 A", "Float", 0],
             "plane1b": ["Plane 1 B", "Float", -1],
+            "plane1c": ["Plane 1 C", "Float", 1],
+            "plane1d": ["Plane 1 D", "Float", 2],
             "plane2a": ["Plane 2 A", "Float", 1],
-            "plane2b": ["Plane 2 B", "Float", 0]
+            "plane2b": ["Plane 2 B", "Float", 0],
+            "plane2c": ["Plane 2 C", "Float", 1],
+            "plane2d": ["Plane 2 D", "Float", 2]
         },
         "settings": {
             "batches": ["Number of batches to simulate", "Integer", 1, "", 1],
@@ -1331,8 +1335,12 @@
                     "reflectivePlanes.useReflectivePlanes",
                     "reflectivePlanes.plane1a",
                     "reflectivePlanes.plane1b",
+                    "reflectivePlanes.plane1c",
+                    "reflectivePlanes.plane1d",
                     "reflectivePlanes.plane2a",
-                    "reflectivePlanes.plane2b"
+                    "reflectivePlanes.plane2b",
+                    "reflectivePlanes.plane2c",
+                    "reflectivePlanes.plane2d"
                 ]],
                 ["Tallies", [
                     "tallies"

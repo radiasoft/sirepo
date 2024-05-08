@@ -19,15 +19,15 @@ def create_geometry():
     plane1 = openmc.Plane(
         a={{ reflectivePlanes_plane1a }},
         b={{ reflectivePlanes_plane1b }},
-        c=0.0,
-        d=0.0,
+        c={{ reflectivePlanes_plane1c }},
+        b={{ reflectivePlanes_plane1d }},
         boundary_type="reflective",
     )
     plane2 = openmc.Plane(
         a={{ reflectivePlanes_plane2a }},
         b={{ reflectivePlanes_plane2b }},
-        c=0.0,
-        d=0.0,
+        c={{ reflectivePlanes_plane2c }},
+        b={{ reflectivePlanes_plane2d }},
         boundary_type="reflective",
     )
     univ = openmc.Cell(
