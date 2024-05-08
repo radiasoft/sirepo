@@ -1255,7 +1255,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             return;
         }
 
-        let isHidden = panelState.isHidden(modelName);
+        const isHidden = panelState.isHidden(modelName);
         let frameRequestTime = now();
         let setPanelStateIsLoadingTimer = null;
 	const computeJobSerial = getComputeJobSerial();
@@ -1277,6 +1277,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 	}
 
 	function getComputeJobSerial() {
+	    srdbg(`ssssssssssss `, appState.models.simulationStatus[appState.appService.computeModel(modelName)]);
 	    return appState.models.simulationStatus[appState.appService.computeModel(modelName)].computeJobSerial;
 	}
 
