@@ -456,8 +456,29 @@ SIREPO.app.directive('planeList', function() {
             model: '=',
         },
         template: `
-            <div>TODO</div>
-            <div>{{ model }}</div>
+            <div class="container-fluid col-sm-8">
+            <div data-ng-repeat="plane in model.planesList track by $index">
+                <div class="form-group">
+                    <div>
+                      <b>Plane {{ $index + 1 }}:</b>
+                    </div>
+                    <div>
+                      <b>A</b>: <input type="Float" data-ng-model="model.planesList[$index].A" class="form-control" data-lpignore="true">
+                    </div>
+                    <div>
+                      <b>B</b>: <input type="Float" data-ng-model="model.planesList[$index].B" class="form-control" data-lpignore="true">
+                    </div>
+                    <div>
+                      <b>C</b>: <input type="Float" data-ng-model="model.planesList[$index].C" class="form-control" data-lpignore="true">
+                    </div>
+                    <div>
+                      <b>D</b>: <input type="Float" data-ng-model="model.planesList[$index].D" class="form-control" data-lpignore="true">
+                    </div>
+                </div>
+            </div>
+            <div>{{ model.planesList }}</div>
+            <button>add plane</button>
+            </div>
         `,
     };
 });

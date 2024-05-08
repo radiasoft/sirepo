@@ -994,7 +994,27 @@
         },
         "reflectivePlanes": {
             "useReflectivePlanes": ["Use reflective planes", "Boolean", "0", "Add reflective planes for sector models. $Ax + By + Cz = D$"],
-            "planesList": ["Reflective Planes", "PlanesList", [1, 2, 3]]
+            "planesList": ["Reflective Planes", "PlanesList", [
+                    {
+                        "A": 0,
+                        "B": 0,
+                        "C": 0,
+                        "D": 0
+                    },
+                    {
+                        "A": 0,
+                        "B": 0,
+                        "C": 0,
+                        "D": 0
+                    }
+                ]
+            ]
+        },
+        "Plane": {
+            "A": ["A", "Float", 0],
+            "B": ["B", "Float", 0],
+            "C": ["C", "Float", 0],
+            "D": ["D", "Float", 0]
         },
         "settings": {
             "batches": ["Number of batches to simulate", "Integer", 1, "", 1],
