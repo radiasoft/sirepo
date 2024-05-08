@@ -1277,7 +1277,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 	}
 
 	function getComputeJobSerial() {
-	    srdbg(`ssssssssssss `, appState.models.simulationStatus[appState.appService.computeModel(modelName)]);
 	    return appState.models.simulationStatus[appState.appService.computeModel(modelName)].computeJobSerial;
 	}
 
