@@ -604,7 +604,8 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
 	    setLoginButtonLabel();
 
 	    function requestsbatchAgentStatus() {
-		if (appState.models[$scope.simState.model].jobRunMode !== 'sbatch') {
+		const m = appState.models[$scope.simState.model]
+		if (!m || m.jobRunMode !== 'sbatch') {
 		    $scope.needSbatchAgentLogin = false;
 		    $scope.loadingSbatchAgentStatus = false;
 		    return;
