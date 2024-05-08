@@ -309,7 +309,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
 
     self.sbatchHostDisplayName = self.jobRunModeMap.sbatch;
 
-    self.sbatchHostIsNersc = self.sbatchHostDisplayName.toLowerCase().indexOf('nersc') >= 0;
+    self.sbatchHostIsNersc = self.sbatchHostDisplayName ? self.sbatchHostDisplayName.toLowerCase().indexOf('nersc') >= 0 : false;
 
     self.upgradePlanLink = function() {
         return '<a href="' + SIREPO.APP_SCHEMA.constants.plansUrl +
