@@ -2332,6 +2332,10 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             }
 
             $scope.toggleFullScreen = function() {
+                console.log('calling full screen');
+                $scope.$emit('sr-full-screen');
+
+                /*
                 if(panelState.isHidden($scope.modelKey)) {
                     return;
                 }
@@ -2351,6 +2355,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 else {
                     utilities.exitFullscreenFn().call(document);
                 }
+                */
             };
 
 
@@ -2400,7 +2405,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
     };
 });
 
-SIREPO.app.directive('reportPanel', function(appState, utilities) {
+SIREPO.app.directive('reportPanel', function(appState, panelState, utilities, $rootScope) {
     return {
         restrict: 'A',
         transclude: true,
@@ -2413,12 +2418,32 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
             requestPriority: '@',
         },
         template: `
-            <div class="panel panel-info">
+            <div class="panel panel-info" data-ng-style="reportStyle">
               <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1"></div>
               <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}"><div data-ng-transclude=""></div></div>
               <div data-ng-if="notes()"><span class="pull-right sr-notes" data-sr-tooltip="{{ notes() }}" data-placement="top"></span><div class="clearfix"></div></div>
         `,
         controller: function($scope) {
+
+            $scope.reportStyle = {
+            };
+
+            $scope.$on('sr-full-screen', () => {
+                console.log('RECEIVED FULL SCREEN EVENT');
+                $scope.reportStyle.position = 'fixed';
+                $scope.reportStyle['z-index'] = 1000;
+                $scope.reportStyle.left = 0;
+                $scope.reportStyle.top = 0;
+                $scope.reportStyle.width = '100vw';
+
+                panelState.waitForUI(() => {
+                    //$rootScope.$broadcast('sr-window-resize');
+                    panelState.triggerWindowResize();
+                });
+            });
+
+
+
             if ($scope.modelName && $scope.modelName.includes('{') ) {
                 throw new Error('Expected simple name for modelName, got: ' + $scope.modelName);
             }

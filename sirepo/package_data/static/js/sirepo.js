@@ -1926,6 +1926,8 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
         $rootScope.$broadcast(`panel.${name}.hidden`, self.isHidden(name));
     };
 
+    self.triggerWindowResize = windowResize;
+
     self.waitForUI = function(callback) {
         // groups callbacks within one $timeout()
         if (waitForUICallbacks) {
