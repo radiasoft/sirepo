@@ -113,6 +113,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="ZPlanePosition" class="col-sm-5">
           <div data-plane-position-slider="" data-model="model" data-field="field" data-dim="'z'"></div>
         </div>
+        <div data-ng-switch-when="PlanesList">
+          <div data-plane-list="" data-model="model" data-field="field"></div>
+        </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
         'geometryInput-dagmcFile': '.h5m',
@@ -443,6 +446,22 @@ SIREPO.app.directive('appFooter', function() {
         `,
     };
 });
+
+
+SIREPO.app.directive('planeList', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            nav: '=appFooter',
+            model: '=',
+        },
+        template: `
+            <div>TODO</div>
+            <div>{{ model }}</div>
+        `,
+    };
+});
+
 
 SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState) {
     return {
