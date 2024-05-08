@@ -463,6 +463,9 @@ SIREPO.app.directive('planeList', function() {
                       <b>Plane {{ $index + 1 }}:</b>
                     </div>
                     <div>
+                      <b>Inside Plane</b>: <input type="checkbox" data-ng-model="model.planesList[$index].inside" class="form-control" data-lpignore="true">
+                    </div>
+                    <div>
                       <b>A</b>: <input type="Float" data-ng-model="model.planesList[$index].A" class="form-control" data-lpignore="true">
                     </div>
                     <div>
@@ -477,9 +480,22 @@ SIREPO.app.directive('planeList', function() {
                 </div>
             </div>
             <div>{{ model.planesList }}</div>
-            <button>add plane</button>
+            <button type="button" data-ng-click="addPlane()" class="btn">add plane</button>
             </div>
         `,
+        controller: function(appState, $scope) {
+            $scope.addPlane = () => {
+                appState.models.reflectivePlanes.planesList.push(
+                    {
+                        inside: true,
+                        A: 0,
+                        B: 0,
+                        C: 0,
+                        D: 0,
+                    }
+                )
+            }
+        }
     };
 });
 

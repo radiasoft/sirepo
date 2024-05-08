@@ -18,6 +18,7 @@ def create_geometry():
     vac_surf = openmc.Sphere(r=10000, boundary_type="vacuum")
 
     planes = []
+    signs = []
     for plane in {{ planesList }}:
         planes.append(
             openmc.Plane(
@@ -28,11 +29,16 @@ def create_geometry():
                 boundary_type="reflective",
             )
         )
+        signs.append("+" if plane["inside"] else "-")
 
-    plane1 = planes[0]
-    plane2 = planes[1]
+    region = -vac_surf
+    for i, plane in enumerate(planes):
+        if signs[i] == "-":
+            region = region & -plane
+        else:
+            region = region & +plane
     univ = openmc.Cell(
-        region=-vac_surf & -plane1 & +plane2,
+        region=region,
         fill=univ,
     )
     openmc.Geometry([univ]).export_to_xml()
