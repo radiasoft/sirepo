@@ -366,6 +366,9 @@
     }
     .sr-panel-loading .sr-panel-wait, .sr-panel-waiting .sr-panel-wait {
       display: block;
+      position: absolute;
+      background-color: #eee;
+      padding: 5px 10px;
       z-index: 1000;
     }
     .sr-panel-running .sr-panel-wait {
@@ -553,9 +556,6 @@
     }
     .sr-plot .z-axis-label {
       line-height: 160%;
-    }
-    .sr-plot-loading {
-      opacity: 0.2;
     }
     .sr-plot-cleared {
       opacity: 0;
