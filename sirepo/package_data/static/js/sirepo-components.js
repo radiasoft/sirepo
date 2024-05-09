@@ -2327,13 +2327,24 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 return 'Exit Full Screen';
             };
 
+
+
             function getFullScreenElement() {
                 return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
             }
 
+
             $scope.toggleFullScreen = function() {
-                console.log('calling full screen');
-                $scope.$emit('sr-full-screen');
+                if (utilities.fullscreenActive) {
+                    console.log('disabling full screen');
+                    $scope.$emit('sr-close-full-screen');
+                    utilities.fullscreenActive = false;
+                } else {
+                    console.log('calling full screen');
+                    $scope.$emit('sr-full-screen');
+                    utilities.fullscreenActive = true;
+                }
+
 
                 /*
                 if(panelState.isHidden($scope.modelKey)) {
@@ -2424,20 +2435,26 @@ SIREPO.app.directive('reportPanel', function(appState, panelState, utilities, $r
               <div data-ng-if="notes()"><span class="pull-right sr-notes" data-sr-tooltip="{{ notes() }}" data-placement="top"></span><div class="clearfix"></div></div>
         `,
         controller: function($scope) {
-
-            $scope.reportStyle = {
-            };
+            //todo need this one?
+            $scope.reportStyle = {};
 
             $scope.$on('sr-full-screen', () => {
-                console.log('RECEIVED FULL SCREEN EVENT');
                 $scope.reportStyle.position = 'fixed';
                 $scope.reportStyle['z-index'] = 1000;
                 $scope.reportStyle.left = 0;
                 $scope.reportStyle.top = 0;
-                $scope.reportStyle.width = '100vw';
-
+                $scope.reportStyle.width = '100%';
+                $scope.reportStyle.height = '100%';
+                $scope.reportStyle.overflow = 'hidden';
                 panelState.waitForUI(() => {
-                    //$rootScope.$broadcast('sr-window-resize');
+                    panelState.triggerWindowResize();
+                });
+            });
+
+
+            $scope.$on('sr-close-full-screen', () => {
+                $scope.reportStyle = {};
+                panelState.waitForUI(() => {
                     panelState.triggerWindowResize();
                 });
             });
@@ -5385,6 +5402,8 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         v = v.replace(/\_/g, '-');
         return v.replace(/([A-Z])/g, '-$1').toLowerCase();
     };
+
+    this.fullscreenActive = false;
 
     // fullscreen utilities
     this.getFullScreenElement = function() {

@@ -628,20 +628,23 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         constrainFullscreenSize: function(scope, plotWidth, aspectRatio) {
-            if (utilities.isFullscreen()) {
-                // rough size of the panel heading, panel margins and rounded corners
-                var panelTitleSize = 50 + 2 * 15 + 2 * 4;
-                if (scope.isAnimation && scope.hasFrames()) {
-                    // animation buttons
-                    panelTitleSize += 34;
-                }
-                var fsel = $(utilities.getFullScreenElement());
-                var height = fsel.height() - scope.margin.top - scope.margin.bottom - panelTitleSize;
-                if (height < plotWidth * aspectRatio) {
-                    return height / aspectRatio;
-                }
+            // rough size of the panel heading, panel margins and rounded corners
+            var panelTitleSize = 50 + 2 * 15 + 2 * 4;
+            if (scope.isAnimation && scope.hasFrames()) {
+                // animation buttons
+                panelTitleSize += 34;
             }
-            return plotWidth;
+
+
+            var plotHeight = aspectRatio * plotWidth;
+            if (utilities.fullscreenActive) {
+//&& plotHeight > window.innerHeight
+                let h = window.innerHeight - scope.margin.top - scope.margin.bottom - panelTitleSize;
+                let w = h / aspectRatio;
+                //todo reformat this (multiple lines)
+                return [h, w];
+            }
+            return [plotHeight, plotWidth];
         },
 
         drawImage: function(xAxisScale, yAxisScale, width, height, xValues, yValues, canvas, cacheCanvas, alignOnPixel) {
@@ -1238,8 +1241,11 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                 if (isNaN(width)) {
                     return;
                 }
-                $scope.width = plotting.constrainFullscreenSize($scope, width, $scope.aspectRatio);
-                $scope.height = $scope.aspectRatio * $scope.width;
+
+                srdbg($scope.modelName, 'before', $scope.height, $scope.width);
+                [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, width, $scope.aspectRatio);
+                srdbg($scope.modelName, 'after', $scope.height, $scope.width);
+
                 $scope.select('svg.sr-plot')
                     .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
                     .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
