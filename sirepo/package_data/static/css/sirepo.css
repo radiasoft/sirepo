@@ -370,6 +370,7 @@
       background-color: #eee;
       padding: 5px 10px;
       z-index: 1000;
+      border-radius: 10px;
     }
     .sr-panel-running .sr-panel-wait {
       font-weight: bold;
