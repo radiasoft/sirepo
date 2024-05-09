@@ -220,7 +220,7 @@ class API(sirepo.quest.API):
         r = self._request_content(
             PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),
         )
-        # SECURITY: Send as little data through to the agent as possible (ex don't send creds)
+        # SECURITY: Don't include credentials so the agent can't see them.
         r.sbatchCredentials = r.data.pkdel("sbatchCredentials")
         r.shouldRestartRunSimulation = r.data.pkdel("shouldRestartRunSimulation")
         r.pkdel("data")
