@@ -4819,6 +4819,16 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 	    }
 
             $scope.$on('showSbatchLoginModal', function(event, broadcastArg) {
+		function shouldRestartRunSimulation(broadcastArg) {
+		    // Handles the case where user clicked on run simulation,
+		    // they weren't logged in (agent dead), so
+		    // they are prompted to login. We want to
+		    // automatically run the simulation for them
+		    // since that is what they were trying to do
+		    // before being prompted to login.
+		    return broadcastArg.shouldRestartRunSimulation;
+		}
+
 		resetLoginForm();
 		restartRunSimulation = broadcastArg.shouldRestartRunSimulation;
                 $scope.showOtp = authState.sbatchHostIsNersc;
@@ -4840,13 +4850,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 				password: $scope.password,
 				username: $scope.username,
 			    },
-			    // Handles the case where user clicked on run simulation,
-			    // they weren't logged in (agent dead), so
-			    // they are prompted to login. We want to
-			    // automatically run the simulation for them
-			    // since that is what they were trying to do
-			    // before being prompted to login.
-			    shouldRestartRunSimulation: broadcastArg.shouldRestartRunSimulation,
+			    shouldRestartRunSimulation: shouldRestartRunSimulation(broadcastArg),
 			},
 			handleLoginResponse,
                     );
