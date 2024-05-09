@@ -114,7 +114,7 @@ SIREPO.app.config(() => {
           <div data-plane-position-slider="" data-model="model" data-field="field" data-dim="'z'"></div>
         </div>
         <div data-ng-switch-when="PlanesList">
-          <div data-plane-list="" data-model="model" data-field="field"></div>
+          <div data-plane-list="" data-model="model" data-field="field" data-sub-model-name="plane"></div>
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
@@ -448,58 +448,6 @@ SIREPO.app.directive('appFooter', function() {
 });
 
 
-SIREPO.app.directive('planeList', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            nav: '=appFooter',
-            model: '=',
-        },
-        template: `
-            <div class="container-fluid col-sm-8">
-            <div data-ng-repeat="plane in model.planesList track by $index">
-                <div class="form-group">
-                    <div>
-                      <b>Plane {{ $index + 1 }}:</b>
-                    </div>
-                    <div>
-                      <b>Inside Plane</b>: <input type="checkbox" data-ng-model="model.planesList[$index].inside" class="form-control" data-lpignore="true">
-                    </div>
-                    <div>
-                      <b>A</b>: <input type="Float" data-ng-model="model.planesList[$index].A" class="form-control" data-lpignore="true">
-                    </div>
-                    <div>
-                      <b>B</b>: <input type="Float" data-ng-model="model.planesList[$index].B" class="form-control" data-lpignore="true">
-                    </div>
-                    <div>
-                      <b>C</b>: <input type="Float" data-ng-model="model.planesList[$index].C" class="form-control" data-lpignore="true">
-                    </div>
-                    <div>
-                      <b>D</b>: <input type="Float" data-ng-model="model.planesList[$index].D" class="form-control" data-lpignore="true">
-                    </div>
-                </div>
-            </div>
-            <div>{{ model.planesList }}</div>
-            <button type="button" data-ng-click="addPlane()" class="btn">add plane</button>
-            </div>
-        `,
-        controller: function(appState, $scope) {
-            $scope.addPlane = () => {
-                appState.models.reflectivePlanes.planesList.push(
-                    {
-                        inside: true,
-                        A: 0,
-                        B: 0,
-                        C: 0,
-                        D: 0,
-                    }
-                )
-            }
-        }
-    };
-});
-
-
 SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState) {
     return {
         restrict: 'A',
@@ -751,6 +699,59 @@ SIREPO.app.factory('volumeLoadingService', function(appState, requestSender, $ro
     });
 
     return self;
+});
+
+SIREPO.app.directive('planeList', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            subModelName: '@',
+        },
+        template: `
+            <div class="clearfix" style="margin-top:-20px; margin-left: 40px">
+            <div class="form-group">
+                <div class="row" data-ng-repeat="plane in model[field] track by $index">
+                <div class="col-md-10"><label>Plane {{ $index + 1 }}:</label></div>
+                    <div data-ng-repeat="(key, value) in plane">
+                    <div class="col-md-10" data-model-field="key" data-model-name="subModelName" data-model-data="modelData($parent.$index)" data-label-size="1" data-field-size="4"></div>
+                    </div>
+                </div>
+                </div>
+            <button type="button" data-ng-click="addPlane()" class="btn btn-primary">Add New Plane</button>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.addPlane = () => {
+                appState.models.reflectivePlanes.planesList.push(
+                    {
+                        inside: "0",
+                        A: 0,
+                        B: 0,
+                        C: 0,
+                        D: 0,
+                    }
+                )
+            }
+
+            const modelData = {};
+
+            $scope.label = field => appState.modelInfo($scope.subModelName)[field][0];
+
+            $scope.modelData = index => {
+                if (! $scope.model) {
+                    return;
+                }
+                if (! modelData[index]) {
+                    modelData[index] = {
+                        getData: () => $scope.model[$scope.field][index],
+                    };
+                }
+                return modelData[index];
+            };
+        }
+    };
 });
 
 SIREPO.app.directive('tallyVolumePicker', function(cloudmcService, volumeLoadingService) {
@@ -2653,7 +2654,7 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
         }
 
         panelState.showFields('reflectivePlanes', [
-            ['plane1a', 'plane1b', 'plane1c', 'plane1d', 'plane2a', 'plane2b', 'plane2c', 'plane2d'],
+            ['PlanesList'],
             appState.models.reflectivePlanes.useReflectivePlanes === '1',
         ]);
         panelState.showFields(

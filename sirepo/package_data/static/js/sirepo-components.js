@@ -880,6 +880,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             }
             $scope.enum = SIREPO.APP_SCHEMA.enum;
             // field def: [label, type]
+            srdbg("$scope=", $scope);
             $scope.info = $scope.customInfo || appState.modelInfo($scope.modelName)[$scope.field];
             if (! $scope.info) {
                 throw new Error('invalid model field: ' + $scope.modelName + '.' + $scope.field);

@@ -994,25 +994,10 @@
         },
         "reflectivePlanes": {
             "useReflectivePlanes": ["Use reflective planes", "Boolean", "0", "Add reflective planes for sector models. $Ax + By + Cz = D$"],
-            "planesList": ["Reflective Planes", "PlanesList", [
-                    {
-                        "inside": false,
-                        "A": 0,
-                        "B": -1,
-                        "C": 0,
-                        "D": 0
-                    },
-                    {
-                        "inside": true,
-                        "A": 1,
-                        "B": 0,
-                        "C": 0,
-                        "D": 0
-                    }
-                ]
-            ]
+            "planesList": ["Reflective Planes", "PlanesList", []]
         },
-        "Plane": {
+        "plane": {
+            "inside": ["Inside", "Boolean", "0", "Indicates whether the region is inside of the surface."],
             "A": ["A", "Float", 0],
             "B": ["B", "Float", 0],
             "C": ["C", "Float", 0],

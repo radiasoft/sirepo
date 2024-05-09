@@ -228,7 +228,7 @@ SIREPO.app.directive('simArray', function(appState) {
             field: '=',
             subModelName: '@',
         },
-        template: `
+        template: `{{model}}
           <div class="clearfix" style="margin-top:-20px"></div>
             <div class="col-sm-4 col-sm-offset-1 lead">{{:: label('simulationType') }}</div>
             <div class="col-sm-7 lead">{{:: label('simulationId') }}</div>
