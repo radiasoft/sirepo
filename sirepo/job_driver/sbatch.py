@@ -87,6 +87,7 @@ class SbatchDriver(job_driver.DriverBase):
             cores=(None, int, "dev cores config"),
             host=pkconfig.Required(str, "host name for slum controller"),
             host_key=pkconfig.Required(str, "host key"),
+            nodes=(None, int, "dev nodes config"),
             run_slots=(1, int, "number of concurrent OP_RUN for each user"),
             shifter_image=(None, str, "needed if using Shifter"),
             sirepo_cmd=pkconfig.Required(str, "how to run sirepo"),
@@ -127,8 +128,12 @@ class SbatchDriver(job_driver.DriverBase):
             m.runDir = "/".join((m.userDir, m.simulationType, m.computeJid))
             if op.op_name == job.OP_RUN:
                 assert m.sbatchHours
-                if self.cfg.cores:
-                    m.sbatchCores = min(m.sbatchCores, self.cfg.cores)
+                for f, c in [
+                    ["sbatchCores", self.cfg.cores],
+                    ["sbatchNodes", self.cfg.nodes],
+                ]:
+                    if f in m and c:
+                        m[f] = min(m[f], c)
                 m.mpiCores = m.sbatchCores
             m.shifterImage = self.cfg.shifter_image
         return await super().prepare_send(op)

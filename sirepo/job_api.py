@@ -382,11 +382,11 @@ class API(sirepo.quest.API):
                 ), f"sbatchQueue={m.sbatchQueue} not in NERSC_QUEUES={sirepo.job.NERSC_QUEUES}"
                 c.sbatchQueue = m.sbatchQueue
                 c.sbatchProject = m.sbatchProject
-            for f in "sbatchCores", "sbatchHours", "tasksPerNode":
+            for f in "sbatchCores", "sbatchHours", "sbatchNodes", "tasksPerNode":
+                if f not in m:
+                    continue
                 assert m[f] > 0, f"{f}={m[f]} must be greater than 0"
                 c[f] = m[f]
-            if "sbatchNodes" in m:
-                c.sbatchNodes = m.sbatchNodes
             return request_content
 
         d = kwargs.pkdel("req_data")

@@ -44,6 +44,7 @@ radia_run redhat-docker
         export SIREPO_JOB_DRIVER_MODULES=local:sbatch
         export SIREPO_JOB_DRIVER_SBATCH_HOST=${2:-$(hostname)}
         export SIREPO_JOB_DRIVER_SBATCH_CORES=2
+        export SIREPO_JOB_DRIVER_SBATCH_NODES=1
         if [[ $SIREPO_JOB_DRIVER_SBATCH_HOST == $(hostname) ]]; then
             if [[ $(type -t sbatch) == '' ]]; then
                 echo 'slurm not installed. You need to run:
