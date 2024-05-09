@@ -603,7 +603,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
             $scope.startButtonLabel = stringsService.startButtonLabel();
 	    setLoginButtonLabel();
 
-	    function requestsbatchAgentStatus() {
+	    function reqeustSbatchAgentStatus() {
 		const m = appState.models[$scope.simState.model];
 		if (!m || m.jobRunMode !== 'sbatch') {
 		    $scope.needSbatchAgentLogin = false;
@@ -688,8 +688,8 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
 		setLoginButtonLabel();
 	    });
 
-            appState.whenModelsLoaded($scope, requestsbatchAgentStatus);
-            appState.watchModelFields($scope, [`${$scope.simState.model}.jobRunMode`], requestsbatchAgentStatus);
+            appState.whenModelsLoaded($scope, reqeustSbatchAgentStatus);
+            appState.watchModelFields($scope, [`${$scope.simState.model}.jobRunMode`], reqeustSbatchAgentStatus);
         },
     };
 });
