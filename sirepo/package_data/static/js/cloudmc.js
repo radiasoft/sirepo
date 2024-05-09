@@ -2662,7 +2662,7 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
         }
 
         panelState.showFields('reflectivePlanes', [
-            ['PlanesList'],
+            ['planesList'],
             appState.models.reflectivePlanes.useReflectivePlanes === '1',
         ]);
         panelState.showFields(
