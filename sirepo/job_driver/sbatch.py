@@ -242,10 +242,10 @@ scancel -u $USER >& /dev/null || true
         # they were originally trying to run a simulation we want to
         # keep that context. This context allows us to restart the
         # simulation for them once they finally login.
-        if msg.get("shouldRestartRunSimulation") is not None:
-            assert (
-                msg.api == "api_sbatchLogin"
-            ), f"msg.api={msg.api} and msg.shouldRestartRunSimulation={msg.shouldRestartRunSimulation} but expecting only msg.api == api_sbatchLogin"
+        if "shouldRestartRunSimulation" in msg and msg.api != "api_sbatchLogin":
+            raise AssertionError(
+                "msg.api={msg.api} invalid arg shouldRestartRunSimulation={msg.shouldRestartRunSimulation}"
+            )
         raise util.SRException(
             "sbatchLogin",
             PKDict(
