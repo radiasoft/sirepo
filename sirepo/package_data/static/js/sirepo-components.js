@@ -4819,8 +4819,8 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 	    }
 
             $scope.$on('showSbatchLoginModal', function(event, broadcastArg) {
-		restartRunSimulation = broadcastArg.shouldRestartRunSimulation;
 		resetLoginForm();
+		restartRunSimulation = broadcastArg.shouldRestartRunSimulation;
                 $scope.showOtp = authState.sbatchHostIsNersc;
 		$scope.warningText = {
 		    'invalid-creds': 'Your credentials were invalid. Please try again.',
@@ -4859,6 +4859,8 @@ SIREPO.app.directive('sbatchLoginModal', function() {
             };
 
             el.on('hidden.bs.modal', function() {
+		// SECURITY: don't keep credentials around
+		resetLoginForm();
 		$rootScope.$broadcast(
 		    'sbatchLoginModalHidden' ,
 		    {
