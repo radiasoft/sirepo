@@ -32,6 +32,7 @@ def create_geometry():
         signs.append("+" if plane["inside"] else "-")
 
     region = -vac_surf
+    # TODO (gurhar1133): not building region right
     for i, plane in enumerate(planes):
         if signs[i] == "-":
             region = region & -plane
