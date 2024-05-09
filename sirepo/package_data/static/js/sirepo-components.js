@@ -675,7 +675,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
 		    $scope.simState.resetSimulation();
 		}
 		// User wasn't trying to Start Simulation and they
-		// closed the login button. Two possible cases:
+		// closed the login modal. Two possible cases:
 		// 1. We got here through api_simulationFrame raising
 		// SRExceptpion. panelState.needSbatchAgentLogin was
 		// called so leave that in the panel
