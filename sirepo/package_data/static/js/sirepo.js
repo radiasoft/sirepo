@@ -985,8 +985,8 @@ SIREPO.app.factory('stringsService', function(authState) {
         newSimulationLabel: () => {
             return strings.newSimulationLabel || `New ${ucfirst(strings.simulationDataType)}`;
         },
-	sbatchLoginButtonLabel: (loadingSbatchAgentStatus) => {
-	    return loadingSbatchAgentStatus ? 'Requesting login status...': `Login to ${authState.jobRunModeMap.sbatch}`;
+	sbatchLoginButtonLabel: (requestingLoginStatus) => {
+	    return requestingLoginStatus ? 'Requesting login status...': `Login to ${authState.jobRunModeMap.sbatch}`;
 
 	},
         startButtonLabel: (modelName) => {
@@ -1044,6 +1044,201 @@ SIREPO.app.factory('timeService', function() {
     };
 
     return self;
+});
+
+SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authState, errorService, requestSender, stringsService) {
+    const sbatchLoginModalElement = $('#sbatch-login-modal');
+
+    const defaultRequestArgs = () => {
+	return {
+	    computeModel: this.state.simState.model,
+	    simulationId: appState.models.simulation.simulationId,
+	    simulationType: SIREPO.APP_SCHEMA.simulationType,
+	};
+    };
+
+    const initState = (initSimState) => {
+	const p = this.state;
+	this.state = {
+	    isLoggedIn: null,
+	    requestingLoginStatus: false,
+	    requestingLogin: false,
+	    // Handles the case where user clicked on run simulation,
+	    // they weren't logged in (agent dead), so
+	    // they are prompted to login. We want to
+	    // automatically run the simulation for them
+	    // since that is what they were trying to do
+	    // before being prompted to login.
+	    shouldRestartRunSimulation: null,
+	};
+	if (! initSimState) {
+	    this.initSimState(p.simState, p.startSimulation);
+	}
+    };
+
+    const isSbatchSRExceptionResponse = (response) => {
+	return response.params && response.params.isModal && response.routeName.toLowerCase().includes('sbatch')
+    };
+
+    const loginModalHidden = () => {
+	// User clicked Start Simulation then was prompted to log in
+	if (this.state.shouldRestartRunSimulation) {
+	    // Refresh in all cases
+	    // isLoggedIn: The start simulation after will
+	    // become the state of the panel
+	    // ! isLoggedIn: We want to show that the job is
+	    // missing (tried to start but needed login)
+	    this.state.simState.resetSimulation();
+	    if (this.state.isLoggedIn) {
+		// POSIT: Supervisor protects if sim was started in another window
+		this.state.startSimulation();
+	    }
+	}
+	// User got here from clicking login button or through
+	// SRExceptpion from api_simulationFrame. If
+	// loginSuccess then resetSimulation so we go and try
+	// to get api_simulationFrame again. In the login
+	// button case a reset isn't necessary but it is hard
+	// to test for that case specifically so just reset too.
+	else if (this.state.isLoggedIn) {
+	    this.state.simState.resetSimulation();
+	}
+	else {
+	    // User wasn't trying to Start Simulation and they
+	    // closed the login modal. Two possible cases:
+	    // 1. We got here through api_simulationFrame raising
+	    // SRExceptpion. panelState.needSbatchLogin was
+	    // called so leave that in the panel
+	    // 2. Or user clicked login button and then closed the
+	    // modal so we just present them the panel they had
+	    // before which has the login button.
+	}
+	// Reset in all cases because the login flow has ended so we
+	// don't want to maintain this context.
+	this.state.shouldRestartRunSimulation = null;
+    };
+
+    this.computeModelRequiresLogin = () => {
+	if (! this.state.simState) {
+	    return false;
+	}
+	const m = appState.models[this.state.simState.model];
+	return m && m.jobRunMode === 'sbatch'
+    }
+
+    this.handleSRException = (srException, callback) => {
+	this.state.isLoggedIn = false;
+	this.state.requestingLogin = false;
+	this.state.shouldRestartRunSimulation = srException.params.shouldRestartRunSimulation;
+	this.renderLoginModal(srException.params.reason);
+	callback({isSbatchLoginServiceSRException: true});
+    };
+
+    this.initSimState = (simState, startSimulation) => {
+	this.state.simState = simState;
+	this.state.startSimulation = startSimulation;
+    }
+
+    this.login = (username, password, otp) => {
+	const handleLoginResponse = (response) => {
+	    this.state.requestingLogin = false;
+	    if (response && response.isSbatchLoginServiceSRException) {
+		// this.handleSRException has already handled this
+		return;
+	    }
+	    if (! response.loginSuccess) {
+		this.state.isLoggedIn = null;
+		throw new Error(`Error with login response=${JSON.stringify(response)}`)
+	    }
+	    this.state.isLoggedIn = true;
+	    sbatchLoginModalElement.modal('hide');
+	}
+
+	this.state.requestingLogin = true;
+	requestSender.sendRequest(
+	    'sbatchLogin',
+	    handleLoginResponse,
+	    {
+		...defaultRequestArgs(),
+		sbatchCredentials: {
+		    otp: otp,
+		    password: password,
+		    username: username,
+		},
+		shouldRestartRunSimulation: this.state.shouldRestartRunSimulation,
+	    },
+	    handleLoginResponse,
+	);
+    };
+
+    this.loginButtonLabel = () => {
+	return stringsService.sbatchLoginButtonLabel(this.state.requestingLoginStatus);
+    };
+
+    this.renderLoginModal = (reason) => {
+	this.state.requestingLogin = false;
+	$rootScope.$broadcast('sbatchLoginModalShown', reason);
+	sbatchLoginModalElement.modal('show');
+    }
+
+    this.requestLoginStatus = () => {
+	this.state.requestingLoginStatus = true;
+	if (! this.computeModelRequiresLogin()) {
+	    initState();
+	    return;
+	}
+	if (this.state.isLoggedIn !== null) {
+	    this.state.requestingLoginStatus = false;
+	    return;
+	}
+	this.state.isLoggedIn = null;
+	const m = appState.models[this.state.simState.model];
+	requestSender.sendRequest(
+	    'sbatchLoginStatus',
+	    data => {
+		this.state.isLoggedIn = data.ready;
+		this.state.requestingLoginStatus = false;
+	    },
+	    {
+
+		...defaultRequestArgs(),
+		models: appState.models,
+	    },
+	    err => {
+		srlog('Error in sbatchLoginService.requestLoginStatus err=', err);
+		errorService.alertText('Error checking login status. Please refresh the page. If the issue persists contact support@sirepo.com');
+		this.state.isLoggedIn = false;
+		this.state.requestingLoginStatus = false;
+	    },
+	);
+    };
+
+    this.showLoginButton = () => {
+	return this.computeModelRequiresLogin() && ! this.state.isLoggedIn
+    };
+
+    this.showOTP = authState.sbatchHostIsNersc;
+
+    this.loginModalWarningText = (reason) => {
+	return {
+	    'general-connection-error': `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`,
+	    'invalid-creds': 'Your credentials were invalid. Please try again.',
+	    'no-creds': '',
+	}[reason || 'no-creds'];
+    };
+
+
+    sbatchLoginModalElement.on('hidden.bs.modal', function() {
+	$rootScope.$broadcast('sbatchLoginModalHidden');
+	loginModalHidden();
+    });
+    requestSender.registerSRExceptionHandler(
+	'sbatchLogin',
+	(srException) => isSbatchSRExceptionResponse(srException),
+	this.handleSRException,
+    )
+    $rootScope.$on('modelsUnloaded', () => initState(true))
+    initState(true);
 });
 
 // manages validators for ngModels and provides other validation services
@@ -1285,8 +1480,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 		return;
 	    }
 	    cancelSetPanelStateIsLoadingTimer();
-	    if (response && response.isSRException && response.data.routeName.toLowerCase().includes('sbatch')) {
-		// POSIT: showing sbatch login modal is handled by requestSender.handleSRException
+	    if (response && response.isSbatchLoginServiceSRException) {
 		panelState.needSbatchLogin(modelName);
 		return;
 	    }
@@ -2305,7 +2499,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
                 _protocolError(header, content, wsreq, `unregistered asyncMsg method=${header.method}`);
             }
             else {
-                asyncMsgMethods[header.method](content);
+                ncMsgMethods[header.method](content);
             }
             return;
         }
@@ -2512,7 +2706,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
 
     self.registerAsyncMsg = (methodName, callback) => {
         if (methodName in asyncMsgMethods) {
-            throw new Error(`duplicate registerAsyncMsg methodName="{methodName}"`);
+            throw new Error(`duplicate registerAsyncMsg methodName="${methodName}"`);
         }
         asyncMsgMethods[methodName] = callback;
     };
@@ -2585,6 +2779,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     var SR_EXCEPTION_RE = new RegExp('/\\*sr_exception=(.+)\\*/');
     var listFilesData = {};
     const storageKey = "previousRoute";
+    const srExceptionHandlers = {};
 
     function checkLoginRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn
@@ -2671,11 +2866,12 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
             $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
             return;
         }
-        if (e.params && e.params.isModal && e.routeName.toLowerCase().includes('sbatch')) {
-	    $rootScope.$broadcast('showSbatchLoginModal', e.params);
-	    errorCallback({isSRException: true, data: e});
-	    return;
-        }
+	for (const h in srExceptionHandlers) {
+	    if (srExceptionHandlers[h].shouldHandle(e)) {
+		srExceptionHandlers[h].handle(e, errorCallback);
+		return;
+	    }
+	}
         if (e.routeName == LOGIN_ROUTE_NAME) {
             saveLoginRedirect();
             // if redirecting to login, but the app thinks it is already logged in,
@@ -2720,6 +2916,17 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
             },
         );
     };
+
+    self.registerSRExceptionHandler = (handlerName, shouldHandleTest, handler) => {
+	if (name in srExceptionHandlers) {
+            throw new Error(`duplicate registerSRExceptionHandler handlerName="${handlerName}"`);
+	}
+	srExceptionHandlers[handlerName] = {
+	    shouldHandle: shouldHandleTest,
+	    handle: handler,
+	}
+    };
+
     self.sendAnalysisJob = function(appState, callback, data) {
         sendWithSimulationFields('analysisJob', appState, callback, data);
     };
@@ -3212,6 +3419,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         }
 
         function handleStatus(data) {
+	    if (data && data.isSbatchLoginServiceSRException) {
+		return;
+	    }
             setSimulationStatus(data);
             if (state.isStopped()) {
                 state.timeData.elapsedTime = Math.max(

@@ -212,7 +212,7 @@ class API(sirepo.quest.API):
         return await self._request_api(_request_content=self._request_content(PKDict()))
 
     @sirepo.quest.Spec("require_user")
-    async def api_sbatchAgentStatus(self):
+    async def api_sbatchLoginStatus(self):
         return await self._request_api()
 
     @sirepo.quest.Spec("require_user")

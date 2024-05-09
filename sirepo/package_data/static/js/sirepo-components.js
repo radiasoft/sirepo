@@ -590,106 +590,19 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
                   </div>
                   <div data-sbatch-options="simState"></div>
                 </div>
-                <div data-ng-if="needSbatchAgentLogin">
-		<button ng-disabled="loadingSbatchAgentStatus" class="col-sm-6 pull-right btn btn-default" data-ng-click="sbatchLogin()">{{ loginButtonLabel }}</button>
+                <div data-ng-if="sbatchLoginService.showLoginButton()">
+		<button ng-disabled="sbatchLoginService.state.requestingLoginStatus" class="col-sm-6 pull-right btn btn-default" data-ng-click="sbatchLoginService.renderLoginModal()">{{ sbatchLoginService.loginButtonLabel() }}</button>
                 </div>
-                <div class="col-sm-6 pull-right" data-ng-if="! needSbatchAgentLogin">
-                  <button class="btn btn-default" ng-disabled="loadingSbatchAgentStatus" data-ng-click="startSimulation()">{{ startButtonLabel }}</button>
+                <div class="col-sm-6 pull-right" data-ng-if="! sbatchLoginService.showLoginButton()">
+                  <button class="btn btn-default" ng-disabled="sbatchLoginService.state.requestingLoginStatus" data-ng-click="startSimulation()">{{ startButtonLabel }}</button>
                 </div>
 	`,
-        controller: function($rootScope, $scope, appState, authState, errorService, requestSender, stringsService) {
-	    $scope.loadingSbatchAgentStatus = true;
-	    $scope.needSbatchAgentLogin = true;
+        controller: function($scope, appState, sbatchLoginService, stringsService) {
+	    $scope.sbatchLoginService = sbatchLoginService;
             $scope.startButtonLabel = stringsService.startButtonLabel();
-	    setLoginButtonLabel();
-
-	    function reqeustSbatchAgentStatus() {
-		const m = appState.models[$scope.simState.model];
-		if (!m || m.jobRunMode !== 'sbatch') {
-		    $scope.needSbatchAgentLogin = false;
-		    $scope.loadingSbatchAgentStatus = false;
-		    return;
-		}
-		$scope.loadingSbatchAgentStatus = true;
-		requestSender.sendRequest(
-		    'sbatchAgentStatus',
-		    data => {
-			$scope.loadingSbatchAgentStatus = false;
-			$scope.needSbatchAgentLogin = ! data.ready;
-		    },
-		    {
-			computeModel: $scope.simState.model,
-			models: appState.models,
-			simulationId: appState.models.simulation.simulationId,
-			simulationType: SIREPO.APP_SCHEMA.simulationType,
-		    },
-		    err => {
-			$scope.loadingSbatchAgentStatus = false;
-			srlog('Error getting sbatchAgentStatus ', err);
-			errorService.alertText('Error checking login status. Please refresh the page. If the issue persists contact support@sirepo.com');
-		    },
-		);
-	    }
-
-	    function setLoginButtonLabel() {
-		$scope.loginButtonLabel = stringsService.sbatchLoginButtonLabel($scope.loadingSbatchAgentStatus);
-	    }
-
-	    $scope.sbatchLogin = () => {
-		$rootScope.$broadcast(
-		    'showSbatchLoginModal',
-		    {
-			reason: 'no-creds',
-			computeModel: $scope.simState.model,
-			simulationId: appState.models.simulation.simulationId,
-			simulationType: SIREPO.APP_SCHEMA.simulationType,
-		    },
-		);
-	    };
-
-            $scope.$on('sbatchLoginModalHidden', function(event, broadcastArg) {
-		$scope.needSbatchAgentLogin = ! broadcastArg.loginSuccess;
-		// Called from hidden.bs.modal which is outside of
-		// angularjs digest cycle so must force apply
-		$scope.$apply();
-		// User clicked Start Simulation then was prompted to log in
-		if (broadcastArg.restartRunSimulation) {
-		    // Refresh in all cases
-		    // loginSuccess: The start simulation after will
-		    // become the state of the panel
-		    // ! loginSuccess: We want to show that the job is
-		    // missing (tried to start but needed login)
-		    $scope.simState.resetSimulation();
-		    if (broadcastArg.loginSuccess) {
-			// POSIT: Supervisor protects if sim was started in another window
-			$scope.startSimulation();
-		    }
-		}
-		// User got here from clicking login button or through
-		// SRExceptpion from api_simulationFrame. If
-		// loginSuccess then resetSimulation so we go and try
-		// to get api_simulationFrame again. In the login
-		// button case a reset isn't necessary but it is hard
-		// to test for that case specifically so just reset too.
-		else if (broadcastArg.loginSuccess) {
-		    $scope.simState.resetSimulation();
-		}
-		// User wasn't trying to Start Simulation and they
-		// closed the login modal. Two possible cases:
-		// 1. We got here through api_simulationFrame raising
-		// SRExceptpion. panelState.needSbatchAgentLogin was
-		// called so leave that in the panel
-		// 2. Or user clicked login button and then closed the
-		// modal so we just present them the panel they had
-		// before which has the login button.
-	    });
-
-	    $scope.$watch('loadingSbatchAgentStatus', function() {
-		setLoginButtonLabel();
-	    });
-
-            appState.whenModelsLoaded($scope, reqeustSbatchAgentStatus);
-            appState.watchModelFields($scope, [`${$scope.simState.model}.jobRunMode`], reqeustSbatchAgentStatus);
+	    sbatchLoginService.initSimState($scope.simState, $scope.startSimulation);
+            appState.whenModelsLoaded($scope, sbatchLoginService.requestLoginStatus);
+            appState.watchModelFields($scope, [`${$scope.simState.model}.jobRunMode`],  sbatchLoginService.requestLoginStatus);
         },
     };
 });
@@ -4772,7 +4685,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                                 <input type="password" class="form-control" name="password" placeholder="password" autocomplete="current-password" data-ng-model="password" />
                             </div>
                             <div class="form-group">
-                                <input type="password" class="form-control" name="otp" placeholder="one time password" autocomplete="one-time-code" data-ng-show="showOtp" data-ng-model="otp"/>
+                                <input type="password" class="form-control" name="otp" placeholder="one time password" autocomplete="one-time-code" data-ng-show="sbatchLoginService.showOTP" data-ng-model="otp"/>
                             </div>
                             <button  data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="submitDisabled()">Submit</button>
                              <button  data-dismiss="modal" class="btn btn-default">Cancel</button>
@@ -4783,33 +4696,15 @@ SIREPO.app.directive('sbatchLoginModal', function() {
               </div>
             </div>
         `,
-        controller: function($element, $scope, $rootScope, authState, errorService, panelState, requestSender) {
+        controller: function($scope, authState, sbatchLoginService) {
 	    resetLoginFormTextFields();
-            let awaitingLoginResponse = false;
-	    let loginSuccess = false;
-	    let restartRunSimulation = false;
-            const el = $('#sbatch-login-modal');
+	    $scope.sbatchLoginService = sbatchLoginService;
 	    $scope.sbatchHostDisplayName = authState.sbatchHostDisplayName;
 
-            function handleLoginResponse(response) {
-		if (response.isSRException && response.data.routeName.toLowerCase().includes('sbatch')) {
-		    // POSIT: showing sbatch login modal is handled by requestSender.handleSRException
-		    return;
-		}
-		// This shouldn't happen
-		if (! response.loginSuccess) {
-		    srlog('Error with sbatchLogin response=', response);
-		    errorService.alertText('Error logging in. Please try again.');
-		    return;
-		}
-		loginSuccess = true;
-                el.modal('hide');
-            }
 
 	    function resetLoginForm() {
 		resetLoginFormTextFields();
 		$scope.sbatchLoginModalForm.$setPristine();
-                awaitingLoginResponse = false;
 	    }
 
 	    function resetLoginFormTextFields() {
@@ -4818,62 +4713,19 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 		$scope.username = '';
 	    }
 
-            $scope.$on('showSbatchLoginModal', function(event, broadcastArg) {
-		function shouldRestartRunSimulation(broadcastArg) {
-		    // Handles the case where user clicked on run simulation,
-		    // they weren't logged in (agent dead), so
-		    // they are prompted to login. We want to
-		    // automatically run the simulation for them
-		    // since that is what they were trying to do
-		    // before being prompted to login.
-		    return broadcastArg.shouldRestartRunSimulation;
-		}
-
-		resetLoginForm();
-		restartRunSimulation = broadcastArg.shouldRestartRunSimulation;
-                $scope.showOtp = authState.sbatchHostIsNersc;
-		$scope.warningText = {
-		    'invalid-creds': 'Your credentials were invalid. Please try again.',
-		    'general-connection-error': `There was a problem connecting to ${$scope.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`,
-		}[broadcastArg.reason] || '';
-                $scope.submit = function() {
-                    awaitingLoginResponse = true;
-                    requestSender.sendRequest(
-                        'sbatchLogin',
-			handleLoginResponse,
-			{
-			    computeModel: broadcastArg.computeModel,
-			    simulationId: broadcastArg.simulationId,
-			    simulationType: SIREPO.APP_SCHEMA.simulationType,
-			    sbatchCredentials: {
-				otp: $scope.otp,
-				password: $scope.password,
-				username: $scope.username,
-			    },
-			    shouldRestartRunSimulation: shouldRestartRunSimulation(broadcastArg),
-			},
-			handleLoginResponse,
-                    );
-                };
-                el.modal('show');
-            });
-
             $scope.submitDisabled = function() {
-                return $scope.password.length < 1 || $scope.username.length < 1 || awaitingLoginResponse;
+                return $scope.password.length < 1 || $scope.username.length < 1 || sbatchLoginService.state.requestingLogin;
             };
 
-            el.on('hidden.bs.modal', function() {
-		// SECURITY: don't keep credentials around
+            $scope.$on('sbatchLoginModalShown', function(event, reason) {
 		resetLoginForm();
-		$rootScope.$broadcast(
-		    'sbatchLoginModalHidden' ,
-		    {
-			restartRunSimulation: restartRunSimulation,
-			loginSuccess: loginSuccess
-		    },
-		);
-		restartRunSimulation = false;
-		loginSuccess = false;
+		$scope.warningText = sbatchLoginService.loginModalWarningText(reason);
+		$scope.submit = () => sbatchLoginService.login($scope.username, $scope.password, $scope.otp);
+            });
+
+            $scope.$on('sbatchLoginModalHidden', function(event, broadcastArg) {
+		// SECURITY: remove credentials from memory
+		resetLoginForm();
             });
         },
     };

@@ -887,7 +887,7 @@ class _ComputeJob(_Supervisor):
             return self._init_db_missing_response(req)
         return r
 
-    async def _receive_api_sbatchAgentStatus(self, req):
+    async def _receive_api_sbatchLoginStatus(self, req):
         r = False
         o = self._create_op(job.OP_SBATCH_AGENT_READY, req)
         try:
