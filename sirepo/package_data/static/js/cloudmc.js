@@ -741,8 +741,8 @@ SIREPO.app.directive('planeList', function(appState) {
                         C: 0,
                         D: 0,
                     }
-                )
-            }
+                );
+            };
 
             const modelData = {};
 
@@ -750,7 +750,7 @@ SIREPO.app.directive('planeList', function(appState) {
 
             $scope.deletePlane = (index) => {
                 appState.models.reflectivePlanes.planesList.splice(index, 1);
-            }
+            };
 
             $scope.modelData = index => {
                 if (! $scope.model) {
