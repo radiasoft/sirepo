@@ -51,6 +51,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "weightWindowsMesh",
             ),
         )
+        for k in ("plane1a", "plane1b", "plane2a", "plane2b"):
+            dm.reflectivePlanes.pkdel(k)
         for v in dm.volumes:
             if "material" not in dm.volumes[v]:
                 continue

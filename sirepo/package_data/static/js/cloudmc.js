@@ -447,7 +447,6 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-
 SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState) {
     return {
         restrict: 'A',
