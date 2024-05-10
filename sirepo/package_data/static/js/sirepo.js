@@ -2499,7 +2499,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
                 _protocolError(header, content, wsreq, `unregistered asyncMsg method=${header.method}`);
             }
             else {
-                ncMsgMethods[header.method](content);
+                asyncMsgMethods[header.method](content);
             }
             return;
         }
