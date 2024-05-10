@@ -17,29 +17,9 @@ def create_geometry():
     # creates an edge of universe boundary surface
     vac_surf = openmc.Sphere(r=10000, boundary_type="vacuum")
 
-    planes = []
-    signs = []
-    for plane in {{ planesList }}:
-        planes.append(
-            openmc.Plane(
-                a=plane['A'],
-                b=plane['B'],
-                c=plane['C'],
-                d=plane['D'],
-                boundary_type="reflective",
-            )
-        )
-        signs.append("+" if plane["inside"] else "-")
-
-    region = -vac_surf
-    # TODO (gurhar1133): not building region right
-    for i, plane in enumerate(planes):
-        if signs[i] == "-":
-            region = region & -plane
-        else:
-            region = region & +plane
+    {{ planes }}
     univ = openmc.Cell(
-        region=region,
+        region=-vac_surf {{ region }},
         fill=univ,
     )
     openmc.Geometry([univ]).export_to_xml()
