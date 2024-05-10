@@ -643,31 +643,6 @@ def _generate_parameters_file(data, run_dir=None):
     )
 
 
-def _planes(data):
-    res = ""
-    for i, p in enumerate(data.models.reflectivePlanes.planesList):
-        res += f"""
-    p{i + 1} = openmc.Plane(
-        a={p.A},
-        b={p.B},
-        c={p.C},
-        d={p.D},
-        boundary_type="reflective",
-    )
-"""
-    return res
-
-def _region(data):
-    res = ""
-    for i, p in enumerate(data.models.reflectivePlanes.planesList):
-        if p.inside == "1":
-            res += f"& +p{i + 1} "
-        else:
-            res += f"& -p{i + 1} "
-    return res
-
-
-
 def _generate_energy_range(filter):
     space = "linspace"
     start = filter.start * 1e6
@@ -848,6 +823,31 @@ def _parse_cloudmc_log(run_dir, log_filename="run.log"):
             re.compile(r"AssertionError: (.*)"),
         ),
     ).parse_for_errors()
+
+
+def _planes(data):
+    res = ""
+    for i, p in enumerate(data.models.reflectivePlanes.planesList):
+        res += f"""
+    p{i + 1} = openmc.Plane(
+        a={p.A},
+        b={p.B},
+        c={p.C},
+        d={p.D},
+        boundary_type="reflective",
+    )
+"""
+    return res
+
+
+def _region(data):
+    res = ""
+    for i, p in enumerate(data.models.reflectivePlanes.planesList):
+        if p.inside == "1":
+            res += f"& +p{i + 1} "
+        else:
+            res += f"& -p{i + 1} "
+    return res
 
 
 def _source_filename(data):

@@ -710,20 +710,26 @@ SIREPO.app.directive('planeList', function(appState) {
             subModelName: '@',
         },
         template: `
-            <div class="clearfix" style="margin-top:-20px; margin-left: 40px">
+            <div class="container" style="max-width: 80%;">
               <div class="form-group">
-                <div class="row" data-ng-repeat="plane in model[field] track by $index">
-                  <div class="col-md-10"><label>Plane {{ $index + 1 }}:</label></div>
+                <div data-ng-repeat="plane in model[field] track by $index">
                   <br/>
-                  <button data-ng-click="deletePlane($index)" class="btn btn-danger btn-xs">
-                    <span class="glyphicon glyphicon-remove"></span>
-                  </button>
+                  <div class="row">
+                    <button data-ng-click="deletePlane($index)" class="btn btn-danger btn-xs" style="float:right;">
+                      <span class="glyphicon glyphicon-remove"></span>
+                    </button>
+                  </div>
+                  <div class="row">
+                    <label>Plane {{ $index + 1 }}:</label>
+                  </div>
                   <div data-ng-repeat="(key, value) in plane">
-                    <div class="col-md-10" data-model-field="key" data-model-name="subModelName" data-model-data="modelData($parent.$index)" data-label-size="1" data-field-size="4"></div>
+                    <div class="col-md-10" data-model-field="key" data-model-name="subModelName" data-model-data="modelData($parent.$index)" data-label-size="2" data-field-size="4"></div>
                   </div>
                 </div>
               </div>
-              <button type="button" data-ng-click="addPlane()" class="btn btn-primary">Add New Plane</button>
+              <div class="col-md-5">
+                <button type="button" data-ng-click="addPlane()" class="btn btn-primary">Add New Plane</button>
+              </div>
             </div>
         `,
         controller: function($scope) {
