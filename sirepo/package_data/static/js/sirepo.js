@@ -1077,7 +1077,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     };
 
     const isSbatchSRExceptionResponse = (response) => {
-	return response.params && response.params.isModal && response.routeName.toLowerCase().includes('sbatch')
+	return response.params && response.params.isModal && response.routeName.toLowerCase().includes('sbatch');
     };
 
     const loginModalHidden = () => {
@@ -1123,8 +1123,8 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	    return false;
 	}
 	const m = appState.models[this.state.simState.model];
-	return m && m.jobRunMode === 'sbatch'
-    }
+	return m && m.jobRunMode === 'sbatch';
+    };
 
     this.handleSRException = (srException, callback) => {
 	this.state.isLoggedIn = false;
@@ -1137,7 +1137,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     this.initSimState = (simState, startSimulation) => {
 	this.state.simState = simState;
 	this.state.startSimulation = startSimulation;
-    }
+    };
 
     this.login = (username, password, otp) => {
 	const handleLoginResponse = (response) => {
@@ -1148,11 +1148,11 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	    }
 	    if (! response.loginSuccess) {
 		this.state.isLoggedIn = null;
-		throw new Error(`Error with login response=${JSON.stringify(response)}`)
+		throw new Error(`Error with login response=${JSON.stringify(response)}`);
 	    }
 	    this.state.isLoggedIn = true;
 	    sbatchLoginModalElement.modal('hide');
-	}
+	};
 
 	this.state.requestingLogin = true;
 	requestSender.sendRequest(
@@ -1179,7 +1179,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	this.state.requestingLogin = false;
 	$rootScope.$broadcast('sbatchLoginModalShown', reason);
 	sbatchLoginModalElement.modal('show');
-    }
+    };
 
     this.requestLoginStatus = () => {
 	this.state.requestingLoginStatus = true;
@@ -1214,7 +1214,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     };
 
     this.showLoginButton = () => {
-	return this.computeModelRequiresLogin() && ! this.state.isLoggedIn
+	return this.computeModelRequiresLogin() && ! this.state.isLoggedIn;
     };
 
     this.showOTP = authState.sbatchHostIsNersc;
@@ -1236,8 +1236,8 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	'sbatchLogin',
 	(srException) => isSbatchSRExceptionResponse(srException),
 	this.handleSRException,
-    )
-    $rootScope.$on('modelsUnloaded', () => initState(true))
+    );
+    $rootScope.$on('modelsUnloaded', () => initState(true));
     initState(true);
 });
 
@@ -2924,7 +2924,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
 	srExceptionHandlers[handlerName] = {
 	    shouldHandle: shouldHandleTest,
 	    handle: handler,
-	}
+	};
     };
 
     self.sendAnalysisJob = function(appState, callback, data) {
