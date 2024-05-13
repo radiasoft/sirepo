@@ -5,6 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
+    SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.appFieldEditors += [
         '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
           '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',

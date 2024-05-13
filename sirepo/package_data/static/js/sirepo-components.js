@@ -5521,7 +5521,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
             if (debounceInterval) {
                 $interval.cancel(debounceInterval);
             }
-            debounceInterval = $interval(later, milliseconds, 1);
+            debounceInterval = $interval(later, milliseconds || SIREPO.debounce_timeout, 1);
         };
     };
 
