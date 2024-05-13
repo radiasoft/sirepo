@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
@@ -355,7 +356,7 @@ class _Auth(sirepo.quest.Attr):
             self.login_fail_redirect(module=mm, reason="deprecated")
         if not uid:
             # No user in the cookie and method didn't provide one so
-            # the user might be switching methods (e.g. github to email or guest to email).
+            # the user might be switching methods (e.g. guest to email).
             # Not allowed to go to guest from other methods, because there's
             # no authentication for guest.
             # Or, this is just a new user, and we'll create one.

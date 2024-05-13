@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
@@ -205,7 +206,7 @@ class _Dispatcher(PKDict):
                     tornado.httpclient.HTTPRequest(
                         connect_timeout=_CONNECT_SECS,
                         url=_cfg.supervisor_uri,
-                        validate_cert=sirepo.job.cfg().verify_tls,
+                        validate_cert=job.cfg().verify_tls,
                     ),
                     max_message_size=job.cfg().max_message_bytes,
                     ping_interval=job.cfg().ping_interval_secs,
@@ -439,6 +440,10 @@ class _Dispatcher(PKDict):
 class _Cmd(PKDict):
     def __init__(self, *args, send_reply=True, **kwargs):
         super().__init__(*args, send_reply=send_reply, **kwargs)
+        if self.msg.opName not in job.SLOT_OPS:
+            raise AssertionError(
+                f"self.msg.opName={self.msg.opName} must be one of job.SLOT_OPS={job.SLOT_OPS} to create _Cmd"
+            )
         self.run_dir = pkio.py_path(self.msg.runDir)
         self._is_compute = self.msg.jobCmd == "compute"
         if self._is_compute:

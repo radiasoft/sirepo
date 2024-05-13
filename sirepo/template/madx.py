@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -11,6 +12,7 @@ from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import lattice
 from sirepo.template import madx_parser
+from sirepo.template import opal_parser
 from sirepo.template import particle_beam
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
@@ -182,9 +184,11 @@ class MadxOutputFileIterator(lattice.ModelIterator):
         if field_schema[1] == "OutputFile":
             b = "{}{}.{}".format(
                 model._type,
-                self.model_index[self.model_name]
-                if self.model_index[self.model_name] > 1
-                else "",
+                (
+                    self.model_index[self.model_name]
+                    if self.model_index[self.model_name] > 1
+                    else ""
+                ),
                 field,
             )
             k = LatticeUtil.file_id(model._id, self.field_index)
@@ -417,14 +421,36 @@ def stateless_compute_calculate_bunch_parameters(data, **kwargs):
 
 
 def stateful_compute_import_file(data, **kwargs):
-    m = re.search(r"^(.+?)\.(?:madx|seq)$", data.args.basename, re.IGNORECASE)
-    if not m:
-        raise AssertionError(
-            f"invalid file={data.args.basename}, expecting .madx or .seq"
+    if data.args.ext_lower == ".in":
+        from sirepo.template.opal import OpalMadxConverter
+
+        return PKDict(
+            imported_data=OpalMadxConverter(qcall=None).to_madx(
+                opal_parser.parse_file(
+                    data.args.file_as_str,
+                    filename=data.args.basename,
+                )[0]
+            )
         )
-    d = madx_parser.parse_file(data.args.file_as_str, downcase_variables=True)
-    d.models.simulation.name = data.args.purebasename
-    return PKDict(imported_data=d)
+    elif data.args.ext_lower == ".ele":
+        from sirepo.template import elegant
+
+        return elegant.elegant_file_import(data)
+    elif data.args.ext_lower == ".lte":
+        from sirepo.template import elegant
+
+        return PKDict(
+            imported_data=elegant.ElegantMadxConverter(qcall=None).to_madx(
+                elegant.elegant_file_import(data).imported_data
+            )
+        )
+    elif data.args.ext_lower in (".madx", ".seq"):
+        d = madx_parser.parse_file(data.args.file_as_str, downcase_variables=True)
+        d.models.simulation.name = data.args.purebasename
+        return PKDict(imported_data=d)
+    raise AssertionError(
+        f"invalid file={data.args.basename}, expecting .madx, .seq, .in or .ele/.lte"
+    )
 
 
 def to_float(value):

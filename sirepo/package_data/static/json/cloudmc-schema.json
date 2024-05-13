@@ -219,6 +219,12 @@
             ["fission-q-recoverable", "fission-q-recoverable: Recoverable fission energy production rate"],
             ["decay-rate", "decay-rate: Delayed-nu-fission-weighted decay rate"],
             ["damage-energy", "damage-energy: Damage energy production"]
+        ],
+        "VarianceReduction": [
+            ["None", "None"],
+            ["survival_biasing", "Survival Biasing"],
+            ["weight_windows_mesh", "MAGIC Method"],
+            ["weight_windows_tally", "MAGIC Method for Tally"]
         ]
     },
     "dynamicFiles": {
@@ -229,6 +235,7 @@
         },
         "sirepoLibs": {
             "css": [
+                "cloudmc.css",
                 "vtk.css"
             ],
             "js": [
@@ -245,6 +252,13 @@
             "aspect",
             "energyRangeSum",
             "numSampleSourceParticles"
+        ],
+        "energyAnimation": [
+            "tally",
+            "score",
+            "x",
+            "y",
+            "z"
         ]
     },
     "localRoutes": {
@@ -265,18 +279,18 @@
     },
     "model": {
         "box": {
-            "_super": [ "_", "model", "spatial"],
+            "_super": ["_", "model", "spatial"],
             "lower_left": ["Lower left [cm]", "Point3D", [0, 0, 0], "Lower-left coordinates of cuboid"],
             "upper_right": ["Upper right [cm]", "Point3D", [0, 0, 0], "Upper-right coordinates of cuboid"],
             "only_fissionable": ["Only fissionable", "Boolean", "0", "Whether spatial sites should only be accepted if they occur in fissionable materials"]
         },
         "dagmcAnimation": {},
         "discrete": {
-            "_super": [ "_", "model", "univariate"],
+            "_super": ["_", "model", "univariate"],
             "probabilityValue": ["", "ModelArray", ""]
         },
         "cartesianIndependent": {
-            "_super": [ "_", "model", "spatial"],
+            "_super": ["_", "model", "spatial"],
             "x": ["X distribution", "Univariate", {"_type": "None"}],
             "y": ["Y distribution", "Univariate", {"_type": "None"}],
             "z": ["Z distribution", "Univariate", {"_type": "None"}]
@@ -285,7 +299,7 @@
             "coefficient": ["Expansion coefficients", "FloatArray", "", "Probability density given by a Legendre polynomial expansion $\\sum\\limits_{\\ell=0}^N \\frac{2\\ell + 1}{2} a_\\ell P_\\ell(\\mu)$. $\\newline$ Expansion coefficients $a_\\ell$. Note that the $(2\\ell + 1)/2$ factor should not be included"]
         },
         "cylindricalIndependent": {
-            "_super": [ "_", "model", "spatial"],
+            "_super": ["_", "model", "spatial"],
             "r": ["R distribution", "Univariate", {"_type": "None"}],
             "phi": ["Phi distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
             "z": ["Z distribution", "Univariate", {"_type": "None"}],
@@ -293,23 +307,26 @@
         },
         "energyFilter": {
             "_super": ["_", "model", "filter"],
-            "_scale": ["", "Float", 1e6],
             "space": ["Space", "BinSpace", "linear"],
             "start": ["Start [MeV]", "Float", 0, "A logarithmic space treats 0 as $10^{-307}$", 0],
             "stop": ["Stop [MeV]", "Float", 25],
-            "num": ["Number of samples", "Integer", 50, "", 2]
+            "num": ["Number of samples", "Integer", 5, "", 2]
         },
         "energyoutFilter": {
             "_super": ["_", "model", "filter"],
-            "_scale": ["", "Float", 1e6],
             "space": ["Space", "BinSpace", "linear"],
             "start": ["Start [MeV]", "Float", 0],
             "stop": ["Stop [MeV]", "Float", 1],
-            "num": ["Number of samples", "Integer", 50]
+            "num": ["Number of samples", "Integer", 5]
+        },
+        "energyAnimation": {
+            "tally": ["Tally", "PlotTallyList"],
+            "x": ["x [m]", "XPlanePosition", 0],
+            "y": ["y [m]", "YPlanePosition", 0],
+            "z": ["z [m]", "ZPlanePosition", 0]
         },
         "filter": {
-            "_type": ["", "TallyFilter"],
-            "_scale": ["", "Float", 1.0]
+            "_type": ["", "TallyFilter"]
         },
         "geometryInput": {
             "dagmcFile": ["DAGMC file", "InputFile", ""],
@@ -317,7 +334,7 @@
         },
         "geometry3DReport": {
             "bgColor": ["Background color", "Color", "#fff9ed"],
-            "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
+            "opacity": ["Global alpha", "Opacity", 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"]
         },
@@ -325,7 +342,7 @@
             "_super": ["_", "model", "unitSphere"]
         },
         "legendre": {
-            "_super": [ "_", "model", "univariate"],
+            "_super": ["_", "model", "univariate"],
             "coefficient": ["", "ModelArray", ""]
         },
         "material": {
@@ -898,7 +915,7 @@
             "value": ["Material", "MaterialValue"]
         },
         "maxwell": {
-            "_super": [ "_", "model", "univariate"],
+            "_super": ["_", "model", "univariate"],
             "theta": ["Theta", "Float", "", "The Maxwellian distribution in energy is characterized by a single parameter $\\theta$ and has a density function $p(E) dE = c \\sqrt{E} e^{-E/\\theta} dE$"]
         },
         "meshFilter": {
@@ -912,13 +929,13 @@
             "reference_uvw": ["Polar angle direction", "Point3D", [1, 0, 0]]
         },
         "muir": {
-            "_super": [ "_", "model", "univariate"],
+            "_super": ["_", "model", "univariate"],
             "e0": ["Mean energy [eV]", "Float", 14.08e6, "The Muir energy spectrum is a Gaussian spectrum, but for convenience reasons allows the user 3 parameters to define the distribution, the mean energy of particles, the mass of reactants, and the ion temperature"],
             "m_rat": ["Mass of reactants", "Float", 5, "Ratio of the sum of the masses of the reaction inputs to an AMU"],
             "kt": ["Ion temperature [eV]", "Float", 20000]
         },
         "normal": {
-            "_super": [ "_", "model", "univariate"],
+            "_super": ["_", "model", "univariate"],
             "mean_value": ["Mean value", "Float"],
             "std_dev": ["Standard deviation", "Float"]
         },
@@ -929,17 +946,18 @@
             "aspect": ["Aspect", "TallyAspect", "mean"],
             "bgColor": ["Background color", "Color", "#fff9ed"],
             "colorMap": ["Tally Color Map", "ColorMap", "viridis"],
-            "energyRangeSum": ["Sum over energies [MeV]", "JRange", {"min": 0, "max": 1, "step": 0.01, "val": [0, 1], "space": "linear"}],
+            "energyRangeSum": ["Sum over energies [MeV]", "EnergyRange", [0, 0]],
             "numSampleSourceParticles": ["Source Particles to Display", "Integer", 10, "", 0, 100],
-            "opacity": ["Global alpha", "Range", 1.0, "", 0.0, 1.0],
+            "opacity": ["Global alpha", "Opacity", 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
-            "showSources": ["Show Sources", "Boolean", "1"],
+            "showSources": ["Show Sources", "Boolean", "0"],
             "sourceColorMap": ["Source Energy Color Map", "ColorMap", "jet"],
-            "tally": ["Tally", "TallyList"],
-            "threshold": ["Threshold", "Float", 0.0, "Tally cells with a value below this will not be displayed"],
-            "score": ["Score", "ScoreList"],
+            "tally": ["Tally", "PlotTallyList"],
+            "thresholds": ["Threshold", "Threshold", [0, 0], "Tally cells with a value outside this range will not be displayed"],
+            "score": ["Score", "PlotScoreList"],
             "sourceNormalization": ["Normalize to particle count", "Float", 1e12, "Per-particle tally scores are normalized to this many source particles (a factor of {{ appState.models.openmcAnimation.sourceNormalization / appState.models.settings.particles }})", 1.0],
+            "isEnergySelected": ["", "Boolean", "0"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "tasksPerNode": ["Tasks per node", "Integer", 8, "", 1],
             "sbatchHours": ["Hours", "Float", 0.4],
@@ -957,7 +975,7 @@
             "bins": ["Particle", "SimpleListEditor", [], "", "particle"]
         },
         "point": {
-            "_super": [ "_", "model", "spatial"],
+            "_super": ["_", "model", "spatial"],
             "xyz": ["X, Y, Z [cm]", "Point3D", [0, 0, 0]]
         },
         "polarAzimuthal": {
@@ -967,7 +985,7 @@
             "reference_uvw": ["Polar angle direction", "Point3D", [0, 0, 1]]
         },
         "powerLaw": {
-            "_super": [ "_", "model", "univariate"],
+            "_super": ["_", "model", "univariate"],
             "a": ["Lower bound", "Float", 0, "The power law distribution has density function $p(x) dx = c x^n dx$"],
             "b": ["Upper bound", "Float", 1],
             "n": ["Exponent", "Float", 0, "Power law exponent. Defaults to zero, which is equivalent to a uniform distribution"]
@@ -992,7 +1010,9 @@
             "sources": ["", "SourcesOrTallies", []],
             "tallies": ["", "SourcesOrTallies", []],
             "run_mode": ["Run mode", "RunMode", "eigenvalue", "The type of calculation to perform"],
-            "materialLibrary": ["Material data library", "MaterialLibrary", "ENDFB-7.1-NNDC"]
+            "materialLibrary": ["Material data library", "MaterialLibrary", "ENDFB-7.1-NNDC"],
+            "varianceReduction": ["Technique", "VarianceReduction", "None"],
+            "max_splits": ["Maximum splits", "Integer", 1000, "Maximum number of particle splits for weight windows"]
         },
         "source": {
             "angle": ["Angular distribution", "UnitSphere", {"_type": "None"}],
@@ -1009,20 +1029,24 @@
             "_type": ["", "SpatialDistribution"]
         },
         "sphericalIndependent": {
-            "_super": [ "_", "model", "spatial"],
+            "_super": ["_", "model", "spatial"],
             "r": ["R distribution", "Univariate", {"_type": "None"}],
             "theta": ["Theta distribution", "Univariate", {"_type": "None"}, "Distribution of theta-coordinates (angle relative to the z-axis) in a reference frame specified by the origin parameter"],
             "phi": ["Phi distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
             "origin": ["Origin [cm]", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the spherical reference frame for the source"]
         },
+        "survivalBiasing": {
+            "weight": ["Weight", "Float", 0.25, "Weight cutoff below which particle undergo Russian roulette", 0, 1],
+            "weight_avg": ["Weight Average", "Float", 1.0, "Weight assigned to particles that are not killed after Russian roulette", 0, 1]
+        },
         "tabular": {
-            "_super": [ "_", "model", "univariate"],
+            "_super": ["_", "model", "univariate"],
             "probabilityValue": ["", "ModelArray", ""],
             "interpolation": ["Interpolation", "Interpolation", "linear-linear"],
             "ignore_negative": ["Ignore negative probabilities", "Boolean", "0"]
         },
         "tabularFromFile": {
-            "_super": [ "_", "model", "univariate"],
+            "_super": ["_", "model", "univariate"],
             "file": ["File", "InputFile", "", "", false],
             "interpolation": ["Interpolation", "Interpolation", "linear-linear"],
             "ignore_negative": ["Ignore negative probabilities", "Boolean", "0"]
@@ -1040,14 +1064,16 @@
         "tallyReport": {
             "axis": ["Slice Axis", "Axis", "y"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "planePos": ["_", "Range", 0.0, ""],
-            "selectedGeometry": ["", "TallyGeometry", "3D"]
+            "planePos": ["{{ appState.models.tallyReport.axis }} [m]", "PlanePosition", 0],
+            "enableCrosshairs": ["", "Bool", false],
+            "enableSelection": ["", "Bool", false],
+            "selectedGeometry": ["", "TallyGeometry", "2D"]
         },
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
         },
         "uniform": {
-            "_super": [ "_", "model", "univariate"],
+            "_super": ["_", "model", "univariate"],
             "a": ["Lower bound", "Float", 0],
             "b": ["Upper bound", "Float", 1]
         },
@@ -1059,9 +1085,18 @@
         },
         "volumes": {},
         "watt": {
-            "_super": [ "_", "model", "univariate"],
+            "_super": ["_", "model", "univariate"],
             "a": ["a", "Float", 0.988e6, "The Watt fission energy spectrum is characterized by two parameters $a$ and $b$ and has density function $p(E) dE = c e^{-E/a} \\sinh \\sqrt{b \\, E} dE$"],
             "b": ["b", "Float", 2.249e-6]
+        },
+        "weightWindows": {
+            "tally": ["Tally", "SettingsTallyList"],
+            "iterations": ["Number of iterations", "Integer", 5, "", 2],
+            "particle": ["Particle", "Particle", "neutron"],
+            "particles": ["Number of particles per iteration", "Integer", 500]
+        },
+        "weightWindowsMesh": {
+            "_super": ["_", "model", "meshFilter"]
         }
     },
     "strings": {
@@ -1119,6 +1154,15 @@
                 "stop",
                 "num"
             ]
+        },
+        "energyAnimation": {
+            "title": "Energy Spectrum",
+            "basic": [
+                "x",
+                "y",
+                "z"
+            ],
+            "advanced": []
         },
         "geometryInput": {
             "title": "Geometry Input",
@@ -1206,17 +1250,23 @@
             "title": "Tally Settings",
             "model": "openmcAnimation",
             "basic": [
-                "tally",
-                "score",
-                "aspect",
-                "energyRangeSum",
-                "showSources",
-                "numSampleSourceParticles",
-                "sourceColorMap",
-                "colorMap",
-                "threshold",
-                "opacity",
-                "tallyReport.axis"
+                ["Tally", [
+                    "tally",
+                    "score",
+                    "aspect",
+                    "sourceNormalization",
+                    "energyRangeSum",
+                    "colorMap",
+                    "thresholds",
+                    "opacity",
+                    "tallyReport.axis",
+                    "tallyReport.planePos"
+                ]],
+                ["Source", [
+                    "showSources",
+                    "numSampleSourceParticles",
+                    "sourceColorMap"
+                ]]
             ],
             "advanced": []
         },
@@ -1288,6 +1338,19 @@
                 ]],
                 ["Tallies", [
                     "tallies"
+                ]],
+                ["Variance Reduction", [
+                    "varianceReduction",
+                    "survivalBiasing.weight",
+                    "survivalBiasing.weight_avg",
+                    "weightWindows.tally",
+                    "weightWindows.iterations",
+                    "weightWindowsMesh.dimension",
+                    "weightWindowsMesh.lower_left",
+                    "weightWindowsMesh.upper_right",
+                    "weightWindows.particle",
+                    "weightWindows.particles",
+                    "max_splits"
                 ]]
             ],
             "advanced": []

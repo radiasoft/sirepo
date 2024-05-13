@@ -3,12 +3,14 @@
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
 import numpy
+import os
 import re
 import sirepo.job
 import sirepo.sim_data
@@ -20,7 +22,8 @@ import sirepo.simulation_db
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
-
+GENESIS_INPUT_FILE = "genesis.in"
+GENESIS_OUTPUT_FILE = "genesis.out"
 _INPUT_VARIABLE_MODELS = (
     "electronBeam",
     "focusing",
@@ -34,9 +37,7 @@ _INPUT_VARIABLE_MODELS = (
     "undulator",
 )
 
-_INPUT_FILENAME = "genesis.in"
-
-# POSIT: Same order as results in _OUTPUT_FILENAME
+# POSIT: Same order as results in GENESIS_OUTPUT_FILE
 _LATTICE_COLS = (
     "power",
     "increment",
@@ -59,15 +60,14 @@ _LATTICE_DATA_FILENAME = "lattice{}.npy"
 
 _LATTICE_RE = re.compile(r"\bpower\b[\s\w]+\n(.*?)(\n\n|$)", flags=re.DOTALL)
 _MAGIN_PLOT_FIELD = "AW"
-_OUTPUT_FILENAME = "genesis.out"
-_FIELD_DISTRIBUTION_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".fld"
-_PARTICLE_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".par"
-_FINAL_FIELD_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".dfl"
-_FINAL_PARTICLE_OUTPUT_FILENAME = _OUTPUT_FILENAME + ".dpa"
+_FIELD_DISTRIBUTION_OUTPUT_FILENAME = GENESIS_OUTPUT_FILE + ".fld"
+_PARTICLE_OUTPUT_FILENAME = GENESIS_OUTPUT_FILE + ".par"
+_FINAL_FIELD_OUTPUT_FILENAME = GENESIS_OUTPUT_FILE + ".dfl"
+_FINAL_PARTICLE_OUTPUT_FILENAME = GENESIS_OUTPUT_FILE + ".dpa"
 
 _RUN_ERROR_RE = re.compile(r"(?:^\*\*\* )(.*error.*$)", flags=re.MULTILINE)
 
-# POSIT: Same order as results in _OUTPUT_FILENAME
+# POSIT: Same order as results in GENESIS_OUTPUT_FILE
 _SLICE_COLS = (
     "z [m]",
     "aw",
@@ -85,14 +85,14 @@ _SLICE_RE = re.compile(
 _DATA_FILES = PKDict(
     particleAnimation=_PARTICLE_OUTPUT_FILENAME,
     fieldDistributionAnimation=_FIELD_DISTRIBUTION_OUTPUT_FILENAME,
-    parameterAnimation=_OUTPUT_FILENAME,
+    parameterAnimation=GENESIS_OUTPUT_FILE,
     finalParticleAnimation=_FINAL_PARTICLE_OUTPUT_FILENAME,
     finalFieldAnimation=_FINAL_FIELD_OUTPUT_FILENAME,
 )
 
 
 def background_percent_complete(report, run_dir, is_running):
-    if is_running:
+    if is_running or (not os.path.exists(run_dir.join(GENESIS_OUTPUT_FILE))):
         return PKDict(percentComplete=0, frameCount=0)
     c = _get_frame_counts(run_dir)
     return PKDict(
@@ -127,8 +127,8 @@ def genesis_success_exit(run_dir):
         run_dir.join(template_common.INPUT_BASE_NAME)
     ).models
     return (
-        run_dir.join(_OUTPUT_FILENAME).exists()
-        and _LATTICE_RE.search(pkio.read_text(run_dir.join(_OUTPUT_FILENAME)))
+        run_dir.join(GENESIS_OUTPUT_FILE).exists()
+        and _LATTICE_RE.search(pkio.read_text(run_dir.join(GENESIS_OUTPUT_FILE)))
         and (
             dm.timeDependence.itdp == "1"
             or (
@@ -297,7 +297,7 @@ def validate_file(file_type, path):
 
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
-        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+        run_dir.join(GENESIS_INPUT_FILE),
         _generate_parameters_file(data),
     )
 
@@ -329,7 +329,7 @@ def _get_col(col_key):
 
 def _generate_parameters_file(data):
     io = data.models.io
-    io.outputfile = _OUTPUT_FILENAME
+    io.outputfile = GENESIS_OUTPUT_FILE
     io.iphsty = 1
     io.ishsty = 1
     if data.models.timeDependence.itdp == "1":
@@ -361,10 +361,7 @@ def _generate_parameters_file(data):
             r += f"{fmap.get(f, f.upper())} = {v}\n"
     if io.maginfile:
         r += "MAGIN = 1\n"
-    return template_common.render_jinja(
-        SIM_TYPE,
-        PKDict(input_filename=_INPUT_FILENAME, variables=r),
-    )
+    return "\n".join(["$newrun", r, "$end\n"])
 
 
 def _get_lattice_and_slice_data(run_dir, lattice_index):
@@ -376,7 +373,7 @@ def _get_lattice_and_slice_data(run_dir, lattice_index):
     f = run_dir.join(_LATTICE_DATA_FILENAME.format(lattice_index))
     if f.exists():
         return numpy.load(str(f)), numpy.load(str(run_dir.join(_SLICE_DATA_FILENAME)))
-    o = pkio.read_text(run_dir.join(_OUTPUT_FILENAME))
+    o = pkio.read_text(run_dir.join(GENESIS_OUTPUT_FILE))
     c = 0
     for v in re.finditer(_LATTICE_RE, o):
         _reshape_and_persist(
@@ -407,7 +404,7 @@ def _get_frame_counts(run_dir):
         dpa=n if run_dir.join(_FINAL_PARTICLE_OUTPUT_FILENAME).exists() else 0,
         dfl=n if run_dir.join(_FINAL_FIELD_OUTPUT_FILENAME).exists() else 0,
     )
-    with pkio.open_text(run_dir.join(_OUTPUT_FILENAME)) as f:
+    with pkio.open_text(run_dir.join(GENESIS_OUTPUT_FILE)) as f:
         for line in f:
             m = re.match("^\s*(\d+) (\w+): records in z", line)
             if m:

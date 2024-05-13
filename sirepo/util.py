@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Support routines and classes, mostly around errors and I/O.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 # NOTE: limit sirepo imports here
 from pykern import pkcompat
 from pykern import pkconfig
@@ -295,12 +295,14 @@ def import_submodule(submodule, type_or_data):
     from sirepo import template
 
     sim_type = template.assert_sim_type(
-        type_or_data.simulationType
-        if isinstance(
-            type_or_data,
-            PKDict,
-        )
-        else type_or_data,
+        (
+            type_or_data.simulationType
+            if isinstance(
+                type_or_data,
+                PKDict,
+            )
+            else type_or_data
+        ),
     )
     for p in feature_config.cfg().package_path:
         n = None
@@ -347,7 +349,6 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
         path (py.path): where to write (atomic) [None]
         pretty (bool): pretty print [False]
         kwargs (object): other arguments to `json.dumps`
-
     Returns:
         str: sorted and formatted JSON
     """

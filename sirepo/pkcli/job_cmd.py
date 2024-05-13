@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkconst
@@ -75,7 +76,7 @@ def _background_percent_complete(msg, template, is_running):
     ).pksetdefault(
         # TODO(robnagler) this is incorrect, because we want to see file updates
         #   not just our polling frequency
-        lastUpdateTime=lambda: _mtime_or_now(msg.runDir),
+        lastUpdateTime=lambda: int(msg.runDir.mtime()),
         frameCount=0,
         percentComplete=0.0,
     )
@@ -138,6 +139,7 @@ def _do_compute(msg, template):
 
     if pkconfig.in_dev_mode() and pkunit.is_test_run():
         sys.stderr.write(pkio.read_text(msg.runDir.join(template_common.RUN_LOG)))
+    status = None
     while True:
         for j in range(20):
             # Not asyncio.sleep: not in coroutine
@@ -154,7 +156,7 @@ def _do_compute(msg, template):
         if msg.isParallel:
             # TODO(e-carlin): This has a potential to fail. We likely
             # don't want the job to fail in this case
-            _write_parallel_status(msg, template, i)
+            status = _write_parallel_status(status, msg, template, i)
         if i:
             continue
         return _on_do_compute_exit(
@@ -172,6 +174,10 @@ def _do_analysis_job(msg, template):
 
 
 def _do_download_data_file(msg, template):
+    return _do_download_run_file(msg, template)
+
+
+def _do_download_run_file(msg, template):
     try:
         r = template.get_data_file(
             msg.runDir,
@@ -196,9 +202,13 @@ def _do_fastcgi(msg, template):
     @contextlib.contextmanager
     def _update_run_dir_and_maybe_chdir(msg):
         msg.runDir = pkio.py_path(msg.runDir) if msg.runDir else None
-        with pkio.save_chdir(
-            msg.runDir,
-        ) if msg.runDir else contextlib.nullcontext():
+        with (
+            pkio.save_chdir(
+                msg.runDir,
+            )
+            if msg.runDir
+            else contextlib.nullcontext()
+        ):
             yield
 
     def _recv():
@@ -269,15 +279,16 @@ def _do_prepare_simulation(msg, template):
 
 def _do_sbatch_status(msg, template):
     s = pkio.py_path(msg.stopSentinel)
+    status = None
     while True:
         if s.exists():
             if job.COMPLETED not in s.read():
                 # told to stop for an error or otherwise
                 return None
-            _write_parallel_status(msg, template, False)
+            status = _write_parallel_status(status, msg, template, False)
             pkio.unchecked_remove(s)
             return PKDict(state=job.COMPLETED)
-        _write_parallel_status(msg, template, True)
+        status = _write_parallel_status(status, msg, template, True)
         # Not asyncio.sleep: not in coroutine
         time.sleep(msg.nextRequestSeconds)
     # DOES NOT RETURN
@@ -369,18 +380,6 @@ def _on_do_compute_exit(
         return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
-def _mtime_or_now(path):
-    """mtime for path if exists else time.time()
-
-    Args:
-        path (py.path):
-
-    Returns:
-        int: modification time
-    """
-    return int(path.mtime() if path.exists() else time.time())
-
-
 def _parse_python_errors(text):
     m = re.search(
         r"^Traceback .*?^\w*(?:Error|Exception):\s*(.*)",
@@ -399,14 +398,18 @@ def _validate_msg_and_jsonl(msg):
     return m + b"\n"
 
 
-def _write_parallel_status(msg, template, is_running):
-    sys.stdout.write(
-        pkjson.dump_pretty(
-            PKDict(
-                state=job.RUNNING,
-                parallelStatus=_background_percent_complete(msg, template, is_running),
-            ),
-            pretty=False,
-        )
-        + "\n",
+def _write_parallel_status(prev_res, msg, template, is_running):
+    if prev_res is None:
+        prev_res = PKDict(py=None, json=None)
+    res = PKDict(py=_background_percent_complete(msg, template, is_running))
+    if prev_res.py == res.py:
+        return prev_res
+    res.json = pkjson.dump_str(
+        PKDict(
+            state=job.RUNNING if is_running else job.PENDING,
+            parallelStatus=res.py,
+        ),
     )
+    if prev_res.json != res.json:
+        sys.stdout.write(res.json + "\n")
+    return res

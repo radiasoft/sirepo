@@ -3,10 +3,12 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import feature_config
@@ -338,7 +340,7 @@ def json_filename(filename, run_dir=None):
 
 
 def json_load(*args, **kwargs):
-    return pkcollections.json_load_any(*args, **kwargs)
+    return pkjson.load_any(*args, **kwargs)
 
 
 def lib_dir_from_sim_dir(sim_dir):

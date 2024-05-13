@@ -111,9 +111,10 @@ def pytest_collection_modifyitems(session, config, items):
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_protocol(item, *args, **kwargs):
     import signal
-    from pykern import pkunit
 
     def _timeout(*args, **kwargs):
+        from pykern import pkunit
+
         signal.signal(signal.SIGALRM, _timeout_failed)
         signal.alarm(1)
         pkunit.pkfail("MAX_CASE_RUN_SECS={} exceeded", MAX_CASE_RUN_SECS)
@@ -127,17 +128,8 @@ def pytest_runtest_protocol(item, *args, **kwargs):
         os.killpg(os.getpgrp(), signal.SIGKILL)
 
     # Seems to be the only way to get the module under test
-    m = item._request.module
-    is_new = m != pkunit.module_under_test
-
-    if is_new:
-        signal.signal(signal.SIGALRM, _timeout)
-    pkunit.module_under_test = m
+    signal.signal(signal.SIGALRM, _timeout)
     signal.alarm(MAX_CASE_RUN_SECS)
-    if is_new:
-        from pykern import pkio
-
-        pkio.unchecked_remove(pkunit.work_dir())
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -165,17 +157,10 @@ def _auth_client_module(request):
         SIREPO_SMTP_PASSWORD="x",
         SIREPO_SMTP_SERVER="dev",
         SIREPO_SMTP_USER="x",
-        SIREPO_AUTH_GITHUB_CALLBACK_URI="/uri",
-        SIREPO_AUTH_GITHUB_KEY="key",
-        SIREPO_AUTH_GITHUB_SECRET="secret",
         SIREPO_AUTH_GUEST_EXPIRY_DAYS="1",
         SIREPO_AUTH_METHODS="basic:email:guest",
         SIREPO_FEATURE_CONFIG_API_MODULES="status",
     )
-    if "email3_test" in str(request.fspath.purebasename):
-        cfg.SIREPO_AUTH_METHODS += ":github"
-    else:
-        cfg.SIREPO_AUTH_DEPRECATED_METHODS = "github"
     from pykern import pkconfig
 
     pkconfig.reset_state_for_testing(cfg)

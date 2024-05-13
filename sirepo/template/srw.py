@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -454,7 +455,7 @@ def get_data_file(run_dir, model, frame, options):
         return template_common.text_data_file(
             _get_most_recent_log_file(pkio.sorted_glob(d.join("*.log"))), d
         )
-    return get_filename_for_model(model)
+    return _best_data_file(get_filename_for_model(model))
 
 
 def _get_most_recent_log_file(files):
@@ -889,9 +890,11 @@ def stateful_compute_sample_preview(data, **kwargs):
     if m.sampleSource == "file":
         s = srwpy.srwl_uti_smp.SRWLUtiSmp(
             file_path=_input_file(data),
-            area=None
-            if not int(m.cropArea)
-            else (m.areaXStart, m.areaXEnd, m.areaYStart, m.areaYEnd),
+            area=(
+                None
+                if not int(m.cropArea)
+                else (m.areaXStart, m.areaXEnd, m.areaYStart, m.areaYEnd)
+            ),
             rotate_angle=float(m.rotateAngle),
             rotate_reshape=int(m.rotateReshape),
             cutoff_background_noise=float(m.cutoffBackgroundNoise),
@@ -1105,10 +1108,12 @@ def validate_magnet_data_file(zf):
     )
     return (
         files_match,
-        ""
-        if files_match
-        else "Files in index {} do not match files in zip {}".format(
-            file_names_in_index, file_names_in_zip
+        (
+            ""
+            if files_match
+            else "Files in index {} do not match files in zip {}".format(
+                file_names_in_index, file_names_in_zip
+            )
         ),
     )
 
@@ -1436,11 +1441,8 @@ def _compute_crystal_init(model):
             model.orientation = "x"
         else:
             model.orientation = "y"
-    except Exception:
-        pkdlog(
-            "{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py}: error: {}",
-            material_raw,
-        )
+    except Exception as e:
+        pkdlog("material_raw={} exception={}", material_raw, e)
         for key in parms_list:
             model[key] = None
     return model
@@ -2692,9 +2694,11 @@ def _write_rsopt_files(data, run_dir, ctx):
     for f in _export_rsopt_files().values():
         pkio.write_text(
             run_dir.join(f),
-            python_source_for_model(data, data.report, None, plot_reports=False)
-            if f == f"{_SIM_DATA.EXPORT_RSOPT}.py"
-            else template_common.render_jinja(SIM_TYPE, ctx, f),
+            (
+                python_source_for_model(data, data.report, None, plot_reports=False)
+                if f == f"{_SIM_DATA.EXPORT_RSOPT}.py"
+                else template_common.render_jinja(SIM_TYPE, ctx, f)
+            ),
         )
 
 
@@ -2702,9 +2706,11 @@ def _write_rsopt_zip(data, ctx):
     def _write(zip_file, path):
         zip_file.writestr(
             path,
-            python_source_for_model(data, data.report, None, plot_reports=False)
-            if path == f"{_SIM_DATA.EXPORT_RSOPT}.py"
-            else template_common.render_jinja(SIM_TYPE, ctx, path),
+            (
+                python_source_for_model(data, data.report, None, plot_reports=False)
+                if path == f"{_SIM_DATA.EXPORT_RSOPT}.py"
+                else template_common.render_jinja(SIM_TYPE, ctx, path)
+            ),
         )
 
     filename = f"{_SIM_DATA.EXPORT_RSOPT}.zip"

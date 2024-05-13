@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
@@ -24,15 +25,9 @@ import sirepo.sim_data
 import sirepo.util
 
 
-_SEGMENT_ROWS = 3
+_LOSS_IMAGE_COUNT = 3
 
-_SEGMENT_PAGES = 5
-
-_IMG_ROWS = 5
-
-_IMG_COLS = 5
-
-_POST_TRAINING_PLOTS = ("segmentViewer", "bestLosses", "worstLosses")
+_PREVIEW_IMAGE_COUNT = 15
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -208,7 +203,7 @@ def new_simulation(data, new_sim_data, qcall, **kwargs):
 
 def prepare_sequential_output_file(run_dir, data):
     report = data["report"]
-    if "fileColumnReport" in report or "partitionColumnReport":
+    if "fileColumnReport" in report or report == "partitionColumnReport":
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
@@ -243,6 +238,10 @@ def save_sequential_report_data(run_dir, sim_in):
         _extract_analysis_report(run_dir, sim_in)
     elif "fftReport" in sim_in.report:
         _extract_fft_report(run_dir, sim_in)
+    elif sim_in.report == "imageSamplesReport":
+        template_common.write_sequential_result(
+            _image_preview("imagePreview", sim_in, run_dir)
+        )
     else:
         raise AssertionError("unknown report: {}".format(sim_in.report))
 
@@ -270,9 +269,17 @@ def sim_frame_dicePlotAnimation(frame_args):
     return _dice(frame_args.sim_in, frame_args.run_dir)
 
 
-def sim_frame_epochAnimation(frame_args):
-    # TODO(pjm): improve heading text
-    d = pandas.read_csv(str(frame_args.run_dir.join(_OUTPUT_FILE.fitCSVFile)))
+def sim_frame_dicePlotComparisonAnimation(frame_args):
+    return _dice(
+        frame_args.sim_in,
+        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
+            "animation"
+        ),
+    )
+
+
+def _epoch_plot(run_dir):
+    d = pandas.read_csv(str(run_dir.join(_OUTPUT_FILE.fitCSVFile)))
     return _report_info(
         list(d.index),
         [
@@ -285,6 +292,33 @@ def sim_frame_epochAnimation(frame_args):
     ).pkupdate(
         PKDict(
             x_label="epoch",
+        )
+    )
+
+
+def sim_frame_bestLossesAnimation(frame_args):
+    return _image_preview("bestLosses", frame_args.sim_in, frame_args.run_dir)
+
+
+def sim_frame_bestLossesComparisonAnimation(frame_args):
+    return _image_preview(
+        "bestLosses",
+        frame_args.sim_in,
+        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
+            "animation"
+        ),
+    )
+
+
+def sim_frame_epochAnimation(frame_args):
+    # TODO(pjm): improve heading text
+    return _epoch_plot(frame_args.run_dir)
+
+
+def sim_frame_epochComparisonAnimation(frame_args):
+    return _epoch_plot(
+        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
+            "animation"
         )
     )
 
@@ -360,6 +394,24 @@ def sim_frame_logisticRegressionErrorRateAnimation(frame_args):
     )
 
 
+def sim_frame_segmentSamplesAnimation(frame_args):
+    return _image_preview("segmentViewer", frame_args.sim_in, frame_args.run_dir)
+
+
+def sim_frame_worstLossesAnimation(frame_args):
+    return _image_preview("worstLosses", frame_args.sim_in, frame_args.run_dir)
+
+
+def sim_frame_worstLossesComparisonAnimation(frame_args):
+    return _image_preview(
+        "worstLosses",
+        frame_args.sim_in,
+        simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
+            "animation"
+        ),
+    )
+
+
 def stateful_compute_column_info(data, **kwargs):
     f = data.args.dataFile.file
     if pkio.has_file_extension(f, "csv"):
@@ -370,11 +422,70 @@ def stateful_compute_column_info(data, **kwargs):
 
 
 def analysis_job_sample_images(data, run_dir, **kwargs):
-    return _ImagePreview(data, run_dir).images()
+    d = run_dir
+    if data.args.otherSimId:
+        d = simulation_db.simulation_dir("activait", sid=data.args.otherSimId).join(
+            "animation"
+        )
+    return _ImagePreview(data, d).images()
+
+
+def stateful_compute_get_activait_sim_list(data, run_dir, **kwargs):
+    def _data_file_name(simulation_id):
+        p = pkio.py_path(
+            simulation_db.find_global_simulation(
+                "activait",
+                simulation_id,
+                checked=True,
+            )
+        )
+        if p.join("animation").exists() or simulation_id == data.simulationId:
+            return sirepo.simulation_db.read_json(
+                p.join("sirepo-data.json")
+            ).models.dataFile.file
+        return ""
+
+    res = []
+    for sim in _sims():
+        if (
+            sim.simulationId != data.simulationId
+            and _sim_path(data.simulationId).join("animation").exists()
+        ):
+            if _data_file_name(sim.simulationId) == _data_file_name(data.simulationId):
+                res.append(sim)
+    return PKDict(simList=res)
 
 
 def stateful_compute_get_remote_data(data, **kwargs):
     _SIM_DATA.lib_file_save_from_url(data.args.url, "dataFile", "file")
+    return PKDict()
+
+
+def stateful_compute_download_remote_lib_file(data, **kwargs):
+    if data.args.exampleFileCnt == 1:
+        _lib_file_save_from_url(data.args.exampleDir + f"/{data.args.file}")
+        return PKDict()
+    i = []
+    n = _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", data.args.file)
+    for c in range(data.args.exampleFileCnt):
+        _lib_file_save_from_url(data.args.exampleDir + f"/{c}.h5")
+        i.append(
+            _SIM_DATA.lib_file_abspath(
+                _SIM_DATA.lib_file_name_with_model_field("dataFile", "file", f"{c}.h5")
+            )
+        )
+    o = i[0].dirpath().join(n)
+    with h5py.File(o, "w") as cmb:
+        for f in i:
+            with h5py.File(f, "r") as src:
+                cmb.attrs.update(src.attrs)
+                for g in src:
+                    src.copy(
+                        f"/{g}",
+                        cmb.require_group(src[g].parent.name),
+                        name=g,
+                    )
+    _SIM_DATA.lib_file_write(n, pkio.py_path(o))
     return PKDict()
 
 
@@ -424,6 +535,7 @@ def _build_model_py(v):
         return f"""{layer.dimensionality},
     activation="{layer.activation}",
     kernel_size=({layer.kernel}, {layer.kernel}),
+    kernel_initializer=keras.initializers.{layer.get("kernel_initializer", "RandomNormal")}(),
     strides={layer.strides},
     padding="{layer.padding}"
     """
@@ -944,6 +1056,8 @@ def _param_to_image(info):
 
 def _generate_parameters_file(data):
     report = data.get("report", "")
+    if report == "imageSamplesReport":
+        return ""
     dm = data.models
     res, v = template_common.generate_parameters_file(data)
     v.imageOut = _image_out(dm.columnInfo)
@@ -1114,6 +1228,24 @@ def _histogram_plot(values, vrange, bins=20):
     return x, y
 
 
+def _image_preview(method, data, run_dir, other_sim_id=None):
+    return PKDict(
+        x_range=[],
+        images=_ImagePreview(
+            PKDict(
+                args=PKDict(
+                    method=method,
+                    imageFilename="sample",
+                    dataFile=data.models.dataFile,
+                    columnInfo=data.models.columnInfo,
+                    otherSimId=other_sim_id,
+                ),
+            ),
+            run_dir,
+        ).images(),
+    )
+
+
 class _ImagePreview:
     def __init__(self, data, run_dir=None):
         self.data = data
@@ -1151,10 +1283,6 @@ class _ImagePreview:
         self.info = info
         self.io = io
 
-    def _image_grid(self, num_images):
-        num_pages = min(5, 1 + (num_images - 1) // 25)
-        return [min(25, num_images - 25 * i) for i in range(num_pages)]
-
     def _masks(self, out_width, out_height, method):
         x = _read_file(self.run_dir, _OUTPUT_FILE.testFile)
         y = _read_file(self.run_dir, _OUTPUT_FILE.predictFile)
@@ -1170,7 +1298,7 @@ class _ImagePreview:
     def _original_images(self, method):
         if method == "segmentViewer" and not _param_to_image(self.info):
             return _read_file(self.run_dir, _OUTPUT_FILE.originalImageInFile)
-        return None
+        return numpy.array([])
 
     def _pyplot_data_url(self):
         import matplotlib.pyplot as plt
@@ -1210,7 +1338,7 @@ class _ImagePreview:
         x = x[i]
         y = y[i]
         if _param_to_image(self.info):
-            return x, y, None
+            return x, y, numpy.array([])
         return (
             x,
             y,
@@ -1228,103 +1356,78 @@ class _ImagePreview:
             return self._by_indices(
                 self.data.args.method, self.data.args.columnInfo.shape[i][1:]
             )
-        return self.file[self.io.input.path], o, None
-
-    def _grid(self, x):
-        if _image_out(self.info):
-            return [_SEGMENT_ROWS] * _SEGMENT_PAGES
-        return self._image_grid(len(x))
-
-    def _set_image_to_image_plt(self, plt):
-        if self.data.args.method in _POST_TRAINING_PLOTS and not _param_to_image(
-            self.info
-        ):
-            _, a = plt.subplots(3, 3)
-            a[0, 0].set_title("image")
-            a[0, 1].set_title("original contour")
-            a[0, 2].set_title("predicted contour")
-            plt.setp(a, xticks=[], yticks=[])
-            return a
-        _, a = plt.subplots(3, 2)
-        if _param_to_image(self.info) and self.data.args.method != "imagePreview":
-            a[0, 0].set_title("actual")
-            a[0, 1].set_title("predicted")
-        plt.setp(a, xticks=[], yticks=[])
-        return a
+        return self.file[self.io.input.path], o, numpy.array([])
 
     def _gen_image(self):
         import matplotlib.pyplot as plt
 
-        if (
-            _param_to_image(self.info)
-            and not self.data.args.method in _POST_TRAINING_PLOTS
-        ):
-            for section in ("top", "right", "bottom", "left"):
-                self.axes[self.row, 0].spines[section].set_visible(False)
-            self.axes[self.row, 0].text(
-                0.2,
-                0.2,
-                "Params:\n" + ", ".join([str(round(n, 3)) for n in self.input]),
-                style="italic",
-                fontsize=10,
-            )
-            self.axes[self.row, 1].imshow(self.output)
-            return
-        if _image_out(self.info):
-            c = [self.input, self.output]
-            if self.original is not None:
-                c.insert(0, self.original)
-            for i, column in enumerate(c):
-                self.axes[self.row, i].imshow(column)
-            return
-        plt.subplot(_IMG_ROWS, _IMG_COLS, self.row + 1)
         plt.xticks([])
         plt.yticks([])
-        plt.imshow(self.input)
-        if len(self.file[self.io.output.path].shape) == 1:
-            if "label_path" in self.io.output:
-                plt.xlabel(
-                    pkcompat.from_bytes(
-                        self.file[self.io.output.label_path][self.output]
-                    )
-                )
-            else:
-                plt.xlabel(self.output)
-        else:
-            plt.xlabel("\n".join([str(l) for l in self.output]))
+        plt.imshow(self.currentImage)
+
+    def _append_input_image(self, data, index):
+        self.currentImage = data[index]
+        if self.io.input.kind == "f":
+            self.currentImage = self.currentImage.astype(float)
+        if self.currentImage.ndim == 1:
+            self.xIsParameters = True
+            self.inputs.append(self.currentImage)
+            return
+        self._gen_image()
+        self.inputs.append(self._pyplot_data_url())
+
+    def _append_output_image(self, data, index):
+        if data.ndim == 1 and "label_path" in self.io.output:
+            self.imageToLabels = True
+            self.outputs.append(
+                pkcompat.from_bytes(self.file[self.io.output.label_path][data[index]])
+            )
+            return
+        self.currentImage = data[index]
+        self._gen_image()
+        self.outputs.append(self._pyplot_data_url())
+
+    def _append_original_image(self, data, index):
+        if data.size != 0:
+            self.currentImage = data[index]
+            self._gen_image()
+            self.originals.append(self._pyplot_data_url())
+
+    def _final_images(self):
+        res = PKDict(
+            paramToImage=_param_to_image(self.info),
+            xIsParameters=self.xIsParameters,
+            imageToLabels=self.imageToLabels,
+            pred=False,
+            colA=self.inputs,
+            colB=self.outputs,
+        )
+        if self.originals:
+            res.pkupdate(
+                pred=self.outputs,
+                colA=self.originals,
+                colB=self.inputs,
+            )
+        return res
 
     def images(self):
-        import matplotlib.pyplot as plt
-
         with h5py.File(_filepath(self.data.args.dataFile.file), "r") as f:
             self.file = f
+            self.inputs = []
+            self.originals = []
+            self.outputs = []
+            self.xIsParameters = False
+            self.imageToLabels = False
             x, y, o = self._x_y()
-            u = []
-            k = 0
-            g = (
-                self._grid(x)
-                if self.data.args.method not in ("bestLosses", "worstLosses")
-                else [_SEGMENT_ROWS]
-            )
-            for i in g:
-                plt.figure(figsize=[10, 10])
-                self.axes = (
-                    self._set_image_to_image_plt(plt) if _image_out(self.info) else None
-                )
-                for j in range(i):
-                    self.row = j
-                    self.original = o[k + j] if o is not None else None
-                    self.input = x[k + j]
-                    if self.io.input.kind == "f":
-                        self.input = self.input.astype(float)
-                    self.output = y[k + j]
-                    self._gen_image()
-                u.append(self._pyplot_data_url())
-                k += i
-            return PKDict(
-                numPages=len(g),
-                uris=u,
-            )
+            for i in range(
+                _PREVIEW_IMAGE_COUNT
+                if self.data.args.method in ("imagePreview", "segmentViewer")
+                else _LOSS_IMAGE_COUNT
+            ):
+                self._append_input_image(x, i)
+                self._append_output_image(y, i)
+                self._append_original_image(o, i)
+            return self._final_images()
 
 
 def _is_branching(node):
@@ -1373,6 +1476,17 @@ def _levels_with_children(cur_node, neural_net):
             continue
         cur_node = _get_next_node(cur_node, neural_net)
     return cur_node, 1, l
+
+
+def _lib_file_save_from_url(basename):
+    _SIM_DATA.lib_file_save_from_url(
+        "{}/{}".format(
+            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+            basename,
+        ),
+        "dataFile",
+        "file",
+    )
 
 
 def _loss_function(loss_fn):
@@ -1477,6 +1591,7 @@ def _set_fields_by_layer_type(l, new_layer):
             strides=l.strides[0],
             padding=l.padding,
             kernel=l.kernel_size[0],
+            kernel_initializer=l.kernel_initializer.__class__.__name__,
             dimensionality=l._trainable_weights[0].shape[-1],
             activation=l.activation.__name__,
         )
@@ -1553,6 +1668,26 @@ def _set_outbound(neural_net):
             if "outbound" in c:
                 c.outbound.append(l.obj)
     return neural_net
+
+
+def _sims():
+    return sorted(
+        simulation_db.iterate_simulation_datafiles(
+            "activait",
+            simulation_db.process_simulation_list,
+        ),
+        key=lambda row: row["name"],
+    )
+
+
+def _sim_path(sim_id):
+    return pkio.py_path(
+        simulation_db.find_global_simulation(
+            "activait",
+            sim_id,
+            checked=True,
+        )
+    )
 
 
 def _update_range(vrange, values):
