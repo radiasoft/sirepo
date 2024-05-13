@@ -1047,7 +1047,7 @@ SIREPO.app.factory('timeService', function() {
 });
 
 SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authState, errorService, requestSender, stringsService) {
-    self = this;
+    const self = this;
     self.state = {};
     class SM {
 	static STATES = {
@@ -1066,7 +1066,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 		simulationId: appState.models.simulation.simulationId,
 		simulationType: SIREPO.APP_SCHEMA.simulationType,
 	    };
-	};
+	}
 
 	handleStateInitStateFull() {
 	    this.initState(true);
@@ -1213,7 +1213,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	    if (! initStateSim) {
 		this.transitionState(SM.STATES.INIT_STATE_SIM, p.simState, p.startSimulation);
 	    }
-	};
+	}
 
 	transitionState(state, ...args) {
 	    const m = `handleState${state}`;
