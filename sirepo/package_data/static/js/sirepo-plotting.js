@@ -628,6 +628,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         constrainFullscreenSize: function(scope, plotWidth, aspectRatio) {
+
             // rough size of the panel heading, panel margins and rounded corners
             var panelTitleSize = 50 + 2 * 15 + 2 * 4;
             if (scope.isAnimation && scope.hasFrames()) {
@@ -636,10 +637,17 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             }
 
 
+            let maxHeight = window.innerHeight - scope.margin.top - scope.margin.bottom - panelTitleSize;
+            let maxWidth = window.innerWidth - scope.margin.left - scope.margin.right - (scope.pad || 0);
+
+
+
             var plotHeight = aspectRatio * plotWidth;
+
+            srdbg(utilities.fullscreenActive, "plotWidth", plotWidth, maxWidth, "plotHeight", plotHeight, maxHeight);
+
             if (utilities.fullscreenActive) {
-//&& plotHeight > window.innerHeight
-                let h = window.innerHeight - scope.margin.top - scope.margin.bottom - panelTitleSize;
+                let h = maxHeight;
                 let w = h / aspectRatio;
                 //todo reformat this (multiple lines)
                 return [h, w];
@@ -1242,9 +1250,7 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                     return;
                 }
 
-                srdbg($scope.modelName, 'before', $scope.height, $scope.width);
                 [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, width, $scope.aspectRatio);
-                srdbg($scope.modelName, 'after', $scope.height, $scope.width);
 
                 $scope.select('svg.sr-plot')
                     .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
