@@ -81,7 +81,8 @@ def _20240322_remove_github_auth(qcall):
 
 def _20240507_cloudmc_to_openmc(qcall):
     for u in qcall.auth_db.all_uids():
-        _migrate_sim_type("cloudmc", "openmc", qcall, u)
+        with qcall.auth.logged_in_user_set(u):
+            _migrate_sim_type("cloudmc", "openmc", qcall, u)
 
 
 @contextlib.contextmanager
