@@ -1047,179 +1047,220 @@ SIREPO.app.factory('timeService', function() {
 });
 
 SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authState, errorService, requestSender, stringsService) {
-    const sbatchLoginModalElement = $('#sbatch-login-modal');
-
-    const defaultRequestArgs = () => {
-	return {
-	    computeModel: this.state.simState.model,
-	    simulationId: appState.models.simulation.simulationId,
-	    simulationType: SIREPO.APP_SCHEMA.simulationType,
+    self = this;
+    self.state = {};
+    class SM {
+	static STATES = {
+	    INIT_STATE_FULL: 'InitStateFull',
+	    INIT_STATE_SIM: 'InitStateSim',
+	    LOGIN: 'Login',
+	    LOGIN_MODAL_HIDDEN: 'LoginModalHidden',
+	    RENDER_LOGIN_MODAL: 'RenderLoginModal',
+	    REQUEST_LOGIN_STATUS: 'RequestLoginStatus',
+	    SR_EXCEPTION: 'SRException',
 	};
-    };
 
-    const initState = (initSimState) => {
-	const p = this.state;
-	this.state = {
-	    isLoggedIn: null,
-	    requestingLoginStatus: false,
-	    requestingLogin: false,
-	    // Handles the case where user clicked on run simulation,
-	    // they weren't logged in (agent dead), so
-	    // they are prompted to login. We want to
-	    // automatically run the simulation for them
-	    // since that is what they were trying to do
-	    // before being prompted to login.
-	    shouldRestartRunSimulation: null,
+	defaultRequestArgs() {
+	    return {
+		computeModel: self.state.simState.model,
+		simulationId: appState.models.simulation.simulationId,
+		simulationType: SIREPO.APP_SCHEMA.simulationType,
+	    };
 	};
-	if (! initSimState) {
-	    this.initSimState(p.simState, p.startSimulation);
+
+	handleStateInitStateFull() {
+	    this.initState(true);
 	}
-    };
 
-    const isSbatchSRExceptionResponse = (response) => {
-	return response.params && response.params.isModal && response.routeName.toLowerCase().includes('sbatch');
-    };
+	handleStateInitStateSim(simState, startSimulation) {
+	    self.state.simState = simState;
+	    self.state.startSimulation = startSimulation;
+	}
 
-    const loginModalHidden = () => {
-	// User clicked Start Simulation then was prompted to log in
-	if (this.state.shouldRestartRunSimulation) {
-	    // Refresh in all cases
-	    // isLoggedIn: The start simulation after will
-	    // become the state of the panel
-	    // ! isLoggedIn: We want to show that the job is
-	    // missing (tried to start but needed login)
-	    this.state.simState.resetSimulation();
-	    if (this.state.isLoggedIn) {
-		// POSIT: Supervisor protects if sim was started in another window
-		this.state.startSimulation();
+	handleStateLogin(username, password, otp) {
+	    const handleLoginResponse = (response) => {
+		self.state.requestingLogin = false;
+		if (response && response.isSbatchLoginServiceSRException) {
+		    // handleStateSRException has already handled this
+		    return;
+		}
+		if (! response.loginSuccess) {
+		    self.state.isLoggedIn = null;
+		    throw new Error(`Error with login response=${JSON.stringify(response)}`);
+		}
+		self.state.isLoggedIn = true;
+		loginModalElement.modal('hide');
+	    };
+
+	    self.state.requestingLogin = true;
+	    requestSender.sendRequest(
+		'sbatchLogin',
+		handleLoginResponse,
+		{
+		    ...this.defaultRequestArgs(),
+		    sbatchCredentials: {
+			otp: otp,
+			password: password,
+			username: username,
+		    },
+		    shouldRestartRunSimulation: self.state.shouldRestartRunSimulation,
+		},
+		handleLoginResponse,
+	    );
+	}
+
+	handleStateRenderLoginModal(reason) {
+	    self.state.requestingLogin = false;
+	    $rootScope.$broadcast('sbatchLoginModalShown', reason);
+	    loginModalElement.modal('show');
+	}
+
+	handleStateRequestLoginStatus() {
+	    self.state.requestingLoginStatus = true;
+	    if (! self.computeModelRequiresLogin()) {
+		this.initState();
+		return;
+	    }
+	    if (self.state.isLoggedIn !== null) {
+		self.state.requestingLoginStatus = false;
+		return;
+	    }
+	    self.state.isLoggedIn = null;
+	    const m = appState.models[self.state.simState.model];
+	    requestSender.sendRequest(
+		'sbatchLoginStatus',
+		data => {
+		    self.state.isLoggedIn = data.ready;
+		    self.state.requestingLoginStatus = false;
+		},
+		{
+
+		    ...this.defaultRequestArgs(),
+		    models: appState.models,
+		},
+		err => {
+		    srlog('Error in sbatchLoginService.handleRequestLoginStatus: err=', err);
+		    errorService.alertText('Error checking login status. Please refresh the page. If the issue persists contact support@sirepo.com');
+		    self.state.isLoggedIn = false;
+		    self.state.requestingLoginStatus = false;
+		},
+	    );
+	}
+
+	handleStateLoginModalHidden() {
+	    $rootScope.$broadcast('sbatchLoginModalHidden');
+	    // User clicked Start Simulation then was prompted to log in
+	    if (self.state.shouldRestartRunSimulation) {
+		// Refresh in all cases
+		// isLoggedIn: The start simulation after will
+		// become the state of the panel
+		// ! isLoggedIn: We want to show that the job is
+		// missing (tried to start but needed login)
+		self.state.simState.resetSimulation();
+		if (self.state.isLoggedIn) {
+		    // POSIT: Supervisor protects if sim was started in another window
+		    self.state.startSimulation();
+		}
+	    }
+	    // User got here from clicking login button or through
+	    // SRExceptpion from api_simulationFrame. If
+	    // loginSuccess then resetSimulation so we go and try
+	    // to get api_simulationFrame again. In the login
+	    // button case a reset isn't necessary but it is hard
+	    // to test for that case specifically so just reset too.
+	    else if (self.state.isLoggedIn) {
+		self.state.simState.resetSimulation();
+	    }
+	    else {
+		// User wasn't trying to Start Simulation and they
+		// closed the login modal. Two possible cases:
+		// 1. We got here through api_simulationFrame raising
+		// SRExceptpion. panelState.needSbatchLogin was
+		// called so leave that in the panel
+		// 2. Or user clicked login button and then closed the
+		// modal so we just present them the panel they had
+		// before which has the login button.
+	    }
+	    // Reset in all cases because the login flow has ended so we
+	    // don't want to maintain this context.
+	    self.state.shouldRestartRunSimulation = null;
+	}
+
+	handleStateSRException(srException, callback) {
+	    self.state.isLoggedIn = false;
+	    self.state.requestingLogin = false;
+	    self.state.shouldRestartRunSimulation = srException.params.shouldRestartRunSimulation;
+	    self.renderLoginModal(srException.params.reason);
+	    callback({isSbatchLoginServiceSRException: true});
+	}
+
+	initState(initStateSim) {
+	    const p = self.state;
+	    self.state = {
+		isLoggedIn: null,
+		requestingLoginStatus: false,
+		requestingLogin: false,
+		// Handles the case where user clicked on run simulation,
+		// they weren't logged in (agent dead), so
+		// they are prompted to login. We want to
+		// automatically run the simulation for them
+		// since that is what they were trying to do
+		// before being prompted to login.
+		shouldRestartRunSimulation: null,
+		simState: null,
+		startSimulation: null,
+	    };
+	    if (! initStateSim) {
+		this.transitionState(SM.STATES.INIT_STATE_SIM, p.simState, p.startSimulation);
+	    }
+	};
+
+	transitionState(state, ...args) {
+	    const m = `handleState${state}`;
+	    if (typeof this[m] === 'function') {
+		this[m](...args);
+	    }
+	    else {
+		throw new Error(`unknown state=${state}`);
 	    }
 	}
-	// User got here from clicking login button or through
-	// SRExceptpion from api_simulationFrame. If
-	// loginSuccess then resetSimulation so we go and try
-	// to get api_simulationFrame again. In the login
-	// button case a reset isn't necessary but it is hard
-	// to test for that case specifically so just reset too.
-	else if (this.state.isLoggedIn) {
-	    this.state.simState.resetSimulation();
-	}
-	else {
-	    // User wasn't trying to Start Simulation and they
-	    // closed the login modal. Two possible cases:
-	    // 1. We got here through api_simulationFrame raising
-	    // SRExceptpion. panelState.needSbatchLogin was
-	    // called so leave that in the panel
-	    // 2. Or user clicked login button and then closed the
-	    // modal so we just present them the panel they had
-	    // before which has the login button.
-	}
-	// Reset in all cases because the login flow has ended so we
-	// don't want to maintain this context.
-	this.state.shouldRestartRunSimulation = null;
-    };
+    }
 
-    this.computeModelRequiresLogin = () => {
-	if (! this.state.simState) {
+    self.computeModelRequiresLogin = () => {
+	if (! self.state.simState) {
 	    return false;
 	}
-	const m = appState.models[this.state.simState.model];
+	const m = appState.models[self.state.simState.model];
 	return m && m.jobRunMode === 'sbatch';
     };
 
-    this.handleSRException = (srException, callback) => {
-	this.state.isLoggedIn = false;
-	this.state.requestingLogin = false;
-	this.state.shouldRestartRunSimulation = srException.params.shouldRestartRunSimulation;
-	this.renderLoginModal(srException.params.reason);
-	callback({isSbatchLoginServiceSRException: true});
+    self.initStateSim = (simState, startSimulation) => {
+	sm.transitionState(SM.STATES.INIT_STATE_SIM, simState, startSimulation);
     };
 
-    this.initSimState = (simState, startSimulation) => {
-	this.state.simState = simState;
-	this.state.startSimulation = startSimulation;
+    self.login = (username, password, otp) => {
+	sm.transitionState(SM.STATES.LOGIN, username, password, otp);
     };
 
-    this.login = (username, password, otp) => {
-	const handleLoginResponse = (response) => {
-	    this.state.requestingLogin = false;
-	    if (response && response.isSbatchLoginServiceSRException) {
-		// this.handleSRException has already handled this
-		return;
-	    }
-	    if (! response.loginSuccess) {
-		this.state.isLoggedIn = null;
-		throw new Error(`Error with login response=${JSON.stringify(response)}`);
-	    }
-	    this.state.isLoggedIn = true;
-	    sbatchLoginModalElement.modal('hide');
-	};
-
-	this.state.requestingLogin = true;
-	requestSender.sendRequest(
-	    'sbatchLogin',
-	    handleLoginResponse,
-	    {
-		...defaultRequestArgs(),
-		sbatchCredentials: {
-		    otp: otp,
-		    password: password,
-		    username: username,
-		},
-		shouldRestartRunSimulation: this.state.shouldRestartRunSimulation,
-	    },
-	    handleLoginResponse,
-	);
+    self.loginButtonLabel = () => {
+	return stringsService.sbatchLoginButtonLabel(self.state.requestingLoginStatus);
     };
 
-    this.loginButtonLabel = () => {
-	return stringsService.sbatchLoginButtonLabel(this.state.requestingLoginStatus);
+    self.renderLoginModal = (reason) => {
+	sm.transitionState(SM.STATES.RENDER_LOGIN_MODAL, reason);
     };
 
-    this.renderLoginModal = (reason) => {
-	this.state.requestingLogin = false;
-	$rootScope.$broadcast('sbatchLoginModalShown', reason);
-	sbatchLoginModalElement.modal('show');
+    self.requestLoginStatus = () => {
+	sm.transitionState(SM.STATES.REQUEST_LOGIN_STATUS);
     };
 
-    this.requestLoginStatus = () => {
-	this.state.requestingLoginStatus = true;
-	if (! this.computeModelRequiresLogin()) {
-	    initState();
-	    return;
-	}
-	if (this.state.isLoggedIn !== null) {
-	    this.state.requestingLoginStatus = false;
-	    return;
-	}
-	this.state.isLoggedIn = null;
-	const m = appState.models[this.state.simState.model];
-	requestSender.sendRequest(
-	    'sbatchLoginStatus',
-	    data => {
-		this.state.isLoggedIn = data.ready;
-		this.state.requestingLoginStatus = false;
-	    },
-	    {
-
-		...defaultRequestArgs(),
-		models: appState.models,
-	    },
-	    err => {
-		srlog('Error in sbatchLoginService.requestLoginStatus err=', err);
-		errorService.alertText('Error checking login status. Please refresh the page. If the issue persists contact support@sirepo.com');
-		this.state.isLoggedIn = false;
-		this.state.requestingLoginStatus = false;
-	    },
-	);
+    self.showLoginButton = () => {
+	return self.computeModelRequiresLogin() && ! self.state.isLoggedIn;
     };
 
-    this.showLoginButton = () => {
-	return this.computeModelRequiresLogin() && ! this.state.isLoggedIn;
-    };
+    self.showOTP = authState.sbatchHostIsNersc;
 
-    this.showOTP = authState.sbatchHostIsNersc;
-
-    this.loginModalWarningText = (reason) => {
+    self.loginModalWarningText = (reason) => {
 	return {
 	    'general-connection-error': `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`,
 	    'invalid-creds': 'Your credentials were invalid. Please try again.',
@@ -1228,17 +1269,18 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     };
 
 
-    sbatchLoginModalElement.on('hidden.bs.modal', function() {
-	$rootScope.$broadcast('sbatchLoginModalHidden');
-	loginModalHidden();
+    const loginModalElement = $('#sbatch-login-modal');
+    const sm = new SM();
+    loginModalElement.on('hidden.bs.modal', function() {
+	sm.transitionState(SM.STATES.LOGIN_MODAL_HIDDEN);
     });
     requestSender.registerSRExceptionHandler(
 	'sbatchLogin',
-	(srException) => isSbatchSRExceptionResponse(srException),
-	this.handleSRException,
+	(srException) => srException.params && srException.params.isModal && srException.routeName.toLowerCase().includes('sbatch'),
+	(srException, callback) => sm.transitionState(SM.STATES.SR_EXCEPTION, srException, callback)
     );
-    $rootScope.$on('modelsUnloaded', () => initState(true));
-    initState(true);
+    $rootScope.$on('modelsUnloaded', () => sm.transitionState(SM.STATES.INIT_STATE_FULL));
+    sm.transitionState(SM.STATES.INIT_STATE_FULL);
 });
 
 // manages validators for ngModels and provides other validation services
