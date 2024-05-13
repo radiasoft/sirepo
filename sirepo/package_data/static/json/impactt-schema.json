@@ -113,6 +113,7 @@
         },
         "EMFLDCART": {
             "zedge": ["Z Edge", "Float", 0, "Longitudinal position of the entrance face of the element"],
+            "radius": ["Radius [m]", "Float", 0],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
             "rf_field_scale": ["RF field scale", "Integer", 1, "This can be used to scale the field amplitude. Normally set to 1."],
             "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
@@ -120,8 +121,9 @@
         },
         "EMFLDCYL": {
             "zedge": ["Z Edge", "Float", 0, "Longitudinal position of the entrance face of the element"],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
             "radius": ["Radius [m]", "Float", 0],
+            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
+            "rf_field_scale": ["RF field scale", "Integer", 1, "This can be used to scale the field amplitude. Normally set to 1."],
             "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
             "filename": ["Filename", "InputFile", "", "EMfldCyl filename"]
         },
@@ -135,6 +137,7 @@
         "QUADRUPOLE": {
             "_super": ["_", "model", "_ELEMENT"],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
+            "rf_phase_deg": ["RF Quadrupole Phase [deg]", "Float", 0],
             "b1_gradient": ["Gradient [T/m]", "Float", 0],
             "L_effective": ["Effective Length [m]", "Float", 0],
             "file_id": ["Filename", "InputFile", "", "file ID to contain the geometry information of bend."]
