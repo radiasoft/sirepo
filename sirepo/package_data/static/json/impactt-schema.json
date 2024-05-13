@@ -115,48 +115,50 @@
             "zedge": ["Z Edge", "Float", 0, "Longitudinal position of the entrance face of the element"],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
             "rf_field_scale": ["RF field scale", "Integer", 1, "This can be used to scale the field amplitude. Normally set to 1."],
-            "theta_0": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "fmapfn": ["FMAPFN", "InputFile", "", "EMfldCart filename"]
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "filename": ["Filename", "InputFile", "", "EMfldCart filename"]
         },
         "EMFLDCYL": {
             "zedge": ["Z Edge", "Float", 0, "Longitudinal position of the entrance face of the element"],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
             "radius": ["Radius [m]", "Float", 0],
-            "theta_0": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "fmapfn": ["FMAPFN", "InputFile", "", "EMfldCyl filename"]
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "filename": ["Filename", "InputFile", "", "EMfldCyl filename"]
         },
         "EMFLDANA": {
             "zedge": ["Z Edge", "Float", 0, "Longitudinal position of the entrance face of the element"],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
             "e_scale": ["E Scale", "Float", 0],
-            "theta_0": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "fmapfn": ["FMAPFN", "InputFile", "", "EMfldAna filename"]
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "filename": ["Filename", "InputFile", "", "EMfldAna filename"]
         },
         "QUADRUPOLE": {
             "_super": ["_", "model", "_ELEMENT"],
+            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
             "b1_gradient": ["Gradient [T/m]", "Float", 0],
-            "L_effective": ["Effective Length [m]", "Float", 0]
+            "L_effective": ["Effective Length [m]", "Float", 0],
+            "file_id": ["Filename", "InputFile", "", "file ID to contain the geometry information of bend."]
         },
         "DIPOLE": {
             "zedge": ["Z Edge", "Float", 0, "Longitudinal position of the entrance face of the element"],
-            "x_field_strength": ["X Field Strength [T]", "Float", 0],
-            "y_field_strength": ["Y Field Strength [T]", "Float", 0],
-            "half_gap_width": ["Half of Gap Width (m)", "Float", 0],
-            "fmapfn": ["FMAPFN", "InputFile", "", "file ID to contain the geometry information of bend."]
+            "b_field_x": ["X Field Strength [T]", "Float", 0],
+            "b_field": ["Y Field Strength [T]", "Float", 0],
+            "half_gap": ["Half of Gap Width (m)", "Float", 0],
+            "filename": ["Filename", "InputFile", "", "file ID to contain the geometry information of bend."]
         },
         "MULTIPOLE": {
             "zedge": ["Z Edge", "Float", 0, "Longitudinal position of the entrance face of the element"],
             "pole_type": ["Pole Type", "PoleType", "sextupole"],
-            "x_field_strength": ["Field Strength [T/m^n]", "Float", 0],
-            "fmapfn": ["FMAPFN", "InputFile", "", "Multipole filename"]
+            "b_field_x": ["Field Strength [T/m^n]", "Float", 0],
+            "filename": ["Filename", "InputFile", "", "Multipole filename"]
         },
         "DTL": {
             "zedge": ["Z Edge", "Float", 0, "Longitudinal position of the entrance face of the element"],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "theta_0": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
             "radius": ["Radius [m]", "Float", 0],
             "field_amplitude_scale": ["Scale", "Float", 1, "This can be used to scale the field amplitude. Normally set to 1."],
-            "fmapfn": ["FMAPFN", "InputFile", "", "Drift Tube Linac filename"],
+            "filename": ["Filename", "InputFile", "", "Drift Tube Linac filename"],
             "quad_1_length": ["Quad 1 Length [m]", "Float", 0],
             "quad_1_gradient": ["Quad 1 Gradient [T/m]", "Float", 0],
             "quad_1_x_offset": ["Quad 1 Misalignment X [m]", "Float", 0],
@@ -182,21 +184,22 @@
         "SOLENOID": {
             "zedge": ["Z Edge", "Float", 0, "Longitudinal position of the entrance face of the element"],
             "radius": ["Radius [m]", "Float", 0],
-            "fmapfn": ["FMAPFN", "InputFile", "", "Solenoid field map filename"]
+            "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
         },
         "SOLENOIDRF": {
             "_super": ["_", "model", "_ELEMENT"],
-            "theta_0": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
             "rf_field_scale": ["RF field scale", "Integer", 1, "This can be used to scale the field amplitude. Normally set to 1."],
-            "fmapfn": ["FMAPFN", "InputFile", "", "Solenoid field map filename"]
+            "solenoid_field_scale": ["Scale of solenoid B field", "Float", 1],
+            "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
         },
         "SC": {
             "_super": ["_", "model", "_ELEMENT"],
             "rf_field_scale": ["RF field scale", "Integer", 1, "This can be used to scale the field amplitude. Normally set to 1."],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "theta_0": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "fmapfn": ["FMAPFN", "InputFile", "", "Superconducting cavity filename"]
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "filename": ["Filename", "InputFile", "", "Superconducting cavity filename"]
         }
     },
     "view": {
