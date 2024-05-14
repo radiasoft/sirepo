@@ -1050,15 +1050,17 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     const self = this;
     self.state = {};
     class SM {
-	static STATES = {
-	    INIT_STATE_FULL: 'InitStateFull',
-	    INIT_STATE_SIM: 'InitStateSim',
-	    LOGIN: 'Login',
-	    LOGIN_MODAL_HIDDEN: 'LoginModalHidden',
-	    RENDER_LOGIN_MODAL: 'RenderLoginModal',
-	    REQUEST_LOGIN_STATUS: 'RequestLoginStatus',
-	    SR_EXCEPTION: 'SRException',
-	};
+	constructor() {
+	    this.STATES = {
+		INIT_STATE_FULL: 'InitStateFull',
+		INIT_STATE_SIM: 'InitStateSim',
+		LOGIN: 'Login',
+		LOGIN_MODAL_HIDDEN: 'LoginModalHidden',
+		RENDER_LOGIN_MODAL: 'RenderLoginModal',
+		REQUEST_LOGIN_STATUS: 'RequestLoginStatus',
+		SR_EXCEPTION: 'SRException',
+	    };
+	}
 
 	defaultRequestArgs() {
 	    return {
@@ -1211,7 +1213,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 		startSimulation: null,
 	    };
 	    if (! initStateSim) {
-		this.transitionState(SM.STATES.INIT_STATE_SIM, p.simState, p.startSimulation);
+		this.transitionState(this.STATES.INIT_STATE_SIM, p.simState, p.startSimulation);
 	    }
 	}
 
@@ -1235,11 +1237,11 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     };
 
     self.initStateSim = (simState, startSimulation) => {
-	sm.transitionState(SM.STATES.INIT_STATE_SIM, simState, startSimulation);
+	sm.transitionState(sm.STATES.INIT_STATE_SIM, simState, startSimulation);
     };
 
     self.login = (username, password, otp) => {
-	sm.transitionState(SM.STATES.LOGIN, username, password, otp);
+	sm.transitionState(sm.STATES.LOGIN, username, password, otp);
     };
 
     self.loginButtonLabel = () => {
@@ -1247,11 +1249,11 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     };
 
     self.renderLoginModal = (reason) => {
-	sm.transitionState(SM.STATES.RENDER_LOGIN_MODAL, reason);
+	sm.transitionState(sm.STATES.RENDER_LOGIN_MODAL, reason);
     };
 
     self.requestLoginStatus = () => {
-	sm.transitionState(SM.STATES.REQUEST_LOGIN_STATUS);
+	sm.transitionState(sm.STATES.REQUEST_LOGIN_STATUS);
     };
 
     self.showLoginButton = () => {
@@ -1272,15 +1274,15 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     const loginModalElement = $('#sbatch-login-modal');
     const sm = new SM();
     loginModalElement.on('hidden.bs.modal', function() {
-	sm.transitionState(SM.STATES.LOGIN_MODAL_HIDDEN);
+	sm.transitionState(sm.STATES.LOGIN_MODAL_HIDDEN);
     });
     requestSender.registerSRExceptionHandler(
 	'sbatchLogin',
 	(srException) => srException.params && srException.params.isModal && srException.routeName.toLowerCase().includes('sbatch'),
-	(srException, callback) => sm.transitionState(SM.STATES.SR_EXCEPTION, srException, callback)
+	(srException, callback) => sm.transitionState(sm.STATES.SR_EXCEPTION, srException, callback)
     );
-    $rootScope.$on('modelsUnloaded', () => sm.transitionState(SM.STATES.INIT_STATE_FULL));
-    sm.transitionState(SM.STATES.INIT_STATE_FULL);
+    $rootScope.$on('modelsUnloaded', () => sm.transitionState(sm.STATES.INIT_STATE_FULL));
+    sm.transitionState(sm.STATES.INIT_STATE_FULL);
 });
 
 // manages validators for ngModels and provides other validation services
