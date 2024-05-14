@@ -1193,8 +1193,9 @@ SIREPO.app.directive('particle3d', function(appState, plotting, plotToPNG, utili
             function refresh() {
                 var aspectRatio = appState.models[$scope.modelName].aspectRatio;
                 var rw = getVtkElement();
-                var width = plotting.constrainFullscreenSize($scope, rw.width(), aspectRatio);
-                rw.height(width * aspectRatio);
+                var hw = plotting.constrainFullscreenSize($scope, rw.width(), aspectRatio);
+                rw.height(hw[0])
+                rw.width(hw[1]);
                 fsRenderer.resize();
             }
 

@@ -1547,13 +1547,12 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     return;
                 }
                 if (layoutService.plotAxis.allowUpdates) {
-                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                    if (isNaN(width)) {
+                    var elementWidth = parseInt(select().style('width'));
+                    if (isNaN(elementWidth)) {
+                        srdbg("NAN warpvnd1");
                         return;
                     }
-                    width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
-                    $scope.width = width;
-                    $scope.height = ASPECT_RATIO * $scope.width;
+                    [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, elementWidth, ASPECT_RATIO);
                     select('svg')
                         .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
                         .attr('height', $scope.plotHeight());
@@ -4287,10 +4286,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             };
 
             function refresh() {
-
-                var width = parseInt($($element).css('width')) - $scope.margin.left - $scope.margin.right;
-                $scope.width = plotting.constrainFullscreenSize($scope, width, xzAspectRatio);
-                $scope.height = xzAspectRatio * $scope.width;
+                [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, parseInt($($element).css('width')), xzAspectRatio);
 
                 var vtkCanvasHolderSize = {
                     width: $('.vtk-canvas-holder').width(),

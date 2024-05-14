@@ -1238,6 +1238,7 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
             if (layoutService.plotAxis.allowUpdates) {
                 var elementWidth = parseInt($scope.select().style('width'));
                 if (isNaN(elementWidth)) {
+                    //todo when will this be true
                     srdbg("NAN 2D")
                     return;
                 }
@@ -2938,6 +2939,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 if (layoutService.plotAxis.allowUpdates && ! $scope.isPlaying) {
                     var elementWidth = parseInt(select().style('width'));
                     if (! heatmap || isNaN(elementWidth)){
+                        //todo when will this be true
                         srdbg("3d heatmap", heatmap, "width", elementWidth);
                         return;
                     }
@@ -3406,13 +3408,13 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             function refresh() {
                 if (layoutService.plotAxis.allowUpdates && ! $scope.isPlaying) {
-                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                    if (! heatmap || isNaN(width)) {
+                    var elementWidth = parseInt(select().style('width'));
+                    if (! heatmap || isNaN(elementWidth)) {
+                        //todo when will this be true
+                        srdbg("heatmap heatmap", heatmap, "width", elementWidth);
                         return;
                     }
-                    width = plotting.constrainFullscreenSize($scope, width, aspectRatio);
-                    $scope.canvasSize.width = width;
-                    $scope.canvasSize.height = width * aspectRatio;
+                    [$scope.canvasSize.height, $scope.canvasSize.width] = plotting.constrainFullscreenSize($scope, elementWidth, aspectRatio);
                     axes.x.scale.range([0, $scope.canvasSize.width]);
                     axes.y.scale.range([$scope.canvasSize.height, 0]);
                 }

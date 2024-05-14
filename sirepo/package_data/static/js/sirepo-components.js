@@ -2336,11 +2336,9 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
 
             $scope.toggleFullScreen = function() {
                 if (utilities.fullscreenActive) {
-                    console.log('disabling full screen');
                     $scope.$emit('sr-close-full-screen');
                     utilities.fullscreenActive = false;
                 } else {
-                    console.log('calling full screen');
                     $scope.$emit('sr-full-screen');
                     utilities.fullscreenActive = true;
                 }
