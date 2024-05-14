@@ -628,15 +628,21 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         constrainFullscreenSize: function(scope, plotWidth, aspectRatio) {
-            function estimatePanelTitleSize(scope) {
-                return 50 + 2 * 15 + 2 * 4 + (scope.isAnimation && scope.hasFrames() ? 34 : 0);
+            function heightMargins() {
+                let panelTitleSizeEstimate = 50 + 2 * 15 + 2 * 4 + (scope.isAnimation && scope.hasFrames() ? 34 : 0);
+                return scope.margin.top + scope.margin.bottom + panelTitleSizeEstimate;
+            }
+
+            function widthMargins() {
+                return scope.margin.left + scope.margin.right + (scope.pad || 0) + 20;
             }
 
             if (! utilities.fullscreenActive) {
-                return [aspectRatio * plotWidth, plotWidth];
+                let w = plotWidth - widthMargins();
+                return [aspectRatio * w, w];
             }
-            var maxHeight = window.innerHeight - scope.margin.top - scope.margin.bottom - estimatePanelTitleSize(scope);
-            var maxWidth = window.innerWidth - scope.margin.left - scope.margin.right - (scope.pad || 0) - 20;
+            var maxHeight = window.innerHeight - heightMargins();
+            var maxWidth = window.innerWidth - widthMargins();
             var h = maxHeight;
             var w = h / aspectRatio;
             if (w > maxWidth) {
@@ -3408,7 +3414,9 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     if (! heatmap || isNaN(elementWidth)) {
                         return;
                     }
+                    srdbg('width before', elementWidth);
                     [$scope.canvasSize.height, $scope.canvasSize.width] = plotting.constrainFullscreenSize($scope, elementWidth, aspectRatio);
+                    srdbg('width after', $scope.canvasSize.width)
                     axes.x.scale.range([0, $scope.canvasSize.width]);
                     axes.y.scale.range([$scope.canvasSize.height, 0]);
                 }
