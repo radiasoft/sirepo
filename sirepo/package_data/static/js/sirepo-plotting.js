@@ -2943,9 +2943,8 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     if (! heatmap || isNaN(elementWidth)){
                         return;
                     }
-                    [$scope.canvasSize.height, $scope.canvasSize.width] = plotting.constrainFullscreenSize($scope, elementWidth, aspectRatio);
-                    $scope.canvasSize.height *= 2/3;
-                    $scope.canvasSize.width *= 2/3;
+                    var canvasResize = 2 / 3;
+                    [$scope.canvasSize.height, $scope.canvasSize.width] = plotting.constrainFullscreenSize($scope, canvasResize * elementWidth, aspectRatio);
                     $scope.bottomPanelHeight = 2 * $scope.canvasSize.width / 5 + $scope.pad + $scope.margin.bottom;
                     $scope.rightPanelWidth = $scope.canvasSize.width / 2 + $scope.pad + $scope.margin.right;
                     axes.x.scale.range([0, $scope.canvasSize.width]);
@@ -3408,9 +3407,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     if (! heatmap || isNaN(elementWidth)) {
                         return;
                     }
-                    srdbg('width before', elementWidth);
                     [$scope.canvasSize.height, $scope.canvasSize.width] = plotting.constrainFullscreenSize($scope, elementWidth, aspectRatio);
-                    srdbg('width after', $scope.canvasSize.width)
                     axes.x.scale.range([0, $scope.canvasSize.width]);
                     axes.y.scale.range([$scope.canvasSize.height, 0]);
                 }

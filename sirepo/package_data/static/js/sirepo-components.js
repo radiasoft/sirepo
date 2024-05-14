@@ -2374,7 +2374,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
     };
 });
 
-SIREPO.app.directive('reportPanel', function(appState, panelState, utilities, $rootScope) {
+SIREPO.app.directive('reportPanel', function(appState, panelState, utilities) {
     return {
         restrict: 'A',
         transclude: true,
@@ -2393,7 +2393,6 @@ SIREPO.app.directive('reportPanel', function(appState, panelState, utilities, $r
               <div data-ng-if="notes()"><span class="pull-right sr-notes" data-sr-tooltip="{{ notes() }}" data-placement="top"></span><div class="clearfix"></div></div>
         `,
         controller: function($scope) {
-            //todo need this one?
             $scope.reportStyle = {};
 
             $scope.$on('sr-full-screen', () => {
@@ -5370,12 +5369,12 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
     this.exitFullscreen = (scope) => {
         this.fullscreenActive = false;
         scope.$emit('sr-close-full-screen');
-    }
+    };
 
     this.openFullscreen = (scope) => {
         this.fullscreenActive = true;
         scope.$emit('sr-full-screen');
-    }
+    };
 
 
     this.buildSearch = (scope, element, searchClass, supportsMulti) => {
