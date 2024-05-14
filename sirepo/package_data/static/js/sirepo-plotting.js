@@ -1238,8 +1238,6 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
             if (layoutService.plotAxis.allowUpdates) {
                 var elementWidth = parseInt($scope.select().style('width'));
                 if (isNaN(elementWidth)) {
-                    //todo when will this be true
-                    srdbg("NAN 2D")
                     return;
                 }
                 [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, elementWidth, $scope.aspectRatio);
@@ -2939,8 +2937,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 if (layoutService.plotAxis.allowUpdates && ! $scope.isPlaying) {
                     var elementWidth = parseInt(select().style('width'));
                     if (! heatmap || isNaN(elementWidth)){
-                        //todo when will this be true
-                        srdbg("3d heatmap", heatmap, "width", elementWidth);
                         return;
                     }
                     [$scope.canvasSize.height, $scope.canvasSize.width] = plotting.constrainFullscreenSize($scope, elementWidth, aspectRatio);
@@ -3410,8 +3406,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (layoutService.plotAxis.allowUpdates && ! $scope.isPlaying) {
                     var elementWidth = parseInt(select().style('width'));
                     if (! heatmap || isNaN(elementWidth)) {
-                        //todo when will this be true
-                        srdbg("heatmap heatmap", heatmap, "width", elementWidth);
                         return;
                     }
                     [$scope.canvasSize.height, $scope.canvasSize.width] = plotting.constrainFullscreenSize($scope, elementWidth, aspectRatio);

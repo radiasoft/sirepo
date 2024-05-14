@@ -2389,7 +2389,6 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                 if (layoutService.plotAxis.allowUpdates) {
                     var elementWidth = parseInt(select('.workspace').style('width'));
                     if (isNaN(elementWidth)) {
-                        srdbg("NAN plottingvtk");
                         return;
                     }
                     [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, elementWidth, ASPECT_RATIO);

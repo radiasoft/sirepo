@@ -1549,7 +1549,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 if (layoutService.plotAxis.allowUpdates) {
                     var elementWidth = parseInt(select().style('width'));
                     if (isNaN(elementWidth)) {
-                        srdbg("NAN warpvnd1");
                         return;
                     }
                     [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, elementWidth, ASPECT_RATIO);
