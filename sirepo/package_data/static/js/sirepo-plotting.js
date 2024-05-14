@@ -628,31 +628,22 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         constrainFullscreenSize: function(scope, plotWidth, aspectRatio) {
-
-            // rough size of the panel heading, panel margins and rounded corners
-            var panelTitleSize = 50 + 2 * 15 + 2 * 4;
-            if (scope.isAnimation && scope.hasFrames()) {
-                // animation buttons
-                panelTitleSize += 34;
+            function estimatePanelTitleSize(scope) {
+                return 50 + 2 * 15 + 2 * 4 + (scope.isAnimation && scope.hasFrames() ? 34 : 0);
             }
 
-
-            let maxHeight = window.innerHeight - scope.margin.top - scope.margin.bottom - panelTitleSize;
-            let maxWidth = window.innerWidth - scope.margin.left - scope.margin.right - (scope.pad || 0);
-
-
-
-            var plotHeight = aspectRatio * plotWidth;
-
-            srdbg(utilities.fullscreenActive, "plotWidth", plotWidth, maxWidth, "plotHeight", plotHeight, maxHeight);
-
-            if (utilities.fullscreenActive) {
-                let h = maxHeight;
-                let w = h / aspectRatio;
-                //todo reformat this (multiple lines)
-                return [h, w];
+            if (! utilities.fullscreenActive) {
+                return [aspectRatio * plotWidth, plotWidth];
             }
-            return [plotHeight, plotWidth];
+            var maxHeight = window.innerHeight - scope.margin.top - scope.margin.bottom - estimatePanelTitleSize(scope);
+            var maxWidth = window.innerWidth - scope.margin.left - scope.margin.right - (scope.pad || 0) - 20;
+            var h = maxHeight;
+            var w = h / aspectRatio;
+            if (w > maxWidth) {
+                w = maxWidth;
+                h = w * aspectRatio;
+            }
+            return [h, w];
         },
 
         drawImage: function(xAxisScale, yAxisScale, width, height, xValues, yValues, canvas, cacheCanvas, alignOnPixel) {
@@ -1245,13 +1236,11 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                 return;
             }
             if (layoutService.plotAxis.allowUpdates) {
-                var width = parseInt($scope.select().style('width')) - $scope.margin.left - $scope.margin.right;
-                if (isNaN(width)) {
+                var elementWidth = parseInt($scope.select().style('width'));
+                if (isNaN(elementWidth)) {
                     return;
                 }
-
-                [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, width, $scope.aspectRatio);
-
+                [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, elementWidth, $scope.aspectRatio);
                 $scope.select('svg.sr-plot')
                     .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
                     .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
