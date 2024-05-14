@@ -2207,7 +2207,7 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
         template: `
             <span class="sr-panel-heading">{{ simpleHeading }}</span>
             <div class="sr-panel-options pull-right">
-              <a href data-ng-class="{'sr-disabled-link': utilities.isFullscreen()}" data-ng-click="toggleHidden()" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a>
+              <a href data-ng-class="{'sr-disabled-link': utilities.isFullscreen()}" data-ng-click="panelState.toggleHiddenAndNotify(modelKey)" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a>
               <a href data-ng-click="panelState.toggleHiddenAndNotify(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>
             </div>
             <div class="sr-panel-options pull-right" data-ng-transclude="" ></div>
@@ -2215,11 +2215,6 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
         controller: function($scope) {
             $scope.panelState = panelState;
             $scope.utilities = utilities;
-            $scope.toggleHidden = function() {
-                if(! utilities.isFullscreen()) {
-                    panelState.toggleHiddenAndNotify($scope.modelKey);
-                }
-            };
         },
     };
 });
@@ -2236,9 +2231,9 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         template: `
             <div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">
               <div class="model-panel-heading-buttons"></div>
-              <a href data-ng-show="hasEditor && ! utilities.isFullscreen()" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
+              <a href data-ng-show="hasEditor" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
               ${SIREPO.appPanelHeadingButtons || ''}
-              <div data-ng-if="isReport" data-ng-show="hasData() && ! utilities.isFullscreen()" class="dropdown" style="display: inline-block">
+              <div data-ng-if="isReport" data-ng-show="hasData()" class="dropdown" style="display: inline-block">
                 <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
                 <ul class="dropdown-menu dropdown-menu-right">
                   <li class="dropdown-header">Download Report</li>
@@ -2251,7 +2246,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   <li data-ng-if="::hasDataFile" data-ng-repeat="l in panelDownloadLinks"><a data-ng-href="{{ dataFileURL(l.suffix) }}" target="_blank">{{ l.title }}</a></li>
                 </ul>
               </div>
-              <a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{'glyphicon-resize-full': ! utilities.isFullscreen(), 'glyphicon-resize-small': utilities.isFullscreen()}"></span></a>
+              <a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullscreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{'glyphicon-resize-full': ! utilities.isFullscreen(), 'glyphicon-resize-small': utilities.isFullscreen()}"></span></a>
             </div>
         `,
         controller: function($scope, $element) {
@@ -2321,50 +2316,15 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             };
 
             $scope.fullscreenIconTitle = function() {
-                if(! utilities.isFullscreen()) {
-                    return 'Full Screen';
-                }
-                return 'Exit Full Screen';
+                return utilities.isFullscreen() ? 'Exit Full Screen' : 'Full Screen';
             };
 
-
-
-            function getFullScreenElement() {
-                return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-            }
-
-
-            $scope.toggleFullScreen = function() {
-                if (utilities.fullscreenActive) {
-                    $scope.$emit('sr-close-full-screen');
-                    utilities.fullscreenActive = false;
+            $scope.toggleFullscreen = function() {
+                if (utilities.isFullscreen()) {
+                    utilities.exitFullscreen($scope);
                 } else {
-                    $scope.$emit('sr-full-screen');
-                    utilities.fullscreenActive = true;
+                    utilities.openFullscreen($scope);
                 }
-
-
-                /*
-                if(panelState.isHidden($scope.modelKey)) {
-                    return;
-                }
-
-                var svg = $($scope.panel).find('svg.sr-plot')[0];
-                var el = $($element).closest('.panel')[0];
-
-                if(! utilities.isFullscreen()) {
-                    // Firefox does its own thing
-                    if(utilities.requestFullscreenFn(el) == el.mozRequestFullScreen) {
-                        el.parentElement.mozRequestFullScreen();
-                    }
-                    else {
-                        utilities.requestFullscreenFn(el).call(el);
-                    }
-                }
-                else {
-                    utilities.exitFullscreenFn().call(document);
-                }
-                */
             };
 
 
@@ -5403,46 +5363,20 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
 
     this.fullscreenActive = false;
 
-    // fullscreen utilities
-    this.getFullScreenElement = function() {
-        return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+    this.isFullscreen = () => {
+        return this.fullscreenActive;
     };
-    this.isFullscreen = function () {
-        return ! ! this.getFullScreenElement();
-    };
-    this.isFullscreenElement = function(el) {
-        return el == this.getFullScreenElement();
-    };
-    this.requestFullscreenFn = function(el) {
-        return el.requestFullscreen ||
-            el.mozRequestFullScreen ||
-            el.webkitRequestFullscreen ||
-            el.msRequestFullscreen ||
-            function() {
-                srlog('This browser does not support full screen');
-            };
-        };
-    this.exitFullscreenFn = function() {
-        return document.exitFullscreen ||
-            document.mozCancelFullScreen ||
-            document.webkitExitFullscreen ||
-            document.msExitFullscreen ||
-            function() {
-                srlog('This browser does not support full screen');
-            };
-    };
-    this.fullscreenListenerEvent = function() {
-        if (this.exitFullscreenFn() == document.mozCancelFullScreen) {
-            return 'mozfullscreenchange';
-        }
-        if (this.exitFullscreenFn() == document.webkitExitFullscreen) {
-            return 'webkitfullscreenchange';
-        }
-        if (this.exitFullscreenFn() == document.msExitFullscreen) {
-            return 'MSFullscreenChange';
-        }
-        return 'fullscreenchange';
-    };
+
+    this.exitFullscreen = (scope) => {
+        this.fullscreenActive = false;
+        scope.$emit('sr-close-full-screen');
+    }
+
+    this.openFullscreen = (scope) => {
+        this.fullscreenActive = true;
+        scope.$emit('sr-full-screen');
+    }
+
 
     this.buildSearch = (scope, element, searchClass, supportsMulti) => {
         const utilities = this;

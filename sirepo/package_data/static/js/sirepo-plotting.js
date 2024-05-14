@@ -637,7 +637,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 return scope.margin.left + scope.margin.right + (scope.pad || 0) + 20;
             }
 
-            if (! utilities.fullscreenActive) {
+            if (! utilities.isFullscreen()) {
                 let w = plotWidth - widthMargins();
                 return [aspectRatio * w, w];
             }
@@ -1221,7 +1221,6 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
         };
 
         function init() {
-            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
             $scope.select('svg.sr-plot').attr('height', plotting.initialHeight($scope));
             $.each($scope.axes, function(dim, axis) {
                 axis.init();
@@ -1307,7 +1306,6 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
             $($scope.element).find($scope.zoomContainer).off();
             // not part of all plots, just parameterPlot
             $($scope.element).find('.sr-plot-legend-item text').off();
-            document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
         };
 
         $scope.resize = function() {
@@ -3076,7 +3074,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 xyZoom.on('zoom', null);
                 axes.x.zoom.on('zoom', null);
                 axes.y.zoom.on('zoom', null);
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
             $scope.formatFocusPointData = function(fp) {
@@ -3100,7 +3097,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             };
 
             $scope.init = function() {
-                document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
                 select('svg.sr-plot').attr('height', plotting.initialHeight($scope));
                 axes.x.init();
                 axes.y.init();
@@ -3277,8 +3273,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             };
             $scope.dataCleared = true;
             $scope.margin = {top: 50, left: 70, right: 100, bottom: 50};
-
-            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             const axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
@@ -3551,7 +3545,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 select('.mouse-rect').on('mousemove', null);
                 select('.mouse-rect').on('click', null);
                 zoom.on('zoom', null);
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
             $scope.init = function() {

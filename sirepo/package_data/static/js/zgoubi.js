@@ -1215,11 +1215,9 @@ SIREPO.app.directive('particle3d', function(appState, plotting, plotToPNG, utili
                 getVtkElement().off();
                 fsRenderer.getInteractor().unbindEvents();
                 fsRenderer.delete();
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
             $scope.init = function() {
-                document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
                 var rw = getVtkElement();
                 rw.on('dblclick', reset);
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
