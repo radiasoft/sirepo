@@ -1238,6 +1238,7 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
             if (layoutService.plotAxis.allowUpdates) {
                 var elementWidth = parseInt($scope.select().style('width'));
                 if (isNaN(elementWidth)) {
+                    srdbg("NAN 2D")
                     return;
                 }
                 [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, elementWidth, $scope.aspectRatio);
@@ -2935,16 +2936,16 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     return;
                 }
                 if (layoutService.plotAxis.allowUpdates && ! $scope.isPlaying) {
-                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right - $scope.pad;
-                    if (! heatmap || isNaN(width)){
+                    var elementWidth = parseInt(select().style('width'));
+                    if (! heatmap || isNaN(elementWidth)){
+                        srdbg("3d heatmap", heatmap, "width", elementWidth);
                         return;
                     }
-                    width = plotting.constrainFullscreenSize($scope, width, aspectRatio);
-                    var panelSize = 2 * width / 3;
-                    $scope.canvasSize.width = panelSize;
-                    $scope.canvasSize.height = panelSize * aspectRatio;
-                    $scope.bottomPanelHeight = 2 * panelSize / 5 + $scope.pad + $scope.margin.bottom;
-                    $scope.rightPanelWidth = panelSize / 2 + $scope.pad + $scope.margin.right;
+                    [$scope.canvasSize.height, $scope.canvasSize.width] = plotting.constrainFullscreenSize($scope, elementWidth, aspectRatio);
+                    $scope.canvasSize.height *= 2/3;
+                    $scope.canvasSize.width *= 2/3;
+                    $scope.bottomPanelHeight = 2 * $scope.canvasSize.width / 5 + $scope.pad + $scope.margin.bottom;
+                    $scope.rightPanelWidth = $scope.canvasSize.width / 2 + $scope.pad + $scope.margin.right;
                     axes.x.scale.range([0, $scope.canvasSize.width]);
                     axes.y.scale.range([$scope.canvasSize.height, 0]);
                     axes.bottomY.scale.range([$scope.bottomPanelHeight - $scope.pad - $scope.margin.bottom - 1, 0]);
