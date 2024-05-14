@@ -94,6 +94,7 @@
         "longName": "Sirepo"
     },
     "rootRedirectUri": {
+        "cloudmc": "/openmc",
         "fete": "/warpvnd",
         "ml": "/activait",
         "plans": "/en/plans.html",
