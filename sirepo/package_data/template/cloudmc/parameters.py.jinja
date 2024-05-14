@@ -16,7 +16,6 @@ def create_geometry():
     {% if reflectivePlanes_useReflectivePlanes == '1' %}
     # creates an edge of universe boundary surface
     vac_surf = openmc.Sphere(r=10000, boundary_type="vacuum")
-
     {{ planes }}
     univ = openmc.Cell(
         region=-vac_surf {{ region }},
