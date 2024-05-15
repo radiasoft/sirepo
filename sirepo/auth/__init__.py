@@ -498,6 +498,13 @@ class _Auth(sirepo.quest.Attr):
         if m != METHOD_EMAIL:
             raise sirepo.util.Forbidden(f"method={m} is not email for uid={i}")
 
+    def require_not_disabled(self):
+        u = self.require_user()
+        if self.qcall.auth_db.model("UserRole").has_role(
+            role=sirepo.auth_role.ROLE_DISABLED
+        ):
+            raise sirepo.util.Forbidden(f"uid={u} is disabled")
+
     def require_user(self):
         """Asserts whether user is logged in
 

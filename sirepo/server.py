@@ -474,7 +474,7 @@ class API(sirepo.quest.API):
         except sirepo.util.SPathNotFound:
             return _not_found(req)
 
-    @sirepo.quest.Spec("require_user", search="SearchSpec")
+    @sirepo.quest.Spec("require_not_disabled", search="SearchSpec")
     async def api_listSimulations(self):
         req = self.parse_post()
         return self.reply_list_deprecated(

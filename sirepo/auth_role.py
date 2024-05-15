@@ -10,6 +10,7 @@ import aenum
 import sirepo.feature_config
 
 ROLE_ADM = "adm"
+ROLE_DISABLED = "disabled"
 ROLE_PAYMENT_PLAN_ENTERPRISE = "enterprise"
 ROLE_PAYMENT_PLAN_PREMIUM = "premium"
 PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
@@ -39,7 +40,9 @@ def for_moderated_sim_types():
 
 def for_new_user(is_guest):
     if is_guest and pkconfig.in_dev_mode():
-        return get_all()
+        r = get_all()
+        r.remove(ROLE_DISABLED)
+        return r
     return []
 
 
@@ -58,6 +61,7 @@ def get_all():
         for_sim_type(t) for t in sirepo.feature_config.auth_controlled_sim_types()
     ] + [
         ROLE_ADM,
+        ROLE_DISABLED,
         ROLE_PAYMENT_PLAN_ENTERPRISE,
         ROLE_PAYMENT_PLAN_PREMIUM,
     ]
