@@ -124,10 +124,11 @@ def _migrate_sim_type(old_sim_type, new_sim_type, qcall, uid):
         if new_p.exists():
             continue
         pkio.mkdir_parent(new_p)
-        if data.simulationType == old_sim_type:
-            data.simulationType = new_sim_type
-            pkjson.dump_pretty(data, filename=p)
-        shutil.copy2(p, new_p.join(sirepo.simulation_db.SIMULATION_DATA_FILE))
+        assert data.simulationType == old_sim_type
+        data.simulationType = new_sim_type
+        pkjson.dump_pretty(
+            data, filename=new_p.join(sirepo.simulation_db.SIMULATION_DATA_FILE)
+        )
     pkio.unchecked_remove(old_sim_dir)
 
 
