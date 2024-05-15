@@ -233,11 +233,11 @@
         },
         "sirepoLibs": {
             "css": [
-                "cloudmc.css",
+                "openmc.css",
                 "vtk.css"
             ],
             "js": [
-                "cloudmc.js",
+                "openmc.js",
                 "sirepo-geometry.js",
                 "sirepo-plotting-vtk.js"
             ]
@@ -264,14 +264,14 @@
             "route": "/geometry/:simulationId",
             "config": {
                 "controller": "GeometryController as geometry",
-                "templateUrl": "/static/html/cloudmc-geometry.html"
+                "templateUrl": "/static/html/openmc-geometry.html"
             }
         },
         "visualization": {
             "route": "/visualization/:simulationId",
             "config": {
                 "controller": "VisualizationController as visualization",
-                "templateUrl": "/static/html/cloudmc-visualization.html"
+                "templateUrl": "/static/html/openmc-visualization.html"
             }
         }
     },
