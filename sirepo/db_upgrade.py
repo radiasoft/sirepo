@@ -4,7 +4,7 @@
 :copyright: Copyright (c) 2021-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkinspect, pkio
+from pykern import pkinspect, pkio, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import contextlib
@@ -124,8 +124,9 @@ def _migrate_sim_type(old_sim_type, new_sim_type, qcall, uid):
         if new_p.exists():
             continue
         pkio.mkdir_parent(new_p)
-        print("\n\n\n\n p=", p)
-        print("\n\n\n\n data.simulationType=", data.simulationType)
+        if data.simulationType == old_sim_type:
+            data.simulationType = new_sim_type
+            pkjson.dump_pretty(data, filename=p)
         shutil.copy2(p, new_p.join(sirepo.simulation_db.SIMULATION_DATA_FILE))
     pkio.unchecked_remove(old_sim_dir)
 
