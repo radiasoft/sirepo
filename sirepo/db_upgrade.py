@@ -117,6 +117,7 @@ def _migrate_sim_type(old_sim_type, new_sim_type, qcall, uid):
         old_sim_dir.join("*", sirepo.simulation_db.SIMULATION_DATA_FILE)
     ):
         data = sirepo.simulation_db.read_json(p)
+        pkdp("\n\n\n\n SIMULATION TYPE=", data.models.simulationType)
         sim = data.models.simulation
         if sim.get("isExample"):
             continue
