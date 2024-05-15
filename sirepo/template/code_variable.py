@@ -283,7 +283,7 @@ class CodeVarIterator(lattice.ModelIterator):
                     self.field(bl, bs[f], f)
             for p in bl.positions:
                 for f in p:
-                    if p[f]:
+                    if p[f] and self.code_var.is_var_value(p[f]):
                         self.add_to_cache(p[f], p[f])
 
     def __add_value(self, value):
