@@ -126,6 +126,7 @@ def _migrate_sim_type(old_sim_type, new_sim_type, qcall, uid):
         pkio.mkdir_parent(new_p)
         shutil.copy2(p, new_p.join(sirepo.simulation_db.SIMULATION_DATA_FILE))
 
+    print("\n\n\n\n OLD SIM DIR=", old_sim_dir)
 
 def _prevent_db_upgrade_file():
     return sirepo.srdb.root().join(_PREVENT_DB_UPGRADE_FILE)
