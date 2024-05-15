@@ -644,7 +644,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
               </form>
             </div>
             <div style="display:none">
-            <div data-ng-class="::popoverInfo.modifyBeamline.class">
+            <div data-ng-class="::popoverInfo.modifyBeamline.class" style="max-width: 500px;">
               <div class="text-center">
                 <button class="btn btn-default" data-ng-click="unpackBeamline()">Unpack</button>
                  <button class="btn btn-default" data-ng-if=":: canReverseBeamline()" data-ng-click="reverseBeamline()">Reverse</button>
@@ -652,13 +652,13 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
               </div>
             </div>
             <div data-ng-class="::popoverInfo.elementPosition.class">
-              <div style="margin-bottom: 10px">
-                <input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" style="text-align: right" data-lpignore="true" required />
-                here
+              <div style="margin-bottom: 200px;">
+                <div class="col-md-10" data-rpn-editor="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" data-field-size="3" data-lpignore="true" required></div>
+
               </div>
               <div class="text-center">
                 <button class="btn btn-primary sr-button-save-cancel" data-ng-click="setElementPosition()">Save</button>
-                 <button class="btn btn-default sr-button-save-cancel" data-ng-click="clearPopover()">Cancel</button>
+                <button class="btn btn-default sr-button-save-cancel" data-ng-click="clearPopover()">Cancel</button>
               </div>
             </div>
             </div>
@@ -2795,7 +2795,7 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
                     return 'calculating...';
                 }
                 return $scope.isError
-                    ? ''
+                    ? 'ERROR'
                     : rpnService.getRpnValueForField($scope.model, $scope.field);
             };
         },
