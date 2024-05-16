@@ -183,7 +183,7 @@
     }
 
     .sr-beamline-popover {
-      max-width: none
+      max-width: none;
       width: 100%;
     }
     .sr-beamline-element-title {

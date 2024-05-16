@@ -635,6 +635,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             </div>
             <div data-confirmation-modal="" data-id="sr-delete-lattice-item-dialog" data-title="{{ latticeService.selectedItem.name }}" data-ok-text="Delete" data-ok-clicked="deleteSelectedItem()">Delete item <strong>{{ latticeService.selectedItem.name }}</strong>?</div>
             <div data-confirmation-modal="" data-id="sr-beamline-from-elements-dialog" data-title="Create Beamline From Elements" data-ok-text="Save" data-ok-clicked="createBeamlineFromElements()">
+              fffffff
               <form class="form-horizontal" autocomplete="off">
                 <label class="col-sm-4 control-label">Beamline Name</label>
                 <div class="col-sm-8">
@@ -643,6 +644,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 </div>
               </form>
             </div>
+            sdfgsdfgsdfg
             <div style="display:none">
             <div data-ng-class="::popoverInfo.modifyBeamline.class" style="max-width: 500px;">
               <div class="text-center">
@@ -651,10 +653,14 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                  <button class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>
               </div>
             </div>
+            aaaaaa
             <div data-ng-class="::popoverInfo.elementPosition.class">
-              <div style="margin-bottom: 200px;">
-                <div class="col-md-10" data-rpn-editor="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" data-field-size="3" data-lpignore="true" required></div>
-
+              <div style="margin-bottom: 10px">
+               <input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" style="text-align: right" data-lpignore="true" required />
+               <div data-ng-if="hasPopoverData">
+               <!-- TODO (gurhar1133): format the model passed into rpn-static to fit what rpn-static expects-->
+                 -<div data-rpn-static="" field="\'value\'" data-model="popoverInfo.elementPosition.elemedge"></div>-
+               </div>
               </div>
               <div class="text-center">
                 <button class="btn btn-primary sr-button-save-cancel" data-ng-click="setElementPosition()">Save</button>
@@ -676,10 +682,11 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             let dropHandled = false;
             const itemCache = {};
             let lastSelectedItem = null;
+            $scope.hasPopoverData = false;
 
             $scope.popoverInfo = {
                 elementPosition: {
-                    class: 'sr-element-position-popover',
+                    class: 'sr-beamline-popover',
                     title: 'Element Position [m]',
                 },
                 modifyBeamline: {
@@ -814,6 +821,10 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             function showElementPositionPopover(item) {
                 let idx = itemIndex(item);
                 $scope.popoverInfo.elementPosition.elemedge = getPosition(idx).elemedge;
+                $scope.popoverInfo.elementPosition.isBusy = true;
+                $scope.popoverInfo.elementPosition.isError = false;
+                $scope.hasPopoverData = true;
+                srdbg("$scope.popoverInfo.elementPosition.elemedge", $scope.popoverInfo.elementPosition.elemedge);
                 showPopover(item, 'elementPosition');
             }
 
@@ -869,7 +880,10 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
 
             $scope.canReverseBeamline = () => SIREPO.lattice.canReverseBeamline;
 
-            $scope.clearPopover = () => $('.sr-lattice-item').popover('hide');
+            $scope.clearPopover = () => {
+                $('.sr-lattice-item').popover('hide');
+                $scope.hasPopoverData = false;
+            }
 
             $scope.clickItem = (item, $event) => {
                 $scope.selectItem(item, $event);
@@ -1167,6 +1181,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                     }
                 }
             });
+
 
             $scope.$on('elementDeleted', (e, name, element) => {
                 const id = modelId(element);
@@ -2790,6 +2805,7 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
             <div data-ng-attr-title="{{ computedRpnValue(); }}" class="form-control-static" style="text-overflow: ellipsis; overflow: hidden; margin-left: -15px; padding-left: 0; white-space: nowrap">{{ computedRpnValue(); }}</div>
         `,
         controller: function($scope) {
+            srdbg("field", $scope.field, "model", $scope.model, "rpnService.getRpnValueForField($scope.model, $scope.field)", rpnService.getRpnValueForField($scope.model, $scope.field));
             $scope.computedRpnValue = function() {
                 if ($scope.isBusy) {
                     return 'calculating...';
