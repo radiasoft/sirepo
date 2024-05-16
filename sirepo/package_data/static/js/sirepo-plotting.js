@@ -2944,9 +2944,11 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                         return;
                     }
                     var canvasResize = 2 / 3;
-                    [$scope.canvasSize.height, $scope.canvasSize.width] = plotting.constrainFullscreenSize($scope, canvasResize * elementWidth, aspectRatio);
-                    $scope.bottomPanelHeight = 2 * $scope.canvasSize.width / 5 + $scope.pad + $scope.margin.bottom;
-                    $scope.rightPanelWidth = $scope.canvasSize.width / 2 + $scope.pad + $scope.margin.right;
+                    var [totalHeight, totalWidth] = plotting.constrainFullscreenSize($scope, elementWidth, aspectRatio);
+                    $scope.canvasSize.height = canvasResize * totalHeight;
+                    $scope.canvasSize.width = canvasResize * totalWidth;
+                    $scope.bottomPanelHeight = (1 - canvasResize) * totalHeight;
+                    $scope.rightPanelWidth = (1 - canvasResize) * totalWidth + $scope.margin.right + $scope.pad;
                     axes.x.scale.range([0, $scope.canvasSize.width]);
                     axes.y.scale.range([$scope.canvasSize.height, 0]);
                     axes.bottomY.scale.range([$scope.bottomPanelHeight - $scope.pad - $scope.margin.bottom - 1, 0]);
