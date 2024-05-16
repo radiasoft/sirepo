@@ -657,10 +657,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             <div data-ng-class="::popoverInfo.elementPosition.class">
               <div style="margin-bottom: 10px">
                <input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" style="text-align: right" data-lpignore="true" required />
-               <div data-ng-if="hasPopoverData">
-               <!-- TODO (gurhar1133): format the model passed into rpn-static to fit what rpn-static expects-->
-                 -<div data-rpn-static="" field="\'value\'" data-model="popoverInfo.elementPosition.elemedge"></div>-
-               </div>
+                Value: <div data-rpn-static="" field="\'elemedge\'" data-model="popoverInfo.elementPosition"></div>
               </div>
               <div class="text-center">
                 <button class="btn btn-primary sr-button-save-cancel" data-ng-click="setElementPosition()">Save</button>
@@ -682,7 +679,6 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             let dropHandled = false;
             const itemCache = {};
             let lastSelectedItem = null;
-            $scope.hasPopoverData = false;
 
             $scope.popoverInfo = {
                 elementPosition: {
@@ -821,10 +817,8 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             function showElementPositionPopover(item) {
                 let idx = itemIndex(item);
                 $scope.popoverInfo.elementPosition.elemedge = getPosition(idx).elemedge;
-                $scope.popoverInfo.elementPosition.isBusy = true;
-                $scope.popoverInfo.elementPosition.isError = false;
-                $scope.hasPopoverData = true;
-                srdbg("$scope.popoverInfo.elementPosition.elemedge", $scope.popoverInfo.elementPosition.elemedge);
+                // $scope.popoverInfo.elementPosition.isBusy = true;
+                // $scope.popoverInfo.elementPosition.isError = false;
                 showPopover(item, 'elementPosition');
             }
 
@@ -882,7 +876,6 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
 
             $scope.clearPopover = () => {
                 $('.sr-lattice-item').popover('hide');
-                $scope.hasPopoverData = false;
             }
 
             $scope.clickItem = (item, $event) => {
@@ -1147,8 +1140,11 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 return true;
             };
 
-            $scope.setElementPosition = () =>
+            $scope.setElementPosition = () => {
                 setPosition('elementPosition', ['elemedge']);
+                srdbg("appstate.models", appState.models);
+            }
+
 
             $scope.unpackBeamline = () => {
                 $scope.clearPopover();
