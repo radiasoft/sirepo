@@ -28,8 +28,6 @@ class APIPerm(aenum.Flag):
     REQUIRE_AUTH_BASIC = aenum.auto()
     #: a cookie has to have been returned, which might contain a user
     REQUIRE_COOKIE_SENTINEL = aenum.auto()
-    # require user without role disabled
-    REQUIRE_NOT_DISABLED = aenum.auto()
     #: a user will be created if necessary and auth may be necessary
     REQUIRE_USER = aenum.auto()
     #: only usable on internal test systems
