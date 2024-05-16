@@ -644,7 +644,6 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 </div>
               </form>
             </div>
-            sdfgsdfgsdfg
             <div style="display:none">
             <div data-ng-class="::popoverInfo.modifyBeamline.class" style="max-width: 500px;">
               <div class="text-center">
@@ -653,12 +652,11 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                  <button class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>
               </div>
             </div>
-            aaaaaa
             <div data-ng-class="::popoverInfo.elementPosition.class">
-              <div style="margin-bottom: 10px">
-               <input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" style="text-align: right" data-lpignore="true" required />
-                Value: <div data-rpn-static="" field="\'elemedge\'" data-model="popoverInfo.elementPosition"></div>
-              </div>
+                <div class="row">
+                  <input class="col-sm-5" data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" style="margin: 1em;" data-lpignore="true" required />
+                  <div class="col-sm-5" data-rpn-static="" field="\'elemedge\'" data-model="popoverInfo.elementPosition" style="margin-top: 0.5em;"></div>
+                </div>
               <div class="text-center">
                 <button class="btn btn-primary sr-button-save-cancel" data-ng-click="setElementPosition()">Save</button>
                 <button class="btn btn-default sr-button-save-cancel" data-ng-click="clearPopover()">Cancel</button>
@@ -817,7 +815,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             function showElementPositionPopover(item) {
                 let idx = itemIndex(item);
                 $scope.popoverInfo.elementPosition.elemedge = getPosition(idx).elemedge;
-                // $scope.popoverInfo.elementPosition.isBusy = true;
+                // $scope.popoverInfo.elementPosition.isBusy = false;
                 // $scope.popoverInfo.elementPosition.isError = false;
                 showPopover(item, 'elementPosition');
             }
