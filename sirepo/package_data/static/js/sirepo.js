@@ -1921,11 +1921,6 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
         }
     };
 
-    self.toggleHiddenAndNotify = name => {
-        self.toggleHidden(name);
-        $rootScope.$broadcast(`panel.${name}.hidden`, self.isHidden(name));
-    };
-
     self.triggerWindowResize = windowResize;
 
     self.waitForUI = function(callback) {
