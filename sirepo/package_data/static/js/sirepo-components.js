@@ -2323,7 +2323,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 if (utilities.isFullscreen()) {
                     utilities.exitFullscreen();
                 } else {
-                    utilities.openFullscreen();
+                    utilities.openFullscreen($scope);
                 }
             };
 
@@ -5367,11 +5367,10 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate, $root
         $rootScope.$broadcast('sr-close-full-screen');
     };
 
-    this.openFullscreen = () => {
+    this.openFullscreen = (scope) => {
         this.fullscreenActive = true;
-        $rootScope.$broadcast('sr-full-screen');
+        scope.$emit('sr-full-screen');
     };
-
 
     this.buildSearch = (scope, element, searchClass, supportsMulti) => {
         const utilities = this;

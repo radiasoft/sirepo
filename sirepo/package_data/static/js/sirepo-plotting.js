@@ -634,7 +634,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             }
 
             function widthMargins() {
-                return scope.margin.left + scope.margin.right + (scope.pad || 0) + 35;
+                return scope.margin.left + scope.margin.right + (scope.pad || 0)
+                     + (utilities.isFullscreen() ? 35 : 0);
             }
 
             if (! utilities.isFullscreen()) {
