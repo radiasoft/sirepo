@@ -48,7 +48,7 @@ SIREPO.app.controller('VisualizationController', function (appState, panelState,
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
-SIREPO.app.controller('LatticeController', function(latticeService) {
+SIREPO.app.controller('LatticeController', function(latticeService, appState) {
     var self = this;
     self.latticeService = latticeService;
 
@@ -58,6 +58,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
     };
+    srdbg("appState.models", appState.models);
 
 });
 

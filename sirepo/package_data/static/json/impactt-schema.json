@@ -12,8 +12,7 @@
         "basicElementNames": [
             "DRIFTTUBE",
             "DIPOLE",
-            "MULTIPOLE",
-            "SEXTUPOLE"
+            "MULTIPOLE"
         ]
     },
     "dynamicFiles": {
@@ -255,6 +254,128 @@
             "title": "Beamline",
             "advanced": [
                 "name"
+            ]
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [],
+            "advanced": []
+        },
+        "command_beam": {
+            "title": "beam",
+            "description": "The BEAM statement defines data for the particles in a beam.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "n_p_row",
+                "n_p_col",
+                "d_t",
+                "n_step",
+                "n_bunch",
+                "dim",
+                "n_p",
+                "flag_err",
+                "flag_diag",
+                "flag_img",
+                "z_img",
+                "n_x",
+                "n_y",
+                "n_z",
+                "x_rad",
+                "y_rad",
+                "perd_len",
+                "flag_dist",
+                "n_emission",
+                "t_emission",
+                "b_curr",
+                "b_k_energy",
+                "b_mass",
+                "b_charge",
+                "b_freq",
+                "t_ini"
+            ]
+        },
+        "DRIFTTUBE": {
+            "title": "DRIFTTUBE",
+            "description": "The DRIFTTUBE element defines a drift space.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "zedge"
+            ]
+        },
+        "DIPOLE": {
+            "title": "DIPOLE",
+            "description": "A Dipole",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "zedge",
+                "b_field_x",
+                "b_field",
+                "half_gap",
+                "filename"
+            ]
+        },
+        "MULTIPOLE": {
+            "title": "MULTIPOLE",
+            "description": "A Multipole",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "zedge",
+                "pole_type",
+                "b_field_x",
+                "filename"
+            ]
+        },
+        "QUADRUPOLE": {
+            "title": "QUADRUPOLE",
+            "description": "A Quadrupole",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "rf_frequency",
+                "rf_phase_deg",
+                "b1_gradient",
+                "L_effective",
+                "file_id",
+
+                "name",
+                "l",
+                "zedge",
+                "radius",
+                "x_offset",
+                "y_offset",
+                "x_rotation",
+                "y_rotation",
+                "z_rotation"
+            ]
+        },
+        "SOLENOID": {
+            "title": "SOLENOID",
+            "description": "A solenoid",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "zedge",
+                "radius",
+                "filename"
+            ]
+        },
+        "SOLENOIDRF": {
+            "title": "SOLENOIDRF",
+            "description": "A solenoidRF",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "theta0_deg",
+                "rf_frequency",
+                "rf_field_scale",
+                "solenoid_field_scale",
+                "filename",
+                "name",
+                "l",
+                "zedge",
+                "radius",
+                "x_offset",
+                "y_offset",
+                "x_rotation",
+                "y_rotation",
+                "z_rotation"
             ]
         }
     }
