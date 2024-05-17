@@ -1087,16 +1087,16 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 
 	}
 
-	handleStateCloseModalLoginSuccess = () => {
+	handleStateCloseModalLoginSuccess() {
 	    this.loginModalElement.modal('hide');
 	    this.state.simState.resetSimulation();
 	    this.transitionState(this.STATES.LOGGED_IN);
 	}
 
-	handleStateCloseModalNoLogin = () => {
+	handleStateCloseModalNoLogin() {
 	    this.loginModalElement.modal('hide');
 	    this.transitionState(this.STATES.NOT_LOGGED_IN);
-	};
+	}
 
 	handleStateInitialize() {
 	    this.state = null;
@@ -1106,7 +1106,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	    this.state = {
 		simState: simState,
 		startSimulation: startSimulation,
-	    }
+	    };
 	    this.transitionState(this.STATES.CHECK_LOGIN_STATUS);
 	}
 
@@ -1115,7 +1115,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	}
 
 	handleStateRenderLoginModalInvalidCreds() {
-	    this.renderLoginModal()
+	    this.renderLoginModal();
 	}
 
 	handleStateRenderLoginModalNoCreds() {
@@ -1210,7 +1210,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 
     self.initializeSimState = (simState, startSimulation) => {
 	sm.transitionState(sm.STATES.INITIALIZE_SIM_STATE, simState, startSimulation);
-    }
+    };
 
     self.isRequestingLogin = () => {
 	return sm.currentState === sm.STATES.REQUEST_LOGIN;
@@ -1251,7 +1251,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	    sm.STATES.INITIALIZE,
 	    sm.STATES.NOT_LOGGED_IN,
 	    sm.STATES.REQUEST_LOGIN_STATUS,
-	]).has(sm.currentState)
+	]).has(sm.currentState);
     };
 
     self.showOTP = authState.sbatchHostIsNersc;
