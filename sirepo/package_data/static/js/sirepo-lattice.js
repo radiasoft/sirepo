@@ -1131,7 +1131,8 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 return true;
             };
 
-            $scope.setElementPosition = () => setPosition('elementPosition', ['elemedge']);
+            $scope.setElementPosition = () =>
+                setPosition('elementPosition', ['elemedge']);
 
             $scope.unpackBeamline = () => {
                 $scope.clearPopover();
