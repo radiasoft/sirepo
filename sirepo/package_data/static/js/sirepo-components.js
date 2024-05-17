@@ -590,19 +590,18 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
                   </div>
                   <div data-sbatch-options="simState"></div>
                 </div>
-                <div data-ng-if="sbatchLoginService.showLoginButton()">
-		<button ng-disabled="sbatchLoginService.state.requestingLoginStatus" class="col-sm-6 pull-right btn btn-default" data-ng-click="sbatchLoginService.renderLoginModal()">{{ sbatchLoginService.loginButtonLabel() }}</button>
+                <div data-ng-if="sbatchLoginService.shouldShowLoginButton()">
+		<button ng-disabled="sbatchLoginService.isRequestingLoginStatus()" class="col-sm-6 pull-right btn btn-default" data-ng-click="sbatchLoginService.renderModalNoCreds()">{{ sbatchLoginService.loginButtonLabel() }}</button>
                 </div>
-                <div class="col-sm-6 pull-right" data-ng-if="! sbatchLoginService.showLoginButton()">
-                  <button class="btn btn-default" ng-disabled="sbatchLoginService.state.requestingLoginStatus" data-ng-click="startSimulation()">{{ startButtonLabel }}</button>
+                <div class="col-sm-6 pull-right" data-ng-if="! sbatchLoginService.shouldShowLoginButton()">
+                  <button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel }}</button>
                 </div>
 	`,
         controller: function($scope, appState, sbatchLoginService, stringsService) {
 	    $scope.sbatchLoginService = sbatchLoginService;
             $scope.startButtonLabel = stringsService.startButtonLabel();
-	    sbatchLoginService.initStateSim($scope.simState, $scope.startSimulation);
-            appState.whenModelsLoaded($scope, sbatchLoginService.requestLoginStatus);
-            appState.watchModelFields($scope, [`${$scope.simState.model}.jobRunMode`],  sbatchLoginService.requestLoginStatus);
+            appState.whenModelsLoaded($scope, () => sbatchLoginService.initializeSimState($scope.simState, $scope.startSimulation));
+            appState.watchModelFields($scope, [`${$scope.simState.model}.jobRunMode`],  sbatchLoginService.jobRunModeChanged);
         },
     };
 });
@@ -4668,16 +4667,16 @@ SIREPO.app.directive('sbatchLoginModal', function() {
         restrict: 'A',
         scope: {},
         template: `
-            <div id="sbatch-login-modal" class="modal fade" tabindex="-1" role="dialog">
+            <div id="sbatch-login-modal" class="modal fade" tabindex="-1" role="dialog" data-backdrop='static' data-keyboard='false'>
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
                     <span class="lead modal-title text-info">Login to {{ sbatchHostDisplayName }}</span>
-                    <button  type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <button data-ng-click="sbatchLoginService.closeModalNoLogin()"  type="button" class="close" data-ng-disabled="sbatchLoginService.isRequestingLogin()"><span>&times;</span></button>
                     </div>
                     <div class="modal-body">
                         <form name="sbatchLoginModalForm">
-                            <div class="sr-input-warning" data-ng-show="warningText">{{warningText}}</div>
+                            <div class="sr-input-warning">{{ sbatchLoginService.modalWarningText() }}</div>
                             <div class="form-group">
                                 <input type="text" class="form-control" name="username" placeholder="username" autocomplete="username" data-ng-model="username" />
                             </div>
@@ -4688,7 +4687,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                                 <input type="password" class="form-control" name="otp" placeholder="one time password" autocomplete="one-time-code" data-ng-show="sbatchLoginService.showOTP" data-ng-model="otp"/>
                             </div>
                             <button  data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="submitDisabled()">Submit</button>
-                             <button  data-dismiss="modal" class="btn btn-default">Cancel</button>
+                             <button data-ng-click="sbatchLoginService.closeModalNoLogin()" class="btn btn-default" data-ng-disabled="sbatchLoginService.isRequestingLogin()">Cancel</button>
                         <form>
                     </div>
                   </div>
@@ -4714,12 +4713,11 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 	    }
 
             $scope.submitDisabled = function() {
-                return $scope.password.length < 1 || $scope.username.length < 1 || sbatchLoginService.state.requestingLogin;
+                return $scope.password.length < 1 || $scope.username.length < 1 || sbatchLoginService.isRequestingLogin();
             };
 
-            $scope.$on('sbatchLoginModalShown', function(event, reason) {
+            $scope.$on('sbatchLoginModalShown', function(event) {
 		resetLoginForm();
-		$scope.warningText = sbatchLoginService.loginModalWarningText(reason);
 		$scope.submit = () => sbatchLoginService.login($scope.username, $scope.password, $scope.otp);
             });
 
