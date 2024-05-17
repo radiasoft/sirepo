@@ -2321,9 +2321,9 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
 
             $scope.toggleFullscreen = function() {
                 if (utilities.isFullscreen()) {
-                    utilities.exitFullscreen($scope);
+                    utilities.exitFullscreen();
                 } else {
-                    utilities.openFullscreen($scope);
+                    utilities.openFullscreen();
                 }
             };
 
@@ -2403,17 +2403,13 @@ SIREPO.app.directive('reportPanel', function(appState, panelState, utilities) {
                 $scope.reportStyle.width = '100%';
                 $scope.reportStyle.height = '100%';
                 $scope.reportStyle.overflow = 'hidden';
-                panelState.waitForUI(() => {
-                    panelState.triggerWindowResize();
-                });
+                panelState.waitForUI(panelState.triggerWindowResize);
             });
 
 
             $scope.$on('sr-close-full-screen', () => {
                 $scope.reportStyle = {};
-                panelState.waitForUI(() => {
-                    panelState.triggerWindowResize();
-                });
+                panelState.waitForUI(panelState.triggerWindowResize);
             });
 
 
@@ -5289,7 +5285,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
     };
 });
 
-SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
+SIREPO.app.service('utilities', function($window, $interval, $interpolate, $rootScope) {
 
     var self = this;
 
@@ -5366,14 +5362,14 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         return this.fullscreenActive;
     };
 
-    this.exitFullscreen = (scope) => {
+    this.exitFullscreen = () => {
         this.fullscreenActive = false;
-        scope.$emit('sr-close-full-screen');
+        $rootScope.$broadcast('sr-close-full-screen');
     };
 
-    this.openFullscreen = (scope) => {
+    this.openFullscreen = () => {
         this.fullscreenActive = true;
-        scope.$emit('sr-full-screen');
+        $rootScope.$broadcast('sr-full-screen');
     };
 
 
