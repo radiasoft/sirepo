@@ -1,0 +1,10 @@
+{
+    "models": {
+        "simulation": {
+            "folder": "/Examples",
+            "name": "Example1",
+            "isExample": true
+        }
+    },
+    "simulationType": "impactt"
+}

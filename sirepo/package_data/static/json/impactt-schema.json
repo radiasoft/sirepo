@@ -33,8 +33,15 @@
     "localRoutes": {
         "source": {
             "config": {
-                "controller": "impacttSourceController as source",
-                "templateUrl": "/static/html/ipmactt-source.html"
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/impactt-source.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+              "controller": "VisualizationController as visualization",
+              "templateUrl": "/static/html/impactt-visualization.html"
             }
         }
     },
@@ -59,7 +66,7 @@
             "x_rad": ["Xrad", "RPNValue", 0.015, "Size of computational domain"],
             "y_rad": ["Yrad", "RPNValue", 0.015, "Size of computational domain"],
             "perd_len": ["Perdlen", "RPNValue", 45.0, "Size of computational domain"],
-            "flag_dist": ["FlagDist", "DistType", "Gaussian", "Type of the initial distribution."],
+            "flag_dist": ["FlagDist", "DistType", "Gauss3", "Type of the initial distribution."],
             "n_emission": ["Nemission", "Integer", 400, "The number of numerical emission steps"],
             "t_emission": ["Temission [sec]", "RPNValue", 6.5e-12, "Temission Laser pulse emission time"],
             "b_curr": ["Bcurr [A]", "RPNValue", 0.7140000000000003, "Beam current in Amps."],
