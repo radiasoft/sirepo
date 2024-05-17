@@ -1,7 +1,32 @@
 {
+    "appModes": {
+        "default": {
+            "localRoute": "lattice"
+        }
+    },
+    "constants": {
+        "advancedElementNames": [
+            "SOLENOID",
+            "SOLENOIDRF"
+        ],
+        "basicElementNames": [
+            "DRIFTTUBE",
+            "DIPOLE",
+            "MULTIPOLE",
+            "SEXTUPOLE"
+        ]
+    },
     "dynamicFiles": {
         "sirepoLibs": {
-            "js": ["impactt.js"]
+            "js": [
+                "impactt.js",
+                "sirepo-command.js",
+                "sirepo-lattice.js"
+            ],
+            "css": [
+                "lattice.css",
+                "command.css"
+           ]
         }
     },
     "enum": {
@@ -35,6 +60,13 @@
             "config": {
                 "controller": "SourceController as source",
                 "templateUrl": "/static/html/impactt-source.html"
+            }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "LatticeController as lattice",
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
             }
         },
         "visualization": {
@@ -218,6 +250,12 @@
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": []
+        },
+        "beamline": {
+            "title": "Beamline",
+            "advanced": [
+                "name"
+            ]
         }
     }
 }

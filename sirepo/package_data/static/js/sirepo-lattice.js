@@ -664,6 +664,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
         `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
+            srdbg("SIREPO.lattice", SIREPO.lattice);
             $scope.tooltip = SIREPO.lattice.beamlineEditorTooltip;
             $scope.beamlineItems = [];
             $scope.newBeamline = {};
