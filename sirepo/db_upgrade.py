@@ -85,6 +85,12 @@ def _20240507_cloudmc_to_openmc(qcall):
             _migrate_sim_type("cloudmc", "openmc", qcall, u)
 
 
+def _20240517_add_user_role(qcall):
+    for u in qcall.auth_db.all_uids():
+        with qcall.auth.logged_in_user_set(u):
+            qcall.auth_db.model("UserRole").add_roles([sirepo.auth_role.ROLE_USER])
+
+
 @contextlib.contextmanager
 def _backup_db_and_prevent_upgrade_on_error():
     b = sirepo.auth_db.db_filename() + ".bak"

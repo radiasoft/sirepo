@@ -184,6 +184,15 @@ class _Auth(sirepo.quest.Attr):
             auth_role_moderation.raise_control_for_user(self.qcall, u, r)
         raise sirepo.util.Forbidden(f"uid={u} does not have access to sim_type={t}")
 
+    def check_user_role(self):
+        u = self.logged_in_user()
+        if not self.qcall.auth_db.model("UserRole").has_role(
+            role=sirepo.auth_role.ROLE_USER,
+        ):
+            raise sirepo.util.Forbidden(
+                f"uid={u} role={sirepo.auth_role.ROLE_USER} not found"
+            )
+
     def complete_registration(self, name=None):
         """Update the database with the user's display_name and sets state to logged-in.
         Guests will have no name.
@@ -481,7 +490,9 @@ class _Auth(sirepo.quest.Attr):
         if not self.qcall.auth_db.model("UserRole").has_role(
             role=sirepo.auth_role.ROLE_ADM,
         ):
-            raise sirepo.util.Forbidden(f"uid={u} role=ROLE_ADM not found")
+            raise sirepo.util.Forbidden(
+                f"uid={u} role={sirepo.auth_role.ROLE_ADM} not found"
+            )
 
     def require_auth_basic(self):
         m = _METHOD_MODULES["basic"]
@@ -511,6 +522,7 @@ class _Auth(sirepo.quest.Attr):
         s = self._qcall_bound_state()
         u = self._qcall_bound_user()
         if u:
+            self.check_user_role()
             # Will raise an exception if dir not found
             simulation_db.user_path(uid=u, check=True)
         if s is None:
@@ -528,14 +540,14 @@ class _Auth(sirepo.quest.Attr):
                 e = "invalid"
                 self.reset_state()
                 p = PKDict(reload_js=True)
-            e = "auth_method={} is {}, forcing login: uid=".format(m, e, u)
+            e = "auth_method={} is {}, forcing login: uid={}".format(m, e, u)
         elif s == _STATE_LOGGED_OUT:
             e = "logged out uid={}".format(u)
             if m in _cfg.deprecated_methods:
                 # Force login to this specific method so we can migrate to valid method
                 r = "loginWith"
                 p = PKDict({":method": m})
-                e = "forced {}={} uid={}".format(m, r, p)
+                e = "forced {}={} uid={}".format(r, m, u)
         elif s == _STATE_COMPLETE_REGISTRATION:
             if m == METHOD_GUEST:
                 pkdc("guest completeRegistration={}", u)
@@ -546,7 +558,7 @@ class _Auth(sirepo.quest.Attr):
             e = "uid={} needs to complete registration".format(u)
         else:
             self.qcall.cookie.reset_state(
-                "uid={} state={} invalid, cannot continue".format(s, u)
+                "state={} uid={} invalid, cannot continue".format(s, u)
             )
             p = PKDict(reload_js=True)
             e = "invalid cookie state={} uid={}".format(s, u)
