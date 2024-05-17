@@ -212,7 +212,6 @@ disown
                 )
                 await get_agent_log(c, before_start=False)
         except Exception as e:
-            # TODO(e-carlin): https://github.com/radiasoft/sirepo/issues/7041 handle specific message for nersc down for maintenance
             pkdlog("error={} stack={}", e, pkdexc())
             self._srdb_root = None
             self._raise_sbatch_login_srexception(
