@@ -985,10 +985,8 @@ SIREPO.app.factory('stringsService', function(authState) {
         newSimulationLabel: () => {
             return strings.newSimulationLabel || `New ${ucfirst(strings.simulationDataType)}`;
         },
-	sbatchLoginButtonLabel: (requestingLoginStatus) => {
-	    return requestingLoginStatus ? 'Requesting login status...': `Login to ${authState.jobRunModeMap.sbatch}`;
-
-	},
+	sbatchLoginServiceStatus: () => {return 'Requesting login status...';},
+        sbatchLoginServiceLogin: (host) => {return `Login to ${host}`;},
         startButtonLabel: (modelName) => {
             return `Start New ${typeOfSimulation(modelName)}`;
         },
@@ -1047,8 +1045,121 @@ SIREPO.app.factory('timeService', function() {
 });
 
 SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authState, errorService, requestSender, stringsService) {
-    const self = this;
+    const self = {};
+    const _STATES = ['initial', 'need?', 'needed', 'status', 'creds', 'auth', 'ok', 'notNeeded'];
+    let _state = _STATES[0];
+    const _EVENTS = ['sbatchLogin', 'statusLogout', 'statusLogin', 'credsConfirm', 'credsCancel', 'authLogin', 'authInvalid', 'authError', 'sbatchLoginEx', 'loaded', 'unloaded', 'needYes', 'needNo'];
+    const _TRANSITIONS = {
+        initial: {
+            loaded: 'need?',
+            sbatchLoginEx: 'creds',
+            unloaded: 'initial',
+        },
+        needed: {
+            sbatchLoginEx: 'creds',
+            unloaded: 'initial',
+        },
+        notNeeded: {
+            sbatchLoginEx: 'creds',
+            unloaded: 'initial',
+        },
+        'need?': {
+            needNo: 'notNeeded',
+            needYes: 'status',
+            sbatchLoginEx: 'creds',
+            unloaded: 'initial',
+        },
+        status: {
+            sbatchLoginEx: 'creds',
+            statusError: 'error',
+            statusLogin: 'ok',
+            statusLogout: 'creds',
+            unloaded: 'initial',
+        },
+        creds: {
+            credsCancel: 'error',
+            credsConfirm: z'auth',
+            sbatchLoginEx: 'creds',
+            unloaded: 'initial',
+        },
+        auth: {
+            authError: 'error',
+            authInvalid: 'creds',
+            authLogin: 'ok',
+            sbatchLoginEx: 'creds',
+            unloaded: 'initial',
+        },
+        ok: {
+            sbatchLoginEx: 'creds',
+            unloaded: 'initial',
+        },
+    };
+
+    class _Query {
+        constructor(values) {
+            this.expect = true;
+            if (values[0] === '!') {
+                this.expect = false;
+                values.shift();
+            }
+
+            this.set = new Set(values);
+        }
+
+        test(state) {
+            return this.set.has(state) === this.expect;
+        }
+    }
+
+    const _QUERIES = ((values) => {
+        return Object.fromEntries(
+            Object.entries(values).map(
+                ([k, v]) => [k, new _Query(v)],
+            ),
+        );
+    })({
+        showLoginButton: ['auth', 'creds', 'status'],
+        disableLoginButton: ['!', 'creds'],
+    });
+
+    self.jobRunModeChanged = (jobRunMode) => {
+        self.processEvent(
+            jobRunMode === 'sbatch' ? 'needYes' : 'needNo',
+        );
+    };
+
+    self.loginButtonLabel = () => {
+        if (self.query('disableLoginButton')) {
+	    return stringsService.sbatchLoginServiceStatus();
+        }
+        return stringsService.sbatchLoginServiceLogin();
+    };
+
+    self.processEvent = (event, eventArgs) => {
+        const s = _TRANSITIONS[_state][event];
+        if (! s) {
+            throw new Error(`invalid transition state=${_state} event=${event}`);
+        }
+        _state = s;
+	const m = `action_${s}_${event}`;
+	// Not all transtions have an action
+	if (typeof self[m] === 'function') {
+	    self[m](eventArgs);
+	}
+    };
+
+    self.query = (query) => {
+        const v = _QUERIES[query];
+        if (! v) {
+            throw new Error(`invalid query=${v}`);
+        }
+        return _QUERIES[v].test(_state);
+    };
+
+    /////////////////// END
+
     class SM {
+
 	constructor() {
 	    this.loginModalElement = $('#sbatch-login-modal');
 	    this.currentState = null;
@@ -1220,16 +1331,8 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	return sm.currentState === sm.STATES.REQUEST_LOGIN_STATUS;
     };
 
-    self.jobRunModeChanged = () => {
-	sm.transitionState(sm.STATES.CHECK_LOGIN_STATUS);
-    };
-
     self.login = (username, password, otp) => {
 	sm.transitionState(sm.STATES.REQUEST_LOGIN, username, password, otp);
-    };
-
-    self.loginButtonLabel = () => {
-	return stringsService.sbatchLoginButtonLabel(sm.currentState === sm.STATES.REQUEST_LOGIN_STATUS);
     };
 
     self.modalWarningText = () => {
