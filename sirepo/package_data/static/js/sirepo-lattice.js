@@ -452,10 +452,14 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
                 var id = appState.models.beamline.id;
                 updateModels('beamline', 'id', 'beamlines', sortBeamlines);
                 self.editBeamline({ id: id });
+            } else {
+                srdbg("NO"); // TODO (gurhar1133): fix this
             }
             if (self.isElementModelName(name)) {
                 fixModelName(name);
                 updateModels(name, '_id', 'elements', sortElements);
+            } else {
+                srdbg("NO"); // TODO (gurhar1133): fix this
             }
         });
 
