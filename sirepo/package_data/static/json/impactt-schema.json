@@ -94,12 +94,6 @@
             "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the particle source"]
         },
         "beamlineReport": {},
-        "simulationStatus": {},
-        "simulation": {
-            "elementPosition": ["Element Positioning", "ElementPosition", "absolute", "Beamline elements may be positioned relative to each other using Drifts for spacing, or positioned absolute using Elemedge."],
-            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
-        },
-        "impacttReport": {},
         "command_beam": {
             "n_p_row": ["Nprow", "Integer", 2, "Number of columns of processors, used to decompose domain along Z dimension"],
             "n_p_col": ["Npcol", "Integer", 2, "Number of columns of processors, used to decompose domain along Y dimension"],
@@ -151,6 +145,12 @@
             "zmu1": ["zmu1 [m]", "RPNValue", 0.0],
             "zmu2": ["zmu2", "RPNValue", 0.0]
         },
+        "impacttReport": {},
+        "simulationStatus": {},
+        "simulation": {
+            "elementPosition": ["Element Positioning", "ElementPosition", "absolute", "Beamline elements may be positioned relative to each other using Drifts for spacing, or positioned absolute using Elemedge."],
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+        },
         "_ELEMENT": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
@@ -162,10 +162,6 @@
             "y_rotation": ["Rotation Error Y [rad]", "RPNValue", 0],
             "z_rotation": ["Rotation Error Z [rad]", "RPNValue", 0]
         },
-        "DRIFTTUBE": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"]
-        },
         "CONSTFOC": {
             "name": ["NAME", "ValidatedString", "", ""],
             "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
@@ -173,40 +169,6 @@
             "x_focusing_gradient": ["X Focusing Gradient [kx0^2]", "RPNValue", 0],
             "y_focusing_gradient": ["Y Focusing Gradient [ky0^2]", "RPNValue", 0],
             "z_focusing_gradient": ["Z Focusing Gradient [kz0^2]", "RPNValue", 0]
-        },
-        "EMFLDCART": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
-            "radius": ["Radius [m]", "RPNValue", 0],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "filename": ["Filename", "InputFile", "", "EMfldCart filename"]
-        },
-        "EMFLDCYL": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
-            "radius": ["Radius [m]", "RPNValue", 0],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "filename": ["Filename", "InputFile", "", "EMfldCyl filename"]
-        },
-        "EMFLDANA": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "e_scale": ["E Scale", "RPNValue", 0],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "filename": ["Filename", "InputFile", "", "EMfldAna filename"]
-        },
-        "QUADRUPOLE": {
-            "_super": ["_", "model", "_ELEMENT"],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "rf_phase_deg": ["RF Quadrupole Phase [deg]", "RPNValue", 0],
-            "b1_gradient": ["Gradient [T/m]", "RPNValue", 0],
-            "L_effective": ["Effective Length [m]", "RPNValue", 0],
-            "file_id": ["Filename", "InputFile", "", "file ID to contain the geometry information of bend."]
         },
         "DIPOLE": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -216,12 +178,9 @@
             "half_gap": ["Half of Gap Width (m)", "RPNValue", 0],
             "filename": ["Filename", "InputFile", "", "file ID to contain the geometry information of bend."]
         },
-        "MULTIPOLE": {
+        "DRIFTTUBE": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
-            "pole_type": ["Pole Type", "PoleType", "sextupole"],
-            "b_field_x": ["Field Strength [T/m^n]", "RPNValue", 0],
-            "filename": ["Filename", "InputFile", "", "Multipole filename"]
+            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"]
         },
         "DTL": {
             "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
@@ -252,11 +211,53 @@
             "rf_cavity_y_rotation": ["RF Cavity Rotation Error Y [rad]", "RPNValue", 0],
             "rf_cavity_z_rotation": ["RF Cavity Rotation Error Z [rad]", "RPNValue", 0]
         },
-        "SOLENOID": {
+        "EMFLDCART": {
             "name": ["NAME", "ValidatedString", "", ""],
             "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
             "radius": ["Radius [m]", "RPNValue", 0],
-            "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
+            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
+            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "filename": ["Filename", "InputFile", "", "EMfldCart filename"]
+        },
+        "EMFLDCYL": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
+            "radius": ["Radius [m]", "RPNValue", 0],
+            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
+            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "filename": ["Filename", "InputFile", "", "EMfldCyl filename"]
+        },
+        "EMFLDANA": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
+            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
+            "e_scale": ["E Scale", "RPNValue", 0],
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "filename": ["Filename", "InputFile", "", "EMfldAna filename"]
+        },
+        "MULTIPOLE": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
+            "pole_type": ["Pole Type", "PoleType", "sextupole"],
+            "b_field_x": ["Field Strength [T/m^n]", "RPNValue", 0],
+            "filename": ["Filename", "InputFile", "", "Multipole filename"]
+        },
+        "QUADRUPOLE": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
+            "rf_phase_deg": ["RF Quadrupole Phase [deg]", "RPNValue", 0],
+            "b1_gradient": ["Gradient [T/m]", "RPNValue", 0],
+            "L_effective": ["Effective Length [m]", "RPNValue", 0],
+            "file_id": ["Filename", "InputFile", "", "file ID to contain the geometry information of bend."]
+        },
+        "SC": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
+            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "filename": ["Filename", "InputFile", "", "Superconducting cavity filename"]
         },
         "SOLENOIDRF": {
             "_super": ["_", "model", "_ELEMENT"],
@@ -266,12 +267,11 @@
             "solenoid_field_scale": ["Scale of solenoid B field", "RPNValue", 1],
             "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
         },
-        "SC": {
-            "_super": ["_", "model", "_ELEMENT"],
-            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "filename": ["Filename", "InputFile", "", "Superconducting cavity filename"]
+        "SOLENOID": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
+            "radius": ["Radius [m]", "RPNValue", 0],
+            "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
         }
     },
     "view": {
@@ -290,15 +290,6 @@
         "beamlineReport": {
             "title": "Lattice",
             "hasDataFile": false,
-            "advanced": []
-        },
-        "simulationStatus": {
-            "title": "Simulation Status",
-            "advanced": []
-        },
-        "simulationSettings": {
-            "title": "Simulation Settings",
-            "basic": [],
             "advanced": []
         },
         "command_beam": {
@@ -333,6 +324,15 @@
                 "b_freq",
                 "t_ini"
             ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [],
+            "advanced": []
         },
         "DRIFTTUBE": {
             "title": "DRIFTTUBE",
@@ -389,17 +389,6 @@
                 "z_rotation"
             ]
         },
-        "SOLENOID": {
-            "title": "SOLENOID",
-            "description": "A solenoid",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "zedge",
-                "radius",
-                "filename"
-            ]
-        },
         "SOLENOIDRF": {
             "title": "SOLENOIDRF",
             "description": "A solenoidRF",
@@ -419,6 +408,17 @@
                 "x_rotation",
                 "y_rotation",
                 "z_rotation"
+            ]
+        },
+        "SOLENOID": {
+            "title": "SOLENOID",
+            "description": "A solenoid",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "zedge",
+                "radius",
+                "filename"
             ]
         },
         "simulation": {

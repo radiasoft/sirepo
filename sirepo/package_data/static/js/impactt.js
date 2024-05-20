@@ -81,6 +81,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 <div data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-flash"></span> Visualization</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-flash"></span> Lattice</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
