@@ -584,24 +584,36 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
 		startSimulation: '&'
         },
         template: `
-                <div data-ng-if="simState.showJobSettings()">
-                  <div class="form-group form-group-sm">
-                    <div data-model-field="'jobRunMode'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
-                  </div>
-                  <div data-sbatch-options="simState"></div>
-                </div>
-                <div data-ng-if="sbatchLoginService.shouldShowLoginButton()">
-		<button ng-disabled="sbatchLoginService.isRequestingLoginStatus()" class="col-sm-6 pull-right btn btn-default" data-ng-click="sbatchLoginService.renderModalNoCreds()">{{ sbatchLoginService.loginButtonLabel() }}</button>
-                </div>
-                <div class="col-sm-6 pull-right" data-ng-if="! sbatchLoginService.shouldShowLoginButton()">
-                  <button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel }}</button>
-                </div>
+            <div data-ng-if="simState.showJobSettings()">
+              <div class="form-group form-group-sm">
+                <div data-model-field="'jobRunMode'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
+              </div>
+              <div data-sbatch-options="simState"></div>
+            </div>
+            <div data-ng-if="sbatchLoginService.query('showLoginOrStatus')">
+              <button ng-disabled="! sbatchLoginService.query('showLogin')" class="col-sm-6 pull-right btn btn-default" data-ng-click="loginClicked()">{{ sbatchLoginService.loginButtonLabel() }}</button>
+            </div>
+            <div class="col-sm-6 pull-right" data-ng-if="! sbatchLoginService.query('showLogin')">
+              <button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel }}</button>
+            </div>
 	`,
         controller: function($scope, appState, sbatchLoginService, stringsService) {
 	    $scope.sbatchLoginService = sbatchLoginService;
             $scope.startButtonLabel = stringsService.startButtonLabel();
-            appState.whenModelsLoaded($scope, () => sbatchLoginService.initializeSimState($scope.simState, $scope.startSimulation));
-            appState.watchModelFields($scope, [`${$scope.simState.model}.jobRunMode`],  sbatchLoginService.jobRunModeChanged);
+            $scope.loginClicked = () => {
+                sbatchLoginService.event('loginClicked', $scope);
+            };
+            const _jobRunModeChanged = () => {
+                sbatchLoginService.jobRunModeChanged(
+                    appState.models[$scope.simState.model].jobRunMode,
+                );
+            },
+            appState.whenModelsLoaded($scope, _jobRunModeChanged);
+            appState.watchModelFields(
+                $scope,
+                [`${$scope.simState.model}.jobRunMode`],
+                _jobRunModeChanged,
+            );
         },
     };
 });
@@ -4671,12 +4683,12 @@ SIREPO.app.directive('sbatchLoginModal', function() {
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
-                    <span class="lead modal-title text-info">Login to {{ sbatchHostDisplayName }}</span>
-                    <button data-ng-click="sbatchLoginService.closeModalNoLogin()"  type="button" class="close" data-ng-disabled="sbatchLoginService.isRequestingLogin()"><span>&times;</span></button>
+                    <span class="lead modal-title text-info">Login to {{ authState.sbatchHostDisplayName }}</span>
+                    <button data-ng-click=""  type="button" class="close" data-ng-disabled="! sbatchLoginService.query('showLogin')"><span>&times;</span></button>
                     </div>
                     <div class="modal-body">
                         <form name="sbatchLoginModalForm">
-                            <div class="sr-input-warning">{{ sbatchLoginService.modalWarningText() }}</div>
+p                            <div class="sr-input-warning">{{ warning }}</div>
                             <div class="form-group">
                                 <input type="text" class="form-control" name="username" placeholder="username" autocomplete="username" data-ng-model="username" />
                             </div>
@@ -4684,7 +4696,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                                 <input type="password" class="form-control" name="password" placeholder="password" autocomplete="current-password" data-ng-model="password" />
                             </div>
                             <div class="form-group">
-                                <input type="password" class="form-control" name="otp" placeholder="one time password" autocomplete="one-time-code" data-ng-show="sbatchLoginService.showOTP" data-ng-model="otp"/>
+                                <input type="password" class="form-control" name="otp" placeholder="one time password" autocomplete="one-time-code" data-ng-show="authState.sbatchHostIsNersc" data-ng-model="otp"/>
                             </div>
                             <button  data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="submitDisabled()">Submit</button>
                              <button data-ng-click="sbatchLoginService.closeModalNoLogin()" class="btn btn-default" data-ng-disabled="sbatchLoginService.isRequestingLogin()">Cancel</button>
@@ -4696,35 +4708,57 @@ SIREPO.app.directive('sbatchLoginModal', function() {
             </div>
         `,
         controller: function($scope, authState, sbatchLoginService) {
-	    resetLoginFormTextFields();
+	    resetLoginFormText();
 	    $scope.sbatchLoginService = sbatchLoginService;
-	    $scope.sbatchHostDisplayName = authState.sbatchHostDisplayName;
+	    $scope.authState = authState;
 
 
 	    function resetLoginForm() {
-		resetLoginFormTextFields();
+		resetLoginFormText();
 		$scope.sbatchLoginModalForm.$setPristine();
 	    }
 
-	    function resetLoginFormTextFields() {
+	    function resetLoginFormText() {
 		$scope.otp = '';
 		$scope.password = '';
 		$scope.username = '';
+                $scope.warning = '';
 	    }
 
             $scope.submitDisabled = function() {
-                return $scope.password.length < 1 || $scope.username.length < 1 || sbatchLoginService.isRequestingLogin();
+                return $scope.password.length < 1 || $scope.username.length < 1 || ! sbatchLoginService.query('showLogin');
             };
 
-            $scope.$on('sbatchLoginModalShown', function(event) {
-		resetLoginForm();
-		$scope.submit = () => sbatchLoginService.login($scope.username, $scope.password, $scope.otp);
-            });
+            $scope.$on('invalidSbatchLogin', function(event, eventArg) {
+                if ('srException' in eventArg) {
+                    const r = eventArg.srException.reason;
+                    $scope.warning = r == 'invalid-creds'
+                    ? 'Your credentials were invalid. Please try again.'
+                    : r == 'invalid-creds' ? 'Please enter credentials.'
+                    : `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`;
+                }
+                //TODO(robnagler): other issues probably warning. Maybe hide?
+            };
 
-            $scope.$on('sbatchLoginModalHidden', function(event, broadcastArg) {
-		// SECURITY: remove credentials from memory
+            $scope.$on('showSbatchLoginModal', function(event, loginScope) {
 		resetLoginForm();
+		$scope.submit = () => {
+                    sbatchLoginService.event(
+                        'credsConfirm',
+                        {
+                            sbatchCredentials: {
+                                otp: otp,
+                                password: password,
+                                username: username,
+                            },
+                            loginScope: loginScope,
+                            modalScope: $scope,
+                        },
+		    );
+                };
+	        $('#sbatch-login-modal').modal('show');
             });
+            //TODO: reset form on loginsuccess or modal is hidden?
         },
     };
 

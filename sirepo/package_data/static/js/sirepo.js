@@ -1046,26 +1046,49 @@ SIREPO.app.factory('timeService', function() {
 
 SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authState, errorService, requestSender, stringsService) {
     const self = {};
-    const _STATES = ['initial', 'need?', 'needed', 'status', 'creds', 'auth', 'ok', 'notNeeded'];
+    const _STATES = ['initial', 'needed', 'status', 'creds', 'auth', 'ok', 'error', 'notNeeded'];
     let _state = _STATES[0];
-    const _EVENTS = ['sbatchLogin', 'statusLogout', 'statusLogin', 'credsConfirm', 'credsCancel', 'authLogin', 'authInvalid', 'authError', 'sbatchLoginEx', 'loaded', 'unloaded', 'needYes', 'needNo'];
+    const _EVENTS = ['sbatchLogin', 'statusLogout', 'statusLogin', 'credsConfirm', 'credsCancel', 'authSuccess', 'authInvalid', 'authError', 'sbatchLoginEx', 'unloaded', 'needYes', 'needNo'];
     const _TRANSITIONS = {
-        initial: {
-            loaded: 'need?',
+        auth: {
+            authError: 'error',
+            authInvalid: 'creds',
+            authSuccess: 'ok',
             sbatchLoginEx: 'creds',
             unloaded: 'initial',
         },
-        needed: {
+        creds: {
+            credsCancel: 'error',
+            credsConfirm: 'auth',
+            sbatchLoginEx: 'creds',
+            unloaded: 'initial',
+        },
+        error: {
+            //TODO(robnagler) error states unclear
+            needNo: 'notNeeded',
+            needYes: 'status',
+            unloaded: 'initial',
+        },
+        idle: {
+            loginClicked: 'creds',
+            needNo: 'notNeeded',
+            needYes: 'status',
+            sbatchLoginEx: 'creds',
+            unloaded: 'initial',
+        },
+        initial: {
+            needNo: 'notNeeded',
+            needYes: 'status',
             sbatchLoginEx: 'creds',
             unloaded: 'initial',
         },
         notNeeded: {
             sbatchLoginEx: 'creds',
-            unloaded: 'initial',
-        },
-        'need?': {
             needNo: 'notNeeded',
             needYes: 'status',
+            unloaded: 'initial',
+        },
+        ok: {
             sbatchLoginEx: 'creds',
             unloaded: 'initial',
         },
@@ -1073,24 +1096,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             sbatchLoginEx: 'creds',
             statusError: 'error',
             statusLogin: 'ok',
-            statusLogout: 'creds',
-            unloaded: 'initial',
-        },
-        creds: {
-            credsCancel: 'error',
-            credsConfirm: z'auth',
-            sbatchLoginEx: 'creds',
-            unloaded: 'initial',
-        },
-        auth: {
-            authError: 'error',
-            authInvalid: 'creds',
-            authLogin: 'ok',
-            sbatchLoginEx: 'creds',
-            unloaded: 'initial',
-        },
-        ok: {
-            sbatchLoginEx: 'creds',
+            statusLogout: 'idle',
             unloaded: 'initial',
         },
     };
@@ -1118,35 +1124,114 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             ),
         );
     })({
-        showLoginButton: ['auth', 'creds', 'status'],
-        disableLoginButton: ['!', 'creds'],
+        showLogin: ['creds'],
+        showLoginOrStatus: ['auth', 'creds', 'idle', 'status'],
     });
 
-    self.jobRunModeChanged = (jobRunMode) => {
-        self.processEvent(
-            jobRunMode === 'sbatch' ? 'needYes' : 'needNo',
+    const _handleSRException => (srException, errorCallback) {
+        if (srException.routeName != 'sbatchLogin') {
+            return false;
+        }
+        errorCallback
+        callback({isSbatchLoginServiceSRException: true});
+                sm.transitionState(
+                    {
+                        'no-creds': sm.STATES.RENDER_LOGIN_MODAL_NO_CREDS,
+                        'invalid-creds': sm.STATES.RENDER_LOGIN_MODAL_INVALID_CREDS,
+                        'general-connection-error': sm.STATES.RENDER_LOGIN_MODAL_GENERAL_CONNECTION_ERROR,
+                    }[srException.params.reason]
+                );
+            }
+        );
+
+    };
+
+    const _sendRequest(route, scopes, otherArgs) => {
+	const _response = (response) => {
+	    if (response.loginSuccess) {
+                self.event('authSuccess', {authResponse: response}),
+            }
+            else {
+                self.event('authError', {authResponse: response});
+	    }
+	};
+	requestSender.sendRequest(
+	    'sbatchLogin',
+	    _response,
+	    {
+		computeModel: scopes.loginScope.simState.model,
+		simulationId: appState.models.simulation.simulationId,
+		simulationType: SIREPO.APP_SCHEMA.simulationType,
+		...otherArgs,
+	    },
+            _response,
         );
     };
 
-    self.loginButtonLabel = () => {
-        if (self.query('disableLoginButton')) {
-	    return stringsService.sbatchLoginServiceStatus();
-        }
-        return stringsService.sbatchLoginServiceLogin();
+    self._action_auth_authInvalid = (srException) => {
+	$rootScope.$broadcast('invalidSbatchLogin', {srException: srException});
     };
 
-    self.processEvent = (event, eventArgs) => {
+    self._action_creds_credsConfirm = (eventArg) => {
+        _sendRequest(
+            'sbatchLogin',
+            scopes,
+            {sbatchCredentials: eventArg.sbatchCredentials},
+        );
+    };
+
+    self._action_initial_loaded = (loginScope) => {
+        const j = appState.models[loginScope.simState.model].jobRunMode;
+
+    };
+
+    self._action_needed_loginClicked = (loginScope) => {
+	$rootScope.$broadcast('showSbatchLoginModal', $scope);
+    };
+
+    self.event = (event, eventArgs) => {
         const s = _TRANSITIONS[_state][event];
         if (! s) {
             throw new Error(`invalid transition state=${_state} event=${event}`);
         }
+        //TODO(robnagler) does not need to be on $self
+	const m = `_action_${_state}_${event}`;
         _state = s;
-	const m = `action_${s}_${event}`;
 	// Not all transtions have an action
 	if (typeof self[m] === 'function') {
 	    self[m](eventArgs);
 	}
     };
+
+    self.jobRunModeChanged = (jobRunMode) => {
+        self.event(
+            jobRunMode === 'sbatch' ? 'needYes' : 'needNo',
+        );
+    };
+
+    self.loginButtonLabel = () => {
+        if (self.query('showLogin')) {
+            return stringsService.sbatchLoginServiceLogin();
+        }
+	return stringsService.sbatchLoginServiceStatus();
+    };
+
+    self.modalWarningText = () => {
+        if (self.query('auth')) {
+            return ;
+        }
+        if (self.query('error')) {
+        }
+
+        return `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`
+	return {
+
+	    // TODO(e-carlin): add link to perlmutter MOTD
+	    [sm.STATES.RENDER_LOGIN_MODAL_GENERAL_CONNECTION_ERROR]: ,
+	    [sm.STATES.RENDER_LOGIN_MODAL_INVALID_CREDS]: ,
+	}[sm.currentState];
+    };
+
 
     self.query = (query) => {
         const v = _QUERIES[query];
@@ -1156,6 +1241,8 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         return _QUERIES[v].test(_state);
     };
 
+    requestSender.registerSRExceptionHandler('sbatchLogin', _handleSRException);
+    $rootScope.$on('modelsUnloaded', () => self.event('unloaded')
     /////////////////// END
 
     class SM {
@@ -1179,14 +1266,6 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 		REQUEST_LOGIN_STATUS: 'RequestLoginStatus',
 	    };
 	    this.transitionState(this.STATES.INITIALIZE);
-	}
-
-	defaultRequestArgs() {
-	    return {
-		computeModel: this.state.simState.model,
-		simulationId: appState.models.simulation.simulationId,
-		simulationType: SIREPO.APP_SCHEMA.simulationType,
-	    };
 	}
 
 	handleStateCheckLoginStatus() {
@@ -1333,14 +1412,6 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 
     self.login = (username, password, otp) => {
 	sm.transitionState(sm.STATES.REQUEST_LOGIN, username, password, otp);
-    };
-
-    self.modalWarningText = () => {
-	return {
-	    // TODO(e-carlin): add link to perlmutter MOTD
-	    [sm.STATES.RENDER_LOGIN_MODAL_GENERAL_CONNECTION_ERROR]: `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`,
-	    [sm.STATES.RENDER_LOGIN_MODAL_INVALID_CREDS]: 'Your credentials were invalid. Please try again.',
-	}[sm.currentState];
     };
 
     self.renderModalNoCreds = () => {
@@ -3005,10 +3076,9 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
             return;
         }
 	for (const h in srExceptionHandlers) {
-	    if (srExceptionHandlers[h].shouldHandle(e)) {
-		srExceptionHandlers[h].handle(e, errorCallback);
-		return;
-	    }
+	    if (h(e, errorCallback)) {
+                break;
+            }
 	}
         if (e.routeName == LOGIN_ROUTE_NAME) {
             saveLoginRedirect();
@@ -3557,7 +3627,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         }
 
         function handleStatus(data) {
-	    if (data && data.isSbatchLoginServiceSRException) {
+	    if (data && data.srException) {
 		return;
 	    }
             setSimulationStatus(data);
