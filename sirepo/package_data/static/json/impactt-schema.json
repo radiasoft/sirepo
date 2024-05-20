@@ -5,14 +5,13 @@
         }
     },
     "constants": {
-        "advancedElementNames": [
-            "SOLENOID",
-            "SOLENOIDRF"
-        ],
+        "advancedElementNames": [],
         "basicElementNames": [
             "DRIFTTUBE",
             "DIPOLE",
-            "MULTIPOLE"
+            "MULTIPOLE",
+            "SOLENOID",
+            "SOLENOIDRF"
         ]
     },
     "dynamicFiles": {
@@ -154,7 +153,6 @@
         "_ELEMENT": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
             "radius": ["Radius [m]", "RPNValue", 0],
             "x_offset": ["Misalignment X [m]", "RPNValue", 0],
             "y_offset": ["Misalignment Y [m]", "RPNValue", 0],
@@ -162,9 +160,15 @@
             "y_rotation": ["Rotation Error Y [rad]", "RPNValue", 0],
             "z_rotation": ["Rotation Error Z [rad]", "RPNValue", 0]
         },
+        "BPM": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "bnseg": ["Bnseg", "Integer", 0],
+            "bmpstp": ["Bmpstp", "Integer", 0]
+        },
         "CONSTFOC": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "radius": ["Radius [m]", "RPNValue", 0],
             "x_focusing_gradient": ["X Focusing Gradient [kx0^2]", "RPNValue", 0],
             "y_focusing_gradient": ["Y Focusing Gradient [ky0^2]", "RPNValue", 0],
@@ -172,7 +176,7 @@
         },
         "DIPOLE": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "b_field_x": ["X Field Strength [T]", "RPNValue", 0],
             "b_field": ["Y Field Strength [T]", "RPNValue", 0],
             "half_gap": ["Half of Gap Width (m)", "RPNValue", 0],
@@ -180,10 +184,11 @@
         },
         "DRIFTTUBE": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"]
+            "l": ["L [m]", "RPNValue", 0, "The element length"]
         },
         "DTL": {
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
             "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
             "radius": ["Radius [m]", "RPNValue", 0],
@@ -213,7 +218,7 @@
         },
         "EMFLDCART": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "radius": ["Radius [m]", "RPNValue", 0],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
             "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
@@ -222,7 +227,7 @@
         },
         "EMFLDCYL": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "radius": ["Radius [m]", "RPNValue", 0],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
             "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
@@ -231,7 +236,7 @@
         },
         "EMFLDANA": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
             "e_scale": ["E Scale", "RPNValue", 0],
             "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
@@ -239,7 +244,7 @@
         },
         "MULTIPOLE": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "pole_type": ["Pole Type", "PoleType", "sextupole"],
             "b_field_x": ["Field Strength [T/m^n]", "RPNValue", 0],
             "filename": ["Filename", "InputFile", "", "Multipole filename"]
@@ -269,7 +274,7 @@
         },
         "SOLENOID": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
             "radius": ["Radius [m]", "RPNValue", 0],
             "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
         }
@@ -334,13 +339,22 @@
             "basic": [],
             "advanced": []
         },
+        "BPM": {
+            "title": "BPM",
+            "description": "Beam Position Monitor",
+            "advanced": [
+                "name",
+                "l",
+                "bpmstp",
+                "bnseg"
+            ]
+        },
         "DRIFTTUBE": {
             "title": "DRIFTTUBE",
             "description": "The DRIFTTUBE element defines a drift space.",
             "fieldsPerTab": 8,
             "advanced": [
-                "name",
-                "zedge"
+                "name"
             ]
         },
         "DIPOLE": {
@@ -349,7 +363,6 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "zedge",
                 "b_field_x",
                 "b_field",
                 "half_gap",
@@ -362,7 +375,6 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "zedge",
                 "pole_type",
                 "b_field_x",
                 "filename"
@@ -380,7 +392,6 @@
                 "file_id",
                 "name",
                 "l",
-                "zedge",
                 "radius",
                 "x_offset",
                 "y_offset",
@@ -401,7 +412,6 @@
                 "solenoid_field_scale",
                 "filename",
                 "l",
-                "zedge",
                 "radius",
                 "x_offset",
                 "y_offset",
@@ -416,7 +426,6 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "zedge",
                 "radius",
                 "filename"
             ]
