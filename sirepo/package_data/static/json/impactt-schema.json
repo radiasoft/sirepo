@@ -16,6 +16,12 @@
         ]
     },
     "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "split-1.3.5.min.js",
+                "vtk.js"
+            ]
+        },
         "sirepoLibs": {
             "js": [
                 "impactt.js",
@@ -24,7 +30,8 @@
             ],
             "css": [
                 "lattice.css",
-                "command.css"
+                "command.css",
+                "vtk.css"
            ]
         }
     },
@@ -77,7 +84,21 @@
         }
     },
     "model": {
+        "beamline": {
+            "name": ["Name", "ValidatedString"],
+            "x": ["X [m]", "RPNValue", 0, "The x-coordinate of the location of the particle source"],
+            "y": ["Y [m]", "RPNValue", 0, "The y-coordinate of the location of the particle source"],
+            "z": ["Z [m]", "RPNValue", 0, "The z-coordinate of the location of the particle source"],
+            "theta": ["THETA", "RPNValue", 0, "The rotation about the y-axis of the particle source"],
+            "phi": ["PHI", "RPNValue", 0, "The rotation about the x-axis of the particle source"],
+            "psi": ["PSI", "RPNValue", 0, "The rotation about the z-axis of the particle source"]
+        },
+        "beamlineReport": {},
         "simulationStatus": {},
+        "simulation": {
+            "elementPosition": ["Element Positioning", "ElementPosition", "absolute", "Beamline elements may be positioned relative to each other using Drifts for spacing, or positioned absolute using Elemedge."],
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+        },
         "impacttReport": {},
         "command_beam": {
             "n_p_row": ["Nprow", "Integer", 2, "Number of columns of processors, used to decompose domain along Z dimension"],
@@ -246,15 +267,26 @@
         }
     },
     "view": {
-        "simulationStatus": {
-            "title": "Simulation Status",
-            "advanced": []
-        },
         "beamline": {
             "title": "Beamline",
             "advanced": [
-                "name"
+                "name",
+                "x",
+                "y",
+                "z",
+                "theta",
+                "phi",
+                "psi"
             ]
+        },
+        "beamlineReport": {
+            "title": "Lattice",
+            "hasDataFile": false,
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
         },
         "simulationSettings": {
             "title": "Simulation Settings",
@@ -262,7 +294,7 @@
             "advanced": []
         },
         "command_beam": {
-            "title": "beam",
+            "title": "Command Beam",
             "description": "The BEAM statement defines data for the particles in a beam.",
             "fieldsPerTab": 8,
             "advanced": [
@@ -376,6 +408,12 @@
                 "x_rotation",
                 "y_rotation",
                 "z_rotation"
+            ]
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name"
             ]
         }
     }

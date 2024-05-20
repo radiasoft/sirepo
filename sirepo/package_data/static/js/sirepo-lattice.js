@@ -242,6 +242,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
     self.editBeamline = function(beamline, updateNoWait) {
         self.activeBeamlineId = beamline.id;
+        srdbg("beamline?", beamline);
         appState.models.simulation.activeBeamlineId = beamline.id;
         if (! appState.models.simulation.visualizationBeamlineId) {
             appState.models.simulation.visualizationBeamlineId = beamline.id;
@@ -437,9 +438,10 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         return name + index;
     };
 
+    srdbg("SIREPO.lattice && SIREPO.lattice.useBeamlineListeners", SIREPO.lattice, SIREPO.lattice.useBeamlineListeners, SIREPO.APP_SCHEMA.model.DRIFT, SIREPO.APP_SCHEMA.model.DRIF)
     if ((SIREPO.lattice && SIREPO.lattice.useBeamlineListeners)
         //TODO(pjm): change DRIFT apps to use lattice.useBeamlineListeners
-        || SIREPO.APP_SCHEMA.model.DRIFT || SIREPO.APP_SCHEMA.model.DRIF) {
+        || SIREPO.APP_SCHEMA.model.DRIFT || SIREPO.APP_SCHEMA.model.DRIF || SIREPO.APP_SCHEMA.model.DRIFTTUBE) {
         appState.whenModelsLoaded($rootScope, function() {
             self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
         });
@@ -470,6 +472,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
         $rootScope.$on('modelsUnloaded', function() {
             self.activeBeamlineId = null;
+            srdbg("setting activebeam to null");
             self.selectedItem = null;
         });
     }
@@ -1119,6 +1122,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
 
             $scope.showEditor = () => {
                 if (! appState.isLoaded() || ! latticeService.activeBeamlineId) {
+                    srdbg("hit->", appState.isLoaded(), latticeService.activeBeamlineId);
                     return false;
                 }
                 let beamline = latticeService.getActiveBeamline();
@@ -2269,6 +2273,7 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
 
             function computeNesting() {
                 isNested = {};
+                srdbg("appstate.models", appState.models);
                 appState.models.beamlines.forEach(function(beamline) {
                     computeNestingBeamline(beamline);
                 });
@@ -2566,6 +2571,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                 $scope.tree = [];
                 descriptionCache = {};
                 var category = null;
+                srdbg("appState.applicationState().elements", appState.applicationState().elements);
                 appState.applicationState().elements.forEach(function(element) {
                     if (! category || category.name != element.type) {
                         category = {

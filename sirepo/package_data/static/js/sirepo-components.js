@@ -3871,7 +3871,7 @@ SIREPO.app.directive('splitPanels', function($window) {
             };
         },
         link: function(scope, element) {
-            srdbg("element", element);
+            srdbg("element", element, Split);
             scope.el = $(element);
             scope.split = Split(['#sr-top-panel', '#sr-bottom-panel'], {
                 direction: 'vertical',
