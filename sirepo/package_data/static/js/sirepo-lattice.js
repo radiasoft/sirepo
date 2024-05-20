@@ -65,6 +65,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     }
 
     function fixModelName(modelName) {
+        srdbg("calling fixmodelname on modelname =", modelName);
         var m = appState.models[modelName];
         // remove invalid characters
         m.name = m.name.replace(SIREPO.lattice.invalidElementName || /[\s#*'",]/g, '');
@@ -356,8 +357,11 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     };
 
     self.isElementModelName = function(name) {
+        srdbg("name in is element model name", name);
         var schema = SIREPO.APP_SCHEMA.model[name];
-        return schema && 'name' in schema && name == name.toUpperCase();
+        var res = schema && 'name' in schema && name == name.toUpperCase();
+        srdbg("res", res);
+        return res;
     };
 
     self.isReversed = function(beamlineId) {
@@ -448,6 +452,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
         $rootScope.$on('modelChanged', function(e, name) {
             if (name == 'beamline') {
+                srdbg("name is beamline");
                 fixModelName(name);
                 var id = appState.models.beamline.id;
                 updateModels('beamline', 'id', 'beamlines', sortBeamlines);

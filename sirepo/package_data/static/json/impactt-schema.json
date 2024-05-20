@@ -163,9 +163,11 @@
             "z_rotation": ["Rotation Error Z [rad]", "RPNValue", 0]
         },
         "DRIFTTUBE": {
+            "name": ["NAME", "ValidatedString", "", ""],
             "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"]
         },
         "CONSTFOC": {
+            "name": ["NAME", "ValidatedString", "", ""],
             "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
             "radius": ["Radius [m]", "RPNValue", 0],
             "x_focusing_gradient": ["X Focusing Gradient [kx0^2]", "RPNValue", 0],
@@ -173,6 +175,7 @@
             "z_focusing_gradient": ["Z Focusing Gradient [kz0^2]", "RPNValue", 0]
         },
         "EMFLDCART": {
+            "name": ["NAME", "ValidatedString", "", ""],
             "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
             "radius": ["Radius [m]", "RPNValue", 0],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
@@ -181,6 +184,7 @@
             "filename": ["Filename", "InputFile", "", "EMfldCart filename"]
         },
         "EMFLDCYL": {
+            "name": ["NAME", "ValidatedString", "", ""],
             "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
             "radius": ["Radius [m]", "RPNValue", 0],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
@@ -189,6 +193,7 @@
             "filename": ["Filename", "InputFile", "", "EMfldCyl filename"]
         },
         "EMFLDANA": {
+            "name": ["NAME", "ValidatedString", "", ""],
             "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
             "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
             "e_scale": ["E Scale", "RPNValue", 0],
@@ -204,6 +209,7 @@
             "file_id": ["Filename", "InputFile", "", "file ID to contain the geometry information of bend."]
         },
         "DIPOLE": {
+            "name": ["NAME", "ValidatedString", "", ""],
             "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
             "b_field_x": ["X Field Strength [T]", "RPNValue", 0],
             "b_field": ["Y Field Strength [T]", "RPNValue", 0],
@@ -211,6 +217,7 @@
             "filename": ["Filename", "InputFile", "", "file ID to contain the geometry information of bend."]
         },
         "MULTIPOLE": {
+            "name": ["NAME", "ValidatedString", "", ""],
             "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
             "pole_type": ["Pole Type", "PoleType", "sextupole"],
             "b_field_x": ["Field Strength [T/m^n]", "RPNValue", 0],
@@ -246,6 +253,7 @@
             "rf_cavity_z_rotation": ["RF Cavity Rotation Error Z [rad]", "RPNValue", 0]
         },
         "SOLENOID": {
+            "name": ["NAME", "ValidatedString", "", ""],
             "zedge": ["Z Edge", "RPNValue", 0, "Longitudinal position of the entrance face of the element"],
             "radius": ["Radius [m]", "RPNValue", 0],
             "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
@@ -331,6 +339,7 @@
             "description": "The DRIFTTUBE element defines a drift space.",
             "fieldsPerTab": 8,
             "advanced": [
+                "name",
                 "zedge"
             ]
         },
@@ -339,6 +348,7 @@
             "description": "A Dipole",
             "fieldsPerTab": 8,
             "advanced": [
+                "name",
                 "zedge",
                 "b_field_x",
                 "b_field",
@@ -351,6 +361,7 @@
             "description": "A Multipole",
             "fieldsPerTab": 8,
             "advanced": [
+                "name",
                 "zedge",
                 "pole_type",
                 "b_field_x",
@@ -367,7 +378,6 @@
                 "b1_gradient",
                 "L_effective",
                 "file_id",
-
                 "name",
                 "l",
                 "zedge",
@@ -384,6 +394,7 @@
             "description": "A solenoid",
             "fieldsPerTab": 8,
             "advanced": [
+                "name",
                 "zedge",
                 "radius",
                 "filename"
@@ -394,6 +405,7 @@
             "description": "A solenoidRF",
             "fieldsPerTab": 8,
             "advanced": [
+                "name",
                 "theta0_deg",
                 "rf_frequency",
                 "rf_field_scale",
