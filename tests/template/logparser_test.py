@@ -32,18 +32,18 @@ def test_epicsllrf_logparser():
     )
 
 
-def test_cloudmc_logparser():
-    from sirepo.template import cloudmc
+def test_openmc_logparser():
+    from sirepo.template import openmc
 
     _case(
         "No fission sites banked on MPI rank 0\n",
-        "cloudmc1.txt",
-        parser_function=cloudmc._parse_cloudmc_log,
+        "openmc1.txt",
+        parser_function=openmc._parse_openmc_log,
     )
     _case(
-        "An unknown error occurred, check CloudMC log for details",
+        "An unknown error occurred, check OpenMC log for details",
         "unknown_error_case.txt",
-        parser_function=cloudmc._parse_cloudmc_log,
+        parser_function=openmc._parse_openmc_log,
     )
 
 

@@ -21,7 +21,7 @@ _DEPENDENT_CODES = [
 PROD_FOSS_CODES = frozenset(
     (
         "activait",
-        "cloudmc",
+        "openmc",
         "controls",
         "elegant",
         "genesis",
@@ -142,13 +142,6 @@ def _init():
                 "url base to reach activait example files",
             ),
         ),
-        cloudmc=dict(
-            data_storage_url=(
-                "https://github.com/radiasoft/sirepo-data-cloudmc/raw/master/",
-                str,
-                "url base to reach cloudmc example h5m files",
-            ),
-        ),
         debug_mode=(pkconfig.in_dev_mode(), bool, "control debugging output"),
         default_proprietary_sim_types=(
             frozenset(),
@@ -169,6 +162,13 @@ def _init():
             frozenset(),
             set,
             "codes where all users must be authorized via moderation",
+        ),
+        openmc=dict(
+            data_storage_url=(
+                "https://github.com/radiasoft/sirepo-data-cloudmc/raw/master/",
+                str,
+                "url base to reach openmc example h5m files",
+            ),
         ),
         package_path=(
             tuple(["sirepo"]),

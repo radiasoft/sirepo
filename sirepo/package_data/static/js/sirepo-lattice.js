@@ -2731,7 +2731,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
             };
             $scope.showTwissReport = function() {
                 if (utilities.isFullscreen()) {
-                    utilities.exitFullscreenFn().call(document);
+                    utilities.exitFullscreen();
                 }
                 var el = $('#sr-lattice-twiss-plot');
                 el.modal('show');
