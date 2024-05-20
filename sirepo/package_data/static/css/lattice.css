@@ -129,3 +129,8 @@ div.sr-lattice-icon-disabled span {
   color: black;
   border: solid 1px lightgray;
 }
+
+.sr-lattice-editor-panel .popover {
+  max-width: none;
+  width: 25em;
+}
