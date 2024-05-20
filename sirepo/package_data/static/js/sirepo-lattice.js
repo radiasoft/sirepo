@@ -65,7 +65,6 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     }
 
     function fixModelName(modelName) {
-        srdbg("calling fixmodelname on modelname =", modelName);
         var m = appState.models[modelName];
         // remove invalid characters
         m.name = m.name.replace(SIREPO.lattice.invalidElementName || /[\s#*'",]/g, '');
@@ -243,7 +242,6 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
     self.editBeamline = function(beamline, updateNoWait) {
         self.activeBeamlineId = beamline.id;
-        srdbg("beamline?", beamline);
         appState.models.simulation.activeBeamlineId = beamline.id;
         if (! appState.models.simulation.visualizationBeamlineId) {
             appState.models.simulation.visualizationBeamlineId = beamline.id;
@@ -357,11 +355,8 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     };
 
     self.isElementModelName = function(name) {
-        srdbg("name in is element model name", name);
         var schema = SIREPO.APP_SCHEMA.model[name];
-        var res = schema && 'name' in schema && name == name.toUpperCase();
-        srdbg("res", res);
-        return res;
+        return schema && 'name' in schema && name == name.toUpperCase();
     };
 
     self.isReversed = function(beamlineId) {
@@ -442,7 +437,6 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         return name + index;
     };
 
-    srdbg("SIREPO.lattice && SIREPO.lattice.useBeamlineListeners", SIREPO.lattice, SIREPO.lattice.useBeamlineListeners, SIREPO.APP_SCHEMA.model.DRIFT, SIREPO.APP_SCHEMA.model.DRIF)
     if ((SIREPO.lattice && SIREPO.lattice.useBeamlineListeners)
         //TODO(pjm): change DRIFT apps to use lattice.useBeamlineListeners
         || SIREPO.APP_SCHEMA.model.DRIFT || SIREPO.APP_SCHEMA.model.DRIF || SIREPO.APP_SCHEMA.model.DRIFTTUBE) {
@@ -452,19 +446,13 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
         $rootScope.$on('modelChanged', function(e, name) {
             if (name == 'beamline') {
-                srdbg("name is beamline");
                 fixModelName(name);
                 var id = appState.models.beamline.id;
-                updateModels('beamline', 'id', 'beamlines', sortBeamlines);
                 self.editBeamline({ id: id });
-            } else {
-                srdbg("NO"); // TODO (gurhar1133): fix this
             }
             if (self.isElementModelName(name)) {
                 fixModelName(name);
                 updateModels(name, '_id', 'elements', sortElements);
-            } else {
-                srdbg("NO"); // TODO (gurhar1133): fix this
             }
         });
 
@@ -481,7 +469,6 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
         $rootScope.$on('modelsUnloaded', function() {
             self.activeBeamlineId = null;
-            srdbg("setting activebeam to null");
             self.selectedItem = null;
         });
     }
@@ -676,7 +663,6 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
         `,
         controller: function($scope) {
             $scope.latticeService = latticeService;
-            srdbg("SIREPO.lattice", SIREPO.lattice);
             $scope.tooltip = SIREPO.lattice.beamlineEditorTooltip;
             $scope.beamlineItems = [];
             $scope.newBeamline = {};
@@ -1131,7 +1117,6 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
 
             $scope.showEditor = () => {
                 if (! appState.isLoaded() || ! latticeService.activeBeamlineId) {
-                    srdbg("hit->", appState.isLoaded(), latticeService.activeBeamlineId);
                     return false;
                 }
                 let beamline = latticeService.getActiveBeamline();
@@ -2282,7 +2267,6 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
 
             function computeNesting() {
                 isNested = {};
-                srdbg("appstate.models", appState.models);
                 appState.models.beamlines.forEach(function(beamline) {
                     computeNestingBeamline(beamline);
                 });
@@ -2580,7 +2564,6 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                 $scope.tree = [];
                 descriptionCache = {};
                 var category = null;
-                srdbg("appState.applicationState().elements", appState.applicationState().elements);
                 appState.applicationState().elements.forEach(function(element) {
                     if (! category || category.name != element.type) {
                         category = {

@@ -836,9 +836,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
 
     self.setModelDefaults = function(model, modelName) {
         // set model defaults from schema
-        srdbg("modelname", modelName);
         const schema = SIREPO.APP_SCHEMA.model[modelName];
-        srdbg("schema", schema);
         const fields = Object.keys(schema);
         for (let i = 0; i < fields.length; i++) {
             const s = schema[fields[i]];

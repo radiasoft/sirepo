@@ -13,15 +13,9 @@ SIREPO.app.config(function() {
             DIPOLE: 'lightgreen',
         },
         elementPic: {
-            // aperture: ['COLLIMATOR', 'ECOLLIMATOR', 'RCOLLIMATOR'],
-            // bend: ['RBEND', 'SBEND'],
             drift: ['DRIFTTUBE'],
-            // lens: ['NLLENS'],
             magnet: ['MULTIPOLE', 'QUADRUPOLE', 'DIPOLE'],
-            // rf: ['CRABCAVITY', 'RFCAVITY', 'TWCAVITY'],
             solenoid: ['SOLENOID', 'SOLENOIDRF'],
-            // watch: ['INSTRUMENT', 'HMONITOR', 'MARKER', 'MONITOR', 'PLACEHOLDER', 'VMONITOR'],
-            // zeroLength: ['BEAMBEAM', 'CHANGEREF', 'DIPEDGE', 'SROTATION', 'TRANSLATION', 'XROTATION', 'YROTATION'],
         },
     };
 });
@@ -58,7 +52,6 @@ SIREPO.app.controller('LatticeController', function(latticeService, appState) {
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
     };
-    srdbg("appState.models", appState.models);
 
 });
 
@@ -87,9 +80,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
                   <li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-flash"></span> Visualization</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-flash"></span> Lattice</a></li>
-
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
