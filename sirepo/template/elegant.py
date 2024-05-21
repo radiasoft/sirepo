@@ -753,11 +753,12 @@ def get_data_file(run_dir, model, frame, options):
 
     if frame >= 0:
         # TODO (gurhar1133): needs to do things diff for heatmap
-        # data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         # # ex. elementAnimation17-55
         # i = LatticeUtil.file_id_from_output_model_name(model)
         # pkdp("\n\n\n MODEL={}", model)
         # return _sdds(_get_filename_for_element_id(i, data))
+        pkdp("\n\n\n\n FILENAME_MAP={}", _build_filename_map(data))
         return run_dir.join(model + ".csv")
     if model == "animation":
         return template_common.text_data_file(ELEGANT_LOG_FILE, run_dir)

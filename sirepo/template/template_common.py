@@ -561,6 +561,9 @@ def heatmap(values, model, plot_fields=None, weights=None):
         y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
         z_matrix=hist.T.tolist(),
     )
+    pkdp("\n\n\n HEATMAP MODEL KEYS={}", model.keys())
+    pkdp("\n\n\n\n model.x={}, model.y={}", model.x, model.y)
+    # TODO (gurhar1133): make csv here too using model.x and model.y
     if plot_fields:
         res.update(plot_fields)
     return res
