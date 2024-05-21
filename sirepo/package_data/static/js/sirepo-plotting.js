@@ -628,20 +628,29 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         constrainFullscreenSize: function(scope, plotWidth, aspectRatio) {
-            if (utilities.isFullscreen()) {
-                // rough size of the panel heading, panel margins and rounded corners
-                var panelTitleSize = 50 + 2 * 15 + 2 * 4;
-                if (scope.isAnimation && scope.hasFrames()) {
-                    // animation buttons
-                    panelTitleSize += 34;
-                }
-                var fsel = $(utilities.getFullScreenElement());
-                var height = fsel.height() - scope.margin.top - scope.margin.bottom - panelTitleSize;
-                if (height < plotWidth * aspectRatio) {
-                    return height / aspectRatio;
-                }
+            function heightMargins() {
+                let panelTitleSizeEstimate = 50 + 2 * 15 + 2 * 4 + (scope.isAnimation && scope.hasFrames() ? 34 : 0);
+                return scope.margin.top + scope.margin.bottom + panelTitleSizeEstimate;
             }
-            return plotWidth;
+
+            function widthMargins() {
+                return scope.margin.left + scope.margin.right + (scope.pad || 0)
+                     + (utilities.isFullscreen() ? 35 : 0);
+            }
+
+            if (! utilities.isFullscreen()) {
+                let w = plotWidth - widthMargins();
+                return [aspectRatio * w, w];
+            }
+            var maxHeight = window.innerHeight - heightMargins();
+            var maxWidth = window.innerWidth - widthMargins();
+            var h = maxHeight;
+            var w = h / aspectRatio;
+            if (w > maxWidth) {
+                w = maxWidth;
+                h = w * aspectRatio;
+            }
+            return [h, w];
         },
 
         drawImage: function(xAxisScale, yAxisScale, width, height, xValues, yValues, canvas, cacheCanvas, alignOnPixel) {
@@ -1213,7 +1222,6 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
         };
 
         function init() {
-            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
             $scope.select('svg.sr-plot').attr('height', plotting.initialHeight($scope));
             $.each($scope.axes, function(dim, axis) {
                 axis.init();
@@ -1234,12 +1242,11 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                 return;
             }
             if (layoutService.plotAxis.allowUpdates) {
-                var width = parseInt($scope.select().style('width')) - $scope.margin.left - $scope.margin.right;
-                if (isNaN(width)) {
+                var elementWidth = parseInt($scope.select().style('width'));
+                if (isNaN(elementWidth)) {
                     return;
                 }
-                $scope.width = plotting.constrainFullscreenSize($scope, width, $scope.aspectRatio);
-                $scope.height = $scope.aspectRatio * $scope.width;
+                [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, elementWidth, $scope.aspectRatio);
                 $scope.select('svg.sr-plot')
                     .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
                     .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
@@ -1300,7 +1307,6 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
             $($scope.element).find($scope.zoomContainer).off();
             // not part of all plots, just parameterPlot
             $($scope.element).find('.sr-plot-legend-item text').off();
-            document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
         };
 
         $scope.resize = function() {
@@ -2934,16 +2940,16 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     return;
                 }
                 if (layoutService.plotAxis.allowUpdates && ! $scope.isPlaying) {
-                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right - $scope.pad;
-                    if (! heatmap || isNaN(width)){
+                    var elementWidth = parseInt(select().style('width'));
+                    if (! heatmap || isNaN(elementWidth)){
                         return;
                     }
-                    width = plotting.constrainFullscreenSize($scope, width, aspectRatio);
-                    var panelSize = 2 * width / 3;
-                    $scope.canvasSize.width = panelSize;
-                    $scope.canvasSize.height = panelSize * aspectRatio;
-                    $scope.bottomPanelHeight = 2 * panelSize / 5 + $scope.pad + $scope.margin.bottom;
-                    $scope.rightPanelWidth = panelSize / 2 + $scope.pad + $scope.margin.right;
+                    var canvasResize = 2 / 3;
+                    var [totalHeight, totalWidth] = plotting.constrainFullscreenSize($scope, elementWidth, aspectRatio);
+                    $scope.canvasSize.height = canvasResize * totalHeight;
+                    $scope.canvasSize.width = canvasResize * totalWidth;
+                    $scope.bottomPanelHeight = (1 - canvasResize) * totalHeight;
+                    $scope.rightPanelWidth = (1 - canvasResize) * totalWidth + $scope.margin.right + $scope.pad;
                     axes.x.scale.range([0, $scope.canvasSize.width]);
                     axes.y.scale.range([$scope.canvasSize.height, 0]);
                     axes.bottomY.scale.range([$scope.bottomPanelHeight - $scope.pad - $scope.margin.bottom - 1, 0]);
@@ -3070,7 +3076,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 xyZoom.on('zoom', null);
                 axes.x.zoom.on('zoom', null);
                 axes.y.zoom.on('zoom', null);
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
             $scope.formatFocusPointData = function(fp) {
@@ -3094,7 +3099,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             };
 
             $scope.init = function() {
-                document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
                 select('svg.sr-plot').attr('height', plotting.initialHeight($scope));
                 axes.x.init();
                 axes.y.init();
@@ -3272,8 +3276,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             $scope.dataCleared = true;
             $scope.margin = {top: 50, left: 70, right: 100, bottom: 50};
 
-            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
-
             const axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
@@ -3404,13 +3406,11 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             function refresh() {
                 if (layoutService.plotAxis.allowUpdates && ! $scope.isPlaying) {
-                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                    if (! heatmap || isNaN(width)) {
+                    var elementWidth = parseInt(select().style('width'));
+                    if (! heatmap || isNaN(elementWidth)) {
                         return;
                     }
-                    width = plotting.constrainFullscreenSize($scope, width, aspectRatio);
-                    $scope.canvasSize.width = width;
-                    $scope.canvasSize.height = width * aspectRatio;
+                    [$scope.canvasSize.height, $scope.canvasSize.width] = plotting.constrainFullscreenSize($scope, elementWidth, aspectRatio);
                     axes.x.scale.range([0, $scope.canvasSize.width]);
                     axes.y.scale.range([$scope.canvasSize.height, 0]);
                 }
@@ -3545,7 +3545,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 select('.mouse-rect').on('mousemove', null);
                 select('.mouse-rect').on('click', null);
                 zoom.on('zoom', null);
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
             $scope.init = function() {

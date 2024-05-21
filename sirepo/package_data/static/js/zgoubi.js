@@ -1193,8 +1193,9 @@ SIREPO.app.directive('particle3d', function(appState, plotting, plotToPNG, utili
             function refresh() {
                 var aspectRatio = appState.models[$scope.modelName].aspectRatio;
                 var rw = getVtkElement();
-                var width = plotting.constrainFullscreenSize($scope, rw.width(), aspectRatio);
-                rw.height(width * aspectRatio);
+                var hw = plotting.constrainFullscreenSize($scope, rw.width(), aspectRatio);
+                rw.height(hw[0]);
+                rw.width(hw[1]);
                 fsRenderer.resize();
             }
 
@@ -1214,11 +1215,9 @@ SIREPO.app.directive('particle3d', function(appState, plotting, plotToPNG, utili
                 getVtkElement().off();
                 fsRenderer.getInteractor().unbindEvents();
                 fsRenderer.delete();
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
             $scope.init = function() {
-                document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
                 var rw = getVtkElement();
                 rw.on('dblclick', reset);
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(

@@ -8,6 +8,7 @@ CREATE TABLE db_upgrade_t (
 INSERT INTO db_upgrade_t VALUES('_20230203_drop_spa_session','');
 INSERT INTO db_upgrade_t VALUES('_20231120_deploy_flash_update','');
 INSERT INTO db_upgrade_t VALUES('_20240322_remove_github_auth','');
+INSERT INTO db_upgrade_t VALUES('_20240507_cloudmc_to_openmc','');
 CREATE TABLE auth_email_user_t (
 	unverified_email VARCHAR(255) NOT NULL,
 	uid VARCHAR(8),
