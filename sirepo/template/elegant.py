@@ -729,6 +729,8 @@ def get_data_file(run_dir, model, frame, options):
             raise AssertionError(
                 f"invalid suffix={options.suffix} for download path={path}"
             )
+        p =  str(path)
+        pkdp("\n\n\n path={}", path)
         out = elegant_common.subprocess_output(
             [
                 "sddsprintout",
@@ -736,7 +738,7 @@ def get_data_file(run_dir, model, frame, options):
                 "-columns",
                 "-spreadsheet=delimiter=\\,",
                 "-formatDefaults=float=%1.8e,double=%1.16e,long=%1ld,short=%1hd",
-                str(path),
+               p,
             ],
         )
         if not out:

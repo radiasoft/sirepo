@@ -12,6 +12,7 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 from sirepo.template import code_variable
 import math
 import os
+import pandas
 import re
 import sirepo.const
 import sirepo.sim_data
@@ -609,6 +610,13 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
                     res["y_range"][1] = r[1]
     if plot_fields:
         res.update(plot_fields)
+    pkdp("\n\n\nmodel Fields = {} plots len = {}", model.keys(), len(plots))
+    pkdp("\n\n\n res.keys()={}", res.keys())
+    columns_dict = PKDict()
+    for plot in res.plots:
+        pkdp("\n\n\nplt={}", plot)
+        columns_dict[plot.col_name] = plot.points
+    pandas.DataFrame(columns_dict).to_csv("x.csv", index=False)
     return res
 
 
