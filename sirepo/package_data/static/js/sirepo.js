@@ -344,7 +344,7 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, utilities, $document, $interval, $rootScope, $filter) {
+SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, requestQueue, requestSender, utilities, $document, $interval, $rootScope, $filter) {
     var self = {
         models: {},
     };
@@ -476,7 +476,8 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     };
 
     self.clearModels = function(emptyValues) {
-        requestQueue.cancelItems(QUEUE_NAME);
+        msgRouter.clearModels();
+        requestQueue.clearModels();
         broadcastClear();
         self.models = emptyValues || {};
         savedModelValues = self.clone(self.models);
@@ -1132,8 +1133,11 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         if (srException.routeName != 'sbatchLogin') {
             return false;
         }
-        errorCallback
-        callback({isSbatchLoginServiceSRException: true});
+        if (serial changed) {
+            models.simulationStatus[appState.appService.computeModel(modelName)].computeJobSerial;
+            return true;
+        }
+        errorCallback({isSbatchLoginServiceSRException: true});
                 sm.transitionState(
                     {
                         'no-creds': sm.STATES.RENDER_LOGIN_MODAL_NO_CREDS,
@@ -1242,7 +1246,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     };
 
     requestSender.registerSRExceptionHandler('sbatchLogin', _handleSRException);
-    $rootScope.$on('modelsUnloaded', () => self.event('unloaded')
+    $rootScope.$on('modelsUnloaded', () => self.event('unloaded'));
     /////////////////// END
 
     class SM {
@@ -1609,7 +1613,7 @@ SIREPO.app.service('validationService', function(utilities) {
 });
 
 
-SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $interval, $rootScope, $timeout) {
+SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, authState, $interval, $rootScope, $timeout) {
     var self = {};
     var frameCountByModelKey = {};
     var masterFrameCount = 0;
@@ -1661,11 +1665,12 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 
         const isHidden = panelState.isHidden(modelName);
         let frameRequestTime = now();
+
+pending get frame has to cancel itself.
         let setPanelStateIsLoadingTimer = null;
-	const computeJobSerial = getComputeJobSerial();
 
 	function cancelSetPanelStateIsLoadingTimer() {
-	    if (setPanelStateIsLoadingTimer && computeJobSerialIsCurrent()) {
+	    if (setPanelStateIsLoadingTimer && appState.()) {
 		$timeout.cancel(setPanelStateIsLoadingTimer);
 		setPanelStateIsLoadingTimer = null;
 	    }
@@ -1680,17 +1685,11 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 	    return computeJobSerial === getComputeJobSerial();
 	}
 
-	function getComputeJobSerial() {
-	    return appState.models.simulationStatus[appState.appService.computeModel(modelName)].computeJobSerial;
-	}
-
         function onError(response) {
-	    if (! computeJobSerialIsCurrent()) {
-		return;
-	    }
 	    cancelSetPanelStateIsLoadingTimer();
 	    if (response && response.isSbatchLoginServiceSRException) {
-		panelState.needSbatchLogin(modelName);
+                panelState.setLoading(modelName, false);
+                panelState.setError(modelName, `Please login to ${authState.sbatchHostDisplayName}`);
 		return;
 	    }
 	    panelState.reportNotGenerated(modelName);
@@ -1820,7 +1819,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         masterFrameCount = 0;
         frameCountByModelKey = {};
         self.modelToCurrentFrame = {};
-        self.modelsUnloaded = {};
     });
 
     return self;
@@ -1871,7 +1869,7 @@ SIREPO.app.factory('authService', function(authState, uri, stringsService) {
  *     return self;
  * });
  * */
-SIREPO.app.factory('panelState', function(appState, authState, uri, simulationQueue, utilities, $compile, $rootScope, $timeout, $window) {
+SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilities, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -2158,11 +2156,6 @@ SIREPO.app.factory('panelState', function(appState, authState, uri, simulationQu
 
     self.isWaiting = name => {
         return getPanelValue(name, 'waiting') ? true : false;
-    };
-
-    self.needSbatchLogin = function(modelName) {
-        self.setLoading(modelName, false);
-        self.setError(modelName, `Please login to ${authState.sbatchHostDisplayName}`);
     };
 
     self.maybeSetState = function(model, state) {
@@ -2636,15 +2629,16 @@ SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
 
 // cannot import authState factory, because of circular import with requestSender
 SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, uri) => {
-    let asyncMsgMethods = {};
+    const asyncMsgMethods = {};
+    const httpRequests = [];
+    const self = {};
+    const toSend = [];
     let cookiesSorted = null;
     let cookiesVerbatim = null;
     let needReply = {};
     let reqSeq = 1;
-    const self = {};
     let socket = null;
     let socketRetryBackoff = 0;
-    const toSend = [];
 
     const _appendBuffers = (wsreq, buffers) => {
         buffers.splice(0, 0, wsreq.msg);
@@ -2672,6 +2666,27 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         return true;
     };
 
+    const _httpRequest = (url, data, httpConfig) => {
+        const r = {
+            actual: $q.defer(),
+            wrapper: data ? $http.post(url, data, httpConfig)
+                : $http.get(url, httpConfig),
+        };
+        httpRequests.push(r);
+        r.wrapper.then(
+            (response) => {
+                if (r.actual !== null) {
+                    r.actual.resolve(response);
+                }
+            },
+            (reason) => {
+                if (r.actual !== null) {
+                    r.actual.reject(reason);
+                }
+            },
+        );
+    };
+
     const _protocolError = (header, content, wsreq, errorMsg) => {
         const e = "sirepo.msgRouter protocolError=" + (errorMsg || "invalid reply from server");
         srlog(
@@ -2685,7 +2700,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             " content=",
             content
         );
-        if (wsreq) {
+        if (wsreq && wsreq.deferred !== null) {
             wsreq.deferred.reject({
                 data: {state: "error", error: e},
                 status: 500,
@@ -2716,7 +2731,9 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             if (SIREPO.traceWS) {
                 srlog(`wsreq#${wsreq.header.reqSeq} replyError:`, reply);
             }
-            wsreq.deferred.reject(reply);
+            if (wsreq && wsreq.deferred !== null) {
+                wsreq.deferred.reject(reply);
+            }
         };
         if (! wsreq) {
             _protocolError(header, content, null, "reqSeq not found");
@@ -2778,10 +2795,12 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         if (SIREPO.traceWS) {
             srlog(`wsreq#${wsreq.header.reqSeq} reply:`, content);
         }
-        wsreq.deferred.resolve({
-            data: content,
-            status: 200
-        });
+        if (wsreq.deferred !== null) {
+            wsreq.deferred.resolve({
+                data: content,
+                status: 200
+            });
+        }
     };
 
     const _reqData = (data, wsreq, done) => {
@@ -2913,6 +2932,19 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         _protocolError(null, null, wsreq, "request timed out");
     };
 
+    self.clearModels = () => {
+        while (httpRequests.length > 0) {
+            httpRequests.shift().actual = null;
+        }
+        while (toSend.length > 0) {
+            toSend.shift().deferred = null;
+        }
+        for (const v in Object.values(needReply)) {
+            v.deferred = null;
+        }
+        needReply = {};
+    };
+
     self.registerAsyncMsg = (methodName, callback) => {
         if (methodName in asyncMsgMethods) {
             throw new Error(`duplicate registerAsyncMsg methodName="${methodName}"`);
@@ -2926,8 +2958,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             return {then: () => {}};
         }
         if (! SIREPO.authState.uiWebSocket) {
-            return data ? $http.post(url, data, httpConfig)
-                : $http.get(url, httpConfig);
+            return _httpRequest(url, data, httpConfig)
         }
         let wsreq = {
             deferred: $q.defer(),
@@ -3484,10 +3515,6 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         return addItem(report, models, responseHandler, 'transient');
     };
 
-    self.cancelAllItems = function() {
-        cancelItems();
-    };
-
     // TODO(mvk): handle possible queue state conflicts
     self.cancelItem = function (qi, successCallback, errorCallback) {
         if (! qi) {
@@ -3533,19 +3560,17 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         cancelInterval(qi);
     };
 
-    $rootScope.$on('$routeChangeSuccess', self.cancelAllItems);
     $rootScope.$on('clearCache', self.cancelTransientItems);
 
     return self;
 });
 
 SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
-    var self = {};
-    var queueMap = {};
-    self.currentQI = null;
+    const self = {};
+    const queueMap = {};
 
     function getQueue(name) {
-        if (! queueMap[name] ) {
+        if (! name in queueMap) {
             queueMap[name] = [];
         }
         return queueMap[name];
@@ -3553,19 +3578,20 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 
     function sendNextItem(name) {
         var q = getQueue(name);
-        if ( q.length <= 0 ) {
+        if (q.length <= 0) {
             return;
         }
         var qi = q[0];
-        self.currentQI = qi;
-        if ( qi.requestSent ) {
+        // qi cannot be canceled (see clearModels below)
+        if (qi.requestSent) {
+            // Only one request outstanding at a time
             return;
         }
         qi.requestSent = true;
         qi.params = qi.paramsCallback();
         var process = function(ok, resp, status) {
-            self.currentQI = null;
             if (qi.canceled) {
+                // canceled and no longer in queue (so don't shift())
                 sendNextItem(name);
                 return;
             }
@@ -3584,12 +3610,6 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
         );
     }
 
-    self.cancelItems = function(queueName) {
-        var q = getQueue(queueName);
-        q.forEach(function(qi) {qi.canceled = true;});
-        q.length = 0;
-        self.currentQI = null;
-    };
 
     self.addItem = function(queueName, paramsCallback) {
         getQueue(queueName).push({
@@ -3598,9 +3618,15 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
         });
         sendNextItem(queueName);
     };
-    self.getCurrentQI = function(queueName) {
-        return self.currentQI;
+
+    self.clearModels = function() {
+        for (const q in Object.values(queueMap)) {
+            while (q.length > 0) {
+                q.shift().canceled = true;
+            }
+        }
     };
+
     return self;
 });
 
@@ -4607,7 +4633,6 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
     var self = this;
     const storageKey = "iconView";
     self.stringsService = stringsService;
-    $rootScope.$broadcast('simulationUnloaded');
     self.importText = SIREPO.APP_SCHEMA.strings.importText;
     self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';

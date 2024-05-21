@@ -3375,7 +3375,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 requestSender.localRedirectHome(item.simulationId);
             };
 
-            $scope.$on('simulationUnloaded', function() {
+            $scope.$on('modelsUnloaded', function() {
                 $scope.doneLoadingSimList = false;
             });
 
