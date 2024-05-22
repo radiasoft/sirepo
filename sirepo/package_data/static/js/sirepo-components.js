@@ -607,7 +607,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
                 sbatchLoginService.jobRunModeChanged(
                     appState.models[$scope.simState.model].jobRunMode,
                 );
-            },
+            };
             appState.whenModelsLoaded($scope, _jobRunModeChanged);
             appState.watchModelFields(
                 $scope,
@@ -4729,35 +4729,41 @@ p                            <div class="sr-input-warning">{{ warning }}</div>
                 return $scope.password.length < 1 || $scope.username.length < 1 || ! sbatchLoginService.query('showLogin');
             };
 
-            $scope.$on('invalidSbatchLogin', function(event, eventArg) {
-                if ('srException' in eventArg) {
-                    const r = eventArg.srException.reason;
-                    $scope.warning = r == 'invalid-creds'
-                    ? 'Your credentials were invalid. Please try again.'
-                    : r == 'invalid-creds' ? 'Please enter credentials.'
-                    : `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`;
-                }
-                //TODO(robnagler): other issues probably warning. Maybe hide?
-            };
+            $scope.$on(
+                'invalidSbatchLogin',
+                (event, eventArg) => {
+                    if ('srException' in eventArg) {
+                        const r = eventArg.srException.reason;
+                        $scope.warning = r == 'invalid-creds'
+                        ? 'Your credentials were invalid. Please try again.'
+                        : r == 'invalid-creds' ? 'Please enter credentials.'
+                        : `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`;
+                    }
+                    //TODO(robnagler): other issues probably warning. Maybe hide?
+                },
+            );
 
-            $scope.$on('showSbatchLoginModal', function(event, loginScope) {
-		resetLoginForm();
-		$scope.submit = () => {
-                    sbatchLoginService.event(
-                        'credsConfirm',
-                        {
-                            sbatchCredentials: {
-                                otp: otp,
-                                password: password,
-                                username: username,
+            $scope.$on(
+                'showSbatchLoginModal',
+                (event, loginScope) => {
+                    resetLoginForm();
+                    $scope.submit = () => {
+                        sbatchLoginService.event(
+                            'credsConfirm',
+                            {
+                                sbatchCredentials: {
+                                    otp: $scope.otp,
+                                    password: $scope.password,
+                                    username: $scope.username,
+                                },
+                                loginScope: loginScope,
+                                modalScope: $scope,
                             },
-                            loginScope: loginScope,
-                            modalScope: $scope,
-                        },
-		    );
-                };
-	        $('#sbatch-login-modal').modal('show');
-            });
+                        );
+                        $('#sbatch-login-modal').modal('show');
+                    };
+                },
+            );
             //TODO: reset form on loginsuccess or modal is hidden?
         },
     };

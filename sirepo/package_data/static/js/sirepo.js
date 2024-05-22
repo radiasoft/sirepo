@@ -1049,19 +1049,24 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     const self = {};
     const _STATES = ['initial', 'needed', 'status', 'creds', 'auth', 'ok', 'error', 'notNeeded'];
     let _state = _STATES[0];
-    const _EVENTS = ['sbatchLogin', 'statusLogout', 'statusLogin', 'credsConfirm', 'credsCancel', 'authSuccess', 'authInvalid', 'authError', 'sbatchLoginEx', 'unloaded', 'needYes', 'needNo'];
+    const _EVENTS = ['sbatchLogin', 'statusLogout', 'statusLogin', 'credsConfirm', 'credsCancel', 'authSuccess', 'authInvalid', 'authMissing', 'authError', 'unloaded', 'needYes', 'needNo'];
+    const _REASON_TO_EVENTS = {
+        "general-connection-error": 'authError',
+        "invalid-creds": 'authInvalid',
+        "no-creds": 'authMissing',
+    };
     const _TRANSITIONS = {
         auth: {
             authError: 'error',
             authInvalid: 'creds',
             authSuccess: 'ok',
-            sbatchLoginEx: 'creds',
+            authMissing: 'creds',
             unloaded: 'initial',
         },
         creds: {
             credsCancel: 'error',
             credsConfirm: 'auth',
-            sbatchLoginEx: 'creds',
+            authMissing: 'creds',
             unloaded: 'initial',
         },
         error: {
@@ -1074,27 +1079,27 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             loginClicked: 'creds',
             needNo: 'notNeeded',
             needYes: 'status',
-            sbatchLoginEx: 'creds',
+            authMissing: 'creds',
             unloaded: 'initial',
         },
         initial: {
             needNo: 'notNeeded',
             needYes: 'status',
-            sbatchLoginEx: 'creds',
+            authMissing: 'creds',
             unloaded: 'initial',
         },
         notNeeded: {
-            sbatchLoginEx: 'creds',
+            authMissing: 'creds',
             needNo: 'notNeeded',
             needYes: 'status',
             unloaded: 'initial',
         },
         ok: {
-            sbatchLoginEx: 'creds',
+            authMissing: 'creds',
             unloaded: 'initial',
         },
         status: {
-            sbatchLoginEx: 'creds',
+            authMissing: 'creds',
             statusError: 'error',
             statusLogin: 'ok',
             statusLogout: 'idle',
@@ -1118,46 +1123,34 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         }
     }
 
-    const _QUERIES = ((values) => {
-        return Object.fromEntries(
-            Object.entries(values).map(
-                ([k, v]) => [k, new _Query(v)],
-            ),
-        );
-    })({
+    const _QUERIES = (
+        (values) => {
+            return Object.fromEntries(
+                Object.entries(values).map(
+                    ([k, v]) => [k, new _Query(v)],
+                ),
+            );
+        }
+    )({
         showLogin: ['creds'],
         showLoginOrStatus: ['auth', 'creds', 'idle', 'status'],
     });
 
-    const _handleSRException => (srException, errorCallback) {
+    const _handleSRException = (srException, errorCallback) => {
         if (srException.routeName != 'sbatchLogin') {
             return false;
         }
-        if (serial changed) {
-            models.simulationStatus[appState.appService.computeModel(modelName)].computeJobSerial;
-            return true;
-        }
+        //TODO(robnagler) trace all of these
         errorCallback({isSbatchLoginServiceSRException: true});
-                sm.transitionState(
-                    {
-                        'no-creds': sm.STATES.RENDER_LOGIN_MODAL_NO_CREDS,
-                        'invalid-creds': sm.STATES.RENDER_LOGIN_MODAL_INVALID_CREDS,
-                        'general-connection-error': sm.STATES.RENDER_LOGIN_MODAL_GENERAL_CONNECTION_ERROR,
-                    }[srException.params.reason]
-                );
-            }
-        );
-
+        self.event(_REASON_TO_EVENTS[srException.params.reason] || 'authError');
     };
 
-    const _sendRequest(route, scopes, otherArgs) => {
+    const _sendRequest = (route, scopes, otherArgs) => {
 	const _response = (response) => {
-	    if (response.loginSuccess) {
-                self.event('authSuccess', {authResponse: response}),
-            }
-            else {
-                self.event('authError', {authResponse: response});
-	    }
+            self.event(
+                response.loginSuccess ? 'authSuccess' : 'authError',
+                {authResponse: response},
+            );
 	};
 	requestSender.sendRequest(
 	    'sbatchLogin',
@@ -1179,7 +1172,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     self._action_creds_credsConfirm = (eventArg) => {
         _sendRequest(
             'sbatchLogin',
-            scopes,
+            eventArg,
             {sbatchCredentials: eventArg.sbatchCredentials},
         );
     };
@@ -1190,7 +1183,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     };
 
     self._action_needed_loginClicked = (loginScope) => {
-	$rootScope.$broadcast('showSbatchLoginModal', $scope);
+	$rootScope.$broadcast('showSbatchLoginModal', loginScope);
     };
 
     self.event = (event, eventArgs) => {
@@ -1220,35 +1213,20 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	return stringsService.sbatchLoginServiceStatus();
     };
 
-    self.modalWarningText = () => {
-        if (self.query('auth')) {
-            return ;
-        }
-        if (self.query('error')) {
-        }
-
-        return `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`
-	return {
-
-	    // TODO(e-carlin): add link to perlmutter MOTD
-	    [sm.STATES.RENDER_LOGIN_MODAL_GENERAL_CONNECTION_ERROR]: ,
-	    [sm.STATES.RENDER_LOGIN_MODAL_INVALID_CREDS]: ,
-	}[sm.currentState];
-    };
-
-
     self.query = (query) => {
         const v = _QUERIES[query];
         if (! v) {
             throw new Error(`invalid query=${v}`);
         }
-        return _QUERIES[v].test(_state);
+        return v.test(_state);
     };
 
-    requestSender.registerSRExceptionHandler('sbatchLogin', _handleSRException);
+    requestSender.registerSRExceptionHandler(_handleSRException);
     $rootScope.$on('modelsUnloaded', () => self.event('unloaded'));
+    return self;
     /////////////////// END
 
+/*
     class SM {
 
 	constructor() {
@@ -1452,6 +1430,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	}
     );
     $rootScope.$on('modelsUnloaded', () => sm.transitionState(sm.STATES.INITIALIZE));
+*/
 });
 
 // manages validators for ngModels and provides other validation services
@@ -1666,23 +1645,13 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
         const isHidden = panelState.isHidden(modelName);
         let frameRequestTime = now();
 
-pending get frame has to cancel itself.
         let setPanelStateIsLoadingTimer = null;
 
 	function cancelSetPanelStateIsLoadingTimer() {
-	    if (setPanelStateIsLoadingTimer && appState.()) {
+	    if (setPanelStateIsLoadingTimer) {
 		$timeout.cancel(setPanelStateIsLoadingTimer);
 		setPanelStateIsLoadingTimer = null;
 	    }
-	}
-
-	function computeJobSerialIsCurrent() {
-	    //Validate whether the current computeJobSerial is the
-	    //same as the one the frame request was for
-	    if (! appState.isLoaded()) {
-		return false;
-	    }
-	    return computeJobSerial === getComputeJobSerial();
 	}
 
         function onError(response) {
@@ -1713,9 +1682,7 @@ pending get frame has to cancel itself.
 
         const requestFunction = function() {
             setPanelStateIsLoadingTimer = $timeout(() => {
-		if (computeJobSerialIsCurrent()) {
-		    panelState.setLoading(modelName, true);
-		}
+		panelState.setLoading(modelName, true);
 	    }, 5000);
             requestSender.sendRequest(
                 {
@@ -1724,12 +1691,6 @@ pending get frame has to cancel itself.
                 },
                 function(data) {
 		    cancelSetPanelStateIsLoadingTimer();
-                    if (! appState.isLoaded()) {
-                        return;
-                    }
-                    if (! computeJobSerialIsCurrent()) {
-                        return;
-                    }
                     panelState.setLoading(modelName, false);
                     if ('state' in data && data.state === 'missing') {
                         onError();
@@ -2685,6 +2646,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
                 }
             },
         );
+        return r.actual.promise;
     };
 
     const _protocolError = (header, content, wsreq, errorMsg) => {
@@ -2958,7 +2920,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             return {then: () => {}};
         }
         if (! SIREPO.authState.uiWebSocket) {
-            return _httpRequest(url, data, httpConfig)
+            return _httpRequest(url, data, httpConfig);
         }
         let wsreq = {
             deferred: $q.defer(),
@@ -3019,7 +2981,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     var SR_EXCEPTION_RE = new RegExp('/\\*sr_exception=(.+)\\*/');
     var listFilesData = {};
     const storageKey = "previousRoute";
-    const srExceptionHandlers = {};
+    const srExceptionHandlers = [];
 
     function checkLoginRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn
@@ -3156,14 +3118,10 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         );
     };
 
-    self.registerSRExceptionHandler = (handlerName, shouldHandleTest, handler) => {
-	if (name in srExceptionHandlers) {
-            throw new Error(`duplicate registerSRExceptionHandler handlerName="${handlerName}"`);
+    self.registerSRExceptionHandler = (handler) => {
+        if (srExceptionHandlers.indexOf(handler) < -1) {
+	    srExceptionHandlers.push(handler);
 	}
-	srExceptionHandlers[handlerName] = {
-	    shouldHandle: shouldHandleTest,
-	    handle: handler,
-	};
     };
 
     self.sendAnalysisJob = function(appState, callback, data) {
@@ -3570,7 +3528,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
     const queueMap = {};
 
     function getQueue(name) {
-        if (! name in queueMap) {
+        if (! (name in queueMap)) {
             queueMap[name] = [];
         }
         return queueMap[name];
