@@ -594,19 +594,25 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
               <button ng-disabled="! sbatchLoginService.query('showLogin')" class="col-sm-6 pull-right btn btn-default" data-ng-click="loginClicked()">{{ label() }}</button>
             </div>
             <div class="col-sm-6 pull-right" data-ng-if="! sbatchLoginService.query('showLogin')">
-              <button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel }}</button>
+              <button class="btn btn-default" data-ng-click="start()">{{ startButtonLabel }}</button>
             </div>
 	`,
         controller: function($scope, appState, sbatchLoginService, stringsService) {
 	    $scope.sbatchLoginService = sbatchLoginService;
             $scope.startButtonLabel = stringsService.startButtonLabel();
+            $scope.startWasClicked = false;
             $scope.label = () => {
                 return sbatchLoginService.loginButtonLabel();
+            };
+            $scope.start = () => {
+                $scope.startWasClicked = true;
+                $scope.startSimulation();
             };
             $scope.loginClicked = () => {
                 sbatchLoginService.event('loginClicked', {directiveScope: $scope});
             };
             const _jobRunModeChanged = () => {
+                $scope.startWasClicked = false;
                 sbatchLoginService.jobRunModeChanged($scope);
             };
             appState.whenModelsLoaded($scope, _jobRunModeChanged);
@@ -614,6 +620,14 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
                 $scope,
                 [`${$scope.simState.model}.jobRunMode`],
                 _jobRunModeChanged,
+            );
+            $scope.$on(
+                'sbatchLoginServiceAuth',
+                (event, eventArg) => {
+                    if (eventArg.event === 'authSuccess' && $scope.stopWasClicked) {
+                        $scope.start();
+                    }
+                },
             );
         },
     };

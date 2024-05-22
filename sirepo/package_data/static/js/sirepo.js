@@ -1195,10 +1195,6 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	$rootScope.$broadcast('sbatchLoginServiceAuth', eventArg);
     };
 
-    self._action_ok_authMissing = (eventArg) => {
-        // clear the request
-    };
-
     self._action_needYes = (eventArg) => {
         _sendRequest('sbatchLoginStatus', eventArg, {data: appState.models});
     };
@@ -1468,10 +1464,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
     };
 
     self.getFrame = function(modelName, index, isPlaying, callback) {
-        if (! appState.isLoaded()) {
-            return;
-        }
-
         const isHidden = panelState.isHidden(modelName);
         let frameRequestTime = now();
 
@@ -1701,11 +1693,20 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
         }
     }
 
+    const _clearAllPanelErrors = () => {
+        for (const n in panels) {
+            // TODO(robnagler)
+            self.setLoading(n, false);
+            self.setError(n, null);
+        }
+    };
+
     function clearPanel(name) {
         delete panels[name];
         delete pendingRequests[name];
         // doesn't clear the queueItems, queueItem will be canceled if necessary in requestData()
     }
+
 
     function fieldClass(model, field) {
         return '.model-' + model + '-' + field;
@@ -2177,6 +2178,15 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
     };
 
     $($window).resize(windowResize);
+
+    $rootScope.$on(
+        'sbatchLoginServiceAuth',
+        (event, eventArg) => {
+            if (eventArg.event === 'authSuccess') {
+                _clearAllPanelErrors();
+            }
+        },
+    );
 
     return self;
 });
@@ -3415,7 +3425,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
 
         function handleStatus(data) {
 	    if (data && data.srException) {
-                srdbg('persistentSimulation', data);
 		return;
 	    }
             setSimulationStatus(data);
