@@ -2884,16 +2884,6 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         _send();
     };
 
-    const _timeout = (wsreq) => {
-        const i = toSend.indexOf(wsreq);
-        if (i >= 0) {
-            toSend.splice(i, 1);
-            return;
-        }
-        delete needReply[wsreq.reqSeq];
-        _protocolError(null, null, wsreq, "request timed out");
-    };
-
     self.clearModels = () => {
         while (httpRequests.length > 0) {
             httpRequests.shift().actual = null;
@@ -2933,9 +2923,6 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             ...httpConfig,
         };
         wsreq.msg = msgpack.encode(wsreq.header);
-        if (wsreq.timeout) {
-            wsreq.timeout.then(() => {_timeout(wsreq);});
-        }
         const c = (buffers) => {
             if (buffers) {
                 _appendBuffers(
@@ -2971,7 +2958,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
 
 });
 
-SIREPO.app.factory('requestSender', function(browserStorage, errorService, utilities, msgRouter, uri, $location, $injector, $interval, $q, $rootScope) {
+SIREPO.app.factory('requestSender', function(browserStorage, errorService, utilities, msgRouter, uri, $location, $q, $rootScope) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -2982,6 +2969,23 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     var listFilesData = {};
     const storageKey = "previousRoute";
     const srExceptionHandlers = [];
+    const _TEXT_OR_JSON = new RegExp('^application/json$|^text');
+
+    const _blobResponse = (resp, successCallback, errorCallback) => {
+        // These two content-types are what the server might return with a 200.
+        let d = resp.data;
+        if (d instanceof Blob) {
+            successCallback(d);
+            return;
+        }
+        if (_TEXT_OR_JSON.test(d.type)) {
+            d.text().then((text) => {d = text;});
+        }
+        _sendRequestError(
+            {...resp, data: d},
+            errorCallback,
+        );
+    };
 
     function checkLoginRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn
@@ -3011,7 +3015,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         }
     }
 
-    function defaultErrorCallback(data, status) {
+    const _defaultErrorCallback = (data, status) => {
         const err = SIREPO.APP_SCHEMA.customErrors[status];
         if (err && err.route) {
             uri.localRedirect(err.route);
@@ -3019,7 +3023,109 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         else {
             errorService.alertText('Request failed: ' + data.error);
         }
-    }
+    };
+
+    const _errorResponse = (resp, errorCallback) => {
+        let data = resp.data;
+        let status = resp.status;
+        let msg = null;
+        if (status === 0) {
+            msg = 'the server is unavailable';
+            status = 503;
+        }
+        else if (status === -1) {
+            msg = 'Server unavailable';
+        }
+        else if (SIREPO.APP_SCHEMA.customErrors[status]) {
+            msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
+        }
+        if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
+            // Try to parse javascript-redirect.html
+            var m = SR_EXCEPTION_RE.exec(data);
+            if (m) {
+                // if this is invalid, will throw SyntaxError, which we
+                // cannot handle so it will just show up as error.
+                _handleSRException(JSON.parse(m[1]), errorCallback);
+                return;
+            }
+            m = REDIRECT_RE.exec(data);
+            if (m) {
+                if (m[1].indexOf('#/error') <= -1) {
+                    srlog('javascriptRedirectDocument', m[1]);
+                    uri.globalRedirect(m[1], undefined);
+                    return;
+                }
+                srlog('javascriptRedirectDocument: staying on page', m[1]);
+                // set explicitly so we don't log below
+                data = {error: 'server error'};
+            }
+            else {
+                // HTML document with error msg in title
+                m = HTML_TITLE_RE.exec(data);
+                if (m) {
+                    srlog('htmlErrorDocument', m[1]);
+                    data = {error: m[1]};
+                }
+            }
+        }
+        if ($.isEmptyObject(data)) {
+            data = {};
+        }
+        else if (! angular.isObject(data)) {
+            errorService.logToServer(
+                'serverResponseError', data, 'unexpected response type or empty');
+            data = {};
+        }
+        if (! data.state) {
+            data.state = 'error';
+        }
+        if (data.state == 'srException') {
+            _handleSRException(data.srException, errorCallback);
+            return;
+        }
+        if (! data.error) {
+            if (msg) {
+                data.error = msg;
+            }
+            else {
+                srlog(resp);
+                data.error = 'a server error occurred' + (status ? (': status=' + status) : '');
+            }
+        }
+        srlog(data.error);
+        errorCallback(data, status, resp.data);
+    };
+
+    const _handleSRException = (srException, errorCallback) => {
+        const e = srException;
+        //TODO(robnagler) handler
+        if (e.routeName == "httpRedirect") {
+            uri.globalRedirect(e.params.uri, undefined);
+            return;
+        }
+        //TODO(robnagler) handler
+        if (e.routeName == "serverUpgraded" && e.params && e.params.reason in SIREPO.refreshModalMap) {
+            $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
+            return;
+        }
+	for (const h in srExceptionHandlers) {
+	    if (h(e, errorCallback)) {
+                return;
+            }
+	}
+        //TODO(robnagler) handler
+        if (e.routeName == LOGIN_ROUTE_NAME) {
+            saveLoginRedirect();
+            // if redirecting to login, but the app thinks it is already logged in,
+            // then force a logout to avoid a login loop
+            if (SIREPO.authState.isLoggedIn) {
+                uri.globalRedirect('authLogout');
+                return;
+            }
+        }
+        uri.localRedirect(e.routeName, e.params);
+        return;
+    };
 
     function saveLoginRedirect() {
         const u = $location.url();
@@ -3056,34 +3162,6 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
 
     self.getListFilesData = function(name) {
         return listFilesData[name];
-    };
-
-    self.handleSRException = function(srException, errorCallback) {
-        const e = srException;
-        if (e.routeName == "httpRedirect") {
-            uri.globalRedirect(e.params.uri, undefined);
-            return;
-        }
-        if (e.routeName == "serverUpgraded" && e.params && e.params.reason in SIREPO.refreshModalMap) {
-            $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
-            return;
-        }
-	for (const h in srExceptionHandlers) {
-	    if (h(e, errorCallback)) {
-                break;
-            }
-	}
-        if (e.routeName == LOGIN_ROUTE_NAME) {
-            saveLoginRedirect();
-            // if redirecting to login, but the app thinks it is already logged in,
-            // then force a logout to avoid a login loop
-            if (SIREPO.authState.isLoggedIn) {
-                uri.globalRedirect('authLogout');
-                return;
-            }
-        }
-        uri.localRedirect(e.routeName, e.params);
-        return;
     };
 
     self.loadListFiles = function(name, params, callback) {
@@ -3146,144 +3224,41 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     };
 
     self.sendRequest = function(urlOrParams, successCallback, requestData, errorCallback) {
-        const blobResponse = (response, successCallback, thisErrorCallback) => {
-            // These two content-types are what the server might return with a 200.
-            const r = new RegExp('^(application/json|text/html)$');
-            let d = response.data;
-            if (d instanceof Blob) {
-                successCallback(d);
-                return;
-            }
-            if (r.test(d.type) || /^text/.test(d.type)) {
-                d.text().then((text) => {d = text;});
-            }
-            thisErrorCallback({
-                ...response,
-                data: d,
-            });
-        };
         if (! errorCallback) {
-            errorCallback = defaultErrorCallback;
+            errorCallback = _defaultErrorCallback;
         }
         if (! successCallback) {
             successCallback = function () {};
         }
-        var url = angular.isString(urlOrParams) && urlOrParams.indexOf('/') >= 0
-            ? urlOrParams
-            : uri.format(urlOrParams);
-        var timeout = $q.defer();
-        var interval, t;
-        var timed_out = false;
-        const httpConfig = {timeout: timeout.promise};
         if (requestData && requestData.responseType) {
             httpConfig.responseType = requestData.responseType;
             delete requestData.responseType;
         }
-        if (SIREPO.http_timeout > 0) {
-            interval = $interval(
-                function () {
-                    timed_out = true;
-                    timeout.resolve();
-                },
-                SIREPO.http_timeout,
-                1
-            );
-        }
-        var req = msgRouter.send(url, requestData, httpConfig);
-        var thisErrorCallback = function(response) {
-            var data = response.data;
-            var status = response.status;
-            $interval.cancel(interval);
-            var msg = null;
-            if (timed_out) {
-                msg = 'request timed out after '
-                    + Math.round(SIREPO.http_timeout/1000)
-                    + ' seconds';
-                status = 504;
-            }
-            else if (status === 0) {
-                msg = 'the server is unavailable';
-                status = 503;
-            }
-            else if (status === -1) {
-                msg = 'Server unavailable';
-            }
-            else if (SIREPO.APP_SCHEMA.customErrors[status]) {
-                msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
-            }
-            if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
-                // Try to parse javascript-redirect.html
-                var m = SR_EXCEPTION_RE.exec(data);
-                if (m) {
-                    // if this is invalid, will throw SyntaxError, which we
-                    // cannot handle so it will just show up as error.
-                    self.handleSRException(JSON.parse(m[1]), errorCallback);
-                    return;
-                }
-                m = REDIRECT_RE.exec(data);
-                if (m) {
-                    if (m[1].indexOf('#/error') <= -1) {
-                        srlog('javascriptRedirectDocument', m[1]);
-                        uri.globalRedirect(m[1], undefined);
-                        return;
-                    }
-                    srlog('javascriptRedirectDocument: staying on page', m[1]);
-                    // set explicitly so we don't log below
-                    data = {error: 'server error'};
-                }
-                else {
-                    // HTML document with error msg in title
-                    m = HTML_TITLE_RE.exec(data);
-                    if (m) {
-                        srlog('htmlErrorDocument', m[1]);
-                        data = {error: m[1]};
-                    }
-                }
-            }
-            if ($.isEmptyObject(data)) {
-                data = {};
-            }
-            else if (! angular.isObject(data)) {
-                errorService.logToServer(
-                    'serverResponseError', data, 'unexpected response type or empty');
-                data = {};
-            }
-            if (! data.state) {
-                data.state = 'error';
-            }
-            if (data.state == 'srException') {
-                self.handleSRException(data.srException, errorCallback);
-                return;
-            }
-            if (! data.error) {
-                if (msg) {
-                    data.error = msg;
-                }
-                else {
-                    srlog(response);
-                    data.error = 'a server error occurred' + (status ? (': status=' + status) : '');
-                }
-            }
-            srlog(data.error);
-            errorCallback(data, status, response.data);
-        };
-        req.then(
-            function(response) {
+        const httpConfig = {};
+        msgRouter.send(
+            angular.isString(urlOrParams) && urlOrParams.indexOf('/') >= 0
+                ? urlOrParams
+                : uri.format(urlOrParams),
+            requestData,
+            httpConfig,
+        ).then(
+            (resp) => {
                 if (httpConfig.responseType === 'blob') {
                     $interval.cancel(interval);
-                    blobResponse(response, successCallback, thisErrorCallback);
+                    _blobResponse(resp, successCallback, errorCallback);
                     return;
                 }
-                var data = response.data;
                 // POSIT: isObject returns true for []
-                if (! angular.isObject(data) || data.state === 'srException') {
-                    thisErrorCallback(response);
+                if (! angular.isObject(resp.data) || resp.data.state === 'srException') {
+                    _errorResponse(resp, errorCallback);
                     return;
                 }
                 $interval.cancel(interval);
-                successCallback(data, response.status);
+                successCallback(resp.data, resp.status);
             },
-            thisErrorCallback,
+            (resp) => {
+                _errorResponse(resp, errorCallback);
+            },
         );
     };
 
