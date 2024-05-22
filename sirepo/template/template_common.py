@@ -563,9 +563,15 @@ def heatmap(values, model, plot_fields=None, weights=None):
     )
     pkdp("\n\n\n HEATMAP MODEL KEYS={}", model.keys())
     pkdp("\n\n\n\n model.x={}, model.y={}", model.x, model.y)
+    pkdp("\n\n\n\n values: {} values.shape", numpy.array(values).shape)
     # TODO (gurhar1133): make csv here too using model.x and model.y
     if plot_fields:
         res.update(plot_fields)
+    columns_dict = PKDict()
+    columns_dict[model.x] = values[0]
+    columns_dict[model.y] = values[1]
+    columns_dict["particleID"] = range(1, len(values[0]) + 1)
+    pandas.DataFrame(columns_dict).to_csv(f"{model.frameReport}.csv", index=False)
     return res
 
 
@@ -613,12 +619,8 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
                     res["y_range"][1] = r[1]
     if plot_fields:
         res.update(plot_fields)
-    pkdp("\n\n\nmodel Fields = {} plots len = {}", model.keys(), len(plots))
-    pkdp("\n\n\n model.frameReport={} \n\n\n", model.frameReport)
-    pkdp("\n\n\n res.keys()={}", res.keys())
     columns_dict = PKDict()
     for plot in res.plots:
-        pkdp("\n\n\nplt={}", plot)
         columns_dict[plot.col_name] = plot.points
     pandas.DataFrame(columns_dict).to_csv(f"{model.frameReport}.csv", index=False)
     return res

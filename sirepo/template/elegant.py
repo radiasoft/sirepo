@@ -730,8 +730,6 @@ def get_data_file(run_dir, model, frame, options):
                 f"invalid suffix={options.suffix} for download path={path}"
             )
         p =  str(path)
-        # pkdp("\n\n\n --------- model = {}, frame={}", model, frame)
-        # pkdp("\n\n\n path={}", path)
         out = elegant_common.subprocess_output(
             [
                 "sddsprintout",
@@ -758,7 +756,7 @@ def get_data_file(run_dir, model, frame, options):
         # i = LatticeUtil.file_id_from_output_model_name(model)
         # pkdp("\n\n\n MODEL={}", model)
         # return _sdds(_get_filename_for_element_id(i, data))
-        pkdp("\n\n\n\n FILENAME_MAP={}", _build_filename_map(data))
+        # pkdp("\n\n\n\n FILENAME_MAP={}", _build_filename_map(data))
         return run_dir.join(model + ".csv")
     if model == "animation":
         return template_common.text_data_file(ELEGANT_LOG_FILE, run_dir)
