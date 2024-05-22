@@ -591,7 +591,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
               <div data-sbatch-options="simState"></div>
             </div>
             <div data-ng-if="sbatchLoginService.query('showLoginOrStatus')">
-              <button ng-disabled="! sbatchLoginService.query('showLogin')" class="col-sm-6 pull-right btn btn-default" data-ng-click="loginClicked()">{{ sbatchLoginService.loginButtonLabel() }}</button>
+              <button ng-disabled="! sbatchLoginService.query('showLogin')" class="col-sm-6 pull-right btn btn-default" data-ng-click="loginClicked()">{{ label() }}</button>
             </div>
             <div class="col-sm-6 pull-right" data-ng-if="! sbatchLoginService.query('showLogin')">
               <button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel }}</button>
@@ -600,14 +600,14 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
         controller: function($scope, appState, sbatchLoginService, stringsService) {
 	    $scope.sbatchLoginService = sbatchLoginService;
             $scope.startButtonLabel = stringsService.startButtonLabel();
+            $scope.label = () => {
+                return sbatchLoginService.loginButtonLabel();
+            };
             $scope.loginClicked = () => {
-                sbatchLoginService.event('loginClicked', $scope);
+                sbatchLoginService.event('loginClicked', {directiveScope: $scope});
             };
             const _jobRunModeChanged = () => {
-                sbatchLoginService.jobRunModeChanged(
-                    appState.models[$scope.simState.model].jobRunMode,
-                    {directiveScope: $scope},
-                );
+                sbatchLoginService.jobRunModeChanged($scope);
             };
             appState.whenModelsLoaded($scope, _jobRunModeChanged);
             appState.watchModelFields(
@@ -4689,7 +4689,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                     </div>
                     <div class="modal-body">
                         <form name="sbatchLoginModalForm">
-p                            <div class="sr-input-warning">{{ warning }}</div>
+                            <div class="sr-input-warning">{{ warning }}</div>
                             <div class="form-group">
                                 <input type="text" class="form-control" name="username" placeholder="username" autocomplete="username" data-ng-model="username" />
                             </div>
@@ -4700,7 +4700,7 @@ p                            <div class="sr-input-warning">{{ warning }}</div>
                                 <input type="password" class="form-control" name="otp" placeholder="one time password" autocomplete="one-time-code" data-ng-show="authState.sbatchHostIsNersc" data-ng-model="otp"/>
                             </div>
                             <button  data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="submitDisabled()">Submit</button>
-                             <button data-ng-click="cancel()()" class="btn btn-default" data-ng-disabled="cancelDisabled()">Cancel</button>
+                             <button data-ng-click="cancel()()" class="btn btn-default">Cancel</button>
                         <form>
                     </div>
                   </div>
@@ -4713,12 +4713,12 @@ p                            <div class="sr-input-warning">{{ warning }}</div>
 		$scope.otp = '';
 		$scope.password = '';
 		$scope.username = '';
-                $scope.directiveScope = null;
                 $scope.warning = '';
 	    };
 
 	    const _resetLoginForm = () => {
 		_resetLoginFormText();
+                $scope.directiveScope = null;
 		$scope.sbatchLoginModalForm.$setPristine();
 	    };
 
@@ -4727,6 +4727,7 @@ p                            <div class="sr-input-warning">{{ warning }}</div>
 	    $scope.sbatchLoginService = sbatchLoginService;
 
             $scope.cancel = () => {
+                resetLoginForm();
                 sbatchLoginService.event('credsCancel');
             };
 
@@ -4753,7 +4754,7 @@ p                            <div class="sr-input-warning">{{ warning }}</div>
             $scope.$on(
                 'sbatchLoginServiceAuth',
                 (event, eventArg) => {
-                    if (sbatchLoginService.query('isLoggedIn')) {
+                    if (sbatchLoginService.query('isLoggedIn') || eventArg.event === 'credsCancel') {
                         _resetLoginForm();
                         $('#sbatch-login-modal').modal('hide');
                         return;
@@ -4779,6 +4780,7 @@ p                            <div class="sr-input-warning">{{ warning }}</div>
                 (event, eventArg) => {
                     _resetLoginForm();
                     $scope.directiveScope = eventArg.directiveScope;
+                    $('#sbatch-login-modal').modal('show');
                 },
             );
         },

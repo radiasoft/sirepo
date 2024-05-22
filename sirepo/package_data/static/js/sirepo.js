@@ -983,7 +983,7 @@ SIREPO.app.factory('stringsService', function(authState) {
             return strings.newSimulationLabel || `New ${ucfirst(strings.simulationDataType)}`;
         },
 	sbatchLoginServiceStatus: () => {return 'Requesting login status...';},
-        sbatchLoginServiceLogin: (host) => {return `Login to ${host}`;},
+        sbatchLoginServiceLogin: () => {return `Login to ${authState.sbatchHostDisplayName}`;},
         startButtonLabel: (modelName) => {
             return `Start New ${typeOfSimulation(modelName)}`;
         },
@@ -1045,7 +1045,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     const self = {};
     const _STATES = ['initial', 'needed', 'status', 'creds', 'auth', 'ok', 'error', 'notNeeded'];
     let _state = _STATES[0];
-    const _EVENTS = ['statusLogout', 'statusLogin', 'credsConfirm', 'credsCancel', 'authSuccess', 'authInvalid', 'authMissing', 'authError', 'unloaded', 'needYes', 'needNo'];
+    const _EVENTS = ['credsConfirm', 'credsCancel', 'authSuccess', 'authInvalid', 'authMissing', 'authError', 'unloaded', 'needYes', 'needNo'];
     const _REASON_TO_EVENTS = {
         "general-connection-error": 'authError',
         "invalid-creds": 'authInvalid',
@@ -1078,32 +1078,31 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             loginClicked: 'creds',
             needNo: 'notNeeded',
             needYes: 'status',
-            authMissing: 'creds',
+            authMissing: 'idle',
             unloaded: 'initial',
         },
         initial: {
             needNo: 'notNeeded',
             needYes: 'status',
-            authMissing: 'creds',
+            authMissing: 'idle',
             unloaded: 'initial',
         },
         notNeeded: {
-            authMissing: 'creds',
+            authMissing: 'idle',
             needNo: 'notNeeded',
             needYes: 'status',
             unloaded: 'initial',
         },
         ok: {
-            authMissing: 'creds',
+            authMissing: 'idle',
             needYes: 'ok',
             unloaded: 'initial',
         },
         status: {
-            authMissing: 'creds',
+            authError: 'error',
+            authMissing: 'idle',
+            authSuccess: 'ok',
             needYes: 'status',
-            statusError: 'error',
-            statusLogin: 'ok',
-            statusLogout: 'idle',
             unloaded: 'initial',
         },
     };
@@ -1134,7 +1133,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         }
     )({
         isLoggedIn: ['ok'],
-        showLogin: ['creds'],
+        showLogin: ['creds', 'idle'],
         showLoginOrStatus: ['authenticating', 'creds', 'idle', 'status'],
         showSbatchOptions: ['!', 'notNeeded'],
     });
@@ -1159,9 +1158,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     const _sendRequest = (route, eventArg, otherArgs) => {
 	const _response = (response) => {
             self.event(
-                // Response doesn't come back for creds invalid.
-                // authInvalid doesn't happen via this path.
-                response.loginSuccess ? 'authSuccess' : 'authError',
+                response.ready || response.loginSuccess ? 'authSuccess' : 'authMissing',
                 {authResponse: response},
             );
 	};
@@ -1190,17 +1187,21 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         );
     };
 
-    self._action_initial_needYes = (eventArg) => {
+    self._action_credsCancel = (eventArg) => {
+	$rootScope.$broadcast('sbatchLoginServiceAuth', eventArg);
+    };
+
+    self._action_needYes = (eventArg) => {
         _sendRequest('sbatchLoginStatus', eventArg, {data: appState.models});
     };
 
-    self._action_needed_loginClicked = (eventArg) => {
+    self._action_idle_loginClicked = (eventArg) => {
 	$rootScope.$broadcast('showSbatchLoginModal', eventArg);
     };
 
     self.event = (event, eventArg) => {
         const s = _TRANSITIONS[_state][event];
-        if (eventArg === null) {
+        if (! angular.isObject(eventArg)) {
             eventArg = {};
         }
         if (! s) {
@@ -1208,20 +1209,28 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         }
         //TODO(robnagler) does not need to be on $self
 	let m = `_action_${_state}_${event}`;
+        // Not the best, but not unreasonable. This is not a general
+        // state machine so we know actions and states don't collide.
+        // TODO(robnagler) consider option of having new state be the first arg
         if (! (m in self)) {
-            m = `_action_${_state}`
+            m = `_action_${event}`
+            if (! (m in self)) {
+                m = `_action_${_state}`
+            }
         }
+        srdbg(`${_state} ${event} => ${s} ${m}`, eventArg);
         _state = s;
 	// Not all transtions have an action
 	if (m in self) {
             eventArg.event = event;
-	    self[m](event, eventArg);
+	    self[m](eventArg);
 	}
     };
 
-    self.jobRunModeChanged = (jobRunMode) => {
+    self.jobRunModeChanged = (directiveScope) => {
         self.event(
-            jobRunMode === 'sbatch' ? 'needYes' : 'needNo',
+            appState.models[directiveScope.simState.model].jobRunMode === 'sbatch' ? 'needYes' : 'needNo',
+            {directiveScope: directiveScope},
 
         );
     };
@@ -2922,7 +2931,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
             $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
             return;
         }
-	for (const h in srExceptionHandlers) {
+	for (const h of srExceptionHandlers) {
 	    if (h(e, errorCallback)) {
                 return;
             }
@@ -3011,7 +3020,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     };
 
     self.registerSRExceptionHandler = (handler) => {
-        if (srExceptionHandlers.indexOf(handler) < -1) {
+        if (srExceptionHandlers.indexOf(handler) < 0) {
 	    srExceptionHandlers.push(handler);
 	}
     };
