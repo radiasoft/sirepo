@@ -1147,7 +1147,11 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         // here, since requests are all connected to this event.
         // if there is a frame waiting on a request, this state
         // should be known. requestSender perhaps needs to know...
-        errorCallback({isSbatchLoginServiceSRException: true});
+        errorCallback({
+            state: 'error',
+            //TODO(robnagler) this should be returned from sbatchLoginService or stringService
+            error: `Please login to ${authState.sbatchHostDisplayName}`,
+        });
         self.event(
             _REASON_TO_EVENTS[srException.params.reason] || 'authError',
             {srException: srException},
@@ -1189,6 +1193,10 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 
     self._action_credsCancel = (eventArg) => {
 	$rootScope.$broadcast('sbatchLoginServiceAuth', eventArg);
+    };
+
+    self._action_ok_authMissing = (eventArg) => {
+        // clear the request
     };
 
     self._action_needYes = (eventArg) => {
@@ -1478,10 +1486,9 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
 
         function onError(response) {
 	    cancelSetPanelStateIsLoadingTimer();
-	    if (response && response.isSbatchLoginServiceSRException) {
+	    if (response && response.error) {
                 panelState.setLoading(modelName, false);
-                //TODO(robnagler) this should be returned from sbatchLoginService or stringService
-                panelState.setError(modelName, `Please login to ${authState.sbatchHostDisplayName}`);
+                panelState.setError(modelName, response.error);
 		return;
 	    }
 	    panelState.reportNotGenerated(modelName);
@@ -3147,7 +3154,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     return self;
 });
 
-SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSender) {
+SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSender, sbatchLoginService) {
     var self = {};
     var runQueue = [];
 
@@ -3408,6 +3415,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
 
         function handleStatus(data) {
 	    if (data && data.srException) {
+                srdbg('persistentSimulation', data);
 		return;
 	    }
             setSimulationStatus(data);
