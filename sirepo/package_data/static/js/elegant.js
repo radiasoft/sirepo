@@ -279,7 +279,6 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
     };
 
     self.dataFileURL = function(model, index) {
-        srdbg("model, index ->", model, index);
         if (! appState.isLoaded()) {
             return '';
         }

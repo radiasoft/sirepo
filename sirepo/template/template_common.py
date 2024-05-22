@@ -561,9 +561,6 @@ def heatmap(values, model, plot_fields=None, weights=None):
         y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
         z_matrix=hist.T.tolist(),
     )
-    pkdp("\n\n\n HEATMAP MODEL KEYS={}", model.keys())
-    pkdp("\n\n\n\n model.x={}, model.y={}", model.x, model.y)
-    pkdp("\n\n\n\n values: {} values.shape", numpy.array(values).shape)
     # TODO (gurhar1133): make csv here too using model.x and model.y
     if plot_fields:
         res.update(plot_fields)
@@ -621,7 +618,10 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
         res.update(plot_fields)
     columns_dict = PKDict()
     for plot in res.plots:
-        columns_dict[plot.col_name] = plot.points
+        c = plot.get("col_name", False)
+        if not c:
+            c = plot.name
+        columns_dict[c] = plot.points
     pandas.DataFrame(columns_dict).to_csv(f"{model.frameReport}.csv", index=False)
     return res
 

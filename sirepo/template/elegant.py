@@ -729,35 +729,13 @@ def get_data_file(run_dir, model, frame, options):
             raise AssertionError(
                 f"invalid suffix={options.suffix} for download path={path}"
             )
-        p =  str(path)
-        out = elegant_common.subprocess_output(
-            [
-                "sddsprintout",
-                "-noTitle",
-                "-columns",
-                "-spreadsheet=delimiter=\\,",
-                "-formatDefaults=float=%1.8e,double=%1.16e,long=%1ld,short=%1hd",
-               p,
-            ],
-        )
-        if not out:
-            raise AssertionError(
-                f"invalid or empty output from sddsprintout path={path}"
-            )
-        return template_common.JobCmdFile(
-            reply_uri=path.purebasename + ".csv",
-            reply_content=out,
-        )
+        return run_dir.join(model + ".csv")
 
     if frame >= 0:
-        # TODO (gurhar1133): needs to do things diff for heatmap
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         # # ex. elementAnimation17-55
-        # i = LatticeUtil.file_id_from_output_model_name(model)
-        # pkdp("\n\n\n MODEL={}", model)
-        # return _sdds(_get_filename_for_element_id(i, data))
-        # pkdp("\n\n\n\n FILENAME_MAP={}", _build_filename_map(data))
-        return run_dir.join(model + ".csv")
+        i = LatticeUtil.file_id_from_output_model_name(model)
+        return _sdds(_get_filename_for_element_id(i, data))
     if model == "animation":
         return template_common.text_data_file(ELEGANT_LOG_FILE, run_dir)
     return _sdds(_report_output_filename("bunchReport"))
