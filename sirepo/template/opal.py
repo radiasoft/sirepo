@@ -564,6 +564,8 @@ def save_sequential_report_data(data, run_dir):
     report = data.models[data.report]
     res = None
     if "bunchReport" in data.report:
+        pkdp("\n\n\ndata.report={}", data.report)
+        report.frameReport = data.report
         res = bunch_plot(report, run_dir, 0)
         res.title = ""
     else:

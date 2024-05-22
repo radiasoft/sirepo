@@ -41,6 +41,8 @@ class HDF5Util:
                 plot_attrs.format_plot(p, plots[f])
             t = plot_attrs.title(p, plot_attrs.frame_index)
 
+        # pkdp("\n\n\n PLOT_ATTRS={}", plot_attrs)
+        # pkdp("\n\n\n MODEL={}", plot_attrs.model)
         return template_common.heatmap(
             values=[plots[x_field].points, plots[y_field].points],
             model=plot_attrs.model,
