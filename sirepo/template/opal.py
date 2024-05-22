@@ -490,6 +490,8 @@ def code_var(variables):
 
 def get_data_file(run_dir, model, frame, options):
     pkdp("\n\n\n\n calling get_data_file model={}, frame={} options={}", model, frame, options)
+    if options.suffix == "csv":
+        return run_dir.join(model + ".csv")
     if model in ("bunchAnimation", "plotAnimation") or "bunchReport" in model:
         return _OPAL_H5_FILE
     if frame < 0:

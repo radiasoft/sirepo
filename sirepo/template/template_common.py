@@ -568,7 +568,9 @@ def heatmap(values, model, plot_fields=None, weights=None):
     columns_dict[model.x] = values[0]
     columns_dict[model.y] = values[1]
     columns_dict["particleID"] = range(1, len(values[0]) + 1)
-    pandas.DataFrame(columns_dict).to_csv(f"{model.frameReport}.csv", index=False)
+    pkdp("\n\n\n\n model={}", model)
+    n = model.get("frameReport", f"heatplot-{model.x}-{model.y}")
+    pandas.DataFrame(columns_dict).to_csv(f"{n}.csv", index=False)
     return res
 
 
