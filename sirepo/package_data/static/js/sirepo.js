@@ -363,10 +363,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
         $rootScope.$broadcast('modelChanged', name);
     }
 
-    function broadcastLoaded() {
-        $rootScope.$broadcast('modelsLoaded');
-    }
-
     function broadcastSaved(name) {
         $rootScope.$broadcast(name + '.saved');
         $rootScope.$broadcast('modelSaved', name);
@@ -394,7 +390,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
         savedModelValues = self.cloneModel();
         lastAutoSaveData = self.clone(data);
         self.updateReports();
-        broadcastLoaded();
+        $rootScope.$broadcast('modelsLoaded');
         self.resetAutoSaveTimer();
     }
 
@@ -1049,24 +1045,27 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     const self = {};
     const _STATES = ['initial', 'needed', 'status', 'creds', 'auth', 'ok', 'error', 'notNeeded'];
     let _state = _STATES[0];
-    const _EVENTS = ['sbatchLogin', 'statusLogout', 'statusLogin', 'credsConfirm', 'credsCancel', 'authSuccess', 'authInvalid', 'authMissing', 'authError', 'unloaded', 'needYes', 'needNo'];
+    const _EVENTS = ['statusLogout', 'statusLogin', 'credsConfirm', 'credsCancel', 'authSuccess', 'authInvalid', 'authMissing', 'authError', 'unloaded', 'needYes', 'needNo'];
     const _REASON_TO_EVENTS = {
         "general-connection-error": 'authError',
         "invalid-creds": 'authInvalid',
         "no-creds": 'authMissing',
     };
     const _TRANSITIONS = {
-        auth: {
+        authenticating: {
             authError: 'error',
             authInvalid: 'creds',
-            authSuccess: 'ok',
             authMissing: 'creds',
+            authSuccess: 'ok',
+            credsCancel: 'idle',
+            needYes: 'authenticating',
             unloaded: 'initial',
         },
         creds: {
-            credsCancel: 'error',
-            credsConfirm: 'auth',
             authMissing: 'creds',
+            credsCancel: 'idle',
+            credsConfirm: 'authenticating',
+            needYes: 'creds',
             unloaded: 'initial',
         },
         error: {
@@ -1096,10 +1095,12 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         },
         ok: {
             authMissing: 'creds',
+            needYes: 'ok',
             unloaded: 'initial',
         },
         status: {
             authMissing: 'creds',
+            needYes: 'status',
             statusError: 'error',
             statusLogin: 'ok',
             statusLogout: 'idle',
@@ -1132,31 +1133,43 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             );
         }
     )({
+        isLoggedIn: ['ok'],
         showLogin: ['creds'],
-        showLoginOrStatus: ['auth', 'creds', 'idle', 'status'],
+        showLoginOrStatus: ['authenticating', 'creds', 'idle', 'status'],
+        showSbatchOptions: ['!', 'notNeeded'],
     });
 
     const _handleSRException = (srException, errorCallback) => {
         if (srException.routeName != 'sbatchLogin') {
             return false;
         }
-        //TODO(robnagler) trace all of these
+        //TODO(robnagler) an alternative is to broadcast an error.
+        // there should be some type of global state management
+        // here, since requests are all connected to this event.
+        // if there is a frame waiting on a request, this state
+        // should be known. requestSender perhaps needs to know...
         errorCallback({isSbatchLoginServiceSRException: true});
-        self.event(_REASON_TO_EVENTS[srException.params.reason] || 'authError');
+        self.event(
+            _REASON_TO_EVENTS[srException.params.reason] || 'authError',
+            {srException: srException},
+        );
+        return true;
     };
 
-    const _sendRequest = (route, scopes, otherArgs) => {
+    const _sendRequest = (route, eventArg, otherArgs) => {
 	const _response = (response) => {
             self.event(
+                // Response doesn't come back for creds invalid.
+                // authInvalid doesn't happen via this path.
                 response.loginSuccess ? 'authSuccess' : 'authError',
                 {authResponse: response},
             );
 	};
 	requestSender.sendRequest(
-	    'sbatchLogin',
+	    route,
 	    _response,
 	    {
-		computeModel: scopes.loginScope.simState.model,
+		computeModel: eventArg.directiveScope.simState.model,
 		simulationId: appState.models.simulation.simulationId,
 		simulationType: SIREPO.APP_SCHEMA.simulationType,
 		...otherArgs,
@@ -1165,8 +1178,8 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         );
     };
 
-    self._action_auth_authInvalid = (srException) => {
-	$rootScope.$broadcast('invalidSbatchLogin', {srException: srException});
+    self._action_authenticating = (eventArg) => {
+	$rootScope.$broadcast('sbatchLoginServiceAuth', eventArg);
     };
 
     self._action_creds_credsConfirm = (eventArg) => {
@@ -1177,32 +1190,39 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         );
     };
 
-    self._action_initial_loaded = (loginScope) => {
-        const j = appState.models[loginScope.simState.model].jobRunMode;
-
+    self._action_initial_needYes = (eventArg) => {
+        _sendRequest('sbatchLoginStatus', eventArg, {data: appState.models});
     };
 
-    self._action_needed_loginClicked = (loginScope) => {
-	$rootScope.$broadcast('showSbatchLoginModal', loginScope);
+    self._action_needed_loginClicked = (eventArg) => {
+	$rootScope.$broadcast('showSbatchLoginModal', eventArg);
     };
 
-    self.event = (event, eventArgs) => {
+    self.event = (event, eventArg) => {
         const s = _TRANSITIONS[_state][event];
+        if (eventArg === null) {
+            eventArg = {};
+        }
         if (! s) {
             throw new Error(`invalid transition state=${_state} event=${event}`);
         }
         //TODO(robnagler) does not need to be on $self
-	const m = `_action_${_state}_${event}`;
+	let m = `_action_${_state}_${event}`;
+        if (! (m in self)) {
+            m = `_action_${_state}`
+        }
         _state = s;
 	// Not all transtions have an action
-	if (typeof self[m] === 'function') {
-	    self[m](eventArgs);
+	if (m in self) {
+            eventArg.event = event;
+	    self[m](event, eventArg);
 	}
     };
 
     self.jobRunModeChanged = (jobRunMode) => {
         self.event(
             jobRunMode === 'sbatch' ? 'needYes' : 'needNo',
+
         );
     };
 
@@ -1224,213 +1244,6 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     requestSender.registerSRExceptionHandler(_handleSRException);
     $rootScope.$on('modelsUnloaded', () => self.event('unloaded'));
     return self;
-    /////////////////// END
-
-/*
-    class SM {
-
-	constructor() {
-	    this.loginModalElement = $('#sbatch-login-modal');
-	    this.currentState = null;
-	    this.STATES = {
-		CHECK_LOGIN_STATUS: 'CheckLoginStatus',
-		CLOSE_MODAL_LOGIN_SUCCESS: 'CloseModalLoginSuccess',
-		CLOSE_MODAL_NO_LOGIN: 'CloseModalNoLogin',
-		INITIALIZE: 'Initialize',
-		INITIALIZE_SIM_STATE: 'InitializeSimState',
-		LOGGED_IN: 'LoggedIn',
-		LOGIN_NOT_REQUIRED: 'LoginNotRequired',
-		NOT_LOGGED_IN: 'NotLoggedIn',
-		RENDER_LOGIN_MODAL_GENERAL_CONNECTION_ERROR: 'RenderLoginModalGeneralConnectionError',
-		RENDER_LOGIN_MODAL_INVALID_CREDS: 'RenderLoginModalInvalidCreds',
-		RENDER_LOGIN_MODAL_NO_CREDS: 'RenderLoginModalNoCreds',
-		REQUEST_LOGIN: 'RequestLogin',
-		REQUEST_LOGIN_STATUS: 'RequestLoginStatus',
-	    };
-	    this.transitionState(this.STATES.INITIALIZE);
-	}
-
-	handleStateCheckLoginStatus() {
-	    if (! self.computeModelRequiresLogin() ) {
-		this.transitionState(this.STATES.LOGIN_NOT_REQUIRED);
-		return;
-	    }
-	    this.transitionState(this.STATES.REQUEST_LOGIN_STATUS);
-
-	}
-
-	handleStateCloseModalLoginSuccess() {
-	    this.loginModalElement.modal('hide');
-	    this.state.simState.resetSimulation();
-	    this.transitionState(this.STATES.LOGGED_IN);
-	}
-
-	handleStateCloseModalNoLogin() {
-	    this.loginModalElement.modal('hide');
-	    this.transitionState(this.STATES.NOT_LOGGED_IN);
-	}
-
-	handleStateInitialize() {
-	    this.state = null;
-	}
-
-	handleStateInitializeSimState(simState, startSimulation) {
-	    this.state = {
-		simState: simState,
-		startSimulation: startSimulation,
-	    };
-	    this.transitionState(this.STATES.CHECK_LOGIN_STATUS);
-	}
-
-	handleStateRenderLoginModalGeneralConnectionError() {
-	    this.renderLoginModal();
-	}
-
-	handleStateRenderLoginModalInvalidCreds() {
-	    this.renderLoginModal();
-	}
-
-	handleStateRenderLoginModalNoCreds() {
-	    this.renderLoginModal();
-	}
-
-	handleStateRequestLogin(username, password, otp) {
-	    const handleLoginResponse = (response) => {
-		if (response && response.isSbatchLoginServiceSRException) {
-		    return;
-		}
-		if (this.currentState !== this.STATES.REQUEST_LOGIN) {
-		    throw new Error(
-			`User should be unable to change states in STATES.REQUEST_LOGIN currentState=${this.currentState}`
-		    );
-		}
-		if (! response.loginSuccess) {
-		    throw new Error(`Error with login response=${JSON.stringify(response)}`);
-		}
-		this.transitionState(this.STATES.CLOSE_MODAL_LOGIN_SUCCESS);
-	    };
-
-	    requestSender.sendRequest(
-		'sbatchLogin',
-		handleLoginResponse,
-		{
-		    ...this.defaultRequestArgs(),
-		    sbatchCredentials: {
-			otp: otp,
-			password: password,
-			username: username,
-		    },
-		},
-		handleLoginResponse,
-	    );
-	}
-
-	handleStateRequestLoginStatus() {
-	    const m = appState.models[this.state.simState.model];
-	    requestSender.sendRequest(
-		'sbatchLoginStatus',
-		data => {
-		    // Something else might've happened (ex user
-		    // changed JobRunMode or we got an SRException
-		    // that brough up the login modal).
-		    if (this.currentState !== this.STATES.REQUEST_LOGIN_STATUS) {
-			return;
-		    }
-		    this.transitionState(data.ready ? this.STATES.LOGGED_IN : this.STATES.NOT_LOGGED_IN);
-		},
-		{
-
-		    ...this.defaultRequestArgs(),
-		    models: appState.models,
-		},
-		err => {
-		    srlog('Error in sbatchLoginService.handleRequestLoginStatus: err=', err);
-		    errorService.alertText('Error checking login status. Please refresh the page. If the issue persists contact support@sirepo.com');
-		},
-	    );
-	}
-
-	renderLoginModal() {
-	    $rootScope.$broadcast('sbatchLoginModalShown');
-	    this.loginModalElement.modal('show');
-	}
-
-	transitionState(state, ...args) {
-	    if (! Object.values(this.STATES).includes(state)) {
-		throw new Error(`unknown state=${state}`);
-	    }
-	    this.currentState = state;
-	    const m = `handleState${state}`;
-	    // Only states with something to do have a handleState function
-	    if (typeof this[m] === 'function') {
-		this[m](...args);
-	    }
-	}
-    }
-
-    self.closeModalNoLogin = () => {
-	sm.transitionState(sm.STATES.CLOSE_MODAL_NO_LOGIN);
-    };
-
-    self.computeModelRequiresLogin = () => {
-	if (! sm.state || ! sm.state.simState) {
-	    return false;
-	}
-	const m = appState.models[sm.state.simState.model];
-	return m && m.jobRunMode === 'sbatch';
-    };
-
-    self.initializeSimState = (simState, startSimulation) => {
-	sm.transitionState(sm.STATES.INITIALIZE_SIM_STATE, simState, startSimulation);
-    };
-
-    self.isRequestingLogin = () => {
-	return sm.currentState === sm.STATES.REQUEST_LOGIN;
-    };
-
-    self.isRequestingLoginStatus = () => {
-	return sm.currentState === sm.STATES.REQUEST_LOGIN_STATUS;
-    };
-
-    self.login = (username, password, otp) => {
-	sm.transitionState(sm.STATES.REQUEST_LOGIN, username, password, otp);
-    };
-
-    self.renderModalNoCreds = () => {
-	sm.transitionState(sm.STATES.RENDER_LOGIN_MODAL_NO_CREDS);
-    };
-
-    self.shouldShowLoginButton = () => {
-	return new Set([
-	    sm.STATES.CHECK_LOGIN_STATUS,
-	    sm.STATES.CLOSE_MODAL_NO_LOGIN,
-	    sm.STATES.INITIALIZE,
-	    sm.STATES.NOT_LOGGED_IN,
-	    sm.STATES.REQUEST_LOGIN_STATUS,
-	]).has(sm.currentState);
-    };
-
-    self.showOTP = authState.sbatchHostIsNersc;
-
-    const sm = new SM();
-    requestSender.registerSRExceptionHandler(
-	'sbatchLogin',
-	(srException) => srException.params && srException.params.isModal && srException.routeName.toLowerCase().includes('sbatch'),
-	(srException, callback) => {
-	    // TODO(e-carlin): fix
-	    // this.state.shouldRestartRunSimulation = srException.params.shouldRestartRunSimulation;
-	    callback({isSbatchLoginServiceSRException: true});
-	    sm.transitionState(
-		{
-		    'no-creds': sm.STATES.RENDER_LOGIN_MODAL_NO_CREDS,
-		    'invalid-creds': sm.STATES.RENDER_LOGIN_MODAL_INVALID_CREDS,
-		    'general-connection-error': sm.STATES.RENDER_LOGIN_MODAL_GENERAL_CONNECTION_ERROR,
-		}[srException.params.reason]
-	    );
-	}
-    );
-    $rootScope.$on('modelsUnloaded', () => sm.transitionState(sm.STATES.INITIALIZE));
-*/
 });
 
 // manages validators for ngModels and provides other validation services
@@ -1658,6 +1471,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
 	    cancelSetPanelStateIsLoadingTimer();
 	    if (response && response.isSbatchLoginServiceSRException) {
                 panelState.setLoading(modelName, false);
+                //TODO(robnagler) this should be returned from sbatchLoginService or stringService
                 panelState.setError(modelName, `Please login to ${authState.sbatchHostDisplayName}`);
 		return;
 	    }
@@ -3098,12 +2912,12 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
 
     const _handleSRException = (srException, errorCallback) => {
         const e = srException;
-        //TODO(robnagler) handler
+        //TODO(robnagler) register handler
         if (e.routeName == "httpRedirect") {
             uri.globalRedirect(e.params.uri, undefined);
             return;
         }
-        //TODO(robnagler) handler
+        //TODO(robnagler) register handler
         if (e.routeName == "serverUpgraded" && e.params && e.params.reason in SIREPO.refreshModalMap) {
             $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
             return;
@@ -3113,7 +2927,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
                 return;
             }
 	}
-        //TODO(robnagler) handler
+        //TODO(robnagler) register handler
         if (e.routeName == LOGIN_ROUTE_NAME) {
             saveLoginRedirect();
             // if redirecting to login, but the app thinks it is already logged in,
@@ -3244,7 +3058,6 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         ).then(
             (resp) => {
                 if (httpConfig.responseType === 'blob') {
-                    $interval.cancel(interval);
                     _blobResponse(resp, successCallback, errorCallback);
                     return;
                 }
@@ -3253,7 +3066,6 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
                     _errorResponse(resp, errorCallback);
                     return;
                 }
-                $interval.cancel(interval);
                 successCallback(resp.data, resp.status);
             },
             (resp) => {

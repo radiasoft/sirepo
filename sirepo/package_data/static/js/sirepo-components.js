@@ -606,6 +606,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
             const _jobRunModeChanged = () => {
                 sbatchLoginService.jobRunModeChanged(
                     appState.models[$scope.simState.model].jobRunMode,
+                    {directiveScope: $scope},
                 );
             };
             appState.whenModelsLoaded($scope, _jobRunModeChanged);
@@ -4699,7 +4700,7 @@ p                            <div class="sr-input-warning">{{ warning }}</div>
                                 <input type="password" class="form-control" name="otp" placeholder="one time password" autocomplete="one-time-code" data-ng-show="authState.sbatchHostIsNersc" data-ng-model="otp"/>
                             </div>
                             <button  data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="submitDisabled()">Submit</button>
-                             <button data-ng-click="sbatchLoginService.closeModalNoLogin()" class="btn btn-default" data-ng-disabled="sbatchLoginService.isRequestingLogin()">Cancel</button>
+                             <button data-ng-click="cancel()()" class="btn btn-default" data-ng-disabled="cancelDisabled()">Cancel</button>
                         <form>
                     </div>
                   </div>
@@ -4708,76 +4709,91 @@ p                            <div class="sr-input-warning">{{ warning }}</div>
             </div>
         `,
         controller: function($scope, authState, sbatchLoginService) {
-	    resetLoginFormText();
-	    $scope.sbatchLoginService = sbatchLoginService;
-	    $scope.authState = authState;
-
-
-	    function resetLoginForm() {
-		resetLoginFormText();
-		$scope.sbatchLoginModalForm.$setPristine();
-	    }
-
-	    function resetLoginFormText() {
+	    const _resetLoginFormText = () => {
 		$scope.otp = '';
 		$scope.password = '';
 		$scope.username = '';
+                $scope.directiveScope = null;
                 $scope.warning = '';
-	    }
+	    };
 
-            $scope.submitDisabled = function() {
+	    const _resetLoginForm = () => {
+		_resetLoginFormText();
+		$scope.sbatchLoginModalForm.$setPristine();
+	    };
+
+	    _resetLoginFormText();
+	    $scope.authState = authState;
+	    $scope.sbatchLoginService = sbatchLoginService;
+
+            $scope.cancel = () => {
+                sbatchLoginService.event('credsCancel');
+            };
+
+            $scope.submit = () => {
+                sbatchLoginService.event(
+                    'credsConfirm',
+                    {
+                        sbatchCredentials: {
+                            otp: $scope.otp,
+                            password: $scope.password,
+                            username: $scope.username,
+                        },
+                        directiveScope: $scope.directiveScope,
+                    },
+                );
+                $('#sbatch-login-modal').modal('show');
+            };
+            $scope.submitDisabled = () => {
                 return $scope.password.length < 1 || $scope.username.length < 1 || ! sbatchLoginService.query('showLogin');
             };
 
+
+
             $scope.$on(
-                'invalidSbatchLogin',
+                'sbatchLoginServiceAuth',
                 (event, eventArg) => {
+                    if (sbatchLoginService.query('isLoggedIn')) {
+                        _resetLoginForm();
+                        $('#sbatch-login-modal').modal('hide');
+                        return;
+                    }
                     if ('srException' in eventArg) {
                         const r = eventArg.srException.reason;
                         $scope.warning = r == 'invalid-creds'
-                        ? 'Your credentials were invalid. Please try again.'
-                        : r == 'invalid-creds' ? 'Please enter credentials.'
-                        : `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`;
+                            ? 'Your credentials were invalid. Please try again.'
+                            : r == 'invalid-creds'
+                            ? 'Please enter credentials.'
+                            // set below
+                            : null;
                     }
-                    //TODO(robnagler): other issues probably warning. Maybe hide?
+                    if ($scope.warning === null) {
+                        $scope.warning = `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`;
+                    }
+                    $('#sbatch-login-modal').modal('show');
                 },
             );
 
             $scope.$on(
                 'showSbatchLoginModal',
-                (event, loginScope) => {
-                    resetLoginForm();
-                    $scope.submit = () => {
-                        sbatchLoginService.event(
-                            'credsConfirm',
-                            {
-                                sbatchCredentials: {
-                                    otp: $scope.otp,
-                                    password: $scope.password,
-                                    username: $scope.username,
-                                },
-                                loginScope: loginScope,
-                                modalScope: $scope,
-                            },
-                        );
-                        $('#sbatch-login-modal').modal('show');
-                    };
+                (event, eventArg) => {
+                    _resetLoginForm();
+                    $scope.directiveScope = eventArg.directiveScope;
                 },
             );
-            //TODO: reset form on loginsuccess or modal is hidden?
         },
     };
 
 });
 
-SIREPO.app.directive('sbatchOptions', function(appState) {
+SIREPO.app.directive('sbatchOptions', function(appState, sbatchLoginService) {
     return {
         restrict: 'A',
         scope: {
             simState: '=sbatchOptions',
         },
         template: `
-            <div data-ng-show="showSbatchOptions()">
+            <div data-ng-show="sbatchLoginService.query('showSbatchOptions')">
               <div class="form-group form-group-sm" data-ng-repeat="pair in sbatchFields track by $index">
                 <div data-ng-repeat="sbatchField in pair" data-model-field='sbatchField' data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
               </div>
