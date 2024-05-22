@@ -184,7 +184,7 @@ class _Auth(sirepo.quest.Attr):
             auth_role_moderation.raise_control_for_user(self.qcall, u, r)
         raise sirepo.util.Forbidden(f"uid={u} does not have access to sim_type={t}")
 
-    def check_user_role(self):
+    def check_role_user(self):
         u = self.logged_in_user()
         if not self.qcall.auth_db.model("UserRole").has_role(
             role=sirepo.auth_role.ROLE_USER,
@@ -522,7 +522,7 @@ class _Auth(sirepo.quest.Attr):
         s = self._qcall_bound_state()
         u = self._qcall_bound_user()
         if u:
-            self.check_user_role()
+            self.check_role_user()
             # Will raise an exception if dir not found
             simulation_db.user_path(uid=u, check=True)
         if s is None:

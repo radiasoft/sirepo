@@ -46,13 +46,31 @@ def delete_roles(*args):
     delete(*args)
 
 
+def disable_user(uid_or_email):
+    """Remove role user
+    Args:
+    uid_or_email (str): Uid or email of the user
+    """
+    with _parse_args(uid_or_email) as qcall:
+        print(f"u={qcall.sr_uid}")
+        assert 0
+        qcall.auth_db.model("UserRole").delete_roles(sirepo.auth_role.ROLE_USER)
+        qcall.auth_db.model(
+            "UserRoleInvite",
+            uid="0",
+            role=sirepo.auth_role.ROLE_USER,
+            status=sirepo.auth_role.ModerationStatus.DENY,
+            moderator_uid="0",
+        ).save()
+
+
 def list(uid_or_email):
     """List all roles assigned to a user
     Args:
         uid_or_email (str): Uid or email of the user
     """
 
-    with _parse_args(uid_or_email, []) as qcall:
+    with _parse_args(uid_or_email) as qcall:
         return qcall.auth_db.model("UserRole").get_roles()
 
 
@@ -64,7 +82,7 @@ def list_roles(*args):
 # TODO(e-carlin): This only works for email auth or using a uid
 # doesn't work for other auth methods
 @contextlib.contextmanager
-def _parse_args(uid_or_email, roles):
+def _parse_args(uid_or_email, roles=[]):
     with sirepo.quest.start() as qcall:
         # POSIT: Uid's are from the base62 charset so an '@' implies an email.
         if "@" in uid_or_email:
