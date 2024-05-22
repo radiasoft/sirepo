@@ -46,21 +46,20 @@ def delete_roles(*args):
     delete(*args)
 
 
-def disable_user(uid_or_email):
+def disable_user(moderator_uid, uid_or_email):
     """Remove role user
     Args:
+    moderator_uid (str): To be recorded in UserRoleInvite
     uid_or_email (str): Uid or email of the user
     """
     with _parse_args(uid_or_email) as qcall:
-        print(f"u={qcall.sr_uid}")
-        assert 0
-        qcall.auth_db.model("UserRole").delete_roles(sirepo.auth_role.ROLE_USER)
+        qcall.auth_db.model("UserRole").delete_roles([sirepo.auth_role.ROLE_USER])
         qcall.auth_db.model(
             "UserRoleInvite",
-            uid="0",
+            uid=qcall.auth.logged_in_user(),
             role=sirepo.auth_role.ROLE_USER,
             status=sirepo.auth_role.ModerationStatus.DENY,
-            moderator_uid="0",
+            moderator_uid=moderator_uid,
         ).save()
 
 
