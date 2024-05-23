@@ -6,17 +6,10 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.controller('JupyterHubLoginController', function(requestSender) {
     var self = this;
 
-    srdbg("in controller");
-    self.isLoading = true;
-    srdbg("1 calling redirect");
     requestSender.sendRequest(
         'redirectJupyterHub',
-        () => {self.isLoading = false; srdbg("2 called redirect");}
+        () => {self.isLoading = false;}
     );
-
-    self.redir = () => {
-        requestSender.sendRequest('redirectJupyterHub');
-    };
 });
 
 SIREPO.app.directive('appHeader', function(jupyterhubloginService) {

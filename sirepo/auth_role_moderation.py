@@ -174,7 +174,6 @@ def _datetime_to_str(rows):
 
 
 def raise_control_for_user(qcall, uid, role):
-    pkdp(f"!!!!! raise control for user")
     s = qcall.auth_db.model("UserRoleInvite").get_status(role=role)
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", None)
@@ -182,9 +181,6 @@ def raise_control_for_user(qcall, uid, role):
         raise sirepo.util.Forbidden(f"uid={uid} role={role} already denied")
     assert s is None, f"Unexpected status={s} for uid={uid} and role={role}"
     qcall.auth.require_email_user()
-    pkdp(
-        f"raising moderation request uid={uid} role={role} authstate={qcall.auth.only_for_api_auth_state()}"
-    )
     raise sirepo.util.SRException("moderationRequest", None)
 
 
