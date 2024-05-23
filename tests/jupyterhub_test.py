@@ -16,16 +16,17 @@ def setup_module(module):
 
 
 def test_api_security_without_role(fc):
+    from pykern.pkunit import pkok
     from sirepo.pkcli import roles
     import sirepo.auth_role
 
     x = sirepo.auth_role.for_sim_type("jupyterhublogin")
     roles.delete(fc.sr_uid, x)
-    assert x not in fc.sr_auth_state().roles, f"{x} role should have been removed"
+    pkok(x not in fc.sr_auth_state().roles, f"{x} role should have been removed")
     fc.sr_get("checkAuthJupyterHub").assert_http_status(403)
     fc.sr_get("redirectJupyterHub", redirect=False).assert_http_status(403)
     roles.add(fc.sr_uid, x)
-    assert x in fc.sr_auth_state().roles, f"{x} role should have been added"
+    pkok(x in fc.sr_auth_state().roles, f"{x} role should have been added")
     fc.sr_get("checkAuthJupyterHub").assert_success()
     fc.sr_get("redirectJupyterHub", redirect=False).assert_http_redirect("jupyterHub")
 
