@@ -1151,6 +1151,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             state: 'error',
             //TODO(robnagler) this should be returned from sbatchLoginService or stringService
             error: `Please login to ${authState.sbatchHostDisplayName}`,
+            _sbatchServiceLoginIgnoreResponse: true,
         });
         self.event(
             _REASON_TO_EVENTS[srException.params.reason] || 'authError',
@@ -1161,6 +1162,9 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 
     const _sendRequest = (route, eventArg, otherArgs) => {
 	const _response = (response) => {
+            if (response._sbatchServiceLoginIgnoreResponse) {
+                return;
+            }
             self.event(
                 response.ready || response.loginSuccess ? 'authSuccess' : 'authMissing',
                 {authResponse: response},
@@ -1199,12 +1203,16 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	$rootScope.$broadcast('sbatchLoginServiceAuth', eventArg);
     };
 
+    self._action_needNo = (eventArg) => {
+	$rootScope.$broadcast('sbatchLoginServiceAuth', eventArg);
+    };
+
     self._action_needYes = (eventArg) => {
         _sendRequest('sbatchLoginStatus', eventArg, {data: appState.models});
     };
 
     self._action_idle_loginClicked = (eventArg) => {
-	$rootScope.$broadcast('showSbatchLoginModal', eventArg);
+	$rootScope.$broadcast('sbatchLoginServiceModal', eventArg);
     };
 
     self.event = (event, eventArg) => {
@@ -2191,7 +2199,7 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
     $rootScope.$on(
         'sbatchLoginServiceAuth',
         (event, eventArg) => {
-            if (eventArg.event === 'authSuccess') {
+            if (['authSuccess', 'needNo'].includes(eventArg.event)) {
                 _clearAllPanelErrors();
             }
         },

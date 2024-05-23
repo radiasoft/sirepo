@@ -593,7 +593,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
             <div data-ng-if="sbatchLoginService.query('showLoginOrStatus')">
               <button ng-disabled="! sbatchLoginService.query('showLogin')" class="col-sm-6 pull-right btn btn-default" data-ng-click="loginClicked()">{{ label() }}</button>
             </div>
-            <div class="col-sm-6 pull-right" data-ng-if="! sbatchLoginService.query('showLogin')">
+            <div class="col-sm-6 pull-right" data-ng-if="! sbatchLoginService.query('showLoginOrStatus')">
               <button class="btn btn-default" data-ng-click="start()">{{ startButtonLabel }}</button>
             </div>
 	`,
@@ -624,7 +624,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
             $scope.$on(
                 'sbatchLoginServiceAuth',
                 (event, eventArg) => {
-                    if (eventArg.event === 'authMissing' && ['ok', 'status'].indexOf(eventArg.oldState) >= 0) {
+                    if (eventArg.event === 'authMissing' && ['ok', 'status'].includes(eventArg.oldState)) {
                         $scope.loginClicked();
                     }
                     else if (eventArg.event === 'authSuccess' && $scope.startWasClicked) {
@@ -4749,6 +4749,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
             };
 
             $scope.submit = () => {
+                $scope.warning = null;
                 sbatchLoginService.event(
                     'credsConfirm',
                     {
@@ -4760,7 +4761,6 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                         directiveScope: $scope.directiveScope,
                     },
                 );
-                $('#sbatch-login-modal').modal('show');
             };
             $scope.submitDisabled = () => {
                 return $scope.password.length < 1 || $scope.username.length < 1 || ! sbatchLoginService.query('showLogin');
@@ -4771,36 +4771,40 @@ SIREPO.app.directive('sbatchLoginModal', function() {
             $scope.$on(
                 'sbatchLoginServiceAuth',
                 (event, eventArg) => {
+                    if (eventArg.event === 'needNo' || eventArg.newState !== 'creds') {
+                        return;
+                    }
                     if (sbatchLoginService.query('isLoggedIn') || eventArg.event === 'credsCancel') {
                         _resetLoginForm();
                         $('#sbatch-login-modal').modal('hide');
                         return;
                     }
-                    if (eventArg.newState !== 'creds') {
-                        return;
-                    }
-                    if ('srException' in eventArg) {
-                        const r = eventArg.srException.reason;
-                        $scope.warning = r == 'invalid-creds'
-                            ? 'Your credentials were invalid. Please try again.'
-                            : r == 'no-creds'
-                            ? 'Please enter credentials.'
-                            // set below
-                            : null;
-                    }
-                    if ($scope.warning === null) {
-                        $scope.warning = `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`;
+                    if (['creds', 'authenticating'].includes(eventArg.oldState)) {
+                        if ('srException' in eventArg) {
+                            const r = eventArg.srException.params.reason;
+                            $scope.warning = r == 'invalid-creds'
+                                ? 'Your credentials were invalid. Please try again.'
+                                : r === 'no-creds'
+                                ? ''
+                                // set below
+                                : null;
+                        }
+                        if ($scope.warning === null) {
+                            $scope.warning = `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`;
+                        }
                     }
                     $('#sbatch-login-modal').modal('show');
                 },
             );
 
             $scope.$on(
-                'showSbatchLoginModal',
+                'sbatchLoginServiceModal',
                 (event, eventArg) => {
-                    _resetLoginForm();
-                    $scope.directiveScope = eventArg.directiveScope;
-                    $('#sbatch-login-modal').modal('show');
+                    if (eventArg.event === 'loginClicked') {
+                        _resetLoginForm();
+                        $scope.directiveScope = eventArg.directiveScope;
+                        $('#sbatch-login-modal').modal('show');
+                    }
                 },
             );
         },
