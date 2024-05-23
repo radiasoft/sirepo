@@ -7,7 +7,6 @@
     "constants": {
         "advancedElementNames": [],
         "basicElementNames": [
-            "BPM",
             "DIPOLE",
             "DRIFT",
             "MULTIPOLE",
@@ -213,13 +212,6 @@
             "s": ["S", "Float", 0],
             "filename": ["Filename", "InputFile", ""]
         },
-        "BPM": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "bnseg": ["Bnseg", "Integer", 0, "particle sample frequency"],
-            "btype": ["Btype", "Integer", 0, " -1: beam offset. −2: output phase-space information at location V3(m) into fort.Bmpstp. -6: wakefield ..."],
-            "bmpstp": ["Bpmstp id", "Integer", null, "Identifier of the fort.Bmpstp file"]
-        },
         "CONSTFOC": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
@@ -393,19 +385,8 @@
             "basic": [],
             "advanced": []
         },
-        "BPM": {
-            "title": "BPM",
-            "description": "Beam Position Monitor",
-            "advanced": [
-                "name",
-                "l",
-                "btype",
-                "bnseg"
-            ]
-        },
         "DIPOLE": {
             "title": "DIPOLE",
-            "description": "A Dipole",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -427,7 +408,6 @@
         },
         "MULTIPOLE": {
             "title": "MULTIPOLE",
-            "description": "A Multipole",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -439,7 +419,6 @@
         },
         "QUADRUPOLE": {
             "title": "QUADRUPOLE",
-            "description": "A Quadrupole",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -459,7 +438,6 @@
         },
         "SOLENOID": {
             "title": "SOLENOID",
-            "description": "A solenoid",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
@@ -470,7 +448,6 @@
         },
         "SOLENOIDRF": {
             "title": "SOLENOIDRF",
-            "description": "A solenoidRF",
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
