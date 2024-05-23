@@ -7,9 +7,11 @@
     "constants": {
         "advancedElementNames": [],
         "basicElementNames": [
-            "DRIFTTUBE",
+            "BPM",
             "DIPOLE",
+            "DRIFT",
             "MULTIPOLE",
+            "QUADRUPOLE",
             "SOLENOID",
             "SOLENOIDRF"
         ]
@@ -183,7 +185,7 @@
             "half_gap": ["Half of Gap Width (m)", "RPNValue", 0],
             "filename": ["Filename", "InputFile", "", "file ID to contain the geometry information of bend."]
         },
-        "DRIFTTUBE": {
+        "DRIFT": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"]
         },
@@ -346,16 +348,8 @@
             "advanced": [
                 "name",
                 "l",
-                "bpmstp",
+                "btype",
                 "bnseg"
-            ]
-        },
-        "DRIFTTUBE": {
-            "title": "DRIFTTUBE",
-            "description": "The DRIFTTUBE element defines a drift space.",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name"
             ]
         },
         "DIPOLE": {
@@ -364,10 +358,20 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
+                "l",
                 "b_field_x",
                 "b_field",
                 "half_gap",
                 "filename"
+            ]
+        },
+        "DRIFT": {
+            "title": "DRIFTTUBE",
+            "description": "The DRIFTTUBE element defines a drift space.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l"
             ]
         },
         "MULTIPOLE": {
@@ -376,6 +380,7 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
+                "l",
                 "pole_type",
                 "b_field_x",
                 "filename"
@@ -386,33 +391,13 @@
             "description": "A Quadrupole",
             "fieldsPerTab": 8,
             "advanced": [
+                "name",
+                "l",
                 "rf_frequency",
                 "rf_phase_deg",
                 "b1_gradient",
                 "L_effective",
                 "file_id",
-                "name",
-                "l",
-                "radius",
-                "x_offset",
-                "y_offset",
-                "x_rotation",
-                "y_rotation",
-                "z_rotation"
-            ]
-        },
-        "SOLENOIDRF": {
-            "title": "SOLENOIDRF",
-            "description": "A solenoidRF",
-            "fieldsPerTab": 8,
-            "advanced": [
-                "name",
-                "theta0_deg",
-                "rf_frequency",
-                "rf_field_scale",
-                "solenoid_field_scale",
-                "filename",
-                "l",
                 "radius",
                 "x_offset",
                 "y_offset",
@@ -427,8 +412,29 @@
             "fieldsPerTab": 8,
             "advanced": [
                 "name",
+                "l",
                 "radius",
                 "filename"
+            ]
+        },
+        "SOLENOIDRF": {
+            "title": "SOLENOIDRF",
+            "description": "A solenoidRF",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "theta0_deg",
+                "rf_frequency",
+                "rf_field_scale",
+                "solenoid_field_scale",
+                "filename",
+                "radius",
+                "x_offset",
+                "y_offset",
+                "x_rotation",
+                "y_rotation",
+                "z_rotation"
             ]
         },
         "simulation": {

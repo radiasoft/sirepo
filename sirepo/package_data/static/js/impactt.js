@@ -13,7 +13,7 @@ SIREPO.app.config(function() {
             DIPOLE: 'lightgreen',
         },
         elementPic: {
-            drift: ['DRIFTTUBE'],
+            drift: ['DRIFT'],
             magnet: ['MULTIPOLE', 'QUADRUPOLE', 'DIPOLE'],
             solenoid: ['SOLENOID', 'SOLENOIDRF'],
         },
