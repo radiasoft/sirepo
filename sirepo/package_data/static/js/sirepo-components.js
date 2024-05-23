@@ -624,7 +624,10 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
             $scope.$on(
                 'sbatchLoginServiceAuth',
                 (event, eventArg) => {
-                    if (eventArg.event === 'authSuccess' && $scope.stopWasClicked) {
+                    if (eventArg.event === 'authMissing' && ['ok', 'status'].indexOf(eventArg.oldState) >= 0) {
+                        $scope.loginClicked();
+                    }
+                    else if (eventArg.event === 'authSuccess' && $scope.startWasClicked) {
                         $scope.start();
                     }
                 },
@@ -4714,7 +4717,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                                 <input type="password" class="form-control" name="otp" placeholder="one time password" autocomplete="one-time-code" data-ng-show="authState.sbatchHostIsNersc" data-ng-model="otp"/>
                             </div>
                             <button  data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="submitDisabled()">Submit</button>
-                             <button data-ng-click="cancel()()" class="btn btn-default">Cancel</button>
+                             <button data-ng-click="cancel()" class="btn btn-default">Cancel</button>
                         <form>
                     </div>
                   </div>
@@ -4741,7 +4744,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 	    $scope.sbatchLoginService = sbatchLoginService;
 
             $scope.cancel = () => {
-                resetLoginForm();
+                _resetLoginForm();
                 sbatchLoginService.event('credsCancel');
             };
 
@@ -4773,11 +4776,14 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                         $('#sbatch-login-modal').modal('hide');
                         return;
                     }
+                    if (eventArg.newState !== 'creds') {
+                        return;
+                    }
                     if ('srException' in eventArg) {
                         const r = eventArg.srException.reason;
                         $scope.warning = r == 'invalid-creds'
                             ? 'Your credentials were invalid. Please try again.'
-                            : r == 'invalid-creds'
+                            : r == 'no-creds'
                             ? 'Please enter credentials.'
                             // set below
                             : null;

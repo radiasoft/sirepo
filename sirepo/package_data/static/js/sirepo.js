@@ -1183,6 +1183,10 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	$rootScope.$broadcast('sbatchLoginServiceAuth', eventArg);
     };
 
+    self._action_authMissing = (eventArg) => {
+	$rootScope.$broadcast('sbatchLoginServiceAuth', eventArg);
+    };
+
     self._action_creds_credsConfirm = (eventArg) => {
         _sendRequest(
             'sbatchLogin',
@@ -1222,13 +1226,18 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
                 m = `_action_${_state}`
             }
         }
-        srdbg(`${_state} ${event} => ${s} ${m}`, eventArg);
+        eventArg.oldState = _state;
         _state = s;
 	// Not all transtions have an action
 	if (m in self) {
+            eventArg.newState = _state;
             eventArg.event = event;
+            srdbg(`${eventArg.oldState} ${event} => ${s} ${m}`, eventArg);
 	    self[m](eventArg);
 	}
+        else {
+            srdbg(`${eventArg.oldState} ${event} => ${s} <no action>`, eventArg);
+        }
     };
 
     self.jobRunModeChanged = (directiveScope) => {
