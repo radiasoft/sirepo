@@ -204,7 +204,7 @@
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
             "s": ["S", "Float", 0],
-            "is_on": ["Is On", "Boolean", false, "switch on/off the space-charge calculation"]
+            "is_on": ["Is On", "Boolean", "0", "switch on/off the space-charge calculation"]
         },
         "WRITE_SLICE_INFO": {
             "name": ["NAME", "ValidatedString", "", ""],
