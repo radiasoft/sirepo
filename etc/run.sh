@@ -18,7 +18,7 @@ _env_mail_common() {
 
 _env_mail_smtp() {
     _env_mail_common
-    export SIREPO_SMTP_FROM_EMAIL=$USER+support@localhost.localdomainn
+    export SIREPO_SMTP_FROM_EMAIL=$USER+support@localhost.localdomain
     export SIREPO_SMTP_SEND_DIRECTLY=1
     export SIREPO_SMTP_SERVER=localhost
 }
