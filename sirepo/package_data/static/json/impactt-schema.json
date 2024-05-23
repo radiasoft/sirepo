@@ -162,6 +162,57 @@
             "y_rotation": ["Rotation Error Y [rad]", "RPNValue", 0],
             "z_rotation": ["Rotation Error Z [rad]", "RPNValue", 0]
         },
+        "OFFSET_BEAM": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "x_offset": ["X offset [m]", "Float", 0, "X offset V3(m)"],
+            "y_offset": ["Y offset [m]", "Float", 0, "Y offset V5(m)"],
+            "z_offset": ["Z offset [m]", "Float", 0, "Z offset V7(m)"],
+            "px_offset": ["Px offset", "Float", 0, "(γβx) offset V4"],
+            "py_offset": ["Py offset", "Float", 0, "(γβy) offset V6"],
+            "pz_offset": ["Pz offset", "Float", 0, "(γβz) offset V8"]
+        },
+        "WRITE_BEAM": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "filename": ["Filename", "InputFile", ""],
+            "sample_frequency": ["Bnseg", "Integer", 0, "particle sample frequency"]
+        },
+        "WRITE_BEAM_FOR_RESTART": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "filename": ["Filename", "InputFile", ""]
+        },
+        "CHANGE_TIMESTEP": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "dt": ["Dt", "RPNValue", 0, "Time step size (secs)."],
+            "s": ["S", "RPNValue", 0]
+        },
+        "WAKEFIELD": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "method": ["Method", "String", ""],
+            "gap": ["Gap", "Float", 0],
+            "period": ["Period", "Float", 0],
+            "s": ["S", "Float", 0],
+            "s_begin": ["S Begin", "Float", 0],
+            "iris_radius": ["Iris Radius", "Float", 0],
+            "filename": ["Filename", "InputFile", ""]
+        },
+        "SPACECHARGE": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "s": ["S", "Float", 0],
+            "is_on": ["Is On", "Boolean", false, "switch on/off the space-charge calculation"]
+        },
+        "WRITE_SLICE_INFO": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "n_slices": ["Number of Slices", "Integer", 0],
+            "s": ["S", "Float", 0],
+            "filename": ["Filename", "InputFile", ""]
+        },
         "BPM": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
