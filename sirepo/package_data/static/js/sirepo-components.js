@@ -4702,7 +4702,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
                     <span class="lead modal-title text-info">Login to {{ authState.sbatchHostDisplayName }}</span>
-                    <button data-ng-click=""  type="button" class="close" data-ng-disabled="! sbatchLoginService.query('showLogin')"><span>&times;</span></button>
+                    <button data-ng-click="cancel()" type="button" class="close" data-ng-disabled="! sbatchLoginService.query('showLogin')"><span>&times;</span></button>
                     </div>
                     <div class="modal-body">
                         <form name="sbatchLoginModalForm">
@@ -4717,7 +4717,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                                 <input type="password" class="form-control" name="otp" placeholder="one time password" autocomplete="one-time-code" data-ng-show="authState.sbatchHostIsNersc" data-ng-model="otp"/>
                             </div>
                             <button  data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="submitDisabled()">Submit</button>
-                             <button data-ng-click="cancel()" class="btn btn-default">Cancel</button>
+                            <button data-ng-click="cancel()" class="btn btn-default" data-ng-disabled="! sbatchLoginService.query('showLogin')">Cancel</button>
                         <form>
                     </div>
                   </div>
