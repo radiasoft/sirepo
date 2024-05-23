@@ -29,7 +29,8 @@ _SIM_TYPE = "jupyterhublogin"
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
     async def api_checkAuthJupyterHub(self):
-        # check that user has role
+        # TODO(rorour) do this role check at a higher level
+        # (see https://github.com/radiasoft/sirepo/issues/7026)
         self.parse_params(type=_SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(
             self,
@@ -41,7 +42,8 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
     async def api_redirectJupyterHub(self):
-        # check that user has role
+        # TODO(rorour) do this role check at a higher level
+        # (see https://github.com/radiasoft/sirepo/issues/7026)
         self.parse_params(type=_SIM_TYPE)
         if not _unchecked_jupyterhub_user_name(self):
             create_user(self)
