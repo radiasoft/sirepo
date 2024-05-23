@@ -12,6 +12,9 @@ SIREPO.app.config(function() {
             <div data-magin-file-plot="" data-model-name="maginPlotReport"></div>
         </div>
     `;
+    SIREPO.appDownloadLinks = [
+        '<li data-ng-if="::hasDataFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
+    ].join('');
 });
 
 SIREPO.app.factory('genesisService', function(appState) {

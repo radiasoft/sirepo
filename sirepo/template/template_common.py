@@ -619,10 +619,12 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     if plot_fields:
         res.update(plot_fields)
     columns_dict = PKDict()
-    for plot in res.plots:
+    pkdp("\n\n\n res={}", res)
+    for i, plot in enumerate(res.plots):
+        pkdp("\n\n\n\nplot = {}", plot)
         c = plot.get("col_name", False)
         if not c:
-            c = plot.name
+            c = plot.get("name", f"col{i + 1}")
         columns_dict[c] = plot.points
     pandas.DataFrame(columns_dict).to_csv(f"{model.frameReport}.csv", index=False)
     return res

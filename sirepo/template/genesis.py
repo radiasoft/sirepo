@@ -143,6 +143,8 @@ def genesis_success_exit(run_dir):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if options.suffix == "csv":
+        return run_dir.join(model + ".csv")
     if res := _DATA_FILES.get(model):
         return res
     raise AssertionError(f"unknown model={model}")
@@ -175,6 +177,7 @@ def plot_magin(magin_filename):
             _SIM_DATA.lib_file_name_with_model_field("io", "maginfile", magin_filename)
         )
     )
+    pkdp("\n\n\n\nmagin_filename={}", magin_filename)
     return template_common.parameter_plot(
         _x_points(d),
         [
@@ -183,7 +186,7 @@ def plot_magin(magin_filename):
                 label=f"{_MAGIN_PLOT_FIELD} Value",
             )
         ],
-        PKDict(),
+        PKDict(frameReport="maginPlotReport"),
         PKDict(
             title="MAGINFILE",
             x_label="length (m)",
@@ -239,7 +242,7 @@ def sim_frame_parameterAnimation(frame_args):
     return template_common.parameter_plot(
         s[:, _SLICE_COLS.index(x)].tolist(),
         plots,
-        PKDict(),
+        PKDict(frameReport=frame_args.frameReport),
         PKDict(
             title=title,
             x_label=x,
