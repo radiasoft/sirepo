@@ -880,6 +880,7 @@ def _dice(data, run_dir):
                 label="Counts",
             ),
         ],
+        # TODO (gurhar1133): need frameReport
         PKDict(),
         PKDict(
             title="Dice Coefficients",
@@ -973,6 +974,8 @@ def _extract_partition_report(run_dir, sim_in):
         x, y = _histogram_plot(d[name], r)
         c[name] = y
         plots.append(_plot_info(y, name))
+    pkdp("\n\n\n\n about to save partition csv...")
+    # TODO (gurhar1133): not writing for more than idx=0, come back and fix
     _write_csv_for_download(
         PKDict(x=x, **c),
         f"partitionColumnReport{idx}.csv",
