@@ -55,14 +55,16 @@ def cfg():
 
 
 def create_user(qcall, check_dir=False):
-    """Create a Jupyter user
+    """Create a Jupyter user if not one associated with Sirepo uid
+
+    New user_name is created from Sirepo username.
+    If user_name is taken, will be appended with random string.
 
     Args:
         check_dir (bool): assert that an existing user does not have a dir with
-                          the same name (before modifying the name to eliminate
-                          conflicts)
+                          the same name
     Returns:
-        user_name (str): The user_name of the new user
+        user_name (str): The user_name of the new or existing user
     """
 
     def __handle_or_name_sanitized():
