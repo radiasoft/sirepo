@@ -6,6 +6,8 @@
     },
     "constants": {
         "geometryScale": 0.01,
+        "helpUserManualURL": "https://docs.openmc.org/en/stable/",
+        "helpUserForumURL": "https://openmc.discourse.group/",
         "inProgressText": "Working",
         "minTallyResolution": 5,
         "maxFilters": 5,
@@ -233,11 +235,11 @@
         },
         "sirepoLibs": {
             "css": [
-                "cloudmc.css",
+                "openmc.css",
                 "vtk.css"
             ],
             "js": [
-                "cloudmc.js",
+                "openmc.js",
                 "sirepo-geometry.js",
                 "sirepo-plotting-vtk.js"
             ]
@@ -264,14 +266,14 @@
             "route": "/geometry/:simulationId",
             "config": {
                 "controller": "GeometryController as geometry",
-                "templateUrl": "/static/html/cloudmc-geometry.html"
+                "templateUrl": "/static/html/openmc-geometry.html"
             }
         },
         "visualization": {
             "route": "/visualization/:simulationId",
             "config": {
                 "controller": "VisualizationController as visualization",
-                "templateUrl": "/static/html/cloudmc-visualization.html"
+                "templateUrl": "/static/html/openmc-visualization.html"
             }
         }
     },
@@ -949,7 +951,7 @@
             "opacity": ["Global alpha", "Opacity", 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
-            "showSources": ["Show Sources", "Boolean", "1"],
+            "showSources": ["Show Sources", "Boolean", "0"],
             "sourceColorMap": ["Source Energy Color Map", "ColorMap", "jet"],
             "tally": ["Tally", "PlotTallyList"],
             "thresholds": ["Threshold", "Threshold", [0, 0], "Tally cells with a value outside this range will not be displayed"],
@@ -1065,7 +1067,7 @@
             "planePos": ["{{ appState.models.tallyReport.axis }} [m]", "PlanePosition", 0],
             "enableCrosshairs": ["", "Bool", false],
             "enableSelection": ["", "Bool", false],
-            "selectedGeometry": ["", "TallyGeometry", "3D"]
+            "selectedGeometry": ["", "TallyGeometry", "2D"]
         },
         "tallyScore": {
             "score": ["Score", "TallyScoreWithGrouping", ""]
@@ -1248,19 +1250,23 @@
             "title": "Tally Settings",
             "model": "openmcAnimation",
             "basic": [
-                "tally",
-                "score",
-                "aspect",
-                "sourceNormalization",
-                "energyRangeSum",
-                "showSources",
-                "numSampleSourceParticles",
-                "sourceColorMap",
-                "colorMap",
-                "thresholds",
-                "opacity",
-                "tallyReport.axis",
-                "tallyReport.planePos"
+                ["Tally", [
+                    "tally",
+                    "score",
+                    "aspect",
+                    "sourceNormalization",
+                    "energyRangeSum",
+                    "colorMap",
+                    "thresholds",
+                    "opacity",
+                    "tallyReport.axis",
+                    "tallyReport.planePos"
+                ]],
+                ["Source", [
+                    "showSources",
+                    "numSampleSourceParticles",
+                    "sourceColorMap"
+                ]]
             ],
             "advanced": []
         },

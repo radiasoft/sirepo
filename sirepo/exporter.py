@@ -46,7 +46,7 @@ def _create_zip(sim, out_dir, qcall):
     simulation_db.update_rsmanifest(data)
     data.pkdel("report")
     files = sim_data.get_class(data).lib_files_for_export(data, qcall=qcall)
-    for f in _python(data, sim, qcall):
+    for f in _run_file(data, sim, qcall):
         files.append(f)
     with sirepo.util.write_zip(str(path)) as z:
         for f in files:
@@ -84,8 +84,8 @@ def _create_zip(sim, out_dir, qcall):
     return path
 
 
-def _python(data, sim, qcall):
-    """Generate python in current directory
+def _run_file(data, sim, qcall):
+    """Generate the run file in current directory
 
     Args:
         data (dict): simulation
@@ -97,7 +97,7 @@ def _python(data, sim, qcall):
     import copy
 
     template = sirepo.template.import_module(data)
-    res = pkio.py_path("run.py")
+    res = pkio.py_path(_run_filename(data))
     d = copy.deepcopy(data)
     d.file_ext = ".zip"
     t = template.python_source_for_model(d, model=None, qcall=qcall)
@@ -105,6 +105,14 @@ def _python(data, sim, qcall):
         return _write_multiple_export_files(t)
     res.write(t)
     return [res]
+
+
+def _run_filename(data):
+    t = data.simulationType
+    s = simulation_db.get_schema(t).constants.simulationSourceExtension
+    if s != "py":
+        return "{}.{}".format(t, s)
+    return "run.py"
 
 
 def _write_multiple_export_files(source):

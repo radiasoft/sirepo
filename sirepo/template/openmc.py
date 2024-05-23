@@ -1,4 +1,4 @@
-"""CloudMC execution template.
+"""OpenMC execution template.
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -18,7 +18,7 @@ import sirepo.sim_data
 import sirepo.sim_run
 import subprocess
 
-_CACHE_DIR = "cloudmc-cache"
+_CACHE_DIR = "openmc-cache"
 _OUTLINES_FILE = "outlines.json"
 _PREP_SBATCH_PREFIX = "prep-sbatch"
 _VOLUME_INFO_FILE = "volumes.json"
@@ -84,9 +84,7 @@ def _percent_complete(run_dir, is_running):
 
 def stateful_compute_check_animation_dir(data, **kwargs):
     return PKDict(
-        animationDirExists=simulation_db.simulation_dir(
-            "cloudmc", sid=data.simulationId
-        )
+        animationDirExists=simulation_db.simulation_dir("openmc", sid=data.simulationId)
         .join(data.args.modelName)
         .exists()
     )
@@ -139,7 +137,7 @@ def post_execution_processing(
             for f in ply_files:
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
         return None
-    return _parse_cloudmc_log(run_dir)
+    return _parse_openmc_log(run_dir)
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -200,6 +198,16 @@ def sim_frame(frame_args):
                     z[i][j][k][0] = numpy.sum(vv[i][j][k][bins[0] : bins[1]])
         return z.ravel()
 
+    def _tally_index(frame_args):
+        for tally in frame_args.sim_in.models.settings.tallies:
+            if tally.name == frame_args.tally:
+                for i, s in enumerate(tally.scores):
+                    if s.score == frame_args.score:
+                        return i
+        raise AssertionError(
+            f"Could not find index for tally={frame_args.tally} score={frame_args.score}"
+        )
+
     t = openmc.StatePoint(
         frame_args.run_dir.join(_statepoint_filename(frame_args.sim_in))
     ).get_tally(name=frame_args.tally)
@@ -208,9 +216,7 @@ def sim_frame(frame_args):
         t.find_filter(openmc.MeshFilter)
     except ValueError:
         return PKDict(error=f"Tally {t.name} contains no Mesh")
-
-    v = getattr(t, frame_args.aspect)[:, :, t.get_score_index(frame_args.score)].ravel()
-
+    v = getattr(t, frame_args.aspect)[:, :, _tally_index(frame_args)].ravel()
     if t.contains_filter(openmc.EnergyFilter):
         tally = _get_tally(frame_args.sim_in.models.settings.tallies, frame_args.tally)
         v = _sum_energy_bins(
@@ -391,12 +397,12 @@ def write_volume_outlines():
 
 def _dagmc_animation_python(filename):
     return f"""
-import sirepo.pkcli.cloudmc
+import sirepo.pkcli.openmc
 import sirepo.simulation_db
 
 sirepo.simulation_db.write_json(
     "{_VOLUME_INFO_FILE}",
-    sirepo.pkcli.cloudmc.extract_dagmc("{filename}"),
+    sirepo.pkcli.openmc.extract_dagmc("{filename}"),
 )
 """
 
@@ -802,11 +808,11 @@ def _is_sbatch_run_mode(data):
     return data.models.openmcAnimation.jobRunMode == "sbatch"
 
 
-def _parse_cloudmc_log(run_dir, log_filename="run.log"):
+def _parse_openmc_log(run_dir, log_filename="run.log"):
     return template_common.LogParser(
         run_dir,
         log_filename=log_filename,
-        default_msg="An unknown error occurred, check CloudMC log for details",
+        default_msg="An unknown error occurred, check OpenMC log for details",
         # ERROR: Cannot tally flux for an individual nuclide.
         error_patterns=(
             re.compile(r"^\s*Error:\s*(.*)$", re.IGNORECASE),
