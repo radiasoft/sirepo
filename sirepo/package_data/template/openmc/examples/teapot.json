@@ -649,5 +649,5 @@
             }
         }
     },
-    "simulationType": "cloudmc"
+    "simulationType": "openmc"
 }

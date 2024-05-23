@@ -6,6 +6,8 @@
     },
     "constants": {
         "geometryScale": 0.01,
+        "helpUserManualURL": "https://docs.openmc.org/en/stable/",
+        "helpUserForumURL": "https://openmc.discourse.group/",
         "inProgressText": "Working",
         "minTallyResolution": 5,
         "maxFilters": 5,
@@ -233,11 +235,11 @@
         },
         "sirepoLibs": {
             "css": [
-                "cloudmc.css",
+                "openmc.css",
                 "vtk.css"
             ],
             "js": [
-                "cloudmc.js",
+                "openmc.js",
                 "sirepo-geometry.js",
                 "sirepo-plotting-vtk.js"
             ]
@@ -264,14 +266,14 @@
             "route": "/geometry/:simulationId",
             "config": {
                 "controller": "GeometryController as geometry",
-                "templateUrl": "/static/html/cloudmc-geometry.html"
+                "templateUrl": "/static/html/openmc-geometry.html"
             }
         },
         "visualization": {
             "route": "/visualization/:simulationId",
             "config": {
                 "controller": "VisualizationController as visualization",
-                "templateUrl": "/static/html/cloudmc-visualization.html"
+                "templateUrl": "/static/html/openmc-visualization.html"
             }
         }
     },
@@ -328,6 +330,7 @@
         },
         "geometryInput": {
             "dagmcFile": ["DAGMC file", "InputFile", ""],
+            "materialsFile": ["Materials XML file (optional)", "InputFile", "", "An OpenMC materials.xml mapping from names to volume properties", false],
             "exampleURL": ["", "String", ""]
         },
         "geometry3DReport": {
@@ -1169,7 +1172,8 @@
         "geometryInput": {
             "title": "Geometry Input",
             "basic": [
-                "dagmcFile"
+                "dagmcFile",
+                "materialsFile"
             ],
             "advanced": []
         },

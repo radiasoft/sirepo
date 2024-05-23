@@ -1,5 +1,10 @@
 {
     "models": {
+        "panelState": {
+            "hidden": [
+                "electronTrajectoryReport"
+            ]
+        },
         "rpnCache": {},
         "rpnVariables": [],
         "simFolder": {},
