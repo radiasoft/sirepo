@@ -2544,13 +2544,17 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
 
     function checkLoginRedirect(event, route) {
         srdbg("222", event, route)
+        srdbg(`checkLoginRedirect: start current=${$location.url()} route.controller=${JSON.stringify(route.controller)} route=`, route);
         if (! SIREPO.authState.isLoggedIn
             || SIREPO.authState.needCompleteRegistration
             // Any controller that has 'login' in it will stay on page
             || (route.controller && route.controller.toLowerCase().indexOf('login') >= 0)
+            // Don't redirect away from moderation pages
+            || ($location.url().indexOf('moderation') >= 0)
         ) {
             return;
         }
+
         let p = browserStorage.getString(storageKey);
         if (! p) {
             return;
