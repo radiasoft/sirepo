@@ -1021,12 +1021,10 @@ def _fit_animation(frame_args):
                 header.append(info.header[i])
     x = _read_file(frame_args.run_dir, _OUTPUT_FILE.predictFile)[:, idx]
     y = _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx]
-    _write_csv_for_download(
-        PKDict(predict=x, test=y),
-        f"fitAnimation{idx}.csv",
-    )
 
     # TODO(pjm): for a classification-like regression, set heatmap resolution to domain size
+    frame_args.x = "x"
+    frame_args.y = "y"
     return template_common.heatmap(
         [x, y],
         frame_args,
