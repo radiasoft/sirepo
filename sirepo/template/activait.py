@@ -266,7 +266,7 @@ def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
 
 
 def sim_frame_dicePlotAnimation(frame_args):
-    return _dice(frame_args.sim_in, frame_args.run_dir)
+    return _dice(frame_args.sim_in, frame_args.run_dir, frame_args.frameReport)
 
 
 def sim_frame_dicePlotComparisonAnimation(frame_args):
@@ -275,6 +275,7 @@ def sim_frame_dicePlotComparisonAnimation(frame_args):
         simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
             "animation"
         ),
+        frame_args.frameReport,
     )
 
 
@@ -848,7 +849,7 @@ def _continue_building_level(cur_node, merge_continue):
     return True
 
 
-def _dice(data, run_dir):
+def _dice(data, run_dir, report):
     def _coefficient(mask1, mask2):
         return round(
             (2 * numpy.sum(mask1 * mask2)) / (numpy.sum(mask1) + numpy.sum(mask2)),
@@ -881,7 +882,7 @@ def _dice(data, run_dir):
             ),
         ],
         # TODO (gurhar1133): need frameReport
-        PKDict(),
+        PKDict(frameReport=report),
         PKDict(
             title="Dice Coefficients",
             x_label="Scores",
@@ -1519,7 +1520,7 @@ def _move_children_in_add(neural_net):
 
 
 def _numbered_model_file(model):
-    for m in ("fitAnimation", "fileColumnReport", "partitionColumnReport"):
+    for m in ("fitAnimation", "fileColumnReport", "partitionColumnReport", "dicePlotAnimation"):
         if m in model:
             return True
     return False
