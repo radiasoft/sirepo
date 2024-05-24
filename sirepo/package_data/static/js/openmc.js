@@ -116,10 +116,11 @@ SIREPO.app.config(() => {
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
         'geometryInput-dagmcFile': '.h5m',
+        'geometryInput-materialsFile': '.xml',
     };
 });
 
-SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) {
+SIREPO.app.factory('openmcService', function(appState, panelState, $rootScope) {
     const self = {};
     appState.setAppService(self);
 
@@ -262,7 +263,7 @@ SIREPO.app.factory('cloudmcService', function(appState, panelState, $rootScope) 
     return self;
 });
 
-SIREPO.app.controller('GeometryController', function (appState, cloudmcService, panelState, persistentSimulation, requestSender, $scope) {
+SIREPO.app.controller('GeometryController', function (appState, openmcService, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     let hasVolumes = false;
     let hasGeometry = false;
@@ -290,7 +291,9 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     }
 
     function processGeometry() {
-        panelState.showField('geometryInput', 'dagmcFile', false);
+        panelState.showFields('geometryInput', [
+            ['dagmcFile', 'materialsFile'], false,
+        ]);
         if (appState.models.geometryInput.exampleURL) {
             downloadRemoteGeometryFile();
             return;
@@ -328,6 +331,11 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
             hasVolumes = true;
             if (! Object.keys(appState.applicationState().volumes).length) {
                 appState.models.volumes = data.volumes;
+                for (const n in data.volumes) {
+                    if (data.volumes[n].material) {
+                        appState.setModelDefaults(data.volumes[n].material, 'material');
+                    }
+                }
                 appState.saveChanges('volumes');
             }
         }
@@ -347,7 +355,7 @@ SIREPO.app.controller('GeometryController', function (appState, cloudmcService, 
     verifyGeometry();
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, cloudmcService, frameCache, panelState, persistentSimulation, requestSender, tallyService, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, openmcService, frameCache, panelState, persistentSimulation, requestSender, tallyService, $scope) {
     const self = this;
     self.eigenvalue = null;
     self.results = null;
@@ -358,13 +366,13 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
     function validateSelectedTally(tallies) {
         appState.models.openmcAnimation.tallies = tallies;
         appState.saveQuietly('openmcAnimation');
-        cloudmcService.validateSelectedTally();
+        openmcService.validateSelectedTally();
     }
 
     self.eigenvalueHistory = () => appState.models.settings.eigenvalueHistory;
 
     $scope.showEnergyPlot = () => {
-        return cloudmcService.findFilter('energyFilter')
+        return openmcService.findFilter('energyFilter')
             && appState.applicationState().openmcAnimation.isEnergySelected === "1";
     };
 
@@ -389,8 +397,8 @@ SIREPO.app.controller('VisualizationController', function(appState, cloudmcServi
         const r = appState.models.openmcAnimation;
         delete r.tallies;
         delete r.tally;
-        cloudmcService.invalidateRange(r, 'energyRangeSum');
-        cloudmcService.invalidateRange(r, 'thresholds');
+        openmcService.invalidateRange(r, 'energyRangeSum');
+        openmcService.invalidateRange(r, 'thresholds');
         r.isEnergySelected = "0";
         panelState.clear('tallyReport');
         self.simState.saveAndRunSimulation('openmcAnimation');
@@ -444,7 +452,7 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState) {
+SIREPO.app.directive('appHeader', function(appState, openmcService, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -472,7 +480,7 @@ SIREPO.app.directive('appHeader', function(appState, cloudmcService, panelState)
     };
 });
 
-SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities, $rootScope) {
+SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, $rootScope) {
     const self = {
         mesh: null,
         fieldData: null,
@@ -483,7 +491,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
     };
 
     function normalizer(score, numParticles) {
-        if (numParticles === undefined || ! cloudmcService.canNormalizeScore(score)) {
+        if (numParticles === undefined || ! openmcService.canNormalizeScore(score)) {
             return x => x;
         }
         return x => (appState.models.openmcAnimation.sourceNormalization / numParticles) * x;
@@ -526,8 +534,8 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         return SIREPO.GEOMETRY.GeometryUtils.BASIS().map(
             dim => SIREPO.GEOMETRY.GeometryUtils.axisIndex(dim),
         ).map(i => [
-            cloudmcService.GEOMETRY_SCALE * self.mesh.lower_left[i],
-            cloudmcService.GEOMETRY_SCALE * self.mesh.upper_right[i],
+            openmcService.GEOMETRY_SCALE * self.mesh.lower_left[i],
+            openmcService.GEOMETRY_SCALE * self.mesh.upper_right[i],
             self.mesh.dimension[i],
         ]);
     };
@@ -549,7 +557,7 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
     self.getSourceParticles = () => self.sourceParticles;
 
     self.initMesh = () => {
-        const t = cloudmcService.findTally();
+        const t = openmcService.findTally();
         for (let k = 1; k <= SIREPO.APP_SCHEMA.constants.maxFilters; k++) {
             const f = t[`filter${k}`];
             if (f && f._type === 'meshFilter') {
@@ -566,12 +574,12 @@ SIREPO.app.factory('tallyService', function(appState, cloudmcService, utilities,
         self.fieldData = fieldData.map(n);
         self.minField = n(min);
         self.maxField = n(max);
-        if (! cloudmcService.isRangeValid(appState.models.openmcAnimation, 'thresholds')) {
+        if (! openmcService.isRangeValid(appState.models.openmcAnimation, 'thresholds')) {
             appState.models.openmcAnimation.thresholds = [self.minField, self.maxField];
             appState.saveQuietly('openmcAnimation');
         }
-        const f = cloudmcService.findFilter('energyFilter');
-        if (f && ! cloudmcService.isRangeValid(appState.models.openmcAnimation, 'energyRangeSum')) {
+        const f = openmcService.findFilter('energyFilter');
+        if (f && ! openmcService.isRangeValid(appState.models.openmcAnimation, 'energyRangeSum')) {
             appState.models.openmcAnimation.energyRangeSum = [
                 f.start,
                 f.stop,
@@ -697,7 +705,7 @@ SIREPO.app.factory('volumeLoadingService', function(appState, requestSender, $ro
     return self;
 });
 
-SIREPO.app.directive('tallyVolumePicker', function(cloudmcService, volumeLoadingService) {
+SIREPO.app.directive('tallyVolumePicker', function(openmcService, volumeLoadingService) {
     return {
         restrict: 'A',
         scope: {},
@@ -738,10 +746,10 @@ SIREPO.app.directive('tallyVolumePicker', function(cloudmcService, volumeLoading
             $scope.numVolumeCols = 2;
             $scope.isVolumeListExpanded = false;
             $scope.volumeList = null;
-            const volumeIds = cloudmcService.getNonGraveyardVolumes();
+            const volumeIds = openmcService.getNonGraveyardVolumes();
 
             function getVolumes() {
-                return volumeIds.map(x => cloudmcService.getVolumeById(x));
+                return volumeIds.map(x => openmcService.getVolumeById(x));
             }
 
             $scope.buildVolumeList = () => {
@@ -761,11 +769,11 @@ SIREPO.app.directive('tallyVolumePicker', function(cloudmcService, volumeLoading
 
             $scope.toggleAllVolumes = () => {
                 $scope.allVolumesVisible = ! $scope.allVolumesVisible;
-                cloudmcService.toggleAllVolumes($scope.allVolumesVisible, 'isVisibleWithTallies');
+                openmcService.toggleAllVolumes($scope.allVolumesVisible, 'isVisibleWithTallies');
             };
 
             $scope.toggleVolume = volume => {
-                cloudmcService.toggleVolume(volume, 'isVisibleWithTallies', true);
+                openmcService.toggleVolume(volume, 'isVisibleWithTallies', true);
             };
 
             $scope.toggleVolumeList = () => {
@@ -775,7 +783,7 @@ SIREPO.app.directive('tallyVolumePicker', function(cloudmcService, volumeLoading
     };
 });
 
-SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting, tallyService) {
+SIREPO.app.directive('tallyViewer', function(appState, openmcService, plotting, tallyService) {
     return {
         restrict: 'A',
         scope: {
@@ -804,7 +812,7 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
 
             $scope.appState = appState;
 
-            $scope.energyFilter = () => cloudmcService.findFilter('energyFilter');
+            $scope.energyFilter = () => openmcService.findFilter('energyFilter');
 
             $scope.load = json => {
                 if (json.content) {
@@ -829,7 +837,7 @@ SIREPO.app.directive('tallyViewer', function(appState, cloudmcService, plotting,
     };
 });
 
-SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState, tallyService) {
+SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState, tallyService) {
     return {
         restrict: 'A',
         scope: {
@@ -841,16 +849,16 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
         controller: function($scope) {
             $scope.tallyService = tallyService;
             const displayRanges = {};
-            const sources = cloudmcService.getSourceVisualizations(
+            const sources = openmcService.getSourceVisualizations(
                 {
                     box: space => {
-                        const d = cloudmcService.boxDimensions(space);
+                        const d = openmcService.boxDimensions(space);
                         return new SIREPO.VTK.CuboidViews(
                             null,
                             'box',
                             d.center,
                             d.size,
-                            cloudmcService.GEOMETRY_SCALE
+                            openmcService.GEOMETRY_SCALE
                         );
                     },
                     point: space => {
@@ -860,7 +868,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
                             space.xyz,
                             0.5,
                             24,
-                            cloudmcService.GEOMETRY_SCALE,
+                            openmcService.GEOMETRY_SCALE,
                         );
                     },
                 }
@@ -992,8 +1000,8 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
 
                 const outlines = [];
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
-                for (const volId of cloudmcService.getNonGraveyardVolumes()) {
-                    const v = cloudmcService.getVolumeById(volId);
+                for (const volId of openmcService.getNonGraveyardVolumes()) {
+                    const v = openmcService.getVolumeById(volId);
                     if (! v.isVisibleWithTallies) {
                         continue;
                     }
@@ -1022,7 +1030,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
                 const r = vectorScaleFactor();
                 const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
                 tallyService.getSourceParticles().forEach((p, n) => {
-                    const p1 = [p.position[j], p.position[k]].map(x => x * cloudmcService.GEOMETRY_SCALE);
+                    const p1 = [p.position[j], p.position[k]].map(x => x * openmcService.GEOMETRY_SCALE);
                     // ignore sources outside the plotting range
                     if (isPosOutsideMesh(p1, j, k)) {
                         return;
@@ -1184,7 +1192,7 @@ SIREPO.app.directive('geometry2d', function(appState, cloudmcService, panelState
     };
 });
 
-SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, plotToPNG, tallyService, utilities, volumeLoadingService, $rootScope) {
+SIREPO.app.directive('geometry3d', function(appState, openmcService, plotting, plotToPNG, tallyService, utilities, volumeLoadingService, $rootScope) {
     return {
         restrict: 'A',
         scope: {
@@ -1215,9 +1223,9 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             const coordMapper = new SIREPO.VTK.CoordMapper(
                 new SIREPO.GEOMETRY.Transform(
                     new SIREPO.GEOMETRY.SquareMatrix([
-                        [cloudmcService.GEOMETRY_SCALE, 0, 0],
-                        [0, cloudmcService.GEOMETRY_SCALE, 0],
-                        [0, 0, cloudmcService.GEOMETRY_SCALE],
+                        [openmcService.GEOMETRY_SCALE, 0, 0],
+                        [0, openmcService.GEOMETRY_SCALE, 0],
+                        [0, 0, openmcService.GEOMETRY_SCALE],
                     ])
                 )
             );
@@ -1229,10 +1237,10 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 edgeVisibility: true,
                 lighting: false,
             };
-            const sourceBundles = cloudmcService.getSourceVisualizations(
+            const sourceBundles = openmcService.getSourceVisualizations(
                 {
                     box: space => {
-                        const d = cloudmcService.boxDimensions(space);
+                        const d = openmcService.boxDimensions(space);
                         const b = coordMapper.buildBox(
                             d.size,
                             d.center,
@@ -1501,7 +1509,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             function getVolumeByActor(a) {
                 for (const volId in bundleByVolume) {
                     if (bundleByVolume[volId].actor === a) {
-                        return cloudmcService.getVolumeById(volId);
+                        return openmcService.getVolumeById(volId);
                     }
                 }
                 return null;
@@ -1556,7 +1564,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
             }
 
             function initVolume(volId, reader) {
-                const v = cloudmcService.getVolumeById(volId);
+                const v = openmcService.getVolumeById(volId);
                 const a = volumeAppearance(v);
                 const b = coordMapper.buildActorBundle(reader, a.actorProperties);
                 bundleByVolume[volId] = b;
@@ -1579,7 +1587,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                 updateMarker();
                 for (const volId in bundleByVolume) {
                     const b = bundleByVolume[volId];
-                    const a = volumeAppearance(cloudmcService.getVolumeById(volId));
+                    const a = volumeAppearance(openmcService.getVolumeById(volId));
                     b.setActorProperty(
                         'opacity',
                         a.actorProperties.opacity * model().opacity,
@@ -1695,7 +1703,7 @@ SIREPO.app.directive('geometry3d', function(appState, cloudmcService, plotting, 
                     // vtkScene.renderWindow.getInteractor().onMouseMove(showFieldInfo);
                 }
 
-                const vols = cloudmcService.getNonGraveyardVolumes();
+                const vols = openmcService.getNonGraveyardVolumes();
                 vtkScene.render();
                 volumeLoadingService.loadVolumes(vols, initVolume, volumesLoaded);
                 if (hasTallies && tallyService.fieldData) {
@@ -1796,7 +1804,7 @@ SIREPO.app.directive('compoundField', function() {
     };
 });
 
-SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelState, utilities, $rootScope) {
+SIREPO.app.directive('volumeSelector', function(appState, openmcService, panelState, utilities, $rootScope) {
     return {
         restrict: 'A',
         scope: {},
@@ -1871,7 +1879,7 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
                         row.isVisible = true;
                         row.isVisibleWithTallies = false;
                     }
-                    if (cloudmcService.isGraveyard(row)) {
+                    if (openmcService.isGraveyard(row)) {
                         continue;
                     }
                     $scope.rows.push(row);
@@ -1918,11 +1926,11 @@ SIREPO.app.directive('volumeSelector', function(appState, cloudmcService, panelS
 
             $scope.toggleAllVolumes = () => {
                 $scope.allVisible = ! $scope.allVisible;
-                cloudmcService.toggleAllVolumes($scope.allVisible, 'isVisible');
+                openmcService.toggleAllVolumes($scope.allVisible, 'isVisible');
             };
 
             $scope.toggleVolume = (row) => {
-                cloudmcService.toggleVolume(row, 'isVisible', true);
+                openmcService.toggleVolume(row, 'isVisible', true);
             };
 
             $scope.$on('material.changed', () => {
@@ -2658,11 +2666,11 @@ SIREPO.viewLogic('sourceView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('tallyView', function(appState, cloudmcService, panelState, validationService, $scope) {
+SIREPO.viewLogic('tallyView', function(appState, openmcService, panelState, validationService, $scope) {
 
     const ALL_TYPES = SIREPO.APP_SCHEMA.enum.TallyFilter
         .map(x => x[SIREPO.ENUM_INDEX_VALUE]);
-    const inds = cloudmcService.FILTER_INDICES;
+    const inds = openmcService.FILTER_INDICES;
 
     const TYPE_NONE = 'None';
 
@@ -2830,7 +2838,7 @@ SIREPO.app.directive('simpleListEditor', function(panelState) {
     };
 });
 
-SIREPO.app.directive('materialList', function(appState, cloudmcService) {
+SIREPO.app.directive('materialList', function(appState, openmcService) {
     return {
         restrict: 'A',
         scope: {
@@ -2845,7 +2853,7 @@ SIREPO.app.directive('materialList', function(appState, cloudmcService) {
                 const res = [];
                 const volumes = appState.applicationState().volumes;
                 for (const k in volumes) {
-                    if (cloudmcService.isGraveyard(volumes[k])) {
+                    if (openmcService.isGraveyard(volumes[k])) {
                         continue;
                     }
                     res.push({
@@ -2964,7 +2972,7 @@ SIREPO.app.directive('slider', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('tallySettings', function(appState, cloudmcService) {
+SIREPO.app.directive('tallySettings', function(appState, openmcService) {
     return {
         restrict: 'A',
         scope: {},
@@ -3006,7 +3014,7 @@ SIREPO.app.directive('tallyList', function() {
     };
 });
 
-SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelState, tallyService, utilities, $scope) {
+SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelState, tallyService, utilities, $scope) {
     $scope.tallyService = tallyService;
 
     const autoUpdate = utilities.debounce((field) => {
@@ -3027,7 +3035,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     }, 500);
 
     function invalidateThreshold() {
-        cloudmcService.invalidateRange(appState.models.openmcAnimation, 'thresholds');
+        openmcService.invalidateRange(appState.models.openmcAnimation, 'thresholds');
     }
 
     function showFields() {
@@ -3045,8 +3053,8 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
             'planePos', is2D && tallyService.tallyRange(appState.models.tallyReport.axis, true).steps > 1,
         ]);
 
-        panelState.showField('openmcAnimation', 'energyRangeSum', ! ! cloudmcService.findFilter('energyFilter'));
-        panelState.showField('openmcAnimation', 'sourceNormalization', cloudmcService.canNormalizeScore(appState.models.openmcAnimation.score));
+        panelState.showField('openmcAnimation', 'energyRangeSum', ! ! openmcService.findFilter('energyFilter'));
+        panelState.showField('openmcAnimation', 'sourceNormalization', openmcService.canNormalizeScore(appState.models.openmcAnimation.score));
         panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);
         panelState.showField('openmcAnimation', 'sourceColorMap', showSources && appState.models.openmcAnimation.numSampleSourceParticles);
     }
@@ -3057,7 +3065,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     }
 
     function validateTally() {
-        cloudmcService.validateSelectedTally();
+        openmcService.validateSelectedTally();
         autoUpdate();
     }
 
@@ -3091,7 +3099,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, cloudmcService, panelSt
     $scope.$watch('tallyService.fieldData', showFields);
 });
 
-SIREPO.app.directive('energyRangeSlider', function(appState, cloudmcService, panelState, tallyService) {
+SIREPO.app.directive('energyRangeSlider', function(appState, openmcService, panelState, tallyService) {
     return {
         restrict: 'A',
         scope: {
@@ -3107,7 +3115,7 @@ SIREPO.app.directive('energyRangeSlider', function(appState, cloudmcService, pan
             $scope.tallyService = tallyService;
 
             function updateRange() {
-                const f = cloudmcService.findFilter('energyFilter');
+                const f = openmcService.findFilter('energyFilter');
                 if (f) {
                     $scope.min = f.start;
                     $scope.max = f.stop;

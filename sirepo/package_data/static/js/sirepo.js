@@ -2171,10 +2171,7 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
         }
     };
 
-    self.toggleHiddenAndNotify = name => {
-        self.toggleHidden(name);
-        $rootScope.$broadcast(`panel.${name}.hidden`, self.isHidden(name));
-    };
+    self.triggerWindowResize = windowResize;
 
     self.waitForUI = function(callback) {
         // groups callbacks within one $timeout()
@@ -4122,9 +4119,10 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     return self;
 });
 
-SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $scope, $window, $route) {
+SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, utilities, $scope, $window, $route) {
 
     var self = this;
+    self.utilities = utilities;
 
     function openSection(name) {
         requestSender.localRedirect(name, sectionParams(name));

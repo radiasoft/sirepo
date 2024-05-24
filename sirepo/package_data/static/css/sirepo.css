@@ -641,143 +641,6 @@
     .sr-plot-particle-3d {
     }
 
-    /* Full-screen styles */
-    div:not([data-report-panel='3d']) > .panel:-webkit-full-screen {
-        width: 75vw !important;
-        height: 100% !important;
-        max-height: 100vh;
-    }
-    /* Firefox does its own thing */
-    div:not([data-report-panel='3d']):-moz-full-screen > .panel {
-        width: 75vw;
-        height: 100%;
-        margin: auto;
-        max-height: 100vh;
-    }
-    div:not([data-report-panel='3d']):-moz-full-screen > .panel .has-transclude {
-        width: 75vw;
-        height: 100%;
-        margin: auto;
-        max-height: 100vh;
-    }
-    div:not([data-report-panel='3d']) > .panel:-ms-fullscreen {
-        width: 75vw;
-        height: 100%;
-        max-height: 100vh;
-    }
-    div:not([data-report-panel='3d']) > .panel:fullscreen {
-        width: 75vw;
-        height: 100%;
-        max-height: 100vh;
-    }
-
-    /* 3d reports */
-    /* empty class to signify non-empty transclude - used to change layouts for some fullscreen reports */
-    .has-transclude {
-    }
-    div[data-report-panel='3d'] > .panel:-webkit-full-screen, div[data-report-panel='heatmap'] > .panel:-webkit-full-screen {
-        width: 60vw !important;
-        height: 100% !important;
-    }
-    div[data-report-panel='3d'] > .panel:-webkit-full-screen .has-transclude {
-        display: flex;
-    }
-    div[data-report-panel='3d']:-moz-full-screen > .panel, div[data-report-panel='heatmap']:-moz-full-screen > .panel {
-        width: 60vw;
-        height: 100%;
-        margin: auto;
-    }
-    div[data-report-panel='3d']:-moz-full-screen > .panel .has-transclude {
-        display: flex;
-    }
-    div[data-report-panel='3d'] > .panel:-ms-fullscreen, div[data-report-panel='heatmap'] > .panel:-ms-fullscreen  {
-        height: 60vh;
-        height: 100%;
-    }
-    div[data-report-panel='3d'] > .panel:-ms-fullscreen .has-transclude  {
-        display: flex;
-    }
-    div[data-report-panel='3d'] > .panel:fullscreen, div[data-report-panel='heatmap'] > .panel:fullscreen  {
-        height: 60vh;
-        height: 100%;
-    }
-    div[data-report-panel='3d'] > .panel:fullscreen .has-transclude {
-        display: flex;
-    }
-
-    /* all reports */
-    div[data-report-panel] > .panel:-webkit-full-screen > div[data-panel-heading] > div[data-simple-heading] > .sr-panel-heading {
-        font-weight: bold;
-    }
-    div[data-report-panel] > .panel:-webkit-full-screen .sr-plot .main-title {
-        font-size: 24px;
-    }
-    div[data-report-panel] > .panel:-webkit-full-screen .sr-plot .sub-title {
-        font-size: 18px;
-    }
-    div[data-report-panel] > .panel:-webkit-full-screen .sr-plot text.x-axis-label,
-    div[data-report-panel] > .panel:-webkit-full-screen .sr-plot text.y-axis-label,
-    div[data-report-panel] > .panel:-webkit-full-screen .sr-plot text.z-axis-label {
-        font-size: 18px;
-    }
-    div[data-report-panel] > .panel:-webkit-full-screen .sr-plot .axis text {
-        font-size: 16px;
-    }
-
-    div[data-report-panel]:-moz-full-screen > .panel > div[data-panel-heading] > div[data-simple-heading] > .sr-panel-heading {
-        font-weight: bold;
-    }
-    div[data-report-panel]:-moz-full-screen > .panel .sr-plot .main-title {
-        font-size: 24px;
-    }
-    div[data-report-panel]:-moz-full-screen > .panel .sr-plot .sub-title {
-        font-size: 18px;
-    }
-    div[data-report-panel]:-moz-full-screen > .panel .sr-plot text.x-axis-label,
-    div[data-report-panel]:-moz-full-screen > .panel .sr-plot text.y-axis-label,
-    div[data-report-panel]:-moz-full-screen > .panel .sr-plot text.z-axis-label {
-        font-size: 18px;
-    }
-    div[data-report-panel]:-moz-full-screen > .panel .sr-plot .axis text {
-        font-size: 16px;
-    }
-
-    div[data-report-panel] > .panel:-ms-fullscreen > div[data-panel-heading] > div[data-simple-heading] > .sr-panel-heading {
-        font-weight: bold;
-    }
-    div[data-report-panel] > .panel:-ms-fullscreen .sr-plot .main-title {
-        font-size: 24px;
-    }
-    div[data-report-panel] > .panel:-ms-fullscreen .sr-plot .sub-title {
-        font-size: 18px;
-    }
-    div[data-report-panel] > .panel:-ms-fullscreen .sr-plot text.x-axis-label,
-    div[data-report-panel] > .panel:-ms-fullscreen .sr-plot text.y-axis-label,
-    div[data-report-panel] > .panel:-ms-fullscreen .sr-plot text.z-axis-label {
-        font-size: 18px;
-    }
-    div[data-report-panel] > .panel:-ms-fullscreen .sr-plot .axis text {
-        font-size: 16px;
-    }
-
-    div[data-report-panel] > .panel:fullscreen > div[data-panel-heading] > div[data-simple-heading] > .sr-panel-heading {
-        font-weight: bold;
-    }
-    div[data-report-panel] > .panel:fullscreen .sr-plot .main-title {
-        font-size: 24px;
-    }
-    div[data-report-panel] > .panel:fullscreen .sr-plot .sub-title {
-        font-size: 18px;
-    }
-    div[data-report-panel] > .panel:fullscreen .sr-plot text.x-axis-label,
-    div[data-report-panel] > .panel:fullscreen .sr-plot text.y-axis-label,
-    div[data-report-panel] > .panel:fullscreen .sr-plot text.y-axis-label {
-        font-size: 18px;
-    }
-    div[data-report-panel] > .panel:fullscreen .sr-plot .axis text {
-        font-size: 16px;
-    }
-
 table td.sr-center {
   text-align: center;
 }
@@ -1212,4 +1075,8 @@ img.sr-disabled-image {
 
 .running-icon {
   animation: icon-rotate 2s linear 0s infinite;
+}
+
+.sr-hide-scrollbars {
+  overflow: hidden;
 }

@@ -2219,19 +2219,14 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
         template: `
             <span class="sr-panel-heading">{{ simpleHeading }}</span>
             <div class="sr-panel-options pull-right">
-              <a href data-ng-class="{'sr-disabled-link': utilities.isFullscreen()}" data-ng-click="toggleHidden()" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a>
-              <a href data-ng-click="panelState.toggleHiddenAndNotify(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>
+              <a href data-ng-class="{'sr-disabled-link': utilities.isFullscreen()}" data-ng-click="panelState.toggleHidden(modelKey)" data-ng-hide="panelState.isHidden(modelKey) || utilities.isFullscreen()" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a>
+              <a href data-ng-click="panelState.toggleHidden(modelKey)" data-ng-show="panelState.isHidden(modelKey)" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>
             </div>
             <div class="sr-panel-options pull-right" data-ng-transclude="" ></div>
         `,
         controller: function($scope) {
             $scope.panelState = panelState;
             $scope.utilities = utilities;
-            $scope.toggleHidden = function() {
-                if(! utilities.isFullscreen()) {
-                    panelState.toggleHiddenAndNotify($scope.modelKey);
-                }
-            };
         },
     };
 });
@@ -2248,9 +2243,9 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         template: `
             <div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">
               <div class="model-panel-heading-buttons"></div>
-              <a href data-ng-show="hasEditor && ! utilities.isFullscreen()" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
+              <a href data-ng-show="hasEditor" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
               ${SIREPO.appPanelHeadingButtons || ''}
-              <div data-ng-if="isReport" data-ng-show="hasData() && ! utilities.isFullscreen()" class="dropdown" style="display: inline-block">
+              <div data-ng-if="isReport" data-ng-show="hasData()" class="dropdown" style="display: inline-block">
                 <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
                 <ul class="dropdown-menu dropdown-menu-right">
                   <li class="dropdown-header">Download Report</li>
@@ -2263,7 +2258,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   <li data-ng-if="::hasDataFile" data-ng-repeat="l in panelDownloadLinks"><a data-ng-href="{{ dataFileURL(l.suffix) }}" target="_blank">{{ l.title }}</a></li>
                 </ul>
               </div>
-              <a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{'glyphicon-resize-full': ! utilities.isFullscreen(), 'glyphicon-resize-small': utilities.isFullscreen()}"></span></a>
+              <a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullscreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{'glyphicon-resize-full': ! utilities.isFullscreen(), 'glyphicon-resize-small': utilities.isFullscreen()}"></span></a>
             </div>
         `,
         controller: function($scope, $element) {
@@ -2333,35 +2328,14 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             };
 
             $scope.fullscreenIconTitle = function() {
-                if(! utilities.isFullscreen()) {
-                    return 'Full Screen';
-                }
-                return 'Exit Full Screen';
+                return utilities.isFullscreen() ? 'Exit Full Screen' : 'Full Screen';
             };
 
-            function getFullScreenElement() {
-                return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-            }
-
-            $scope.toggleFullScreen = function() {
-                if(panelState.isHidden($scope.modelKey)) {
-                    return;
-                }
-
-                var svg = $($scope.panel).find('svg.sr-plot')[0];
-                var el = $($element).closest('.panel')[0];
-
-                if(! utilities.isFullscreen()) {
-                    // Firefox does its own thing
-                    if(utilities.requestFullscreenFn(el) == el.mozRequestFullScreen) {
-                        el.parentElement.mozRequestFullScreen();
-                    }
-                    else {
-                        utilities.requestFullscreenFn(el).call(el);
-                    }
-                }
-                else {
-                    utilities.exitFullscreenFn().call(document);
+            $scope.toggleFullscreen = function() {
+                if (utilities.isFullscreen()) {
+                    utilities.exitFullscreen();
+                } else {
+                    utilities.openFullscreen($scope);
                 }
             };
 
@@ -2412,7 +2386,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
     };
 });
 
-SIREPO.app.directive('reportPanel', function(appState, utilities) {
+SIREPO.app.directive('reportPanel', function(appState, panelState, utilities) {
     return {
         restrict: 'A',
         transclude: true,
@@ -2425,12 +2399,33 @@ SIREPO.app.directive('reportPanel', function(appState, utilities) {
             requestPriority: '@',
         },
         template: `
-            <div class="panel panel-info">
+            <div class="panel panel-info" data-ng-style="reportStyle">
               <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1"></div>
               <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}"><div data-ng-transclude=""></div></div>
               <div data-ng-if="notes()"><span class="pull-right sr-notes" data-sr-tooltip="{{ notes() }}" data-placement="top"></span><div class="clearfix"></div></div>
         `,
         controller: function($scope) {
+            $scope.reportStyle = {};
+
+            $scope.$on('sr-full-screen', () => {
+                $scope.reportStyle.position = 'fixed';
+                $scope.reportStyle['z-index'] = 1000;
+                $scope.reportStyle.left = 0;
+                $scope.reportStyle.top = 0;
+                $scope.reportStyle.width = '100%';
+                $scope.reportStyle.height = '100%';
+                $scope.reportStyle.overflow = 'hidden';
+                panelState.waitForUI(panelState.triggerWindowResize);
+            });
+
+
+            $scope.$on('sr-close-full-screen', () => {
+                $scope.reportStyle = {};
+                panelState.waitForUI(panelState.triggerWindowResize);
+            });
+
+
+
             if ($scope.modelName && $scope.modelName.includes('{') ) {
                 throw new Error('Expected simple name for modelName, got: ' + $scope.modelName);
             }
@@ -5262,7 +5257,7 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
     };
 });
 
-SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
+SIREPO.app.service('utilities', function($window, $interval, $interpolate, $rootScope) {
 
     var self = this;
 
@@ -5333,45 +5328,20 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate) {
         return v.replace(/([A-Z])/g, '-$1').toLowerCase();
     };
 
-    // fullscreen utilities
-    this.getFullScreenElement = function() {
-        return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+    this.fullscreenActive = false;
+
+    this.isFullscreen = () => {
+        return this.fullscreenActive;
     };
-    this.isFullscreen = function () {
-        return ! ! this.getFullScreenElement();
+
+    this.exitFullscreen = () => {
+        this.fullscreenActive = false;
+        $rootScope.$broadcast('sr-close-full-screen');
     };
-    this.isFullscreenElement = function(el) {
-        return el == this.getFullScreenElement();
-    };
-    this.requestFullscreenFn = function(el) {
-        return el.requestFullscreen ||
-            el.mozRequestFullScreen ||
-            el.webkitRequestFullscreen ||
-            el.msRequestFullscreen ||
-            function() {
-                srlog('This browser does not support full screen');
-            };
-        };
-    this.exitFullscreenFn = function() {
-        return document.exitFullscreen ||
-            document.mozCancelFullScreen ||
-            document.webkitExitFullscreen ||
-            document.msExitFullscreen ||
-            function() {
-                srlog('This browser does not support full screen');
-            };
-    };
-    this.fullscreenListenerEvent = function() {
-        if (this.exitFullscreenFn() == document.mozCancelFullScreen) {
-            return 'mozfullscreenchange';
-        }
-        if (this.exitFullscreenFn() == document.webkitExitFullscreen) {
-            return 'webkitfullscreenchange';
-        }
-        if (this.exitFullscreenFn() == document.msExitFullscreen) {
-            return 'MSFullscreenChange';
-        }
-        return 'fullscreenchange';
+
+    this.openFullscreen = (scope) => {
+        this.fullscreenActive = true;
+        scope.$emit('sr-full-screen');
     };
 
     this.buildSearch = (scope, element, searchClass, supportsMulti) => {
