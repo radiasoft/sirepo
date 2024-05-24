@@ -146,22 +146,10 @@
             "hidden": []
         },
         "reflectivePlanes": {
-            "planesList": [
-                {
-                    "inside": "0",
-                    "A": 0,
-                    "B": -1,
-                    "C": 0,
-                    "D": 0
-                },
-                {
-                    "inside": "1",
-                    "A": 1,
-                    "B": 0,
-                    "C": 0,
-                    "D": 0
-                }
-            ],
+            "plane1a": 0,
+            "plane1b": -1,
+            "plane2a": 1,
+            "plane2b": 0,
             "useReflectivePlanes": "1"
         },
         "settings": {
