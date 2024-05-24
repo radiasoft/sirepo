@@ -98,7 +98,7 @@ CREATE TABLE user_role_moderation_t (
 
 INSERT INTO user_role_moderation_t (uid, role, status, moderator_uid, last_updated)
 SELECT uid, role, status, moderator_uid, last_updated
-FROM user_role_invite_t;
+FROM user_role_invite_t
     """
     qcall.auth_db.drop_table("user_role_invite_t")
     qcall.auth_db.execute_sql(s)
