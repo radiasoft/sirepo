@@ -1160,16 +1160,23 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 
     class _Event {
         constructor(event, arg) {
-            this.event = _assertEvent(event);
-            this.arg = this._assertArg(arg);
+            this._event = _assertEvent(event);
+            this._arg = this._assertArg(arg);
             this._oldState = _state;
             this._newState = this._nextState();
             this._action = this._findAction();
         }
 
+        argProperty(name) {
+            if (name in this._arg) {
+                return this._arg[name];
+            }
+            throw new Error(`invalid arg property=${name} for event=${this._event} oldState=${this._oldState}`);
+        }
+
         credsError() {
-            if ('srException' in this.arg) {
-                const r = this.arg.srException.params.reason;
+            if ('srException' in this._arg) {
+                const r = this._arg.srException.params.reason;
                 if (r === 'invalid-creds') {
                     return 'Your credentials were invalid. Please try again.';
                 }
@@ -1181,14 +1188,15 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         }
 
         query(name) {
-            if (name in this) {
-                return this[name]();
+            const n = `_query_${name}`;
+            if (n in this) {
+                return this[n]();
             }
-            throw new Error(`invalid query=${name} on event=${this.event} oldState=${this.oldState}`);
+            throw new Error(`invalid query=${name} for event=${this._event} oldState=${this._oldState}`);
         }
 
         transition() {
-            srlog(`${this._oldState} ${this.event} => ${this._newState}`, this.arg);
+            srlog(`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
             _state = this._newState;
             $rootScope.$broadcast('sbatchLoginEvent', this);
         }
@@ -1200,47 +1208,47 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             if (arg == null || arg == undefined) {
                 return {};
             }
-            throw new Error(`invalid arg=${arg} for event=${this.event}`);
+            throw new Error(`invalid arg=${arg} for event=${this._event}`);
         }
 
         _nextState() {
             const rv = _TRANSITIONS[_state][event];
             if (! rv) {
-                throw new Error(`invalid transition oldState=${this._oldState} event=${this.event}`);
+                throw new Error(`invalid transition oldState=${this._oldState} event=${this._event}`);
             }
             return rv;
         }
 
         _query_hideCreds() {
-            return this.newState === 'ok' || this.event === 'credsCancel';
+            return this._newState === 'ok' || this._event === 'credsCancel';
         }
 
         _query_isLoggedInFromCreds() {
-            return this.event === 'authSuccess' && this.oldState === 'auth';
+            return this._event === 'authSuccess' && this._oldState === 'auth';
         }
 
         _query_isLoginNotNeeded() {
-            return ! ['authSuccess', 'needNo'].includes(this.event);
+            return ! ['authSuccess', 'needNo'].includes(this._event);
         }
 
         _query_requestSbatchLogin() {
-            return this.event === 'credsConfirm' && this.oldState === 'creds';
+            return this._event === 'credsConfirm' && this._oldState === 'creds';
         }
 
         _query_requestSbatchLoginStatus() {
-            return this.event === 'loginClicked' && this.oldState === 'idle';
+            return this._event === 'loginClicked' && this._oldState === 'idle';
         }
 
         _query_showCredsError() {
-            return ['auth', 'creds'].includes(this.oldState) && this.newState === 'creds';
+            return ['auth', 'creds'].includes(this._oldState) && this._newState === 'creds';
         }
 
         _query_showCredsFirstTime() {
-            return this.event === 'authMissing' && ['ok', 'status'].includes(this.oldState);
+            return this._event === 'authMissing' && ['ok', 'status'].includes(this._oldState);
         }
 
         _query_showCredsFromClick() {
-            return this.oldState === 'idle' && this.event === 'loginClicked';
+            return this._oldState === 'idle' && this._event === 'loginClicked';
         }
     }
 
@@ -1263,7 +1271,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             _sendRequest(
                 'sbatchLogin',
                 event,
-                {sbatchCredentials: event.arg.sbatchCredentials},
+                {sbatchCredentials: event.argProperty('sbatchCredentials')},
             );
         }
         else if (event.query('requestSbatchLoginStatus')) {
@@ -1307,7 +1315,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	    route,
 	    _response,
 	    {
-		computeModel: event.arg.directiveScope.simState.model,
+		computeModel: event.argProperty('directiveScope').simState.model,
 		simulationId: appState.models.simulation.simulationId,
 		simulationType: SIREPO.APP_SCHEMA.simulationType,
 		...otherArgs,

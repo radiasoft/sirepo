@@ -4772,7 +4772,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                     }
                     else if (sbatchLoginEvent.query('showCredsEmpty')) {
                         _resetLoginForm();
-                        $scope.directiveScope = sbatchLoginEvent.arg.directiveScope;
+                        $scope.directiveScope = sbatchLoginEvent.argProperty('directiveScope');
                         $('#sbatch-login-modal').modal('show');
                     }
                     else if (sbatchLoginEvent.query('showCredsError')) {
