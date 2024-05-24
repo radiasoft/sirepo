@@ -569,7 +569,7 @@ def heatmap(values, model, plot_fields=None, weights=None):
     columns_dict[model.x] = values[0]
     columns_dict[model.y] = values[1]
     columns_dict["particleID"] = range(1, len(values[0]) + 1)
-    pkdp("\n\n\n\n model={}", model)
+    pkdp("\n\n\n making heatmap for frameReport={}", model.frameReport)
     n = model.get("frameReport", f"heatplot-{model.x}-{model.y}")
     pandas.DataFrame(columns_dict).to_csv(f"{n}.csv", index=False)
     return res
@@ -627,6 +627,7 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
         if not c:
             c = plot.get("name", f"col{i + 1}")
         columns_dict[c] = plot.points
+    pkdp("\n\n\n\n MAKING A PARAMETER PLOT FOR frameReport={}", model.frameReport)
     pandas.DataFrame(columns_dict).to_csv(f"{model.frameReport}.csv", index=False)
     return res
 
