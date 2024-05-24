@@ -94,8 +94,9 @@ CREATE TABLE user_role_moderation_t (
     moderator_uid VARCHAR(8),
     last_updated DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL,
     PRIMARY KEY (uid, role)
-);
-
+)
+    """
+    s2 = """
 INSERT INTO user_role_moderation_t (uid, role, status, moderator_uid, last_updated)
 SELECT uid, role, status, moderator_uid, last_updated
 FROM user_role_invite_t
