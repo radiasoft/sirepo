@@ -93,7 +93,7 @@ CREATE TABLE user_role_moderation_t (
     status VARCHAR(100) NOT NULL,
     moderator_uid VARCHAR(8),
     last_updated DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL,
-    PRIMARY KEY (uid, role),
+    PRIMARY KEY (uid, role)
 );
 
 INSERT INTO user_role_moderation_t (uid, role, status, moderator_uid, last_updated)
