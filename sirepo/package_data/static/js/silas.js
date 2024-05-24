@@ -739,11 +739,9 @@ SIREPO.app.directive('crystal3d', function(appState, plotting, silasService, plo
                 getVtkElement().off();
                 fsRenderer.getInteractor().unbindEvents();
                 fsRenderer.delete();
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
             $scope.init = function() {
-                document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
                 let rw = getVtkElement();
                 rw.on('dblclick', () => refresh(true));
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({

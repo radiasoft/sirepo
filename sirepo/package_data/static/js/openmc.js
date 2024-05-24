@@ -116,6 +116,7 @@ SIREPO.app.config(() => {
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
         'geometryInput-dagmcFile': '.h5m',
+        'geometryInput-materialsFile': '.xml',
     };
 });
 
@@ -290,7 +291,9 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
     }
 
     function processGeometry() {
-        panelState.showField('geometryInput', 'dagmcFile', false);
+        panelState.showFields('geometryInput', [
+            ['dagmcFile', 'materialsFile'], false,
+        ]);
         if (appState.models.geometryInput.exampleURL) {
             downloadRemoteGeometryFile();
             return;
@@ -328,6 +331,11 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
             hasVolumes = true;
             if (! Object.keys(appState.applicationState().volumes).length) {
                 appState.models.volumes = data.volumes;
+                for (const n in data.volumes) {
+                    if (data.volumes[n].material) {
+                        appState.setModelDefaults(data.volumes[n].material, 'material');
+                    }
+                }
                 appState.saveChanges('volumes');
             }
         }
