@@ -1203,16 +1203,16 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 	$rootScope.$broadcast('sbatchLoginServiceAuth', eventArg);
     };
 
+    self._action_idle_loginClicked = (eventArg) => {
+	$rootScope.$broadcast('sbatchLoginServiceModal', eventArg);
+    };
+
     self._action_needNo = (eventArg) => {
 	$rootScope.$broadcast('sbatchLoginServiceAuth', eventArg);
     };
 
     self._action_needYes = (eventArg) => {
         _sendRequest('sbatchLoginStatus', eventArg, {data: appState.models});
-    };
-
-    self._action_idle_loginClicked = (eventArg) => {
-	$rootScope.$broadcast('sbatchLoginServiceModal', eventArg);
     };
 
     self.event = (event, eventArg) => {
