@@ -717,47 +717,52 @@ SIREPO.app.directive('planeList', function(appState) {
             subModelName: '@',
         },
         template: `
-            <div class="container" style="max-width: 80%;">
-              <div class="form-group">
-                <div data-ng-repeat="plane in model[field] track by $index">
-                  <div class="col-sm-10">
-                    <label>Plane {{ $index + 1 }}:</label>
+            <div style="position: relative; top: -25px">
+              <div class="col-sm-12">
+                <div class="row">
+                  <div class="col-sm-2" data-ng-repeat="(key, value) in model[field][0]">
+                    <div class="text-center" data-label-with-tooltip=""
+                      data-label="{{ label(key) }}" data-tooltip="{{ tooltip(key) }}"></div>
                   </div>
-                  <div data-ng-repeat="(key, value) in plane">
-                    <div class="col-sm-10" data-model-field="key" data-model-name="subModelName" data-model-data="modelData($parent.$index)" data-label-size="2" data-field-size="4"></div>
-                  </div>
-                  <button data-ng-click="deletePlane($index)" class="row btn btn-danger btn-xs" style="float: right;">
-                    <span class="glyphicon glyphicon-remove"></span>
-                  </button>
                 </div>
-              </div>
-              <div class="col-md-5">
-                <button type="button" data-ng-click="addPlane()" class="btn btn-primary">Add New Plane</button>
+                <div data-ng-repeat="plane in model[field] track by $index">
+                  <div class="row" style="margin-bottom: 15px">
+                    <div data-ng-repeat="(key, value) in plane">
+                      <div data-model-field="key" data-model-name="subModelName"
+                        data-model-data="modelData($parent.$index)" data-label-size="0"
+                        data-field-size="2"></div>
+                      </div>
+                    <div class="col-sm-2">
+                      <button data-ng-click="deletePlane($index)"
+                        class="row btn btn-danger btn-xs">
+                        <span class="glyphicon glyphicon-remove"></span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-5">
+                  <button type="button" data-ng-click="addPlane()"
+                    class="btn btn-primary">Add New Plane</button>
+                </div>
               </div>
             </div>
         `,
         controller: function($scope) {
-            $scope.addPlane = () => {
-                appState.models.reflectivePlanes.planesList.push(
-                    {
-                        inside: "0",
-                        A: 0,
-                        B: 0,
-                        C: 0,
-                        D: 0,
-                    }
-                );
-            };
-
             const modelData = {};
 
-            $scope.label = field => appState.modelInfo($scope.subModelName)[field][0];
+            $scope.addPlane = () => {
+                appState.models.reflectivePlanes.planesList.push(
+                    appState.setModelDefaults({}, 'plane'),
+                );
+            };
 
             $scope.deletePlane = (index) => {
                 appState.models.reflectivePlanes.planesList.splice(index, 1);
             };
 
-            $scope.modelData = index => {
+            $scope.label = (field) => appState.modelInfo($scope.subModelName)[field][0];
+
+            $scope.modelData = (index) => {
                 if (! $scope.model) {
                     return;
                 }
@@ -768,6 +773,8 @@ SIREPO.app.directive('planeList', function(appState) {
                 }
                 return modelData[index];
             };
+
+            $scope.tooltip = (field) => appState.modelInfo($scope.subModelName)[field][3];
         }
     };
 });
@@ -2675,6 +2682,15 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
             ['planesList'],
             appState.models.reflectivePlanes.useReflectivePlanes === '1',
         ]);
+
+        //TODO(pjm): consider adding panelState.showLeadText()
+        if (appState.models.reflectivePlanes.useReflectivePlanes === '1') {
+            $('#sr-settings-basicEditor').find('.lead').show();
+        }
+        else {
+            $('#sr-settings-basicEditor').find('.lead').hide();
+        }
+
         panelState.showFields(
             $scope.modelName,
             [
