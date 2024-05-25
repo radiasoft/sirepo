@@ -1367,7 +1367,6 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     self.query = (name) => {
         const f = _STATE_QUERIES[name];
         if (f) {
-//            srdbg(name, f(_state));
             return f(_state);
         }
         throw new Error(`invalid query=${name}`);
