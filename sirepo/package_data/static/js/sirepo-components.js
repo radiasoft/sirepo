@@ -624,7 +624,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
             $scope.$on(
                 'sbatchLoginEvent',
                 (_, sbatchLoginEvent) => {
-                    if (sbatchLoginEvent.query('showCredsFirstTime')) {
+                    if (sbatchLoginEvent.query('showCredsForm')) {
                         $scope.loginClicked();
                     }
                     else if (sbatchLoginEvent.query('isLoggedInFromCreds') && $scope.startWasClicked) {
@@ -4766,16 +4766,16 @@ SIREPO.app.directive('sbatchLoginModal', function() {
             $scope.$on(
                 'sbatchLoginEvent',
                 (_, sbatchLoginEvent) => {
-                    if (sbatchLoginEvent.query('hideCreds')) {
+                    if (sbatchLoginEvent.query('hideCredsForm')) {
                         _resetLoginForm();
                         $('#sbatch-login-modal').modal('hide');
                     }
-                    else if (sbatchLoginEvent.query('showCredsEmpty')) {
+                    else if (sbatchLoginEvent.query('isCredsFormBlank')) {
                         _resetLoginForm();
                         $scope.directiveScope = sbatchLoginEvent.argProperty('directiveScope');
                         $('#sbatch-login-modal').modal('show');
                     }
-                    else if (sbatchLoginEvent.query('showCredsError')) {
+                    else if (sbatchLoginEvent.query('isCredsFormError')) {
                         $scope.warning = sbatchLoginEvent.credsError();
                         $('#sbatch-login-modal').modal('show');
                     }

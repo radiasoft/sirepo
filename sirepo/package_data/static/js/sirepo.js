@@ -1049,8 +1049,6 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         'auth',
         // awaiting for credential input from user
         'creds',
-        // unexpected state; only continue when models loaded or needNo
-        'error',
         // sbatchLogin is required before simulating, waiting for loginClicked
         'idle',
         // start state
@@ -1073,8 +1071,10 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         'authSuccess',
         // cancel pressed by user before credential input
         'credsCancel',
-        // login pressed by user
+        // submit pressed on creds form
         'credsConfirm',
+        // login button pressed to show creds form
+        'loginClicked',
         // change jobRunMode != sbatch
         'needNo',
         // change jobRunMode == sbatch
@@ -1089,7 +1089,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     };
     const _TRANSITIONS = {
         auth: {
-            authError: 'error',
+            authError: 'creds',
             authInvalid: 'creds',
             authMissing: 'creds',
             authSuccess: 'ok',
@@ -1102,12 +1102,6 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             credsCancel: 'idle',
             credsConfirm: 'auth',
             needYes: 'creds',
-            unloaded: 'initial',
-        },
-        error: {
-            //TODO(robnagler) error states unclear
-            needNo: 'notNeeded',
-            needYes: 'status',
             unloaded: 'initial',
         },
         idle: {
@@ -1135,7 +1129,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             unloaded: 'initial',
         },
         status: {
-            authError: 'error',
+            authError: 'idle',
             authMissing: 'idle',
             authSuccess: 'ok',
             needYes: 'status',
@@ -1164,7 +1158,6 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             this._arg = this._assertArg(arg);
             this._oldState = _state;
             this._newState = this._nextState();
-            this._action = this._findAction();
         }
 
         argProperty(name) {
@@ -1212,15 +1205,23 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         }
 
         _nextState() {
-            const rv = _TRANSITIONS[_state][event];
-            if (! rv) {
-                throw new Error(`invalid transition oldState=${this._oldState} event=${this._event}`);
+            const rv = _TRANSITIONS[this._oldState][this._event];
+            if (rv) {
+                return rv;
             }
-            return rv;
+            throw new Error(`invalid transition oldState=${this._oldState} event=${this._event}`);
         }
 
-        _query_hideCreds() {
+        _query_hideCredsForm() {
             return this._newState === 'ok' || this._event === 'credsCancel';
+        }
+
+        _query_isCredsFormBlank() {
+            return this._event === 'loginClicked' && this._oldState === 'idle';
+        }
+
+        _query_isCredsFormError() {
+            return ['authInvalid', 'authError'].includes(this._event) && this._newState === 'creds';
         }
 
         _query_isLoggedInFromCreds() {
@@ -1239,31 +1240,23 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             return this._event === 'loginClicked' && this._oldState === 'idle';
         }
 
-        _query_showCredsError() {
-            return ['auth', 'creds'].includes(this._oldState) && this._newState === 'creds';
-        }
-
-        _query_showCredsFirstTime() {
+        _query_showCredsForm() {
             return this._event === 'authMissing' && ['ok', 'status'].includes(this._oldState);
-        }
-
-        _query_showCredsFromClick() {
-            return this._oldState === 'idle' && this._event === 'loginClicked';
         }
     }
 
     const _assertEvent = (value) => {
-        if (! _EVENTS.includes(value)) {
-            throw new Error(`invalid event=${value}`);
+        if (_EVENTS.includes(value)) {
+            return value;
         }
-        return value;
+        throw new Error(`invalid event=${value}`);
     };
 
     const _assertState = (value) => {
-        if (! _STATES.includes(value)) {
-            throw new Error(`invalid state=${value}`);
+        if (_STATES.includes(value)) {
+            return value;
         }
-        return value;
+        throw new Error(`invalid state=${value}`);
     };
 
     const _eventAction = (_, event) => {
@@ -1325,7 +1318,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     };
 
     self.event = (event, eventArg) => {
-        _Event(_state, event, eventArg).transition();
+        (new _Event(event, eventArg)).transition();
     };
 
     self.jobRunModeChanged = (directiveScope) => {
