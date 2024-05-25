@@ -1043,112 +1043,173 @@ SIREPO.app.factory('timeService', function() {
 
 SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authState, errorService, requestSender, stringsService) {
     const self = {};
-    let _state = 'initial';
-    const _STATES = [
-        // sbatchLogin was sent to server
-        'auth',
-        // awaiting for credential input from user
-        'creds',
-        // sbatchLogin is required before simulating, waiting for loginClicked
-        'idle',
-        // start state
-        'initial',
-        // sbatchLogin is not required
-        'notNeeded',
-        // is logged in
-        'ok',
-        // sbatchLoginStatus was sent to server
-        'status',
-    ];
-    const _EVENTS = [
-        // sbatchLogin/Status error or unknown state (perlmutter down)
-        'authError',
-        // incorrect credentials from sbatchLogin
-        'authInvalid',
-        // logged out reply from sbatchLoginStatus
-        'authMissing',
-        // logged in reply from sbatchLoginStatus or ready from sbatchLogin
-        'authSuccess',
-        // cancel pressed by user before credential input
-        'credsCancel',
-        // submit pressed on creds form
-        'credsConfirm',
-        // login button pressed to show creds form
-        'loginClicked',
-        // change jobRunMode != sbatch
-        'needNo',
-        // change jobRunMode == sbatch
-        'needYes',
-        // models have been unloaded
-        'unloaded',
-    ];
+
+    // The implementation is a state maachine. Learn more about state machines:
+    // https://hackernoon.com/state-machines-can-help-you-solve-complex-programming-problems
+
+    // States and events are strings which are implemented as constants _e_.
+    // This is Hungarian Notation: https://en.wikipedia.org/wiki/Hungarian_notation
+    // To ensure all states and events are correctly spelled and accounted for.
+    // Clients of this service call functions which check the arguments are in _STATES or _EVENTS.
+
+    // For a diagram, see https://github.com/radiasoft/sirepo/pull/7055#issuecomment-2111318797
+    // This code will be slightly different, because it has been debugged.
+    // The _TRANSITIONS defines the state machine.
+
+
+    // Unlike classic state machines, events are $broadcast ("sbatchLoginEvent") and
+    // watchers call _EVENT_QUERIES to see if particular actions are required. This
+    // has two advantages. The dispatcher is angular's normal digest loop, which avoids
+    // callbacks within an angular event. Second, _EVENT_QUERIES collects all the
+    // different and overlapping actions in different parts of the code base.
+
+    // The actions for sending/receiving messages to the server are handled
+    // by this service, since that was the original point of this service. These
+    // actions could be moved out.
+
+    // _STATE_QUERIES are used by clients outside of a transition (sbatchLoginEvent)
+    // to decide how to render.
+
+    // sbatchLogin was sent to server
+    const _s_auth = 'auth';
+    // awaiting for credential input from user
+    const _s_creds = 'creds';
+    // sbatchLogin is required before simulating, waiting for loginClicked
+    const _s_idle = 'idle';
+    // start state
+    const _s_initial = 'initial';
+    // sbatchLogin is not required
+    const _s_notNeeded = 'notNeeded';
+    // is logged in
+    const _s_ok = 'ok';
+    // sbatchLoginStatus was sent to server
+    const _s_status = 'status';
+
+    // sbatchLogin/Status error or unknown state (perlmutter down)
+    const _e_authError = 'authError';
+    // incorrect credentials from sbatchLogin
+    const _e_authInvalid = 'authInvalid';
+    // logged out reply from sbatchLoginStatus
+    const _e_authMissing = 'authMissing';
+    // logged in reply from sbatchLoginStatus or ready from sbatchLogin
+    const _e_authSuccess = 'authSuccess';
+    // cancel pressed by user before credential input
+    const _e_credsCancel = 'credsCancel';
+    // submit pressed on creds form
+    const _e_credsConfirm = 'credsConfirm';
+    // login button pressed to show creds form
+    const _e_loginClicked = 'loginClicked';
+    // change jobRunMode != sbatch
+    const _e_needNo = 'needNo';
+    // change jobRunMode == sbatch
+    const _e_needYes = 'needYes';
+    // models have been unloaded
+    const _e_unloaded = 'unloaded';
+
     const _REASON_TO_EVENTS = {
-        "general-connection-error": 'authError',
-        "invalid-creds": 'authInvalid',
-        "no-creds": 'authMissing',
+        "general-connection-error": _e_authError,
+        "invalid-creds": _e_authInvalid,
+        "no-creds": _e_authMissing,
     };
+
     const _TRANSITIONS = {
-        auth: {
-            authError: 'creds',
-            authInvalid: 'creds',
-            authMissing: 'creds',
-            authSuccess: 'ok',
-            credsCancel: 'idle',
-            needYes: 'auth',
-            unloaded: 'initial',
+        [_s_auth]: {
+            [_e_authError]: _s_creds,
+            [_e_authInvalid]: _s_creds,
+            [_e_authMissing]: _s_creds,
+            [_e_authSuccess]: _s_ok,
+            [_e_credsCancel]: _s_idle,
+            [_e_needYes]: _s_auth,
+            [_e_unloaded]: _s_initial,
         },
-        creds: {
-            authMissing: 'creds',
-            credsCancel: 'idle',
-            credsConfirm: 'auth',
-            needYes: 'creds',
-            unloaded: 'initial',
+        [_s_creds]: {
+            [_e_authMissing]: _s_creds,
+            [_e_credsCancel]: _s_idle,
+            [_e_credsConfirm]: _s_auth,
+            [_e_needYes]: _s_creds,
+            [_e_unloaded]: _s_initial,
         },
-        idle: {
-            loginClicked: 'creds',
-            needNo: 'notNeeded',
-            needYes: 'status',
-            authMissing: 'idle',
-            unloaded: 'initial',
+        [_s_idle]: {
+            [_e_loginClicked]: _s_creds,
+            [_e_needNo]: _s_notNeeded,
+            [_e_needYes]: _s_status,
+            [_e_authMissing]: _s_idle,
+            [_e_unloaded]: _s_initial,
         },
-        initial: {
-            needNo: 'notNeeded',
-            needYes: 'status',
-            authMissing: 'idle',
-            unloaded: 'initial',
+        [_s_initial]: {
+            [_e_needNo]: _s_notNeeded,
+            [_e_needYes]: _s_status,
+            [_e_authMissing]: _s_idle,
+            [_e_unloaded]: _s_initial,
         },
-        notNeeded: {
-            authMissing: 'idle',
-            needNo: 'notNeeded',
-            needYes: 'status',
-            unloaded: 'initial',
+        [_s_notNeeded]: {
+            [_e_authMissing]: _s_idle,
+            [_e_needNo]: _s_notNeeded,
+            [_e_needYes]: _s_status,
+            [_e_unloaded]: _s_initial,
         },
-        ok: {
-            authMissing: 'idle',
-            needYes: 'ok',
-            unloaded: 'initial',
+        [_s_ok]: {
+            [_e_authMissing]: _s_idle,
+            [_e_needYes]: _s_ok,
+            [_e_unloaded]: _s_initial,
         },
-        status: {
-            authError: 'idle',
-            authMissing: 'idle',
-            authSuccess: 'ok',
-            needYes: 'status',
-            unloaded: 'initial',
+        [_s_status]: {
+            [_e_authError]: _s_idle,
+            [_e_authMissing]: _s_idle,
+            [_e_authSuccess]: _s_ok,
+            [_e_needYes]: _s_status,
+            [_e_unloaded]: _s_initial,
         },
     };
 
+    const _STATES = new Set(Object.keys(_TRANSITIONS));
+
+    const _EVENTS =  new Set(Object.values(_TRANSITIONS).map((x) => {return Object.keys(x);}).flat(1));
+
+    let _state = _s_initial;
+
     const _STATE_QUERIES = {
         isLoggedIn: (state) => {
-            return state === 'ok';
+            return state === _s_ok;
         },
         showLogin: (state) => {
-            return ['creds', 'idle'].includes(state);
+            return [_s_creds, _s_idle].includes(state);
         },
         showLoginOrStatus: (state) => {
-            return ['auth', 'creds', 'idle', 'status'].includes(state);
+            return [_s_auth, _s_creds, _s_idle, _s_status].includes(state);
         },
         showSbatchOptions: (state) => {
-            return state !== 'notNeeded';
+            return state !== _s_notNeeded;
+        },
+    };
+
+    // This should be a static member, but that's not supported by jshint.
+    // So this code references private members
+    // See https://github.com/jshint/jshint/issues/3645
+    const _EVENT_QUERIES = {
+        hideCredsForm: (event) => {
+            return event._newState === _s_ok || event._event === _e_credsCancel;
+        },
+        isCredsFormBlank: (event) => {
+            return event._event === _e_loginClicked && event._oldState === _s_idle;
+        },
+        isCredsFormError: (event) => {
+            return [_e_authInvalid, _e_authError].includes(event._event) && event._newState === _s_creds;
+        },
+        isLoggedInFromCreds: (event) => {
+            return event._event === _e_authSuccess && event._oldState === _s_auth;
+        },
+        isLoginNotNeeded: (event) => {
+            return ! [_e_authSuccess, _e_needNo].includes(event._event);
+        },
+        requestSbatchLogin: (event) => {
+            return event._event === _e_credsConfirm && event._oldState === _s_creds;
+        },
+        requestSbatchLoginStatus: (event) => {
+            return event._oldState != _s_status && event._newState === _s_status;
+        },
+        showCredsForm: (event) => {
+            return event._event === _e_authMissing && [_s_ok, _s_status].includes(event._oldState);
         },
     };
 
@@ -1181,15 +1242,14 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         }
 
         query(name) {
-            const n = `_query_${name}`;
-            if (n in this) {
-                return this[n]();
+            if (name in _EVENT_QUERIES) {
+                return _EVENT_QUERIES[name](this);
             }
             throw new Error(`invalid query=${name} for event=${this._event} oldState=${this._oldState}`);
         }
 
         transition() {
-            srlog(`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
+            //DEBUG: (`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
             _state = this._newState;
             $rootScope.$broadcast('sbatchLoginEvent', this);
         }
@@ -1211,65 +1271,20 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             }
             throw new Error(`invalid transition oldState=${this._oldState} event=${this._event}`);
         }
-
-        _query_hideCredsForm() {
-            return this._newState === 'ok' || this._event === 'credsCancel';
-        }
-
-        _query_isCredsFormBlank() {
-            return this._event === 'loginClicked' && this._oldState === 'idle';
-        }
-
-        _query_isCredsFormError() {
-            return ['authInvalid', 'authError'].includes(this._event) && this._newState === 'creds';
-        }
-
-        _query_isLoggedInFromCreds() {
-            return this._event === 'authSuccess' && this._oldState === 'auth';
-        }
-
-        _query_isLoginNotNeeded() {
-            return ! ['authSuccess', 'needNo'].includes(this._event);
-        }
-
-        _query_requestSbatchLogin() {
-            return this._event === 'credsConfirm' && this._oldState === 'creds';
-        }
-
-        _query_requestSbatchLoginStatus() {
-            return this._event === 'loginClicked' && this._oldState === 'idle';
-        }
-
-        _query_showCredsForm() {
-            return this._event === 'authMissing' && ['ok', 'status'].includes(this._oldState);
-        }
     }
 
     const _assertEvent = (value) => {
-        if (_EVENTS.includes(value)) {
+        if (_EVENTS.has(value)) {
             return value;
         }
         throw new Error(`invalid event=${value}`);
     };
 
     const _assertState = (value) => {
-        if (_STATES.includes(value)) {
+        if (_STATES.has(value)) {
             return value;
         }
         throw new Error(`invalid state=${value}`);
-    };
-
-    const _eventAction = (_, event) => {
-        if (event.query('requestSbatchLogin')) {
-            _sendRequest(
-                'sbatchLogin',
-                event,
-                {sbatchCredentials: event.argProperty('sbatchCredentials')},
-            );
-        }
-        else if (event.query('requestSbatchLoginStatus')) {
-            _sendRequest('sbatchLoginStatus', event, {data: appState.models});
-        }
     };
 
     const _handleSRException = (srException, errorCallback) => {
@@ -1288,10 +1303,23 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             _sbatchServiceLoginIgnoreResponse: true,
         });
         self.event(
-            _REASON_TO_EVENTS[srException.params.reason] || 'authError',
+            _REASON_TO_EVENTS[srException.params.reason] || _e_authError,
             {srException: srException},
         );
         return true;
+    };
+
+    const _internalEventActions = (_, event) => {
+        if (event.query('requestSbatchLogin')) {
+            _sendRequest(
+                'sbatchLogin',
+                event,
+                {sbatchCredentials: event.argProperty('sbatchCredentials')},
+            );
+        }
+        else if (event.query('requestSbatchLoginStatus')) {
+            _sendRequest('sbatchLoginStatus', event, {data: appState.models});
+        }
     };
 
     const _sendRequest = (route, event, otherArgs) => {
@@ -1300,7 +1328,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
                 return;
             }
             self.event(
-                response.ready || response.loginSuccess ? 'authSuccess' : 'authMissing',
+                response.ready || response.loginSuccess ? _e_authSuccess : _e_authMissing,
                 {authResponse: response},
             );
 	};
@@ -1323,7 +1351,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 
     self.jobRunModeChanged = (directiveScope) => {
         self.event(
-            appState.models[directiveScope.simState.model].jobRunMode === 'sbatch' ? 'needYes' : 'needNo',
+            appState.models[directiveScope.simState.model].jobRunMode === 'sbatch' ? _e_needYes : _e_needNo,
             {directiveScope: directiveScope},
 
         );
@@ -1339,14 +1367,15 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     self.query = (name) => {
         const f = _STATE_QUERIES[name];
         if (f) {
+//            srdbg(name, f(_state));
             return f(_state);
         }
         throw new Error(`invalid query=${name}`);
     };
 
     requestSender.registerSRExceptionHandler(_handleSRException);
-    $rootScope.$on('modelsUnloaded', () => self.event('unloaded'));
-    $rootScope.$on('sbatchLoginEvent', _eventAction);
+    $rootScope.$on('modelsUnloaded', () => self.event(_e_unloaded));
+    $rootScope.$on('sbatchLoginEvent', _internalEventActions);
 
     return self;
 });
