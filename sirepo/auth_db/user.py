@@ -102,12 +102,11 @@ class UserRole(sirepo.auth_db.UserDbBase):
         ]
 
 
-class UserRoleInvite(sirepo.auth_db.UserDbBase):
-    __tablename__ = "user_role_invite_t"
+class UserRoleModeration(sirepo.auth_db.UserDbBase):
+    __tablename__ = "user_role_moderation_t"
     uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID, primary_key=True)
     role = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, primary_key=True)
     status = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
-    token = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=True, unique=True)
     moderator_uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID)
     last_updated = sqlalchemy.Column(
         sqlalchemy.DateTime(),

@@ -10,6 +10,7 @@ events {
 }
 
 http {
+    uwsgi_temp_path {{ run_dir }}/uwsgi_temp;
     client_max_body_size 200m;
     client_body_temp_path {{ run_dir }}/client_body_temp;
     proxy_temp_path {{ run_dir }}/proxy_temp;

@@ -4489,7 +4489,7 @@ SIREPO.app.directive('admRolesList', function(appState, errorService, panelState
             $scope.getModerationRequestRows = function () {
                 const handleResponse = (r) => {
                     $scope.rows = r.rows;
-                    $scope.headers = SIREPO.APP_SCHEMA.common.adm.userRoleInviteColumns;
+                    $scope.headers = SIREPO.APP_SCHEMA.common.adm.userRoleModerationColumns;
                 };
                 requestSender.sendRequest(
                     'getModerationRequestRows',
@@ -4509,7 +4509,8 @@ SIREPO.app.directive('admRolesList', function(appState, errorService, panelState
                     'admModerate',
                     handleResponse,
                     {
-                        token: info.token,
+                        uid: info.uid,
+                        role: info.role,
                         status: status,
                     }
                 );

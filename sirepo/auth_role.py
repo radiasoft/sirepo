@@ -18,7 +18,7 @@ _SIM_TYPE_ROLE_PREFIX = "sim_type_"
 
 
 class ModerationStatus(aenum.NamedConstant):
-    """States used by auth_role_moderation and UserRoleInvite"""
+    """States used by auth_role_moderation and UserRoleModeration"""
 
     APPROVE = "approve"
     CLARIFY = "clarify"

@@ -35,7 +35,7 @@ def test_delete_user():
     with srunit.quest_start() as qcall:
         _is_empty_table(qcall.auth_db.model("JupyterhubUser"))
         _is_empty_table(qcall.auth_db.model("UserRegistration"))
-        _is_empty_table(qcall.auth_db.model("UserRoleInvite"))
+        _is_empty_table(qcall.auth_db.model("UserRoleModeration"))
     _is_empty_dir(jupyterhublogin.cfg().user_db_root_d)
     _is_empty_dir(simulation_db.user_path_root())
 
