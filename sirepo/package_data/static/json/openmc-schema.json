@@ -996,11 +996,15 @@
             "p": ["Probability", "Float"]
         },
         "reflectivePlanes": {
-            "useReflectivePlanes": ["Use reflective planes", "Boolean", "0", "Add reflective planes for sector models. $Ax + By + Cz = D$"],
-            "plane1a": ["Plane 1 A", "Float", 0],
-            "plane1b": ["Plane 1 B", "Float", -1],
-            "plane2a": ["Plane 2 A", "Float", 1],
-            "plane2b": ["Plane 2 B", "Float", 0]
+            "useReflectivePlanes": ["Use reflective planes", "Boolean", "0", "Add reflective planes for sector models."],
+            "planesList": ["", "PlanesList", []]
+        },
+        "plane": {
+            "A": ["A", "Float", 0],
+            "B": ["B", "Float", 0],
+            "C": ["C", "Float", 0],
+            "D": ["D", "Float", 0],
+            "inside": ["Inside", "Boolean", "0", "Indicates whether the region is inside of the surface."]
         },
         "settings": {
             "batches": ["Number of batches to simulate", "Integer", 1, "", 1],
@@ -1333,10 +1337,8 @@
                 ]],
                 ["Reflective Planes", [
                     "reflectivePlanes.useReflectivePlanes",
-                    "reflectivePlanes.plane1a",
-                    "reflectivePlanes.plane1b",
-                    "reflectivePlanes.plane2a",
-                    "reflectivePlanes.plane2b"
+                    "*Plane Formula: $Ax + By + Cz = D$",
+                    "reflectivePlanes.planesList"
                 ]],
                 ["Tallies", [
                     "tallies"
