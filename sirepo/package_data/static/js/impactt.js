@@ -15,7 +15,7 @@ SIREPO.app.config(function() {
             DRIFT: 'grey',
         },
         elementPic: {
-            aperture: [
+            bend: [
                 'CHANGE_TIMESTEP',
                 'SPACECHARGE',
                 'WAKEFIELD',
