@@ -11,8 +11,18 @@ SIREPO.app.config(function() {
             MULTIPOLE: 'yellow',
             QUADRUPOLE: 'red',
             DIPOLE: 'lightgreen',
+            SOLENOID: 'red',
+            DRIFT: 'grey',
         },
         elementPic: {
+            aperture: [
+                'CHANGE_TIMESTEP',
+                'SPACECHARGE',
+                'WAKEFIELD',
+                'WRITE_BEAM',
+                'STOP',
+                'ROTATIONALLY_SYMMETRIC_TO_3D'
+            ],
             drift: ['DRIFT'],
             magnet: ['MULTIPOLE', 'QUADRUPOLE', 'DIPOLE'],
             solenoid: ['SOLENOID', 'SOLENOIDRF'],

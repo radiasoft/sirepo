@@ -7,12 +7,18 @@
     "constants": {
         "advancedElementNames": [],
         "basicElementNames": [
+            "CHANGE_TIMESTEP",
             "DIPOLE",
             "DRIFT",
             "MULTIPOLE",
             "QUADRUPOLE",
+            "ROTATIONALLY_SYMMETRIC_TO_3D",
             "SOLENOID",
-            "SOLENOIDRF"
+            "SOLENOIDRF",
+            "SPACECHARGE",
+            "STOP",
+            "WAKEFIELD",
+            "WRITE_BEAM"
         ]
     },
     "dynamicFiles": {
@@ -182,6 +188,11 @@
             "l": ["L [m]", "RPNValue", 0, "The element length"],
             "filename": ["Filename", "InputFile", ""]
         },
+        "ROTATIONALLY_SYMMETRIC_TO_3D": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "s": ["S", "RPNValue", 0]
+        },
         "CHANGE_TIMESTEP": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
@@ -204,6 +215,11 @@
             "l": ["L [m]", "RPNValue", 0, "The element length"],
             "s": ["S", "Float", 0],
             "is_on": ["Is On", "Boolean", "0", "switch on/off the space-charge calculation"]
+        },
+        "STOP": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "s": ["S", "Float", 0]
         },
         "WRITE_SLICE_INFO": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -385,6 +401,16 @@
             "basic": [],
             "advanced": []
         },
+        "CHANGE_TIMESTEP": {
+            "title": "CHANGE_TIMESTEP",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "dt",
+                "s"
+            ]
+        },
         "DIPOLE": {
             "title": "DIPOLE",
             "fieldsPerTab": 8,
@@ -436,6 +462,15 @@
                 "z_rotation"
             ]
         },
+        "ROTATIONALLY_SYMMETRIC_TO_3D": {
+            "title": "ROTATIONALLY_SYMMETRIC_TO_3D",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "s"
+            ]
+        },
         "SOLENOID": {
             "title": "SOLENOID",
             "fieldsPerTab": 8,
@@ -463,6 +498,50 @@
                 "x_rotation",
                 "y_rotation",
                 "z_rotation"
+            ]
+        },
+        "SPACECHARGE": {
+            "title": "SPACECHARGE",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "s",
+                "is_on"
+            ]
+        },
+        "STOP": {
+            "title": "STOP",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "s"
+            ]
+        },
+        "WAKEFIELD": {
+            "title": "WAKEFEILD",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "s",
+                "method",
+                "gap",
+                "period",
+                "s_begin",
+                "iris_radius",
+                "filename"
+            ]
+        },
+        "WRITE_BEAM": {
+            "title": "WRITE_BEAM",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "filename",
+                "sample_frequency"
             ]
         },
         "simulation": {
