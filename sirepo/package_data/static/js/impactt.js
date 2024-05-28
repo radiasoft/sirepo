@@ -15,17 +15,17 @@ SIREPO.app.config(function() {
             DRIFT: 'grey',
         },
         elementPic: {
-            bend: [
+            drift: ['DRIFT'],
+            lens: ['ROTATIONALLY_SYMMETRIC_TO_3D'],
+            magnet: ['MULTIPOLE', 'QUADRUPOLE', 'DIPOLE'],
+            solenoid: ['SOLENOID', 'SOLENOIDRF'],
+            watch: ['WRITE_BEAM'],
+            zeroLength: [
                 'CHANGE_TIMESTEP',
                 'SPACECHARGE',
                 'WAKEFIELD',
-                'WRITE_BEAM',
                 'STOP',
-                'ROTATIONALLY_SYMMETRIC_TO_3D'
             ],
-            drift: ['DRIFT'],
-            magnet: ['MULTIPOLE', 'QUADRUPOLE', 'DIPOLE'],
-            solenoid: ['SOLENOID', 'SOLENOIDRF'],
         },
     };
 });
