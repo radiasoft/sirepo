@@ -59,6 +59,26 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "weightWindowsMesh",
             ),
         )
+        if "plane1a" in dm.reflectivePlanes:
+            if dm.reflectivePlanes.useReflectivePlanes == "1":
+                dm.reflectivePlanes.planesList += [
+                    {
+                        "inside": "0",
+                        "A": dm.reflectivePlanes.plane1a,
+                        "B": dm.reflectivePlanes.plane1b,
+                        "C": 0,
+                        "D": 0,
+                    },
+                    {
+                        "inside": "1",
+                        "A": dm.reflectivePlanes.plane2a,
+                        "B": dm.reflectivePlanes.plane2b,
+                        "C": 0,
+                        "D": 0,
+                    },
+                ]
+            for k in ("plane1a", "plane1b", "plane2a", "plane2b"):
+                dm.reflectivePlanes.pkdel(k)
         for v in dm.volumes:
             if "material" not in dm.volumes[v]:
                 continue
