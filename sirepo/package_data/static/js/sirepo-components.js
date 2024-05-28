@@ -59,7 +59,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
               </ul>
               <br data-ng-if="pages" />
               <div data-ng-repeat="f in (activePage ? activePage.items : advancedFields)">
-                <div class="lead text-center" data-ng-if="::isLabel(f)" style="white-space: pre-wrap;"><span data-text-with-math="::labelText(f)"</span></div>
+                <div class="lead text-center" data-ng-if="::isLabel(f)" style="white-space: pre-line;"><span data-text-with-math="::labelText(f)"</span></div>
                 <div class="form-group form-group-sm" data-ng-if="::isField(f)" data-model-field="f" data-form="form" data-model-name="modelName" data-model-data="modelData" data-view-name="viewName"></div>
                 <div data-ng-if="::isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData"></div>
               </div>
@@ -757,7 +757,6 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             modelName: '=',
             field: '=fieldEditor',
             model: '=',
-            customLabel: '=',
             customInfo: '=',
             labelSize: '@',
             fieldSize: '@',
@@ -766,7 +765,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
         },
         template: `
             <div data-ng-class="utilities.modelFieldID(modelName, field)">
-            <div data-ng-show="showLabel" data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ customLabel || info[0] }}" data-tooltip="{{ info[3] }}"></div>
+            <div data-ng-show="showLabel" data-label-with-tooltip="" class="control-label" data-ng-class="labelClass" data-label="{{ info[0] }}" data-tooltip="{{ info[3] }}"></div>
             <div data-ng-switch="info[1]">
               <div data-ng-switch-when="Integer" data-ng-class="fieldClass">
                 <input data-string-to-number="integer" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />
@@ -1628,7 +1627,6 @@ SIREPO.app.directive('modelField', function(appState) {
             field: '=modelField',
             modelName: '=',
             customInfo: '=?',
-            customLabel: '=',
             labelSize: '@',
             fieldSize: '@',
             // optional, allow caller to provide path for modelKey and model data
@@ -1637,7 +1635,7 @@ SIREPO.app.directive('modelField', function(appState) {
             viewName: '=',
         },
         template: `
-            <div data-field-editor="fieldName()" data-form="form" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-label="customLabel" data-custom-info="customInfo" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}" data-view-name="viewName"></div>
+            <div data-field-editor="fieldName()" data-form="form" data-model-name="modelNameForField()" data-model="modelForField()" data-custom-info="customInfo" data-label-size="{{ labelSize }}" data-field-size="{{ fieldSize }}" data-view-name="viewName"></div>
         `,
         controller: function($scope) {
             let modelName = $scope.modelName;
@@ -1925,10 +1923,8 @@ SIREPO.app.directive('textWithMath', function(appState, mathRendering, utilities
             'isDynamic': '<',
             'textWithMath': '<',
         },
-        template: `
-            <span data-ng-if="! isDynamic" data-ng-bind-html="::getHTML()"></span>
-            <span data-ng-if="isDynamic" data-ng-bind-html="getHTML()"></span>
-        `,
+        // no newlines within template in case the directive is encased in a "pre" layout
+        template: `<span data-ng-if="! isDynamic" data-ng-bind-html="::getHTML()"></span><span data-ng-if="isDynamic" data-ng-bind-html="getHTML()"></span>`,
         controller: function($scope) {
             $scope.appState = appState;
             $scope.getHTML = function() {
@@ -2135,7 +2131,6 @@ SIREPO.app.directive('numberList', function(appState, utilities) {
     return {
         restrict: 'A',
         scope: {
-            customStyle: '@',
             field: '=',
             info: '<',
             model: '<',
@@ -2145,7 +2140,7 @@ SIREPO.app.directive('numberList', function(appState, utilities) {
         template: `
             <div data-ng-repeat="defaultSelection in parseValues() track by $index" style="display: inline-block" >
             <label data-text-with-math="valueLabels[$index] || 'Plane ' + $index" style="margin-right: 1ex"></label>
-            <input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right; {{ customStyle }}" required />
+            <input class="form-control sr-number-list" data-string-to-number="{{ numberType }}" data-ng-model="values[$index]" data-ng-change="didChange()" class="form-control" style="text-align: right;" required />
             </div>
         `,
         controller: function($scope) {
