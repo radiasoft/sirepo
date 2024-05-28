@@ -1701,7 +1701,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 groupItem.width = 0.3;
                                 groupItem.x -= 0.15;
                             }
-                            groupItem.height = groupItem.width;
+                            groupItem.height = Math.min(0.5, groupItem.width);
                             groupItem.y = pos.y - groupItem.height / 2;
                             groupItem.color = getPicColor(item, 'lightblue');
                         }
