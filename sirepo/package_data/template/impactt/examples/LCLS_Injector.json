@@ -1,0 +1,554 @@
+{
+    "models": {
+        "simulation": {
+            "folder": "/Examples",
+            "name": "LCLS_Injector",
+            "isExample": true,
+            "visualizationBeamlineId": 1,
+            "activeBeamlineId": 1
+        },
+        "beamlines": [
+            {
+                "angle": 0,
+                "count": 28,
+                "distance": 14.548648,
+                "id": 1,
+                "items": [
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    22,
+                    23,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28,
+                    29,
+                    30,
+                    31,
+                    32
+                ],
+                "l": 0,
+                "length": 14.548648,
+                "name": "BL1",
+                "positions": [
+                    {
+                        "elemedge": 0
+                    },
+                    {
+                        "elemedge": 0
+                    },
+                    {
+                        "elemedge": 0
+                    },
+                    {
+                        "elemedge": 0.15
+                    },
+                    {
+                        "elemedge": 0.64308
+                    },
+                    {
+                        "elemedge": 1.00308
+                    },
+                    {
+                        "elemedge": 1.36308
+                    },
+                    {
+                        "elemedge": 1.36308
+                    },
+                    {
+                        "elemedge": 1.36308
+                    },
+                    {
+                        "elemedge": 1.415544
+                    },
+                    {
+                        "elemedge": 4.353472
+                    },
+                    {
+                        "elemedge": 7.2914
+                    },
+                    {
+                        "elemedge": 7.343864
+                    },
+                    {
+                        "elemedge": 7.343864
+                    },
+                    {
+                        "elemedge": 7.547864
+                    },
+                    {
+                        "elemedge": 7.751864
+                    },
+                    {
+                        "elemedge": 7.751864
+                    },
+                    {
+                        "elemedge": 7.804328
+                    },
+                    {
+                        "elemedge": 10.742256
+                    },
+                    {
+                        "elemedge": 13.680184
+                    },
+                    {
+                        "elemedge": 13.732648
+                    },
+                    {
+                        "elemedge": 13.936648
+                    },
+                    {
+                        "elemedge": 14.140648
+                    },
+                    {
+                        "elemedge": 14.344648
+                    },
+                    {
+                        "elemedge": 14.548648
+                    },
+                    {
+                        "elemedge": 14.548648
+                    },
+                    {
+                        "elemedge": 14.548648
+                    },
+                    {
+                        "elemedge": 14.548648
+                    }
+                ]
+            }
+        ],
+        "commands": [],
+        "elements": [
+            {
+                "_id": 2,
+                "dt": 4e-12,
+                "l": 0,
+                "name": "change_timestep_1",
+                "s": 0.25,
+                "type": "CHANGE_TIMESTEP"
+            },
+            {
+                "L_effective": 0,
+                "_id": 7,
+                "_super": "_ELEMENT",
+                "b1_gradient": 0,
+                "file_id": "",
+                "l": 0.36,
+                "name": "CQ01",
+                "radius": 0,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0,
+                "_id": 15,
+                "_super": "_ELEMENT",
+                "b1_gradient": 0,
+                "file_id": "",
+                "l": 0.204,
+                "name": "QA01",
+                "radius": 0,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0,
+                "_id": 16,
+                "_super": "_ELEMENT",
+                "b1_gradient": 0,
+                "file_id": "",
+                "l": 0.204,
+                "name": "QA02",
+                "radius": 0,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0,
+                "_id": 25,
+                "_super": "_ELEMENT",
+                "b1_gradient": 0,
+                "file_id": "",
+                "l": 0.204,
+                "name": "QE01",
+                "radius": 0,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0,
+                "_id": 26,
+                "_super": "_ELEMENT",
+                "b1_gradient": 0,
+                "file_id": "",
+                "l": 0.204,
+                "name": "QE02",
+                "radius": 0,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0,
+                "_id": 27,
+                "_super": "_ELEMENT",
+                "b1_gradient": 0,
+                "file_id": "",
+                "l": 0.204,
+                "name": "QE03",
+                "radius": 0,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0,
+                "_id": 28,
+                "_super": "_ELEMENT",
+                "b1_gradient": 0,
+                "file_id": "",
+                "l": 0.204,
+                "name": "QE04",
+                "radius": 0,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0,
+                "_id": 6,
+                "_super": "_ELEMENT",
+                "b1_gradient": 0,
+                "file_id": "",
+                "l": 0.36,
+                "name": "SQ01",
+                "radius": 0,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 3,
+                "l": 0,
+                "name": "SC_2D_to_3D",
+                "s": -1000,
+                "type": "ROTATIONALLY_SYMMETRIC_TO_3D"
+            },
+            {
+                "_id": 4,
+                "_super": "_ELEMENT",
+                "filename": "",
+                "l": 0.15,
+                "name": "GUN",
+                "radius": 0,
+                "rf_field_scale": 1,
+                "rf_frequency": 0,
+                "solenoid_field_scale": 1,
+                "theta0_deg": 0,
+                "type": "SOLENOIDRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 11,
+                "_super": "_ELEMENT",
+                "filename": "",
+                "l": 2.937928,
+                "name": "L0A_body_1",
+                "radius": 0,
+                "rf_field_scale": 1,
+                "rf_frequency": 0,
+                "solenoid_field_scale": 1,
+                "theta0_deg": 0,
+                "type": "SOLENOIDRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 22,
+                "_super": "_ELEMENT",
+                "filename": "",
+                "l": 2.937928,
+                "name": "L0A_body_2",
+                "radius": 0,
+                "rf_field_scale": 1,
+                "rf_frequency": 0,
+                "solenoid_field_scale": 1,
+                "theta0_deg": 0,
+                "type": "SOLENOIDRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 10,
+                "_super": "_ELEMENT",
+                "filename": "",
+                "l": 0.052464,
+                "name": "L0A_entrance",
+                "radius": 0,
+                "rf_field_scale": 1,
+                "rf_frequency": 0,
+                "solenoid_field_scale": 1,
+                "theta0_deg": 0,
+                "type": "SOLENOIDRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 23,
+                "_super": "_ELEMENT",
+                "filename": "",
+                "l": 0.052464,
+                "name": "L0A_exit",
+                "radius": 0,
+                "rf_field_scale": 1,
+                "rf_frequency": 0,
+                "solenoid_field_scale": 1,
+                "theta0_deg": 0,
+                "type": "SOLENOIDRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 19,
+                "_super": "_ELEMENT",
+                "filename": "",
+                "l": 2.937928,
+                "name": "L0B_body_1",
+                "radius": 0,
+                "rf_field_scale": 1,
+                "rf_frequency": 0,
+                "solenoid_field_scale": 1,
+                "theta0_deg": 0,
+                "type": "SOLENOIDRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 20,
+                "_super": "_ELEMENT",
+                "filename": "",
+                "l": 2.937928,
+                "name": "L0B_body_2",
+                "radius": 0,
+                "rf_field_scale": 1,
+                "rf_frequency": 0,
+                "solenoid_field_scale": 1,
+                "theta0_deg": 0,
+                "type": "SOLENOIDRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 18,
+                "_super": "_ELEMENT",
+                "filename": "",
+                "l": 0.052464,
+                "name": "L0B_entrance",
+                "radius": 0,
+                "rf_field_scale": 1,
+                "rf_frequency": 0,
+                "solenoid_field_scale": 1,
+                "theta0_deg": 0,
+                "type": "SOLENOIDRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 24,
+                "_super": "_ELEMENT",
+                "filename": "",
+                "l": 0.052464,
+                "name": "L0B_exit",
+                "radius": 0,
+                "rf_field_scale": 1,
+                "rf_frequency": 0,
+                "solenoid_field_scale": 1,
+                "theta0_deg": 0,
+                "type": "SOLENOIDRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 5,
+                "_super": "_ELEMENT",
+                "filename": "",
+                "l": 0.49308,
+                "name": "SOL1",
+                "radius": 0,
+                "rf_field_scale": 1,
+                "rf_frequency": 0,
+                "solenoid_field_scale": 1,
+                "theta0_deg": 0,
+                "type": "SOLENOIDRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 31,
+                "is_on": "0",
+                "l": 0,
+                "name": "SC_OFF",
+                "s": 0,
+                "type": "SPACECHARGE"
+            },
+            {
+                "_id": 32,
+                "l": 0,
+                "name": "stop_1",
+                "s": 0,
+                "type": "STOP"
+            },
+            {
+                "_id": 9,
+                "filename": "",
+                "gap": 0,
+                "iris_radius": 0,
+                "l": 0,
+                "method": "",
+                "name": "wakefield_L0A",
+                "period": 0,
+                "s": 0,
+                "s_begin": 0,
+                "type": "WAKEFIELD"
+            },
+            {
+                "_id": 17,
+                "filename": "",
+                "gap": 0,
+                "iris_radius": 0,
+                "l": 0,
+                "method": "",
+                "name": "wakefield_L0B",
+                "period": 0,
+                "s": 0,
+                "s_begin": 0,
+                "type": "WAKEFIELD"
+            },
+            {
+                "_id": 29,
+                "filename": "",
+                "l": 0,
+                "name": "OTR1",
+                "sample_frequency": 0,
+                "type": "WRITE_BEAM"
+            },
+            {
+                "_id": 30,
+                "filename": "",
+                "l": 0,
+                "name": "OTR2",
+                "sample_frequency": 0,
+                "type": "WRITE_BEAM"
+            },
+            {
+                "_id": 8,
+                "filename": "",
+                "l": 0,
+                "name": "YAG02",
+                "sample_frequency": 0,
+                "type": "WRITE_BEAM"
+            },
+            {
+                "_id": 14,
+                "filename": "",
+                "l": 0,
+                "name": "YAG03",
+                "sample_frequency": 0,
+                "type": "WRITE_BEAM"
+            }
+        ]
+    },
+    "simulationType": "impactt"
+}
