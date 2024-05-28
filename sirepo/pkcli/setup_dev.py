@@ -57,9 +57,11 @@ def _proprietary_codes():
             if not isinstance(e.reason, FileNotFoundError):
                 raise
             pkdlog("uri={} not found; mocking empty file={}", u, z)
-            t = d.join("foo.txt")
+            t = d.join("README")
             pkio.write_text(
                 t,
                 "mocked by sirepo.pkcli.setup_dev",
             )
-            subprocess.run(["tar", "-czf", z, t, "--remove-files"])
+            subprocess.check_call(
+                ["tar", "--create", "--gzip", f"--file={z}", t, "--remove-files"]
+            )
