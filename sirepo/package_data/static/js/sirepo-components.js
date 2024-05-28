@@ -2225,7 +2225,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         scope: {
             panelHeading: '@',
             modelKey: '=',
-            isReport: '@',
+            reportType: '@',
             viewName: '@',
         },
         template: `
@@ -2233,7 +2233,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
               <div class="model-panel-heading-buttons"></div>
               <a href data-ng-show="hasEditor" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
               ${SIREPO.appPanelHeadingButtons || ''}
-              <div data-ng-if="isReport" data-ng-show="hasData()" class="dropdown" style="display: inline-block">
+              <div data-ng-if="reportType" data-ng-show="hasData()" class="dropdown" style="display: inline-block">
                 <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
                 <ul class="dropdown-menu dropdown-menu-right">
                   <li class="dropdown-header">Download Report</li>
@@ -2246,10 +2246,11 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   <li data-ng-if="::hasDataFile" data-ng-repeat="l in panelDownloadLinks"><a data-ng-href="{{ dataFileURL(l.suffix) }}" target="_blank">{{ l.title }}</a></li>
                 </ul>
               </div>
-              <a href data-ng-if="::canFullScreen" data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullscreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{'glyphicon-resize-full': ! utilities.isFullscreen(), 'glyphicon-resize-small': utilities.isFullscreen()}"></span></a>
+              <a href data-ng-if="::canFullScreen" data-ng-show="reportType && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullscreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{'glyphicon-resize-full': ! utilities.isFullscreen(), 'glyphicon-resize-small': utilities.isFullscreen()}"></span></a>
             </div>
         `,
         controller: function($scope, $element) {
+            srdbg("report type:", $scope.reportType, "modelKey:", $scope.modelKey);
             $scope.panelState = panelState;
             $scope.utilities = utilities;
             let viewKey = $scope.viewName || $scope.modelKey;
@@ -2263,6 +2264,12 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             var view = appState.viewInfo(viewKey);
             $scope.hasEditor = view && view.advanced.length === 0 ? false : true;
             $scope.hasDataFile = view && view.hasOwnProperty('hasDataFile') ? view.hasDataFile : true;
+            if ($scope.reportType) {
+                $scope.hasCSVFile = $scope.reportType == 'heatmap' || $scope.reportType.includes('parameter');
+            } else {
+                $scope.hasCSVFile = false;
+            }
+
             $scope.canFullScreen = view && view.hasOwnProperty('canFullScreen') ? view.canFullScreen : true;
 
             // used for python export which lives in SIREPO.appDownloadLinks
@@ -2388,7 +2395,7 @@ SIREPO.app.directive('reportPanel', function(appState, panelState, utilities) {
         },
         template: `
             <div class="panel panel-info" data-ng-style="reportStyle">
-              <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1"></div>
+              <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-report-type="{{ reportPanel }}"></div>
               <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}"><div data-ng-transclude=""></div></div>
               <div data-ng-if="notes()"><span class="pull-right sr-notes" data-sr-tooltip="{{ notes() }}" data-placement="top"></span><div class="clearfix"></div></div>
         `,

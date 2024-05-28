@@ -212,6 +212,7 @@
         },
         "beamReport": {
             "reportType": ["Report", "BeamReportType"],
+            "hasCSVFile": ["Plot Generates a CSV file for download", "Boolean", "1"],
             "histogramBins": ["Number of Bins", "Integer"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]

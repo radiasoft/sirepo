@@ -6,7 +6,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.appDownloadLinks = [
-        '<li data-ng-if="::hasDataFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
+        '<li data-ng-if="::hasCSVFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
     ].join('');
 });
 

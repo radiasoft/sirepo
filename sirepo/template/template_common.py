@@ -575,10 +575,11 @@ def heatmap(values, model, plot_fields=None, weights=None):
     # TODO (gurhar1133): if I default to d, then it breaks some plots,
     # if I default to frameReport, then it breaks other plots.
     # is there a better way of resolving the names in get_data_file or something?
-    if "animation" in model.frameReport.lower():
-        n = model.frameReport
-    else:
-        n = model.frameReport if d == model.frameReport else d
+    # if "animation" in model.frameReport.lower():
+    #     n = model.frameReport
+    # else:
+    #     n = model.frameReport if d == model.frameReport else d
+    n = model.frameReport
     pandas.DataFrame(columns_dict).to_csv(f"{n}.csv", index=False)
     return res
 
