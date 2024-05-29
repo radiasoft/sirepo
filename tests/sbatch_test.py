@@ -100,10 +100,21 @@ def test_warppba_invalid_creds(new_user_fc):
 
 
 def test_warppba_login(new_user_fc):
-    from pykern.pkunit import pkexcept
+    from pykern import pkunit, pkdebug
+    from pykern.pkcollections import PKDict
 
-    x = _warppba_login(new_user_fc)
-    new_user_fc.sr_run_sim(*x, expect_completed=False)
+    d, c = _warppba_login(new_user_fc)
+    new_user_fc.sr_run_sim(d, c, expect_completed=False, timeout=5)
+    r = new_user_fc.sr_post(
+        "sbatchLoginStatus",
+        PKDict(
+            computeModel=c,
+            models=d.models,
+            simulationId=d.models.simulation.simulationId,
+            simulationType=d.simulationType,
+        ),
+    )
+    pkunit.pkok(r.ready, "not ready response={}", r)
 
 
 def test_warppba_no_creds(new_user_fc):
@@ -112,23 +123,6 @@ def test_warppba_no_creds(new_user_fc):
     x = _warppba_login_setup(new_user_fc)
     with pkexcept("SRException.*no-creds"):
         new_user_fc.sr_run_sim(*x, expect_completed=False)
-
-
-def test_warppba_status(new_user_fc):
-    from pykern.pkcollections import PKDict
-    from pykern import pkdebug, pkunit
-
-    d, c = _warppba_login(new_user_fc)
-    r = new_user_fc.sr_post(
-        "sbatchLoginStatus",
-        PKDict(
-            computeModel=c,
-            data=d,
-            simulationId=d.models.simulation.simulationId,
-            simulationType=d.simulationType,
-        ),
-    )
-    pkunit.pkok(r.ready)
 
 
 def _warppba_login(fc, invalid_password=False):

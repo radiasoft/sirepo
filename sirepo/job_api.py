@@ -212,18 +212,22 @@ class API(sirepo.quest.API):
         return await self._request_api(_request_content=self._request_content(PKDict()))
 
     @sirepo.quest.Spec("require_user")
-    async def api_sbatchLoginStatus(self):
-        return await self._request_api()
-
-    @sirepo.quest.Spec("require_user")
     async def api_sbatchLogin(self):
         r = self._request_content(
             PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),
         )
         # SECURITY: Don't include credentials so the agent can't see them.
-        r.sbatchCredentials = r.data.pkdel("sbatchCredentials")
+        r.sbatchCredentials = r.data.sbatchCredentials
         r.pkdel("data")
         return await self._request_api(_request_content=r)
+
+    @sirepo.quest.Spec("require_user")
+    async def api_sbatchLoginStatus(self):
+        return await self._request_api(
+            _request_content=self._request_content(
+                PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),
+            )
+        )
 
     @sirepo.quest.Spec("require_user", frame_id="SimFrameId")
     async def api_simulationFrame(self, frame_id):

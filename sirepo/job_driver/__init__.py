@@ -96,8 +96,8 @@ class DriverBase(PKDict):
         self.__instances[self._agent_id] = self
         pkdlog("{}", self)
 
-    def agent_is_ready(self):
-        return self._websocket_ready.is_set()
+    def agent_is_ready_or_starting(self):
+        return self._websocket_ready.is_set() or bool(self._websocket_ready_timeout)
 
     def destroy_op(self, op):
         """Remove op from our list of sends"""
@@ -256,7 +256,7 @@ class DriverBase(PKDict):
         return not self._prepared_sends and not self._websocket_ready_timeout
 
     async def _agent_ready(self, op):
-        if self.agent_is_ready():
+        if self._websocket_ready.is_set():
             return True
         await self._agent_start(op)
         if op.is_destroyed:
@@ -325,8 +325,7 @@ class DriverBase(PKDict):
             return
         try:
             async with self._agent_life_change_lock:
-                if self._websocket_ready_timeout or self._websocket_ready.is_set():
-                    # agent is starting or ready
+                if self.agent_is_ready_or_starting():
                     return
                 pkdlog("{} {} await=_do_agent_start", self, op)
                 # All awaits must be after this. If a call hangs the timeout

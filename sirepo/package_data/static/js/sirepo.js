@@ -1323,7 +1323,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             );
         }
         else if (event.query('requestSbatchLoginStatus')) {
-            _sendRequest('sbatchLoginStatus', event, {data: appState.models});
+            _sendRequest('sbatchLoginStatus', event, {});
         }
     };
 

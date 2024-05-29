@@ -891,7 +891,7 @@ class _ComputeJob(_Supervisor):
         r = False
         o = self._create_op(job.OP_SBATCH_AGENT_READY, req)
         try:
-            r = o.assign_driver().agent_is_ready()
+            r = o.assign_driver().agent_is_ready_or_starting()
         finally:
             o.destroy()
         return PKDict(ready=r)
