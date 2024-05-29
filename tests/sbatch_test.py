@@ -94,13 +94,13 @@ def test_warppba_invalid_creds(new_user_fc):
     from pykern.pkunit import pkexcept
 
     with pkexcept("SRException.*invalid-creds"):
-        _warppba_login(new_user_fc, username="vagrant", password="incorrect password")
+        _warppba_login(new_user_fc, invalid_password=True)
 
 
 def test_warppba_login(new_user_fc):
     from pykern.pkunit import pkexcept
 
-    x = _warppba_login(new_user_fc, username="vagrant", password="vagrant")
+    x = _warppba_login(new_user_fc)
     new_user_fc.sr_run_sim(*x, expect_completed=False)
 
 
@@ -112,10 +112,16 @@ def test_warppba_no_creds(new_user_fc):
         new_user_fc.sr_run_sim(*x, expect_completed=False)
 
 
-def _warppba_login(fc, username, password):
+def _warppba_login(fc, invalid_password=False):
     from pykern.pkcollections import PKDict
-    from pykern import pkunit
+    from pykern import pkunit, pkdebug
     from sirepo import util
+
+    def _post_args(**kwargs):
+        rv = fc.sr_sbatch_creds()
+        if invalid_password:
+            rv.sbatchCredentials.password = "invalid password"
+        return rv.pkupdate(kwargs)
 
     d, c = _warppba_login_setup(fc)
     try:
@@ -125,12 +131,10 @@ def _warppba_login(fc, username, password):
         p = e.sr_args.params
     fc.sr_post(
         "sbatchLogin",
-        PKDict(
-            password=password,
+        _post_args(
             computeModel=p.computeModel,
             simulationId=p.simulationId,
             simulationType=d.simulationType,
-            username=username,
         ),
     )
     return d, c

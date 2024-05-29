@@ -517,9 +517,11 @@ class _TestClient:
             **kwargs,
         )
 
+    def sr_sbatch_creds(self):
+        return PKDict(sbatchCredentials=_cfg().sbatch.copy())
+
     def sr_sbatch_login(self, compute_model, sim_name):
         from pykern.pkunit import pkexcept
-        import getpass
 
         if self.sr_sbatch_logged_in:
             return
@@ -527,16 +529,13 @@ class _TestClient:
         with pkexcept("SRException.*no-creds"):
             # Must try to run sim first to seed job_supervisor.db
             self.sr_run_sim(d, compute_model, expect_completed=False)
-        p = getpass.getuser()
         self.sr_post(
             "sbatchLogin",
             PKDict(
-                password=p,
                 report=compute_model,
                 simulationId=d.models.simulation.simulationId,
                 simulationType=d.simulationType,
-                username=p,
-            ),
+            ).pkupdate(self.sr_sbatch_creds()),
             raw_response=True,
         ).assert_success()
         self.sr_sbatch_logged_in = True
@@ -1138,9 +1137,15 @@ def _cfg():
         return __cfg
 
     from pykern import pkconfig
+    import getpass
 
+    u = getpass.getuser()
     __cfg = pkconfig.init(
         # 50 is based on a 2.2 GHz server
         cpu_div=(50, int, "cpu speed divisor to compute timeouts"),
+        sbatch=dict(
+            password=(u, str, "password to login to sbatch"),
+            username=(u, str, "user to login to sbatch"),
+        ),
     )
     return __cfg
