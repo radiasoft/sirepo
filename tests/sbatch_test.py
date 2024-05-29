@@ -32,7 +32,7 @@ def test_srw_cancel(fc):
     sim_name = "Young's Double Slit Experiment"
     compute_model = "multiElectronAnimation"
     fc.sr_sbatch_login(compute_model, sim_name)
-    d = fc.sr_sim_data(sim_name=sim_name)
+    d = fc.sr_sim_data(sim_name=sim_name, compute_model=compute_model)
     d.models[compute_model].jobRunMode = fc.sr_job_run_mode
     r = fc.sr_post(
         "runSimulation",
@@ -77,7 +77,9 @@ def test_srw_data_file(fc):
         ),
         expect_completed=False,
     )
-    d = fc.sr_sim_data(a)
+    # TODO(robnagler) jobRunMode needs to be set?
+    # https://github.com/radiasoft/sirepo/issues/7093
+    d = fc.sr_sim_data(a, compute_model=c)
     r = fc.sr_get(
         "downloadRunFile",
         PKDict(
@@ -112,6 +114,23 @@ def test_warppba_no_creds(new_user_fc):
         new_user_fc.sr_run_sim(*x, expect_completed=False)
 
 
+def test_warppba_status(new_user_fc):
+    from pykern.pkcollections import PKDict
+    from pykern import pkdebug, pkunit
+
+    d, c = _warppba_login(new_user_fc)
+    r = new_user_fc.sr_post(
+        "sbatchLoginStatus",
+        PKDict(
+            computeModel=c,
+            data=d,
+            simulationId=d.models.simulation.simulationId,
+            simulationType=d.simulationType,
+        ),
+    )
+    pkunit.pkok(r.ready)
+
+
 def _warppba_login(fc, invalid_password=False):
     from pykern.pkcollections import PKDict
     from pykern import pkunit, pkdebug
@@ -141,4 +160,4 @@ def _warppba_login(fc, invalid_password=False):
 
 
 def _warppba_login_setup(fc):
-    return fc.sr_sim_data("Laser Pulse"), "animation"
+    return fc.sr_sim_data("Laser Pulse", compute_model="animation"), "animation"

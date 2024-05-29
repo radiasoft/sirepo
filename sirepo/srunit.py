@@ -450,9 +450,6 @@ class _TestClient:
         from pykern.pkdebug import pkdlog, pkdexc
         import time
 
-        if self.sr_job_run_mode:
-            data.models[model].jobRunMode = self.sr_job_run_mode
-
         cancel = None
         try:
             r = self.sr_post(
@@ -509,7 +506,7 @@ class _TestClient:
     def sr_sbatch_animation_run(self, sim_name, compute_model, reports, **kwargs):
         self.sr_sbatch_login(compute_model, sim_name)
         self.sr_animation_run(
-            self.sr_sim_data(sim_name),
+            self.sr_sim_data(sim_name, compute_model=compute_model),
             compute_model,
             reports,
             # Things take longer with Slurm.
@@ -525,7 +522,7 @@ class _TestClient:
 
         if self.sr_sbatch_logged_in:
             return
-        d = self.sr_sim_data(sim_name)
+        d = self.sr_sim_data(sim_name, compute_model=compute_model)
         with pkexcept("SRException.*no-creds"):
             # Must try to run sim first to seed job_supervisor.db
             self.sr_run_sim(d, compute_model, expect_completed=False)
@@ -540,12 +537,13 @@ class _TestClient:
         ).assert_success()
         self.sr_sbatch_logged_in = True
 
-    def sr_sim_data(self, sim_name=None, sim_type=None):
+    def sr_sim_data(self, sim_name=None, sim_type=None, compute_model=None):
         """Return simulation data by name
 
         Args:
             sim_name (str): case sensitive name ['Scooby Doo']
             sim_type (str): app ['myapp']
+            compute_model (str): what model is selected to set jobRunMode [None]
 
         Returns:
             dict: data
@@ -576,6 +574,8 @@ class _TestClient:
             ),
         )
         pkunit.pkeq(sim_name, res.models.simulation.name)
+        if compute_model and self.sr_job_run_mode:
+            res.models[compute_model].jobRunMode = self.sr_job_run_mode
         return res
 
     def sr_sim_type_set(self, sim_type=None):
