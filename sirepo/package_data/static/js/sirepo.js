@@ -1143,7 +1143,10 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             [_e_unloaded]: _s_initial,
         },
         [_s_notNeeded]: {
-            [_e_authMissing]: _s_idle,
+            [_e_authInvalid]: _s_notNeeded,
+            [_e_authMissing]: _s_notNeeded,
+            [_e_authSuccess]: _s_notNeeded,
+            [_e_loginClicked]: _s_notNeeded,
             [_e_needNo]: _s_notNeeded,
             [_e_needYes]: _s_status,
             [_e_unloaded]: _s_initial,
