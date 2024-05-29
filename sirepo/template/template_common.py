@@ -636,7 +636,8 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
         if not c:
             c = plot.get("name", f"col{i + 1}")
         columns_dict[c] = plot.points
-    pkdp("\n\n\n\n MAKING A PARAMETER PLOT FOR frameReport={}", model.frameReport)
+    # pkdp("\n\n\n\n MAKING A PARAMETER PLOT FOR frameReport={}", model.frameReport)
+    # assert 0, f"\n\n\n\n MAKING A PARAMETER PLOT FOR frameReport={model.frameReport}"
     pandas.DataFrame(columns_dict).to_csv(f"{model.frameReport}.csv", index=False)
     return res
 
