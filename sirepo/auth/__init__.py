@@ -702,8 +702,7 @@ class _Auth(sirepo.quest.Attr):
     def _create_user(self, module, want_login):
         u = simulation_db.user_create()
         if want_login:
-            self._login_user(module, u)
-            self._create_roles_for_new_user(module.AUTH_METHOD)
+            self._login_user(module, u, want_new_roles=True)
         else:
             with self.logged_in_user_set(u, method=module.AUTH_METHOD):
                 self._create_roles_for_new_user(module.AUTH_METHOD)
@@ -721,7 +720,7 @@ class _Auth(sirepo.quest.Attr):
         self.qcall.auth_db.commit()
         pkdlog("user_dir={} uid={}", user_dir, uid)
 
-    def _login_user(self, module, uid):
+    def _login_user(self, module, uid, want_new_roles=False):
         """Set up the cookie for logged in state
 
         If a deprecated or non-visible method, just login. Otherwise, check the db
@@ -741,6 +740,9 @@ class _Auth(sirepo.quest.Attr):
                 s = _STATE_COMPLETE_REGISTRATION
         self.qcall.cookie.set_value(_COOKIE_STATE, s)
         self._set_log_user()
+        if want_new_roles:
+            self._create_roles_for_new_user(module.AUTH_METHOD)
+        self.check_role_user()
 
     def _method_auth_state(self, values, uid):
         if values.method not in _METHOD_MODULES:

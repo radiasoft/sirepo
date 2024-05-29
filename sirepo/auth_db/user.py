@@ -134,8 +134,8 @@ class UserRoleModeration(sirepo.auth_db.UserDbBase):
         )
         return [PKDict(zip(r.keys(), r)) for r in q]
 
-    def get_status(self, role):
-        s = self.unchecked_search_by(uid=self.logged_in_user(), role=role)
+    def get_status(self, role, uid=None):
+        s = self.unchecked_search_by(uid=uid or self.logged_in_user(), role=role)
         if not s:
             return None
         return sirepo.auth_role.ModerationStatus.check(s.status)
