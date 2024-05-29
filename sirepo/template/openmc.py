@@ -128,6 +128,20 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError(f"invalid model={model} options={options}")
 
 
+def prepare_for_save(data, qcall):
+    # materialsFile is used only once to setup initial volume materials.
+    # it isn't reusable across simulations
+    if data.models.get("volumes") and data.models.geometryInput.get("materialsFile"):
+        if _SIM_DATA.lib_file_exists(_SIM_DATA.materials_filename(data), qcall=qcall):
+            pkio.unchecked_remove(
+                _SIM_DATA.lib_file_abspath(
+                    _SIM_DATA.materials_filename(data), qcall=qcall
+                )
+            )
+        data.models.geometryInput.materialsFile = ""
+    return data
+
+
 def post_execution_processing(
     compute_model, sim_id, success_exit, is_parallel, run_dir, **kwargs
 ):
@@ -395,18 +409,6 @@ def write_volume_outlines():
     simulation_db.write_json(_OUTLINES_FILE, all_outlines)
 
 
-def _dagmc_animation_python(filename):
-    return f"""
-import sirepo.pkcli.openmc
-import sirepo.simulation_db
-
-sirepo.simulation_db.write_json(
-    "{_VOLUME_INFO_FILE}",
-    sirepo.pkcli.openmc.extract_dagmc("{filename}"),
-)
-"""
-
-
 def _energy_plot(run_dir, data):
     import openmc
 
@@ -557,9 +559,9 @@ def _generate_materials(data, j2_ctx):
         res += f'{n}.set_density("{v.material.density_units}", {v.material.density})\n'
         if v.material.depletable == "1":
             res += f"{n}.depletable = True\n"
-        if "temperator" in v and v.material:
+        if "temperature" in v.material and v.material.temperature:
             res += f"{n}.temperature = {v.material.temperature}\n"
-        if "volume" in v and v.volume:
+        if "volume" in v.material and v.material.volume:
             res += f"{n}.volume = {v.material.volume}\n"
         for c in v.material.components:
             if (
@@ -605,12 +607,15 @@ m.upper_right = {_generate_array(mesh.upper_right)}
 
 def _generate_parameters_file(data, run_dir=None):
     report = data.get("report", "")
-    if report == "dagmcAnimation":
-        return _dagmc_animation_python(_SIM_DATA.dagmc_filename(data))
     if report == "tallyReport":
         return ""
     res, v = template_common.generate_parameters_file(data)
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
+    if report == "dagmcAnimation":
+        v.volumeInfoFile = _VOLUME_INFO_FILE
+        if data.models.geometryInput.materialsFile:
+            v.materialsFile = _SIM_DATA.materials_filename(data)
+        return template_common.render_jinja(SIM_TYPE, v, "extract_dagmc.py")
     v.isPythonSource = False if run_dir else True
     if v.isPythonSource:
         v.materialDirectory = "."
@@ -629,6 +634,8 @@ def _generate_parameters_file(data, run_dir=None):
     ]
     v.tallies = _generate_tallies(data, v)
     v.hasGraveyard = _has_graveyard(data)
+    v.region = _region(data)
+    v.planes = _planes(data)
     if v.incomplete_data_msg:
         return (
             f'raise AssertionError("Unable to generate sim: {v.incomplete_data_msg}")'
@@ -815,10 +822,36 @@ def _parse_openmc_log(run_dir, log_filename="run.log"):
         default_msg="An unknown error occurred, check OpenMC log for details",
         # ERROR: Cannot tally flux for an individual nuclide.
         error_patterns=(
+            re.compile(r"^\s*ValueError:\s*(.*)$", re.IGNORECASE),
             re.compile(r"^\s*Error:\s*(.*)$", re.IGNORECASE),
             re.compile(r"AssertionError: (.*)"),
         ),
     ).parse_for_errors()
+
+
+def _planes(data):
+    res = ""
+    for i, p in enumerate(data.models.reflectivePlanes.planesList):
+        res += f"""
+    p{i + 1} = openmc.Plane(
+        a={p.A},
+        b={p.B},
+        c={p.C},
+        d={p.D},
+        boundary_type="reflective",
+    )
+"""
+    return res
+
+
+def _region(data):
+    res = ""
+    for i, p in enumerate(data.models.reflectivePlanes.planesList):
+        if p.inside == "1":
+            res += f"& +p{i + 1} "
+        else:
+            res += f"& -p{i + 1} "
+    return res
 
 
 def _source_filename(data):

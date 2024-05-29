@@ -113,9 +113,13 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="ZPlanePosition" class="col-sm-5">
           <div data-plane-position-slider="" data-model="model" data-field="field" data-dim="'z'"></div>
         </div>
+        <div data-ng-switch-when="PlanesList">
+          <div data-plane-list="" data-model="model" data-field="field" data-sub-model-name="plane"></div>
+        </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
         'geometryInput-dagmcFile': '.h5m',
+        'geometryInput-materialsFile': '.xml',
     };
 });
 
@@ -290,7 +294,9 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
     }
 
     function processGeometry() {
-        panelState.showField('geometryInput', 'dagmcFile', false);
+        panelState.showFields('geometryInput', [
+            ['dagmcFile', 'materialsFile'], false,
+        ]);
         if (appState.models.geometryInput.exampleURL) {
             downloadRemoteGeometryFile();
             return;
@@ -328,6 +334,11 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
             hasVolumes = true;
             if (! Object.keys(appState.applicationState().volumes).length) {
                 appState.models.volumes = data.volumes;
+                for (const n in data.volumes) {
+                    if (data.volumes[n].material) {
+                        appState.setModelDefaults(data.volumes[n].material, 'material');
+                    }
+                }
                 appState.saveChanges('volumes');
             }
         }
@@ -695,6 +706,77 @@ SIREPO.app.factory('volumeLoadingService', function(appState, requestSender, $ro
     });
 
     return self;
+});
+
+SIREPO.app.directive('planeList', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            subModelName: '@',
+        },
+        template: `
+            <div style="position: relative; top: -25px">
+              <div class="col-sm-12">
+                <div class="row">
+                  <div class="col-sm-2" data-ng-repeat="(key, value) in model[field][0]">
+                    <div class="text-center" data-label-with-tooltip=""
+                      data-label="{{ label(key) }}" data-tooltip="{{ tooltip(key) }}"></div>
+                  </div>
+                </div>
+                <div data-ng-repeat="plane in model[field] track by $index">
+                  <div class="row" style="margin-bottom: 15px">
+                    <div data-ng-repeat="(key, value) in plane">
+                      <div data-model-field="key" data-model-name="subModelName"
+                        data-model-data="modelData($parent.$index)" data-label-size="0"
+                        data-field-size="2"></div>
+                      </div>
+                    <div class="col-sm-2">
+                      <button data-ng-click="deletePlane($index)"
+                        class="row btn btn-danger btn-xs">
+                        <span class="glyphicon glyphicon-remove"></span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-5">
+                  <button type="button" data-ng-click="addPlane()"
+                    class="btn btn-primary">Add New Plane</button>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            const modelData = {};
+
+            $scope.addPlane = () => {
+                appState.models.reflectivePlanes.planesList.push(
+                    appState.setModelDefaults({}, 'plane'),
+                );
+            };
+
+            $scope.deletePlane = (index) => {
+                appState.models.reflectivePlanes.planesList.splice(index, 1);
+            };
+
+            $scope.label = (field) => appState.modelInfo($scope.subModelName)[field][0];
+
+            $scope.modelData = (index) => {
+                if (! $scope.model) {
+                    return;
+                }
+                if (! modelData[index]) {
+                    modelData[index] = {
+                        getData: () => $scope.model[$scope.field][index],
+                    };
+                }
+                return modelData[index];
+            };
+
+            $scope.tooltip = (field) => appState.modelInfo($scope.subModelName)[field][3];
+        }
+    };
 });
 
 SIREPO.app.directive('tallyVolumePicker', function(openmcService, volumeLoadingService) {
@@ -2597,9 +2679,18 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
         }
 
         panelState.showFields('reflectivePlanes', [
-            ['plane1a', 'plane1b', 'plane2a', 'plane2b'],
+            ['planesList'],
             appState.models.reflectivePlanes.useReflectivePlanes === '1',
         ]);
+
+        //TODO(pjm): consider adding panelState.showLeadText()
+        if (appState.models.reflectivePlanes.useReflectivePlanes === '1') {
+            $('#sr-settings-basicEditor').find('.lead').show();
+        }
+        else {
+            $('#sr-settings-basicEditor').find('.lead').hide();
+        }
+
         panelState.showFields(
             $scope.modelName,
             [
