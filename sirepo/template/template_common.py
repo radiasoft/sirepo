@@ -565,12 +565,12 @@ def heatmap(values, model, plot_fields=None, weights=None):
     if plot_fields:
         res.update(plot_fields)
     columns_dict = PKDict()
-    pkdp("\n\n\n\n model={}", model)
+    # pkdp("\n\n\n\n model={}", model)
     columns_dict[model.x] = values[0]
     columns_dict[model.y] = values[1]
     columns_dict["particleID"] = range(1, len(values[0]) + 1)
     d = pkio.py_path().basename
-    pkdp("\n\n\n\n\n pkio.py_path().basename={}", pkio.py_path().basename)
+    pkdp("\n\n\n\n\n pkio.py_path().basename={} frameReport={}", pkio.py_path().basename, model.frameReport)
 
     # TODO (gurhar1133): if I default to d, then it breaks some plots,
     # if I default to frameReport, then it breaks other plots.
@@ -629,9 +629,9 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     if plot_fields:
         res.update(plot_fields)
     columns_dict = PKDict()
-    pkdp("\n\n\n res={}", res)
+    # pkdp("\n\n\n res={}", res)
     for i, plot in enumerate(res.plots):
-        pkdp("\n\n\n\nplot = {}", plot)
+        # pkdp("\n\n\n\nplot = {}", plot)
         c = plot.get("col_name", False)
         if not c:
             c = plot.get("name", f"col{i + 1}")
