@@ -2265,7 +2265,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             $scope.hasEditor = view && view.advanced.length === 0 ? false : true;
             $scope.hasDataFile = view && view.hasOwnProperty('hasDataFile') ? view.hasDataFile : true;
             if ($scope.reportType) {
-                $scope.hasCSVFile = $scope.reportType == '3d' || $scope.reportType == 'heatmap' || $scope.reportType.includes('parameter') && $scope.reportType != 'parameter';
+                $scope.hasCSVFile = $scope.reportType == 'heatmap' || $scope.reportType.includes('parameter');
             } else {
                 $scope.hasCSVFile = false;
             }

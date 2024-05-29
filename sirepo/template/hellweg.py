@@ -180,7 +180,7 @@ def sim_frame_parameterAnimation(frame_args):
             v.pop()
     y1_extent = [numpy.min(y1), numpy.max(y1)]
     y2_extent = [numpy.min(y2), numpy.max(y2)]
-    return PKDict(
+    res = PKDict(
         title=_enum_text("ParameterReportType", frame_args.reportType),
         x_range=[x[0], x[-1]],
         y_label=hellweg_dump_reader.get_parameter_label(y1_var),
@@ -194,6 +194,7 @@ def sim_frame_parameterAnimation(frame_args):
         y1_title=hellweg_dump_reader.get_parameter_title(y1_var),
         y2_title=hellweg_dump_reader.get_parameter_title(y2_var),
     )
+    return template_common.parameter_plot(x, PKDict(plots=res), frame_args)
 
 
 def sim_frame_particleAnimation(frame_args):
