@@ -178,23 +178,25 @@ def sim_frame_parameterAnimation(frame_args):
     if x[-1] == 0:
         for v in (x, y1, y2):
             v.pop()
-    y1_extent = [numpy.min(y1), numpy.max(y1)]
-    y2_extent = [numpy.min(y2), numpy.max(y2)]
-    res = PKDict(
-        title=_enum_text("ParameterReportType", frame_args.reportType),
-        x_range=[x[0], x[-1]],
-        y_label=hellweg_dump_reader.get_parameter_label(y1_var),
-        x_label=hellweg_dump_reader.get_parameter_label(x_field),
-        x_points=x,
-        points=[
-            y1,
-            y2,
+    return template_common.parameter_plot(
+        x,
+        [
+            PKDict(
+                col_name=hellweg_dump_reader.get_parameter_title(y1_var),
+                points=y1,
+                label=hellweg_dump_reader.get_parameter_title(y1_var),
+            ),
+            PKDict(
+                col_name=hellweg_dump_reader.get_parameter_title(y2_var),
+                points=y2,
+                label=hellweg_dump_reader.get_parameter_title(y2_var),
+            )
         ],
-        y_range=[min(y1_extent[0], y2_extent[0]), max(y1_extent[1], y2_extent[1])],
-        y1_title=hellweg_dump_reader.get_parameter_title(y1_var),
-        y2_title=hellweg_dump_reader.get_parameter_title(y2_var),
+        frame_args,
+        PKDict(
+            title=_enum_text("ParameterReportType", frame_args.reportType),
+            x_label=hellweg_dump_reader.get_parameter_label(x_field)),
     )
-    return template_common.parameter_plot(x, PKDict(plots=res), frame_args)
 
 
 def sim_frame_particleAnimation(frame_args):
