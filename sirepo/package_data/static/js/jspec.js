@@ -20,6 +20,9 @@ SIREPO.app.config(function() {
           <div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>
         </div>
     `;
+    SIREPO.appDownloadLinks = [
+        '<li data-ng-if="::hasCSVFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
+    ].join('');
 });
 
 SIREPO.app.factory('jspecService', function(appState) {

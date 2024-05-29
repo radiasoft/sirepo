@@ -82,7 +82,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 def get_data_file(run_dir, model, frame, options):
     if options.suffix == "csv":
-        pkdp("\n\n\n\n\nget_data_file searching for model={}", model)
         return run_dir.join(model + ".csv")
     return HELLWEG_DUMP_FILE
 

@@ -134,6 +134,8 @@ def get_rates(run_dir):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if options.suffix == "csv":
+        return run_dir.join(model + ".csv")
     if model in ("beamEvolutionAnimation", "coolingRatesAnimation"):
         return _BEAM_EVOLUTION_OUTPUT_FILENAME
     elif model == "forceTableAnimation":

@@ -287,6 +287,7 @@ def extract_parameter_report(
             PKDict(field=m[f], points=to_floats(t[m[f]]), label=field_label(m[f])),
         )
     x = m.get("x", "s")
+    pkdp("\n\n\n\n m={}, data.report={} filename={}", m, data.report, filename)
     res = template_common.parameter_plot(
         to_floats(t[x]),
         plots,
@@ -348,6 +349,8 @@ def generate_parameters_file(data):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if options.suffix == "csv":
+        return run_dir.join(model + ".csv")
     if _is_report("bunchReport", model):
         return PTC_PARTICLES_FILE
     if frame == SCHEMA.constants.logFileFrameId:

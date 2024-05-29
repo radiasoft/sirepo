@@ -23,6 +23,9 @@ SIREPO.app.config(function() {
           <div data-number-list="" data-field="model[field]" data-info="info" data-type="Float" data-count="6"></div>
         </div>
     `;
+    SIREPO.appDownloadLinks = [
+        '<li data-ng-if="::hasCSVFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
+    ].join('');
     SIREPO.lattice = {
         canReverseBeamline: true,
         elementColor: {
