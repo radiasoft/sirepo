@@ -221,6 +221,9 @@ class _AuthDb(sirepo.quest.Attr):
             self._orm_session.begin()
         return self._orm_session
 
+    def table_exists(self, table_name):
+        return table_name in sqlalchemy.inspect(_engine).get_table_names()
+
     def _commit_or_rollback(self, commit):
         if self._orm_session is None:
             return

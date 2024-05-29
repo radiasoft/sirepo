@@ -86,18 +86,8 @@ def _20240507_cloudmc_to_openmc(qcall):
 
 
 def _20240524_add_role_user(qcall):
-    qcall.auth_db.execute_sql(
-        """
-CREATE TABLE user_role_moderation_t (
-    uid VARCHAR(8) NOT NULL,
-    role VARCHAR(100) NOT NULL,
-    status VARCHAR(100) NOT NULL,
-    moderator_uid VARCHAR(8),
-    last_updated DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL,
-    PRIMARY KEY (uid, role)
-)
-"""
-    )
+    if not qcall.auth_db.table_exists("user_role_invite_t"):
+        return
     qcall.auth_db.execute_sql(
         """
 INSERT INTO user_role_moderation_t (uid, role, status, moderator_uid, last_updated)
