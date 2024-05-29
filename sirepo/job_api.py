@@ -222,7 +222,6 @@ class API(sirepo.quest.API):
         )
         # SECURITY: Don't include credentials so the agent can't see them.
         r.sbatchCredentials = r.data.pkdel("sbatchCredentials")
-        r.shouldRestartRunSimulation = r.data.pkdel("shouldRestartRunSimulation")
         r.pkdel("data")
         return await self._request_api(_request_content=r)
 

@@ -239,20 +239,6 @@ scancel -u $USER >& /dev/null || true
         return res
 
     def _raise_sbatch_login_srexception(self, reason, msg):
-        def _should_restart_run_simulation(msg):
-            # shouldRestartRunSimulation is not None when we have already been
-            # through this code before. The user has entered bad creds,
-            # faced other connection issues, and/or is trying to login
-            # after clicking run simulation and the agent was dead. If
-            # they were originally trying to run a simulation we want to
-            # keep that context. This context allows us to restart the
-            # simulation for them once they finally login.
-            if "shouldRestartRunSimulation" in msg and msg.api != "api_sbatchLogin":
-                raise AssertionError(
-                    "msg.api={msg.api} invalid arg shouldRestartRunSimulation={msg.shouldRestartRunSimulation}"
-                )
-            return msg.get("shouldRestartRunSimulation", msg.api == "api_runSimulation")
-
         raise util.SRException(
             "sbatchLogin",
             PKDict(
@@ -261,7 +247,6 @@ scancel -u $USER >& /dev/null || true
                 reason=reason,
                 computeModel=msg.computeModel,
                 simulationId=msg.simulationId,
-                shouldRestartRunSimulation=_should_restart_run_simulation(msg),
             ),
         )
 
