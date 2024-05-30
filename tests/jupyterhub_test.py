@@ -77,9 +77,7 @@ def test_logout(auth_fc):
     fc = auth_fc
 
     from pykern.pkdebug import pkdp
-    from sirepo.pkcli import jupyterhublogin
 
-    e = "a@b.c"
-    fc.sr_email_login(e)
-    jupyterhublogin.create_user(e, "foo")
+    fc.sr_login_as_guest()
+    fc.sr_get("checkAuthJupyterHub").assert_success()
     fc.sr_logout()
