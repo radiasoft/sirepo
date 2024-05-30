@@ -55,6 +55,8 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if options.suffix == "csv":
+        return run_dir.join(model + ".csv")
     if model in ("tempProfileAnimation", "tempHeatMapAnimation"):
         return (
             _TEMP_PROFILE_FILE
@@ -141,7 +143,8 @@ def sim_frame_tempProfileAnimation(frame_args):
                 label="(T-T₀), K",
             ),
         ],
-        PKDict(),
+        # TODO (gurhar1133): maybe a name besides frameReport
+        PKDict(frameReport=frame_args.frameReport),
         PKDict(
             x_label=(
                 "Radial"

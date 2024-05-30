@@ -14,6 +14,7 @@ SIREPO.app.config(function() {
         '<li data-lineout-csv-link="x"></li>',
         '<li data-lineout-csv-link="y"></li>',
         '<li data-lineout-csv-link="full"></li>',
+        '<li data-ng-if="::hasCSVFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
         '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
     ].join('');
 });

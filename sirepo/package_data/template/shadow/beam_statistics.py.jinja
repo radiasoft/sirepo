@@ -7,6 +7,7 @@ from srxraylib.sources import srfunc
 import Shadow
 import math
 import numpy
+import pandas
 import re
 
 alpha = 0
@@ -187,5 +188,5 @@ def run_shadow_simulation():
 beam_stats = []
 sigma_mat = create_sigma_matrix()
 stats = run_shadow_simulation()
-
+pandas.DataFrame(stats).to_csv("beamStatisticsReport.csv", index=False)
 pkjson.dump_pretty(stats, filename='{{beamStatsFile}}')

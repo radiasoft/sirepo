@@ -166,6 +166,8 @@ def stateful_compute_convert_to_srw(data, **kwargs):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if options.suffix == "csv":
+        return run_dir.join(model + ".csv")
     if model == "beamStatisticsReport":
         return BEAM_STATS_FILE
     return _SHADOW_OUTPUT_FILE

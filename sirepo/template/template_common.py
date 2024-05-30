@@ -636,7 +636,7 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
         if not c:
             c = plot.get("name", f"col{i + 1}")
         columns_dict[c] = plot.points
-    # pkdp("\n\n\n\n MAKING A PARAMETER PLOT FOR frameReport={}", model.frameReport)
+    pkdp("\n\n\n\n MAKING A PARAMETER PLOT FOR model.keys={}", model.keys())
     # assert 0, f"\n\n\n\n MAKING A PARAMETER PLOT FOR frameReport={model.frameReport}"
     if not model.get("frameReport", False):
         pkdp("\n\n\n\n model={}", model)
