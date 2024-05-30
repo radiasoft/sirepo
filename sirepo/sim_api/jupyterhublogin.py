@@ -142,7 +142,6 @@ def _event_auth_logout(qcall, kwargs):
     # We must set the uid here because in _event_end_api_call we won't
     # be able to retrieve it. The user is already logged out by the
     # time _event_end_api_call is called
-
     qcall.bucket_set(
         _JUPYTERHUB_LOGOUT_USER_NAME_ATTR, _unchecked_hub_user(qcall, kwargs.uid)
     )

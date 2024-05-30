@@ -27,16 +27,3 @@ def test_create_new_user(auth_fc):
     pkunit.pkeq(r, sirepo.pkcli.jupyterhublogin.create_user(e, n))
     # create_user is idempotent. Returns user_name if user already exists
     pkunit.pkeq(r, sirepo.pkcli.jupyterhublogin.create_user(e, n))
-
-
-def test_logout(auth_fc):
-    # Clears third party (jupyterhub) cookies
-    fc = auth_fc
-
-    from pykern.pkdebug import pkdp
-    from sirepo.pkcli import jupyterhublogin
-
-    e = "a@b.c"
-    fc.sr_email_login(e)
-    jupyterhublogin.create_user(e, "foo")
-    fc.sr_logout()

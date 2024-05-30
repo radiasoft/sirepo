@@ -68,3 +68,18 @@ def test_check_auth_jupyterhub(fc):
 
 def test_jupyterhub_redirect(fc):
     fc.sr_get("redirectJupyterHub", redirect=False).assert_http_redirect("jupyterHub")
+
+
+def test_logout(auth_fc):
+    # Clears third party (jupyterhub) cookies
+    # TODO(e-carlin): https://github.com/radiasoft/sirepo/issues/7096
+    # This test should verify that the cookie was actually removed.
+    fc = auth_fc
+
+    from pykern.pkdebug import pkdp
+    from sirepo.pkcli import jupyterhublogin
+
+    e = "a@b.c"
+    fc.sr_email_login(e)
+    jupyterhublogin.create_user(e, "foo")
+    fc.sr_logout()
