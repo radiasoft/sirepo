@@ -1450,12 +1450,11 @@ SIREPO.app.directive('dmpImportDialog', function(appState, fileManager, fileUplo
     };
 });
 
+//TODO(pjm): this is a copy of the kickMapReport directive
 SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) {
     return {
         restrict: 'A',
-        scope: {
-            modelName: '@'
-        },
+        scope: {},
         template: `
             <div class="col-md-6">
                 <div data-ng-if="! dataCleared" data-report-panel="parameter" data-request-priority="0" data-model-name="electronTrajectoryReport"></div>
@@ -1463,25 +1462,8 @@ SIREPO.app.directive('electronTrajectoryReport', function(appState, panelState) 
         `,
         controller: function($scope) {
             $scope.dataCleared = true;
-            $scope.model = appState.models[$scope.modelName];
-
-            function setPanelHidden(doHide) {
-                appState.models[$scope.modelName].hidePanel = doHide;
-                appState.saveQuietly($scope.modelName);
-                appState.autoSave();
-            }
-
-            if (appState.models[$scope.modelName].hidePanel === undefined) {
-                setPanelHidden(true);
-            }
-
             $scope.$on('radiaViewer.loaded', () => {
                 $scope.dataCleared = false;
-                panelState.setHidden($scope.modelName, appState.models[$scope.modelName].hidePanel);
-            });
-
-            $scope.$on(`panel.${$scope.modelName}.hidden`, (e, d) => {
-                setPanelHidden(d);
             });
         },
     };
@@ -1781,24 +1763,17 @@ SIREPO.app.directive('groupEditor', function(appState, radiaService) {
 SIREPO.app.directive('kickMapReport', function(appState, panelState, plotting, radiaService, requestSender, utilities) {
     return {
         restrict: 'A',
-        scope: {
-            direction: '@',
-            viewName: '@',
-        },
+        scope: {},
         template: `
             <div class="col-md-6">
                 <div data-ng-if="! dataCleared" data-report-panel="3d" data-panel-title="Kick Map" data-model-name="kickMapReport"></div>
             </div>
         `,
         controller: function($scope) {
-
             $scope.dataCleared = true;
-
-            $scope.model = appState.models.kickMapReport;
             $scope.$on('radiaViewer.loaded', () => {
                 $scope.dataCleared = false;
             });
-
         },
     };
 });

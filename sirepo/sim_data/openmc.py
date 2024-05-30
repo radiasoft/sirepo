@@ -19,6 +19,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
+    def materials_filename(cls, data):
+        return cls.lib_file_name_with_model_field(
+            "geometryInput",
+            "materialsFile",
+            data.models.geometryInput.materialsFile,
+        )
+
+    @classmethod
     def source_filenames(cls, data):
         return [
             cls.lib_file_name_with_model_field("source", "file", x.file)
@@ -29,7 +37,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         def _fix_val(model, field):
-            if isinstance(model[field], dict):
+            if field in model and isinstance(model[field], dict):
                 model[field] = model[field].val
 
         sch = cls.schema()
@@ -51,11 +59,30 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "weightWindowsMesh",
             ),
         )
+        if "plane1a" in dm.reflectivePlanes:
+            if dm.reflectivePlanes.useReflectivePlanes == "1":
+                dm.reflectivePlanes.planesList += [
+                    {
+                        "inside": "0",
+                        "A": dm.reflectivePlanes.plane1a,
+                        "B": dm.reflectivePlanes.plane1b,
+                        "C": 0,
+                        "D": 0,
+                    },
+                    {
+                        "inside": "1",
+                        "A": dm.reflectivePlanes.plane2a,
+                        "B": dm.reflectivePlanes.plane2b,
+                        "C": 0,
+                        "D": 0,
+                    },
+                ]
+            for k in ("plane1a", "plane1b", "plane2a", "plane2b"):
+                dm.reflectivePlanes.pkdel(k)
         for v in dm.volumes:
             if "material" not in dm.volumes[v]:
                 continue
-            if not dm.volumes[v].material.get("standardType"):
-                dm.volumes[v].material.standardType = "None"
+            cls.update_model_defaults(dm.volumes[v].material, "material")
             _fix_val(dm.volumes[v], "opacity")
         if "tally" in dm:
             del dm["tally"]
@@ -99,13 +126,17 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
+        r = []
         if data.get("report") == "tallyReport":
-            return []
+            return r
         if data.models.geometryInput.dagmcFile:
-            return [
+            r = [
                 cls.dagmc_filename(data),
             ] + cls.source_filenames(data)
-        return []
+        if data.get("report") == "dagmcAnimation":
+            if data.models.geometryInput.materialsFile:
+                r.append(cls.materials_filename(data))
+        return r
 
     @classmethod
     def _sim_file_basenames(cls, data):

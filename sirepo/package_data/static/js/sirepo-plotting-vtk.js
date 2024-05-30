@@ -2387,13 +2387,11 @@ SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, pa
                     return;
                 }
                 if (layoutService.plotAxis.allowUpdates) {
-                    var width = parseInt(select('.workspace').style('width')) - $scope.margin.left - $scope.margin.right;
-                    if (isNaN(width)) {
+                    var elementWidth = parseInt(select('.workspace').style('width'));
+                    if (isNaN(elementWidth)) {
                         return;
                     }
-                    width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
-                    $scope.width = width;
-                    $scope.height = ASPECT_RATIO * $scope.width;
+                    [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, elementWidth, ASPECT_RATIO);
                     SCREEN_INFO.x.length = $scope.width;
                     SCREEN_INFO.y.length = $scope.height;
 

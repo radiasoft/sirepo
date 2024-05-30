@@ -1547,13 +1547,11 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     return;
                 }
                 if (layoutService.plotAxis.allowUpdates) {
-                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                    if (isNaN(width)) {
+                    var elementWidth = parseInt(select().style('width'));
+                    if (isNaN(elementWidth)) {
                         return;
                     }
-                    width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
-                    $scope.width = width;
-                    $scope.height = ASPECT_RATIO * $scope.width;
+                    [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, elementWidth, ASPECT_RATIO);
                     select('svg')
                         .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
                         .attr('height', $scope.plotHeight());
@@ -3166,8 +3164,6 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 var rw = $($element).find('.vtk-canvas-holder');
                 rw.on('dblclick', reset);
 
-                // removed listenWindowResize: false - turns out we need it for fullscreen to work.
-                // Instead we remove the event listener ourselves on destroy
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
                     {
                         background: [1, 1, 1, 1],
@@ -3557,8 +3553,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.zeroVoltsColor);
             var voltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
             var reflectedParticleTrackColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.reflectedParticleTrackColor);
-
-            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             function addSTLConductors() {
                 var typeMap = warpvndService.conductorTypeMap();
@@ -4287,10 +4281,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             };
 
             function refresh() {
-
-                var width = parseInt($($element).css('width')) - $scope.margin.left - $scope.margin.right;
-                $scope.width = plotting.constrainFullscreenSize($scope, width, xzAspectRatio);
-                $scope.height = xzAspectRatio * $scope.width;
+                [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, parseInt($($element).css('width')), xzAspectRatio);
 
                 var vtkCanvasHolderSize = {
                     width: $('.vtk-canvas-holder').width(),
@@ -4709,7 +4700,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             };
 
             $scope.destroy = function() {
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
                 var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
                 rw.removeEventListener('dblclick', resetAndDigest);
                 $($element).off();
