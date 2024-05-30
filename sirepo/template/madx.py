@@ -288,6 +288,7 @@ def extract_parameter_report(
         )
     x = m.get("x", "s")
     pkdp("\n\n\n\n m={}, data.report={} filename={}", m, data.report, filename)
+    m.frameReport = data.report
     res = template_common.parameter_plot(
         to_floats(t[x]),
         plots,
@@ -407,6 +408,7 @@ def sim_frame(frame_args):
     d = frame_args.sim_in
     d.report = frame_args.frameReport
     d.models[d.report] = frame_args
+    pkdp("\n\n\n report = ")
     return _extract_report_data(d, frame_args.run_dir)
 
 
@@ -706,6 +708,7 @@ def _calc_bunch_parameters(bunch, beam, variables):
 def _extract_report_bunchReport(data, run_dir):
     parts = simulation_db.read_json(run_dir.join(BUNCH_PARTICLES_FILE))
     m = data.models[data.report]
+    m.frameReport = data.report
     res = template_common.heatmap(
         [
             parts[m.x],
@@ -738,7 +741,7 @@ def _extract_report_elementAnimation(data, run_dir, filename):
     m = data.models[data.report]
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
     info = madx_parser.parse_tfs_page_info(run_dir.join(filename))[m.frameIndex]
-
+    m.frameReport = data.report
     return template_common.heatmap(
         [to_floats(t[m.x]), to_floats(t[m.y1])],
         m,
