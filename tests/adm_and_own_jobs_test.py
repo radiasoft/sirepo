@@ -31,6 +31,8 @@ def test_adm_jobs_forbidden(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
     from sirepo import srunit
+    import sirepo.auth_role
+    import sirepo.pkcli.roles
 
     def _op(fc, sim_type):
         with srunit.quest_start() as qcall:
@@ -38,12 +40,13 @@ def test_adm_jobs_forbidden(auth_fc):
                 "uid",
                 [fc.sr_uid],
             )
-        r = fc.sr_post(
+        sirepo.pkcli.roles.add(fc.sr_uid, sirepo.auth_role.ROLE_USER)
+
+        fc.sr_post(
             "admJobs",
             PKDict(simulationType=sim_type),
             raw_response=True,
-        )
-        r.assert_http_status(403)
+        ).assert_http_status(403)
 
     _run_sim(auth_fc, _op)
 
