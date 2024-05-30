@@ -89,7 +89,7 @@ _op_jupyterhub() {
     for f in \
         jupyterhub==1.4.2 \
         jupyterlab==3.1.14  \
-        'notebook>=6.5.6' \
+        notebook==6.5.4 \
         jupyterlab-server==2.8.2\
         ; do
         if ! [[ $p =~ $f ]]; then
