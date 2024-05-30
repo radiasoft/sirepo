@@ -91,6 +91,8 @@ def extract_field_report(field, coordinate, mode, data_file):
         field_label = field
     else:
         field_label = "{} {}".format(field, coordinate)
+
+    # TODO (gurhar1133): needs to be heatmap
     return PKDict(
         x_range=[extent[0], extent[1], len(F[0])],
         y_range=[extent[2], extent[3], len(F)],
