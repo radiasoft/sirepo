@@ -28,6 +28,7 @@ def test_moderation(auth_fc):
     with srunit.quest_start() as qcall:
         qcall.auth_db.model("UserRole").delete_all()
         qcall.auth_db.model("UserRoleModeration").delete_all()
+    roles.add(auth_fc.sr_uid, auth_role.ROLE_USER)
     auth_fc.assert_post_will_redirect(
         "moderation-request",
         "listSimulations",
@@ -55,7 +56,8 @@ def test_moderation(auth_fc):
     auth_fc.sr_post(
         "admModerate",
         PKDict(
-            token=r.rows[0].token,
+            uid=r.rows[0].uid,
+            role=r.rows[0].role,
             status="approve",
         ),
     )
