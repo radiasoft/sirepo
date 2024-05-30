@@ -13,9 +13,10 @@ SIREPO.app.config(() => {
         </div>
     `;
 
-    SIREPO.appDownloadLinks = `
-        <li data-ng-if="::hasDataFile"><a href data-ng-href="{{ dataFileURL(\'openpmd\') }}">OpenPMD Data File</a></li>
-    `;
+    SIREPO.appDownloadLinks = [
+        '<li data-ng-if="::hasCSVFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
+        `<li data-ng-if="::hasDataFile"><a href data-ng-href="{{ dataFileURL(\'openpmd\') }}">OpenPMD Data File</a></li>`,
+    ].join('');
 });
 
 SIREPO.app.factory('omegaService', function(appState) {

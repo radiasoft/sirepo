@@ -203,6 +203,8 @@ def get_data_file(run_dir, model, frame, options):
         else:
             raise AssertionError(f"unsupported sim_type={sim_type}")
 
+    if options.suffix == "csv":
+        return run_dir.join(model + ".csv")
     f, s = _particle_file_and_sim_info()
     if options.suffix is None:
         return f
@@ -428,7 +430,8 @@ def _plot_beam(sim_type, frame_args):
 
 def _plot_field_dist(sim_type, frame_args):
     frame_args.frameIndex = 0
-    frame_args.frameReport = "finalFieldAnimation"
+    pkdp("\n\n\n frame_args.frameReport before={}", frame_args.frameReport)
+    # frame_args.frameReport = "finalFieldAnimation"
     return _template_for_sim_type("genesis").sim_frame_finalFieldAnimation(frame_args)
 
 
