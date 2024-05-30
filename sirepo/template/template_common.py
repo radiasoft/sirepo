@@ -566,8 +566,8 @@ def heatmap(values, model, plot_fields=None, weights=None):
         res.update(plot_fields)
     columns_dict = PKDict()
     pkdp("\n\n\n\n model={}", model)
-    columns_dict[model.x] = values[0]
-    columns_dict[model.get("y", model.get("y1"))] = values[1]
+    columns_dict[model.get("x", "x")] = values[0]
+    columns_dict[model.get("y", "y")] = values[1]
     columns_dict["particleID"] = range(1, len(values[0]) + 1)
     d = pkio.py_path().basename
     pkdp("\n\n\n\n\n pkio.py_path().basename={} frameReport={}", pkio.py_path().basename, model.frameReport)

@@ -5,6 +5,9 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.sourceType = 'laserPulse';
+    SIREPO.appDownloadLinks = [
+        '<li data-ng-if="::hasCSVFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
+    ].join('');
 });
 
 SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {

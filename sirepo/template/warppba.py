@@ -149,7 +149,10 @@ def extract_particle_report(frame_args, particle_type):
 
     return template_common.heatmap(
         values=[data_list[0], data_list[1]],
-        model=PKDict(histogramBins=frame_args.histogramBins),
+        model=PKDict(
+            histogramBins=frame_args.histogramBins,
+            frameReport=frame_args.frameReport,
+        ),
         plot_fields=PKDict(
             x_label="{}{}".format(
                 frame_args.x, " [m]" if len(frame_args.x) == 1 else ""
@@ -182,6 +185,8 @@ def generate_parameters_file(data, is_parallel=False):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if options.suffix == "csv":
+        return run_dir.join(model + ".csv")
     files = _h5_file_list(run_dir)
     # TODO(pjm): last client file may have been deleted on a canceled animation,
     # give the last available file instead.
