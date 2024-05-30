@@ -739,9 +739,11 @@ def _extract_report_elementAnimation(data, run_dir, filename):
     if is_parameter_report_file(filename):
         return extract_parameter_report(data, run_dir, filename)
     m = data.models[data.report]
+    pkdp("\n\n\n M BEFORE={}", m)
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
     info = madx_parser.parse_tfs_page_info(run_dir.join(filename))[m.frameIndex]
     m.frameReport = data.report
+    pkdp("\n\n\n M AFTER={}", m)
     return template_common.heatmap(
         [to_floats(t[m.x]), to_floats(t[m.y1])],
         m,
