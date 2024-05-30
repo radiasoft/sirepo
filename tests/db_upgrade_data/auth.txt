@@ -38,18 +38,16 @@ CREATE TABLE user_role_t (
 	role VARCHAR(100) NOT NULL, expiration DATETIME,
 	PRIMARY KEY (uid, role)
 );
-CREATE TABLE user_role_invite_t (
-	uid VARCHAR(8) NOT NULL,
-	role VARCHAR(100) NOT NULL,
-	status VARCHAR(100) NOT NULL,
-	token VARCHAR(100) NOT NULL,
-	moderator_uid VARCHAR(8),
-	last_updated DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL,
-	PRIMARY KEY (uid, role),
-	UNIQUE (token)
-);
 CREATE TABLE zz_sentinel (
 	anything VARCHAR(8) NOT NULL,
 	PRIMARY KEY (anything)
+);
+CREATE TABLE user_role_moderation_t (
+	uid VARCHAR(8) NOT NULL, 
+	role VARCHAR(100) NOT NULL, 
+	status VARCHAR(100) NOT NULL, 
+	moderator_uid VARCHAR(8), 
+	last_updated DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (uid, role)
 );
 COMMIT;
