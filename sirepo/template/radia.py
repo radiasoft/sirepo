@@ -214,6 +214,7 @@ def extract_report_data(run_dir, sim_in):
     if sim_in.report == "extrudedPolyReport":
         template_common.write_sequential_result(
             _extruded_points_plot(
+                sim_in,
                 sim_in.models.geomObject.name,
                 sim_in.models.extrudedPoly.points,
                 sim_in.models.extrudedPoly.widthAxis,
@@ -341,6 +342,7 @@ def save_field_srw(gap, vectors, beam_axis, filename):
 
 def sim_frame_fieldLineoutAnimation(frame_args):
     return _field_lineout_plot(
+        frame_args,
         frame_args.sim_in.models.simulation.simulationId,
         frame_args.sim_in.models.simulation.name,
         frame_args.sim_in.models.fieldLineoutAnimation.fieldType,
@@ -684,13 +686,13 @@ def _copy_geom_obj(o):
     return o_copy
 
 
-def _extruded_points_plot(name, points, width_axis, height_axis):
+def _extruded_points_plot(sim_in, name, points, width_axis, height_axis):
     pts = numpy.array(points).T
     plots = PKDict(points=pts[1].tolist(), label=None, style="line")
     return template_common.parameter_plot(
         pts[0].tolist(),
         plots,
-        PKDict(),
+        PKDict(frameReport=sim_in.frameReport),
         PKDict(
             title=name,
             y_label=f"{width_axis} [mm]",
@@ -724,11 +726,12 @@ def _electron_trajectory_plot(sim_id, **kwargs):
                 style="line",
             )
         )
+    # pkdp("\n\n\n d.keys()={}", d.keys())
 
     return template_common.parameter_plot(
         pts,
         plots,
-        PKDict(),
+        PKDict(frameReport="electronTrajectoryReport"),
         PKDict(
             title=f"{d.energy} GeV",
             y_label="Position [m]",
@@ -821,7 +824,7 @@ def _extract_optimization_results(args):
     return template_common.parameter_plot(
         numpy.arange(1, len(out_files) + 1).tolist(),
         plots,
-        PKDict(),
+        PKDict(frameReport=args.frameReport),
         PKDict(
             title="Optimization Output",
             y_label="Result",
@@ -831,7 +834,7 @@ def _extract_optimization_results(args):
     )
 
 
-def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None):
+def _field_lineout_plot(frame_args, sim_id, name, f_type, f_path, plot_axis, field_data=None):
     v = (
         field_data
         if field_data
@@ -857,7 +860,7 @@ def _field_lineout_plot(sim_id, name, f_type, f_path, plot_axis, field_data=None
     return template_common.parameter_plot(
         pts[:, radia_util.axes_index(plot_axis)].tolist(),
         plots,
-        PKDict(),
+        PKDict(frameReport=frame_args.frameReport),
         PKDict(
             title=f"{f_type} on {f_path.name}",
             y_label=f_type,
