@@ -1,16 +1,24 @@
 # -*- coding: utf-8 -*-
-"""impactt execution template.
+"""Impact-T execution template.
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkconfig
 from pykern import pkio
-from pykern.pkcollections import PKDict
+from sirepo.template import code_variable
 from sirepo.template import template_common
 import sirepo.sim_data
 
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+
+
+def code_var(variables):
+    return code_variable.CodeVar(variables, code_variable.PurePythonEval())
+
+
+def prepare_for_client(data, qcall, **kwargs):
+    code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
+    return data
 
 
 def write_parameters(data, run_dir, is_parallel):

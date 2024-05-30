@@ -448,6 +448,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
             if (name == 'beamline') {
                 fixModelName(name);
                 var id = appState.models.beamline.id;
+                updateModels('beamline', 'id', 'beamlines', sortBeamlines);
                 self.editBeamline({ id: id });
             }
             if (self.isElementModelName(name)) {
@@ -1701,7 +1702,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 groupItem.width = 0.3;
                                 groupItem.x -= 0.15;
                             }
-                            groupItem.height = Math.min(0.5, groupItem.width);
+                            groupItem.height = 0.5;
                             groupItem.y = pos.y - groupItem.height / 2;
                             groupItem.color = getPicColor(item, 'lightblue');
                         }

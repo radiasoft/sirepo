@@ -1,0 +1,12 @@
+{
+    "models": {
+        "beamlines": [],
+        "commands": [],
+        "elements": [],
+        "simulation": {
+            "elementPosition": "absolute",
+            "visualizationBeamlineId": ""
+        }
+    },
+    "simulationType": "impactt"
+}

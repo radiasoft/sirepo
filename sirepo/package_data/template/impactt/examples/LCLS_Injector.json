@@ -1,25 +1,27 @@
 {
     "models": {
-        "simulation": {
-            "folder": "/Examples",
-            "name": "LCLS_Injector",
-            "isExample": true,
-            "visualizationBeamlineId": 1,
-            "activeBeamlineId": 1
+        "beamline": {
+            "phi": 0,
+            "psi": 0,
+            "theta": 0,
+            "x": 0,
+            "y": 0,
+            "z": 0
         },
+        "beamlineReport": {},
         "beamlines": [
             {
                 "angle": 0,
                 "count": 28,
-                "distance": 14.548648,
+                "distance": 16.5,
                 "id": 1,
                 "items": [
-                    2,
                     3,
                     4,
                     5,
                     6,
                     7,
+                    2,
                     8,
                     9,
                     10,
@@ -44,11 +46,11 @@
                     32
                 ],
                 "l": 0,
-                "length": 14.548648,
+                "length": 16.5,
                 "name": "BL1",
                 "positions": [
                     {
-                        "elemedge": 0
+                        "elemedge": -1000
                     },
                     {
                         "elemedge": 0
@@ -57,79 +59,79 @@
                         "elemedge": 0
                     },
                     {
-                        "elemedge": 0.15
+                        "elemedge": 0.01601
                     },
                     {
-                        "elemedge": 0.64308
+                        "elemedge": 0.01601
                     },
                     {
-                        "elemedge": 1.00308
+                        "elemedge": 0.25
                     },
                     {
-                        "elemedge": 1.36308
+                        "elemedge": 1.38841
                     },
                     {
-                        "elemedge": 1.36308
+                        "elemedge": 1.485
                     },
                     {
-                        "elemedge": 1.36308
+                        "elemedge": 1.485
                     },
                     {
-                        "elemedge": 1.415544
+                        "elemedge": 1.537464
                     },
                     {
-                        "elemedge": 4.353472
+                        "elemedge": 1.537464
                     },
                     {
-                        "elemedge": 7.2914
+                        "elemedge": 4.475392
                     },
                     {
-                        "elemedge": 7.343864
+                        "elemedge": 4.614538605
                     },
                     {
-                        "elemedge": 7.343864
+                        "elemedge": 4.752933605
                     },
                     {
-                        "elemedge": 7.547864
+                        "elemedge": 5.081309605
                     },
                     {
-                        "elemedge": 7.751864
+                        "elemedge": 5.328756
                     },
                     {
-                        "elemedge": 7.751864
+                        "elemedge": 5.328756
                     },
                     {
-                        "elemedge": 7.804328
+                        "elemedge": 5.38122
                     },
                     {
-                        "elemedge": 10.742256
+                        "elemedge": 5.38122
                     },
                     {
-                        "elemedge": 13.680184
+                        "elemedge": 8.319148
                     },
                     {
-                        "elemedge": 13.732648
+                        "elemedge": 8.392048605
                     },
                     {
-                        "elemedge": 13.936648
+                        "elemedge": 8.793561605
                     },
                     {
-                        "elemedge": 14.140648
+                        "elemedge": 11.469244190867
                     },
                     {
-                        "elemedge": 14.344648
+                        "elemedge": 11.875644190867
                     },
                     {
-                        "elemedge": 14.548648
+                        "elemedge": 12.327300190867
                     },
                     {
-                        "elemedge": 14.548648
+                        "elemedge": 14.241029190867
                     },
                     {
-                        "elemedge": 14.548648
+                        "elemedge": 16.5
                     },
                     {
-                        "elemedge": 14.548648
+                        "elemedge": 16.5
                     }
                 ]
             }
@@ -141,7 +143,6 @@
                 "dt": 4e-12,
                 "l": 0,
                 "name": "change_timestep_1",
-                "s": 0.25,
                 "type": "CHANGE_TIMESTEP"
             },
             {
@@ -292,7 +293,6 @@
                 "_id": 3,
                 "l": 0,
                 "name": "SC_2D_to_3D",
-                "s": -1000,
                 "type": "ROTATIONALLY_SYMMETRIC_TO_3D"
             },
             {
@@ -480,14 +480,12 @@
                 "is_on": "0",
                 "l": 0,
                 "name": "SC_OFF",
-                "s": 0,
                 "type": "SPACECHARGE"
             },
             {
                 "_id": 32,
                 "l": 0,
                 "name": "stop_1",
-                "s": 0,
                 "type": "STOP"
             },
             {
@@ -500,7 +498,6 @@
                 "name": "wakefield_L0A",
                 "period": 0,
                 "s": 0,
-                "s_begin": 0,
                 "type": "WAKEFIELD"
             },
             {
@@ -513,7 +510,6 @@
                 "name": "wakefield_L0B",
                 "period": 0,
                 "s": 0,
-                "s_begin": 0,
                 "type": "WAKEFIELD"
             },
             {
@@ -548,7 +544,15 @@
                 "sample_frequency": 0,
                 "type": "WRITE_BEAM"
             }
-        ]
+        ],
+        "rpnVariables": [],
+        "simulation": {
+            "activeBeamlineId": 1,
+            "elementPosition": "absolute",
+            "folder": "/Examples",
+            "name": "LCLS_Injector",
+            "visualizationBeamlineId": 1
+        }
     },
     "simulationType": "impactt"
 }
