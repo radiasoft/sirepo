@@ -448,6 +448,8 @@ def extract_report_data(sim_in):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if options.suffix == "csv":
+        return run_dir.join(model + ".csv")
     if options.suffix == template_common.RUN_LOG:
         return template_common.text_data_file(options.suffix, run_dir)
     if options.suffix == _PROGRESS_LOG_DIR:
@@ -1666,17 +1668,21 @@ def _extract_trajectory_report(model, filename):
                     color="#ff7f0e" if plots else "#1f77b4",
                 )
             )
-    return PKDict(
-        title="Electron Trajectory",
-        x_range=[min(x_points), max(x_points)],
-        x_points=x_points,
-        y_label="[{}]".format(data[model.plotAxisY]["units"]),
-        x_label=available_axes[model.plotAxisX]
-        + " ["
-        + data[model.plotAxisX]["units"]
-        + "]",
-        y_range=y_range,
-        plots=plots,
+    return template_common.parameter_plot(
+        x_points,
+        plots,
+        PKDict(
+            frameReport="trajectoryReport",
+            title="Electron Trajectory",
+            x_range=[min(x_points), max(x_points)],
+            x_points=x_points,
+            y_label="[{}]".format(data[model.plotAxisY]["units"]),
+            x_label=available_axes[model.plotAxisX]
+            + " ["
+            + data[model.plotAxisX]["units"]
+            + "]",
+            y_range=y_range,
+        ),
     )
 
 

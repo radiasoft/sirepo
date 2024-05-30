@@ -56,6 +56,7 @@ SIREPO.app.config(function() {
         <li data-lineout-csv-link="y"></li>
         <li data-lineout-csv-link="full"></li>
         <li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>
+        <li data-ng-if="::hasCSVFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>
     `;
     SIREPO.appPanelHeadingButtons = `
         <div data-ng-if="isReport && ! hasData()" class="dropdown" style="display: inline-block">
