@@ -1605,7 +1605,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
     self.getFrame = function(modelName, index, isPlaying, callback) {
         const isHidden = panelState.isHidden(modelName);
         let frameRequestTime = now();
-
         let setPanelStateIsLoadingTimer = null;
 
 	function cancelSetPanelStateIsLoadingTimer() {
@@ -2618,11 +2617,13 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         r.wrapper.then(
             (response) => {
                 if (r.actual !== null) {
+                    httpRequests.splice(httpRequests.indexOf(r), 1);
                     r.actual.resolve(response);
                 }
             },
             (reason) => {
                 if (r.actual !== null) {
+                    httpRequests.splice(httpRequests.indexOf(r), 1);
                     r.actual.reject(reason);
                 }
             },
