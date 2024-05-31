@@ -634,6 +634,8 @@ def _generate_parameters_file(data, run_dir=None):
     ]
     v.tallies = _generate_tallies(data, v)
     v.hasGraveyard = _has_graveyard(data)
+    v.region = _region(data)
+    v.planes = _planes(data)
     if v.incomplete_data_msg:
         return (
             f'raise AssertionError("Unable to generate sim: {v.incomplete_data_msg}")'
@@ -825,6 +827,31 @@ def _parse_openmc_log(run_dir, log_filename="run.log"):
             re.compile(r"AssertionError: (.*)"),
         ),
     ).parse_for_errors()
+
+
+def _planes(data):
+    res = ""
+    for i, p in enumerate(data.models.reflectivePlanes.planesList):
+        res += f"""
+    p{i + 1} = openmc.Plane(
+        a={p.A},
+        b={p.B},
+        c={p.C},
+        d={p.D},
+        boundary_type="reflective",
+    )
+"""
+    return res
+
+
+def _region(data):
+    res = ""
+    for i, p in enumerate(data.models.reflectivePlanes.planesList):
+        if p.inside == "1":
+            res += f"& +p{i + 1} "
+        else:
+            res += f"& -p{i + 1} "
+    return res
 
 
 def _source_filename(data):

@@ -16,22 +16,9 @@ def create_geometry():
     {% if reflectivePlanes_useReflectivePlanes == '1' %}
     # creates an edge of universe boundary surface
     vac_surf = openmc.Sphere(r=10000, boundary_type="vacuum")
-    plane1 = openmc.Plane(
-        a={{ reflectivePlanes_plane1a }},
-        b={{ reflectivePlanes_plane1b }},
-        c=0.0,
-        d=0.0,
-        boundary_type="reflective",
-    )
-    plane2 = openmc.Plane(
-        a={{ reflectivePlanes_plane2a }},
-        b={{ reflectivePlanes_plane2b }},
-        c=0.0,
-        d=0.0,
-        boundary_type="reflective",
-    )
+    {{ planes }}
     univ = openmc.Cell(
-        region=-vac_surf & -plane1 & +plane2,
+        region=-vac_surf {{ region }},
         fill=univ,
     )
     openmc.Geometry([univ]).export_to_xml()
