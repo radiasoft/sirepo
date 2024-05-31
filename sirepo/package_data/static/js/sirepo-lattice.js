@@ -439,7 +439,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
     if ((SIREPO.lattice && SIREPO.lattice.useBeamlineListeners)
         //TODO(pjm): change DRIFT apps to use lattice.useBeamlineListeners
-        || SIREPO.APP_SCHEMA.model.DRIFT || SIREPO.APP_SCHEMA.model.DRIF) {
+        || SIREPO.APP_SCHEMA.model.DRIFT || SIREPO.APP_SCHEMA.model.DRIF || SIREPO.APP_SCHEMA.model.DRIFTTUBE) {
         appState.whenModelsLoaded($rootScope, function() {
             self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
         });
@@ -1702,7 +1702,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 groupItem.width = 0.3;
                                 groupItem.x -= 0.15;
                             }
-                            groupItem.height = groupItem.width;
+                            groupItem.height = 0.5;
                             groupItem.y = pos.y - groupItem.height / 2;
                             groupItem.color = getPicColor(item, 'lightblue');
                         }
