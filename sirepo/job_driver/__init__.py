@@ -308,7 +308,7 @@ class DriverBase(PKDict):
         self._websocket_ready_timeout_cancel()
         if self._websocket:
             if self._websocket != msg.handler:
-                raise AssertionError(f"incoming msg.content={msg.content}")
+                raise AssertionError(pkdformat("incoming msg.content={}", msg.content))
         else:
             self._websocket = msg.handler
         self._websocket_ready.set()
@@ -393,10 +393,6 @@ class DriverBase(PKDict):
         if n in (job.OP_CANCEL, job.OP_KILL, job.OP_BEGIN_SESSION):
             return res
         if n == job.OP_SBATCH_LOGIN:
-            if self._prepared_sends:
-                raise AssertionError(
-                    f"received op={op} but have _prepared_sends={self._prepared_sends}",
-                )
             return res
         await _alloc_check(
             op.op_slot.alloc, "Waiting for another simulation to complete await=op_slot"
