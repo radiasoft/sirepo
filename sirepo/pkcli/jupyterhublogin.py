@@ -70,6 +70,7 @@ def create_user(email, display_name):
 def old_user_dirs():
     """Outputs commands to delete dirs for Jupyter users that are not in database."""
     with sirepo.quest.start() as qcall:
+        m = ""
         r = qcall.auth_db.model("JupyterhubUser").search_all_for_column("user_name")
         for d in [
             os.path.basename(x)
@@ -78,4 +79,5 @@ def old_user_dirs():
             )
         ]:
             if not d in r:
-                print(f"rm -rf {d}")
+                m += f"\nrm -rf {d}"
+        pkdlog(m)
