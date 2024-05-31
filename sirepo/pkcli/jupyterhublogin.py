@@ -5,8 +5,10 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkcli
+from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
+import os.path
 import pyisemail
 import sirepo.auth
 import sirepo.auth_role
@@ -64,3 +66,17 @@ def create_user(email, display_name):
                 roles=[sirepo.auth_role.for_sim_type("jupyterhublogin")],
             )
         return PKDict(email=email, jupyterhub_user_name=n)
+
+
+def old_user_dirs():
+    """Outputs commands to delete dirs for Jupyter users that are not in database."""
+    with sirepo.quest.start() as qcall:
+        r = qcall.auth_db.model("JupyterhubUser").search_all_for_column("user_name")
+        for d in [
+            os.path.basename(x)
+            for x in pkio.sorted_glob(
+                sirepo.sim_api.jupyterhublogin.cfg().user_db_root_d.join("*")
+            )
+        ]:
+            if not d in r:
+                print(f"rm -rf {d}")
