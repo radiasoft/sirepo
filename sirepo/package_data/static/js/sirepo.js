@@ -1208,7 +1208,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             return event._event === _e_loginClicked && event._oldState === _s_idle;
         },
         isCredsFormError: (event) => {
-            return [_e_authInvalid, _e_authError].includes(event._event) && event._newState === _s_creds;
+            return [_e_authInvalid, _e_authMissing, _e_authError].includes(event._event) && event._newState === _s_creds;
         },
         isLoggedInFromCreds: (event) => {
             return event._event === _e_authSuccess && event._oldState === _s_auth;
@@ -1314,7 +1314,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             state: 'error',
             //TODO(robnagler) this should be returned from sbatchLoginService or stringService
             error: `Please login to ${authState.sbatchHostDisplayName}`,
-            _sbatchServiceLoginIgnoreResponse: true,
+            sbatchLoginServiceSRException: true,
         });
         self.event(
             _REASON_TO_EVENTS[srException.params.reason] || _e_authError,
@@ -1338,7 +1338,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 
     const _sendRequest = (route, event, otherArgs) => {
 	const _response = (response) => {
-            if (response._sbatchServiceLoginIgnoreResponse) {
+            if (response.sbatchLoginServiceSRException) {
                 return;
             }
             self.event(
@@ -1611,13 +1611,19 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
 	}
 
         function onError(response) {
-	    cancelSetPanelStateIsLoadingTimer();
-	    if (response && response.error) {
+	    if (! (response && response.error)) {
+                panelState.reportNotGenerated(modelName);
+            }
+            else if (! response.sbatchLoginServiceSRException) {
                 panelState.setLoading(modelName, false);
                 panelState.setError(modelName, response.error);
-		return;
-	    }
-	    panelState.reportNotGenerated(modelName);
+            }
+            //TODO(robnagler) verify this test makes sense; May need uncached check in framePeriod.
+            else if (! panelState.isHidden(modelName)) {
+                $interval(requestFunction, 1000, 1);
+                return;
+            }
+            cancelSetPanelStateIsLoadingTimer();
         }
 
         function now() {
@@ -1737,7 +1743,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
         frameCountByModelKey = {};
         self.modelToCurrentFrame = {};
     });
-
     return self;
 });
 
