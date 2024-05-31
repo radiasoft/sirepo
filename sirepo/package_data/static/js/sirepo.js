@@ -1368,8 +1368,9 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     };
 
     self.jobRunModeChanged = (directiveScope) => {
+        const m = appState.models[directiveScope.simState.model];
         self.event(
-            appState.models[directiveScope.simState.model].jobRunMode === 'sbatch' ? _e_needYes : _e_needNo,
+            m && m.jobRunMode === 'sbatch' ? _e_needYes : _e_needNo,
             {directiveScope: directiveScope},
 
         );
