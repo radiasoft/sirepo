@@ -72,12 +72,9 @@ def old_user_dirs():
     with sirepo.quest.start() as qcall:
         m = ""
         r = qcall.auth_db.model("JupyterhubUser").search_all_for_column("user_name")
-        for d in [
-            os.path.basename(x)
-            for x in pkio.sorted_glob(
-                sirepo.sim_api.jupyterhublogin.cfg().user_db_root_d.join("*")
-            )
-        ]:
-            if not d in r:
+        for d in pkio.sorted_glob(
+            sirepo.sim_api.jupyterhublogin.cfg().user_db_root_d.join("*")
+        ):
+            if not os.path.basename(d) in r:
                 m += f"\nrm -rf {d}"
         pkdlog(m)
