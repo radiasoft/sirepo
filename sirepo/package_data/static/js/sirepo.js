@@ -2872,7 +2872,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         while (toSend.length > 0) {
             toSend.shift().deferred = null;
         }
-        for (const v in Object.values(needReply)) {
+        for (const v of Object.values(needReply)) {
             v.deferred = null;
         }
         needReply = {};
@@ -3532,7 +3532,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
     };
 
     self.clearModels = function() {
-        for (const q in Object.values(queueMap)) {
+        for (const q of Object.values(queueMap)) {
             while (q.length > 0) {
                 q.shift().canceled = true;
             }
