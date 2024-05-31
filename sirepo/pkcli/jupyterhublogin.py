@@ -60,7 +60,6 @@ def create_user(email, display_name):
         with qcall.auth.logged_in_user_set(u, method=sirepo.auth.METHOD_EMAIL):
             n = sirepo.sim_api.jupyterhublogin.create_user(
                 qcall=qcall,
-                check_dir=True,
             )
             qcall.auth_db.model("UserRole").add_roles(
                 roles=[sirepo.auth_role.for_sim_type("jupyterhublogin")],

@@ -54,15 +54,12 @@ def cfg():
     return _init()
 
 
-def create_user(qcall, check_dir=False):
+def create_user(qcall):
     """Create a Jupyter user if not one associated with Sirepo uid
 
     New user_name is created from Sirepo username.
     If user_name is taken, will be appended with random string.
 
-    Args:
-        check_dir (bool): assert that an existing user does not have a dir with
-                          the same name
     Returns:
         user_name (str): The user_name of the new or existing user
     """
@@ -91,7 +88,7 @@ def create_user(qcall, check_dir=False):
     # POSIT: if two creates happen simultaneously, there may be an existence
     # collision, but the db will be consistent, because this call happens
     # first, before db insert.
-    if check_dir and _user_dir(qcall, u).exists():
+    if _user_dir(qcall, u).exists():
         raise AssertionError(f"existing user dir with same name={u}")
     qcall.auth_db.model(
         "JupyterhubUser",
