@@ -522,21 +522,22 @@ def _extract_current_results(data, curr, data_time):
         x,
         [
             PKDict(
-                title="Current for Time: {:.4e}s".format(data_time),
-                x_range=[0, plate_spacing],
-                y_label="Current [A]",
-                x_label="Z [m]",
-                points=[
-                    curr.tolist(),
-                    curr2.tolist(),
-                ],
-                x_points=x,
-                y_range=[min(np.min(curr), np.min(curr2)), max(np.max(curr), np.max(curr2))],
-                y1_title="Current",
-                y2_title=y2_title,
-            )
+                points=curr.tolist(),
+                label="Current [A]",
+            ),
+            PKDict(
+                points=curr2.tolist(),
+                label=y2_title,
+            ),
         ],
-        PKDict(frameReport="currentAnimation"),
+        PKDict(
+            frameReport="currentAnimation",
+            title="Current for Time: {:.4e}s".format(data_time),
+            x_range=[0, plate_spacing],
+            x_label="Z [m]",
+            x_points=x,
+            y_range=[min(np.min(curr), np.min(curr2)), max(np.max(curr), np.max(curr2))],
+        ),
     )
 
 
