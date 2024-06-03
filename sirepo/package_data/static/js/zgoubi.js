@@ -18,6 +18,7 @@ SIREPO.app.config(function() {
     `;
     SIREPO.appDownloadLinks = `
         <li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>
+        <li data-ng-if="::hasCSVFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>
     `;
     SIREPO.lattice = {
         invalidElementName: /[#*'",]/g,

@@ -464,6 +464,8 @@ def extract_tunes_report(run_dir, data):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if options.suffix == "csv":
+        return run_dir.join(model + ".csv")
     if options.suffix == _ZGOUBI_COMMAND_FILE:
         return TUNES_INPUT_FILE if model == "tunesReport" else _ZGOUBI_COMMAND_FILE
     elif model == "elementStepAnimation":
@@ -560,7 +562,7 @@ def save_sequential_report_data(data, run_dir):
         col_names, rows = _read_data_file(
             py.path.local(run_dir).join(_ZGOUBI_FAI_DATA_FILE)
         )
-        res = _extract_heatmap_data(report, col_names, rows, "")
+        res = _extract_heatmap_data(report_name, report, col_names, rows, "")
         summary_file = py.path.local(run_dir).join(BUNCH_SUMMARY_FILE)
         if summary_file.exists():
             res.summaryData = PKDict(bunch=simulation_db.read_json(summary_file))
@@ -712,14 +714,16 @@ def _extract_animation(frame_args):
         title = "Initial Distribution" if is_frame_0 else "Pass {}".format(ipass)
     if frame_args.get("plotType") == "particle":
         return _extract_particle_data(model, col_names, rows, title)
-    return _extract_heatmap_data(model, col_names, rows, title)
+    return _extract_heatmap_data(frame_args.frameReport, model, col_names, rows, title)
 
 
-def _extract_heatmap_data(report, col_names, rows, title):
+def _extract_heatmap_data(report_name, report, col_names, rows, title):
     x_info = _ANIMATION_FIELD_INFO[report.x]
     y_info = _ANIMATION_FIELD_INFO[report.y]
     x = np.array(column_data(report.x, col_names, rows)) * x_info[1]
     y = np.array(column_data(report.y, col_names, rows)) * y_info[1]
+    report["frameReport"] = report_name
+    pkdp("\n\n\n\n report={}", report)
     return template_common.heatmap(
         [x, y],
         report,
