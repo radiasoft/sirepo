@@ -169,6 +169,10 @@ def start_tornado(ip, port, debug):
         async def _route(self):
             p = sirepo.uri.decode_to_str(self.request.path)
             e, r, k = _path_to_route(p[1:])
+            pkdlog(
+                "start path={}",
+                p,
+            )
             if e:
                 pkdlog("error uri={} {}; route={} kwargs={} ", p, e, r, k)
                 r = _not_found_route
