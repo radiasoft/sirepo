@@ -534,10 +534,13 @@ def h5_to_dict(hf, path=None):
     return d
 
 
-def heatmap(values, model, plot_fields=None, weights=None):
+def heatmap(values, model, plot_fields=None, weights=None, data_complete=None):
     """Computes a report histogram (x_range, y_range, z_matrix) for a report model."""
     import numpy
 
+    if data_complete is not None:
+        pandas.DataFrame(data_complete.z_matrix).to_csv(f"{model.frameReport}.csv", index=False)
+        return data_complete
     r = None
     if "plotRangeType" in model:
         if model["plotRangeType"] == "fixed":
@@ -550,6 +553,7 @@ def heatmap(values, model, plot_fields=None, weights=None):
                 model.fieldRange[model["x"]],
                 model.fieldRange[model["y"]],
             ]
+    # pkdp("\n\n\n VALUES.shape={}", numpy.array(values).shape)
     hist, edges = numpy.histogramdd(
         values,
         histogram_bins(model["histogramBins"]),
@@ -569,8 +573,7 @@ def heatmap(values, model, plot_fields=None, weights=None):
     columns_dict[model.get("x", "x")] = values[0]
     columns_dict[model.get("y", "y")] = values[1]
     columns_dict["particleID"] = range(1, len(values[0]) + 1)
-    d = pkio.py_path().basename
-    pkdp("\n\n\n\n\n pkio.py_path().basename={} frameReport={}", pkio.py_path().basename, model.frameReport)
+
 
     # TODO (gurhar1133): if I default to d, then it breaks some plots,
     # if I default to frameReport, then it breaks other plots.

@@ -71,7 +71,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def extract_field_report(field, coordinate, mode, data_file):
+def extract_field_report(frame_args, field, coordinate, mode, data_file):
     opmd = _opmd_time_series(data_file)
     F, info = opmd.get_field(
         plot=False,
@@ -91,23 +91,26 @@ def extract_field_report(field, coordinate, mode, data_file):
         field_label = field
     else:
         field_label = "{} {}".format(field, coordinate)
-
-    # TODO (gurhar1133): needs to be heatmap
-    return PKDict(
-        x_range=[extent[0], extent[1], len(F[0])],
-        y_range=[extent[2], extent[3], len(F)],
-        x_label="{} [m]".format(info.axes[1]),
-        y_label="{} [m]".format(info.axes[0]),
-        title="{} in the mode {} at {}".format(
-            field_label, mode, _iteration_title(opmd, data_file)
-        ),
-        z_matrix=numpy.flipud(F).tolist(),
+    return template_common.heatmap(
+        None,
+        PKDict(frameReport=frame_args.frameReport),
+        data_complete=PKDict(
+            x_range=[extent[0], extent[1], len(F[0])],
+            y_range=[extent[2], extent[3], len(F)],
+            x_label="{} [m]".format(info.axes[1]),
+            y_label="{} [m]".format(info.axes[0]),
+            title="{} in the mode {} at {}".format(
+                field_label, mode, _iteration_title(opmd, data_file)
+            ),
+            z_matrix=numpy.flipud(F).tolist(),
+        )
     )
 
 
 def extract_particle_report(frame_args, particle_type):
     data_file = open_data_file(frame_args.run_dir, frame_args.frameIndex)
     opmd = _opmd_time_series(data_file)
+    pkdp("\n\n\n\nframe_args.x={} frame_args.y={} particle_type={}", frame_args.x, frame_args.y, particle_type)
     data_list = opmd.get_particle(
         var_list=[frame_args.x, frame_args.y],
         species=particle_type,
@@ -272,6 +275,7 @@ def sim_frame_fieldAnimation(frame_args):
     if m != "all":
         m = int(m)
     return extract_field_report(
+        frame_args,
         frame_args.field,
         frame_args.coordinate,
         m,
