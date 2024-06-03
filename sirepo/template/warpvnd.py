@@ -107,7 +107,7 @@ def sim_frame_fieldComparisonAnimation(frame_args):
 
 
 def sim_frame_impactDensityAnimation(frame_args):
-    return _extract_impact_density(frame_args.run_dir, frame_args.sim_in)
+    return _extract_impact_density(frame_args.frameReport, frame_args.run_dir, frame_args.sim_in)
 
 
 def sim_frame_optimizerAnimation(frame_args):
@@ -193,6 +193,8 @@ def generate_field_report(data, run_dir, args=None):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if options.suffix == "csv":
+        return run_dir.join(model + ".csv")
     if (
         model == "particleAnimation"
         or model == "egunCurrentAnimation"
@@ -581,13 +583,13 @@ def _extract_field(field, data, data_file, args=None):
     return res
 
 
-def _extract_impact_density(run_dir, data):
+def _extract_impact_density(report, run_dir, data):
     if _SIM_DATA.warpvnd_is_3d(data):
-        return _extract_impact_density_3d(run_dir, data)
-    return _extract_impact_density_2d(run_dir, data)
+        return _extract_impact_density_3d(report, run_dir, data)
+    return _extract_impact_density_2d(report, run_dir, data)
 
 
-def _extract_impact_density_2d(run_dir, data):
+def _extract_impact_density_2d(report, run_dir, data):
     # use a simple heatmap instead due to a normalization problem in rswarp
     if not pkio.py_path(run_dir.join(_ALL_PARTICLES_FILE)).exists():
         return PKDict(
@@ -604,6 +606,7 @@ def _extract_impact_density_2d(run_dir, data):
         horizontalOffset=plate_spacing / 2,
         verticalSize=channel_width,
         verticalOffset=0,
+        frameReport=report,
     )
     return template_common.heatmap(
         [all_particles[1].tolist(), all_particles[0].tolist()],
@@ -617,7 +620,7 @@ def _extract_impact_density_2d(run_dir, data):
     )
 
 
-def _extract_impact_density_3d(run_dir, data):
+def _extract_impact_density_3d(report, run_dir, data):
     try:
         with h5py.File(str(run_dir.join(_DENSITY_FILE)), "r") as hf:
             plot_info = template_common.h5_to_dict(hf, path="density")

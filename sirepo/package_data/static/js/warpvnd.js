@@ -8,6 +8,9 @@ SIREPO.app.config(function() {
         'coordMatrix': [[0, 0, 1], [1, 0, 0], [0, -1, 0]]
     };
     SIREPO.SINGLE_FRAME_ANIMATION = ['optimizerAnimation', 'fieldCalcAnimation', 'fieldComparisonAnimation'];
+    SIREPO.appDownloadLinks = [
+        '<li data-ng-if="::hasCSVFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
+    ].join('');
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
         <div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-screenshot sr-plot" data-model-name="{{ modelKey }}"></div>
