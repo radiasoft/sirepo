@@ -517,20 +517,27 @@ def _extract_current_results(data, curr, data_time):
     else:
         curr2 = np.full_like(zmesh, RD_ideal)
         y2_title = "Richardson-Dushman"
-    return {
-        "title": "Current for Time: {:.4e}s".format(data_time),
-        "x_range": [0, plate_spacing],
-        "y_label": "Current [A]",
-        "x_label": "Z [m]",
-        "points": [
-            curr.tolist(),
-            curr2.tolist(),
+    x = zmesh.tolist()
+    return template_common.parameter_plot(
+        x,
+        [
+            PKDict(
+                title="Current for Time: {:.4e}s".format(data_time),
+                x_range=[0, plate_spacing],
+                y_label="Current [A]",
+                x_label="Z [m]",
+                points=[
+                    curr.tolist(),
+                    curr2.tolist(),
+                ],
+                x_points=x,
+                y_range=[min(np.min(curr), np.min(curr2)), max(np.max(curr), np.max(curr2))],
+                y1_title="Current",
+                y2_title=y2_title,
+            )
         ],
-        "x_points": zmesh.tolist(),
-        "y_range": [min(np.min(curr), np.min(curr2)), max(np.max(curr), np.max(curr2))],
-        "y1_title": "Current",
-        "y2_title": y2_title,
-    }
+        PKDict(frameReport="currentAnimation"),
+    )
 
 
 def _extract_egun_current(data, data_file, frame_index):
@@ -783,16 +790,21 @@ def _field_plot(values, axes, grid, is3d):
     xr.append(len(values[0]))
     yr.append(len(values))
 
-    return PKDict(
-        {
-            "aspectRatio": ar,
-            "x_range": xr,
-            "y_range": yr,
-            "x_label": x_label,
-            "y_label": y_label,
-            "z_matrix": values.tolist(),
-            "summaryData": {"runMode3d": is3d},
-        }
+    pkdp("\n\n\n HIT ON _FIELD_PLOT, x_label={}, y_label={}", x_label, y_label)
+    return template_common.heatmap(
+        None,
+        PKDict(frameReport="fieldAnimation"),
+        data_complete=PKDict(
+            {
+                "aspectRatio": ar,
+                "x_range": xr,
+                "y_range": yr,
+                "x_label": x_label,
+                "y_label": y_label,
+                "z_matrix": values.tolist(),
+                "summaryData": {"runMode3d": is3d},
+            }
+        )
     )
 
 
