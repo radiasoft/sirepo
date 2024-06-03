@@ -518,6 +518,7 @@ def _extract_current_results(data, curr, data_time):
         curr2 = np.full_like(zmesh, RD_ideal)
         y2_title = "Richardson-Dushman"
     x = zmesh.tolist()
+    # TODO (gurhar1133): get labels for axes back
     return template_common.parameter_plot(
         x,
         [
