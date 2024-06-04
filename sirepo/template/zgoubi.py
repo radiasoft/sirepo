@@ -541,15 +541,19 @@ def save_sequential_report_data(data, run_dir):
         else:
             # TODO(pjm): use template_common
             x = column_data("sums", col_names, rows)
-            res = PKDict(
-                title="",
-                x_range=[min(x), max(x)],
-                y_label="",
-                x_label="s [m]",
-                x_points=x,
-                plots=plots,
-                y_range=template_common.compute_plot_color_and_range(plots),
-                summaryData=_read_twiss_header(run_dir),
+            res = template_common.parameter_plot(
+                x,
+                plots,
+                PKDict(
+                    frameReport=data.report,
+                    title="",
+                    x_range=[min(x), max(x)],
+                    y_label="",
+                    x_label="s [m]",
+                    x_points=x,
+                    y_range=template_common.compute_plot_color_and_range(plots),
+                    summaryData=_read_twiss_header(run_dir),
+                )
             )
     elif report_name == "twissSummaryReport":
         res = PKDict(
@@ -782,6 +786,7 @@ def _extract_particle_data(report, col_names, rows, title):
             x_points[-1].append(x[idx])
             points[-1].append(y[idx])
         title += " " + ", ".join(names)
+    pkdp("\n\n\n PLOT FOR TITLE={}", title)
     return PKDict(
         title=title,
         y_label=y_info[0],
