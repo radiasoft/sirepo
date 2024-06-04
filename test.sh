@@ -66,7 +66,7 @@ _no_prints() {
 }
 
 _no_smart_quotes() {
-    _no_pattern '(“|”)' $@
+    _no_pattern '(“|”|‘|’)' $@
 }
 
 _main "$@"
