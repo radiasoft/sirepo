@@ -940,12 +940,10 @@ class _WebSocket:
 
         def _must_be_http(uri):
             # POSIT: /auth- match like sirepo.js msgRouter and https?:
-            # for browser click on email msg. If there are headers,
+            # for browser click on email msg. If there is Authorization header,
             # it's basic auth. /download is special, because we
             # don't have a way of saving a file (easily) in sirepo.js.
-            if headers:
-                if not headers.get("Authorization"):
-                    raise AssertionError(f"restricted use of headers={headers}")
+            if headers and headers.get("Authorization"):
                 # basic auth
                 return True
             if self._HTTP_RE.search(uri):
