@@ -701,16 +701,16 @@ class _TestClient:
         from pykern.pkdebug import pkdlog, pkdexc, pkdc, pkdp
         from sirepo import const
 
+        kwargs.headers.setdefault(
+            "User-Agent",
+            f"{const.SRUNIT_USER_AGENT} {pykern.pkinspect.caller()}",
+        )
         if hasattr(self, "_websocket") and not kwargs.get("want_http"):
             r = self._websocket.send(op, uri, **kwargs)
             if r is not None:
                 return r
         if "headers" not in kwargs:
             kwargs.headers = PKDict()
-        kwargs.headers.setdefault(
-            "User-Agent",
-            f"{const.SRUNIT_USER_AGENT} {pykern.pkinspect.caller()}",
-        )
         u = self._uri(uri)
         # Delete all of our kwargs
         kwargs.pkdel("want_http")

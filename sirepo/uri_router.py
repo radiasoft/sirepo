@@ -237,6 +237,8 @@ def start_tornado(ip, port, debug):
                 )
             # TODO(robnagler) what if msg poorly constructed? Close socket?
             finally:
+                if pkconfig.in_dev_mode():
+                    pkdlog("user-agent={}", w.headers.get("User-Agent"))
                 pkdlog(
                     "end ws_id={} req_seq={} uri={} uid={}",
                     self.ws_id,
