@@ -553,7 +553,6 @@ def heatmap(values, model, plot_fields=None, weights=None, data_complete=None):
                 model.fieldRange[model["x"]],
                 model.fieldRange[model["y"]],
             ]
-    # pkdp("\n\n\n VALUES.shape={}", numpy.array(values).shape)
     hist, edges = numpy.histogramdd(
         values,
         histogram_bins(model["histogramBins"]),
@@ -566,23 +565,12 @@ def heatmap(values, model, plot_fields=None, weights=None, data_complete=None):
         y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
         z_matrix=hist.T.tolist(),
     )
-    # TODO (gurhar1133): make csv here too using model.x and model.y
     if plot_fields:
         res.update(plot_fields)
     columns_dict = PKDict()
-    pkdp("\n\n\n\n model={}", model)
     columns_dict[model.get("x", "x")] = values[0]
     columns_dict[model.get("y", "y")] = values[1]
     columns_dict["particleID"] = range(1, len(values[0]) + 1)
-
-
-    # TODO (gurhar1133): if I default to d, then it breaks some plots,
-    # if I default to frameReport, then it breaks other plots.
-    # is there a better way of resolving the names in get_data_file or something?
-    # if "animation" in model.frameReport.lower():
-    #     n = model.frameReport
-    # else:
-    #     n = model.frameReport if d == model.frameReport else d
     n = model.frameReport
     pandas.DataFrame(columns_dict).to_csv(f"{n}.csv", index=False)
     return res
@@ -634,18 +622,11 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     if plot_fields:
         res.update(plot_fields)
     columns_dict = PKDict()
-    # pkdp("\n\n\n res={}", res)
     for i, plot in enumerate(res.plots):
-        # pkdp("\n\n\n\nplot = {}", plot)
         c = plot.get("col_name", False)
         if not c:
             c = plot.get("name", f"col{i + 1}")
         columns_dict[c] = plot.points
-    pkdp("\n\n\n\n MAKING A PARAMETER PLOT FOR model.keys={}", model.keys())
-    # assert 0, f"\n\n\n\n MAKING A PARAMETER PLOT FOR frameReport={model.frameReport}"
-    if not model.get("frameReport", False):
-        pkdp("\n\n\n\n model={}", model)
-    pkdp("\n\n\n\nCOLUMNS_DICT={}", columns_dict)
     pandas.DataFrame(columns_dict).to_csv(f"{model.frameReport}.csv", index=False)
     return res
 
