@@ -1,1 +1,20 @@
-print("hello world")
+from impact import Impact
+
+I = Impact(
+    use_temp_dir=False,
+    workdir=".",
+    timeout=1e6,
+)
+del I.lattice[:]
+I.lattice.extend([
+{% for v in lattice %}
+    dict(
+        {{ v | indent(8) }}    ),
+{% endfor %}
+])
+
+I.run()
+
+print(I.log)
+print()
+print(I.output["run_info"])

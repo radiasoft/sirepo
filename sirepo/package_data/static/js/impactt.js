@@ -32,7 +32,7 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('impacttService', function(appState) {
     const self = {};
 
-    self.computeModel = () => 'impacttReport';
+    self.computeModel = () => 'animation';
 
     appState.setAppService(self);
     return self;
@@ -46,7 +46,6 @@ SIREPO.app.controller('SourceController', function(appState, $scope) {
 SIREPO.app.controller('VisualizationController', function (appState, panelState, persistentSimulation, impacttService, $scope) {
     const self = this;
     self.simScope = $scope;
-
     self.simHandleStatus = data => {};
     self.simState = persistentSimulation.initSimulationState(self);
 });
