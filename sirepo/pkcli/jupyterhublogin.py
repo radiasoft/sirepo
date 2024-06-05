@@ -67,7 +67,7 @@ def create_user(email, display_name):
 
 
 def unknown_user_dirs():
-    """Outputs directory names for Jupyter users that are not in database."""
+    """Returns directory names for Jupyter users that are not in database."""
     with sirepo.quest.start() as qcall:
         m = ""
         for d in pkio.sorted_glob(
