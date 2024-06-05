@@ -701,16 +701,16 @@ class _TestClient:
         from pykern.pkdebug import pkdlog, pkdexc, pkdc, pkdp
         from sirepo import const
 
+        if hasattr(self, "_websocket") and not kwargs.get("want_http"):
+            r = self._websocket.send(op, uri, **kwargs)
+            if r is not None:
+                return r
         if "headers" not in kwargs:
             kwargs.headers = PKDict()
         kwargs.headers.setdefault(
             "User-Agent",
             f"{const.SRUNIT_USER_AGENT} {pykern.pkinspect.caller()}",
         )
-        if hasattr(self, "_websocket") and not kwargs.get("want_http"):
-            r = self._websocket.send(op, uri, **kwargs)
-            if r is not None:
-                return r
         u = self._uri(uri)
         # Delete all of our kwargs
         kwargs.pkdel("want_http")
@@ -920,6 +920,8 @@ class _WebSocket:
                     kind=const.SCHEMA_COMMON.websocketMsg.kind.httpRequest,
                     uri=sirepo_uri.decode_to_str(encoded_uri),
                     version=const.SCHEMA_COMMON.websocketMsg.version,
+                    # POSIT: uri_router will look for this in_dev_mode
+                    srunit_caller=str(pykern.pkinspect.caller()),
                 ),
             )
             if op == "get":
@@ -940,10 +942,12 @@ class _WebSocket:
 
         def _must_be_http(uri):
             # POSIT: /auth- match like sirepo.js msgRouter and https?:
-            # for browser click on email msg. If there is Authorization header,
+            # for browser click on email msg. If there are headers,
             # it's basic auth. /download is special, because we
             # don't have a way of saving a file (easily) in sirepo.js.
-            if headers and headers.get("Authorization"):
+            if headers:
+                if not headers.get("Authorization"):
+                    raise AssertionError(f"restricted use of headers={headers}")
                 # basic auth
                 return True
             if self._HTTP_RE.search(uri):

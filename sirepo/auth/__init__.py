@@ -782,7 +782,7 @@ class _Auth(sirepo.quest.Attr):
         def _user():
             u = self._qcall_bound_user()
             if not u:
-                return "="
+                return ""
             return self._qcall_bound_state() + "-" + u
 
         self.qcall.sreq.set_log_user(_user())
