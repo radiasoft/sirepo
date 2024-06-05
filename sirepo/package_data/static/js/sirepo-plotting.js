@@ -3588,6 +3588,13 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     //TODO(pjm): plot may be loaded with { state: 'canceled' }?
                     return;
                 }
+                if (! json.plot_type) {
+                    // if (config.is_dev) {
+                    throw Error(`plot for ${$scope.modelName} is missing plot_type`);
+                    // }
+                } else if (json.plot_type != "heatmap") {
+                    throw Error(`plot for ${$scope.modelName} has incorrect plot_type="${json.plot_type}" should be "heatmap"`);
+                }
                 overlayData = json.overlayData;
                 selectedCell = json.selectedCoords;
                 $scope.dataCleared = false;
@@ -4031,6 +4038,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 if (! json.plots && ! json.points) {
                     //TODO(pjm): plot may be loaded with { state: 'canceled' }?
                     return;
+                }
+                if (! json.plot_type) {
+
+                    // if (config.is_dev) {
+                    throw Error(`plot for ${$scope.modelName} is missing plot_type`);
+                    // }
+                } else if (json.plot_type != "parameter") {
+                    throw Error(`plot for ${$scope.modelName} has incorrect plot_type="${json.plot_type}" should be "parameter"`);
                 }
                 $scope.firstRefresh = true;
                 //TODO(pjm): move first part into normalizeInput()

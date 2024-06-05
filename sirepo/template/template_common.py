@@ -561,6 +561,7 @@ def heatmap(values, model, plot_fields=None, weights=None, data_complete=None):
         range=r,
     )
     res = PKDict(
+        plot_type="heatmap",
         x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
         y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
         z_matrix=hist.T.tolist(),
@@ -612,6 +613,7 @@ def model_from_frame_args(frame_args):
 
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     res = PKDict(
+        plot_type="parameter",
         x_points=x,
         x_range=[min(x), max(x)] if x else [0, 0],
         plots=plots,
