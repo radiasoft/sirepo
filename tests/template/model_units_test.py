@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test template_common ModelUnits
 
 :copyright: Copyright (c) 2019-2024 RadiaSoft LLC.  All Rights Reserved.

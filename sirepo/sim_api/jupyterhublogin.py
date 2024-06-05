@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """API's for jupyterhublogin sim
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
@@ -64,17 +64,17 @@ def create_user(qcall):
         user_name (str): The user_name of the new or existing user
     """
 
-    def __handle_or_name_sanitized():
+    def __name_sanitized():
         return re.sub(
             r"\W+",
             _HUB_USER_SEP,
             # Get the local part of the email. Or in the case of another auth
-            # method it won't have an '@' so it will just be their user name, handle, etc.
+            # method it won't have an '@' so it will just be their user name.
             qcall.auth.logged_in_user_name().split("@")[0],
         ).lower()
 
     def __user_name():
-        n = __handle_or_name_sanitized()
+        n = __name_sanitized()
         if qcall.auth_db.model("JupyterhubUser").unchecked_search_by(user_name=n):
             # The username already exists. Add some randomness to try and create
             # a unique user name.
@@ -89,7 +89,7 @@ def create_user(qcall):
     # collision, but the db will be consistent, because this call happens
     # first, before db insert.
     if _user_dir(qcall, u).exists():
-        raise AssertionError(f"existing user dir with same name={u}")
+        raise AssertionError(f"existing user dir with same name={_user_dir(qcall, u)}")
     qcall.auth_db.model(
         "JupyterhubUser",
         uid=qcall.auth.logged_in_user(),

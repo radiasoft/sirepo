@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """JupyterHub tests
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 import pytest
 import os
 
@@ -71,13 +71,11 @@ def test_jupyterhub_redirect(fc):
 
 
 def test_logout(auth_fc):
-    # Clears third party (jupyterhub) cookies
-    # TODO(e-carlin): https://github.com/radiasoft/sirepo/issues/7096
-    # This test should verify that the cookie was actually removed.
-    fc = auth_fc
-
+    """Clears third party (jupyterhub) cookies"""
     from pykern.pkdebug import pkdp
 
-    fc.sr_login_as_guest()
-    fc.sr_get("checkAuthJupyterHub").assert_success()
-    fc.sr_logout()
+    # TODO(e-carlin): https://github.com/radiasoft/sirepo/issues/7096
+    # This test should verify that the cookie was actually removed.
+    auth_fc.sr_login_as_guest()
+    auth_fc.sr_get("checkAuthJupyterHub").assert_success()
+    auth_fc.sr_logout()
