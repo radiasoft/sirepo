@@ -2250,7 +2250,6 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             </div>
         `,
         controller: function($scope, $element) {
-            srdbg("report type:", $scope.reportType, "modelKey:", $scope.modelKey);
             $scope.panelState = panelState;
             $scope.utilities = utilities;
             let viewKey = $scope.viewName || $scope.modelKey;

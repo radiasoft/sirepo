@@ -3588,6 +3588,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     //TODO(pjm): plot may be loaded with { state: 'canceled' }?
                     return;
                 }
+                srdbg("SIREPO.APP_SCHEMA.feature_config", SIREPO.APP_SCHEMA.feature_config);
                 if (! json.plot_type) {
                     // if (config.is_dev) {
                     throw Error(`plot for ${$scope.modelName} is missing plot_type`);

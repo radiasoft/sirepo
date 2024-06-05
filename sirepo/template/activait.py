@@ -266,21 +266,21 @@ def sim_frame_dtClassifierConfusionMatrixAnimation(frame_args):
 
 
 def sim_frame_dicePlotAnimation(frame_args):
-    return _dice(frame_args.sim_in, frame_args.run_dir, frame_args.frameReport)
+    return _dice(frame_args, frame_args.run_dir)
 
 
 def sim_frame_dicePlotComparisonAnimation(frame_args):
     return _dice(
-        frame_args.sim_in,
+        frame_args,
         simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
             "animation"
         ),
-        frame_args.frameReport,
     )
 
 
 def _epoch_plot(run_dir):
     d = pandas.read_csv(str(run_dir.join(_OUTPUT_FILE.fitCSVFile)))
+    # TODO (gurhar1133): needs to call parameter_plot
     return _report_info(
         list(d.index),
         [
@@ -849,7 +849,7 @@ def _continue_building_level(cur_node, merge_continue):
     return True
 
 
-def _dice(data, run_dir, report):
+def _dice(frame_args, run_dir):
     def _coefficient(mask1, mask2):
         return round(
             (2 * numpy.sum(mask1 * mask2)) / (numpy.sum(mask1) + numpy.sum(mask2)),
@@ -872,7 +872,7 @@ def _dice(data, run_dir, report):
             d.append(_coefficient(pair[0], pair[1]))
         return _histogram_plot(d, [min(d), max(d)], bins=10)
 
-    x, y = _hist(data, run_dir)
+    x, y = _hist(frame_args.sim_in, run_dir)
     return template_common.parameter_plot(
         x,
         [
@@ -881,8 +881,7 @@ def _dice(data, run_dir, report):
                 label="Counts",
             ),
         ],
-        # TODO (gurhar1133): need frameReport
-        PKDict(frameReport=report),
+        PKDict(frameReport=frame_args.frameReport),
         PKDict(
             title="Dice Coefficients",
             x_label="Scores",
@@ -975,8 +974,7 @@ def _extract_partition_report(run_dir, sim_in):
         x, y = _histogram_plot(d[name], r)
         c[name] = y
         plots.append(_plot_info(y, name))
-    pkdp("\n\n\n\n about to save partition csv...")
-    # TODO (gurhar1133): not writing for more than idx=0, come back and fix
+    # TODO (gurhar1133): double check this works
     _write_csv_for_download(
         PKDict(x=x, **c),
         f"partitionColumnReport{idx}.csv",
@@ -1027,11 +1025,13 @@ def _fit_animation(frame_args):
     y = _read_file(frame_args.run_dir, _OUTPUT_FILE.testFile)[:, idx]
 
     # TODO(pjm): for a classification-like regression, set heatmap resolution to domain size
-    frame_args.x = "x"
-    frame_args.y = "y"
     return template_common.heatmap(
         [x, y],
-        frame_args,
+        PKDict(
+            **frame_args,
+            x="x",
+            y="y",
+        ),
         PKDict(
             x_label="Prediction",
             y_label="Ground Truth",
