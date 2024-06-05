@@ -70,7 +70,9 @@ class UserDbBase:
         return self._new(self.query().filter_by(**filter_by).one())
 
     def search_all_for_column(self, column, **filter_by):
-        return [getattr(r, column) for r in self.query().filter_by(**filter_by)]
+        return frozenset(
+            getattr(r, column) for r in self.query().filter_by(**filter_by)
+        )
 
     def unchecked_search_by(self, **filter_by):
         return self._new(self.query().filter_by(**filter_by).one_or_none())

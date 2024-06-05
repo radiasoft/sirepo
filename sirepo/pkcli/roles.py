@@ -53,7 +53,7 @@ def list(uid_or_email):
     """
 
     with _parse_args(uid_or_email, []) as qcall:
-        return qcall.auth_db.model("UserRole").get_roles()
+        return [x for x in qcall.auth_db.model("UserRole").get_roles()]
 
 
 def list_roles(*args):
