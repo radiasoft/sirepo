@@ -338,6 +338,7 @@
                 "route": "/complete-registration",
                 "config": {
                   "controller": "LoginConfirmController as loginConfirm",
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/complete-registration.html"
                 }
             },
@@ -376,6 +377,7 @@
                 "route": "/login",
                 "config": {
                   "controller": "LoginController as login",
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/login.html"
                 }
             },
@@ -383,6 +385,7 @@
                 "route": "/login-fail/:method/:reason",
                 "config": {
                   "controller": "LoginFailController as loginFail",
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/login-fail.html"
                 }
             },
@@ -390,6 +393,7 @@
                 "route": "/login-with/:method",
                 "config": {
                   "controller": "LoginWithController as loginWith",
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/login-with.html"
                 }
             },
@@ -397,6 +401,7 @@
                 "route": "/login-with-email-confirm/:token/:needCompleteRegistration",
                 "config": {
                   "controller": "LoginConfirmController as loginConfirm",
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/login-with-email-confirm.html"
                 }
             },
@@ -409,12 +414,14 @@
             "moderationRequest":  {
                 "route": "/moderation-request",
                 "config": {
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/moderation-request.html"
                 }
             },
             "moderationPending":  {
                 "route": "/moderation-pending",
                 "config": {
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/moderation-pending.html"
                 }
             },

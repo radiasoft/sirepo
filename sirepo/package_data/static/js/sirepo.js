@@ -2541,10 +2541,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     function checkLoginRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn
             || SIREPO.authState.needCompleteRegistration
-            // Any controller that has 'login' in it will stay on page
-            || (route.controller && route.controller.toLowerCase().indexOf('login') >= 0)
-            // Don't redirect away from moderation pages
-            || ($location.url().indexOf('moderation') >= 0)
+            || route.$$route && route.$$route.sirepoNoLoginRedirect
         ) {
             return;
         }
