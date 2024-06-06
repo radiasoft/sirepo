@@ -67,7 +67,9 @@ def create_user(email, display_name):
 
 
 def unknown_user_dirs():
-    """Returns directory names for Jupyter users that are not in database."""
+    """Returns directory names for Jupyter users that are not in database.
+    Excludes directories that begin with capital letter.
+    """
     with sirepo.quest.start() as qcall:
         m = ""
         r = frozenset(
@@ -76,6 +78,6 @@ def unknown_user_dirs():
         for d in pkio.sorted_glob(
             sirepo.sim_api.jupyterhublogin.cfg().user_db_root_d.join("*")
         ):
-            if not d.basename in r:
+            if not d.basename[0].isupper() and not d.basename in r:
                 m += f"{d}\n"
         return m
