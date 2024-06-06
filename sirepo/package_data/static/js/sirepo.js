@@ -2579,7 +2579,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     function saveLoginRedirect() {
         const u = $location.url();
         if (u == LOGIN_URI) {
-            return true;
+            return;
         }
         browserStorage.setString(
             storageKey,
