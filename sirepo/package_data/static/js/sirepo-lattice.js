@@ -439,7 +439,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
     if ((SIREPO.lattice && SIREPO.lattice.useBeamlineListeners)
         //TODO(pjm): change DRIFT apps to use lattice.useBeamlineListeners
-        || SIREPO.APP_SCHEMA.model.DRIFT || SIREPO.APP_SCHEMA.model.DRIF) {
+        || SIREPO.APP_SCHEMA.model.DRIFT || SIREPO.APP_SCHEMA.model.DRIF || SIREPO.APP_SCHEMA.model.DRIFTTUBE) {
         appState.whenModelsLoaded($rootScope, function() {
             self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
         });
@@ -652,12 +652,11 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
               </div>
             </div>
             <div data-ng-class="::popoverInfo.elementPosition.class">
-              <div style="margin-bottom: 10px">
-                <input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" style="text-align: right" data-lpignore="true" required />
-              </div>
+                <input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" data-lpignore="true" required />
+                <div data-rpn-static="" field="\'elemedge\'" data-model="popoverInfo.elementPosition" style="margin-left: 2em;"></div>
               <div class="text-center">
                 <button class="btn btn-primary sr-button-save-cancel" data-ng-click="setElementPosition()">Save</button>
-                 <button class="btn btn-default sr-button-save-cancel" data-ng-click="clearPopover()">Cancel</button>
+                <button class="btn btn-default sr-button-save-cancel" data-ng-click="clearPopover()">Cancel</button>
               </div>
             </div>
             </div>
@@ -678,7 +677,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
 
             $scope.popoverInfo = {
                 elementPosition: {
-                    class: 'sr-element-position-popover',
+                    class: 'sr-beamline-popover',
                     title: 'Element Position [m]',
                 },
                 modifyBeamline: {
@@ -1703,7 +1702,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 groupItem.width = 0.3;
                                 groupItem.x -= 0.15;
                             }
-                            groupItem.height = groupItem.width;
+                            groupItem.height = 0.5;
                             groupItem.y = pos.y - groupItem.height / 2;
                             groupItem.color = getPicColor(item, 'lightblue');
                         }
@@ -2732,7 +2731,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
             };
             $scope.showTwissReport = function() {
                 if (utilities.isFullscreen()) {
-                    utilities.exitFullscreenFn().call(document);
+                    utilities.exitFullscreen();
                 }
                 var el = $('#sr-lattice-twiss-plot');
                 el.modal('show');

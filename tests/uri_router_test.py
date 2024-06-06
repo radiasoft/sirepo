@@ -56,7 +56,7 @@ def test_not_found(fc):
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq
 
-    for uri in ("/some random uri", "/srw/wrong-param", "/export-archive"):
+    for uri in ("/some random uri", "/srw/wrong-param", "/export-archive/"):
         fc.sr_get(uri).assert_http_status(404)
 
 

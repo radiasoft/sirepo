@@ -37,6 +37,7 @@ def _proprietary_codes():
     import sirepo.feature_config
     import sirepo.sim_data
     import sirepo.srdb
+    import subprocess
     import urllib.error
     import urllib.request
 
@@ -44,18 +45,23 @@ def _proprietary_codes():
         f = sirepo.sim_data.get_class(s).proprietary_code_tarball()
         if not f:
             continue
-        r = pkio.mkdir_parent(
+        d = pkio.mkdir_parent(
             sirepo.srdb.proprietary_code_dir(s),
-        ).join(f)
+        )
+        z = d.join(f)
         # POSIT: download/installers/flash-tarball/radiasoft-download.sh
         u = f"{cfg.proprietary_code_uri}/{s}-dev.tar.gz"
         try:
-            urllib.request.urlretrieve(u, r)
+            urllib.request.urlretrieve(u, z)
         except urllib.error.URLError as e:
             if not isinstance(e.reason, FileNotFoundError):
                 raise
-            pkdlog("uri={} not found; mocking empty file={}", u, r)
+            pkdlog("uri={} not found; mocking empty file={}", u, z)
+            t = d.join("README")
             pkio.write_text(
-                r,
+                t,
                 "mocked by sirepo.pkcli.setup_dev",
+            )
+            subprocess.check_call(
+                ["tar", "--create", "--gzip", f"--file={z}", t, "--remove-files"]
             )

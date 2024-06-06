@@ -1,4 +1,4 @@
-"""CloudMC execution template.
+"""OpenMC execution template.
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -18,7 +18,7 @@ import sirepo.sim_data
 import sirepo.sim_run
 import subprocess
 
-_CACHE_DIR = "cloudmc-cache"
+_CACHE_DIR = "openmc-cache"
 _OUTLINES_FILE = "outlines.json"
 _PREP_SBATCH_PREFIX = "prep-sbatch"
 _VOLUME_INFO_FILE = "volumes.json"
@@ -84,9 +84,7 @@ def _percent_complete(run_dir, is_running):
 
 def stateful_compute_check_animation_dir(data, **kwargs):
     return PKDict(
-        animationDirExists=simulation_db.simulation_dir(
-            "cloudmc", sid=data.simulationId
-        )
+        animationDirExists=simulation_db.simulation_dir("openmc", sid=data.simulationId)
         .join(data.args.modelName)
         .exists()
     )
@@ -130,6 +128,20 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError(f"invalid model={model} options={options}")
 
 
+def prepare_for_save(data, qcall):
+    # materialsFile is used only once to setup initial volume materials.
+    # it isn't reusable across simulations
+    if data.models.get("volumes") and data.models.geometryInput.get("materialsFile"):
+        if _SIM_DATA.lib_file_exists(_SIM_DATA.materials_filename(data), qcall=qcall):
+            pkio.unchecked_remove(
+                _SIM_DATA.lib_file_abspath(
+                    _SIM_DATA.materials_filename(data), qcall=qcall
+                )
+            )
+        data.models.geometryInput.materialsFile = ""
+    return data
+
+
 def post_execution_processing(
     compute_model, sim_id, success_exit, is_parallel, run_dir, **kwargs
 ):
@@ -139,7 +151,7 @@ def post_execution_processing(
             for f in ply_files:
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
         return None
-    return _parse_cloudmc_log(run_dir)
+    return _parse_openmc_log(run_dir)
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -397,18 +409,6 @@ def write_volume_outlines():
     simulation_db.write_json(_OUTLINES_FILE, all_outlines)
 
 
-def _dagmc_animation_python(filename):
-    return f"""
-import sirepo.pkcli.cloudmc
-import sirepo.simulation_db
-
-sirepo.simulation_db.write_json(
-    "{_VOLUME_INFO_FILE}",
-    sirepo.pkcli.cloudmc.extract_dagmc("{filename}"),
-)
-"""
-
-
 def _energy_plot(run_dir, data):
     import openmc
 
@@ -559,9 +559,9 @@ def _generate_materials(data, j2_ctx):
         res += f'{n}.set_density("{v.material.density_units}", {v.material.density})\n'
         if v.material.depletable == "1":
             res += f"{n}.depletable = True\n"
-        if "temperator" in v and v.material:
+        if "temperature" in v.material and v.material.temperature:
             res += f"{n}.temperature = {v.material.temperature}\n"
-        if "volume" in v and v.volume:
+        if "volume" in v.material and v.material.volume:
             res += f"{n}.volume = {v.material.volume}\n"
         for c in v.material.components:
             if (
@@ -607,12 +607,15 @@ m.upper_right = {_generate_array(mesh.upper_right)}
 
 def _generate_parameters_file(data, run_dir=None):
     report = data.get("report", "")
-    if report == "dagmcAnimation":
-        return _dagmc_animation_python(_SIM_DATA.dagmc_filename(data))
     if report == "tallyReport":
         return ""
     res, v = template_common.generate_parameters_file(data)
     v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
+    if report == "dagmcAnimation":
+        v.volumeInfoFile = _VOLUME_INFO_FILE
+        if data.models.geometryInput.materialsFile:
+            v.materialsFile = _SIM_DATA.materials_filename(data)
+        return template_common.render_jinja(SIM_TYPE, v, "extract_dagmc.py")
     v.isPythonSource = False if run_dir else True
     if v.isPythonSource:
         v.materialDirectory = "."
@@ -631,6 +634,8 @@ def _generate_parameters_file(data, run_dir=None):
     ]
     v.tallies = _generate_tallies(data, v)
     v.hasGraveyard = _has_graveyard(data)
+    v.region = _region(data)
+    v.planes = _planes(data)
     if v.incomplete_data_msg:
         return (
             f'raise AssertionError("Unable to generate sim: {v.incomplete_data_msg}")'
@@ -810,17 +815,43 @@ def _is_sbatch_run_mode(data):
     return data.models.openmcAnimation.jobRunMode == "sbatch"
 
 
-def _parse_cloudmc_log(run_dir, log_filename="run.log"):
+def _parse_openmc_log(run_dir, log_filename="run.log"):
     return template_common.LogParser(
         run_dir,
         log_filename=log_filename,
-        default_msg="An unknown error occurred, check CloudMC log for details",
+        default_msg="An unknown error occurred, check OpenMC log for details",
         # ERROR: Cannot tally flux for an individual nuclide.
         error_patterns=(
+            re.compile(r"^\s*ValueError:\s*(.*)$", re.IGNORECASE),
             re.compile(r"^\s*Error:\s*(.*)$", re.IGNORECASE),
             re.compile(r"AssertionError: (.*)"),
         ),
     ).parse_for_errors()
+
+
+def _planes(data):
+    res = ""
+    for i, p in enumerate(data.models.reflectivePlanes.planesList):
+        res += f"""
+    p{i + 1} = openmc.Plane(
+        a={p.A},
+        b={p.B},
+        c={p.C},
+        d={p.D},
+        boundary_type="reflective",
+    )
+"""
+    return res
+
+
+def _region(data):
+    res = ""
+    for i, p in enumerate(data.models.reflectivePlanes.planesList):
+        if p.inside == "1":
+            res += f"& +p{i + 1} "
+        else:
+            res += f"& -p{i + 1} "
+    return res
 
 
 def _source_filename(data):
