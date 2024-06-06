@@ -21,6 +21,8 @@ _cfg = None
 
 _HUB_USER_SEP = "-"
 
+_INVALID_USER_NAME_CHARS = re.compile(r"[^a-z0-9]+")
+
 _JUPYTERHUB_LOGOUT_USER_NAME_ATTR = "jupyterhub_logout_user_name"
 
 _SIM_TYPE = "jupyterhublogin"
@@ -57,7 +59,7 @@ def cfg():
 def create_user(qcall):
     """Create a Jupyter user if not one associated with Sirepo uid
 
-    New user_name is created from Sirepo username.
+    New user_name is created from sanitized Sirepo username.
     If user_name is taken, will be appended with random string.
 
     Returns:
@@ -65,13 +67,9 @@ def create_user(qcall):
     """
 
     def __name_sanitized():
-        return re.sub(
-            r"\W+",
-            _HUB_USER_SEP,
-            # Get the local part of the email. Or in the case of another auth
-            # method it won't have an '@' so it will just be their user name.
-            qcall.auth.logged_in_user_name().split("@")[0],
-        ).lower()
+        return _INVALID_USER_NAME_CHARS.sub(
+            _HUB_USER_SEP, qcall.auth.local_part_user_name().lower()
+        )
 
     def __user_name():
         n = __name_sanitized()

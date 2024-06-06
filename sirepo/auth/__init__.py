@@ -270,6 +270,13 @@ class _Auth(sirepo.quest.Attr):
             role=sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
         )
 
+    def local_part_user_name(self):
+        """If user_name is email address, return the local part.
+        Otherwise, just return user_name.
+        """
+
+        return self.logged_in_user_name().split("@")[0]
+
     def logged_in_user(self, check_path=True):
         """Get the logged in user
 
