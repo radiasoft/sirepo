@@ -627,8 +627,13 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
                     if (sbatchLoginEvent.query('showCredsForm')) {
                         $scope.loginClicked();
                     }
-                    else if (sbatchLoginEvent.query('isLoggedInFromCreds') && $scope.startWasClicked) {
-                        $scope.start();
+                    else if (sbatchLoginEvent.query('isLoggedInFromCreds')) {
+                        if ($scope.startWasClicked) {
+                            $scope.start();
+                        }
+                        else {
+                            $scope.simState.resetSimulation();
+                        }
                     }
                 },
             );

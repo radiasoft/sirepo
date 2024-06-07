@@ -1622,11 +1622,6 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
                 panelState.setLoading(modelName, false);
                 panelState.setError(modelName, response.error);
             }
-            //TODO(robnagler) verify this test makes sense; May need uncached check in framePeriod.
-            else if (! panelState.isHidden(modelName)) {
-                $interval(requestFunction, 1000, 1);
-                return;
-            }
             cancelSetPanelStateIsLoadingTimer();
         }
 
