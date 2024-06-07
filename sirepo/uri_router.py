@@ -9,7 +9,7 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdformat
 import asyncio
 import contextlib
 import importlib
@@ -167,10 +167,16 @@ def start_tornado(ip, port, debug):
 
     class _HTTPRequest(web.RequestHandler):
         async def _route(self):
+            _log(self, "start")
             p = sirepo.uri.decode_to_str(self.request.path)
             e, r, k = _path_to_route(p[1:])
             if e:
-                pkdlog("error uri={} {}; route={} kwargs={} ", p, e, r, k)
+                _log(
+                    self,
+                    "error",
+                    fmt=" msg={} route={} kwargs={}",
+                    args=[e, r, k],
+                )
                 r = _not_found_route
             await _call_api(
                 None,
@@ -187,15 +193,27 @@ def start_tornado(ip, port, debug):
             await self._route()
 
         def sr_get_log_user(self):
-            return getattr(self, "_sr_log_user", None)
+            return getattr(self, "_sr_log_user", "")
 
         def sr_set_log_user(self, log_user):
             self._sr_log_user = log_user
 
     class _WebSocket(websocket.WebSocketHandler):
+        async def get(self, *args, **kwargs):
+            _log(self, "start")
+            return await super().get(*args, **kwargs)
+
         async def on_message(self, msg):
             # WebSocketHandler only allows one on_message at a time.
             asyncio.ensure_future(self.__on_message(msg))
+
+        def on_close(self):
+            self.sr_log(
+                None,
+                "close",
+                fmt=" code={} reason={}",
+                args=[self.close_code, self.close_reason or ""],
+            )
 
         def open(self):
             nonlocal ws_count
@@ -209,10 +227,20 @@ def start_tornado(ip, port, debug):
             self.http_server_uri = f"{r.protocol}://{r.host}/"
             self.remote_addr = r.remote_ip
             self.ws_id = ws_count
+            self.sr_log(None, "open", fmt=" ip={}", args=[_remote_peer(r)])
 
         def sr_get_log_user(self):
             """Needed for initial websocket creation call"""
-            return None
+            return ""
+
+        def sr_log(self, ws_req, which, fmt="", args=None):
+            pkdlog(
+                "{} ws={}#{}" + fmt,
+                which,
+                self.ws_id,
+                ws_req and ws_req.header.get("reqSeq") or 0,
+                *args,
+            )
 
         async def __on_message(self, msg):
             w = _WebSocketRequest(handler=self, headers=self.__headers)
@@ -232,18 +260,20 @@ def start_tornado(ip, port, debug):
                     reply_op=_reply_op,
                 )
             # TODO(robnagler) what if msg poorly constructed? Close socket?
+            except Exception as e:
+                self.sr_log(w, "error", fmt=" msg={} uri={}", args=[e, w.get("uri")])
+                raise
             finally:
-                pkdlog(
-                    "end ws_id={} req_seq={} uri={} uid={}",
-                    self.ws_id,
-                    w.get("req_seq"),
-                    w.get("uri"),
-                    w.get("log_user"),
-                )
+                self.sr_log(w, "end", fmt=" uid={}", args=[w.get("log_user")])
 
     class _WebSocketRequest(PKDict):
         def parse_msg(self, msg):
             import msgpack
+
+            def _maybe_srunit_caller():
+                if pkconfig.in_dev_mode() and (c := self.header.get("srunit_caller")):
+                    return pkdformat(" srunit={}", c)
+                return ""
 
             if not isinstance(msg, bytes):
                 raise AssertionError(f"incoming msg type={type(msg)}")
@@ -253,24 +283,26 @@ def start_tornado(ip, port, debug):
             )
             u.feed(msg)
             self.header = u.unpack()
-            pkdlog(
-                "start ws_id={} req_seq={} uri={}",
-                self.handler.ws_id,
-                self.header.get("reqSeq"),
-                self.header.get("uri"),
+            self.handler.sr_log(
+                self,
+                "start",
+                fmt=" uri={}{}",
+                args=[self.header.get("uri"), _maybe_srunit_caller()],
             )
             if sirepo.const.SCHEMA_COMMON.websocketMsg.version != self.header.get(
                 "version"
             ):
                 raise AssertionError(
-                    f"invalid header.version={self.header.get('version')}"
+                    pkdformat("invalid header.version={}", self.header.get("version"))
                 )
             # Ensures protocol conforms for all requests
             if (
                 sirepo.const.SCHEMA_COMMON.websocketMsg.kind.httpRequest
                 != self.header.get("kind")
             ):
-                raise AssertionError(f"invalid header.kind={self.header.get('kind')}")
+                raise AssertionError(
+                    pkdformat("invalid header.kind={}", self.header.get("kind"))
+                )
             self.req_seq = self.header.reqSeq
             self.uri = self.header.uri
             if u.tell() < len(msg):
@@ -280,35 +312,49 @@ def start_tornado(ip, port, debug):
             # content may or may not exist so defer checking
             e, self.route, self.kwargs = _path_to_route(self.uri[1:])
             if e:
-                pkdlog(
-                    "error ws_id={} req_seq={} uri={} {}; route={} kwargs={}",
-                    self.handler.ws_id,
-                    self.req_seq,
-                    self.uri,
-                    e,
-                    self.route,
-                    self.kwargs,
+                self.handler.sr_log(
+                    self,
+                    "error",
+                    fmt=" msg={} route={} kwargs={}",
+                    args=[e, self.route, self.kwargs],
                 )
                 self.route = _not_found_route
 
         def set_log_user(self, log_user):
             self.log_user = log_user
 
-    def _log_function(handler):
-        # slightly different than common log format (CLF), but more practical
-        pkdlog(
-            '{} - {} {:.2f}ms "{} {} {}" {} {} {} {}',
-            handler.request.remote_ip,
-            handler.sr_get_log_user() or "=",
-            handler.request.request_time() * 1000,
-            handler.request.method,
-            handler.request.uri,
-            handler.request.version,
-            handler.get_status(),
-            0,
-            handler.request.headers.get("Referer"),
-            handler.request.headers.get("User-Agent"),
-        )
+    def _log(handler, which="end", fmt="", args=None):
+        r = handler.request
+        f = "{} ip={} uri={} "
+        a = [which, _remote_peer(r), r.uri]
+        if fmt:
+            f += " " + fmt
+            a += args
+        elif which == "start":
+            f += "proto={} {} ref={} ua={}"
+            a += [
+                r.method,
+                r.version,
+                r.headers.get("Referer") or "",
+                r.headers.get("User-Agent") or "",
+            ]
+        else:
+            f += "uid={} status={} ms={:.2f}"
+            a += [
+                handler.sr_get_log_user(),
+                handler.get_status(),
+                r.request_time() * 1000.0,
+            ]
+        pkdlog(f, *a)
+
+    def _remote_peer(request):
+        # https://github.com/tornadoweb/tornado/issues/2967#issuecomment-757370594
+        # implementation may change; Code in tornado.httputil check connection.
+        if c := request.connection:
+            # socket is not set on stream for websockets.
+            if hasattr(c, "stream") and hasattr(c.stream, "socket"):
+                return "{}:{}".format(*c.stream.socket.getpeername())
+        return f"{request.remote_ip}:0"
 
     sirepo.modules.import_and_init("sirepo.server").init_tornado()
     s = httpserver.HTTPServer(
@@ -321,7 +367,7 @@ def start_tornado(ip, port, debug):
             websocket_max_message_size=sirepo.job.cfg().max_message_bytes,
             websocket_ping_interval=sirepo.job.cfg().ping_interval_secs,
             websocket_ping_timeout=sirepo.job.cfg().ping_timeout_secs,
-            log_function=_log_function,
+            log_function=_log,
         ),
         xheaders=True,
         max_buffer_size=sirepo.job.cfg().max_message_bytes,
@@ -507,9 +553,9 @@ def _path_to_route(path):
                 break
             kwargs[p.name] = parts.pop(0)
         if parts:
-            return (f"has too many parts={parts}", route, kwargs)
+            return (pkdformat("has too many parts={}", parts), route, kwargs)
     except Exception as e:
-        return (f"parse exception={e} stack={pkdexc()}", route, kwargs)
+        return (pkdformat("parse exception={} stack={}", e, pkdexc()), route, kwargs)
     return (None, route, kwargs)
 
 

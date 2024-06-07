@@ -919,6 +919,8 @@ class _WebSocket:
                     kind=const.SCHEMA_COMMON.websocketMsg.kind.httpRequest,
                     uri=sirepo_uri.decode_to_str(encoded_uri),
                     version=const.SCHEMA_COMMON.websocketMsg.version,
+                    # POSIT: uri_router will look for this in_dev_mode
+                    srunit_caller=str(pykern.pkinspect.caller()),
                 ),
             )
             if op == "get":
