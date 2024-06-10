@@ -84,7 +84,7 @@ def is_sr_exception_only(sim_type, route_name):
     Returns:
         object: True if srExceptionOnly, else False; None if route not found
     """
-    rv = simulation_db.get_schema(sim_type).localRoutes.get(route_name)
+    rv = simulation_db.get_schema(sim_type).localRoutes.get(route_name).route
     return rv and "srExceptionOnly" in rv
 
 
