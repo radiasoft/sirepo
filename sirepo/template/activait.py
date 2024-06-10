@@ -153,6 +153,8 @@ def get_analysis_report(run_dir, data):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if options.suffix == "csv":
+        return run_dir.join(model + ".csv")
     if _numbered_model_file(model):
         return model + ".csv"
     if model == "epochAnimation":
