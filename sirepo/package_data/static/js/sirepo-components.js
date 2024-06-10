@@ -2263,12 +2263,13 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             var view = appState.viewInfo(viewKey);
             $scope.hasEditor = view && view.advanced.length === 0 ? false : true;
             $scope.hasDataFile = view && view.hasOwnProperty('hasDataFile') ? view.hasDataFile : true;
+            srdbg('$scope.reporttype', $scope.reportType, '$scope.modelKey', $scope.modelKey);
             if ($scope.reportType) {
                 $scope.hasCSVFile = $scope.reportType == 'heatmap' || $scope.reportType.includes('parameter');
             } else {
                 $scope.hasCSVFile = false;
             }
-
+            srdbg('$scope.hasCSVFile', $scope.hasCSVFile);
             $scope.canFullScreen = view && view.hasOwnProperty('canFullScreen') ? view.canFullScreen : true;
 
             // used for python export which lives in SIREPO.appDownloadLinks

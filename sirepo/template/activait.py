@@ -291,9 +291,7 @@ def _epoch_plot(run_dir):
             for l in ("loss", "val_loss")
         ],
     ).pkupdate(
-        PKDict(
-            x_label="epoch",
-        )
+
     )
 
 
@@ -1570,16 +1568,19 @@ def _read_file_with_history(run_dir, filename, report=None):
 
 
 def _report_info(x, plots, title="", fields=PKDict(), summary_data=PKDict()):
-    res = PKDict(
-        title=title,
-        x_range=[float(min(x)), float(max(x))],
-        y_label="",
-        x_label="",
-        x_points=list(x),
-        plots=plots,
-        y_range=template_common.compute_plot_color_and_range(plots),
-        summaryData=summary_data,
+    res = template_common.parameter_plot(
+        list(x),
+        plots,
+        PKDict(
+            title=title,
+            x_range=[float(min(x)), float(max(x))],
+            y_label="",
+            x_label="",
+            y_range=template_common.compute_plot_color_and_range(plots),
+            summaryData=summary_data,
+        )
     )
+
     res.update(fields)
     return res
 
