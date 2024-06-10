@@ -1231,20 +1231,22 @@ def _histogram_plot(values, vrange, bins=20):
 
 
 def _image_preview(method, data, run_dir, other_sim_id=None):
-    return PKDict(
-        x_range=[],
-        images=_ImagePreview(
-            PKDict(
-                args=PKDict(
-                    method=method,
-                    imageFilename="sample",
-                    dataFile=data.models.dataFile,
-                    columnInfo=data.models.columnInfo,
-                    otherSimId=other_sim_id,
+    return template_common.PlotClass(
+        PKDict(
+            x_range=[],
+            images=_ImagePreview(
+                PKDict(
+                    args=PKDict(
+                        method=method,
+                        imageFilename="sample",
+                        dataFile=data.models.dataFile,
+                        columnInfo=data.models.columnInfo,
+                        otherSimId=other_sim_id,
+                    ),
                 ),
-            ),
-            run_dir,
-        ).images(),
+                run_dir,
+            ).images(),
+        )
     )
 
 

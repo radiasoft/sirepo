@@ -1206,7 +1206,7 @@ SIREPO.app.directive('imageViewer', function(appState, plotting) {
     };
 });
 
-SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
+SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) { // TODO (gurhar1133): unused?
     return {
         restrict: 'A',
         scope: {
@@ -1223,6 +1223,7 @@ SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) {
         `,
         controller: function($scope, $element) {
             $scope.isLoading = true;
+            srdbg("$scope.method for imagePreviewPanel", $scope.method);
             const f = $scope.method == 'imagePreview' ? requestSender.sendStatefulCompute : requestSender.sendAnalysisJob;
             f(
                 appState,
@@ -1294,6 +1295,7 @@ SIREPO.app.directive('imagePreview', function(appState, requestSender, panelStat
           </div>
         `,
         controller: function($scope, $element) {
+            srdbg("imagePreview directive");
             $scope.numPages = 0;
             $scope.imagesPerPage = 3;
             $scope.pageImages = SIREPO.UTILS.indexArray($scope.imagesPerPage);

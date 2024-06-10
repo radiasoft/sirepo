@@ -170,8 +170,9 @@ def _do_compute(msg, template):
 
 
 def _do_analysis_job(msg, template):
-    return _dispatch_compute(msg, template)
-
+    r = _dispatch_compute(msg, template)
+    pkdp("\n\n\n\n analysisJob ret type={}", type(r))
+    return r
 
 def _do_download_data_file(msg, template):
     return _do_download_run_file(msg, template)
@@ -242,7 +243,8 @@ def _do_fastcgi(msg, template):
             if isinstance(r, dict):
                 # Backwards compatibility
                 r = PKDict(r)
-            if isinstance(r, PKDict):
+            # pkdp("\n\n\n type(r)={} isinstance(r, PlotClass)?={}", type(r), isinstance(r, sirepo.template.template_common.PlotClass))
+            if isinstance(r, (PKDict, sirepo.template.template_common.PlotClass)):
                 r.setdefault("state", job.COMPLETED)
             else:
                 pkdlog("func={} failed to return a PKDict", m.jobCmd)
@@ -261,9 +263,13 @@ def _do_fastcgi(msg, template):
 
 def _do_get_simulation_frame(msg, template):
     try:
-        return template_common.sim_frame_dispatch(
+        res = template_common.sim_frame_dispatch(
             msg.data.copy().pkupdate(run_dir=msg.runDir),
         )
+        pkdp("\n\n\n in get_sim_frame isInstance(res, PlotClass)?={}", isinstance(res, sirepo.template.template_common.PlotClass))
+        if not isinstance(res, sirepo.template.template_common.PlotClass):
+            raise AssertionError(f"sim frames must return PlotClass, got {type(res)}")
+        return res
     except Exception as e:
         return _maybe_parse_user_alert(e, error="report not generated")
 
@@ -300,6 +306,9 @@ def _do_sequential_result(msg, template):
     if hasattr(template, "prepare_sequential_output_file") and "models" in msg.data:
         template.prepare_sequential_output_file(msg.runDir, msg.data)
         r = template_common.read_sequential_result(msg.runDir)
+    pkdp("\n\n\n in sequential result isInstance(r, PlotClass)?={}", isinstance(r, sirepo.template.template_common.PlotClass))
+    if not isinstance(r, sirepo.template.template_common.PlotClass):
+        raise AssertionError(f"sim frames must return PlotClass, got {type(r)}")
     return r
 
 

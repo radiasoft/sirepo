@@ -573,7 +573,10 @@ def heatmap(values, model, plot_fields=None, weights=None, data_complete=None):
     columns_dict["particleID"] = range(1, len(values[0]) + 1)
     n = model.frameReport
     pandas.DataFrame(columns_dict).to_csv(f"{n}.csv", index=False)
-    return res
+    return PlotClass(res)
+    # final_res = PlotClass(res)
+    # pkdp("\n\n\n\nFINAL RES={}", final_res)
+    # return final_res
 
 
 def histogram_bins(nbins):
@@ -597,6 +600,10 @@ def model_from_frame_args(frame_args):
         res.update(frame_args)
         return res
     return frame_args
+
+
+class PlotClass(PKDict):
+    pass
 
 
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
@@ -628,7 +635,10 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
             c = plot.get("name", f"col{i + 1}")
         columns_dict[c] = plot.points
     pandas.DataFrame(columns_dict).to_csv(f"{model.frameReport}.csv", index=False)
-    return res
+    return PlotClass(res)
+    # final_res = PlotClass(res)
+    # pkdp("\n\n\n\nFINAL RES={}", final_res)
+    # return final_res
 
 
 def parse_enums(enum_schema):
@@ -678,9 +688,14 @@ def read_sequential_result(run_dir):
     """
     from sirepo import simulation_db
 
-    return simulation_db.read_json(
+    res = simulation_db.read_json(
         simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir),
     )
+    pkdp("\n\n\n RES.keys()={}", res.keys())
+    if res.get("isPlotClass", False):
+        return PlotClass(res)
+    # pkdp("\n\n\n res={}", res)
+    return res
 
 
 def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE, jinja_env=None):
@@ -881,6 +896,10 @@ def write_sequential_result(result, run_dir=None):
         run_dir = pkio.py_path()
     f = simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir)
     assert not f.exists(), "{} file exists".format(OUTPUT_BASE_NAME)
+    pkdp("\n\n\n\n type(result)={} isinstance(result, sirepo.template.template_common.PlotClass)=>{}", type(result), isinstance(result, sirepo.template.template_common.PlotClass))
+    if isinstance(result, sirepo.template.template_common.PlotClass):
+        result.isPlotClass = True
+    pkdp("\n\n\n RESULT AFTER.keys={}", result.keys())
     simulation_db.write_json(f, result)
     t = sirepo.template.import_module(
         simulation_db.read_json(
