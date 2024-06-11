@@ -184,7 +184,7 @@ class _Auth(sirepo.quest.Attr):
             auth_role_moderation.raise_control_for_user(self.qcall, u, r)
         raise sirepo.util.Forbidden(f"uid={u} does not have access to sim_type={t}")
 
-    def check_role_user(self):
+    def _assert_role_user(self):
         u = self.logged_in_user()
         if not self.qcall.auth_db.model("UserRole").has_role(
             role=sirepo.auth_role.ROLE_USER,
@@ -192,6 +192,7 @@ class _Auth(sirepo.quest.Attr):
             raise sirepo.util.Forbidden(
                 f"uid={u} role={sirepo.auth_role.ROLE_USER} not found"
             )
+        return u
 
     def complete_registration(self, name=None):
         """Update the database with the user's display_name and sets state to logged-in.
@@ -522,7 +523,6 @@ class _Auth(sirepo.quest.Attr):
         s = self._qcall_bound_state()
         u = self._qcall_bound_user()
         if u:
-            self.check_role_user()
             # Will raise an exception if dir not found
             simulation_db.user_path(uid=u, check=True)
         if s is None:
@@ -533,7 +533,7 @@ class _Auth(sirepo.quest.Attr):
                 if f:
                     pkdc("validate_login method={}", m)
                     f(self.qcall)
-                return u
+                return self._assert_role_user()
             if m in _cfg.deprecated_methods:
                 e = "deprecated"
             else:
@@ -553,7 +553,7 @@ class _Auth(sirepo.quest.Attr):
                 pkdc("guest completeRegistration={}", u)
                 self.complete_registration()
                 self.qcall.auth_db.commit()
-                return u
+                return self._assert_role_user()
             r = "completeRegistration"
             e = "uid={} needs to complete registration".format(u)
         else:
@@ -742,7 +742,7 @@ class _Auth(sirepo.quest.Attr):
         self._set_log_user()
         if want_new_roles:
             self._create_roles_for_new_user(module.AUTH_METHOD)
-        self.check_role_user()
+        self._assert_role_user()
 
     def _method_auth_state(self, values, uid):
         if values.method not in _METHOD_MODULES:

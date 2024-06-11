@@ -41,7 +41,6 @@ def test_adm_jobs_forbidden(auth_fc):
                 [fc.sr_uid],
             )
         sirepo.pkcli.roles.add(fc.sr_uid, sirepo.auth_role.ROLE_USER)
-
         fc.sr_post(
             "admJobs",
             PKDict(simulationType=sim_type),

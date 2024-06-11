@@ -90,10 +90,10 @@ def _20240524_add_role_user(qcall):
         return
     qcall.auth_db.execute_sql(
         """
-INSERT INTO user_role_moderation_t (uid, role, status, moderator_uid, last_updated)
-SELECT uid, role, status, moderator_uid, last_updated
-FROM user_role_invite_t
-"""
+        INSERT INTO user_role_moderation_t (uid, role, status, moderator_uid, last_updated)
+        SELECT uid, role, status, moderator_uid, last_updated
+        FROM user_role_invite_t
+        """
     )
     qcall.auth_db.drop_table("user_role_invite_t")
     for u in qcall.auth_db.all_uids():
