@@ -151,16 +151,17 @@ def sim_frame_beamHistogramAnimation(frame_args):
     hist, edges = numpy.histogram(
         points, template_common.histogram_bins(frame_args.histogramBins)
     )
-    return PKDict(
-        title=_report_title(
-            frame_args.reportType, "BeamHistogramReportType", beam_info
-        ),
-        x_range=[edges[0], edges[-1]],
-        y_label="Number of Particles",
-        x_label=hellweg_dump_reader.get_label(frame_args.reportType),
-        points=hist.T.tolist(),
+    return template_common.plot_default(
+        PKDict(
+            title=_report_title(
+                frame_args.reportType, "BeamHistogramReportType", beam_info
+            ),
+            x_range=[edges[0], edges[-1]],
+            y_label="Number of Particles",
+            x_label=hellweg_dump_reader.get_label(frame_args.reportType),
+            points=hist.T.tolist(),
+        )
     )
-
 
 def sim_frame_parameterAnimation(frame_args):
     s = rshellweg.solver.BeamSolver(
@@ -208,14 +209,16 @@ def sim_frame_particleAnimation(frame_args):
     )
     x = particle_info["z_values"]
     y = particle_info["y_values"]
-    return PKDict(
-        title=_enum_text("ParticleReportType", frame_args.reportType),
-        x_range=[numpy.min(x), numpy.max(x)],
-        y_label=hellweg_dump_reader.get_label(frame_args.reportType),
-        x_label=hellweg_dump_reader.get_label(x_field),
-        x_points=x,
-        points=y,
-        y_range=particle_info["y_range"],
+    return template_common.plot_default(
+        PKDict(
+            title=_enum_text("ParticleReportType", frame_args.reportType),
+            x_range=[numpy.min(x), numpy.max(x)],
+            y_label=hellweg_dump_reader.get_label(frame_args.reportType),
+            x_label=hellweg_dump_reader.get_label(x_field),
+            x_points=x,
+            points=y,
+            y_range=particle_info["y_range"],
+        )
     )
 
 
