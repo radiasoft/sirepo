@@ -307,6 +307,10 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         return SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
     };
 
+    self.sbatchHostDisplayName = self.jobRunModeMap.sbatch;
+
+    self.sbatchHostIsNersc = self.sbatchHostDisplayName ? self.sbatchHostDisplayName.toLowerCase().indexOf('nersc') >= 0 : false;
+
     self.upgradePlanLink = function() {
         return '<a href="' + SIREPO.APP_SCHEMA.constants.plansUrl +
             '" target="_blank">' +
@@ -340,7 +344,7 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, utilities, $document, $interval, $rootScope, $filter) {
+SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, requestQueue, requestSender, utilities, $document, $interval, $rootScope, $filter) {
     var self = {
         models: {},
     };
@@ -357,10 +361,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     function broadcastChanged(name) {
         $rootScope.$broadcast(name + '.changed');
         $rootScope.$broadcast('modelChanged', name);
-    }
-
-    function broadcastLoaded() {
-        $rootScope.$broadcast('modelsLoaded');
     }
 
     function broadcastSaved(name) {
@@ -390,7 +390,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         savedModelValues = self.cloneModel();
         lastAutoSaveData = self.clone(data);
         self.updateReports();
-        broadcastLoaded();
+        $rootScope.$broadcast('modelsLoaded');
         self.resetAutoSaveTimer();
     }
 
@@ -472,7 +472,8 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     };
 
     self.clearModels = function(emptyValues) {
-        requestQueue.cancelItems(QUEUE_NAME);
+        msgRouter.clearModels();
+        requestQueue.clearModels();
         broadcastClear();
         self.models = emptyValues || {};
         savedModelValues = self.clone(self.models);
@@ -940,7 +941,7 @@ SIREPO.app.factory('appDataService', function() {
     return self;
 });
 
-SIREPO.app.factory('stringsService', function() {
+SIREPO.app.factory('stringsService', function(authState) {
     const strings = SIREPO.APP_SCHEMA.strings;
 
     function typeOfSimulation(modelName) {
@@ -981,6 +982,8 @@ SIREPO.app.factory('stringsService', function() {
         newSimulationLabel: () => {
             return strings.newSimulationLabel || `New ${ucfirst(strings.simulationDataType)}`;
         },
+	sbatchLoginServiceStatus: () => {return 'Requesting login status...';},
+        sbatchLoginServiceLogin: () => {return `Login to ${authState.sbatchHostDisplayName}`;},
         startButtonLabel: (modelName) => {
             return `Start New ${typeOfSimulation(modelName)}`;
         },
@@ -1034,6 +1037,363 @@ SIREPO.app.factory('timeService', function() {
             }
         );
     };
+
+    return self;
+});
+
+SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authState, errorService, requestSender, stringsService) {
+    const self = {};
+
+    // The implementation is a state maachine. Learn more about state machines:
+    // https://hackernoon.com/state-machines-can-help-you-solve-complex-programming-problems
+
+    // States and events are strings which are implemented as constants _e_.
+    // This is Hungarian Notation: https://en.wikipedia.org/wiki/Hungarian_notation
+    // To ensure all states and events are correctly spelled and accounted for.
+    // Clients of this service call functions which check the arguments are in _STATES or _EVENTS.
+
+    // For a diagram, see https://github.com/radiasoft/sirepo/pull/7055#issuecomment-2111318797
+    // This code will be slightly different, because it has been debugged.
+    // The _TRANSITIONS defines the state machine.
+
+
+    // Unlike classic state machines, events are $broadcast ("sbatchLoginEvent") and
+    // watchers call _EVENT_QUERIES to see if particular actions are required. This
+    // has two advantages. The dispatcher is angular's normal digest loop, which avoids
+    // callbacks within an angular event. Second, _EVENT_QUERIES collects all the
+    // different and overlapping actions in different parts of the code base.
+
+    // The actions for sending/receiving messages to the server are handled
+    // by this service, since that was the original point of this service. These
+    // actions could be moved out.
+
+    // _STATE_QUERIES are used by clients outside of a transition (sbatchLoginEvent)
+    // to decide how to render.
+
+    // sbatchLogin was sent to server
+    const _s_auth = 'auth';
+    // awaiting for credential input from user
+    const _s_creds = 'creds';
+    // sbatchLogin is required before simulating, waiting for loginClicked
+    const _s_idle = 'idle';
+    // start state
+    const _s_initial = 'initial';
+    // sbatchLogin is not required
+    const _s_notNeeded = 'notNeeded';
+    // is logged in
+    const _s_ok = 'ok';
+    // sbatchLoginStatus was sent to server
+    const _s_status = 'status';
+
+    // sbatchLogin/Status error or unknown state (perlmutter down)
+    const _e_authError = 'authError';
+    // incorrect credentials from sbatchLogin
+    const _e_authInvalid = 'authInvalid';
+    // logged out reply from sbatchLoginStatus
+    const _e_authMissing = 'authMissing';
+    // logged in reply from sbatchLoginStatus or ready from sbatchLogin
+    const _e_authSuccess = 'authSuccess';
+    // cancel pressed by user before credential input
+    const _e_credsCancel = 'credsCancel';
+    // submit pressed on creds form
+    const _e_credsConfirm = 'credsConfirm';
+    // login button pressed to show creds form
+    const _e_loginClicked = 'loginClicked';
+    // change jobRunMode != sbatch
+    const _e_needNo = 'needNo';
+    // change jobRunMode == sbatch
+    const _e_needYes = 'needYes';
+    // models have been unloaded
+    const _e_unloaded = 'unloaded';
+
+    const _REASON_TO_EVENTS = {
+        "general-connection-error": _e_authError,
+        "invalid-creds": _e_authInvalid,
+        "no-creds": _e_authMissing,
+    };
+
+    const _TRANSITIONS = {
+        [_s_auth]: {
+            [_e_authError]: _s_creds,
+            [_e_authInvalid]: _s_creds,
+            [_e_authMissing]: _s_creds,
+            [_e_authSuccess]: _s_ok,
+            [_e_credsCancel]: _s_idle,
+            [_e_loginClicked]: _s_auth,
+            [_e_needNo]: _s_notNeeded,
+            [_e_needYes]: _s_auth,
+            [_e_unloaded]: _s_initial,
+        },
+        [_s_creds]: {
+            [_e_authInvalid]: _s_creds,
+            [_e_authMissing]: _s_creds,
+            [_e_authSuccess]: _s_ok,
+            [_e_credsCancel]: _s_idle,
+            [_e_credsConfirm]: _s_auth,
+            [_e_loginClicked]: _s_creds,
+            [_e_needNo]: _s_notNeeded,
+            [_e_needYes]: _s_creds,
+            [_e_unloaded]: _s_initial,
+        },
+        [_s_idle]: {
+            [_e_authInvalid]: _s_idle,
+            [_e_authMissing]: _s_idle,
+            [_e_authSuccess]: _s_ok,
+            [_e_loginClicked]: _s_creds,
+            [_e_needNo]: _s_notNeeded,
+            [_e_needYes]: _s_status,
+            [_e_unloaded]: _s_initial,
+        },
+        [_s_initial]: {
+            [_e_needNo]: _s_notNeeded,
+            [_e_needYes]: _s_status,
+            [_e_authMissing]: _s_idle,
+            [_e_unloaded]: _s_initial,
+        },
+        [_s_notNeeded]: {
+            [_e_authInvalid]: _s_notNeeded,
+            [_e_authMissing]: _s_notNeeded,
+            [_e_authSuccess]: _s_notNeeded,
+            [_e_loginClicked]: _s_notNeeded,
+            [_e_needNo]: _s_notNeeded,
+            [_e_needYes]: _s_status,
+            [_e_unloaded]: _s_initial,
+        },
+        [_s_ok]: {
+            [_e_authInvalid]: _s_idle,
+            [_e_authMissing]: _s_idle,
+            [_e_authSuccess]: _s_ok,
+            [_e_loginClicked]: _s_ok,
+            [_e_needNo]: _s_notNeeded,
+            [_e_needYes]: _s_ok,
+            [_e_unloaded]: _s_initial,
+        },
+        [_s_status]: {
+            [_e_authInvalid]: _s_idle,
+            [_e_authError]: _s_idle,
+            [_e_authMissing]: _s_idle,
+            [_e_authSuccess]: _s_ok,
+            [_e_loginClicked]: _s_status,
+            [_e_needNo]: _s_notNeeded,
+            [_e_needYes]: _s_status,
+            [_e_unloaded]: _s_initial,
+        },
+    };
+
+    const _STATES = new Set(Object.keys(_TRANSITIONS));
+
+    const _EVENTS =  new Set(Object.values(_TRANSITIONS).map((x) => {return Object.keys(x);}).flat(1));
+
+    let _state = _s_initial;
+
+    const _STATE_QUERIES = {
+        isLoggedIn: (state) => {
+            return state === _s_ok;
+        },
+        showLogin: (state) => {
+            return [_s_creds, _s_idle].includes(state);
+        },
+        showLoginOrStatus: (state) => {
+            return [_s_auth, _s_creds, _s_idle, _s_status].includes(state);
+        },
+        showSbatchOptions: (state) => {
+            return state !== _s_notNeeded;
+        },
+    };
+
+    // This should be a static member, but that's not supported by jshint.
+    // So this code references private members
+    // See https://github.com/jshint/jshint/issues/3645
+    const _EVENT_QUERIES = {
+        hideCredsForm: (event) => {
+            return event._newState === _s_ok || event._event === _e_credsCancel;
+        },
+        isCredsFormBlank: (event) => {
+            return event._event === _e_loginClicked && event._oldState === _s_idle;
+        },
+        isCredsFormError: (event) => {
+            return [_e_authInvalid, _e_authMissing, _e_authError].includes(event._event) && event._newState === _s_creds;
+        },
+        isLoggedInFromCreds: (event) => {
+            return event._event === _e_authSuccess && event._oldState === _s_auth;
+        },
+        isLoginNotNeeded: (event) => {
+            return ! [_e_authSuccess, _e_needNo].includes(event._event);
+        },
+        requestSbatchLogin: (event) => {
+            return event._event === _e_credsConfirm && event._oldState === _s_creds;
+        },
+        requestSbatchLoginStatus: (event) => {
+            return event._oldState != _s_status && event._newState === _s_status;
+        },
+        showCredsForm: (event) => {
+            return event._event === _e_authMissing && [_s_ok, _s_status].includes(event._oldState);
+        },
+    };
+
+    class _Event {
+        constructor(event, arg) {
+            this._event = _assertEvent(event);
+            this._arg = this._assertArg(arg);
+            this._oldState = _state;
+            this._newState = this._nextState();
+        }
+
+        argProperty(name) {
+            if (name in this._arg) {
+                return this._arg[name];
+            }
+            throw new Error(`invalid arg property=${name} for event=${this._event} oldState=${this._oldState}`);
+        }
+
+        credsError() {
+            if ('srException' in this._arg) {
+                const r = this._arg.srException.params.reason;
+                if (r === 'invalid-creds') {
+                    return 'Your credentials were invalid. Please try again.';
+                }
+                if (r === 'no-creds') {
+                    return null;
+                }
+            }
+            return `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`;
+        }
+
+        query(name) {
+            if (name in _EVENT_QUERIES) {
+                return _EVENT_QUERIES[name](this);
+            }
+            throw new Error(`invalid query=${name} for event=${this._event} oldState=${this._oldState}`);
+        }
+
+        transition() {
+            //DEBUG: (`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
+            _state = this._newState;
+            $rootScope.$broadcast('sbatchLoginEvent', this);
+        }
+
+        _assertArg(arg) {
+            if (angular.isObject(arg)) {
+                return arg;
+            }
+            if (arg == null || arg == undefined) {
+                return {};
+            }
+            throw new Error(`invalid arg=${arg} for event=${this._event}`);
+        }
+
+        _nextState() {
+            const rv = _TRANSITIONS[this._oldState][this._event];
+            if (rv) {
+                return rv;
+            }
+            throw new Error(`invalid transition oldState=${this._oldState} event=${this._event}`);
+        }
+    }
+
+    const _assertEvent = (value) => {
+        if (_EVENTS.has(value)) {
+            return value;
+        }
+        throw new Error(`invalid event=${value}`);
+    };
+
+    const _assertState = (value) => {
+        if (_STATES.has(value)) {
+            return value;
+        }
+        throw new Error(`invalid state=${value}`);
+    };
+
+    const _handleSRException = (srException, errorCallback) => {
+        if (srException.routeName != 'sbatchLogin') {
+            return false;
+        }
+        //TODO(robnagler) an alternative is to broadcast an error.
+        // there should be some type of global state management
+        // here, since requests are all connected to this event.
+        // if there is a frame waiting on a request, this state
+        // should be known. requestSender perhaps needs to know...
+        errorCallback({
+            state: 'error',
+            //TODO(robnagler) this should be returned from sbatchLoginService or stringService
+            error: `Please login to ${authState.sbatchHostDisplayName}`,
+            sbatchLoginServiceSRException: true,
+        });
+        self.event(
+            _REASON_TO_EVENTS[srException.params.reason] || _e_authError,
+            {srException: srException},
+        );
+        return true;
+    };
+
+    const _internalEventActions = (_, event) => {
+        if (event.query('requestSbatchLogin')) {
+            _sendRequest(
+                'sbatchLogin',
+                event,
+                {sbatchCredentials: event.argProperty('sbatchCredentials')},
+            );
+        }
+        else if (event.query('requestSbatchLoginStatus')) {
+            _sendRequest('sbatchLoginStatus', event, {});
+        }
+    };
+
+    const _sendRequest = (route, event, otherArgs) => {
+	const _response = (response) => {
+            if (response.sbatchLoginServiceSRException) {
+                return;
+            }
+            self.event(
+                response.ready || response.loginSuccess ? _e_authSuccess : _e_authMissing,
+                {authResponse: response},
+            );
+	};
+	requestSender.sendRequest(
+	    route,
+	    _response,
+	    {
+		computeModel: event.argProperty('directiveScope').simState.model,
+		simulationId: appState.models.simulation.simulationId,
+		simulationType: SIREPO.APP_SCHEMA.simulationType,
+		...otherArgs,
+	    },
+            _response,
+        );
+    };
+
+    self.event = (event, eventArg) => {
+        (new _Event(event, eventArg)).transition();
+    };
+
+    self.jobRunModeChanged = (directiveScope) => {
+        const m = appState.models[directiveScope.simState.model];
+        self.event(
+            m && m.jobRunMode === 'sbatch' ? _e_needYes : _e_needNo,
+            {directiveScope: directiveScope},
+
+        );
+    };
+
+    self.loginButtonLabel = () => {
+        if (self.query('showLogin')) {
+            return stringsService.sbatchLoginServiceLogin();
+        }
+	return stringsService.sbatchLoginServiceStatus();
+    };
+
+    self.query = (name) => {
+        const f = _STATE_QUERIES[name];
+        if (f) {
+            return f(_state);
+        }
+        throw new Error(`invalid query=${name}`);
+    };
+
+    requestSender.registerSRExceptionHandler(_handleSRException);
+    $rootScope.$on('modelsUnloaded', () => self.event(_e_unloaded));
+    $rootScope.$on('sbatchLoginEvent', _internalEventActions);
 
     return self;
 });
@@ -1197,7 +1557,7 @@ SIREPO.app.service('validationService', function(utilities) {
 });
 
 
-SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $interval, $rootScope, $timeout) {
+SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, authState, $interval, $rootScope, $timeout) {
     var self = {};
     var frameCountByModelKey = {};
     var masterFrameCount = 0;
@@ -1243,18 +1603,32 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     };
 
     self.getFrame = function(modelName, index, isPlaying, callback) {
-        if (! appState.isLoaded()) {
-            return;
+        const isHidden = panelState.isHidden(modelName);
+        let frameRequestTime = now();
+        let setPanelStateIsLoadingTimer = null;
+
+	function cancelSetPanelStateIsLoadingTimer() {
+	    if (setPanelStateIsLoadingTimer) {
+		$timeout.cancel(setPanelStateIsLoadingTimer);
+		setPanelStateIsLoadingTimer = null;
+	    }
+	}
+
+        function onError(response) {
+	    if (! (response && response.error)) {
+                panelState.reportNotGenerated(modelName);
+            }
+            else if (! response.sbatchLoginServiceSRException) {
+                panelState.setLoading(modelName, false);
+                panelState.setError(modelName, response.error);
+            }
+            cancelSetPanelStateIsLoadingTimer();
         }
-        function onError() {
-            panelState.reportNotGenerated(modelName);
-        }
+
         function now() {
             return new Date().getTime();
         }
-        let isHidden = panelState.isHidden(modelName);
-        let frameRequestTime = now();
-        let waitTimeHasElapsed = false;
+
         const framePeriod = () => {
             if (! isPlaying || isHidden) {
                 return 0;
@@ -1268,26 +1642,16 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         };
 
         const requestFunction = function() {
-            const i = appState.models.simulation.simulationId;
-            $timeout(() => {
-                if (! waitTimeHasElapsed) {
-                    panelState.setLoading(modelName, true);
-                }
-            }, 5000);
+            setPanelStateIsLoadingTimer = $timeout(() => {
+		panelState.setLoading(modelName, true);
+	    }, 5000);
             requestSender.sendRequest(
                 {
                     routeName: 'simulationFrame',
                     frame_id: self.frameId(modelName, index),
                 },
                 function(data) {
-                    waitTimeHasElapsed = true;
-                    if (! appState.isLoaded()) {
-                        return;
-                    }
-                    const c = appState.models.simulation.simulationId;
-                    if (! c || c !== i) {
-                        return;
-                    }
+		    cancelSetPanelStateIsLoadingTimer();
                     panelState.setLoading(modelName, false);
                     if ('state' in data && data.state === 'missing') {
                         onError();
@@ -1377,9 +1741,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         masterFrameCount = 0;
         frameCountByModelKey = {};
         self.modelToCurrentFrame = {};
-        self.modelsUnloaded = {};
     });
-
     return self;
 });
 
@@ -1469,11 +1831,20 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
         }
     }
 
+    const _clearAllPanelErrors = () => {
+        for (const n in panels) {
+            // TODO(robnagler)
+            self.setLoading(n, false);
+            self.setError(n, null);
+        }
+    };
+
     function clearPanel(name) {
         delete panels[name];
         delete pendingRequests[name];
         // doesn't clear the queueItems, queueItem will be canceled if necessary in requestData()
     }
+
 
     function fieldClass(model, field) {
         return '.model-' + model + '-' + field;
@@ -1943,6 +2314,15 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
 
     $($window).resize(windowResize);
 
+    $rootScope.$on(
+        'sbatchLoginEvent',
+        (_, sbatchLoginEvent) => {
+            if (sbatchLoginEvent.query('isLoginNotNeeded')) {
+                _clearAllPanelErrors();
+            }
+        },
+    );
+
     return self;
 });
 
@@ -2185,15 +2565,16 @@ SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
 
 // cannot import authState factory, because of circular import with requestSender
 SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, uri) => {
-    let asyncMsgMethods = {};
+    const asyncMsgMethods = {};
+    const httpRequests = [];
+    const self = {};
+    const toSend = [];
     let cookiesSorted = null;
     let cookiesVerbatim = null;
     let needReply = {};
     let reqSeq = 1;
-    const self = {};
     let socket = null;
     let socketRetryBackoff = 0;
-    const toSend = [];
 
     const _appendBuffers = (wsreq, buffers) => {
         buffers.splice(0, 0, wsreq.msg);
@@ -2221,6 +2602,30 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         return true;
     };
 
+    const _httpRequest = (url, data, httpConfig) => {
+        const r = {
+            actual: $q.defer(),
+            wrapper: data ? $http.post(url, data, httpConfig)
+                : $http.get(url, httpConfig),
+        };
+        httpRequests.push(r);
+        r.wrapper.then(
+            (response) => {
+                if (r.actual !== null) {
+                    httpRequests.splice(httpRequests.indexOf(r), 1);
+                    r.actual.resolve(response);
+                }
+            },
+            (reason) => {
+                if (r.actual !== null) {
+                    httpRequests.splice(httpRequests.indexOf(r), 1);
+                    r.actual.reject(reason);
+                }
+            },
+        );
+        return r.actual.promise;
+    };
+
     const _protocolError = (header, content, wsreq, errorMsg) => {
         const e = "sirepo.msgRouter protocolError=" + (errorMsg || "invalid reply from server");
         srlog(
@@ -2234,7 +2639,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             " content=",
             content
         );
-        if (wsreq) {
+        if (wsreq && wsreq.deferred !== null) {
             wsreq.deferred.reject({
                 data: {state: "error", error: e},
                 status: 500,
@@ -2265,7 +2670,9 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             if (SIREPO.traceWS) {
                 srlog(`wsreq#${wsreq.header.reqSeq} replyError:`, reply);
             }
-            wsreq.deferred.reject(reply);
+            if (wsreq && wsreq.deferred !== null) {
+                wsreq.deferred.reject(reply);
+            }
         };
         if (! wsreq) {
             _protocolError(header, content, null, "reqSeq not found");
@@ -2327,10 +2734,12 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         if (SIREPO.traceWS) {
             srlog(`wsreq#${wsreq.header.reqSeq} reply:`, content);
         }
-        wsreq.deferred.resolve({
-            data: content,
-            status: 200
-        });
+        if (wsreq.deferred !== null) {
+            wsreq.deferred.resolve({
+                data: content,
+                status: 200
+            });
+        }
     };
 
     const _reqData = (data, wsreq, done) => {
@@ -2452,19 +2861,22 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         _send();
     };
 
-    const _timeout = (wsreq) => {
-        const i = toSend.indexOf(wsreq);
-        if (i >= 0) {
-            toSend.splice(i, 1);
-            return;
+    self.clearModels = () => {
+        while (httpRequests.length > 0) {
+            httpRequests.shift().actual = null;
         }
-        delete needReply[wsreq.reqSeq];
-        _protocolError(null, null, wsreq, "request timed out");
+        while (toSend.length > 0) {
+            toSend.shift().deferred = null;
+        }
+        for (const v of Object.values(needReply)) {
+            v.deferred = null;
+        }
+        needReply = {};
     };
 
     self.registerAsyncMsg = (methodName, callback) => {
         if (methodName in asyncMsgMethods) {
-            throw new Error(`duplicate registerAsyncMsg methodName="{methodName}"`);
+            throw new Error(`duplicate registerAsyncMsg methodName="${methodName}"`);
         }
         asyncMsgMethods[methodName] = callback;
     };
@@ -2475,8 +2887,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             return {then: () => {}};
         }
         if (! SIREPO.authState.uiWebSocket) {
-            return data ? $http.post(url, data, httpConfig)
-                : $http.get(url, httpConfig);
+            return _httpRequest(url, data, httpConfig);
         }
         let wsreq = {
             deferred: $q.defer(),
@@ -2489,9 +2900,6 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             ...httpConfig,
         };
         wsreq.msg = msgpack.encode(wsreq.header);
-        if (wsreq.timeout) {
-            wsreq.timeout.then(() => {_timeout(wsreq);});
-        }
         const c = (buffers) => {
             if (buffers) {
                 _appendBuffers(
@@ -2527,7 +2935,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
 
 });
 
-SIREPO.app.factory('requestSender', function(browserStorage, errorService, utilities, msgRouter, uri, $location, $injector, $interval, $q, $rootScope) {
+SIREPO.app.factory('requestSender', function(browserStorage, errorService, utilities, msgRouter, uri, $location, $q, $rootScope) {
     var self = {};
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -2537,6 +2945,24 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     var SR_EXCEPTION_RE = new RegExp('/\\*sr_exception=(.+)\\*/');
     var listFilesData = {};
     const storageKey = "previousRoute";
+    const srExceptionHandlers = [];
+    const _TEXT_OR_JSON = new RegExp('^application/json$|^text');
+
+    const _blobResponse = (resp, successCallback, errorCallback) => {
+        // These two content-types are what the server might return with a 200.
+        let d = resp.data;
+        if (d instanceof Blob) {
+            successCallback(d);
+            return;
+        }
+        if (_TEXT_OR_JSON.test(d.type)) {
+            d.text().then((text) => {d = text;});
+        }
+        _errorResponse(
+            {...resp, data: d},
+            errorCallback,
+        );
+    };
 
     function checkLoginRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn
@@ -2566,7 +2992,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         }
     }
 
-    function defaultErrorCallback(data, status) {
+    const _defaultErrorCallback = (data, status) => {
         const err = SIREPO.APP_SCHEMA.customErrors[status];
         if (err && err.route) {
             uri.localRedirect(err.route);
@@ -2574,7 +3000,109 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         else {
             errorService.alertText('Request failed: ' + data.error);
         }
-    }
+    };
+
+    const _errorResponse = (resp, errorCallback) => {
+        let data = resp.data;
+        let status = resp.status;
+        let msg = null;
+        if (status === 0) {
+            msg = 'the server is unavailable';
+            status = 503;
+        }
+        else if (status === -1) {
+            msg = 'Server unavailable';
+        }
+        else if (SIREPO.APP_SCHEMA.customErrors[status]) {
+            msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
+        }
+        if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
+            // Try to parse javascript-redirect.html
+            var m = SR_EXCEPTION_RE.exec(data);
+            if (m) {
+                // if this is invalid, will throw SyntaxError, which we
+                // cannot handle so it will just show up as error.
+                _handleSRException(JSON.parse(m[1]), errorCallback);
+                return;
+            }
+            m = REDIRECT_RE.exec(data);
+            if (m) {
+                if (m[1].indexOf('#/error') <= -1) {
+                    srlog('javascriptRedirectDocument', m[1]);
+                    uri.globalRedirect(m[1], undefined);
+                    return;
+                }
+                srlog('javascriptRedirectDocument: staying on page', m[1]);
+                // set explicitly so we don't log below
+                data = {error: 'server error'};
+            }
+            else {
+                // HTML document with error msg in title
+                m = HTML_TITLE_RE.exec(data);
+                if (m) {
+                    srlog('htmlErrorDocument', m[1]);
+                    data = {error: m[1]};
+                }
+            }
+        }
+        if ($.isEmptyObject(data)) {
+            data = {};
+        }
+        else if (! angular.isObject(data)) {
+            errorService.logToServer(
+                'serverResponseError', data, 'unexpected response type or empty');
+            data = {};
+        }
+        if (! data.state) {
+            data.state = 'error';
+        }
+        if (data.state == 'srException') {
+            _handleSRException(data.srException, errorCallback);
+            return;
+        }
+        if (! data.error) {
+            if (msg) {
+                data.error = msg;
+            }
+            else {
+                srlog(resp);
+                data.error = 'a server error occurred' + (status ? (': status=' + status) : '');
+            }
+        }
+        srlog(data.error);
+        errorCallback(data, status, resp.data);
+    };
+
+    const _handleSRException = (srException, errorCallback) => {
+        const e = srException;
+        //TODO(robnagler) register handler
+        if (e.routeName == "httpRedirect") {
+            uri.globalRedirect(e.params.uri, undefined);
+            return;
+        }
+        //TODO(robnagler) register handler
+        if (e.routeName == "serverUpgraded" && e.params && e.params.reason in SIREPO.refreshModalMap) {
+            $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
+            return;
+        }
+	for (const h of srExceptionHandlers) {
+	    if (h(e, errorCallback)) {
+                return;
+            }
+	}
+        //TODO(robnagler) register handler
+        if (e.routeName == LOGIN_ROUTE_NAME) {
+            saveLoginRedirect();
+            // if redirecting to login, but the app thinks it is already logged in,
+            // then force a logout to avoid a login loop
+            if (SIREPO.authState.isLoggedIn) {
+                uri.globalRedirect('authLogout');
+                return;
+            }
+        }
+        uri.localRedirect(e.routeName, e.params);
+        return;
+    };
 
     function saveLoginRedirect() {
         const u = $location.url();
@@ -2613,40 +3141,6 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         return listFilesData[name];
     };
 
-    self.handleSRException = function(srException, errorCallback) {
-        const e = srException;
-        if (e.routeName == "httpRedirect") {
-            uri.globalRedirect(e.params.uri, undefined);
-            return;
-        }
-        if (e.routeName == "serverUpgraded" && e.params && e.params.reason in SIREPO.refreshModalMap) {
-            $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
-            return;
-        }
-        if (e.params && e.params.isModal && e.routeName.toLowerCase().includes('sbatch')) {
-            e.params.errorCallback = errorCallback;
-            $rootScope.$broadcast(
-                'showSbatchLoginModal',
-                {
-                    errorCallback: errorCallback,
-                    srExceptionParams: e.params,
-                },
-            );
-            return;
-        }
-        if (e.routeName == LOGIN_ROUTE_NAME) {
-            saveLoginRedirect();
-            // if redirecting to login, but the app thinks it is already logged in,
-            // then force a logout to avoid a login loop
-            if (SIREPO.authState.isLoggedIn) {
-                uri.globalRedirect('authLogout');
-                return;
-            }
-        }
-        uri.localRedirect(e.routeName, e.params);
-        return;
-    };
-
     self.loadListFiles = function(name, params, callback) {
         if (listFilesData[name] || listFilesData[name + ".loading"]) {
             if (callback) {
@@ -2678,6 +3172,13 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
             },
         );
     };
+
+    self.registerSRExceptionHandler = (handler) => {
+        if (srExceptionHandlers.indexOf(handler) < 0) {
+	    srExceptionHandlers.push(handler);
+	}
+    };
+
     self.sendAnalysisJob = function(appState, callback, data) {
         sendWithSimulationFields('analysisJob', appState, callback, data);
     };
@@ -2700,144 +3201,39 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     };
 
     self.sendRequest = function(urlOrParams, successCallback, requestData, errorCallback) {
-        const blobResponse = (response, successCallback, thisErrorCallback) => {
-            // These two content-types are what the server might return with a 200.
-            const r = new RegExp('^(application/json|text/html)$');
-            let d = response.data;
-            if (d instanceof Blob) {
-                successCallback(d);
-                return;
-            }
-            if (r.test(d.type) || /^text/.test(d.type)) {
-                d.text().then((text) => {d = text;});
-            }
-            thisErrorCallback({
-                ...response,
-                data: d,
-            });
-        };
+        const httpConfig = {};
         if (! errorCallback) {
-            errorCallback = defaultErrorCallback;
+            errorCallback = _defaultErrorCallback;
         }
         if (! successCallback) {
-            successCallback = function () {};
+            successCallback = () => {};
         }
-        var url = angular.isString(urlOrParams) && urlOrParams.indexOf('/') >= 0
-            ? urlOrParams
-            : uri.format(urlOrParams);
-        var timeout = $q.defer();
-        var interval, t;
-        var timed_out = false;
-        const httpConfig = {timeout: timeout.promise};
         if (requestData && requestData.responseType) {
             httpConfig.responseType = requestData.responseType;
             delete requestData.responseType;
         }
-        if (SIREPO.http_timeout > 0) {
-            interval = $interval(
-                function () {
-                    timed_out = true;
-                    timeout.resolve();
-                },
-                SIREPO.http_timeout,
-                1
-            );
-        }
-        var req = msgRouter.send(url, requestData, httpConfig);
-        var thisErrorCallback = function(response) {
-            var data = response.data;
-            var status = response.status;
-            $interval.cancel(interval);
-            var msg = null;
-            if (timed_out) {
-                msg = 'request timed out after '
-                    + Math.round(SIREPO.http_timeout/1000)
-                    + ' seconds';
-                status = 504;
-            }
-            else if (status === 0) {
-                msg = 'the server is unavailable';
-                status = 503;
-            }
-            else if (status === -1) {
-                msg = 'Server unavailable';
-            }
-            else if (SIREPO.APP_SCHEMA.customErrors[status]) {
-                msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
-            }
-            if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
-                // Try to parse javascript-redirect.html
-                var m = SR_EXCEPTION_RE.exec(data);
-                if (m) {
-                    // if this is invalid, will throw SyntaxError, which we
-                    // cannot handle so it will just show up as error.
-                    self.handleSRException(JSON.parse(m[1]), errorCallback);
-                    return;
-                }
-                m = REDIRECT_RE.exec(data);
-                if (m) {
-                    if (m[1].indexOf('#/error') <= -1) {
-                        srlog('javascriptRedirectDocument', m[1]);
-                        uri.globalRedirect(m[1], undefined);
-                        return;
-                    }
-                    srlog('javascriptRedirectDocument: staying on page', m[1]);
-                    // set explicitly so we don't log below
-                    data = {error: 'server error'};
-                }
-                else {
-                    // HTML document with error msg in title
-                    m = HTML_TITLE_RE.exec(data);
-                    if (m) {
-                        srlog('htmlErrorDocument', m[1]);
-                        data = {error: m[1]};
-                    }
-                }
-            }
-            if ($.isEmptyObject(data)) {
-                data = {};
-            }
-            else if (! angular.isObject(data)) {
-                errorService.logToServer(
-                    'serverResponseError', data, 'unexpected response type or empty');
-                data = {};
-            }
-            if (! data.state) {
-                data.state = 'error';
-            }
-            if (data.state == 'srException') {
-                self.handleSRException(data.srException, errorCallback);
-                return;
-            }
-            if (! data.error) {
-                if (msg) {
-                    data.error = msg;
-                }
-                else {
-                    srlog(response);
-                    data.error = 'a server error occurred' + (status ? (': status=' + status) : '');
-                }
-            }
-            srlog(data.error);
-            errorCallback(data, status, response.data);
-        };
-        req.then(
-            function(response) {
+        msgRouter.send(
+            angular.isString(urlOrParams) && urlOrParams.indexOf('/') >= 0
+                ? urlOrParams
+                : uri.format(urlOrParams),
+            requestData,
+            httpConfig,
+        ).then(
+            (resp) => {
                 if (httpConfig.responseType === 'blob') {
-                    $interval.cancel(interval);
-                    blobResponse(response, successCallback, thisErrorCallback);
+                    _blobResponse(resp, successCallback, errorCallback);
                     return;
                 }
-                var data = response.data;
                 // POSIT: isObject returns true for []
-                if (! angular.isObject(data) || data.state === 'srException') {
-                    thisErrorCallback(response);
+                if (! angular.isObject(resp.data) || resp.data.state === 'srException') {
+                    _errorResponse(resp, errorCallback);
                     return;
                 }
-                $interval.cancel(interval);
-                successCallback(data, response.status);
+                successCallback(resp.data, resp.status);
             },
-            thisErrorCallback,
+            (resp) => {
+                _errorResponse(resp, errorCallback);
+            },
         );
     };
 
@@ -3027,10 +3423,6 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         return addItem(report, models, responseHandler, 'transient');
     };
 
-    self.cancelAllItems = function() {
-        cancelItems();
-    };
-
     // TODO(mvk): handle possible queue state conflicts
     self.cancelItem = function (qi, successCallback, errorCallback) {
         if (! qi) {
@@ -3076,19 +3468,17 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         cancelInterval(qi);
     };
 
-    $rootScope.$on('$routeChangeSuccess', self.cancelAllItems);
     $rootScope.$on('clearCache', self.cancelTransientItems);
 
     return self;
 });
 
 SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
-    var self = {};
-    var queueMap = {};
-    self.currentQI = null;
+    const self = {};
+    const queueMap = {};
 
     function getQueue(name) {
-        if (! queueMap[name] ) {
+        if (! (name in queueMap)) {
             queueMap[name] = [];
         }
         return queueMap[name];
@@ -3096,19 +3486,20 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 
     function sendNextItem(name) {
         var q = getQueue(name);
-        if ( q.length <= 0 ) {
+        if (q.length <= 0) {
             return;
         }
         var qi = q[0];
-        self.currentQI = qi;
-        if ( qi.requestSent ) {
+        // qi cannot be canceled (see clearModels below)
+        if (qi.requestSent) {
+            // Only one request outstanding at a time
             return;
         }
         qi.requestSent = true;
         qi.params = qi.paramsCallback();
         var process = function(ok, resp, status) {
-            self.currentQI = null;
             if (qi.canceled) {
+                // canceled and no longer in queue (so don't shift())
                 sendNextItem(name);
                 return;
             }
@@ -3127,12 +3518,6 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
         );
     }
 
-    self.cancelItems = function(queueName) {
-        var q = getQueue(queueName);
-        q.forEach(function(qi) {qi.canceled = true;});
-        q.length = 0;
-        self.currentQI = null;
-    };
 
     self.addItem = function(queueName, paramsCallback) {
         getQueue(queueName).push({
@@ -3141,9 +3526,15 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
         });
         sendNextItem(queueName);
     };
-    self.getCurrentQI = function(queueName) {
-        return self.currentQI;
+
+    self.clearModels = function() {
+        for (const q of Object.values(queueMap)) {
+            while (q.length > 0) {
+                q.shift().canceled = true;
+            }
+        }
     };
+
     return self;
 });
 
@@ -3170,6 +3561,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         }
 
         function handleStatus(data) {
+	    if (data && data.srException) {
+		return;
+	    }
             setSimulationStatus(data);
             if (state.isStopped()) {
                 state.timeData.elapsedTime = Math.max(
@@ -3407,9 +3801,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
 
         state.resetSimulation();
         controller.simScope.$on('$destroy', clearSimulation);
-        controller.simScope.$on('sbatchLoginSuccess', function() {
-            state.resetSimulation();
-        });
         return state;
     };
     return self;
@@ -4151,7 +4542,6 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
     var self = this;
     const storageKey = "iconView";
     self.stringsService = stringsService;
-    $rootScope.$broadcast('simulationUnloaded');
     self.importText = SIREPO.APP_SCHEMA.strings.importText;
     self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';

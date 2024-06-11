@@ -29,9 +29,8 @@ def api_and_supervisor(pytest_req, fc_args):
         import pykern.pkio
         import pykern.pkunit
         import re
-        import socket
 
-        h = socket.gethostname()
+        h = "localhost"
         k = pykern.pkio.py_path("~/.ssh/known_hosts").read()
         m = re.search("^{}.*$".format(h), k, re.MULTILINE)
         assert bool(m), "You need to ssh into {} to get the host key".format(h)

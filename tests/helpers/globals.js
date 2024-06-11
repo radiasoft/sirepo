@@ -6,10 +6,17 @@ var SIREPO = {
     authState: {
         avatarUrl: null,
         displayName: 'Guest User',
+	feature_config: {
+	    hide_guest_warning: true,
+	},
         guestIsOnlyMethod: true,
         isGuestUser: true,
         isLoggedIn: true,
         isLoginExpired: false,
+	jobRunModeMap: {
+	    'sequential': 'Serial',
+	    'parallel': '2 cores (SMP)'
+	},
         method: 'guest',
         needCompleteRegistration: false,
         uiWebSocket: false,
@@ -56,6 +63,9 @@ SIREPO.APP_SCHEMA = {
             "value": "a",
             "timeout": 1
         }
+    },
+    "feature_config" : {
+	"hide_guest_warning": true
     },
     "localRoutes": {
         "login": {
@@ -203,6 +213,10 @@ SIREPO.APP_SCHEMA = {
             ["1", "Auto-Undulator"],
             ["2", "Auto-Wiggler"]
         ],
+	"JobRunMode": [
+	    ["sequential", "sequential"],
+	    ["parallel", "parallel"],
+	],
         "MagneticField": [
             ["1", "Approximate"],
             ["2", "Accurate (tabulated)"]

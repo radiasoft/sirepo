@@ -162,6 +162,7 @@
         "runStatus": "/run-status",
         "saveModerationReason": "/save-moderation-reason",
         "saveSimulationData": "/save-simulation",
+        "sbatchLoginStatus": "/sbatch-login-status",
         "sbatchLogin": "/sbatch-login",
         "serverStatus": "/server-status",
         "simOauthFlashAuthorized": "/sim-oauth-flash-authorized",

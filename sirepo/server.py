@@ -364,7 +364,7 @@ class API(sirepo.quest.API):
         return self._save_new_and_reply(req, d)
 
     @sirepo.quest.Spec("allow_visitor")
-    async def api_notFound(self):
+    async def api_notFound(self, *args, **kwargs):
         raise sirepo.util.NotFound("app forced not found (uri parsing error)")
 
     @sirepo.quest.Spec(

@@ -2570,15 +2570,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     Completed {{ runStepName }}: {{ particleNumber }} / {{ particleCount}}
                   </div>
                 <div class="col-sm-12" data-simulation-status-timer="simState"></div>
-                <div data-ng-if="simState.showJobSettings()">
-                  <div class="form-group form-group-sm">
-                    <div data-model-field="'jobRunMode'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
-                  </div>
-                  <div data-sbatch-options="simState"></div>
-                </div>
-                <div class="col-sm-6 pull-right">
-                  <button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel() }}</button>
-                </div>
+                <div data-job-settings-sbatch-login-and-start-simulation data-sim-state="simState" data-start-simulation="startSimulation()"></div>
               </div>
             </form>
         `,
@@ -2724,10 +2716,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     return false;
                 }
                 return $scope.particleNumber;
-            };
-
-            $scope.startButtonLabel = function() {
-                return stringsService.startButtonLabel();
             };
 
             $scope.stopButtonLabel = function() {

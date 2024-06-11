@@ -356,35 +356,24 @@
       margin-left: 1em;
     }
 
-    .sr-panel-error {
-      background-color: #777;
-    }
     .sr-panel-error .sr-panel-wait {
       white-space: pre-line;
-      color: #fad8de;
+      color: #a94442;
       display: block;
-    }
-    .sr-panel-loading {
-      background-color: #777;
     }
     .sr-panel-wait {
       display: none;
     }
-    .sr-panel-loading .sr-panel-wait {
-      color: white;
+    .sr-panel-loading .sr-panel-wait, .sr-panel-waiting .sr-panel-wait {
       display: block;
+      position: absolute;
+      background-color: #eee;
+      padding: 5px 10px;
       z-index: 1000;
+      border-radius: 10px;
     }
     .sr-panel-running .sr-panel-wait {
       font-weight: bold;
-    }
-    .sr-panel-waiting {
-      background-color: #777;
-    }
-    .sr-panel-waiting .sr-panel-wait {
-      color: white;
-      display: block;
-      z-index: 1000;
     }
     .sr-hide-report {
       opacity: 0;
@@ -568,9 +557,6 @@
     }
     .sr-plot .z-axis-label {
       line-height: 160%;
-    }
-    .sr-plot-loading {
-      opacity: 0.2;
     }
     .sr-plot-cleared {
       opacity: 0;
