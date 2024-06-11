@@ -540,7 +540,7 @@ class _Auth(sirepo.quest.Attr):
                 e = "invalid"
                 self.reset_state()
                 p = PKDict(reload_js=True)
-            e = "auth_method={} is {}, forcing login: uid={}".format(m, e, u)
+            e = f"auth_method={m} is {e}, forcing login: uid={u}"
         elif s == _STATE_LOGGED_OUT:
             e = "logged out uid={}".format(u)
             if m in _cfg.deprecated_methods:

@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """CRUD operations for user roles
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.pkcli import admin
@@ -49,8 +48,8 @@ def delete_roles(*args):
 def disable_user(moderator_uid, uid_or_email):
     """Remove role user
     Args:
-    moderator_uid (str): To be recorded in UserRoleModeration
-    uid_or_email (str): Uid or email of the user
+        moderator_uid (str): To be recorded in UserRoleModeration
+        uid_or_email (str): Uid or email of the user
     """
     with _parse_args(uid_or_email) as qcall:
         qcall.auth_db.model("UserRole").delete_roles([sirepo.auth_role.ROLE_USER])
@@ -81,7 +80,7 @@ def list_roles(*args):
 # TODO(e-carlin): This only works for email auth or using a uid
 # doesn't work for other auth methods
 @contextlib.contextmanager
-def _parse_args(uid_or_email, roles=[]):
+def _parse_args(uid_or_email, roles=None):
     with sirepo.quest.start() as qcall:
         # POSIT: Uid's are from the base62 charset so an '@' implies an email.
         if "@" in uid_or_email:

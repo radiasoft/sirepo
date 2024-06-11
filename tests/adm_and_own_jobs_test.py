@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Test getting own and adm jobs.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 import pytest
 import os
 from pykern.pkcollections import PKDict

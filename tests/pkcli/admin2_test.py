@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
-"""Test auth_role.USER
+"""Test pkcli.admin.disable_user
 
 :copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 import pytest
 
 
-def test_role_user(fc):
+def test_disable_user(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkunit import pkeq, pkok
     import sirepo.auth_role
