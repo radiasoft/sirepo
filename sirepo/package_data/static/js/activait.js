@@ -19,9 +19,6 @@ SIREPO.app.config(() => {
     SIREPO.FILE_UPLOAD_TYPE = {
         'dataFile-file': '.h5,.csv',
     };
-    SIREPO.appDownloadLinks = [
-        '<li data-ng-if="::hasDataFile"><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
-    ].join('');
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="AnalysisParameter" class="col-sm-5">
           <div data-analysis-parameter="" data-model="model" data-field="field"></div>

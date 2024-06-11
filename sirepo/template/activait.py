@@ -153,8 +153,6 @@ def get_analysis_report(run_dir, data):
 
 
 def get_data_file(run_dir, model, frame, options):
-    if options.suffix == "csv":
-        return run_dir.join(model + ".csv")
     if _numbered_model_file(model):
         return model + ".csv"
     if model == "epochAnimation":
@@ -282,7 +280,7 @@ def sim_frame_dicePlotComparisonAnimation(frame_args):
 
 def _epoch_plot(run_dir):
     d = pandas.read_csv(str(run_dir.join(_OUTPUT_FILE.fitCSVFile)))
-    # TODO (gurhar1133): needs to call parameter_plot
+    # TODO (gurhar1133): needs to call parameter_plot?
     return _report_info(
         list(d.index),
         [
@@ -293,22 +291,28 @@ def _epoch_plot(run_dir):
             for l in ("loss", "val_loss")
         ],
     ).pkupdate(
-
+        PKDict(
+            x_label="epoch",
+        )
     )
 
 
+
 def sim_frame_bestLossesAnimation(frame_args):
-    return _image_preview("bestLosses", frame_args.sim_in, frame_args.run_dir)
+    res = _image_preview("bestLosses", frame_args.sim_in, frame_args.run_dir)
+    pkdp("\n\n\n bestLosses type(res)={}", type(res))
+    return res
 
 
 def sim_frame_bestLossesComparisonAnimation(frame_args):
-    return _image_preview(
+    res = _image_preview(
         "bestLosses",
         frame_args.sim_in,
         simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
             "animation"
         ),
     )
+    return res
 
 
 def sim_frame_epochAnimation(frame_args):
@@ -1231,7 +1235,7 @@ def _histogram_plot(values, vrange, bins=20):
 
 
 def _image_preview(method, data, run_dir, other_sim_id=None):
-    return template_common.PlotClass(
+    return template_common.plot_default(
         PKDict(
             x_range=[],
             images=_ImagePreview(
@@ -1578,6 +1582,7 @@ def _report_info(x, plots, title="", fields=PKDict(), summary_data=PKDict()):
             x_range=[float(min(x)), float(max(x))],
             y_label="",
             x_label="",
+            frameReport="reportInfo",
             y_range=template_common.compute_plot_color_and_range(plots),
             summaryData=summary_data,
         )

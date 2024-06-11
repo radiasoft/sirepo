@@ -606,6 +606,12 @@ class PlotClass(PKDict):
     pass
 
 
+def plot_default(data):
+    if not isinstance(data, PKDict):
+        raise AssertionError("plot data must be PKDict")
+    return PlotClass(data)
+
+
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     res = PKDict(
         plot_type="parameter",
@@ -634,11 +640,9 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
         if not c:
             c = plot.get("name", f"col{i + 1}")
         columns_dict[c] = plot.points
+    # TODO (gurhar1133): put field on model for naming instead of frameReport?
     pandas.DataFrame(columns_dict).to_csv(f"{model.frameReport}.csv", index=False)
     return PlotClass(res)
-    # final_res = PlotClass(res)
-    # pkdp("\n\n\n\nFINAL RES={}", final_res)
-    # return final_res
 
 
 def parse_enums(enum_schema):
