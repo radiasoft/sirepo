@@ -116,12 +116,14 @@ def sim_frame(frame_args):
 
 def sim_frame_crystal3dAnimation(frame_args):
     intensity = numpy.load("intensity.npy")
-    return PKDict(
-        title=" ",
-        indices=numpy.load("indices.npy").flatten().tolist(),
-        vertices=numpy.load("vertices.npy").flatten().tolist(),
-        intensity=intensity.tolist(),
-        intensity_range=[numpy.min(intensity), numpy.max(intensity)],
+    return template_common.plot_default(
+        PKDict(
+            title=" ",
+            indices=numpy.load("indices.npy").flatten().tolist(),
+            vertices=numpy.load("vertices.npy").flatten().tolist(),
+            intensity=intensity.tolist(),
+            intensity_range=[numpy.min(intensity), numpy.max(intensity)],
+        )
     )
 
 
@@ -162,14 +164,16 @@ def sim_frame_tempHeatMapAnimation(frame_args):
     ).read_while_writing(template_common.h5_to_dict)
     r = d.ranges
     z = d.intensity
-    return PKDict(
-        title="",
-        x_range=[r.x[0], r.x[1], len(z)],
-        y_range=[r.y[0], r.y[1], len(z[0])],
-        x_label="Longitudinal Position [m]",
-        y_label="Radial Position [m]",
-        z_label="Temperature (T-T₀), K",
-        z_matrix=z,
+    return template_common.plot_default(
+        PKDict(
+            title="",
+            x_range=[r.x[0], r.x[1], len(z)],
+            y_range=[r.y[0], r.y[1], len(z[0])],
+            x_label="Longitudinal Position [m]",
+            y_label="Radial Position [m]",
+            z_label="Temperature (T-T₀), K",
+            z_matrix=z,
+        )
     )
 
 
@@ -582,14 +586,16 @@ class _LaserPulsePlot(PKDict):
         ).read_while_writing(_read)
         r = d.ranges
         z = d[self.plot_type]
-        return PKDict(
-            title=self._plot_label(),
-            x_range=[r.x[0], r.x[1], len(z)],
-            y_range=[r.y[0], r.y[1], len(z[0])],
-            x_label="Horizontal Position [m]",
-            y_label="Vertical Position [m]",
-            z_label=self._z_label(),
-            z_matrix=z,
+        return template_common.plot_default(
+            PKDict(
+                title=self._plot_label(),
+                x_range=[r.x[0], r.x[1], len(z)],
+                y_range=[r.y[0], r.y[1], len(z[0])],
+                x_label="Horizontal Position [m]",
+                y_label="Vertical Position [m]",
+                z_label=self._z_label(),
+                z_matrix=z,
+            )
         )
 
 

@@ -172,20 +172,24 @@ def extract_report_data(run_dir, sim_in):
             field_paths=sim_in.models.fieldPaths.paths,
         )
         template_common.write_sequential_result(
-            d,
+            template_common.PlotClass(d),
             run_dir=run_dir,
         )
     if sim_in.report == "kickMapReport":
         template_common.write_sequential_result(
-            _kick_map_plot(sim_in.models.kickMapReport),
+            template_common.PlotClass(
+                _kick_map_plot(sim_in.models.kickMapReport)
+            ),
             run_dir=run_dir,
         )
     if sim_in.report == "fieldIntegralReport":
         template_common.write_sequential_result(
-            _generate_field_integrals(
-                sim_in.models.simulation.simulationId,
-                get_g_id(),
-                sim_in.models.fieldPaths.paths or [],
+            template_common.PlotClass(
+                _generate_field_integrals(
+                    sim_in.models.simulation.simulationId,
+                    get_g_id(),
+                    sim_in.models.fieldPaths.paths or [],
+                )
             ),
             run_dir=run_dir,
         )

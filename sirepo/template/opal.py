@@ -617,7 +617,7 @@ def sim_frame_beamline3dAnimation(frame_args):
             elif state == "polys":
                 for v in line.split(" "):
                     res[state].append(int(v))
-    return res
+    return template_common.plot_default(res)
 
 
 def sim_frame_bunchAnimation(frame_args):
