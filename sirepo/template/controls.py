@@ -136,7 +136,7 @@ def extract_beam_position_report(data, run_dir):
                 color="#2ca02c",
             ),
         )
-    return res
+    return template_common.plot_default(res)
 
 
 def is_viewing_log_file(data):

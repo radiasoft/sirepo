@@ -313,13 +313,15 @@ def _field_plot(frame_args, d):
     pkdp("\n\n\n\n d={}", d)
     s = d.shape[0]
     pandas.DataFrame(d).to_csv(f"{frame_args.frameReport}.csv", index=False)
-    return PKDict(
-        title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ipradi),
-        x_label="",
-        x_range=[0, s, s],
-        y_label="",
-        y_range=[0, s, s],
-        z_matrix=d.tolist(),
+    return template_common.plot_default(
+        PKDict(
+            title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ipradi),
+            x_label="",
+            x_range=[0, s, s],
+            y_label="",
+            y_range=[0, s, s],
+            z_matrix=d.tolist(),
+        )
     )
 
 
