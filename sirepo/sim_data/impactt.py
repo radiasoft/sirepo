@@ -3,16 +3,16 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
+import sirepo.template.lattice
 
 
 class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
-        cls._init_models(dm, ("beamline", "simulation")),
+        cls._init_models(dm, ("beamline", "simulation", "statAnimation")),
         dm.setdefault("rpnVariables", [])
 
     @classmethod
@@ -20,5 +20,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         return [data.report]
 
     @classmethod
-    def _lib_file_basenames(cls, *args, **kwargs):
-        return []
+    def _lib_file_basenames(cls, data):
+        return (
+            sirepo.template.lattice.LatticeUtil(data, cls.schema())
+            .iterate_models(sirepo.template.lattice.InputFileIterator(cls))
+            .result
+        )

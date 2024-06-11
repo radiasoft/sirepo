@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.SINGLE_FRAME_ANIMATION = ['statAnimation'];
     SIREPO.appFieldEditors += ``;
     SIREPO.lattice = {
         elementColor: {
@@ -14,15 +15,14 @@ SIREPO.app.config(function() {
             DRIFT: 'grey',
         },
         elementPic: {
-            drift: ['DRIFT'],
+            drift: ['DRIFT', 'WAKEFIELD'],
             lens: ['ROTATIONALLY_SYMMETRIC_TO_3D'],
             magnet: ['MULTIPOLE', 'QUADRUPOLE', 'DIPOLE'],
-            solenoid: ['SOLENOID', 'SOLENOIDRF'],
+            solenoid: ['SOLENOID', 'SOLRF'],
             watch: ['WRITE_BEAM'],
             zeroLength: [
                 'CHANGE_TIMESTEP',
                 'SPACECHARGE',
-                'WAKEFIELD',
                 'STOP',
             ],
         },
@@ -43,10 +43,14 @@ SIREPO.app.controller('SourceController', function(appState, $scope) {
     var self = this;
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, panelState, persistentSimulation, impacttService, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, impacttService, panelState, persistentSimulation, $scope) {
     const self = this;
     self.simScope = $scope;
-    self.simHandleStatus = data => {};
+    self.errorMessage = '';
+    self.simHandleStatus = data => {
+        self.errorMessage = data.error;
+        frameCache.setFrameCount(data.frameCount || 0);
+    };
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
@@ -99,4 +103,23 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             </div>
         `,
     };
+});
+
+SIREPO.viewLogic('wakefieldView', function(appState, panelState, $scope) {
+
+    function updateFields() {
+        const m = appState.models.WAKEFIELD;
+        if (! m) {
+            return;
+        }
+        panelState.showFields('WAKEFIELD', [
+            ['gap', 'period', 'iris_radius'], m.method == 'analytical',
+            ['filename'], m.method == 'from_file',
+        ]);
+    }
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['WAKEFIELD.method'], updateFields,
+    ];
 });
