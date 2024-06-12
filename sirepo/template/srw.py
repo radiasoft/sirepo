@@ -1774,6 +1774,7 @@ def _generate_beamline_optics(report, data, qcall=None):
     prev = None
     propagation = models.propagation
     max_name_size = 0
+    zero_drift_count = 0
 
     for item in models.beamline:
         is_disabled = "isDisabled" in item and item.isDisabled
@@ -1803,11 +1804,15 @@ def _generate_beamline_optics(report, data, qcall=None):
         item.drift_propagation = pp[1]
         item.name = name
         if not is_disabled:
-            if item.type == "watch" and not items:
-                # first item is a watch, insert a 0 length drift in front
+            if item.type == "watch" and (
+                not items
+                or (items[-1].type == "watch" and items[-1].position == item.position)
+            ):
+                # first item is a watch or no space between watches, insert a 0 length drift
+                zero_drift_count += 1
                 items.append(
                     PKDict(
-                        name="zero_drift",
+                        name=f"zero_drift{zero_drift_count}",
                         type="drift",
                         position=item.position,
                         propagation=item.propagation,
