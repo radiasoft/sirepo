@@ -296,11 +296,29 @@ class _TestClient:
         self._uid_clear()
         self.sr_sim_type_set(sim_type)
         self.sr_logout()
+
+        from sirepo import quest
+        from pykern.pkdebug import pkdp
+
+        with quest.start(in_pkcli=True) as qcall:
+            r = qcall.auth_db.model("UserRole").unchecked_search_by()
+            pkdp(f"r={r}")
+            s = qcall.auth_db.model("UserRegistration").unchecked_search_by()
+            pkdp(f"s={s}")
+
         r = self.sr_post(
             "authEmailLogin",
             PKDict(email=email, simulationType=self.sr_sim_type),
         )
+        pkdp(f"rrr={r}")
+        with quest.start(in_pkcli=True) as qcall:
+            r = qcall.auth_db.model("UserRole").unchecked_search_by()
+            pkdp(f"r={r}")
+            s = qcall.auth_db.model("UserRegistration").unchecked_search_by()
+            pkdp(f"s={s}")
+
         self.sr_email_confirm(r, display_name=email)
+
         return self._uid_verify_and_save()
 
     def sr_get(

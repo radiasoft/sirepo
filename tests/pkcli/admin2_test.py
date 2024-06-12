@@ -22,7 +22,7 @@ def test_disable_user(fc):
     fc.sr_post(
         "listSimulations", {"simulationType": fc.sr_sim_type}, raw_response=True
     ).assert_success()
-    sirepo.pkcli.roles.disable_user("xyzzy", fc.sr_uid)
+    sirepo.pkcli.roles.disable_user(fc.sr_uid, fc.sr_uid)
     pkok(
         sirepo.auth_role.ROLE_USER not in fc.sr_auth_state().roles,
         "{} found in roles",

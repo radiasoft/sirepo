@@ -609,14 +609,15 @@ class _Auth(sirepo.quest.Attr):
             return None
         return self._qcall_bound_user()
 
-    def user_name(self, uid, method):
+    def user_name(self, uid, method=None):
         """Return user_name"""
-        u = getattr(_METHOD_MODULES[method], "UserModel", None)
-        if u:
-            return self.qcall.auth_db.model(u).search_by(uid=uid).user_name
-        elif method == METHOD_GUEST:
+        m = method or self._qcall_bound_method()
+        t = getattr(_METHOD_MODULES[m], "UserModel", None)
+        if t:
+            return self.qcall.auth_db.model(t).search_by(uid=uid).user_name
+        elif m == METHOD_GUEST:
             return f"{METHOD_GUEST}-{uid}"
-        raise AssertionError(f"user_name not found for uid={uid} with method={method}")
+        raise AssertionError(f"user_name not found for uid={uid} with method={m}")
 
     def user_registration(self, uid, display_name=None):
         """Get UserRegistration record or create one

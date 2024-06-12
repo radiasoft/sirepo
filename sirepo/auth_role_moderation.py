@@ -87,7 +87,7 @@ class API(sirepo.quest.API):
         pkdlog("status={} uid={} role={}", p.status, i.uid, i.role)
         p.pkupdate(
             display_name=self.auth.user_display_name(i.uid),
-            user_name=self.auth.user_name(i.uid, self._qcall_bound_method()),
+            user_name=self.auth.user_name(i.uid),
         )
         _set_moderation_status(p)
         _send_moderation_status_email(p)

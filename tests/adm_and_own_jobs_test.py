@@ -119,7 +119,7 @@ def test_srw_user_see_only_own_jobs(auth_fc):
         roles.add(uid, auth_role.ROLE_ADM)
         with srunit.quest_start() as qcall:
             r = qcall.auth_db.model("UserRole").search_all_for_column(
-                "uid", role=sirepo.auth_role.ROLE_USER
+                "uid", role=sirepo.auth_role.ROLE_ADM
             )
         pkunit.pkeq(1, len(r), "One user with role adm r={}", r)
         pkunit.pkeq(r[0], uid, "Expected same uid as user")
