@@ -560,6 +560,7 @@ def save_sequential_report_data(data, run_dir):
             # TODO(pjm): x_range requied by sirepo-plotting.js
             x_range=[],
             summaryData=_read_twiss_header(run_dir),
+            isPlotClass=True,
         )
     elif "bunchReport" in report_name:
         report = data.models[report_name]
@@ -786,15 +787,16 @@ def _extract_particle_data(report, col_names, rows, title):
             x_points[-1].append(x[idx])
             points[-1].append(y[idx])
         title += " " + ", ".join(names)
-    pkdp("\n\n\n PLOT FOR TITLE={}", title)
-    return PKDict(
-        title=title,
-        y_label=y_info[0],
-        x_label=x_info[0],
-        x_range=_2d_range(x_points),
-        y_range=_2d_range(points),
-        x_points=x_points,
-        points=points,
+    return template_common.plot_default(
+        PKDict(
+            title=title,
+            y_label=y_info[0],
+            x_label=x_info[0],
+            x_range=_2d_range(x_points),
+            y_range=_2d_range(points),
+            x_points=x_points,
+            points=points,
+        )
     )
 
 

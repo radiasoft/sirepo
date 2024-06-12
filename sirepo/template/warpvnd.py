@@ -667,8 +667,8 @@ def _extract_impact_density_3d(report, run_dir, data):
         dy = 0  # plot_info['dy']
         width = _meters(grid.channel_width)
 
-    return {
-        "title": "Impact Density",
+    return template_common.plot_default(PKDict({
+        "title": "Impact Density!",
         "x_range": [0, plate_spacing],
         "y_range": [-radius, radius],
         "z_range": [-width / 2.0, width / 2.0],
@@ -678,10 +678,11 @@ def _extract_impact_density_3d(report, run_dir, data):
         "density": plot_info["density"] if "density" in plot_info else [],
         "v_min": plot_info["min"],
         "v_max": plot_info["max"],
-    }
+    }))
 
 
 def _extract_optimization_results(run_dir, data, args):
+    pkdp("\n\n\n EXTRACTING OPTIMIZATION RESULTS? \n\n\n")
     x_index = int(args.x or "0")
     y_index = int(args.y or "0")
     # steps, time, tolerance, result, p1, ... pn

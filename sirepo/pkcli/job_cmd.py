@@ -268,6 +268,7 @@ def _do_get_simulation_frame(msg, template):
         )
         pkdp("\n\n\n in get_sim_frame isInstance(res, PlotClass)?={}", isinstance(res, sirepo.template.template_common.PlotClass))
         if not isinstance(res, sirepo.template.template_common.PlotClass):
+            pkdp("\n\n\n\n\n RES={}", res)
             raise AssertionError(f"sim frames must return PlotClass, got {type(res)}")
         return res
     except Exception as e:
