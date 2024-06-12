@@ -540,7 +540,7 @@ def heatmap(values, model, plot_fields=None, weights=None, data_complete=None):
 
     if data_complete is not None:
         pandas.DataFrame(data_complete.z_matrix).to_csv(f"{model.frameReport}.csv", index=False)
-        return data_complete
+        return PlotClass(data_complete)
     r = None
     if "plotRangeType" in model:
         if model["plotRangeType"] == "fixed":

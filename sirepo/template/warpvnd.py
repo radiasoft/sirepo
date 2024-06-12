@@ -194,6 +194,8 @@ def generate_field_report(data, run_dir, args=None):
     res.global_min = np.min(potential) if vals_equal else None
     res.global_max = np.max(potential) if vals_equal else None
     res.frequency_title = "Volts"
+    res.isPlotClass = True
+    pkdp("\n\n\n typeof res={}", type(res))
     return res
 
 
@@ -281,6 +283,7 @@ def prepare_sequential_output_file(run_dir, data):
                     run_dir=run_dir,
                 )
             else:
+                pkdp("\n\n\n writing seq result for data.report={}", data.report)
                 template_common.write_sequential_result(
                     generate_field_report(data, run_dir),
                     run_dir=run_dir,
@@ -537,7 +540,7 @@ def _extract_current_results(data, curr, data_time):
             ),
         ],
         PKDict(
-            frameReport="currentAnimation",
+            frameReport="egunCurrentAnimation",
             title="Current for Time: {:.4e}s".format(data_time),
             x_range=[0, plate_spacing],
             x_label="Z [m]",
@@ -594,7 +597,7 @@ def _extract_field(field, data, data_file, args=None):
     )
     res.global_min = np.min(field_values) if vals_equal else None
     res.global_max = np.max(field_values) if vals_equal else None
-    return res
+    return template_common.plot_default(res)
 
 
 def _extract_impact_density(report, run_dir, data):
@@ -735,7 +738,7 @@ def _extract_particle(run_dir, model_name, data, args):
     data_file = open_data_file(run_dir, model_name, None)
     with h5py.File(data_file.filename, "r") as f:
         field = np.array(f["data/{}/meshes/{}".format(data_file.iteration, "phi")])
-    return {
+    return template_common.plot_default(PKDict({
         "title": "Particle Trace",
         "x_range": [0, plate_spacing],
         "y_label": "x [m]",
@@ -750,7 +753,7 @@ def _extract_particle(run_dir, model_name, data, args):
         "lost_y": lost_y,
         "lost_z": lost_z,
         "field": field.tolist(),
-    }
+    }))
 
 
 def _field_input(args):
