@@ -68,12 +68,13 @@ class API(sirepo.quest.API):
             role=req.req_data.role,
         )
         if not i:
-            pkdlog(
-                f"No record in UserRoleModeration for uid={req.req_data.uid} role={req.req_data.role}"
-            )
+            pkdlog()
             raise sirepo.util.UserAlert(
                 "Could not find the moderation request; "
-                "refresh your browser to get the latest moderation list.",
+                + "refresh your browser to get the latest moderation list.",
+                "UserRoleModeration not found uid={} role={}",
+                req.req_data.uid,
+                req.req_data.role,
             )
         p = PKDict(
             app_name=sirepo.simulation_db.SCHEMA_COMMON.appInfo[
@@ -84,13 +85,12 @@ class API(sirepo.quest.API):
             moderator_uid=self.auth.logged_in_user(),
         )
         pkdlog("status={} uid={} role={}", p.status, i.uid, i.role)
-        with self.auth.logged_in_user_set(uid=i.uid, method=self.auth.METHOD_EMAIL):
-            p.pkupdate(
-                display_name=self.auth.user_display_name(i.uid),
-                user_name=self.auth.logged_in_user_name(),
-            )
-            _set_moderation_status(p)
-            _send_moderation_status_email(p)
+        p.pkupdate(
+            display_name=self.auth.user_display_name(i.uid),
+            user_name=self.auth.user_name(i.uid, self._qcall_bound_method()),
+        )
+        _set_moderation_status(p)
+        _send_moderation_status_email(p)
         return self.reply_ok()
 
     @sirepo.quest.Spec("require_adm")
@@ -178,7 +178,7 @@ def _datetime_to_str(rows):
 
 
 def raise_control_for_user(qcall, uid, role):
-    s = qcall.auth_db.model("UserRoleModeration").get_status(role=role)
+    s = qcall.auth_db.model("UserRoleModeration").get_status(uid=uid, role=role)
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", None)
     if s == sirepo.auth_role.ModerationStatus.DENY:

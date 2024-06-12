@@ -694,18 +694,12 @@ class _Auth(sirepo.quest.Attr):
         pkdc("state={}", v)
         return v
 
-    def _create_roles_for_new_user(self, method):
-        r = sirepo.auth_role.for_new_user(is_guest=method == METHOD_GUEST)
-        if r:
-            self.qcall.auth_db.model("UserRole").add_roles(roles=r)
-
     def _create_user(self, module, want_login):
         u = simulation_db.user_create()
+        if r := sirepo.auth_role.for_new_user(is_guest=method == METHOD_GUEST):
+            self.qcall.auth_db.model("UserRole").add_roles(roles=r, uid=uid)
         if want_login:
-            self._login_user(module, u, want_new_roles=True)
-        else:
-            with self.logged_in_user_set(u, method=module.AUTH_METHOD):
-                self._create_roles_for_new_user(module.AUTH_METHOD)
+            self._login_user(module, u)
         return u
 
     def _handle_user_dir_not_found(self, user_dir, uid):
@@ -720,7 +714,7 @@ class _Auth(sirepo.quest.Attr):
         self.qcall.auth_db.commit()
         pkdlog("user_dir={} uid={}", user_dir, uid)
 
-    def _login_user(self, module, uid, want_new_roles=False):
+    def _login_user(self, module, uid):
         """Set up the cookie for logged in state
 
         If a deprecated or non-visible method, just login. Otherwise, check the db
@@ -740,9 +734,6 @@ class _Auth(sirepo.quest.Attr):
                 s = _STATE_COMPLETE_REGISTRATION
         self.qcall.cookie.set_value(_COOKIE_STATE, s)
         self._set_log_user()
-        if want_new_roles:
-            self._create_roles_for_new_user(module.AUTH_METHOD)
-        self._assert_role_user()
 
     def _method_auth_state(self, values, uid):
         if values.method not in _METHOD_MODULES:
