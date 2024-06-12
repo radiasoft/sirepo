@@ -27,6 +27,7 @@ def run(cfg_dir):
             x_points=[0, 1],
             plots=plots,
             y_range=template_common.compute_plot_color_and_range(plots),
+            isPlotClass=True,
         ),
     )
 
