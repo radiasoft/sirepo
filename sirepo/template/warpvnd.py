@@ -128,7 +128,7 @@ def sim_frame_particleAnimation(frame_args):
 sim_frame_particle3d = sim_frame_particleAnimation
 
 
-def generate_field_comparison_report(data, run_dir, args=None):
+def generate_field_comparison_report(data, run_dir, args):
     params = args if args is not None else data["models"]["fieldComparisonAnimation"]
     grid = data["models"]["simulationGrid"]
     dimension = params["dimension"]
@@ -147,15 +147,20 @@ def generate_field_comparison_report(data, run_dir, args=None):
     plots, plot_y_range = _create_plots(
         dimension, params, values, ranges, _SIM_DATA.warpvnd_is_3d(data)
     )
-    return {
-        "title": "Comparison of E {}".format(dimension),
-        "y_label": "E {} [V/m]".format(dimension),
-        "x_label": "{} [m]".format(dimension),
-        "y_range": plot_y_range,
-        "x_range": [plot_range[0], plot_range[1], len(plots[0]["points"])],
-        "plots": plots,
-        "summaryData": {"runMode3d": _SIM_DATA.warpvnd_is_3d(data)},
-    }
+    return template_common.parameter_plot(
+        None,
+        plots,
+        PKDict(frameReport="fieldComparisonAnimation"),
+        data_complete=PKDict(
+            title="Comparison of E {}".format(dimension),
+            y_label="E {} [V/m]".format(dimension),
+            x_label="{} [m]".format(dimension),
+            y_range=plot_y_range,
+            plots=plots,
+            x_range=[plot_range[0], plot_range[1], len(plots[0]["points"])],
+            summaryData=PKDict(runMode3d=_SIM_DATA.warpvnd_is_3d(data)),
+        ),
+    )
 
 
 def generate_field_report(data, run_dir, args=None):

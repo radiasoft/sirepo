@@ -91,10 +91,8 @@ def extract_field_report(frame_args, field, coordinate, mode, data_file):
         field_label = field
     else:
         field_label = "{} {}".format(field, coordinate)
-    return template_common.heatmap(
-        None,
-        PKDict(frameReport=frame_args.frameReport),
-        data_complete=PKDict(
+    return template_common.plot_default(
+        PKDict(
             x_range=[extent[0], extent[1], len(F[0])],
             y_range=[extent[2], extent[3], len(F)],
             x_label="{} [m]".format(info.axes[1]),
@@ -103,6 +101,7 @@ def extract_field_report(frame_args, field, coordinate, mode, data_file):
                 field_label, mode, _iteration_title(opmd, data_file)
             ),
             z_matrix=numpy.flipud(F).tolist(),
+            frameCount=data_file.num_frames,
         )
     )
 
@@ -280,7 +279,7 @@ def sim_frame_fieldAnimation(frame_args):
         frame_args.coordinate,
         m,
         f,
-    ).pkupdate(frameCount=f.num_frames)
+    )
 
 
 def sim_frame_particleAnimation(frame_args):

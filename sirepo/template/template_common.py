@@ -612,7 +612,11 @@ def plot_default(data):
     return PlotClass(data)
 
 
-def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
+def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None, data_complete=None):
+    if data_complete is not None:
+        pandas.DataFrame(plots).to_csv(f"{model.frameReport}.csv", index=False)
+        return PlotClass(data_complete)
+
     res = PKDict(
         plot_type="parameter",
         x_points=x,

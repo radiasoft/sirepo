@@ -444,7 +444,7 @@ def extract_report_data(sim_in):
     if out.dimensions == 3:
         res.report = r
         res = _remap_3d(res, allrange, out, dm[r])
-    return res
+    return template_common.plot_default(res)
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -1596,9 +1596,11 @@ def _extract_beamline_orientation(filename):
                 orient=orient,
             )
         )
-    return PKDict(
-        x_range=[],
-        elements=res,
+    return template_common.plot_default(
+        PKDict(
+            x_range=[],
+            elements=res,
+        )
     )
 
 
@@ -1633,14 +1635,16 @@ def _extract_brilliance_report(model, filename):
     else:
         title += ", Harmonic {}".format(model.harmonic)
 
-    return PKDict(
-        title=title,
-        y_label=label,
-        x_label="Photon Energy [eV]",
-        x_range=[np.amin(x_points), np.amax(x_points)],
-        y_range=[np.amin(points), np.amax(points)],
-        x_points=x_points,
-        points=points,
+    return template_common.plot_default(
+        PKDict(
+            title=title,
+            y_label=label,
+            x_label="Photon Energy [eV]",
+            x_range=[np.amin(x_points), np.amax(x_points)],
+            y_range=[np.amin(points), np.amax(points)],
+            x_points=x_points,
+            points=points,
+        )
     )
 
 
