@@ -36,11 +36,10 @@ def test_adm_jobs_forbidden(auth_fc):
 
     def _op(fc, sim_type):
         with srunit.quest_start() as qcall:
-            qcall.auth_db.model("UserRole").delete_all_for_column_by_values(
-                "uid",
-                [fc.sr_uid],
+            qcall.auth_db.model("UserRole").delete_roles(
+                roles=[sirepo.auth_role.ROLE_ADM],
+                uid=fc.sr_uid,
             )
-        sirepo.pkcli.roles.add(fc.sr_uid, sirepo.auth_role.ROLE_USER)
         fc.sr_post(
             "admJobs",
             PKDict(simulationType=sim_type),

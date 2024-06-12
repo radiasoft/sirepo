@@ -696,8 +696,10 @@ class _Auth(sirepo.quest.Attr):
 
     def _create_user(self, module, want_login):
         u = simulation_db.user_create()
-        if r := sirepo.auth_role.for_new_user(is_guest=method == METHOD_GUEST):
-            self.qcall.auth_db.model("UserRole").add_roles(roles=r, uid=uid)
+        if r := sirepo.auth_role.for_new_user(
+            is_guest=module.AUTH_METHOD == METHOD_GUEST
+        ):
+            self.qcall.auth_db.model("UserRole").add_roles(roles=r, uid=u)
         if want_login:
             self._login_user(module, u)
         return u
