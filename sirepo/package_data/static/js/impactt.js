@@ -15,13 +15,14 @@ SIREPO.app.config(function() {
             DRIFT: 'grey',
         },
         elementPic: {
-            drift: ['DRIFT', 'WAKEFIELD'],
+            drift: ['DRIFT', 'EMFIELD_CARTESIAN', 'EMFIELD_CYLINDRICAL', 'WAKEFIELD'],
             lens: ['ROTATIONALLY_SYMMETRIC_TO_3D'],
-            magnet: ['MULTIPOLE', 'QUADRUPOLE', 'DIPOLE'],
+            magnet: ['QUADRUPOLE', 'DIPOLE'],
             solenoid: ['SOLENOID', 'SOLRF'],
-            watch: ['WRITE_BEAM'],
+            watch: ['WRITE_BEAM', 'WRITE_SLICE_INFO',],
             zeroLength: [
                 'CHANGE_TIMESTEP',
+                'OFFSET_BEAM',
                 'SPACECHARGE',
                 'STOP',
             ],
@@ -47,11 +48,25 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     const self = this;
     self.simScope = $scope;
     self.errorMessage = '';
+
+    function loadReports(reports) {
+        self.reports = [];
+    }
+
     self.simHandleStatus = data => {
         self.errorMessage = data.error;
         frameCache.setFrameCount(data.frameCount || 0);
+        if (data.reports && data.reports.length) {
+            loadReports(data.reports);
+        }
     };
     self.simState = persistentSimulation.initSimulationState(self);
+    self.simState.runningMessage = () => {
+        if (appState.isLoaded() && self.simState.getFrameCount()) {
+            return 'Completed time step: ' + self.simState.getFrameCount();
+        }
+        return 'Simulation running';
+    };
 });
 
 SIREPO.app.controller('LatticeController', function(latticeService, appState) {

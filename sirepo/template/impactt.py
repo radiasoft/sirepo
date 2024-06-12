@@ -22,13 +22,13 @@ _ARCHIVE_FILE = "impact.h5"
 _MAX_OUTPUT_ID = 100
 _S_ELEMENTS = set(
     [
-        "OFFSET_BEAM",
-        "WRITE_BEAM",
         "CHANGE_TIMESTEP",
+        "OFFSET_BEAM",
         "ROTATIONALLY_SYMMETRIC_TO_3D",
-        "WAKEFIELD",
-        "STOP",
         "SPACECHARGE",
+        "STOP",
+        "WAKEFIELD",
+        "WRITE_BEAM",
         "WRITE_SLICE_INFO",
     ]
 )
@@ -60,8 +60,11 @@ def background_percent_complete(report, run_dir, is_running):
             frameCount=0,
             percentComplete=0,
         )
+    r = _particle_plot_info(data, run_dir)
     return PKDict(
-        percentComplete=100, frameCount=1, reports=_particle_plot_info(data, run_dir)
+        percentComplete=100,
+        frameCount=1 if len(r) else 0,
+        reports=r,
     )
 
 
@@ -71,13 +74,16 @@ def _particle_plot_info(data, run_dir):
         if el.type == "WRITE_BEAM":
             names.append(el.name)
     res = []
-    for n in names:
+    for idx, n in enumerate(names):
         fn = f"{n}.h5"
         if run_dir.join(fn).exists():
             res.append(
                 PKDict(
+                    reportIndex=idx,
                     report="particleAnimation",
+                    name=n,
                     filename=fn,
+                    frameCount=1,
                 )
             )
     return res

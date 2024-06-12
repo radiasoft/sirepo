@@ -10,7 +10,9 @@
             "CHANGE_TIMESTEP",
             "DIPOLE",
             "DRIFT",
-            "MULTIPOLE",
+            "EMFIELD_CARTESIAN",
+            "EMFIELD_CYLINDRICAL",
+            "OFFSET_BEAM",
             "QUADRUPOLE",
             "ROTATIONALLY_SYMMETRIC_TO_3D",
             "SOLENOID",
@@ -18,8 +20,10 @@
             "SPACECHARGE",
             "STOP",
             "WAKEFIELD",
-            "WRITE_BEAM"
+            "WRITE_BEAM",
+            "WRITE_SLICE_INFO"
         ],
+        "helpUserManualURL": "https://portal.nersc.gov/project/m669/IMPACT-T/documents/ImpactTv2.pdf",
         "particleMassAndCharge": {
             "electron": [510998.95, -1.0],
             "proton": [938272088.16, 1.0]
@@ -45,7 +49,13 @@
         }
     },
     "frameIdFields": {
-        "statAnimation": ["x", "y1", "y2", "y3"]
+        "statAnimation": ["x", "y1", "y2", "y3"],
+        "particleAnimation": [
+            "x",
+            "y",
+            "histogramBins",
+            "reportIndex"
+        ]
     },
     "enum": {
         "BeamParticle": [
@@ -71,6 +81,14 @@
             ["readElegant", "25"],
             ["CylcoldZSob", "27"],
             ["Combine", "ijk"]
+        ],
+        "PhaseSpaceCoordinate": [
+            ["x", "x"],
+            ["px", "Px"],
+            ["y", "y"],
+            ["py", "Py"],
+            ["z", "z"],
+            ["pz", "Pz"]
         ],
         "PoleType": [
             ["sextupole", "Sextupole"],
@@ -208,6 +226,15 @@
             "zmu1": ["zmu1 [m]", "RPNValue", 0.0],
             "zmu2": ["zmu2", "RPNValue", 19.569511835591836]
         },
+        "particleAnimation": {
+            "x": ["X Value", "PhaseSpaceCoordinate", "x"],
+            "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "notes": ["Notes", "Text", ""],
+            "reportIndex": ["", "Integer"]
+        },
         "rpnVariable": {
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"]
@@ -235,62 +262,10 @@
             "y_rotation": ["Rotation Error Y [rad]", "RPNValue", 0],
             "z_rotation": ["Rotation Error Z [rad]", "RPNValue", 0]
         },
-        "OFFSET_BEAM": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "x_offset": ["X offset [m]", "RPNValue", 0, "X offset V3(m)"],
-            "y_offset": ["Y offset [m]", "RPNValue", 0, "Y offset V5(m)"],
-            "z_offset": ["Z offset [m]", "RPNValue", 0, "Z offset V7(m)"],
-            "px_offset": ["Px offset", "RPNValue", 0, "(γβx) offset V4"],
-            "py_offset": ["Py offset", "RPNValue", 0, "(γβy) offset V6"],
-            "pz_offset": ["Pz offset", "RPNValue", 0, "(γβz) offset V8"]
-        },
-        "WRITE_BEAM": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "sample_frequency": ["Sample frequency", "Integer", 1, "particle sample frequency"],
-            "filename": ["", "OutputFile", ""]
-        },
-        "ROTATIONALLY_SYMMETRIC_TO_3D": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"]
-        },
         "CHANGE_TIMESTEP": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "dt": ["Dt", "RPNValue", 0, "Time step size (secs)"]
-        },
-        "WAKEFIELD": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The wakefield length"],
-            "method": ["Method", "WakefieldMethod", "analytical"],
-            "gap": ["Gap", "RPNValue", 0],
-            "period": ["Period", "RPNValue", 0],
-            "iris_radius": ["Iris Radius", "RPNValue", 0],
-            "filename": ["Filename", "InputFile", ""]
-        },
-        "SPACECHARGE": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "is_on": ["Is On", "Boolean", "0", "switch on/off the space-charge calculation"]
-        },
-        "STOP": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"]
-        },
-        "WRITE_SLICE_INFO": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "n_slices": ["Number of Slices", "Integer", 0],
-            "filename": ["Filename", "OutputFile", ""]
-        },
-        "CONSTFOC": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "radius": ["Radius [m]", "RPNValue", 0],
-            "x_focusing_gradient": ["X Focusing Gradient [kx0^2]", "RPNValue", 0],
-            "y_focusing_gradient": ["Y Focusing Gradient [ky0^2]", "RPNValue", 0],
-            "z_focusing_gradient": ["Z Focusing Gradient [kz0^2]", "RPNValue", 0]
+            "dt": ["Time step [sec]", "RPNValue", 0, "Time step size (secs)"]
         },
         "DIPOLE": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -304,37 +279,7 @@
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"]
         },
-        "DTL": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz"],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "radius": ["Radius [m]", "RPNValue", 0],
-            "field_amplitude_scale": ["Scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1"],
-            "filename": ["Filename", "InputFile", "", "Drift Tube Linac filename"],
-            "quad_1_length": ["Quad 1 Length [m]", "RPNValue", 0],
-            "quad_1_gradient": ["Quad 1 Gradient [T/m]", "RPNValue", 0],
-            "quad_1_x_offset": ["Quad 1 Misalignment X [m]", "RPNValue", 0],
-            "quad_1_y_offset": ["Quad 1 Misalignment Y [m]", "RPNValue", 0],
-            "quad_1_x_rotation": ["Quad 1 Rotation Error X [rad]", "RPNValue", 0],
-            "quad_1_y_rotation": ["Quad 1 Rotation Error Y [rad]", "RPNValue", 0],
-            "quad_1_z_rotation": ["Quad 1 Rotation Error Z [rad]", "RPNValue", 0],
-            "quad_2_length": ["Quad 2 Length [m]", "RPNValue", 0],
-            "quad_2_gradient": ["Quad 2 Gradient [T/m]", "RPNValue", 0],
-            "quad_2_x_offset": ["Quad 2 Misalignment X [m]", "RPNValue", 0],
-            "quad_2_y_offset": ["Quad 2 Misalignment Y [m]", "RPNValue", 0],
-            "quad_2_x_rotation": ["Quad 2 Rotation Error X [rad]", "RPNValue", 0],
-            "quad_2_y_rotation": ["Quad 2 Rotation Error Y [rad]", "RPNValue", 0],
-            "quad_2_z_rotation": ["Quad 2 Rotation Error Z [rad]", "RPNValue", 0],
-            "rf_cavity_length": ["RF Cavity Length [m]", "RPNValue", 0],
-            "rf_cavity_gradient": ["RF Cavity Gradient [T/m]", "RPNValue", 0],
-            "rf_cavity_x_offset": ["RF Cavity Misalignment X [m]", "RPNValue", 0],
-            "rf_cavity_y_offset": ["RF Cavity Misalignment Y [m]", "RPNValue", 0],
-            "rf_cavity_x_rotation": ["RF Cavity Rotation Error X [rad]", "RPNValue", 0],
-            "rf_cavity_y_rotation": ["RF Cavity Rotation Error Y [rad]", "RPNValue", 0],
-            "rf_cavity_z_rotation": ["RF Cavity Rotation Error Z [rad]", "RPNValue", 0]
-        },
-        "EMFLDCART": {
+        "EMFIELD_CARTESIAN": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
             "radius": ["Radius [m]", "RPNValue", 0],
@@ -343,7 +288,7 @@
             "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
             "filename": ["Filename", "InputFile", "", "EMfldCart filename"]
         },
-        "EMFLDCYL": {
+        "EMFIELD_CYLINDRICAL": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
             "radius": ["Radius [m]", "RPNValue", 0],
@@ -352,20 +297,15 @@
             "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
             "filename": ["Filename", "InputFile", "", "EMfldCyl filename"]
         },
-        "EMFLDANA": {
+        "OFFSET_BEAM": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz"],
-            "e_scale": ["E Scale", "RPNValue", 0],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "filename": ["Filename", "InputFile", "", "EMfldAna filename"]
-        },
-        "MULTIPOLE": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "pole_type": ["Pole Type", "PoleType", "sextupole"],
-            "b_field_x": ["Field Strength [T/m^n]", "RPNValue", 0],
-            "filename": ["Filename", "InputFile", "", "Multipole filename"]
+            "x_offset": ["X offset [m]", "RPNValue", 0],
+            "y_offset": ["Y offset [m]", "RPNValue", 0],
+            "z_offset": ["Z offset [m]", "RPNValue", 0],
+            "px_offset": ["Px offset [$\\gamma\\beta_x$]", "RPNValue", 0],
+            "py_offset": ["Py offset [$\\gamma\\beta_y$]", "RPNValue", 0],
+            "pz_offset": ["Pz offset [$\\gamma\\beta_z$]", "RPNValue", 0]
         },
         "QUADRUPOLE": {
             "_super": ["_", "model", "_ELEMENT"],
@@ -374,12 +314,15 @@
             "b1_gradient": ["Gradient [T/m]", "RPNValue", 0],
             "L_effective": ["Effective Length [m]", "RPNValue", 0]
         },
-        "SC": {
-            "_super": ["_", "model", "_ELEMENT"],
-            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1"],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz"],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "filename": ["Filename", "InputFile", "", "Superconducting cavity filename"]
+        "ROTATIONALLY_SYMMETRIC_TO_3D": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"]
+        },
+        "SOLENOID": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "radius": ["Radius [m]", "RPNValue", 0],
+            "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
         },
         "SOLRF": {
             "_super": ["_", "model", "_ELEMENT"],
@@ -389,12 +332,39 @@
             "solenoid_field_scale": ["Scale of solenoid B field", "RPNValue", 1],
             "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
         },
-        "SOLENOID": {
+        "SPACECHARGE": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "radius": ["Radius [m]", "RPNValue", 0],
-            "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
+            "is_on": ["Is On", "Boolean", "0", "switch on/off the space-charge calculation"]
+        },
+        "STOP": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"]
+        },
+        "WAKEFIELD": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The wakefield length"],
+            "method": ["Method", "WakefieldMethod", "analytical"],
+            "gap": ["Gap", "RPNValue", 0],
+            "period": ["Period", "RPNValue", 0],
+            "iris_radius": ["Iris Radius", "RPNValue", 0],
+            "filename": ["Filename", "InputFile", ""]
+        },
+        "WRITE_BEAM": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "sample_frequency": ["Sample frequency", "Integer", 1, "particle sample frequency"],
+            "filename": ["", "OutputFile", ""]
+        },
+        "WRITE_SLICE_INFO": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "n_slices": ["Number of Slices", "Integer", 0],
+            "filename": ["", "OutputFile", ""]
         }
+    },
+    "strings": {
+        "completionState": ""
     },
     "view": {
         "beamline": {
@@ -439,6 +409,23 @@
                 "Tini"
             ]
         },
+        "particleAnimation": {
+            "title": "Particle Plot",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "aspectRatio",
+                "colorMap",
+                "notes"
+            ]
+        },
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": []
@@ -462,16 +449,13 @@
         },
         "CHANGE_TIMESTEP": {
             "title": "CHANGE_TIMESTEP",
-            "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "l",
                 "dt"
             ]
         },
         "DIPOLE": {
             "title": "DIPOLE",
-            "fieldsPerTab": 8,
             "advanced": [
                 "name",
                 "l",
@@ -482,54 +466,77 @@
             ]
         },
         "DRIFT": {
-            "title": "DRIFTTUBE",
-            "description": "The DRIFTTUBE element defines a drift space",
-            "fieldsPerTab": 8,
+            "title": "DRIFT",
             "advanced": [
                 "name",
                 "l"
             ]
         },
-        "MULTIPOLE": {
-            "title": "MULTIPOLE",
-            "fieldsPerTab": 8,
+        "EMFIELD_CARTESIAN": {
+            "title": "EMFIELD_CARTESIAN",
             "advanced": [
                 "name",
                 "l",
-                "pole_type",
-                "b_field_x",
+                "radius",
+                "rf_frequency",
+                "rf_field_scale",
+                "theta0_deg",
                 "filename"
+            ]
+        },
+        "EMFIELD_CYLINDRICAL": {
+            "title": "EMFIELD_CYLINDRICAL",
+            "advanced": [
+                "name",
+                "l",
+                "radius",
+                "rf_frequency",
+                "rf_field_scale",
+                "theta0_deg",
+                "filename"
+            ]
+        },
+        "OFFSET_BEAM": {
+            "title": "OFFSET_BEAM",
+            "advanced": [
+                "name",
+                "x_offset",
+                "y_offset",
+                "z_offset",
+                "px_offset",
+                "py_offset",
+                "pz_offset"
             ]
         },
         "QUADRUPOLE": {
             "title": "QUADRUPOLE",
-            "fieldsPerTab": 8,
             "advanced": [
-                "name",
-                "l",
-                "rf_frequency",
-                "rf_phase_deg",
-                "b1_gradient",
-                "L_effective",
-                "radius",
-                "x_offset",
-                "y_offset",
-                "x_rotation",
-                "y_rotation",
-                "z_rotation"
+                ["Main", [
+                    "name",
+                    "l",
+                    "b1_gradient",
+                    "L_effective",
+                    "radius",
+                    "rf_frequency",
+                    "rf_phase_deg"
+                ]],
+                ["Misalignment", [
+                    "x_offset",
+                    "y_offset",
+                    "x_rotation",
+                    "y_rotation",
+                    "z_rotation"
+                ]]
             ]
         },
         "ROTATIONALLY_SYMMETRIC_TO_3D": {
             "title": "ROTATIONALLY_SYMMETRIC_TO_3D",
-            "fieldsPerTab": 8,
             "advanced": [
-                "name",
-                "l"
+                "name"
             ]
         },
         "SOLENOID": {
             "title": "SOLENOID",
-            "fieldsPerTab": 8,
             "advanced": [
                 "name",
                 "l",
@@ -539,43 +546,41 @@
         },
         "SOLRF": {
             "title": "SOLRF",
-            "fieldsPerTab": 8,
             "advanced": [
-                "name",
-                "l",
-                "theta0_deg",
-                "rf_frequency",
-                "rf_field_scale",
-                "solenoid_field_scale",
-                "filename",
-                "radius",
-                "x_offset",
-                "y_offset",
-                "x_rotation",
-                "y_rotation",
-                "z_rotation"
+                ["Main", [
+                    "name",
+                    "l",
+                    "rf_frequency",
+                    "rf_field_scale",
+                    "theta0_deg",
+                    "solenoid_field_scale",
+                    "radius",
+                    "filename"
+                ]],
+                ["Misalignment", [
+                    "x_offset",
+                    "y_offset",
+                    "x_rotation",
+                    "y_rotation",
+                    "z_rotation"
+                ]]
             ]
         },
         "SPACECHARGE": {
             "title": "SPACECHARGE",
-            "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "l",
                 "is_on"
             ]
         },
         "STOP": {
             "title": "STOP",
-            "fieldsPerTab": 8,
             "advanced": [
-                "name",
-                "l"
+                "name"
             ]
         },
         "WAKEFIELD": {
             "title": "WAKEFEILD",
-            "fieldsPerTab": 8,
             "advanced": [
                 "name",
                 "l",
@@ -588,11 +593,16 @@
         },
         "WRITE_BEAM": {
             "title": "WRITE_BEAM",
-            "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "l",
                 "sample_frequency"
+            ]
+        },
+        "WRITE_SLICE_INFO": {
+            "title": "WRITE_SLICE_INFO",
+            "advanced": [
+                "name",
+                "n_slices"
             ]
         }
     }
