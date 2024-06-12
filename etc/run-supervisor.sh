@@ -42,7 +42,7 @@ radia_run redhat-docker
         ;;
     sbatch)
         export SIREPO_JOB_DRIVER_MODULES=local:sbatch
-        export SIREPO_JOB_DRIVER_SBATCH_HOST=${2:localhost}
+        export SIREPO_JOB_DRIVER_SBATCH_HOST=${2:-localhost}
         export SIREPO_JOB_DRIVER_SBATCH_CORES=2
         export SIREPO_JOB_DRIVER_SBATCH_NODES=1
         if [[ $SIREPO_JOB_DRIVER_SBATCH_HOST =~ ^(localhost|$(hostname --fqdn)) ]]; then

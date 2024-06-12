@@ -4802,6 +4802,7 @@ SIREPO.app.directive('sbatchOptions', function(appState, sbatchLoginService) {
         `,
         controller: function($scope, authState, stringsService) {
             $scope.sbatchFields = getSbatchFields();
+	    $scope.sbatchLoginService = sbatchLoginService;
 
             function getSbatchFields() {
                 const f = [...SIREPO.APP_SCHEMA.constants.sbatch.fields];
@@ -4834,11 +4835,6 @@ SIREPO.app.directive('sbatchOptions', function(appState, sbatchLoginService) {
             ['sbatchCores', 'sbatchHours', 'sbatchQueue'].forEach(function(e) {
                 appState.watchModelFields($scope, [$scope.simState.model + '.' + e], trimHoursAndCores);
             });
-
-            $scope.showSbatchOptions = function() {
-                var m = appState.models[$scope.simState.model];
-                return m && m.jobRunMode === 'sbatch';
-            };
         }
     };
 });
