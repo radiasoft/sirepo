@@ -697,12 +697,13 @@ class _Auth(sirepo.quest.Attr):
 
     def _create_user(self, module, want_login):
         u = simulation_db.user_create()
+        if want_login:
+            self._login_user(module, u)
         if r := sirepo.auth_role.for_new_user(
             is_guest=module.AUTH_METHOD == METHOD_GUEST
         ):
-            self.qcall.auth_db.model("UserRole").add_roles(roles=r, uid=u)
-        if want_login:
-            self._login_user(module, u)
+            with self.logged_in_user_set(u, method=module.AUTH_METHOD):
+                self.qcall.auth_db.model("UserRole").add_roles(roles=r)
         return u
 
     def _handle_user_dir_not_found(self, user_dir, uid):
