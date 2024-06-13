@@ -157,6 +157,8 @@ def _read_epics_data(run_dir, computed_values):
     if s.exists():
         d = simulation_db.json_load(s)
         for f in d:
+            if f == "isPlotClass":
+                continue
             v = d[f][0]
             if re.search(r"[A-Za-z]{2}", v):
                 v = re.sub(r"\(\d+\)", "", v)
