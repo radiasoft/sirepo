@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
@@ -794,9 +795,7 @@ def validate_model(model_data, model_schema, enum_info):
         elif len(model_schema[k]) > 2:
             value = model_schema[k][2]
         else:
-            raise Exception(
-                f'no value for field "{k}" and no default value in schema'
-            )
+            raise Exception(f'no value for field "{k}" and no default value in schema')
         if field_type in enum_info:
             if str(value) not in enum_info[field_type]:
                 # Check a comma-delimited string against the enumeration

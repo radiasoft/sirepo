@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
@@ -173,7 +174,7 @@ def _field_type_for_field(el, field):
 
 
 def _strip_file_prefix(value, model, field):
-    return re.sub(fr"^{model}-{field}\.", "", value)
+    return re.sub(rf"^{model}-{field}\.", "", value)
 
 
 def _validate_beamline(bl, name_to_id, element_names):
@@ -328,9 +329,7 @@ def _validate_type(el, element_names):
     for el_type in _ELEGANT_TYPES:
         if type.startswith(el_type) or el_type.startswith(type):
             if match:
-                raise OSError(
-                    f"{type}: type name matches multiple element types"
-                )
+                raise OSError(f"{type}: type name matches multiple element types")
             match = el_type
         if not el_type:
             raise OSError(f"{type}: unknown element type")

@@ -264,9 +264,7 @@ def sim_frame(frame_args):
         return _plot_beam(sim_type, frame_args)
     if "Field" in frame_args.frameReport:
         return _plot_field_dist(sim_type, frame_args)
-    raise AssertionError(
-        f"unhandled sim frame report: {frame_args.frameReport}"
-    )
+    raise AssertionError(f"unhandled sim frame report: {frame_args.frameReport}")
 
 
 def stateful_compute_get_elegant_sim_list(**kwargs):

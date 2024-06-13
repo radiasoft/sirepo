@@ -58,7 +58,7 @@ def _t(tests):
                 code = pkio.read_text(pkunit.data_dir().join(base_py))
                 actual = import_python(
                     code,
-                    user_filename=fr"c:\anything\{tests[b][0]}.anysuffix",
+                    user_filename=rf"c:\anything\{tests[b][0]}.anysuffix",
                     arguments=tests[b][1],
                     qcall=qcall,
                 )

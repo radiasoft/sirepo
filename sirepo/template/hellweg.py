@@ -448,9 +448,7 @@ def _generate_solenoid(models):
                 "solenoid", "solenoidFile", solenoid.solenoidFile
             )
         )
-    raise RuntimeError(
-        f"unknown solenoidDefinition: {solenoid.sourceDefinition}"
-    )
+    raise RuntimeError(f"unknown solenoidDefinition: {solenoid.sourceDefinition}")
 
 
 def _generate_transverse_dist(models):

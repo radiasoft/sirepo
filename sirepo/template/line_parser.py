@@ -5,6 +5,7 @@ Parses a line of input one character at a time.
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 import re
 
 
@@ -78,9 +79,7 @@ class LineParser:
         return None
 
     def raise_error(self, message):
-        raise OSError(
-            f"line {self.line_number}, {message}: {self.line[self.index :]}"
-        )
+        raise OSError(f"line {self.line_number}, {message}: {self.line[self.index :]}")
 
     def read_until(self, regex):
         """Reads until the end-of-line or the character regex is matched"""

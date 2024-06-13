@@ -3,6 +3,7 @@
 l:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 import math
@@ -614,9 +615,7 @@ def _zgoubi_scaling(command):
         "IOPT",
     ]
     for idx in range(1, int(nfam) + 1):
-        pattern.append(
-            f"NAMEF{idx} *LBL{idx} *LBL{idx}_2 *LBL{idx}_3 *LBL{idx}_4"
-        )
+        pattern.append(f"NAMEF{idx} *LBL{idx} *LBL{idx}_2 *LBL{idx}_3 *LBL{idx}_4")
         pattern.append(f"ignore")
         pattern.append(f"SCL{idx}")
         pattern.append(f"ignore")

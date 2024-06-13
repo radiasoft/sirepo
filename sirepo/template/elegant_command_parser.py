@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template.line_parser import LineParser
@@ -132,9 +133,7 @@ def _update_lattice_names(commands):
                     re.escape(save_lattices[index]), cmd["lattice"], re.IGNORECASE
                 ):
                     cmd["lattice"] = (
-                        "save_lattice"
-                        if index == 0
-                        else f"save_lattice{index + 1}"
+                        "save_lattice" if index == 0 else f"save_lattice{index + 1}"
                     )
                     break
             else:

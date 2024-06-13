@@ -1784,9 +1784,7 @@ def _generate_beamline_optics(report, data, qcall=None):
             size = item.position - prev.position
             if size != 0:
                 # add a drift
-                drift_name = _safe_beamline_item_name(
-                    f"{prev.name}_{name}", res.names
-                )
+                drift_name = _safe_beamline_item_name(f"{prev.name}_{name}", res.names)
                 max_name_size = max(max_name_size, len(drift_name))
                 res.names.append(drift_name)
                 items.append(

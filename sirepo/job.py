@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
@@ -130,7 +131,7 @@ NERSC_QUEUE_MAX = PKDict(
 UNIQUE_KEY_CHARS_RE = r"\w+"
 
 #: A standalone unique key
-UNIQUE_KEY_RE = re.compile(fr"^{UNIQUE_KEY_CHARS_RE}$")
+UNIQUE_KEY_RE = re.compile(rf"^{UNIQUE_KEY_CHARS_RE}$")
 
 
 _QUASI_SID_PREFIX = "_1_"

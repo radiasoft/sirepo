@@ -450,9 +450,7 @@ def bunch_plot(model, run_dir, frame_index, filename=_OPAL_H5_FILE):
     def _title(file, frame_index):
         t = f"Step {frame_index}"
         if "SPOS" in file[f"/Step#{frame_index}"].attrs:
-            t += ", SPOS {:.5f}m".format(
-                file[f"/Step#{frame_index}"].attrs["SPOS"][0]
-            )
+            t += ", SPOS {:.5f}m".format(file[f"/Step#{frame_index}"].attrs["SPOS"][0])
         return t
 
     return hdf5_util.HDF5Util(str(run_dir.join(filename))).heatmap(
@@ -1140,6 +1138,4 @@ def _read_data_file(path):
 
 
 def _units_from_hdf5(h5file, field):
-    return _field_units(
-        pkcompat.from_bytes(h5file.attrs[f"{field.name}Unit"]), field
-    )
+    return _field_units(pkcompat.from_bytes(h5file.attrs[f"{field.name}Unit"]), field)

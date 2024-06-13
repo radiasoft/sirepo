@@ -473,9 +473,7 @@ def _extract_current(data, data_file):
     report_data = readparticles(data_file.filename)
     data_time = report_data["time"]
     with h5py.File(data_file.filename, "r") as f:
-        weights = np.array(
-            f[f"data/{data_file.iteration}/particles/beam/weighting"]
-        )
+        weights = np.array(f[f"data/{data_file.iteration}/particles/beam/weighting"])
     curr = get_zcurrent_new(
         report_data["beam"][:, 4], report_data["beam"][:, 5], zmesh, weights, dz
     )
@@ -545,9 +543,7 @@ def _extract_field(field, data, data_file, args=None):
 
     selector = field if field == "phi" else f"E/{field}"
     with h5py.File(data_file.filename, "r") as hf:
-        field_values = np.array(
-            hf[f"data/{data_file.iteration}/meshes/{selector}"]
-        )
+        field_values = np.array(hf[f"data/{data_file.iteration}/meshes/{selector}"])
         data_time = hf[f"data/{data_file.iteration}"].attrs["time"]
         dt = hf[f"data/{data_file.iteration}"].attrs["dt"]
 

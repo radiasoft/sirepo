@@ -829,9 +829,7 @@ def _generate_wiggler(data):
         + _field_value("source", "vdiv2", 1.0)
         + _field_value("source", "f_color", 0)
         + _field_value("source", "f_phot", 0)
-        + _field_value(
-            "source", "file_traj", f"b'{_WIGGLER_TRAJECTORY_FILENAME}'"
-        )
+        + _field_value("source", "file_traj", f"b'{_WIGGLER_TRAJECTORY_FILENAME}'")
     )
 
 

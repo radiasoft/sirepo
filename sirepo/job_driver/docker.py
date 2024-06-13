@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
@@ -256,9 +257,7 @@ class DockerDriver(job_driver.DriverBase):
             o = subprocess.check_output(["sudo", "cat", "/etc/docker/tls/" + f]).decode(
                 "utf-8"
             )
-            assert o.startswith(
-                "-----BEGIN"
-            ), f"incorrect tls file={f} content={o}"
+            assert o.startswith("-----BEGIN"), f"incorrect tls file={f} content={o}"
             d.join(f).write(o)
         # we just reuse the same cert as the docker server since it's local host
         d.join("cacert.pem").write(o)

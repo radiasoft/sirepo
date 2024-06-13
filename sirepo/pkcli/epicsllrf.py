@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common, epicsllrf
@@ -35,9 +36,7 @@ def run_background(cfg_dir):
     s = dm.epicsServer.serverAddress
     f = _epics_fields(dm)
     if epicsllrf.run_epics_cmd(f"pvget {f[0]}", s) != 0:
-        raise epicsllrf.EpicsDisconnectError(
-            f"Unable to connect to EPICS server: {s}"
-        )
+        raise epicsllrf.EpicsDisconnectError(f"Unable to connect to EPICS server: {s}")
     epicsllrf.run_epics_cmd(f"pvmonitor {' '.join(f)} | python parameters.py", s)
 
 

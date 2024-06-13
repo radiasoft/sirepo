@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import lattice
@@ -26,9 +27,9 @@ _MATERIAL_CODE_TO_NAME = PKDict(
 class OpalParser(lattice.LatticeParser):
     def __init__(self):
         self.ignore_commands = {
-                "value",
-                "stop",
-                "quit",
+            "value",
+            "stop",
+            "quit",
         }
         super().__init__(sirepo.sim_data.get_class("opal"))
 

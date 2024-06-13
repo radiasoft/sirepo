@@ -545,9 +545,7 @@ class _Auth(sirepo.quest.Attr):
             r = "completeRegistration"
             e = f"uid={u} needs to complete registration"
         else:
-            self.qcall.cookie.reset_state(
-                f"uid={s} state={u} invalid, cannot continue"
-            )
+            self.qcall.cookie.reset_state(f"uid={s} state={u} invalid, cannot continue")
             p = PKDict(reload_js=True)
             e = f"invalid cookie state={s} uid={u}"
         pkdc("SRException uid={} route={} params={} method={} error={}", u, r, p, m, e)

@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import lattice
@@ -77,19 +78,19 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _remove_deprecated_items(cls, models):
         cmds = []
         deprecated_cmds = {
-                "attlist",
-                "eigen",
-                "envelope",
-                "list",
-                "matrix",
-                "micado",
-                "start",
-                "survey",
-                "threadall",
-                "threadbpm",
-                "twiss",
-                "twiss3",
-                "twisstrack",
+            "attlist",
+            "eigen",
+            "envelope",
+            "list",
+            "matrix",
+            "micado",
+            "start",
+            "survey",
+            "threadall",
+            "threadbpm",
+            "twiss",
+            "twiss3",
+            "twisstrack",
         }
         for cmd in models.commands:
             if cmd._type not in deprecated_cmds:
@@ -97,22 +98,22 @@ class SimData(sirepo.sim_data.SimDataBase):
         models.commands = cmds
         elements = []
         deprecated_elements = {
-                "CYCLOTRONVALLEY",
-                "HMONITOR",
-                "INSTRUMENT",
-                "MULTIPOLETCURVEDCONSTRADIUS",
-                "MULTIPOLETCURVEDVARRADIUS",
-                "MULTIPOLETSTRAIGHT",
-                "PARALLELPLATE",
-                "PATCH",
-                "PEPPERPOT",
-                "SLIT",
-                "SROT",
-                "SEPARATOR",
-                "STRIPPER",
-                "VMONITOR",
-                "WIRE",
-                "YROT",
+            "CYCLOTRONVALLEY",
+            "HMONITOR",
+            "INSTRUMENT",
+            "MULTIPOLETCURVEDCONSTRADIUS",
+            "MULTIPOLETCURVEDVARRADIUS",
+            "MULTIPOLETSTRAIGHT",
+            "PARALLELPLATE",
+            "PATCH",
+            "PEPPERPOT",
+            "SLIT",
+            "SROT",
+            "SEPARATOR",
+            "STRIPPER",
+            "VMONITOR",
+            "WIRE",
+            "YROT",
         }
         removed_ids = []
         for el in models.elements:

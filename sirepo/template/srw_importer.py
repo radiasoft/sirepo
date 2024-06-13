@@ -6,6 +6,7 @@ SRW objects.
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjson
@@ -165,11 +166,7 @@ def import_python(code, user_filename=None, arguments=None, qcall=None):
         )
         m = m[:50]
         raise ValueError(
-            (
-                f"Error on line {lineno}: {m}"
-                if lineno
-                else f"Error: {m}"
-            ),
+            (f"Error on line {lineno}: {m}" if lineno else f"Error: {m}"),
         )
 
 
@@ -945,9 +942,7 @@ def _parsed_dict(v, op):
     for i in range(len(beamline_elements)):
         if beamline_elements[i]["type"] == "watch":
             idx = beamline_elements[i]["id"]
-            python_dict["models"][
-                f"watchpointReport{idx}"
-            ] = initialIntensityReport
+            python_dict["models"][f"watchpointReport{idx}"] = initialIntensityReport
 
     return python_dict
 

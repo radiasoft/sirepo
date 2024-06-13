@@ -1076,9 +1076,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
     if v_type == SCHEMA.constants.viewTypeFields or for_export:
         f_type = disp.fieldType
         if f_type not in radia_util.FIELD_TYPES:
-            raise ValueError(
-                f"Invalid field {f_type} ({radia_util.FIELD_TYPES})"
-            )
+            raise ValueError(f"Invalid field {f_type} ({radia_util.FIELD_TYPES})")
         v.fieldType = f_type
         v.fieldPaths = data.models.fieldPaths.get("paths", [])
         v.fieldPoints = _build_field_points(data.models.fieldPaths.get("paths", []))

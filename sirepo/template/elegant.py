@@ -586,9 +586,7 @@ def background_percent_complete(report, run_dir, is_running):
                     if name not in beamline_map:
                         beamline_map[name] = 0
                     beamline_map[name] += 1
-                    beamline_map[f"{name.upper()}#{beamline_map[name]}"] = (
-                        index
-                    )
+                    beamline_map[f"{name.upper()}#{beamline_map[name]}"] = index
                     index += 1
                 else:
                     index = _walk(

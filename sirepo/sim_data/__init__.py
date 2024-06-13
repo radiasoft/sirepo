@@ -175,7 +175,7 @@ class SimDataBase:
 
     WATCHPOINT_REPORT = "watchpointReport"
 
-    WATCHPOINT_REPORT_RE = re.compile(fr"^{WATCHPOINT_REPORT}(\d+)$")
+    WATCHPOINT_REPORT_RE = re.compile(rf"^{WATCHPOINT_REPORT}(\d+)$")
 
     _EXAMPLE_RESOURCE_DIR = "examples"
 
@@ -418,8 +418,8 @@ class SimDataBase:
             list: sorted list of file names stripped of file_type
         """
         return sorted(
-                cls.lib_file_name_without_type(f.basename)
-                for f in cls._lib_file_list(f"{file_type}.*", qcall=qcall)
+            cls.lib_file_name_without_type(f.basename)
+            for f in cls._lib_file_list(f"{file_type}.*", qcall=qcall)
         )
 
     @classmethod
@@ -1023,13 +1023,13 @@ class SimDataBase:
         cls._assert_server_side()
 
         res = PKDict(
-                (f.basename, f)
-                for f in sirepo.resource.glob_paths(
-                    _TEMPLATE_RESOURCE_DIR,
-                    cls.sim_type(),
-                    cls.LIB_DIR,
-                    pat,
-                )
+            (f.basename, f)
+            for f in sirepo.resource.glob_paths(
+                _TEMPLATE_RESOURCE_DIR,
+                cls.sim_type(),
+                cls.LIB_DIR,
+                pat,
+            )
         )
         if want_user_lib_dir:
             # lib_dir overwrites resource_dir

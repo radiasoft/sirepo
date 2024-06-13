@@ -272,9 +272,7 @@ class API(sirepo.quest.API):
                     return m.group()
                 f = f.f_back
             else:
-                raise AssertionError(
-                    f"{f.f_code}: max frame search depth reached"
-                )
+                raise AssertionError(f"{f.f_code}: max frame search depth reached")
 
         def _args(kwargs):
             res = PKDict()
