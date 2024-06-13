@@ -264,7 +264,7 @@ def sim_frame_finalFieldAnimation(frame_args):
 
 
 def sim_frame_finalParticleAnimation(frame_args):
-    return _particle_plot(frame_args, _FINAL_PARTICLE_OUTPUT_FILENAME)
+    return _particle_plot(frame_args, _FINAL_PARTICLE_OUTPUT_FILENAME, one_frame=True)
 
 
 def sim_frame_particleAnimation(frame_args):
@@ -421,15 +421,15 @@ def _parse_maginfile(filepath):
     u = 1
     with pkio.open_text(filepath) as f:
         for line in f:
+            m = re.match(r"\?\s+(\w+)\s*=\s*([\S]+)", line)
+            if m:
+                if m.group(1) == "UNITLENGTH":
+                    u = float(m.group(2))
+                continue
             row = line.split()
             if row:
                 if row[0] == _MAGIN_PLOT_FIELD:
                     p.append(row[1])
-                if row[0] == "?" and "UNITLENGTH" in row[1]:
-                    if row[2] == "=":
-                        u = row[3]
-                    else:
-                        u = row[2]
     if p:
         return PKDict(unit_length=u, points=p)
     raise AssertionError(f"No AW fields present in maginfile={filepath.basename}")
@@ -497,14 +497,21 @@ def _parse_namelist(data, text):
     return data
 
 
-def _particle_plot(frame_args, filename):
-    n = frame_args.sim_in.models.electronBeam.npart
+def _particle_plot(frame_args, filename, one_frame=False):
     d = numpy.fromfile(str(frame_args.run_dir.join(filename)), dtype=numpy.float64)
-    b = d.reshape(
-        int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
-        len(SCHEMA.enum.ParticleColumn),
-        n,
-    )
+    if one_frame:
+        b = d.reshape(
+            1,
+            len(SCHEMA.enum.ParticleColumn),
+            int(len(d) / len(SCHEMA.enum.ParticleColumn)),
+        )
+    else:
+        n = frame_args.sim_in.models.electronBeam.npart
+        b = d.reshape(
+            int(len(d) / len(SCHEMA.enum.ParticleColumn) / n),
+            len(SCHEMA.enum.ParticleColumn),
+            n,
+        )
     x = _get_col(frame_args.x)
     y = _get_col(frame_args.y)
     return template_common.heatmap(

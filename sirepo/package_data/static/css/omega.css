@@ -215,4 +215,9 @@
   .table-hover > tbody > tr:hover {
     background-color: var(--sr-item-bg-dark-mode);
   }
+
+  .sr-login-panel, .help-block {
+    color: var(--sr-panel-text-dark-mode);
+  }
+
 }
