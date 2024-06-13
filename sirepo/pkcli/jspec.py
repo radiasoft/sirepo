@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pksubprocess
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import sdds_util, template_common, madx_parser
@@ -99,15 +100,16 @@ def _extract_twiss_report(data):
                 ),
             }
         )
-    return {
-        "title": "",
-        "x_range": [min(x), max(x)],
-        "y_label": "",
-        "x_label": "{} [{}]".format(report["x"], "m"),
-        "x_points": x,
-        "plots": plots,
-        "y_range": template_common.compute_plot_color_and_range(plots),
-    }
+    return PKDict(
+        title="",
+        isPlotClass=True,
+        x_range=[min(x), max(x)],
+        y_label="",
+        x_label="{} [{}]".format(report["x"], "m"),
+        x_points=x,
+        plots=plots,
+        y_range=template_common.compute_plot_color_and_range(plots),
+    )
 
 
 def _float_from_str(v):

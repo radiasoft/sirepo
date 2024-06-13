@@ -130,7 +130,7 @@ def get_rates(run_dir):
             r[0] = re.sub(r"\(", "[", r[0])
             r[0] = re.sub(r"\)", "]", r[0])
             o.rate.append(r)
-    return o
+    return template_common.plot_default(o)
 
 
 def get_data_file(run_dir, model, frame, options):

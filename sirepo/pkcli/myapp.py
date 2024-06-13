@@ -6,6 +6,7 @@
 """
 from pykern import pkio
 from pykern import pksubprocess
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -61,12 +62,15 @@ def _report(title, fields, data):
     cols = _csv_to_cols()
     x_points = cols["year"]
     plots = [_plot(dog, f, cols) for f in fields]
-    return {
-        "title": title,
-        "x_range": [x_points[0], x_points[-1]],
-        "y_label": _label(fields[0]) if len(fields) == 1 else "",
-        "x_label": "Age (years)",
-        "x_points": x_points,
-        "plots": plots,
-        "y_range": template_common.compute_plot_color_and_range(plots),
-    }
+    return template_common.plot_default(
+        PKDict(
+            title=title,
+            x_range=[x_points[0], x_points[-1]],
+            y_label=_label(fields[0]) if len(fields) == 1 else "",
+            x_label="Age (years)",
+            x_points=x_points,
+            plots=plots,
+            y_range=template_common.compute_plot_color_and_range(plots),
+        )
+    )
+

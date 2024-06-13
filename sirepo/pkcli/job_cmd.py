@@ -309,7 +309,8 @@ def _do_sequential_result(msg, template):
         r = template_common.read_sequential_result(msg.runDir)
     pkdp("\n\n\n in sequential result isInstance(r, PlotClass)?={}", isinstance(r, sirepo.template.template_common.PlotClass))
     if not isinstance(r, sirepo.template.template_common.PlotClass):
-        raise AssertionError(f"sim frames must return PlotClass, got {type(r)}")
+        pkdp("\n\n\n\n r={}", r)
+        raise AssertionError(f"sequential result must return PlotClass, got {type(r)}")
     return r
 
 
