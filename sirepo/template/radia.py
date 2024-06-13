@@ -152,7 +152,7 @@ def code_var(variables):
 
 
 def extract_report_data(run_dir, sim_in):
-    assert sim_in.report in _REPORTS, "report={}: unknown report".format(sim_in.report)
+    assert sim_in.report in _REPORTS, f"report={sim_in.report}: unknown report"
     _SIM_DATA.sim_files_to_run_dir(sim_in, run_dir, post_init=True)
     if sim_in.report == "reset":
         template_common.write_sequential_result({}, run_dir=run_dir)
@@ -226,7 +226,7 @@ def extract_report_data(run_dir, sim_in):
 def generate_field_data(sim_id, g_id, name, field_type, field_paths):
     assert (
         field_type in radia_util.FIELD_TYPES
-    ), "field_type={}: invalid field type".format(field_type)
+    ), f"field_type={field_type}: invalid field type"
     try:
         if field_type == radia_util.FIELD_TYPE_MAG_M:
             f = radia_util.get_magnetization(g_id)
@@ -240,7 +240,7 @@ def generate_field_data(sim_id, g_id, name, field_type, field_paths):
 
 
 def get_data_file(run_dir, model, frame, options):
-    assert model in _REPORTS, "model={}: unknown report".format(model)
+    assert model in _REPORTS, f"model={model}: unknown report"
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     sim = data.models.simulation
     name = sim.name
@@ -493,7 +493,7 @@ def _build_field_file_pts(f_path):
     )
     lines = [float(l.strip()) for l in pkio.read_text(pts_file).split(",")]
     if len(lines) % 3 != 0:
-        raise ValueError("Invalid file data {}".format(f_path.file_data))
+        raise ValueError(f"Invalid file data {f_path.file_data}")
     return lines
 
 
@@ -741,7 +741,7 @@ def _electron_trajectory_plot(sim_id, **kwargs):
 def _evaluate_var(var, code_variable):
     e = code_variable.eval_var(var)
     if e[1] is not None:
-        raise RuntimeError("Error evaluating field: {}: {}".format(var, e[1]))
+        raise RuntimeError(f"Error evaluating field: {var}: {e[1]}")
     return e[0]
 
 
@@ -1070,14 +1070,14 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
 
     f_type = None
     if v_type not in VIEW_TYPES:
-        raise ValueError("Invalid view {} ({})".format(v_type, VIEW_TYPES))
+        raise ValueError(f"Invalid view {v_type} ({VIEW_TYPES})")
     v.viewType = v_type
     v.dataFile = _GEOM_FILE if for_export else f"{rpt_out}.h5"
     if v_type == SCHEMA.constants.viewTypeFields or for_export:
         f_type = disp.fieldType
         if f_type not in radia_util.FIELD_TYPES:
             raise ValueError(
-                "Invalid field {} ({})".format(f_type, radia_util.FIELD_TYPES)
+                f"Invalid field {f_type} ({radia_util.FIELD_TYPES})"
             )
         v.fieldType = f_type
         v.fieldPaths = data.models.fieldPaths.get("paths", [])
@@ -1200,7 +1200,7 @@ def _get_geom_data(
     field_paths=None,
     geom_types=[SCHEMA.constants.geomTypeLines, SCHEMA.constants.geomTypePolys],
 ):
-    assert view_type in VIEW_TYPES, "view_type={}: invalid view type".format(view_type)
+    assert view_type in VIEW_TYPES, f"view_type={view_type}: invalid view type"
     if view_type == SCHEMA.constants.viewTypeFields:
         res = generate_field_data(sim_id, g_id, name, field_type, field_paths)
         res.data += _get_geom_data(
@@ -1340,7 +1340,7 @@ def _calculate_objective_def(models):
 """
         )
     else:
-        raise ValueError("objective_functon={}: unknown function".format(t))
+        raise ValueError(f"objective_functon={t}: unknown function")
     return c
 
 
@@ -1401,7 +1401,7 @@ def _read_h5_path(filename, h5path):
     try:
         with h5py.File(filename, "r") as f:
             return template_common.h5_to_dict(f, path=h5path)
-    except IOError as e:
+    except OSError as e:
         if pkio.exception_is_not_found(e):
             pkdlog("filename={} not found", filename)
             # need to generate file

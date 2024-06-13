@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.

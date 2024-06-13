@@ -406,7 +406,7 @@ def _get_frame_counts(run_dir):
     )
     with pkio.open_text(run_dir.join(GENESIS_OUTPUT_FILE)) as f:
         for line in f:
-            m = re.match("^\s*(\d+) (\w+): records in z", line)
+            m = re.match(r"^\s*(\d+) (\w+): records in z", line)
             if m:
                 res[m.group(2)] = int(m.group(1))
                 if m.group(1) == "field":
@@ -462,7 +462,7 @@ def _parse_namelist(data, text):
                     missing_files.append(
                         PKDict(
                             filename=v,
-                            file_type="{}-{}".format(m, f),
+                            file_type=f"{m}-{f}",
                         )
                     )
                 else:

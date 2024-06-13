@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Common execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
@@ -265,11 +264,11 @@ class ParticleEnergy:
         for f in cls.ENERGY_PRIORITY[sim_type]:
             if f in energy and energy[f] != 0:
                 v = energy[f]
-                handler = "_ParticleEnergy__set_from_{}".format(f)
+                handler = f"_ParticleEnergy__set_from_{f}"
                 getattr(cls, handler)(p, energy)
                 energy[f] = v
                 return energy
-        assert False, "missing energy field: {}".format(energy)
+        assert False, f"missing energy field: {energy}"
 
     @classmethod
     def get_charge(cls, sim_type, particle, beam):
@@ -297,7 +296,7 @@ class ParticleEnergy:
     def __set_from_beta(cls, particle, energy):
         assert (
             energy.beta >= 0 or energy.beta < 1
-        ), "energy beta out of range: {}".format(energy.beta)
+        ), f"energy beta out of range: {energy.beta}"
         energy.gamma = 1 / math.sqrt(1 - energy.beta**2)
         cls.__set_from_gamma(particle, energy)
 
@@ -313,7 +312,7 @@ class ParticleEnergy:
 
     @classmethod
     def __set_from_gamma(cls, particle, energy):
-        assert energy.gamma >= 1, "energy gamma out of range: {}".format(energy.gamma)
+        assert energy.gamma >= 1, f"energy gamma out of range: {energy.gamma}"
         energy.energy = energy.gamma * particle.mass
         energy.kinetic_energy = energy.energy - particle.mass
         energy.beta = math.sqrt(1.0 - 1.0 / (energy.gamma**2))
@@ -421,7 +420,7 @@ def enum_text(schema, name, value):
     for e in schema["enum"][name]:
         if e[0] == str(value):
             return e[1]
-    assert False, "unknown {} enum value: {}".format(name, value)
+    assert False, f"unknown {name} enum value: {value}"
 
 
 def exec_parameters(path=None):
@@ -507,7 +506,7 @@ def h5_to_dict(hf, path=None):
                 # AttributeErrors occur when invoking tolist() on non-arrays
                 # TypeErrors occur when accessing a group with [()]
                 # in each case we recurse one step deeper into the path
-                p = "{}/{}".format(path, k)
+                p = f"{path}/{k}"
                 d[k] = h5_to_dict(hf, path=p)
     except TypeError:
         # this TypeError occurs when hf[path] is not iterable (e.g. a string)
@@ -644,7 +643,7 @@ def read_last_csv_line(path):
             while f.read(1) != b"\n":
                 f.seek(-2, os.SEEK_CUR)
             return pkcompat.from_bytes(f.readline())
-    except IOError:
+    except OSError:
         return ""
 
 
@@ -724,7 +723,7 @@ def sim_frame_dispatch(frame_args):
     res = o(frame_args)
     if res is None:
         raise RuntimeError(
-            "unsupported simulation_frame model={}".format(frame_args.frameReport)
+            f"unsupported simulation_frame model={frame_args.frameReport}"
         )
     return res
 
@@ -796,7 +795,7 @@ def validate_model(model_data, model_schema, enum_info):
             value = model_schema[k][2]
         else:
             raise Exception(
-                'no value for field "{}" and no default value in schema'.format(k)
+                f'no value for field "{k}" and no default value in schema'
             )
         if field_type in enum_info:
             if str(value) not in enum_info[field_type]:
@@ -861,7 +860,7 @@ def write_sequential_result(result, run_dir=None):
     if not run_dir:
         run_dir = pkio.py_path()
     f = simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir)
-    assert not f.exists(), "{} file exists".format(OUTPUT_BASE_NAME)
+    assert not f.exists(), f"{OUTPUT_BASE_NAME} file exists"
     simulation_db.write_json(f, result)
     t = sirepo.template.import_module(
         simulation_db.read_json(
@@ -892,8 +891,8 @@ def _get_notes(data):
 
 
 def _plot_range(report, axis):
-    half_size = float(report["{}Size".format(axis)]) / 2.0
-    midpoint = float(report["{}Offset".format(axis)])
+    half_size = float(report[f"{axis}Size"]) / 2.0
+    midpoint = float(report[f"{axis}Offset"])
     return [midpoint - half_size, midpoint + half_size]
 
 

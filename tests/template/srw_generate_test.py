@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """PyTest for :mod:`sirepo.template.srw`
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import pytest
 from pykern.pkcollections import PKDict
 
@@ -20,7 +18,7 @@ def test_srw_generate_all_optics(fc):
             "importFile",
             PKDict(folder="/generate_test"),
             PKDict(simulation_type=srw.SIM_TYPE),
-            file="{}.json".format(name),
+            file=f"{name}.json",
         ),
         name,
     )
@@ -62,7 +60,7 @@ def _generate_source(fc, sim, name):
         re.sub(
             r"[^\w\-\.]",
             "",
-            re.sub(r"\s", "-", "{}.py".format(name.lower())),
+            re.sub(r"\s", "-", f"{name.lower()}.py"),
         ),
         d,
     )

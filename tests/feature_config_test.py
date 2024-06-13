@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """test sim_types
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.

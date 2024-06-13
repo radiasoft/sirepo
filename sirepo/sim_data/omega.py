@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """simulation data operations
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.

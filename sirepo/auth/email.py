@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Email login
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
@@ -56,7 +55,7 @@ class API(sirepo.quest.API):
                         ),
                     ),
                 )
-            assert m == "POST", "unexpect http method={}".format(m)
+            assert m == "POST", f"unexpect http method={m}"
             d = self.body_as_dict()
             if d.get("token") != token:
                 raise sirepo.util.Error(

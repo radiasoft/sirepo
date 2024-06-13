@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """PyTest for :mod:`sirepo.template.madx_converter`
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.

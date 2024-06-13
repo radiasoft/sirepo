@@ -155,7 +155,7 @@ def register_api_module(module):
         if _is_api_func(cls=c, name=n, obj=o):
             assert (
                 not n in _api_funcs
-            ), "function is duplicate: func={} module={}".format(n, m.__name__)
+            ), f"function is duplicate: func={n} module={m.__name__}"
             _api_funcs[n] = _Route(func=o, cls=c, func_name=n)
 
 
@@ -398,7 +398,7 @@ def uri_for_api(api_name, params=None):
                     res += "/"
                 res += v
                 continue
-        assert p.is_optional, "missing parameter={} for api={}".format(p.name, api_name)
+        assert p.is_optional, f"missing parameter={p.name} for api={api_name}"
     return res or "/"
 
 
@@ -510,7 +510,7 @@ def _init_uris(simulation_db, sim_types):
         r.name = k
         assert (
             not r.base_uri in _uri_to_route
-        ), "{}: duplicate end point; other={}".format(v, _uri_to_route[r.base_uri])
+        ), f"{v}: duplicate end point; other={_uri_to_route[r.base_uri]}"
         _uri_to_route[r.base_uri] = r
         _api_to_route[k] = r
         if r.base_uri == _ROUTE_URI_DEFAULT:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """User roles
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.

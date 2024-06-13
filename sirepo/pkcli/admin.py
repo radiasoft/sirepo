@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """?
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
@@ -100,7 +99,7 @@ def move_user_sims(uid):
     Must be run in the source uid directory."""
     if not os.path.exists("srw/lib"):
         pkcli.command_error("srw/lib does not exist; must run in user dir")
-    if not os.path.exists("../{}".format(uid)):
+    if not os.path.exists(f"../{uid}"):
         pkcli.command_error(f"missing user_dir=../{uid}")
     sim_dirs = []
     lib_files = []
@@ -115,14 +114,14 @@ def move_user_sims(uid):
     for path in glob.glob("*/lib/*"):
         lib_files.append(path)
     for sim_dir in sim_dirs:
-        target = "../{}/{}".format(uid, sim_dir)
+        target = f"../{uid}/{sim_dir}"
         assert not os.path.exists(target), "target sim already exists: {}".format(
             target
         )
         pkdlog(sim_dir)
         shutil.move(sim_dir, target)
     for lib_file in lib_files:
-        target = "../{}/{}".format(uid, lib_file)
+        target = f"../{uid}/{lib_file}"
         if os.path.exists(target):
             continue
         pkdlog(lib_file)
@@ -131,7 +130,7 @@ def move_user_sims(uid):
 
 def _build_ops(simulations, sim_type, examples):
     ops = PKDict(delete=[], revert=[])
-    n = set([x.models.simulation.name for x in examples[sim_type]])
+    n = {x.models.simulation.name for x in examples[sim_type]}
     for sim in simulations:
         if sim.name not in n:
             ops.delete.append((sim, sim_type))

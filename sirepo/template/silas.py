@@ -109,7 +109,7 @@ def sim_frame(frame_args):
             element=element,
             slice_index=frame_args.frameIndex,
         ).gen()
-    raise AssertionError("unknown sim_frame report: {}".format(r))
+    raise AssertionError(f"unknown sim_frame report: {r}")
 
 
 def sim_frame_crystal3dAnimation(frame_args):
@@ -266,7 +266,7 @@ def _beamline_animation_percent_complete(run_dir, res, data):
         if run_dir.join(filename).exists():
             res.outputInfo.append(
                 PKDict(
-                    modelKey="beamlineAnimation{}".format(e.id),
+                    modelKey=f"beamlineAnimation{e.id}",
                     filename=filename,
                     id=element.id,
                     frameCount=frame_count,
@@ -344,7 +344,7 @@ def _generate_beamline_elements(data):
         elif element.type == "splitter":
             state.res += f"(Beamsplitter({element.transmitted_fraction}), []),\n"
         else:
-            raise AssertionError("unknown element type={}".format(element.type))
+            raise AssertionError(f"unknown element type={element.type}")
 
     state = PKDict(res="(Watchpoint(), []),\n")
     if data.report not in _SIM_DATA.SOURCE_REPORTS:
@@ -603,7 +603,7 @@ def _report_to_file_index(sim_in, report):
         return 0, None
     m = re.search(r"beamlineAnimation(\d+)", report)
     if not m:
-        raise AssertionError("invalid watch report: {}".format(report))
+        raise AssertionError(f"invalid watch report: {report}")
     i = int(m.group(1))
     if i == 0:
         return 0, None
@@ -614,4 +614,4 @@ def _report_to_file_index(sim_in, report):
         if e.id == i:
             return count_by_type[e.type], e
         count_by_type[e.type] += 1
-    raise AssertionError("{} report not found: {}".format(element_type, report))
+    raise AssertionError(f"{element_type} report not found: {report}")

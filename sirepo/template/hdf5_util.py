@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """HDF5 utilities.
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
@@ -96,7 +95,7 @@ class HDF5Util:
             try:
                 with h5py.File(self.filename, "r") as p:
                     return callback(p)
-            except (BlockingIOError, IOError, KeyError) as err:
+            except (BlockingIOError, OSError, KeyError) as err:
                 e = err
                 pkdlog(
                     "{} when reading file {}, will retry",

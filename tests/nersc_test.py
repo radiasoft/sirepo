@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """NERSC-related tests.
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.

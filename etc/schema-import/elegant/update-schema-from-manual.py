@@ -29,7 +29,7 @@ for html_file in glob.glob("manual/*.html"):
                 state = "field_start"
             continue
         if state == "field_start":
-            if re.search("^&amp;{}".format(name), line):
+            if re.search(f"^&amp;{name}", line):
                 state = "fields"
             # class="td11">Parameter Name </td><td  style="white-space:nowrap; text-align:left;" id="TBL-120-1-2"
             elif re.search(r">Parameter Name\s*<", line):
@@ -60,7 +60,7 @@ for html_file in glob.glob("manual/*.html"):
                 state = "field_start"
             else:
                 m = re.match(
-                    '^class="td11">([a-zA-Z]\S*?)\s*</td>.*?style="white-space:nowrap; text-align:left;".*$',
+                    r'^class="td11">([a-zA-Z]\S*?)\s*</td>.*?style="white-space:nowrap; text-align:left;".*$',
                     line,
                 )
                 if m:

@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """SDDS utilities.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkcollections import PKDict
@@ -174,7 +172,7 @@ def process_sdds_page(filename, page_index, callback, *args, **kwargs):
     sdds_index = _next_index()
     try:
         if sdds.sddsdata.InitializeInput(sdds_index, filename) != 1:
-            pkdlog("{}: cannot access".format(filename))
+            pkdlog(f"{filename}: cannot access")
             # In normal execution, the file may not yet be available over NFS
             err = _sdds_error(sdds_index, "Output file is not yet available.")
         else:
@@ -187,11 +185,11 @@ def process_sdds_page(filename, page_index, callback, *args, **kwargs):
                 kwargs["sdds_index"] = sdds_index
                 return callback(*args, **kwargs)
             except SystemError as e:
-                pkdlog("{}: page not found in {}".format(page_index, filename))
+                pkdlog(f"{page_index}: page not found in {filename}")
                 err = _sdds_error(
                     sdds_index,
                     (
-                        "Output page {} not found".format(page_index)
+                        f"Output page {page_index} not found"
                         if page_index
                         else "No output was generated for this report."
                     ),

@@ -107,7 +107,7 @@ _X_FIELD = "s"
 
 class CommandIterator(lattice.ElementIterator):
     def start(self, model):
-        super(CommandIterator, self).start(model)
+        super().start(model)
         if model._type == "run_setup":
             self.fields.append(["semaphore_file", _ELEGANT_SEMAPHORE_FILE])
         elif model._type == "global_settings":
@@ -217,7 +217,7 @@ class OutputFileIterator(lattice.ModelIterator):
                         suffix,
                     )
                 else:
-                    filename = "{}.{}.sdds".format(model.name, field)
+                    filename = f"{model.name}.{field}.sdds"
             else:
                 filename = model[field]
             k = LatticeUtil.file_id(model._id, self.field_index)
@@ -586,7 +586,7 @@ def background_percent_complete(report, run_dir, is_running):
                     if name not in beamline_map:
                         beamline_map[name] = 0
                     beamline_map[name] += 1
-                    beamline_map["{}#{}".format(name.upper(), beamline_map[name])] = (
+                    beamline_map[f"{name.upper()}#{beamline_map[name]}"] = (
                         index
                     )
                     index += 1
@@ -653,7 +653,7 @@ def extract_report_data(filename, frame_args, page_count=0):
             plot.label = _FIELD_LABEL[plot.label]
             return
         if sdds_units in _SIMPLE_UNITS:
-            plot.label = "{} [{}]".format(plot.label, sdds_units)
+            plot.label = f"{plot.label} [{sdds_units}]"
             return
         plot.label = plot.label
         return
@@ -663,9 +663,9 @@ def extract_report_data(filename, frame_args, page_count=0):
         if title_key in _PLOT_TITLE:
             title = _PLOT_TITLE[title_key]
         else:
-            title = "{} / {}".format(xfield, yfield)
+            title = f"{xfield} / {yfield}"
         if page_count > 1:
-            title += ", Plot {} of {}".format(page_index + 1, page_count)
+            title += f", Plot {page_index + 1} of {page_count}"
         return title
 
     x_field = "x" if "x" in frame_args else _X_FIELD
@@ -683,7 +683,7 @@ def extract_report_data(filename, frame_args, page_count=0):
     ):
         if page_count > 1:
             plot_attrs.pkupdate(
-                title="Plot {} of {}".format(plot_attrs.page_index + 1, page_count)
+                title=f"Plot {plot_attrs.page_index + 1} of {page_count}"
             )
 
         return sdds_util.SDDSUtil(filename).lineplot(plot_attrs=plot_attrs)
@@ -793,7 +793,7 @@ def parse_input_text(
         return ElegantMadxConverter(qcall=qcall).from_madx_text(
             OpalMadxConverter(qcall=qcall).to_madx_text(opal_parser.parse_file(text)[0])
         )
-    raise IOError(
+    raise OSError(
         f"{path.basename}: invalid file format; expecting .madx, .ele, .in or .lte"
     )
 
@@ -1074,9 +1074,9 @@ class _Generate(sirepo.lib.GenerateBase):
                 and c[0][CommandIterator.IS_DISABLED_FIELD] == "1"
                 else ""
             )
-            res += "\n" + prefix + "&{}".format(c[0]._type) + "\n"
+            res += "\n" + prefix + f"&{c[0]._type}" + "\n"
             for f in c[1]:
-                res += prefix + "  {} = {},".format(f[0], f[1]) + "\n"
+                res += prefix + f"  {f[0]} = {f[1]}," + "\n"
             res += prefix + "&end" + "\n"
         return res
 
@@ -1091,7 +1091,7 @@ class _Generate(sirepo.lib.GenerateBase):
 
         value = model[field]
         if el_type.endswith("StringArray"):
-            return ["{}[0]".format(field), value]
+            return [f"{field}[0]", value]
         if el_type == "RPNValue":
             if LatticeUtil.is_command(model) and model._type == "run_setup":
                 # run_setup RPN values need to be evaluated because the lattice contains
@@ -1125,7 +1125,7 @@ class _Generate(sirepo.lib.GenerateBase):
             if model.commandFile:
                 value = "./" + value
         if not _num(el_type, value):
-            value = '"{}"'.format(value)
+            value = f'"{value}"'
         return [field, value]
 
     def _full_simulation(self):
@@ -1227,7 +1227,7 @@ def _format_rpn_value(value, is_command=False):
     if code_variable.CodeVar.is_var_value(value):
         value = code_variable.CodeVar.infix_to_postfix(value)
         if is_command:
-            return "({})".format(value)
+            return f"({value})"
     if value:
         value = re.sub(r"(\d)\.0+$", r"\1", str(value))
     return value

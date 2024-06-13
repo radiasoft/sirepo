@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """List of features available
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.

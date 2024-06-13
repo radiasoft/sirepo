@@ -253,7 +253,7 @@ def _do_fastcgi(msg, template):
         except Exception as e:
             assert (
                 c < _MAX_FASTCGI_EXCEPTIONS
-            ), "too many fastgci exceptions {}. Most recent error={}".format(c, e)
+            ), f"too many fastgci exceptions {c}. Most recent error={e}"
             c += 1
             r = _maybe_parse_user_alert(e)
         s.sendall(_validate_msg_and_jsonl(r))

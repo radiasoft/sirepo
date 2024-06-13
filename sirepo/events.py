@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Reigster callbacks for events and call callbacks when events are emitted.
 
 Using events allows disparate areas of the code base to perform some task on

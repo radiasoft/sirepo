@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 """SMTP connection to send emails
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdp, pkdlog
 from pykern import pkconfig
 from pykern.pkcollections import PKDict

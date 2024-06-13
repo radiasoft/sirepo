@@ -1,17 +1,15 @@
-# -*- coding: utf-8 -*-
 """Lattice utilities.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template.line_parser import LineParser
 import re
 
 
-class ModelIterator(object):
+class ModelIterator:
     """Base class for model iterators with stubbed out methods.
     When iterate_models() is called, the iterator calls are made:
 
@@ -136,7 +134,7 @@ class UpdateIterator(ModelIterator):
             self.update_func(model, field)
 
 
-class LatticeParser(object):
+class LatticeParser:
     COMMAND_PREFIX = "command_"
 
     def __init__(self, sim_data):
@@ -234,7 +232,7 @@ class LatticeParser(object):
         return f"{cls.COMMAND_PREFIX}{name}"
 
     def _format_length(self, length):
-        res = "{:.8E}".format(length)
+        res = f"{length:.8E}"
         res = re.sub(r"(\.\d+?)(0+)E", r"\1e", res)
         res = re.sub(r"e\+00$", "", res)
         return res
@@ -247,7 +245,7 @@ class LatticeParser(object):
             return None
         length = self._format_length(length)
         if length not in drifts:
-            name = "D{}".format(length)
+            name = f"D{length}"
             name = re.sub(r"\+", "", name)
             name = re.sub(r"e?-", "R", name)
             drift = PKDict(
@@ -323,13 +321,13 @@ class LatticeParser(object):
                 reverse = True
                 v = v[1:]
             el = self.elements_by_name.get(v.upper())
-            assert el, "line: {}, element not found: {}".format(label, v)
+            assert el, f"line: {label}, element not found: {v}"
             el_id = el._id if "_id" in el else el.id
             for _ in range(count):
                 res["items"].append(-el_id if reverse else el_id)
         assert (
             label.upper() not in self.elements_by_name
-        ), "duplicate beamline: {}".format(label)
+        ), f"duplicate beamline: {label}"
         self.elements_by_name[label.upper()] = res
         self.data.models.beamlines.append(res)
 
@@ -344,7 +342,7 @@ class LatticeParser(object):
         )
         res.type = cmd
         if self.container:
-            assert "at" in res, 'sequence element missing "at": {}'.format(values)
+            assert "at" in res, f'sequence element missing "at": {values}'
             at = res.at
             del res["at"]
             # assert label, 'unlabeled element: {}'.format(values)
@@ -353,7 +351,7 @@ class LatticeParser(object):
             else:
                 assert (
                     label.upper() not in self.elements_by_name
-                ), "duplicate element in sequence: {}".format(label)
+                ), f"duplicate element in sequence: {label}"
             if cmd not in self.schema.model:
                 parent = self.elements_by_name[cmd]
                 assert parent
@@ -375,7 +373,7 @@ class LatticeParser(object):
             label = values[0].upper()
             assert (
                 label in self.elements_by_name
-            ), "no element for label: {}: {}".format(label, values)
+            ), f"no element for label: {label}: {values}"
             self.elements_by_name[label].update(res)
         else:
             # assert label.upper() not in self.elements_by_name, \
@@ -411,7 +409,7 @@ class LatticeParser(object):
                 continue
             # no assignment, maybe a boolean value
             m = re.match(r"^\s*(!|-)?\s*([\w.]+)\s*$", value)
-            assert m, "failed to parse field assignment: {}".format(value)
+            assert m, f"failed to parse field assignment: {value}"
             v, f = m.group(1, 2)
             if model_schema and f not in model_schema:
                 # special case for "column" field, may contain multiple comma separated values
@@ -448,7 +446,7 @@ class LatticeParser(object):
             ), "Remove conditional if() or while() statements from input file before import"
             while ";" in line:
                 m = re.match(r"^(.*?);(.*)$", line)
-                assert m, "parse ; failed: {}".format(line)
+                assert m, f"parse ; failed: {line}"
                 item = (prev_line + " " + m.group(1)).strip()
                 self.__parse_values(self.__split_values(item))
                 line = m.group(2)
@@ -463,8 +461,8 @@ class LatticeParser(object):
             self.__parse_element(cmd.upper(), label, values)
             return
         cmd = cmd.lower()
-        if self.container and cmd == "end{}".format(self.container.type):
-            assert len(values) == 1, "invalid end{}: {}".format(self.container, values)
+        if self.container and cmd == f"end{self.container.type}":
+            assert len(values) == 1, f"invalid end{self.container}: {values}"
             self.container = None
             return
         if cmd in ("sequence", "track"):
@@ -516,7 +514,7 @@ class LatticeParser(object):
             # a variable assignment
             val = ", ".join(values)
             m = re.match(r".*?([\w.\'\-]+)\s*:?=\s*(.*)$", val)
-            assert m, "invalid variable assignment: {}".format(val)
+            assert m, f"invalid variable assignment: {val}"
             name = m.group(1)
             v = m.group(2)
             if name not in self.data.models.rpnVariables:
@@ -528,7 +526,7 @@ class LatticeParser(object):
                 m = re.match(r'(".*?")\s*:\s*(\w+)', values[0])
                 if not m:
                     m = re.match(r'([\w.#"\-\/]+)\s*:\s*([\w."]+)', values[0])
-            assert m, "label match failed: {}".format(values[0])
+            assert m, f"label match failed: {values[0]}"
             label, cmd = m.group(1, 2)
             label = self.__remove_quotes(label)
             cmd = self.__remove_quotes(cmd)
@@ -564,7 +562,7 @@ class LatticeParser(object):
                 assert item != m.group(2)
                 item = m.group(2)
                 continue
-            assert False, "line parse failed: {}".format(item)
+            assert False, f"line parse failed: {item}"
         # try to fix up mismatched parenthesis
         res = []
         for idx in range(len(values)):
@@ -580,7 +578,7 @@ class LatticeParser(object):
         return res
 
 
-class LatticeUtil(object):
+class LatticeUtil:
     _OUTPUT_NAME_PREFIX = "elementAnimation"
     _FILE_ID_SEP = "-"
 
@@ -681,7 +679,7 @@ class LatticeUtil(object):
             if model_type not in data.models:
                 continue
             for m in data.models[model_type]:
-                assert "_id" in m or "id" in m, "Missing id: {}".format(m)
+                assert "_id" in m or "id" in m, f"Missing id: {m}"
                 i = m._id if "_id" in m else m.id
                 if i > max_id:
                     max_id = i
@@ -698,7 +696,7 @@ class LatticeUtil(object):
 
     @classmethod
     def output_model_name(cls, file_id):
-        return "{}{}".format(cls._OUTPUT_NAME_PREFIX, file_id)
+        return f"{cls._OUTPUT_NAME_PREFIX}{file_id}"
 
     def render_lattice(
         self,
@@ -724,9 +722,9 @@ class LatticeUtil(object):
                 res += comment + " "
             if want_name:
                 name = self.__format_name(el[0].name, quote_name, madx_name)
-                res += "{}: {},".format(name, el_type)
+                res += f"{name}: {el_type},"
             else:
-                res += "{},".format(el_type)
+                res += f"{el_type},"
             for f in el[1]:
                 var_assign = ""
                 if want_var_assign:
@@ -737,7 +735,7 @@ class LatticeUtil(object):
                         and CodeVar.is_var_value(f[1])
                     ):
                         var_assign = ":"
-                res += "{}{}={},".format(f[0], var_assign, f[1])
+                res += f"{f[0]}{var_assign}={f[1]},"
             res = res[:-1]
             if want_semicolon:
                 res += ";"
@@ -801,7 +799,7 @@ class LatticeUtil(object):
         if is_reversed:
             name = f"-{name}"
         if quote_name:
-            name = '"{}"'.format(name)
+            name = f'"{name}"'
         return name
 
     @classmethod
@@ -825,7 +823,7 @@ class LatticeUtil(object):
         for bl in ordered_beamlines:
             if bl["items"]:
                 name = self.__format_name(bl.name, quote_name, madx_name)
-                res += "{}: LINE=(".format(name)
+                res += f"{name}: LINE=("
                 for bid in bl["items"]:
                     res += "{},".format(
                         self.__format_name(

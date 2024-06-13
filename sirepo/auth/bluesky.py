@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """NSLS-II BlueSky Login
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """SRW call tracer
 
 :copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
@@ -73,7 +72,7 @@ def _dump_value(value):
         return [_dump_value(x) for x in value]
     if isinstance(value, object):
         return [type(value).__name__, _dump_value(value.__dict__)]
-    raise AssertionError("unhandled type: {}".format(type(value)))
+    raise AssertionError(f"unhandled type: {type(value)}")
 
 
 instrument_methods()

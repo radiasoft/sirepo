@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """test if spa_session is working
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.

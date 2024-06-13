@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """PyTest for :mod:`sirepo.template.srw`
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.

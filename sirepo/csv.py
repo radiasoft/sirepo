@@ -12,9 +12,8 @@ _ENCODINGS = ("cp1252", "utf-8", "utf-8-sig")
 
 
 def open_csv(path, encoding="utf-8"):
-    with open(str(path), "rt", encoding=encoding) as f:
-        for r in csv.reader(f):
-            yield r
+    with open(str(path), encoding=encoding) as f:
+        yield from csv.reader(f)
 
 
 def read_as_number_list(path):

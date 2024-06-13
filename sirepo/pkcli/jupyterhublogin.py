@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """CLI for jupyterhublogin
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.

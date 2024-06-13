@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """elegant command parser.
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template.line_parser import LineParser
@@ -37,7 +35,7 @@ def parse_file(command_text, update_filenames):
             # ignoring lines between command markers
             pass
     if prev_line and re.search(r"\&", prev_line):
-        parser.raise_error("missing &end for command: {}".format(prev_line))
+        parser.raise_error(f"missing &end for command: {prev_line}")
     if update_filenames:
         _update_lattice_names(commands)
     return commands
@@ -109,7 +107,7 @@ def _parse_line(parser, line, commands):
             else:
                 command[value] = parser.parse_value(r"[\s,=\!)]")
         else:
-            parser.raise_error("trailing input: {}".format(value))
+            parser.raise_error(f"trailing input: {value}")
     parser.assert_end_of_line()
     if not command["_type"] in _SKIP_COMMANDS:
         commands.append(command)
@@ -136,7 +134,7 @@ def _update_lattice_names(commands):
                     cmd["lattice"] = (
                         "save_lattice"
                         if index == 0
-                        else "save_lattice{}".format(index + 1)
+                        else f"save_lattice{index + 1}"
                     )
                     break
             else:

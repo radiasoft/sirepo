@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Import a single archive or json file
 
 :copyright: Copyright (c) 2017-2023 RadiaSoft LLC.  All Rights Reserved.
@@ -62,7 +61,7 @@ async def read_zip(zip_bytes, qcall, sim_type=None):
                 b = pkio.py_path(i.filename).basename
                 c = z.read(i)
                 if b.lower() == simulation_db.SIMULATION_DATA_FILE:
-                    assert not data, "too many db files {} in archive".format(b)
+                    assert not data, f"too many db files {b} in archive"
                     data = read_json(c, qcall, sim_type)
                     continue
                 if "__MACOSX" in i.filename:
@@ -73,7 +72,7 @@ async def read_zip(zip_bytes, qcall, sim_type=None):
                 )
                 zipped[b] = tmp.join(b)
                 zipped[b].write(c, "wb")
-        assert data, "missing {} in archive".format(simulation_db.SIMULATION_DATA_FILE)
+        assert data, f"missing {simulation_db.SIMULATION_DATA_FILE} in archive"
         _import_related_sims(data, zip_bytes, qcall=qcall)
         needed = set()
         s = sim_data.get_class(data.simulationType)
@@ -85,7 +84,7 @@ async def read_zip(zip_bytes, qcall, sim_type=None):
             if s.lib_file_exists(n, qcall=qcall):
                 continue
             # TODO(robnagler) raise useralert instead of an assert
-            assert n in zipped, "auxiliary file={} missing in archive".format(n)
+            assert n in zipped, f"auxiliary file={n} missing in archive"
             needed.add(n)
         for b, src in zipped.items():
             await sirepo.util.yield_to_event_loop()

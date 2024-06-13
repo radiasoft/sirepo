@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """authentication and authorization routines
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
@@ -54,7 +53,7 @@ def check_api_call(qcall, func):
     elif expect == a.REQUIRE_AUTH_BASIC:
         qcall.auth.require_auth_basic()
     else:
-        raise AssertionError("unhandled api_perm={}".format(expect))
+        raise AssertionError(f"unhandled api_perm={expect}")
 
 
 def maybe_sim_type_required_for_api(func):

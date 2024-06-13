@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Simple API test for app.
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
@@ -90,7 +89,7 @@ def test_srw(fc):
     r = fc.sr_get("/find-by-name-auth/srw/default/UndulatorRadiation")
     r.assert_http_status(404)
     for sep in (" ", "%20"):
-        r = fc.sr_get("/find-by-name-auth/srw/default/Undulator{}Radiation".format(sep))
+        r = fc.sr_get(f"/find-by-name-auth/srw/default/Undulator{sep}Radiation")
         r.assert_http_status(200)
 
 

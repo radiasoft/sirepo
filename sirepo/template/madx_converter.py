@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Convert codes to/from MAD-X.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
@@ -125,7 +123,7 @@ class MadxConverter:
         if self.to_class.sim_type() in ("madx", "opal"):
             res = list(filter(lambda x: x.name not in self._MADX_VARIABLES, res))
         else:
-            names = set([v.name for v in res])
+            names = {v.name for v in res}
             for name in self._MADX_VARIABLES:
                 if name not in names:
                     res.append(

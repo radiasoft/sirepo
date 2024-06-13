@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """decorators for API permissions and the permissions themselves
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.

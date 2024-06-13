@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """PyTest for :mod:`sirepo.template.shadow`
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
@@ -21,7 +19,7 @@ def test_generate_python():
     with pkunit.save_chdir_work():
         for name in ("Beamline Propagation", "Complete Beamline", "Wiggler"):
             data = _example_data(name)
-            data["report"] = "watchpointReport{}".format(data.models.beamline[-1].id)
+            data["report"] = f"watchpointReport{data.models.beamline[-1].id}"
             actual = shadow._generate_parameters_file(data)
             outfile = data.models.simulation.simulationId + ".txt"
             pkio.write_text(outfile, actual)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Templates are used to configure codes
 
 :copyright: Copyright (c) 2016-2022 RadiaSoft LLC.  All Rights Reserved.

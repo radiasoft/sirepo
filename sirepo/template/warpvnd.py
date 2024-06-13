@@ -30,7 +30,7 @@ WANT_BROWSER_FRAME_CACHE = True
 MPI_SUMMARY_FILE = "mpi-info.json"
 
 _ALL_PARTICLES_FILE = "all-particles.npy"
-_COMPARISON_FILE = "diags/fields/electric/data00{}.h5".format(COMPARISON_STEP_SIZE)
+_COMPARISON_FILE = f"diags/fields/electric/data00{COMPARISON_STEP_SIZE}.h5"
 _CULL_PARTICLE_SLOPE = 1e-4
 _DENSITY_FILE = "density.h5"
 _EGUN_CURRENT_FILE = "egun-current.npy"
@@ -133,7 +133,7 @@ def generate_field_comparison_report(data, run_dir, args=None):
     grid = data["models"]["simulationGrid"]
     dimension = params["dimension"]
     with h5py.File(str(py.path.local(run_dir).join(_COMPARISON_FILE)), "r") as f:
-        values = f["data/{}/meshes/E/{}".format(COMPARISON_STEP_SIZE, dimension)]
+        values = f[f"data/{COMPARISON_STEP_SIZE}/meshes/E/{dimension}"]
         values = values[()]
 
     radius = _meters(data["models"]["simulationGrid"]["channel_width"] / 2.0)
@@ -148,9 +148,9 @@ def generate_field_comparison_report(data, run_dir, args=None):
         dimension, params, values, ranges, _SIM_DATA.warpvnd_is_3d(data)
     )
     return {
-        "title": "Comparison of E {}".format(dimension),
-        "y_label": "E {} [V/m]".format(dimension),
-        "x_label": "{} [m]".format(dimension),
+        "title": f"Comparison of E {dimension}",
+        "y_label": f"E {dimension} [V/m]",
+        "x_label": f"{dimension} [m]",
         "y_range": plot_y_range,
         "x_range": [plot_range[0], plot_range[1], len(plots[0]["points"])],
         "plots": plots,
@@ -162,7 +162,7 @@ def generate_field_report(data, run_dir, args=None):
     grid = data.models.simulationGrid
     axes, slice_axis, phi_slice, show3d = _field_input(args)
     slice_text = (
-        " ({} = {}µm)".format(slice_axis, round(phi_slice, 3))
+        f" ({slice_axis} = {round(phi_slice, 3)}µm)"
         if _SIM_DATA.warpvnd_is_3d(data)
         else ""
     )
@@ -417,7 +417,7 @@ def _create_plots(dimension, params, values, ranges, is3d):
         for axis in all_axes:
             if axis not in other_axes:
                 continue
-            f = "{}Cell{}".format(axis, i)
+            f = f"{axis}Cell{i}"
             index = int(params[f])
             max_index = shapes[axis]
             if index >= max_index:
@@ -435,7 +435,7 @@ def _create_plots(dimension, params, values, ranges, is3d):
         for axis in other_indices:
             v = x_points[axis][other_indices[axis]]
             pos = label_fmts[axis].format(v * label_factors[axis])
-            label = label + "{} Location {} ".format(axis.upper(), pos)
+            label = label + f"{axis.upper()} Location {pos} "
         plots.append(
             {
                 "points": points,
@@ -474,7 +474,7 @@ def _extract_current(data, data_file):
     data_time = report_data["time"]
     with h5py.File(data_file.filename, "r") as f:
         weights = np.array(
-            f["data/{}/particles/beam/weighting".format(data_file.iteration)]
+            f[f"data/{data_file.iteration}/particles/beam/weighting"]
         )
     curr = get_zcurrent_new(
         report_data["beam"][:, 4], report_data["beam"][:, 5], zmesh, weights, dz
@@ -516,7 +516,7 @@ def _extract_current_results(data, curr, data_time):
         curr2 = np.full_like(zmesh, RD_ideal)
         y2_title = "Richardson-Dushman"
     return {
-        "title": "Current for Time: {:.4e}s".format(data_time),
+        "title": f"Current for Time: {data_time:.4e}s",
         "x_range": [0, plate_spacing],
         "y_label": "Current [A]",
         "x_label": "Z [m]",
@@ -543,16 +543,16 @@ def _extract_field(field, data, data_file, args=None):
     grid = data.models.simulationGrid
     axes, slice_axis, field_slice, show3d = _field_input(args)
 
-    selector = field if field == "phi" else "E/{}".format(field)
+    selector = field if field == "phi" else f"E/{field}"
     with h5py.File(data_file.filename, "r") as hf:
         field_values = np.array(
-            hf["data/{}/meshes/{}".format(data_file.iteration, selector)]
+            hf[f"data/{data_file.iteration}/meshes/{selector}"]
         )
-        data_time = hf["data/{}".format(data_file.iteration)].attrs["time"]
-        dt = hf["data/{}".format(data_file.iteration)].attrs["dt"]
+        data_time = hf[f"data/{data_file.iteration}"].attrs["time"]
+        dt = hf[f"data/{data_file.iteration}"].attrs["dt"]
 
     slice_text = (
-        " ({} = {}µm)".format(slice_axis, round(field_slice, 3))
+        f" ({slice_axis} = {round(field_slice, 3)}µm)"
         if _SIM_DATA.warpvnd_is_3d(data)
         else ""
     )
@@ -564,7 +564,7 @@ def _extract_field(field, data, data_file, args=None):
         else:
             values = _field_values(field_values, axes, field_slice, grid)
     else:
-        title = "E {}".format(field)
+        title = f"E {field}"
         if not _SIM_DATA.warpvnd_is_3d(data):
             values = field_values[:, 0, :]
         else:
@@ -621,7 +621,7 @@ def _extract_impact_density_3d(run_dir, data):
     try:
         with h5py.File(str(run_dir.join(_DENSITY_FILE)), "r") as hf:
             plot_info = template_common.h5_to_dict(hf, path="density")
-    except IOError:
+    except OSError:
         plot_info = {"error": "Cannot load density file"}
     if "error" in plot_info:
         if not _SIM_DATA.warpvnd_is_3d(data):
@@ -821,7 +821,7 @@ def _find_by_id(container, id):
     for c in container:
         if str(c.id) == str(id):
             return c
-    assert False, "missing id: {} in container".format(id)
+    assert False, f"missing id: {id} in container"
 
 
 def _get_slice_index(x, min_x, dx, max_index):
@@ -1071,7 +1071,7 @@ def _read_optimizer_output(run_dir):
 
 
 def _render_jinja(template, v):
-    return template_common.render_jinja(SIM_TYPE, v, "{}.py".format(template))
+    return template_common.render_jinja(SIM_TYPE, v, f"{template}.py")
 
 
 def _replace_optimize_variables(data, v):
@@ -1088,13 +1088,13 @@ def _replace_optimize_variables(data, v):
         fields.append(constraint[2])
     for field in fields:
         v["optimizeFields"].append(field)
-        value = "opts['{}']".format(field)
+        value = f"opts['{field}']"
         m, f, container, id = _parse_optimize_field(field)
         if container:
             model = _find_by_id(data.models[container], id)
             model[f] = value
         else:
-            v["{}_{}".format(m, f)] = value
+            v[f"{m}_{f}"] = value
 
 
 def _simulation_percent_complete(report, run_dir, is_running):
@@ -1139,7 +1139,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
     if data.models.simulation.egun_mode == "1":
         status_file = run_dir.join(_EGUN_STATUS_FILE)
         if status_file.exists():
-            with open(str(status_file), "r") as f:
+            with open(str(status_file)) as f:
                 m = re.search(r"([\d\.]+)\s*/\s*(\d+)", f.read())
             if m:
                 percent_complete = float(m.group(1)) / int(m.group(2))

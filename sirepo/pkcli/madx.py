@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Wrapper to run MAD-X from the command line.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.

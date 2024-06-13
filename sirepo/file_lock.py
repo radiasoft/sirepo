@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """file locking
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
@@ -71,7 +70,7 @@ class FileLock:
                 if _verify_lock_path(f):
                     self._lock = f
                     return None
-            except (IOError, OSError, FileNotFoundError):
+            except (OSError, FileNotFoundError):
                 pass
             _unchecked_close(f)
             # Not asyncio.sleep: not in coroutine, probably should to be (simulation_db.user_lock)

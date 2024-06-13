@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #############################################################################
 # SRWLIB Example: Virtual Beamline: a set of utilities and functions allowing to simulate
 # operation of an SR Beamline.
@@ -24,7 +23,6 @@
 # v 0.04
 #############################################################################
 
-from __future__ import print_function  # Python 2.7 compatibility
 
 from srwpy.srwl_bl import *
 
@@ -266,7 +264,7 @@ def set_optics(_v):
             el.append(srwl_opt_setup_CRL(3, delta, attenLen, 1, diamCRL, diamCRL, rMinCRL, nCRL, wallThickCRL, 0, 0))
             pp.append(_v.op_CRL_pp)
         else:
-            raise Exception('Processing for element "{}" is not included yet.'.format(arElNames[i]))
+            raise Exception(f'Processing for element "{arElNames[i]}" is not included yet.')
 
     pp.append(_v.op_fin_pp)
     return SRWLOptC(el, pp)

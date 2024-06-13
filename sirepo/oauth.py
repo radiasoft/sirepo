@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """oauth for authentication and role moderation
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.

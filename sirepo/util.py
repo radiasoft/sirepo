@@ -68,7 +68,7 @@ class ReplyExc(Exception):
         return "{}({})".format(
             self.__class__.__name__,
             ",".join(
-                ("{}={}".format(k, a[k]) for k in sorted(a.keys())),
+                (f"{k}={a[k]}" for k in sorted(a.keys())),
             ),
         )
 
@@ -249,19 +249,18 @@ def create_token(value):
 
 
 def err(obj, fmt="", *args, **kwargs):
-    return "{}: ".format(obj) + fmt.format(*args, **kwargs)
+    return f"{obj}: " + fmt.format(*args, **kwargs)
 
 
 def files_to_watch_for_reload(*extensions):
     from sirepo import feature_config
 
     for e in extensions:
-        for p in sorted(set(["sirepo", *feature_config.cfg().package_path])):
+        for p in sorted({"sirepo", *feature_config.cfg().package_path}):
             d = pykern.pkio.py_path(
                 getattr(importlib.import_module(p), "__file__"),
             ).dirname
-            for f in pykern.pkio.sorted_glob(f"{d}/**/*.{e}"):
-                yield f
+            yield from pykern.pkio.sorted_glob(f"{d}/**/*.{e}")
 
 
 def find_obj(arr, key, value):

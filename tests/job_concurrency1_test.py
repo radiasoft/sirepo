@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Concurrency testing
 
 This test does not always fail when there is a problem (false

@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Simulation schema
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -116,7 +114,7 @@ def validate_name(data, data_files, max_copies):
     i = 2
     n2 = data.models.simulation.name
     while n2 in starts_with:
-        n2 = "{} {}".format(data.models.simulation.name, i)
+        n2 = f"{data.models.simulation.name} {i}"
         i += 1
     assert i - 1 <= max_copies, util.err(
         n, "Too many copies: {} > {}", i - 1, max_copies
@@ -183,7 +181,7 @@ def _validate_cookie_def(c_def):
         data (PKDict): cookie definition object from the schema
     """
     c_delims = "|:;="
-    c_delim_re = re.compile("[{}]".format(c_delims))
+    c_delim_re = re.compile(f"[{c_delims}]")
     if c_delim_re.search(str(c_def.name) + str(c_def.value)):
         raise AssertionError(
             util.err(c_def, "cookie name/value cannot include delimiters {}", c_delims)

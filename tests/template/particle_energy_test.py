@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """PyTest for :mod:`sirepo.template.template_common.ParticleEnergy`
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.

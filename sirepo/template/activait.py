@@ -115,7 +115,7 @@ def _parse_activate_log(run_dir, log_filename="run.log"):
 
 
 def _range_error(error):
-    e = re.search(re.compile("Received a label value of (.*?) (is .*?[\]\)])"), error)
+    e = re.search(re.compile(r"Received a label value of (.*?) (is .*?[\]\)])"), error)
     if e:
         return f"Output scaling result {e.groups()[1]}"
     return error
@@ -209,7 +209,7 @@ def prepare_sequential_output_file(run_dir, data):
             fn.remove()
             try:
                 save_sequential_report_data(run_dir, data)
-            except IOError:
+            except OSError:
                 # the output file isn't readable
                 pass
 
@@ -243,7 +243,7 @@ def save_sequential_report_data(run_dir, sim_in):
             _image_preview("imagePreview", sim_in, run_dir)
         )
     else:
-        raise AssertionError("unknown report: {}".format(sim_in.report))
+        raise AssertionError(f"unknown report: {sim_in.report}")
 
 
 def sim_frame(frame_args):
@@ -418,7 +418,7 @@ def stateful_compute_column_info(data, **kwargs):
         return _compute_csv_info(f)
     elif pkio.has_file_extension(f, "h5"):
         return _compute_h5_info(f)
-    raise AssertionError("Unsupported file type: {}".format(f))
+    raise AssertionError(f"Unsupported file type: {f}")
 
 
 def analysis_job_sample_images(data, run_dir, **kwargs):
@@ -755,7 +755,7 @@ def _compute_csv_info(filename):
     # csv file may or may not have column names
     # if any value in the first row is numeric, assume no headers
     if list(filter(lambda x: template_common.NUMERIC_RE.search(x), row)):
-        row = ["column {}".format(i + 1) for i in range(len(row))]
+        row = [f"column {i + 1}" for i in range(len(row))]
         res.hasHeaderRow = False
     res.colsWithNonUniqueValues = _cols_with_non_unique_values(
         filename,

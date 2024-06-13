@@ -26,7 +26,7 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
 def _percent_complete(run_dir, is_running):
-    RE_F = "\d*\.\d+"
+    RE_F = r"\d*\.\d+"
 
     def _get_groups(match, *args):
         res = []
@@ -480,7 +480,7 @@ def _generate_angle(angle):
         args += [_generate_distribution(angle[v]) for v in ["mu", "phi"]]
         args.append(_generate_array(angle.reference_uvw))
     else:
-        raise AssertionError("unknown angle type: {}".format(angle._type))
+        raise AssertionError(f"unknown angle type: {angle._type}")
     return _generate_call(angle._type, args)
 
 
@@ -542,7 +542,7 @@ def _generate_distribution(dist):
     elif dist._type == "uniform" or dist._type == "watt":
         args += [str(v) for v in [dist.a, dist.b]]
     else:
-        raise AssertionError("unknown distribution type: {}".format(dist._type))
+        raise AssertionError(f"unknown distribution type: {dist._type}")
     return _generate_call(t, args)
 
 
@@ -654,7 +654,7 @@ def _generate_energy_range(filter):
         space = "logspace"
         start = numpy.log10(start)
         stop = numpy.log10(stop)
-    return "numpy.{}({}, {}, {})".format(space, start, stop, filter.num)
+    return f"numpy.{space}({start}, {stop}, {filter.num})"
 
 
 def _generate_run_mode(data, v):
@@ -718,7 +718,7 @@ def _generate_space(space):
         args += [_generate_distribution(space[v]) for v in ["r", "theta", "phi"]]
         args.append(f"origin={_generate_array(space.origin)}")
     else:
-        raise AssertionError("unknown space type: {}".format(space._type))
+        raise AssertionError(f"unknown space type: {space._type}")
     return _generate_call(space._type, args)
 
 
@@ -780,7 +780,7 @@ t{tally._index + 1}.filters = ["""
     openmc.ParticleFilter([{'"' + '","'.join(v.value for v in f.bins) + '"'}]),
 """
         else:
-            raise AssertionError("filter not yet implemented: {}".format(f._type))
+            raise AssertionError(f"filter not yet implemented: {f._type}")
     res += f"""]
 t{tally._index + 1}.scores = [{','.join(["'" + s.score + "'" for s in tally.scores])}]
 """

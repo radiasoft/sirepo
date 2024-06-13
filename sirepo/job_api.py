@@ -136,7 +136,7 @@ class API(sirepo.quest.API):
                     raise AssertionError(pkdformat("error state in request=={}", r))
                 f = d.listdir()
                 if len(f) > 0:
-                    assert len(f) == 1, "too many files={}".format(f)
+                    assert len(f) == 1, f"too many files={f}"
                     return self.reply_attachment(f[0])
             except _HTTP_CLIENT_CONNECTION_ERRORS:
                 # TODO(robnagler) is this too coarse a check?
@@ -175,7 +175,7 @@ class API(sirepo.quest.API):
             else:
                 if x == k:
                     return r
-                e = "expected={} but got ping={}".format(k, x)
+                e = f"expected={k} but got ping={x}"
         except _HTTP_CLIENT_CONNECTION_ERRORS as e2:
             pkdlog("HTTPClientError={}", e2)
             e = "unable to connect to supervisor"
@@ -273,7 +273,7 @@ class API(sirepo.quest.API):
                 f = f.f_back
             else:
                 raise AssertionError(
-                    "{}: max frame search depth reached".format(f.f_code)
+                    f"{f.f_code}: max frame search depth reached"
                 )
 
         def _args(kwargs):

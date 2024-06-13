@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """elegant lattice parser.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
@@ -20,21 +18,21 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals("elegant")
 
 
 p = lattice.LatticeParser.COMMAND_PREFIX
-_TYPES = set([n[len(p) :] for n in SCHEMA["model"] if n.startswith(p)])
+_TYPES = {n[len(p) :] for n in SCHEMA["model"] if n.startswith(p)}
 del p
 
 
 def import_file(text, update_filenames=True):
     commands = elegant_command_parser.parse_file(text, update_filenames)
     if not commands:
-        raise IOError("no commands found in file")
+        raise OSError("no commands found in file")
     _verify_lattice_name(commands)
     rpn_variables = PKDict()
     # iterate commands, validate values and set defaults from schema
     for cmd in commands:
         cmd_type = cmd["_type"]
         if not cmd_type in _TYPES:
-            raise IOError("unknown command: {}".format(cmd_type))
+            raise OSError(f"unknown command: {cmd_type}")
         elegant_lattice_importer.validate_fields(
             cmd,
             PKDict(),
@@ -65,4 +63,4 @@ def _verify_lattice_name(commands):
     for cmd in commands:
         if cmd["_type"] == "run_setup" and "lattice" in cmd:
             return cmd["lattice"]
-    raise IOError("missing run_setup lattice field")
+    raise OSError("missing run_setup lattice field")

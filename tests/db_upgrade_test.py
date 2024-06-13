@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """auth_db db upgrade
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Export simulations in a single archive
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
@@ -111,7 +110,7 @@ def _run_filename(data):
     t = data.simulationType
     s = simulation_db.get_schema(t).constants.simulationSourceExtension
     if s != "py":
-        return "{}.{}".format(t, s)
+        return f"{t}.{s}"
     return "run.py"
 
 

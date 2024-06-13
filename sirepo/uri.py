@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """uri formatting
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -112,10 +111,10 @@ def server_route(route_or_uri, params, query):
         for k, v in params.items():
             k2 = PARAM_RE.format(k)
             n = re.sub(k2, _to_uri(str(v)), route)
-            assert n != route, '{}: not found in "{}"'.format(k2, route)
+            assert n != route, f'{k2}: not found in "{route}"'
             route = n
     route = re.sub(r"\??<[^>]+>", "", route)
-    assert not "<" in route, "{}: missing params".format(route)
+    assert not "<" in route, f"{route}: missing params"
     route += _query(query)
     return route
 

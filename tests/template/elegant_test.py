@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Test for sirepo.template.elegant
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 import pytest
 
@@ -77,4 +75,4 @@ def _find_example(name):
     for ex in simulation_db.examples(_elegant().SIM_TYPE):
         if ex.models.simulation.name == name:
             return simulation_db.fixup_old_data(ex)[0]
-    assert False, "no example named: {}".format(name)
+    assert False, f"no example named: {name}"

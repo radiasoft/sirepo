@@ -268,7 +268,7 @@ def _enum_text(enum_name, v):
     for e in enum_values:
         if e[0] == v:
             return e[1]
-    raise RuntimeError("invalid enum value: {}, {}".format(enum_values, v))
+    raise RuntimeError(f"invalid enum value: {enum_values}, {v}")
 
 
 def _generate_beam(models):
@@ -292,7 +292,7 @@ def _generate_beam(models):
             ),
             _generate_energy_phase_distribution(models.energyPhaseDistribution),
         )
-    raise RuntimeError("invalid beam def: {}".format(beam_def))
+    raise RuntimeError(f"invalid beam def: {beam_def}")
 
 
 def _generate_cell_params(el):
@@ -326,11 +326,11 @@ def _generate_particle_species(models):
             models.beam.particleParamA,
             models.beam.particleParamQ,
         )
-    return "PARTICLES {}".format(p)
+    return f"PARTICLES {p}"
 
 
 def _generate_current(models):
-    return "CURRENT {} {}".format(models.beam.current, models.beam.numberOfParticles)
+    return f"CURRENT {models.beam.current} {models.beam.numberOfParticles}"
 
 
 def _generate_energy_phase_distribution(dist):
@@ -345,21 +345,21 @@ def _generate_lattice(models):
     res = ""
     for el in models.beamline:
         if el.type == "powerElement":
-            res += "POWER {} {} {}".format(el.inputPower, el.frequency, el.phaseShift)
+            res += f"POWER {el.inputPower} {el.frequency} {el.phaseShift}"
         elif el.type == "cellElement":
-            res += "CELL {}".format(_generate_cell_params(el))
+            res += f"CELL {_generate_cell_params(el)}"
             has_cell_or_drift = True
         elif el.type == "cellsElement":
-            res += "CELLS {} {}".format(el.repeat, _generate_cell_params(el))
+            res += f"CELLS {el.repeat} {_generate_cell_params(el)}"
             has_cell_or_drift = True
         elif el.type == "driftElement":
-            res += "DRIFT {} {} {}".format(el.length, el.radius, el.meshPoints)
+            res += f"DRIFT {el.length} {el.radius} {el.meshPoints}"
             has_cell_or_drift = True
         elif el.type == "saveElement":
             # TODO(pjm): implement this
             pass
         else:
-            raise RuntimeError("unknown element type: {}".format(el.type))
+            raise RuntimeError(f"unknown element type: {el.type}")
         res += "\n"
     return res
 
@@ -449,7 +449,7 @@ def _generate_solenoid(models):
             )
         )
     raise RuntimeError(
-        "unknown solenoidDefinition: {}".format(solenoid.sourceDefinition)
+        f"unknown solenoidDefinition: {solenoid.sourceDefinition}"
     )
 
 
@@ -490,7 +490,7 @@ def _generate_transverse_dist(models):
                 "beam", "transversalFile4d", beam.transversalFile4d
             )
         )
-    raise RuntimeError("unknown transverse distribution: {}".format(dist_type))
+    raise RuntimeError(f"unknown transverse distribution: {dist_type}")
 
 
 def _parse_error_message(run_dir):

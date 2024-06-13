@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Flash Config parser.
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
@@ -231,7 +230,7 @@ class SpecializedViews:
                 if len(info) == 3:
                     info.append(f)
                 elif info[3]:
-                    info[3] = "{} {}".format(f, info[3])
+                    info[3] = f"{f} {info[3]}"
                 else:
                     info[3] = f
                 info[0] = labels[f]

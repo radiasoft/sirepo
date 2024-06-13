@@ -22,7 +22,7 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
     def get_detailed_status_file(self, rduid):
         p = self.get_output_dir().join(f"progress_dict_{rduid}.json")
         if os.path.exists(p):
-            with open(p, "r") as f:
+            with open(p) as f:
                 return pkjson.load_any(f)
         return PKDict()
 

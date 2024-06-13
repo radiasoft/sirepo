@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Run Python processes in background
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.

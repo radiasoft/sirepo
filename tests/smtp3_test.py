@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """test smtp logic, not sending
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.

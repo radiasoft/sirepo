@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Wrapper to run Warp VND/WARP from the command line.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Using a sim type that lives in a package outside of sirepo.
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.

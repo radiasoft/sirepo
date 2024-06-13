@@ -144,7 +144,7 @@ class OpalOutputFileIterator(lattice.ModelIterator):
             if self.preserve_output_filenames:
                 filename = model[field]
             else:
-                filename = "{}.{}.h5".format(model.name, field)
+                filename = f"{model.name}.{field}.h5"
             k = LatticeUtil.file_id(model._id, self.field_index)
             self.result[k] = filename
             self.result.keys_in_order.append(k)
@@ -435,7 +435,7 @@ def background_percent_complete(report, run_dir, is_running):
         # TODO(pjm): determine total frame count and set percentComplete
         res.frameCount = read_frame_count(run_dir) - 1
         return res
-    if run_dir.join("{}.json".format(template_common.INPUT_BASE_NAME)).exists():
+    if run_dir.join(f"{template_common.INPUT_BASE_NAME}.json").exists():
         res.frameCount = read_frame_count(run_dir)
         if res.frameCount > 0:
             res.percentComplete = 100
@@ -445,13 +445,13 @@ def background_percent_complete(report, run_dir, is_running):
 
 def bunch_plot(model, run_dir, frame_index, filename=_OPAL_H5_FILE):
     def _points(file, frame_index, name):
-        return np.array(file["/Step#{}/{}".format(frame_index, name)])
+        return np.array(file[f"/Step#{frame_index}/{name}"])
 
     def _title(file, frame_index):
-        t = "Step {}".format(frame_index)
-        if "SPOS" in file["/Step#{}".format(frame_index)].attrs:
-            t += ", SPOS {0:.5f}m".format(
-                file["/Step#{}".format(frame_index)].attrs["SPOS"][0]
+        t = f"Step {frame_index}"
+        if "SPOS" in file[f"/Step#{frame_index}"].attrs:
+            t += ", SPOS {:.5f}m".format(
+                file[f"/Step#{frame_index}"].attrs["SPOS"][0]
             )
         return t
 
@@ -518,7 +518,7 @@ def read_frame_count(run_dir):
 
     try:
         return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, [0])[0]
-    except IOError:
+    except OSError:
         pass
     return 0
 
@@ -546,7 +546,7 @@ def prepare_sequential_output_file(run_dir, data):
             fn.remove()
             try:
                 save_sequential_report_data(data, run_dir)
-            except IOError:
+            except OSError:
                 # the output file isn't readable
                 pass
 
@@ -564,7 +564,7 @@ def save_sequential_report_data(data, run_dir):
         res = bunch_plot(report, run_dir, 0)
         res.title = ""
     else:
-        raise AssertionError("unknown report: {}".format(report))
+        raise AssertionError(f"unknown report: {report}")
     template_common.write_sequential_result(
         res,
         run_dir=run_dir,
@@ -692,7 +692,7 @@ def stateful_compute_import_file(data, **kwargs):
             )
         )
     else:
-        raise IOError(
+        raise OSError(
             f"invalid file={data.args.basename} extension, expecting .in, .ele, .lte or .madx"
         )
     return PKDict(imported_data=res)
@@ -761,10 +761,10 @@ class _Generate(sirepo.lib.GenerateBase):
         elif re.search(r"String", el_type):
             if str(value):
                 if not re.search(r"^\s*\{.*\}$", value):
-                    value = '"{}"'.format(value)
+                    value = f'"{value}"'
         elif LatticeUtil.is_command(model):
             if el_type != "RPNValue" and str(value):
-                value = '"{}"'.format(value)
+                value = f'"{value}"'
         elif not LatticeUtil.is_command(model):
             if model.type in _ELEMENTS_WITH_TYPE_FIELD and "_type" in field:
                 return ["type", value]
@@ -862,7 +862,7 @@ class _Generate(sirepo.lib.GenerateBase):
     def _generate_variable(self, name, variables, visited):
         res = ""
         if name not in visited:
-            res += "REAL {} = {};\n".format(name, _fix_opal_float(variables[name]))
+            res += f"REAL {name} = {_fix_opal_float(variables[name])};\n"
             visited[name] = True
         return res
 
@@ -877,7 +877,7 @@ class _Generate(sirepo.lib.GenerateBase):
 
     def _output_file(self, model, field):
         ext = "dat" if model.get("_type", "") == "list" else "h5"
-        return '"{}.{}.{}"'.format(model.name, field, ext)
+        return f'"{model.name}.{field}.{ext}"'
 
 
 def _compute_3d_bounds(run_dir):
@@ -904,7 +904,7 @@ def _compute_range_across_frames(run_dir, **kwargs):
     def _walk_file(h5file, key, step, res):
         if key:
             for field in res:
-                v = np.array(h5file["/{}/{}".format(key, field)])
+                v = np.array(h5file[f"/{key}/{field}"])
                 min1, max1 = v.min(), v.max()
                 if res[field]:
                     if res[field][0] > min1:
@@ -922,7 +922,7 @@ def _compute_range_across_frames(run_dir, **kwargs):
 
 def _column_data(col, col_names, rows):
     idx = col_names.index(col)
-    assert idx >= 0, "invalid col: {}".format(col)
+    assert idx >= 0, f"invalid col: {col}"
     res = []
     for row in rows:
         res.append(float(row[idx]))
@@ -943,9 +943,9 @@ def _field_units(units, field):
         field.points = (np.array(field.points) / 1e9).tolist()
     if units:
         if re.search(r"^#", units):
-            field.label += " ({})".format(units)
+            field.label += f" ({units})"
         else:
-            field.label += " [{}]".format(units)
+            field.label += f" [{units}]"
     field.units = units
 
 
@@ -988,7 +988,7 @@ def _generate_absolute_beamline(util, beamline_id, count_by_name=None, visited=N
             count_by_name[name] = 0
         if "type" in item:
             # element
-            name = '"{}#{}"'.format(name, count_by_name[name])
+            name = f'"{name}#{count_by_name[name]}"'
             count_by_name[item.name.upper()] += 1
             pos = beamline.positions[idx]
             res += '{}: "{}",elemedge={};\n'.format(
@@ -1002,7 +1002,7 @@ def _generate_absolute_beamline(util, beamline_id, count_by_name=None, visited=N
                     util, item_id, count_by_name, visited
                 )
                 res += text
-            names.append("{}".format(name))
+            names.append(f"{name}")
 
     has_orientation = False
     for f in ("x", "y", "z", "theta", "phi", "psi"):
@@ -1048,10 +1048,10 @@ def _generate_beamline(
             name = item.name.upper()
             if name not in count_by_name:
                 count_by_name[name] = 0
-            name = '"{}#{}"'.format(name, count_by_name[name])
+            name = f'"{name}#{count_by_name[name]}"'
             count_by_name[item.name.upper()] += 1
             if run_method == "OPAL-CYCL" or run_method == "CYCLOTRON-T":
-                res += '"{}": {};\n'.format(name, item.name.upper())
+                res += f'"{name}": {item.name.upper()};\n'
                 names.append(name)
                 visited.add(item_id)
                 continue
@@ -1060,7 +1060,7 @@ def _generate_beamline(
                 # don't include reverse drifts, for positioning only
                 pass
             else:
-                res += '{}: "{}",elemedge={};\n'.format(name, item.name.upper(), edge)
+                res += f'{name}: "{item.name.upper()}",elemedge={edge};\n'
                 names.append(name)
                 if item.type == "SBEND" and run_method == "THICK":
                     # use arclength for SBEND with THICK tracker (only?)
@@ -1087,11 +1087,11 @@ def _iterate_hdf5_steps(path, callback, state):
 
 def _iterate_hdf5_steps_from_handle(h5file, callback, state):
     step = 0
-    key = "Step#{}".format(step)
+    key = f"Step#{step}"
     while key in h5file:
         callback(h5file, key, step, state)
         step += 1
-        key = "Step#{}".format(step)
+        key = f"Step#{step}"
     callback(h5file, None, -1, state)
 
 
@@ -1104,7 +1104,7 @@ def _output_info(run_dir):
         if run_dir.join(files[k]).exists():
             res.append(
                 PKDict(
-                    modelKey="elementAnimation{}".format(k),
+                    modelKey=f"elementAnimation{k}",
                     filename=files[k],
                     isHistogram=True,
                 )
@@ -1141,5 +1141,5 @@ def _read_data_file(path):
 
 def _units_from_hdf5(h5file, field):
     return _field_units(
-        pkcompat.from_bytes(h5file.attrs["{}Unit".format(field.name)]), field
+        pkcompat.from_bytes(h5file.attrs[f"{field.name}Unit"]), field
     )

@@ -347,7 +347,7 @@ class _Auth(sirepo.quest.Attr):
         if uid:
             self._login_user(mm, uid)
         if mm.AUTH_METHOD in _cfg.deprecated_methods:
-            pkdlog("deprecated auth method={} uid={}".format(mm.AUTH_METHOD, uid))
+            pkdlog(f"deprecated auth method={mm.AUTH_METHOD} uid={uid}")
             if not uid:
                 # No user so clear cookie so this method is removed
                 self.reset_state()
@@ -473,7 +473,7 @@ class _Auth(sirepo.quest.Attr):
 
     def parse_display_name(self, value):
         res = value.strip()
-        assert res, "invalid post data: displayName={}".format(value)
+        assert res, f"invalid post data: displayName={value}"
         return res
 
     def require_adm(self):
@@ -528,14 +528,14 @@ class _Auth(sirepo.quest.Attr):
                 e = "invalid"
                 self.reset_state()
                 p = PKDict(reload_js=True)
-            e = "auth_method={} is {}, forcing login: uid=".format(m, e, u)
+            e = f"auth_method={m} is {e}, forcing login: uid="
         elif s == _STATE_LOGGED_OUT:
-            e = "logged out uid={}".format(u)
+            e = f"logged out uid={u}"
             if m in _cfg.deprecated_methods:
                 # Force login to this specific method so we can migrate to valid method
                 r = "loginWith"
                 p = PKDict({":method": m})
-                e = "forced {}={} uid={}".format(m, r, p)
+                e = f"forced {m}={r} uid={p}"
         elif s == _STATE_COMPLETE_REGISTRATION:
             if m == METHOD_GUEST:
                 pkdc("guest completeRegistration={}", u)
@@ -543,13 +543,13 @@ class _Auth(sirepo.quest.Attr):
                 self.qcall.auth_db.commit()
                 return u
             r = "completeRegistration"
-            e = "uid={} needs to complete registration".format(u)
+            e = f"uid={u} needs to complete registration"
         else:
             self.qcall.cookie.reset_state(
-                "uid={} state={} invalid, cannot continue".format(s, u)
+                f"uid={s} state={u} invalid, cannot continue"
             )
             p = PKDict(reload_js=True)
-            e = "invalid cookie state={} uid={}".format(s, u)
+            e = f"invalid cookie state={s} uid={u}"
         pkdc("SRException uid={} route={} params={} method={} error={}", u, r, p, m, e)
         raise sirepo.util.SRException(
             r, p, *(("user not logged in: {}", e) if e else ())
@@ -790,5 +790,5 @@ class _Auth(sirepo.quest.Attr):
     def _validate_method(self, module):
         if module.AUTH_METHOD in valid_methods:
             return None
-        pkdlog("invalid auth method={}".format(module.AUTH_METHOD))
+        pkdlog(f"invalid auth method={module.AUTH_METHOD}")
         self.login_fail_redirect(module, "invalid-method")

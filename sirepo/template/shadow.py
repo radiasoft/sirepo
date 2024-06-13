@@ -152,7 +152,7 @@ _FIELD_ALIAS = PKDict(
     verticalSize="rz_slit[0]",
 )
 
-_LOWERCASE_FIELDS = set(["focal_x", "focal_z"])
+_LOWERCASE_FIELDS = {"focal_x", "focal_z"}
 
 _WIGGLER_TRAJECTORY_FILENAME = "xshwig.sha"
 
@@ -186,7 +186,7 @@ def python_source_for_model(data, model, qcall, **kwargs):
             if b.type == "watch":
                 watch_id = b.id
         if watch_id:
-            data.report = "{}{}".format(_SIM_DATA.WATCHPOINT_REPORT, watch_id)
+            data.report = f"{_SIM_DATA.WATCHPOINT_REPORT}{watch_id}"
         else:
             data.report = "plotXYReport"
     return """
@@ -339,7 +339,7 @@ def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
                 res += _generate_element(item, from_source, image_distance)
                 res += _generate_crystal(item)
             elif item.type == "emptyElement":
-                res += "\n" + "oe.set_empty(ALPHA={})".format(item.alpha)
+                res += "\n" + f"oe.set_empty(ALPHA={item.alpha})"
             elif item.type == "grating":
                 res += _generate_element(item, from_source, image_distance)
                 res += _generate_grating(item)
@@ -354,7 +354,7 @@ def _generate_beamline_optics(models, last_id=None, calc_beam_stats=False):
                 if last_id and last_id == int(item.id):
                     last_element = True
             else:
-                raise RuntimeError("unknown item type: {}".format(item))
+                raise RuntimeError(f"unknown item type: {item}")
             if theta_recalc_required:
                 res += """
 # use shadow to calculate THETA from the default position
@@ -513,7 +513,7 @@ def _generate_crystal(item):
             res += _item_field(item, ["r_johansson"])
     elif item.f_mosaic == "1":
         res += _item_field(item, ["spread_mos", "thickness", "mosaic_seed"])
-    bragg_filename = "crystal-bragg-{}.txt".format(item.id)
+    bragg_filename = f"crystal-bragg-{item.id}.txt"
     res += (
         "\n"
         + "bragg(interactive=False, DESCRIPTOR='{}', H_MILLER_INDEX={}, K_MILLER_INDEX={}, L_MILLER_INDEX={}, TEMPERATURE_FACTOR={}, E_MIN={}, E_MAX={}, E_STEP={}, SHADOW_FILE='{}')".format(
@@ -528,7 +528,7 @@ def _generate_crystal(item):
             bragg_filename,
         )
     )
-    res += _field_value("oe", "file_refl", "b'{}'".format(bragg_filename))
+    res += _field_value("oe", "file_refl", f"b'{bragg_filename}'")
     return res
 
 
@@ -677,7 +677,7 @@ def _generate_mirror(item):
     if item.f_reflec in ("1", "2"):
         res += _item_field(item, ["f_reflec"])
         if item.f_refl == "0":
-            prerefl_filename = "mirror-prerefl-{}.txt".format(item.id)
+            prerefl_filename = f"mirror-prerefl-{item.id}.txt"
             res += (
                 "\n"
                 + "prerefl(interactive=False, SYMBOL='{}', DENSITY={}, FILE='{}', E_MIN={}, E_MAX={}, E_STEP={})".format(
@@ -689,9 +689,9 @@ def _generate_mirror(item):
                     item.prereflStep,
                 )
             )
-            res += _field_value("oe", "file_refl", "b'{}'".format(prerefl_filename))
+            res += _field_value("oe", "file_refl", f"b'{prerefl_filename}'")
         elif item.f_refl == "2":
-            mlayer_filename = "mirror-pre_mlayer-{}.txt".format(item.id)
+            mlayer_filename = f"mirror-pre_mlayer-{item.id}.txt"
             res += (
                 "\n"
                 + "pre_mlayer(interactive=False, FILE='{}',E_MIN={},E_MAX={},S_DENSITY={},S_MATERIAL='{}',E_DENSITY={},E_MATERIAL='{}',O_DENSITY={},O_MATERIAL='{}',N_PAIRS={},THICKNESS={},GAMMA={},ROUGHNESS_EVEN={},ROUGHNESS_ODD={})".format(
@@ -711,7 +711,7 @@ def _generate_mirror(item):
                     item.mlayerOddRoughness,
                 )
             )
-            res += _field_value("oe", "file_refl", "b'{}'".format(mlayer_filename))
+            res += _field_value("oe", "file_refl", f"b'{mlayer_filename}'")
             res += _item_field(item, ["f_refl", "f_thick"])
     return res
 
@@ -804,11 +804,11 @@ def _generate_trace(
     if calc_beam_stats:
         res += (
             "\nbeam01 = beam.duplicate()"
-            + "\nbeam01.{}(oe, {})".format(trace_method, count)
+            + f"\nbeam01.{trace_method}(oe, {count})"
             + "\npos = calculate_stats(pos, oe, beam01)"
         )
     else:
-        res += "\nbeam.{}(oe, {})".format(trace_method, count)
+        res += f"\nbeam.{trace_method}(oe, {count})"
     return res
 
 
@@ -830,7 +830,7 @@ def _generate_wiggler(data):
         + _field_value("source", "f_color", 0)
         + _field_value("source", "f_phot", 0)
         + _field_value(
-            "source", "file_traj", "b'{}'".format(_WIGGLER_TRAJECTORY_FILENAME)
+            "source", "file_traj", f"b'{_WIGGLER_TRAJECTORY_FILENAME}'"
         )
     )
 

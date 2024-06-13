@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """CLI for OpenMC
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
@@ -55,13 +54,12 @@ class _MoabGroupCollector:
         self.groups = self._groups_and_volumes(mb)
 
     def _groups(self, mb):
-        for g in mb.get_entities_by_type_and_tag(
+        yield from mb.get_entities_by_type_and_tag(
             mb.get_root_set(),
             pymoab.types.MBENTITYSET,
             [self._tag(mb, "CATEGORY")],
             ["Group"],
-        ):
-            yield g
+        )
 
     def _groups_and_volumes(self, mb):
         res = PKDict()

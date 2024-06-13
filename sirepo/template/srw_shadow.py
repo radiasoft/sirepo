@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Convert codes to/from SRW/shadow.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern.pkcollections import PKDict
 from sirepo import simulation_db

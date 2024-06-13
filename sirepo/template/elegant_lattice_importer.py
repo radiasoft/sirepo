@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """elegant lattice parser
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
@@ -31,7 +29,7 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals("elegant")
 
 _ELEGANT_TYPE_RE = re.compile(r"^[A-Z]+$")
 
-_ELEGANT_TYPES = set(n for n in SCHEMA.model if _ELEGANT_TYPE_RE.search(n))
+_ELEGANT_TYPES = {n for n in SCHEMA.model if _ELEGANT_TYPE_RE.search(n)}
 
 
 def elegant_code_var(variables):
@@ -42,7 +40,7 @@ def elegant_code_var(variables):
             {
                 "<": operator.lt,
                 ">": operator.gt,
-                "beta.p": lambda a: a / (math.sqrt((1 + (a * a)))),
+                "beta.p": lambda a: a / (math.sqrt(1 + (a * a))),
                 "dacos": lambda a: math.acos(a) * 180 / _PI,
                 "dasin": lambda a: math.asin(a) * 180 / _PI,
                 "datan": lambda a: math.atan(a) * 180 / _PI,
@@ -120,7 +118,7 @@ def import_file(text, data=None, update_filenames=True):
         bl["items"] = _validate_beamline(bl, name_to_id, element_names)
 
     if len(models["elements"]) == 0 or len(models["beamlines"]) == 0:
-        raise IOError("no beamline elements found in file")
+        raise OSError("no beamline elements found in file")
 
     data["models"]["elements"] = models["elements"]
     data["models"]["beamlines"] = models["beamlines"]
@@ -175,7 +173,7 @@ def _field_type_for_field(el, field):
 
 
 def _strip_file_prefix(value, model, field):
-    return re.sub(r"^{}-{}\.".format(model, field), "", value)
+    return re.sub(fr"^{model}-{field}\.", "", value)
 
 
 def _validate_beamline(bl, name_to_id, element_names):
@@ -186,7 +184,7 @@ def _validate_beamline(bl, name_to_id, element_names):
             is_reversed = True
             name = re.sub(r"^-", "", name)
         if name.upper() not in name_to_id:
-            raise IOError("{}: unknown beamline item name".format(name))
+            raise OSError(f"{name}: unknown beamline item name")
         id = name_to_id[name.upper()]
         if name.upper() in element_names:
             items.append(id)
@@ -210,7 +208,7 @@ def _validate_enum(el, field, field_type):
     elif close_match:
         el[field] = close_match
     else:
-        raise IOError('{} unknown value: "{}"'.format(field, search))
+        raise OSError(f'{field} unknown value: "{search}"')
 
 
 def _validate_field(el, field, rpn_cache, code_var, update_filenames):
@@ -275,7 +273,7 @@ def _validate_rpn_field(el, field, rpn_cache, code_var):
     el[field] = re.sub(r"\s+", " ", el[field]).strip()
     value, error = code_var.eval_var(el[field])
     if error:
-        raise IOError(f'invalid rpn="{el[field]}" error="{error}"')
+        raise OSError(f'invalid rpn="{el[field]}" error="{error}"')
     rpn_cache[el[field]] = value
 
 
@@ -330,12 +328,12 @@ def _validate_type(el, element_names):
     for el_type in _ELEGANT_TYPES:
         if type.startswith(el_type) or el_type.startswith(type):
             if match:
-                raise IOError(
-                    "{}: type name matches multiple element types".format(type)
+                raise OSError(
+                    f"{type}: type name matches multiple element types"
                 )
             match = el_type
         if not el_type:
-            raise IOError("{}: unknown element type".format(type))
+            raise OSError(f"{type}: unknown element type")
     if not match:
         # type may refer to another element
         if el["type"] in element_names:
@@ -345,5 +343,5 @@ def _validate_type(el, element_names):
                     el[field] = el_copy[field]
             match = el_copy["type"]
         else:
-            raise IOError("{}: element not found".format(type))
+            raise OSError(f"{type}: element not found")
     return match

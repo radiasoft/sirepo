@@ -170,12 +170,12 @@ def parse_frame_id(frame_id):
     return res, s
 
 
-class SimDataBase(object):
+class SimDataBase:
     ANALYSIS_ONLY_FIELDS = frozenset()
 
     WATCHPOINT_REPORT = "watchpointReport"
 
-    WATCHPOINT_REPORT_RE = re.compile(r"^{}(\d+)$".format(WATCHPOINT_REPORT))
+    WATCHPOINT_REPORT_RE = re.compile(fr"^{WATCHPOINT_REPORT}(\d+)$")
 
     _EXAMPLE_RESOURCE_DIR = "examples"
 
@@ -351,7 +351,7 @@ class SimDataBase(object):
             return p
 
         raise sirepo.util.UserAlert(
-            'Simulation library file "{}" does not exist'.format(basename),
+            f'Simulation library file "{basename}" does not exist',
             "basename={} not in lib or resource directories",
             basename,
         )
@@ -418,19 +418,17 @@ class SimDataBase(object):
             list: sorted list of file names stripped of file_type
         """
         return sorted(
-            (
                 cls.lib_file_name_without_type(f.basename)
-                for f in cls._lib_file_list("{}.*".format(file_type), qcall=qcall)
-            )
+                for f in cls._lib_file_list(f"{file_type}.*", qcall=qcall)
         )
 
     @classmethod
     def lib_file_name_with_model_field(cls, model_name, field, filename):
-        return "{}-{}.{}".format(model_name, field, filename)
+        return f"{model_name}-{field}.{filename}"
 
     @classmethod
     def lib_file_name_with_type(cls, filename, file_type):
-        return "{}.{}".format(file_type, filename)
+        return f"{file_type}.{filename}"
 
     @classmethod
     def lib_file_name_without_type(cls, basename):
@@ -1025,7 +1023,6 @@ class SimDataBase(object):
         cls._assert_server_side()
 
         res = PKDict(
-            (
                 (f.basename, f)
                 for f in sirepo.resource.glob_paths(
                     _TEMPLATE_RESOURCE_DIR,
@@ -1033,7 +1030,6 @@ class SimDataBase(object):
                     cls.LIB_DIR,
                     pat,
                 )
-            )
         )
         if want_user_lib_dir:
             # lib_dir overwrites resource_dir
@@ -1083,7 +1079,7 @@ class SimDataBase(object):
         s = set(data.models.get(model, {}).keys()) - cls.ANALYSIS_ONLY_FIELDS
         if not s:
             return [model]
-        return sorted(["{}.{}".format(model, x) for x in s])
+        return sorted([f"{model}.{x}" for x in s])
 
     @classmethod
     def _organize_example(cls, data):

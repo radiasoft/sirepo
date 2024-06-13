@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test for :mod:`sirepo.sim_data.controls.AmpConverter`
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.

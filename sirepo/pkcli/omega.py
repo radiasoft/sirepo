@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Wrapper to run omega from the command line.
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.

@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """TODO(e-carlin): Doc
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
@@ -124,7 +122,7 @@ class DockerDriver(job_driver.DriverBase):
             # TODO(e-carlin): This can possibly hang and needs to be handled
             # Ex. docker daemon is not responsive
             await self._cmd(
-                ("stop", "--time={}".format(job_driver.KILL_TIMEOUT_SECS), self._cname),
+                ("stop", f"--time={job_driver.KILL_TIMEOUT_SECS}", self._cname),
             )
         except Exception as e:
             if not c and "No such container" in str(e):
@@ -142,7 +140,7 @@ class DockerDriver(job_driver.DriverBase):
         args = [
             "docker",
             # docker TLS port is hardwired
-            "--host=tcp://{}:2376".format(host),
+            f"--host=tcp://{host}:2376",
             "--tlsverify",
         ]
         # POSIT: rsconf.component.docker creates {cacert,cert,key}.pem
@@ -151,7 +149,7 @@ class DockerDriver(job_driver.DriverBase):
             assert f.check(), "tls file does not exist for host={} file={}".format(
                 host, f
             )
-            args.append("--tls{}={}".format(x, f))
+            args.append(f"--tls{x}={f}")
         return tuple(args)
 
     def _cname_join(self):
@@ -166,7 +164,7 @@ class DockerDriver(job_driver.DriverBase):
             return tuple()
         return (
             "--cpus={}".format(cfg_kind.get("cores", 1)),
-            "--memory={}g".format(cfg_kind.gigabytes),
+            f"--memory={cfg_kind.gigabytes}g",
         )
 
     async def _do_agent_start(self, op):
@@ -182,14 +180,14 @@ class DockerDriver(job_driver.DriverBase):
                 "--init",
                 # keeps stdin open so we can write to it
                 "--interactive",
-                "--name={}".format(self._cname),
+                f"--name={self._cname}",
                 "--network=host",
                 "--rm",
                 "--ulimit=core=0",
-                "--ulimit=nofile={}".format(_MAX_OPEN_FILES),
+                f"--ulimit=nofile={_MAX_OPEN_FILES}",
                 # do not use a "name", but a uid, because /etc/password is image specific, but
                 # IDs are universal.
-                "--user={}".format(os.getuid()),
+                f"--user={os.getuid()}",
             )
             + self._constrain_resources(c)
             + self._volumes()
@@ -216,13 +214,13 @@ class DockerDriver(job_driver.DriverBase):
         finally:
             assert isinstance(stdin, io.BufferedRandom) or isinstance(
                 stdin, int
-            ), "type(stdin)={} expected io.BufferedRandom or int".format(type(stdin))
+            ), f"type(stdin)={type(stdin)} expected io.BufferedRandom or int"
             if isinstance(stdin, io.BufferedRandom):
                 stdin.close()
         o = (await p.stdout.read_until_close()).decode("utf-8").rstrip()
         r = await p.wait_for_exit(raise_error=False)
         # TODO(e-carlin): more robust handling
-        assert r == 0, "{}: failed: exit={} output={}".format(c, r, o)
+        assert r == 0, f"{c}: failed: exit={r} output={o}"
         return o
 
     # TODO(robnagler) probably should push this to pykern also in rsconf
@@ -260,7 +258,7 @@ class DockerDriver(job_driver.DriverBase):
             )
             assert o.startswith(
                 "-----BEGIN"
-            ), "incorrect tls file={} content={}".format(f, o)
+            ), f"incorrect tls file={f} content={o}"
             d.join(f).write(o)
         # we just reuse the same cert as the docker server since it's local host
         d.join("cacert.pem").write(o)
@@ -291,7 +289,7 @@ class DockerDriver(job_driver.DriverBase):
             t = s = pkio.py_path(vol)
             if mode:
                 t += f":{mode}"
-            res.append("--volume={}:{}".format(s, t))
+            res.append(f"--volume={s}:{t}")
 
         if self.cfg.dev_volumes:
             # POSIT: radiasoft/download/installers/rpm-code/codes.sh
@@ -316,5 +314,5 @@ def _cfg_gpus(value):
 
 def _cfg_tls_dir(value):
     res = pkio.py_path(value)
-    assert res.check(dir=True), "directory does not exist; value={}".format(value)
+    assert res.check(dir=True), f"directory does not exist; value={value}"
     return res

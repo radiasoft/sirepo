@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """generate static files from package_data
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.

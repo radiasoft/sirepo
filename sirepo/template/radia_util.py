@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Utilities and wrappers for calling Radia functions
 
 :copyright: Copyright (c) 2017-2021 RadiaSoft LLC.  All Rights Reserved.

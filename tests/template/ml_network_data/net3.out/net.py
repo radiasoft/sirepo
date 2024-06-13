@@ -1,4 +1,3 @@
-
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, Activation, Conv2D, Add
 input_args = Input(shape=input_shape)

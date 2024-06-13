@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Type agnostic OAuth operations
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """PyTest for :mod:`sirepo.importer`
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.

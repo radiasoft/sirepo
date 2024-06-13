@@ -169,7 +169,7 @@ class _TestClient:
         """
         from pykern.pkunit import pkexcept
 
-        return pkexcept("(SRException|Error)\(")
+        return pkexcept(r"(SRException|Error)\(")
 
     def iter_sleep(self, kind, op_desc):
         import time
@@ -845,7 +845,7 @@ class _HTTPResponse(_Response):
                 if m:
                     if m.group(1).endswith("#/error"):
                         raise util.Error(
-                            PKDict(error="server error uri={}".format(m.group(1))),
+                            PKDict(error=f"server error uri={m.group(1)}"),
                         )
                     return self.change_to_redirect(m.group(1))
             else:

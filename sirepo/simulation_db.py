@@ -55,10 +55,10 @@ _ID_CHARS = numconv.BASE62
 _ID_LEN = 8
 
 #: Relative regexp from ID_Name
-_ID_PARTIAL_RE_STR = "[{}]{{{}}}".format(_ID_CHARS, _ID_LEN)
+_ID_PARTIAL_RE_STR = f"[{_ID_CHARS}]{{{_ID_LEN}}}"
 
 #: Verify ID
-_ID_RE = re.compile("^{}$".format(_ID_PARTIAL_RE_STR))
+_ID_RE = re.compile(f"^{_ID_PARTIAL_RE_STR}$")
 
 #: where users live under db_dir
 _LIB_DIR = sirepo.const.LIB_DIR
@@ -379,7 +379,7 @@ def mkdir_random(parent_dir, simulation_type=None):
             if e.errno == errno.EEXIST:
                 pass
             raise
-    raise RuntimeError("{}: failed to create unique directory".format(parent_dir))
+    raise RuntimeError(f"{parent_dir}: failed to create unique directory")
 
 
 def migrate_guest_to_persistent_user(guest_uid, to_uid, qcall):
@@ -913,7 +913,7 @@ def _init():
     _init_schemas()
     JOB_RUN_MODE_MAP = PKDict(
         sequential="Serial",
-        parallel="{} cores (SMP)".format(sirepo.mpi.cfg().cores),
+        parallel=f"{sirepo.mpi.cfg().cores} cores (SMP)",
     )
     if _cfg.sbatch_display:
         JOB_RUN_MODE_MAP.sbatch = _cfg.sbatch_display
@@ -1063,7 +1063,7 @@ def _sim_from_path(path):
             return i, p
         prev = p
         p = p.dirpath()
-    raise AssertionError("path={} is not valid simulation".format(path))
+    raise AssertionError(f"path={path} is not valid simulation")
 
 
 def _uid_arg(uid=None, qcall=None):

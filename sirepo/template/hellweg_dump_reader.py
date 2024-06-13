@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Hellweg dump parser.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.

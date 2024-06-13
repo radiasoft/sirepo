@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """activait simulation data operations
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
@@ -58,7 +57,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             return "fileColumnReport"
         if "partitionColumnReport" in analysis_model:
             return "partitionColumnReport"
-        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+        return super()._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):

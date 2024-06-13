@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Runs processes on the current host
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog

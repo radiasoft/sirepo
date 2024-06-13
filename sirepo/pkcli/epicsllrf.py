@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Wrapper to run epicsllrf from the command line.
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
@@ -37,7 +36,7 @@ def run_background(cfg_dir):
     f = _epics_fields(dm)
     if epicsllrf.run_epics_cmd(f"pvget {f[0]}", s) != 0:
         raise epicsllrf.EpicsDisconnectError(
-            "Unable to connect to EPICS server: {}".format(s)
+            f"Unable to connect to EPICS server: {s}"
         )
     epicsllrf.run_epics_cmd(f"pvmonitor {' '.join(f)} | python parameters.py", s)
 

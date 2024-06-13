@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Wrapper to run myapp from the command line.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
@@ -29,19 +28,19 @@ def run(cfg_dir):
             data,
         )
     else:
-        raise AssertionError("unknown report: {}".format(data.report))
+        raise AssertionError(f"unknown report: {data.report}")
     template_common.write_sequential_result(res)
 
 
 def _csv_to_cols():
-    with open(template.OUTPUT_NAME, "r") as f:
+    with open(template.OUTPUT_NAME) as f:
         rows = csv.reader(f)
         headers = next(rows)
         cols = [[] for _ in headers]
         for row in rows:
             for i, c in enumerate(row):
                 cols[i].append(float(c))
-    return dict((k.lower(), cols[i]) for i, k in enumerate(headers))
+    return {k.lower(): cols[i] for i, k in enumerate(headers)}
 
 
 def _label(field):

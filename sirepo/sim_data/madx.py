@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """simulation data operations
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
@@ -54,7 +52,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             return "bunchReport"
         if "twissEllipseReport" in analysis_model:
             return "twissEllipseReport"
-        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+        return super()._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _lib_file_basenames(cls, data):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Impact-T execution template.
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html

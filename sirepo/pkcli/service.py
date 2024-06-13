@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Runs API server and job supervisor
 
 Also supports starting nginx proxy.
@@ -229,7 +228,7 @@ def _cfg_emails(value):
 def _cfg_int(lower, upper):
     def wrapper(value):
         v = int(value)
-        assert lower <= v <= upper, "value must be from {} to {}".format(lower, upper)
+        assert lower <= v <= upper, f"value must be from {lower} to {upper}"
         return v
 
     return wrapper
@@ -239,7 +238,7 @@ def _cfg_ip(value):
     try:
         socket.inet_aton(value)
         return value
-    except socket.error:
+    except OSError:
         pkcli.command_error("{}: ip is not a valid IPv4 address", value)
 
 

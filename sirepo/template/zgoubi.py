@@ -303,10 +303,10 @@ class _ZgoubiLogParser(template_common.LogParser):
             return line
         match = re.search(r"Enjob occured at element # (\d+)", line)
         if match:
-            res = "{}\n".format(line)
+            res = f"{line}\n"
             num = match.group(1)
             if num in element_by_num:
-                res = "  element # {}: {}\n".format(num, self.element_by_num[num])
+                res = f"  element # {num}: {self.element_by_num[num]}\n"
             return res
         return None
 
@@ -324,7 +324,7 @@ def background_percent_complete(report, run_dir, is_running):
     if not is_running:
         show_tunes_report = False
         show_spin_3d = False
-        in_file = run_dir.join("{}.json".format(template_common.INPUT_BASE_NAME))
+        in_file = run_dir.join(f"{template_common.INPUT_BASE_NAME}.json")
         if in_file.exists():
             data = simulation_db.read_json(
                 run_dir.join(template_common.INPUT_BASE_NAME)
@@ -357,7 +357,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 def column_data(col, col_names, rows):
     idx = col_names.index(col)
-    assert idx >= 0, "invalid col: {}".format(col)
+    assert idx >= 0, f"invalid col: {col}"
     res = []
     for row in rows:
         res.append(float(row[idx]))
@@ -396,8 +396,8 @@ def extract_tunes_report(run_dir, data):
     if report.particleSelector == "all":
         axis = report.plotAxis
         title = template_common.enum_text(SCHEMA, "TunesAxis", axis)
-        x_idx = col_names.index("q{}".format(axis))
-        y_idx = col_names.index("amp_{}".format(axis))
+        x_idx = col_names.index(f"q{axis}")
+        y_idx = col_names.index(f"amp_{axis}")
         p_idx = col_names.index("nspec")
         current_p = -1
         for row in rows:
@@ -407,17 +407,17 @@ def extract_tunes_report(run_dir, data):
                 plots.append(
                     PKDict(
                         points=[],
-                        label="Particle {}".format(current_p),
+                        label=f"Particle {current_p}",
                     )
                 )
                 x = []
             x.append(float(row[x_idx]))
             plots[-1].points.append(float(row[y_idx]))
     else:
-        title = "Tunes, Particle {}".format(report.particleSelector)
+        title = f"Tunes, Particle {report.particleSelector}"
         for axis in ("x", "y"):
-            x_idx = col_names.index("q{}".format(axis))
-            y_idx = col_names.index("amp_{}".format(axis))
+            x_idx = col_names.index(f"q{axis}")
+            y_idx = col_names.index(f"amp_{axis}")
             points = []
             for row in rows:
                 if axis == "x":
@@ -430,14 +430,14 @@ def extract_tunes_report(run_dir, data):
                 )
             )
     for plot in plots:
-        plot.label += ", {}".format(_peak_x(x, plot.points))
+        plot.label += f", {_peak_x(x, plot.points)}"
     if report.plotScale == "linear":
         # normalize each plot to 1.0 and show amplitude in label
         for plot in plots:
             maxp = max(plot.points)
             if maxp != 0:
                 plot.points = (np.array(plot.points) / maxp).tolist()
-            plot.label += ", amplitude: {}".format(_format_exp(maxp))
+            plot.label += f", amplitude: {_format_exp(maxp)}"
 
     return template_common.parameter_plot(
         x,
@@ -565,7 +565,7 @@ def save_sequential_report_data(data, run_dir):
         if summary_file.exists():
             res.summaryData = PKDict(bunch=simulation_db.read_json(summary_file))
     else:
-        raise AssertionError("unknown report: {}".format(report_name))
+        raise AssertionError(f"unknown report: {report_name}")
     template_common.write_sequential_result(res, run_dir=run_dir)
 
 
@@ -704,12 +704,12 @@ def _extract_animation(frame_args):
     if str(frame_args.showAllFrames) == "1":
         title = "All Frames"
         if it_filter:
-            title += ", Particle {}".format(it_filter)
+            title += f", Particle {it_filter}"
         if model.plotRangeType == "fit":
             # unset 'fit' plot - all frames are shown
             model.plotRangeType = "none"
     else:
-        title = "Initial Distribution" if is_frame_0 else "Pass {}".format(ipass)
+        title = "Initial Distribution" if is_frame_0 else f"Pass {ipass}"
     if frame_args.get("plotType") == "particle":
         return _extract_particle_data(model, col_names, rows, title)
     return _extract_heatmap_data(model, col_names, rows, title)
@@ -808,13 +808,13 @@ def _extract_spin_3d(frame_args):
         points.append(row[y_idx])
         points.append(row[z_idx])
     return PKDict(
-        title="Particle {}".format(it_filter) if it_filter else "All Particles",
+        title=f"Particle {it_filter}" if it_filter else "All Particles",
         points=points,
     )
 
 
 def _format_exp(v):
-    res = "{:.4e}".format(v)
+    res = f"{v:.4e}"
     res = re.sub(r"e\+00$", "", res)
     return res
 
@@ -838,12 +838,12 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
             scale_values = ""
             for idx in range(1, max_family + 1):
                 # NAMEF1, SCL1, LBL1
-                if el.get("NAMEF{}".format(idx), "none") != "none":
+                if el.get(f"NAMEF{idx}", "none") != "none":
                     count += 1
                     scale_values += "{} {}\n-1\n{}\n1\n".format(
-                        el["NAMEF{}".format(idx)],
-                        el.get("LBL{}".format(idx), ""),
-                        el["SCL{}".format(idx)],
+                        el[f"NAMEF{idx}"],
+                        el.get(f"LBL{idx}", ""),
+                        el[f"SCL{idx}"],
                     )
             if el.IOPT == "1" and count > 0:
                 res += form.format(el.IOPT, count, scale_values)
@@ -873,12 +873,12 @@ def _generate_beamline_elements(report, data):
 
 
 def _generate_pyzgoubi_element(el, schema_type=None):
-    res = 'line.add(core.{}("{}"'.format(el.type, el.name)
+    res = f'line.add(core.{el.type}("{el.name}"'
     for f in sorted(SCHEMA.model[schema_type or el.type].keys()):
         # TODO(pjm): need ignore list
         if f == "name" or f == "order" or f == "format":
             continue
-        res += ", {}={}".format(_PYZGOUBI_FIELD_MAP.get(f, f), el[f])
+        res += f", {_PYZGOUBI_FIELD_MAP.get(f, f)}={el[f]}"
     res += "))\n"
     return res
 
@@ -922,12 +922,12 @@ def _generate_parameters_file(data):
 
 def _generate_particle(particle):
     if particle.particleType == "Other":
-        return "{} {} {} {} 0".format(particle.M, particle.Q, particle.G, particle.Tau)
+        return f"{particle.M} {particle.Q} {particle.G} {particle.Tau} 0"
     return particle.particleType
 
 
 def _initial_phase_field(field):
-    return _INITIAL_PHASE_MAP.get(field, "{}o".format(field))
+    return _INITIAL_PHASE_MAP.get(field, f"{field}o")
 
 
 def _ipasses_for_data(col_names, rows):
@@ -971,7 +971,7 @@ def _peak_x(x_points, y_points):
         if y_points[i] > max_y:
             max_y = y_points[i]
             x = x_points[i]
-    return "{:.6f}".format(x)
+    return f"{x:.6f}"
 
 
 def _prepare_tosca_element(el):

@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """async requests to server over http
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkinspect
@@ -242,11 +240,11 @@ class _Client(PKDict):
             self.email,
         )
         r = await self.post(
-            self._uri("/auth-email-authorized/{}/{}".format(self.sim_type, t)),
+            self._uri(f"/auth-email-authorized/{self.sim_type}/{t}"),
             PKDict(token=t, email=self.email),
             self,
         )
-        assert r.state != "srException", "r={}".format(r)
+        assert r.state != "srException", f"r={r}"
         if r.authState.needCompleteRegistration:
             r = await self.post(
                 "/auth-complete-registration",
@@ -260,7 +258,7 @@ class _Client(PKDict):
         return self
 
     def parse_response(self, resp, expect_binary_body=False):
-        assert resp.code == 200, "resp={}".format(resp)
+        assert resp.code == 200, f"resp={resp}"
         if "Set-Cookie" in resp.headers:
             self._headers.Cookie = resp.headers["Set-Cookie"]
         if "json" in resp.headers["content-type"]:
@@ -274,7 +272,7 @@ class _Client(PKDict):
                 b[:1000],
             )
         except UnicodeDecodeError:
-            assert expect_binary_body, "unexpected binary body resp={}".format(resp)
+            assert expect_binary_body, f"unexpected binary body resp={resp}"
             # Binary data files can't be decoded
             return
         if "html" in resp.headers["content-type"]:
@@ -459,7 +457,7 @@ class _Sim(PKDict):
         assert (
             f.state == "completed"
         ), f"{self.pkdebug_str()} expected state completed frame={f}"
-        assert "title" in f, "{} no title in frame={}".format(self.pkdebug_str(), f)
+        assert "title" in f, f"{self.pkdebug_str()} no title in frame={f}"
         with self._set_waiting_on_status():
             await self._app.client.get(
                 "/download-data-file/{}/{}/{}/{}".format(
@@ -538,7 +536,7 @@ def _init():
             "emails to test",
         ),
         server_uri=(
-            "http://{}:{}".format(c.ip, c.port),
+            f"http://{c.ip}:{c.port}",
             str,
             "where to send requests",
         ),

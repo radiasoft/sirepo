@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """lib files interface
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.

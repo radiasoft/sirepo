@@ -202,7 +202,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             # Planar: mirror 28.0m
             mirror_file = v.op_Planar_hfn
             assert os.path.isfile(mirror_file), \
-                'Missing input file {}, required by Planar beamline element'.format(mirror_file)
+                f'Missing input file {mirror_file}, required by Planar beamline element'
             el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
                 srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_Planar_dim,
@@ -257,7 +257,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Circular_Cylinder2_pp)
             mirror_file = v.op_Circular_Cylinder2_hfn
             assert os.path.isfile(mirror_file), \
-                'Missing input file {}, required by Circular_Cylinder2 beamline element'.format(mirror_file)
+                f'Missing input file {mirror_file}, required by Circular_Cylinder2 beamline element'
             el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
                 srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_Circular_Cylinder2_dim,
@@ -314,7 +314,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Elliptical_Cylinder2_pp)
             mirror_file = v.op_Elliptical_Cylinder2_hfn
             assert os.path.isfile(mirror_file), \
-                'Missing input file {}, required by Elliptical_Cylinder2 beamline element'.format(mirror_file)
+                f'Missing input file {mirror_file}, required by Elliptical_Cylinder2 beamline element'
             el.append(srwpy.srwlib.srwl_opt_setup_surf_height_2d(
                 srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t"),
                 _dim=v.op_Elliptical_Cylinder2_dim,
@@ -371,7 +371,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Toroid2_pp)
             mirror_file = v.op_Toroid2_hfn
             assert os.path.isfile(mirror_file), \
-                'Missing input file {}, required by Toroid2 beamline element'.format(mirror_file)
+                f'Missing input file {mirror_file}, required by Toroid2 beamline element'
             el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
                 srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_Toroid2_dim,
@@ -440,7 +440,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_Crystal2_pp)
             mirror_file = v.op_Crystal2_hfn
             assert os.path.isfile(mirror_file), \
-                'Missing input file {}, required by Crystal2 beamline element'.format(mirror_file)
+                f'Missing input file {mirror_file}, required by Crystal2 beamline element'
             el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
                 srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_Crystal2_dim,

@@ -673,7 +673,7 @@ class _ComputeJob(_Supervisor):
         if not r:
             assert (
                 data.api != "api_runSimulation"
-            ), "api_runSimulation must have a jobRunMode content={}".format(data)
+            ), f"api_runSimulation must have a jobRunMode content={data}"
             # __db_init() will be called when runDirNotFound.
             # The api_* that initiated the request may not have
             # a jobRunMode (ex api_downloadDataFile). In that

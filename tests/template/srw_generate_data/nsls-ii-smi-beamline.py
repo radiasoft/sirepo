@@ -45,7 +45,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_MOAT_1_pp)
             mirror_file = v.op_MOAT_1_hfn
             assert os.path.isfile(mirror_file), \
-                'Missing input file {}, required by MOAT_1 beamline element'.format(mirror_file)
+                f'Missing input file {mirror_file}, required by MOAT_1 beamline element'
             el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
                 srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_MOAT_1_dim,
@@ -106,7 +106,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_HFM_pp)
             mirror_file = v.op_HFM_hfn
             assert os.path.isfile(mirror_file), \
-                'Missing input file {}, required by HFM beamline element'.format(mirror_file)
+                f'Missing input file {mirror_file}, required by HFM beamline element'
             el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
                 srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_HFM_dim,
@@ -137,7 +137,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_VFM_pp)
             mirror_file = v.op_VFM_hfn
             assert os.path.isfile(mirror_file), \
-                'Missing input file {}, required by VFM beamline element'.format(mirror_file)
+                f'Missing input file {mirror_file}, required by VFM beamline element'
             el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
                 srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_VFM_dim,
@@ -168,7 +168,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             pp.append(v.op_VDM_pp)
             mirror_file = v.op_VDM_hfn
             assert os.path.isfile(mirror_file), \
-                'Missing input file {}, required by VDM beamline element'.format(mirror_file)
+                f'Missing input file {mirror_file}, required by VDM beamline element'
             el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
                 srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_VDM_dim,

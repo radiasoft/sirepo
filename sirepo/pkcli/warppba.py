@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Wrapper to run the code from the command line.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkinspect
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -35,7 +33,7 @@ def run(cfg_dir):
     elif a.frameReport == "beamPreviewReport":
         res = template.sim_frame_beamAnimation(a)
     else:
-        raise AssertionError("invalid report: {}".format(a.frameReport))
+        raise AssertionError(f"invalid report: {a.frameReport}")
     template_common.write_sequential_result(res)
 
 

@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Wrapper to run shadow from the command line.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
@@ -89,7 +87,7 @@ def _run_beam_statistics(cfg_dir, data):
     d = pkjson.load_any(py.path.local(cfg_dir).join(template.BEAM_STATS_FILE))
     x = d.s
     plots = []
-    labels = dict((e[0], e[1]) for e in _SCHEMA.enum.BeamStatisticsParameter)
+    labels = {e[0]: e[1] for e in _SCHEMA.enum.BeamStatisticsParameter}
     for y in ("y1", "y2", "y3"):
         if report[y] == "none":
             continue

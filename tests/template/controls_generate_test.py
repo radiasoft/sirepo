@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """PyTest for :mod:`sirepo.template.controls`
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.

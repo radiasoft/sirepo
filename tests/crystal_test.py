@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """PyTest for :mod:`sirepo.template.srw.py`
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import pytest
 import requests
 import sirepo.crystal
@@ -18,7 +16,7 @@ def _skip():
         return True
     except Exception as e:
         raise AssertionError(
-            "exception={} trying to reach uri={}".format(e, sirepo.crystal.X0H_SERVER),
+            f"exception={e} trying to reach uri={sirepo.crystal.X0H_SERVER}",
         )
 
 

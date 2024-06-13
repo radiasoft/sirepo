@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """opal simulation data operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -40,7 +39,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 cmd.material = cmd.material.upper()
         if "bunchReport1" not in dm:
             for i in range(1, 5):
-                m = dm["bunchReport{}".format(i)] = PKDict()
+                m = dm[f"bunchReport{i}"] = PKDict()
                 cls.update_model_defaults(m, "bunchReport")
                 if i == 1:
                     m.y = "px"
@@ -58,7 +57,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if "bunchReport" in analysis_model:
             return "bunchReport"
-        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+        return super()._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
@@ -77,8 +76,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _remove_deprecated_items(cls, models):
         cmds = []
-        deprecated_cmds = set(
-            [
+        deprecated_cmds = {
                 "attlist",
                 "eigen",
                 "envelope",
@@ -92,15 +90,13 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "twiss",
                 "twiss3",
                 "twisstrack",
-            ]
-        )
+        }
         for cmd in models.commands:
             if cmd._type not in deprecated_cmds:
                 cmds.append(cmd)
         models.commands = cmds
         elements = []
-        deprecated_elements = set(
-            [
+        deprecated_elements = {
                 "CYCLOTRONVALLEY",
                 "HMONITOR",
                 "INSTRUMENT",
@@ -117,8 +113,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "VMONITOR",
                 "WIRE",
                 "YROT",
-            ]
-        )
+        }
         removed_ids = []
         for el in models.elements:
             if el.type in deprecated_elements:

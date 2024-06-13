@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Machine learning tools
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.

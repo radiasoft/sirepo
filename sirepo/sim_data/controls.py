@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """simulation data operations
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
@@ -50,7 +49,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def current_field(cls, kick_field):
-        return "current_{}".format(kick_field)
+        return f"current_{kick_field}"
 
     @classmethod
     def default_optimizer_settings(cls, madx):
@@ -201,7 +200,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if "instrument" in analysis_model or analysis_model == "beamPositionAnimation":
             return "instrumentAnimation"
-        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+        return super()._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _lib_file_basenames(cls, data):
@@ -233,7 +232,7 @@ class AmpConverter:
 
     def __init__(self, beam, amp_table=None, default_factor=100):
         if amp_table and len(amp_table[0]) < 2:
-            raise AssertionError("invalid amp_table: {}".format(amp_table))
+            raise AssertionError(f"invalid amp_table: {amp_table}")
         self._computed_reverse_table = False
         self._amp_table = [r for r in map(lambda x: [x[0], x[1]], amp_table or [])]
         self._beam_info = self.__beam_info(beam)

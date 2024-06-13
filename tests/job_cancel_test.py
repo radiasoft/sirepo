@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """test cancel of sim with agent_start_delay
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.

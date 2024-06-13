@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """DeviceServer stand-in for controls
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
@@ -39,7 +38,7 @@ _PV_TO_ELEMENT_FIELD = PKDict(
 _POSITION_PROP_NAME = "tbtOrbPositionM"
 _READ_CURRENT_PROP_NAME = "readbackM"
 _WRITE_CURRENT_PROP_NAME = "currentS"
-_ARRAY_PROP_NAMES = set([_READ_CURRENT_PROP_NAME, _POSITION_PROP_NAME])
+_ARRAY_PROP_NAMES = {_READ_CURRENT_PROP_NAME, _POSITION_PROP_NAME}
 _SIM_OUTPUT_DIR = "DeviceServer"
 _SET_CONTEXT = PKDict()
 

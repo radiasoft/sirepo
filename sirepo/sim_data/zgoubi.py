@@ -86,7 +86,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             return "twissReport2"
         if "twissReport" == analysis_model:
             return "twissReport"
-        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+        return super()._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _lib_file_basenames(cls, data):

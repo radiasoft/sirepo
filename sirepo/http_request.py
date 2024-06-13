@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """request input parsing
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.

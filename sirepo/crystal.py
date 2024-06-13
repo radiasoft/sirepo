@@ -1,10 +1,8 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 """
 Get polarizability from X0h server (http://x-server.gmca.aps.anl.gov/x0h.html).
 For details see http://x-server.gmca.aps.anl.gov/pub/Stepanov_CR_1991_08.pdf.
 """
-from __future__ import division
 
 import math
 import re

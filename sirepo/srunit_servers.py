@@ -32,8 +32,8 @@ def api_and_supervisor(pytest_req, fc_args):
 
         h = "localhost"
         k = pykern.pkio.py_path("~/.ssh/known_hosts").read()
-        m = re.search("^{}.*$".format(h), k, re.MULTILINE)
-        assert bool(m), "You need to ssh into {} to get the host key".format(h)
+        m = re.search(f"^{h}.*$", k, re.MULTILINE)
+        assert bool(m), f"You need to ssh into {h} to get the host key"
 
         env.pkupdate(
             SIREPO_JOB_DRIVER_MODULES="local:sbatch",

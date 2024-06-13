@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """test sirepo.csv
 
 :copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.

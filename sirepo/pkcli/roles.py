@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """CRUD operations for user roles
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.pkcli import admin
@@ -79,6 +77,6 @@ def _parse_args(uid_or_email, roles):
             a = sirepo.auth_role.get_all()
             assert set(roles).issubset(
                 a
-            ), "roles={} not a subset of all_roles={}".format(roles, a)
+            ), f"roles={roles} not a subset of all_roles={a}"
         with qcall.auth.logged_in_user_set(u):
             yield qcall

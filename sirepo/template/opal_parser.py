@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """OPAL parser.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
@@ -26,13 +25,11 @@ _MATERIAL_CODE_TO_NAME = PKDict(
 
 class OpalParser(lattice.LatticeParser):
     def __init__(self):
-        self.ignore_commands = set(
-            [
+        self.ignore_commands = {
                 "value",
                 "stop",
                 "quit",
-            ]
-        )
+        }
         super().__init__(sirepo.sim_data.get_class("opal"))
 
     def parse_file(self, lattice_text, update_filenames):
@@ -84,7 +81,7 @@ class OpalParser(lattice.LatticeParser):
             if cmd._type == "run":
                 assert track
                 for f in cmd:
-                    name = "run_{}".format(f)
+                    name = f"run_{f}"
                     if name in fields:
                         track[name] = cmd[f]
                 continue
@@ -107,7 +104,7 @@ class OpalParser(lattice.LatticeParser):
         name_to_id = PKDict()
         for id in self.util.id_map:
             name = self.util.id_map[id].name.upper()
-            assert name not in name_to_id, "duplicate name: {}".format(name)
+            assert name not in name_to_id, f"duplicate name: {name}"
             name_to_id[name] = id
         for container in ("elements", "commands"):
             for el in self.data.models[container]:
@@ -301,7 +298,7 @@ class OpalParser(lattice.LatticeParser):
         prefix = cmd._type.upper()[:2]
         num = 1
         while True:
-            name = "{}{}".format(prefix, num)
+            name = f"{prefix}{num}"
             if name not in names:
                 return name
             num += 1
@@ -332,7 +329,7 @@ class OpalParser(lattice.LatticeParser):
                                 PKDict(
                                     label=el.name,
                                     type=LatticeUtil.type_for_data(el),
-                                    file_type="{}-{}".format(model_name, f),
+                                    file_type=f"{model_name}-{f}",
                                     filename=el[f],
                                     field=f,
                                     lib_filename=filename,

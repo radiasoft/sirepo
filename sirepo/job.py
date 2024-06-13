@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Common functionality that is shared between the server, supervisor, and driver.
 
 :copyright: Copyright (c) 2019-2023 RadiaSoft LLC.  All Rights Reserved.
@@ -80,7 +79,7 @@ DEFAULT_PORT = 8001
 
 #: _cfg declaration for supervisor_uri for drivers
 DEFAULT_SUPERVISOR_URI_DECL = (
-    "http://{}:{}".format(DEFAULT_IP, sirepo.const.PORT_DEFAULTS.supervisor),
+    f"http://{DEFAULT_IP}:{sirepo.const.PORT_DEFAULTS.supervisor}",
     str,
     "how to reach supervisor",
 )
@@ -131,7 +130,7 @@ NERSC_QUEUE_MAX = PKDict(
 UNIQUE_KEY_CHARS_RE = r"\w+"
 
 #: A standalone unique key
-UNIQUE_KEY_RE = re.compile(r"^{}$".format(UNIQUE_KEY_CHARS_RE))
+UNIQUE_KEY_RE = re.compile(fr"^{UNIQUE_KEY_CHARS_RE}$")
 
 
 _QUASI_SID_PREFIX = "_1_"
@@ -173,7 +172,7 @@ def agent_cmd_stdin_env(cmd, env, uid, cwd=".", source_bashrc=""):
     if sirepo.feature_config.cfg().trust_sh_env:
         source_bashrc = ""
     t = tempfile.TemporaryFile()
-    c = "exec " + " ".join(("'{}'".format(x) for x in cmd))
+    c = "exec " + " ".join(f"'{x}'" for x in cmd)
     # POSIT: we control all these values
     t.write(
         """{}
@@ -245,7 +244,7 @@ def agent_env(uid, env=None):
             k,
             pykern.pkdebug.SECRETS_RE,
         )
-    return "\n".join(("export {}='{}'".format(k, v) for k, v in env.items()))
+    return "\n".join((f"export {k}='{v}'" for k, v in env.items()))
 
 
 def cfg():

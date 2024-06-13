@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """zgoubi datafile parser
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
@@ -59,7 +58,7 @@ def tosca_info(tosca):
     )
     if not _SIM_DATA.lib_file_exists(n):
         return PKDict(
-            error="missing or invalid file: {}".format(tosca.magnetFile),
+            error=f"missing or invalid file: {tosca.magnetFile}",
         )
     error = None
     length = None
@@ -110,7 +109,7 @@ def _init_model_units():
                     t.transformValue, "deg_to_rad", is_native
                 )
             else:
-                assert False, "invalid transformType: {}".format(t.transformType)
+                assert False, f"invalid transformType: {t.transformType}"
         return transforms
 
     def _il(v, is_native):
@@ -134,8 +133,8 @@ def _init_model_units():
             if v2 > 1e10:
                 # old step size format
                 m = re.search(r"^0*(\d+)\.0*(\d+)", v)
-                assert m, "XPAS failed to parse step size: {}".format(v)
-                return "#{}|{}|{}".format(m.group(2), m.group(1), m.group(2))
+                assert m, f"XPAS failed to parse step size: {v}"
+                return f"#{m.group(2)}|{m.group(1)}|{m.group(2)}"
         else:
             if re.search(r"\#", str(v)):
                 v = re.sub(r"^#", "", v)
@@ -367,7 +366,7 @@ def _tosca_length(tosca, lines):
             except ValueError:
                 pass
     if not col2:
-        return None, "missing column 2 data in file: {}".format(tosca.magnetFile)
+        return None, f"missing column 2 data in file: {tosca.magnetFile}"
     # scaled by unit conversion XN
     return (max(col2) - min(col2)) / 100.0 * tosca.XN, None
 
@@ -435,7 +434,7 @@ def _validate_element_names(data, info):
         if name in names:
             count = 2
             while True:
-                name2 = "{}{}".format(name, count)
+                name2 = f"{name}{count}"
                 if name2 not in names:
                     name = name2
                     break

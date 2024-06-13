@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """simulation data operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -131,7 +130,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         for m in list(dm):
             if cls.is_watchpoint(m):
                 cls.update_model_defaults(dm[m], cls.WATCHPOINT_REPORT)
-                n = "beamlineAnimation{}".format(cls.watchpoint_id(m))
+                n = f"beamlineAnimation{cls.watchpoint_id(m)}"
                 if n not in dm:
                     dm[n] = dm[m]
             if m == "initialIntensityReport" and "beamlineAnimation0" not in dm:
@@ -166,7 +165,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             u = dm.tabulatedUndulator
             u.name = u.undulatorSelector = "Undulator"
         if dm.tabulatedUndulator.get("id", "1") == "1":
-            dm.tabulatedUndulator.id = "{} 1".format(dm.simulation.simulationId)
+            dm.tabulatedUndulator.id = f"{dm.simulation.simulationId} 1"
         if cls.srw_is_gaussian_source(dm.simulation):
             cls.__fixup_gaussian_divergence(dm.gaussianBeam)
         if "distribution" in dm.multipole:
@@ -255,7 +254,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def srw_format_float(cls, v):
-        return float("{:.8f}".format(v))
+        return float(f"{v:.8f}")
 
     @classmethod
     def srw_is_arbitrary_source(cls, sim):

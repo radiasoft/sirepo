@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Methods related to running on NERSC
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.

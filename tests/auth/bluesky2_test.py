@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """test sirepo.bluesky
 
 :copyright: Copyright (c) 2018 Bivio Software, Inc.  All Rights Reserved.

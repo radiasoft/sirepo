@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Functions for accessing resource files
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.

@@ -112,7 +112,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 def get_rates(run_dir):
     f = pkio.py_path(run_dir).join(JSPEC_LOG_FILE)
-    assert f.exists(), "non-existent log file {}".format(f)
+    assert f.exists(), f"non-existent log file {f}"
     o = PKDict(
         # TODO(pjm): x_range is needed for sirepo-plotting.js, need a better valid-data check
         x_range=[],
@@ -219,7 +219,7 @@ def sim_frame_particleAnimation(frame_args):
         )
         if time > settings.time:
             time = settings.time
-        return "Ions at time {:.2f} [s]".format(time)
+        return f"Ions at time {time:.2f} [s]"
 
     return sdds_util.SDDSUtil(
         _ion_files(frame_args.run_dir)[frame_args.frameIndex]
@@ -246,7 +246,7 @@ def stateful_compute_get_elegant_sim_list(data, **kwargs):
                 simulation_db.sim_data_file("elegant", i),
             ).models.simulation.name
             res.append(PKDict(simulationId=i, name=name))
-        except IOError:
+        except OSError:
             # ignore errors reading corrupted elegant sim files
             pass
     return {
@@ -342,15 +342,15 @@ def _field_description(field, data):
     e_cool = settings.e_cool == "1"
     dir = _field_direction(field)
     if "ibs" in field:
-        return " - {} IBS rate".format(dir)
+        return f" - {dir} IBS rate"
     if "ecool" in field:
-        return " - {} electron cooling rate".format(dir)
+        return f" - {dir} electron cooling rate"
     if ibs and e_cool:
-        return " - combined electron cooling and IBS heating rate ({})".format(dir)
+        return f" - combined electron cooling and IBS heating rate ({dir})"
     if e_cool:
-        return " - {} electron cooling rate".format(dir)
+        return f" - {dir} electron cooling rate"
     if ibs:
-        return " - {} IBS rate".format(dir)
+        return f" - {dir} IBS rate"
     return ""
 
 
@@ -361,14 +361,14 @@ def _field_direction(field):
         return "vertical"
     if "rs" in field:
         return "longitudinal"
-    assert False, "invalid direction field: {}".format(field)
+    assert False, f"invalid direction field: {field}"
 
 
 def _field_label(field, units):
     field = _FIELD_LABEL.get(field, field)
     if units == "NULL":
         return field
-    return "{} [{}]".format(field, units)
+    return f"{field} [{units}]"
 
 
 def _generate_parameters_file(data):
@@ -402,7 +402,7 @@ def _get_time_step_warning(run_dir):
             t = rates[i][0]
             assert (
                 "IBS rate" in t or "Electron cooling rate" in t
-            ), "unknown rates={}".format(rates)
+            ), f"unknown rates={rates}"
             for j in range(3):
                 m = max(m, _get_rate(rates, i, j))
         return m
@@ -431,7 +431,7 @@ def _get_time_step_warning(run_dir):
 def _ion_files(run_dir):
     # sort files by file number suffix
     res = []
-    for f in glob.glob(str(run_dir.join("{}*".format(_ION_FILE_PREFIX)))):
+    for f in glob.glob(str(run_dir.join(f"{_ION_FILE_PREFIX}*"))):
         m = re.match(r"^.*?(\d+)\.txt$", f)
         if m:
             res.append([f, int(m.group(1))])

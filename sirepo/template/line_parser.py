@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Simple line parser.
 
 Parses a line of input one character at a time.
@@ -6,11 +5,10 @@ Parses a line of input one character at a time.
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 import re
 
 
-class LineParser(object):
+class LineParser:
     """Parses a line of input one character at a time.
     Call set_line() prior to other metho calls.
     """
@@ -24,7 +22,7 @@ class LineParser(object):
     def assert_char(self, char):
         """Raises an Error unless the current character matches"""
         if self.next_char() != char:
-            self.raise_error("expected {}".format(char))
+            self.raise_error(f"expected {char}")
         self.ignore_whitespace()
 
     def assert_end_of_line(self, comment_char="!"):
@@ -80,8 +78,8 @@ class LineParser(object):
         return None
 
     def raise_error(self, message):
-        raise IOError(
-            "line {}, {}: {}".format(self.line_number, message, self.line[self.index :])
+        raise OSError(
+            f"line {self.line_number}, {message}: {self.line[self.index :]}"
         )
 
     def read_until(self, regex):

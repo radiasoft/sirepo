@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests conversion of keras model into PKDict format UI understands
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Wrapper to run Radia from the command line.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.

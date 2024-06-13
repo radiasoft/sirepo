@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """MAD-X parser.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
@@ -15,8 +13,7 @@ import sirepo.sim_data
 
 class MadXParser(lattice.LatticeParser):
     def __init__(self):
-        self.ignore_commands = set(
-            [
+        self.ignore_commands = {
                 "aperture",
                 "assign",
                 "call",
@@ -61,8 +58,7 @@ class MadXParser(lattice.LatticeParser):
                 "weight",
                 "wire",
                 "write",
-            ]
-        )
+        }
         super().__init__(sirepo.sim_data.get_class("madx"))
 
     def parse_file(self, lattice_text, downcase_variables=False):
@@ -131,7 +127,7 @@ class MadXParser(lattice.LatticeParser):
                 "entry",
                 "centre",
                 "exit",
-            ), "invalid sequence alignment: {}".format(alignment)
+            ), f"invalid sequence alignment: {alignment}"
             prev = 0
             for item in seq["items"]:
                 el = util.id_map[item[0]]

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """API's for jupyterhublogin sim
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.

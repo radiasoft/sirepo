@@ -90,12 +90,12 @@ def extract_field_report(field, coordinate, mode, data_file):
     if field == "rho":
         field_label = field
     else:
-        field_label = "{} {}".format(field, coordinate)
+        field_label = f"{field} {coordinate}"
     return PKDict(
         x_range=[extent[0], extent[1], len(F[0])],
         y_range=[extent[2], extent[3], len(F)],
-        x_label="{} [m]".format(info.axes[1]),
-        y_label="{} [m]".format(info.axes[0]),
+        x_label=f"{info.axes[1]} [m]",
+        y_label=f"{info.axes[0]} [m]",
         title="{} in the mode {} at {}".format(
             field_label, mode, _iteration_title(opmd, data_file)
         ),
@@ -157,7 +157,7 @@ def extract_particle_report(frame_args, particle_type):
             y_label="{}{}".format(
                 frame_args.y, " [m]" if len(frame_args.y) == 1 else ""
             ),
-            title="t = {}".format(_iteration_title(opmd, data_file)),
+            title=f"t = {_iteration_title(opmd, data_file)}",
             frameCount=data_file.num_frames,
         ),
         weights=data_list[2],
@@ -316,7 +316,7 @@ def _h5_file_list(run_dir):
 
 def _iteration_title(opmd, data_file):
     fs = opmd.t[0] * 1e15
-    return "{:.1f} fs (iteration {})".format(fs, data_file.iteration)
+    return f"{fs:.1f} fs (iteration {data_file.iteration})"
 
 
 def _opmd_time_series(data_file):
@@ -354,7 +354,7 @@ def _particle_selection_args(args):
     res = PKDict()
     for f in "", "u":
         for f2 in "x", "y", "z":
-            field = "{}{}".format(f, f2)
+            field = f"{f}{f2}"
             min = float(args[field + "Min"]) / 1e6
             max = float(args[field + "Max"]) / 1e6
             if min == 0 and max == 0:

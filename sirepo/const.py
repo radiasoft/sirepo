@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Constant values
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.

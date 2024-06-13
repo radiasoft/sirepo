@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Trimesh and Radia stl import test
 
 :copyright: Copyright (c) 2017-2022 RadiaSoft LLC. All Rights Reserved.

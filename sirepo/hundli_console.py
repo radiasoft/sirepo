@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Hundli: a dog height and weight simulation engine
 
 This is not technically part of Sirepo. It demonstrates a arbitrary 3rd

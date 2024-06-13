@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Particle beam generator and analyzer.
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
@@ -273,7 +272,7 @@ def read_ptc_data(file_name):
     one containing the particle data as a sequence of snapshots,
     and a second containing the names of the observation points.
     """
-    f = open(file_name, "r")
+    f = open(file_name)
     table = [line.strip().split() for line in f]
 
     ptc_beam_data = []

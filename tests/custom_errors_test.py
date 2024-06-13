@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """test custom errors
 
 :copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
@@ -16,5 +15,5 @@ def test_custom_errors(fc):
     for k, v in sirepo.simulation_db.SCHEMA_COMMON.customErrors.items():
         r = fc.sr_get(sirepo.uri.local_route(fc.sr_sim_type, v.route))
         r.assert_success()
-        with open(sirepo.resource.static("html", v.url), "r") as f:
+        with open(sirepo.resource.static("html", v.url)) as f:
             pkre(v.msg, f.read())

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #############################################################################
 # SRWLIB Example: Virtual Beamline: a set of utilities and functions allowing to simulate
 # operation of an SR Beamline.
@@ -20,7 +19,6 @@
 # v 0.02
 #############################################################################
 
-from __future__ import print_function #Python 2.7 compatibility
 from srwpy.srwl_bl import *
 #import time
 

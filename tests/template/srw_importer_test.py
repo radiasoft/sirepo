@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """PyTest for :mod:`sirepo.template.srw_importer`
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
@@ -55,11 +54,11 @@ def _t(tests):
 
         with pkio.save_chdir(pkunit.work_dir()):
             for b in sorted(tests.keys()):
-                base_py = "{}.py".format(tests[b][0])
+                base_py = f"{tests[b][0]}.py"
                 code = pkio.read_text(pkunit.data_dir().join(base_py))
                 actual = import_python(
                     code,
-                    user_filename=r"c:\anything\{}.anysuffix".format(tests[b][0]),
+                    user_filename=fr"c:\anything\{tests[b][0]}.anysuffix",
                     arguments=tests[b][1],
                     qcall=qcall,
                 )

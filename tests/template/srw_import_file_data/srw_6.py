@@ -40,7 +40,7 @@ def set_optics(v=None):
             # M1A: mirror 27.2m
             mirror_file = v.op_M1A_hfn
             assert os.path.isfile(mirror_file), \
-                'Missing input file {}, required by M1A beamline element'.format(mirror_file)
+                f'Missing input file {mirror_file}, required by M1A beamline element'
             el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
                 srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_M1A_dim,
@@ -63,7 +63,7 @@ def set_optics(v=None):
             # M2A_VDM: mirror 40.4m
             mirror_file = v.op_M2A_VDM_hfn
             assert os.path.isfile(mirror_file), \
-                'Missing input file {}, required by M2A_VDM beamline element'.format(mirror_file)
+                f'Missing input file {mirror_file}, required by M2A_VDM beamline element'
             el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
                 srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_M2A_VDM_dim,

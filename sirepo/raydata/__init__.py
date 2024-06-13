@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Raydata
 
 :copyright: Copyright (c) 2016-2023 RadiaSoft LLC.  All Rights Reserved.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Database upgrade management
 
 :copyright: Copyright (c) 2021-2023 RadiaSoft LLC.  All Rights Reserved.
@@ -71,7 +70,7 @@ def _20231120_deploy_flash_update(qcall):
             sirepo.sim_data.audit_proprietary_lib_files(
                 qcall=qcall,
                 force=True,
-                sim_types=set(("flash",)),
+                sim_types={"flash"},
             )
 
 

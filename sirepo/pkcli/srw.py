@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Wrapper to run SRW from the command line.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
@@ -80,7 +79,7 @@ def create_predefined(out_dir=None):
         ),
         filename=n,
     )
-    return "Created {}".format(n)
+    return f"Created {n}"
 
 
 def python_to_json(run_dir=".", in_py="in.py", out_json="out.json"):
@@ -97,7 +96,7 @@ def python_to_json(run_dir=".", in_py="in.py", out_json="out.json"):
         out = srw_importer.python_to_json(in_py)
         with open(out_json, "w") as f:
             f.write(out)
-    return "Created: {}".format(out_json)
+    return f"Created: {out_json}"
 
 
 def run(cfg_dir):

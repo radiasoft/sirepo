@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """TODO(e-carlin): Doc
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
@@ -99,7 +97,7 @@ class SbatchDriver(job_driver.DriverBase):
         cls._KNOWN_HOSTS = (
             cls.cfg.host_key
             if cls.cfg.host in cls.cfg.host_key
-            else "{} {}".format(cls.cfg.host, cls.cfg.host_key)
+            else f"{cls.cfg.host} {cls.cfg.host_key}"
         ).encode("ascii")
         return cls
 

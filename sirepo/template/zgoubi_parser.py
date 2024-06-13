@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """zgoubi input file parser.
 
 l:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 import math
@@ -91,18 +89,18 @@ def tosca_file_count(el):
         return int(math.floor((int(el.IZ) + 1) / 2))
     if el.magnetType == "3d-mf-1v":
         return int(el.IZ)
-    assert False, "unhandled magnetType: {}".format(el.magnetType)
+    assert False, f"unhandled magnetType: {el.magnetType}"
 
 
 def _add_command(command, elements, unhandled_elements):
     command_type = command[0][0]
     if command_type.lower() in _IGNORE_ELEMENTS:
         return
-    method = "_zgoubi_{}".format(command_type).lower()
+    method = f"_zgoubi_{command_type}".lower()
     if method not in globals():
         unhandled_elements[command_type] = True
         # replace the element with a zero length drift
-        command = [["DRIFT", "DUMMY {}".format(command_type)], ["0"]]
+        command = [["DRIFT", f"DUMMY {command_type}"], ["0"]]
         method = "_zgoubi_drift"
     el = globals()[method](command)
     if el:
@@ -127,7 +125,7 @@ def _parse_command_header(command):
             del res[f]
     if "label2" in res:
         if "name" in res:
-            res.name = "{} {}".format(res.name, res.label2)
+            res.name = f"{res.name} {res.label2}"
         else:
             res.name = res.label2
         del res["label2"]
@@ -175,7 +173,7 @@ def _parse_tosca_mesh_and_magnet_type(res):
     elif mod in (1, 15, 25, 22):
         res.magnetType += "-mf"
     else:
-        assert False, "unsupported TOSCA, MOD: {}".format(res.mod)
+        assert False, f"unsupported TOSCA, MOD: {res.mod}"
     if mod == 3:
         res.magnetType += "-ags"
         if mod2 == 1:
@@ -235,7 +233,7 @@ def _strip_command_index(line):
 
 def _zgoubi_autoref(command):
     i = command[1][0]
-    assert i == "4", "{}: only AUTOREF 4 is supported for now".format(i)
+    assert i == "4", f"{i}: only AUTOREF 4 is supported for now"
     return _parse_command(
         command,
         [
@@ -305,7 +303,7 @@ def _zgoubi_cavite(command):
                 "V sig_s IOP",
             ],
         )
-    assert False, "unsupported CAVITE IOPT: {}".format(iopt)
+    assert False, f"unsupported CAVITE IOPT: {iopt}"
 
 
 def _zgoubi_changref(command):
@@ -358,7 +356,7 @@ def _zgoubi_collima(command):
             res.C3 = ch
             res.C4 = cv
         return res
-    assert False, "unsupported COLLIMA IFORM: {}".format(iform)
+    assert False, f"unsupported COLLIMA IFORM: {iform}"
 
 
 def _zgoubi_dipole(command):
@@ -530,7 +528,7 @@ def _zgoubi_objet(command):
 
 def _zgoubi_mcobjet(command):
     kobj = command[2][0]
-    assert kobj == "3", "{}: only MCOBJET 3 is supported for now".format(kobj)
+    assert kobj == "3", f"{kobj}: only MCOBJET 3 is supported for now"
     res = _parse_command(
         command,
         [
@@ -617,17 +615,17 @@ def _zgoubi_scaling(command):
     ]
     for idx in range(1, int(nfam) + 1):
         pattern.append(
-            "NAMEF{} *LBL{} *LBL{}_2 *LBL{}_3 *LBL{}_4".format(idx, idx, idx, idx, idx)
+            f"NAMEF{idx} *LBL{idx} *LBL{idx}_2 *LBL{idx}_3 *LBL{idx}_4"
         )
-        pattern.append("ignore".format(idx))
-        pattern.append("SCL{}".format(idx))
-        pattern.append("ignore".format(idx))
+        pattern.append(f"ignore")
+        pattern.append(f"SCL{idx}")
+        pattern.append(f"ignore")
     res = _parse_command(command, pattern)
     for idx in range(1, int(nfam) + 1):
         for lbl in range(2, 5):
-            l = "LBL{}_{}".format(idx, lbl)
+            l = f"LBL{idx}_{lbl}"
             if l in res:
-                res["LBL{}".format(idx)] += " {}".format(res[l])
+                res[f"LBL{idx}"] += f" {res[l]}"
                 del res[l]
     _remove_fields(res, ["ignore"])
     return res
@@ -663,7 +661,7 @@ def _zgoubi_spinr(command):
             "phi B B_0 C_0 C_1 C_2 C_3",
         ]
     else:
-        assert False, "unknown SPINR IOPT: {}".format(iopt)
+        assert False, f"unknown SPINR IOPT: {iopt}"
     return _parse_command(command, format)
 
 

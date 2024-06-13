@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Wrapper to run JSPEC from the command line.
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pksubprocess
 from pykern.pkdebug import pkdp, pkdc, pkdlog
@@ -93,7 +91,7 @@ def _extract_twiss_report(data):
             {
                 "points": _float_list(values[report[f]]),
                 "label": (
-                    "{} [{}]".format(report[f], _FIELD_UNITS[report[f]])
+                    f"{report[f]} [{_FIELD_UNITS[report[f]]}]"
                     if report[f] in _FIELD_UNITS
                     else report[f]
                 ),

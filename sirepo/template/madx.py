@@ -390,7 +390,7 @@ def prepare_sequential_output_file(run_dir, data):
             f.remove()
             try:
                 save_sequential_report_data(data, run_dir)
-            except IOError:
+            except OSError:
                 # the output file isn't readable
                 pass
 
@@ -468,7 +468,7 @@ def to_string(value):
 def uniquify_elements(data):
     def _do_unique(elem_ids):
         element_map = PKDict({e._id: e for e in data.models.elements})
-        names = set([e.name for e in data.models.elements])
+        names = {e.name for e in data.models.elements}
         max_id = LatticeUtil.max_id(data)
         res = []
         for el_id in elem_ids:
@@ -824,7 +824,7 @@ def _extract_report_twissReport(data, run_dir):
 
 def field_label(field):
     if field in _FIELD_UNITS:
-        return "{} [{}]".format(field, _FIELD_UNITS[field])
+        return f"{field} [{_FIELD_UNITS[field]}]"
     return field
 
 
@@ -843,7 +843,7 @@ def file_info(filename, run_dir, file_id):
         info = madx_parser.parse_tfs_page_info(path)
         count = len(info)
     return PKDict(
-        modelKey="elementAnimation{}".format(file_id),
+        modelKey=f"elementAnimation{file_id}",
         filename=filename,
         isHistogram=not is_parameter_report_file(filename),
         plottableColumns=plottable,
@@ -948,7 +948,7 @@ def _generate_lattice(filename_map, util):
 def _generate_variable(name, variables, visited):
     res = ""
     if name not in visited:
-        res += "REAL {} = {};\n".format(name, _format_rpn_value(variables[name]))
+        res += f"REAL {name} = {_format_rpn_value(variables[name])};\n"
         visited[name] = True
     return res
 

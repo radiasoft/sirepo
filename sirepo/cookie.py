@@ -220,7 +220,7 @@ class _Cookie(sirepo.quest.Attr):
 def _cfg_http_name(value):
     assert re.search(
         r"^\w{1,32}$", value
-    ), "must be 1-32 word characters; http_name={}".format(value)
+    ), f"must be 1-32 word characters; http_name={value}"
     return value
 
 

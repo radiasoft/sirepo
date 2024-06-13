@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test background processes
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -157,11 +156,11 @@ def test_warppba(fc):
         "animation",
         PKDict(
             particleAnimation=PKDict(
-                expect_title=lambda i: r"iteration {}\)".format((i + 1) * 50),
+                expect_title=lambda i: fr"iteration {(i + 1) * 50}\)",
                 expect_y_range="-5.7.*e-06, 5.7.*e-06, 219",
             ),
             fieldAnimation=PKDict(
-                expect_title=lambda i: r"iteration {}\)".format((i + 1) * 50),
+                expect_title=lambda i: fr"iteration {(i + 1) * 50}\)",
                 expect_y_range="-5.*e-06, 5.*e-06, 18",
             ),
         ),
@@ -212,7 +211,7 @@ def test_zgoubi(fc):
         PKDict(
             bunchAnimation=PKDict(
                 expect_title=lambda i: (
-                    "Pass {}".format(i) if i else "Initial Distribution"
+                    f"Pass {i}" if i else "Initial Distribution"
                 ),
                 expect_y_range=lambda i: [
                     "-0.0462.*, -0.0281.*, 200",

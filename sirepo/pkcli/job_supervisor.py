@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Runs job supervisor tornado server
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -189,11 +188,11 @@ class _DataFileReq(tornado.web.RequestHandler):
     async def put(self, path):
         # should be exactly two levels
         (d, f) = path.split("/")
-        assert sirepo.job.UNIQUE_KEY_RE.search(d), "invalid directory={}".format(d)
+        assert sirepo.job.UNIQUE_KEY_RE.search(d), f"invalid directory={d}"
         d = sirepo.job.DATA_FILE_ROOT.join(d)
-        assert d.check(dir=True), "directory does not exist={}".format(d)
+        assert d.check(dir=True), f"directory does not exist={d}"
         # (tornado ensures no '..' and '.'), but a bit of sanity doesn't hurt
-        assert not f.startswith("."), "invalid file={}".format(f)
+        assert not f.startswith("."), f"invalid file={f}"
         d.join(f).write_binary(self.request.body)
 
 

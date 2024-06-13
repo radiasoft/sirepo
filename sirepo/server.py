@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Primary sirepo.quest.API's
 
 :copyright: Copyright (c) 2015-2023 RadiaSoft LLC.  All Rights Reserved.
@@ -404,7 +403,7 @@ class API(sirepo.quest.API):
             else:
                 u = ["/"]
             _ROBOTS_TXT = "".join(
-                ["User-agent: *\n"] + ["Disallow: {}\n".format(x) for x in u],
+                ["User-agent: *\n"] + [f"Disallow: {x}\n" for x in u],
             )
         return self.reply(content=_ROBOTS_TXT, content_type="text/plain")
 
@@ -707,7 +706,7 @@ def _simulations_using_file(req, ignore_sim_id=None):
 
 def _source_cache_key():
     if _cfg.enable_source_cache_key:
-        return "?{}".format(simulation_db.app_version())
+        return f"?{simulation_db.app_version()}"
     return ""
 
 

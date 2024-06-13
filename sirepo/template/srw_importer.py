@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 This script is to parse SRW Python scripts and to produce JSON-file with the parsed data.
 It's highly dependent on the external Sirepo/SRW libraries and is written to allow parsing of the .py files using
@@ -90,13 +89,13 @@ class SRWParser:
             float(dm["undulator"]["period"]) / 1000.0,
         )
         for c in "horizontal", "vertical":
-            n = "{}DeflectingParameter".format(c)
+            n = f"{c}DeflectingParameter"
             u = dm.undulator
             u[n] = sirepo.template.srw.process_undulator_definition(
                 pkcollections.Dict(
                     undulator_definition="B",
                     undulator_parameter=None,
-                    amplitude=float(u["{}Amplitude".format(c)]),
+                    amplitude=float(u[f"{c}Amplitude"]),
                     undulator_period=float(u.period) / 1000.0,
                 ),
             ).undulator_parameter
@@ -106,7 +105,7 @@ class SRWParser:
         )
 
 
-class Struct(object):
+class Struct:
     def __init__(self, **entries):
         self.__dict__.update(entries)
 
@@ -167,9 +166,9 @@ def import_python(code, user_filename=None, arguments=None, qcall=None):
         m = m[:50]
         raise ValueError(
             (
-                "Error on line {}: {}".format(lineno, m)
+                f"Error on line {lineno}: {m}"
                 if lineno
-                else "Error: {}".format(m)
+                else f"Error: {m}"
             ),
         )
 
@@ -386,7 +385,7 @@ def _beamline_element(obj, idx, title, elem_type, position):
         pass
 
     else:
-        raise ValueError("Element type <{}> does not exist.".format(elem_type))
+        raise ValueError(f"Element type <{elem_type}> does not exist.")
 
     return data
 
@@ -518,7 +517,7 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
             title = key + str(names[key])
 
             if not elem_type:
-                raise ValueError("Unhandled element named: {}.".format(name))
+                raise ValueError(f"Unhandled element named: {name}.")
 
             positions.append(
                 pkcollections.Dict(
@@ -694,7 +693,7 @@ def _parsed_dict(v, op):
         source_type = "u"
         if v.ebm_nms == "Day1":
             v.ebm_nms = "Day 1"
-        full_beam_name = "{}{}".format(v.ebm_nm, v.ebm_nms)
+        full_beam_name = f"{v.ebm_nm}{v.ebm_nms}"
         if not full_beam_name:
             full_beam_name = "Electron Beam"
         electronBeam = pkcollections.Dict()
@@ -947,7 +946,7 @@ def _parsed_dict(v, op):
         if beamline_elements[i]["type"] == "watch":
             idx = beamline_elements[i]["id"]
             python_dict["models"][
-                "watchpointReport{}".format(idx)
+                f"watchpointReport{idx}"
             ] = initialIntensityReport
 
     return python_dict
@@ -976,7 +975,7 @@ def _patch_mirror_profile(code, mirror_file="mirror_1d.dat", qcall=None):
                 full_var_name = code_list[i].strip().split("=")[0].strip()
                 code_list[i] = code_list[i].replace(
                     full_var_name,
-                    "{} = {}  # ".format(full_var_name, final_mirror_file),
+                    f"{full_var_name} = {final_mirror_file}  # ",
                 )
     code = "\n".join(code_list)
     return code
@@ -1001,7 +1000,7 @@ def _update_crystals(data, v):
                 crystal_id = 1
 
             try:  # update rotation angle
-                data[i]["rotationAngle"] = getattr(v, "op_DCM_ac{}".format(crystal_id))
+                data[i]["rotationAngle"] = getattr(v, f"op_DCM_ac{crystal_id}")
             except Exception:
                 pass
 

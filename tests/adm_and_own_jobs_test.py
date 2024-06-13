@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test getting own and adm jobs.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """End to end test of running a job.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """elegant simulation data functions
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
@@ -28,7 +27,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                     m.mode = "coordinate"
             cls.update_model_defaults(m, m.type)
         for m in dm.commands:
-            cls.update_model_defaults(m, "command_{}".format(m._type))
+            cls.update_model_defaults(m, f"command_{m._type}")
         cls._organize_example(data)
         from sirepo.template.elegant import OutputFileIterator
 
@@ -47,7 +46,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if "bunchReport" in analysis_model:
             return "bunchReport"
-        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
+        return super()._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _lib_file_basenames(cls, data):

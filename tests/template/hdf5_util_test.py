@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test for :mod:`sirepo.template.hdf5_util`
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.

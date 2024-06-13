@@ -265,7 +265,7 @@ def sim_frame(frame_args):
     if "Field" in frame_args.frameReport:
         return _plot_field_dist(sim_type, frame_args)
     raise AssertionError(
-        "unhandled sim frame report: {}".format(frame_args.frameReport)
+        f"unhandled sim frame report: {frame_args.frameReport}"
     )
 
 
@@ -423,7 +423,7 @@ def _plot_beam(sim_type, frame_args):
         )
         return _template_for_sim_type(sim_type).sim_frame_parameterAnimation(frame_args)
 
-    raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
+    raise AssertionError(f"unhandled sim_type for sim_frame(): {sim_type}")
 
 
 def _plot_field_dist(sim_type, frame_args):
@@ -461,7 +461,7 @@ def _plot_phase(sim_type, frame_args):
                 title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
             )
         )
-    raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
+    raise AssertionError(f"unhandled sim_type for sim_frame(): {sim_type}")
 
 
 def _sim_dir(run_dir, sim_count):

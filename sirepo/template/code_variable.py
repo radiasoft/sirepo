@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Code variables.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template import lattice
@@ -200,7 +198,7 @@ class CodeVar:
                 assert not re.search(r'^[^\'"]*$', n.s), "{}: invalid string".format(
                     n.s
                 )
-                return ['"{}"'.format(n.s)]
+                return [f'"{n.s}"']
             elif isinstance(n, ast.Name):
                 return [str(n.id)]
             elif isinstance(n, ast.Num):
@@ -222,12 +220,12 @@ class CodeVar:
                 return _do(n.test) + ["?"] + _do(n.body) + [":"] + _do(n.orelse) + ["$"]
             # convert an attribute-like value, ex. l.MQ, into a string "l.MQ"
             elif isinstance(n, ast.Attribute):
-                return ["{}.{}".format(_do(n.value)[0], n.attr)]
+                return [f"{_do(n.value)[0]}.{n.attr}"]
             else:
                 x = CodeVar._INFIX_TO_RPN.get(type(n), None)
                 if x:
                     return [x]
-            raise ValueError("invalid node: {}".format(ast.dump(n)))
+            raise ValueError(f"invalid node: {ast.dump(n)}")
 
         tree = ast.parse(expr, filename="eval", mode="eval")
         assert isinstance(tree, ast.Expression), "{}: must be an expression".format(
@@ -312,10 +310,10 @@ class CodeVarDeleteIterator(lattice.ModelIterator):
             for v in str(expr).split(" "):
                 if v == self.name:
                     if lattice.LatticeUtil.is_command(model):
-                        self.result.append("{}.{}".format(model._type, field))
+                        self.result.append(f"{model._type}.{field}")
                     else:
                         self.result.append(
-                            "{} {}.{}".format(model.type, model.name, field),
+                            f"{model.type} {model.name}.{field}",
                         )
 
 
@@ -377,7 +375,7 @@ class PurePythonEval:
                         reversed([stack.pop() for _ in range(_get_arg_count(op))])
                     )
                     if v == "chs":
-                        stack.append("-{}".format(args[0]))
+                        stack.append(f"-{args[0]}")
                     elif re.search(r"\w", v):
                         stack.append(
                             "{}({})".format(
@@ -385,7 +383,7 @@ class PurePythonEval:
                             )
                         )
                     else:
-                        stack.append("({} {} {})".format(args[0], v, args[1]))
+                        stack.append(f"({args[0]} {v} {args[1]})")
                 except IndexError:
                     # not parseable, return original expression
                     return expr
@@ -443,7 +441,7 @@ class PurePythonEval:
                 try:
                     stack.append(float(v))
                 except ValueError:
-                    return None, "unknown token: {}".format(v)
+                    return None, f"unknown token: {v}"
         return stack[-1], None
 
 

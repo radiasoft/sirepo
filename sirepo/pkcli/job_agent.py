@@ -126,7 +126,7 @@ def start_sbatch():
                     text=True,
                 ).check_returncode()
             except subprocess.CalledProcessError as e:
-                if "({}) - No such process".format(pid_file.pid) not in e.stderr:
+                if f"({pid_file.pid}) - No such process" not in e.stderr:
                     pkdlog(
                         "cmd={cmd} returncode={returncode} stderr={stderr}", **vars(e)
                     )
@@ -957,7 +957,7 @@ class _Stream(PKDict):
             while True:
                 await self._read_stream()
         except tornado.iostream.StreamClosedError as e:
-            assert e.real_error is None, "real_error={}".format(e.real_error)
+            assert e.real_error is None, f"real_error={e.real_error}"
         finally:
             self._stream.close()
             self.stream_closed.set()

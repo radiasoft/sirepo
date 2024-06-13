@@ -96,7 +96,7 @@ def pytest_collection_modifyitems(session, config, items):
             if m:
                 importlib.import_module(m)
         except Exception:
-            import_fail[c] = pytest.mark.skip(reason="unable to import={}".format(m))
+            import_fail[c] = pytest.mark.skip(reason=f"unable to import={m}")
             i.add_marker(import_fail[c])
             continue
         codes.add(c)

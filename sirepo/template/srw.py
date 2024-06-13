@@ -418,7 +418,7 @@ def extract_report_data(sim_in):
     if out.units[1] == "m":
         out.units[1] = "[m]"
     else:
-        out.units[1] = "({})".format(out.units[1])
+        out.units[1] = f"({out.units[1]})"
     data, _, allrange, _, _ = srwpy.uti_plot_com.file_load(out.filename)
     res = PKDict(
         title=out.title,
@@ -1000,7 +1000,7 @@ def validate_file(file_type, path):
     import srwpy.srwl_uti_smp
 
     if not _SIM_DATA.srw_is_valid_file_type(file_type, path):
-        return "invalid file type: {}".format(path.ext)
+        return f"invalid file type: {path.ext}"
     if file_type == "mirror":
         # mirror file
         try:
@@ -1016,7 +1016,7 @@ def validate_file(file_type, path):
             if count == 0:
                 return "no data rows found in file"
         except ValueError as e:
-            return "invalid file format: {}".format(e)
+            return f"invalid file format: {e}"
     elif file_type == "undulatorTable":
         # undulator magnetic data file
         try:
@@ -1031,7 +1031,7 @@ def validate_file(file_type, path):
             prefix=path.purebasename,
         )
     if not _SIM_DATA.srw_is_valid_file(file_type, path):
-        return "Column count is incorrect for file type: {}".format(file_type)
+        return f"Column count is incorrect for file type: {file_type}"
     return None
 
 
@@ -1070,7 +1070,7 @@ def validate_magnet_data_file(zf):
         if f.endswith("/"):
             continue
         if not template_common.file_extension_ok(f, white_list=["txt", "dat"]):
-            return False, "File {} has forbidden type".format(f)
+            return False, f"File {f} has forbidden type"
 
     file_name_column = 3
 
@@ -1087,7 +1087,7 @@ def validate_magnet_data_file(zf):
         if not cols:
             continue
         if len(cols) <= file_name_column:
-            return False, "Index file {} has bad format".format(index_file_name(zf))
+            return False, f"Index file {index_file_name(zf)} has bad format"
         file_names_in_index.append(cols[file_name_column].decode())
 
     # Compare index and zip contents
@@ -1229,7 +1229,7 @@ def _compute_material_characteristics(model, photon_energy, prefix=""):
         kwargs.formula = model[fields_with_prefix.material]
     elif model.method == "file":
         kwargs.precise = True
-        kwargs.data_file = "{}_delta.dat".format(model[fields_with_prefix.material])
+        kwargs.data_file = f"{model[fields_with_prefix.material]}_delta.dat"
     else:
         kwargs.calc_delta = True
         kwargs.formula = model[fields_with_prefix.material]
@@ -1240,7 +1240,7 @@ def _compute_material_characteristics(model, photon_energy, prefix=""):
     kwargs.characteristic = "atten"
     if model.method == "file":
         kwargs.precise = True
-        kwargs.data_file = "{}_atten.dat".format(model[fields_with_prefix.material])
+        kwargs.data_file = f"{model[fields_with_prefix.material]}_atten.dat"
     if model.method == "calculation":
         # The method 'calculation' in bnlcrl library is not supported yet for attenuation length calculation.
         pass
@@ -1619,17 +1619,17 @@ def _extract_brilliance_report(model, filename):
         m = re.search(r"^f(\d+)", f)
         if m:
             x_points.append((np.array(data[f]["data"]) * scale_adjustment).tolist())
-            points.append(data["e{}".format(m.group(1))]["data"])
+            points.append(data[f"e{m.group(1)}"]["data"])
     title = _enum_text("BrightnessComponent", model, "brightnessComponent")
     if model.brightnessComponent == "k-tuning":
         if model.initialHarmonic == model.finalHarmonic:
-            title += ", Harmonic {}".format(model.initialHarmonic)
+            title += f", Harmonic {model.initialHarmonic}"
         else:
             title += ", Harmonic {} - {}".format(
                 model.initialHarmonic, model.finalHarmonic
             )
     else:
-        title += ", Harmonic {}".format(model.harmonic)
+        title += f", Harmonic {model.harmonic}"
 
     return PKDict(
         title=title,
@@ -1785,7 +1785,7 @@ def _generate_beamline_optics(report, data, qcall=None):
             if size != 0:
                 # add a drift
                 drift_name = _safe_beamline_item_name(
-                    "{}_{}".format(prev.name, name), res.names
+                    f"{prev.name}_{name}", res.names
                 )
                 max_name_size = max(max_name_size, len(drift_name))
                 res.names.append(drift_name)
@@ -1989,7 +1989,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
         else:
             content.append("v.si = True")
             content.append("op = None")
-        content.append("v.ws_fne = '{}'".format(_wavefront_pickle_filename(0)))
+        content.append(f"v.ws_fne = '{_wavefront_pickle_filename(0)}'")
         prev_wavefront = None
         names = []
         for n in beamline_info.names:
@@ -2000,10 +2000,10 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                 content.append("names = ['" + "','".join(names) + "']")
                 names = []
                 if prev_wavefront:
-                    content.append("v.ws_fnei = '{}'".format(prev_wavefront))
+                    content.append(f"v.ws_fnei = '{prev_wavefront}'")
                 prev_wavefront = _wavefront_pickle_filename(beamline_info.watches[n])
-                content.append("v.ws_fnep = '{}'".format(prev_wavefront))
-                content.append("op = set_optics(v, names, {})".format(is_last_watch))
+                content.append(f"v.ws_fnep = '{prev_wavefront}'")
+                content.append(f"op = set_optics(v, names, {is_last_watch})")
                 if not is_last_watch:
                     content.append(
                         "srwpy.srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)"
@@ -2020,7 +2020,7 @@ def _generate_srw_main(data, plot_reports, beamline_info):
             "names = [{}]".format(
                 ",".join(
                     [
-                        "'{}'".format(name)
+                        f"'{name}'"
                         for name in beamline_info.names
                         if name not in beamline_info.exclude
                     ]
@@ -2187,9 +2187,9 @@ def _remap_3d(info, allrange, out, report):
     ar2d, x_range, y_range = _reshape_3d(np.array(info.points), allrange, report)
     rotate_angle = report.get("rotateAngle", 0)
     if rotate_angle and info.title != "Power Density":
-        info.subtitle = info.subtitle + " Image Rotate {}^0".format(rotate_angle)
+        info.subtitle = info.subtitle + f" Image Rotate {rotate_angle}^0"
     if out.units[2]:
-        out.labels[2] = "{} [{}]".format(out.labels[2], out.units[2])
+        out.labels[2] = f"{out.labels[2]} [{out.units[2]}]"
     if _is_true(report, "useIntensityLimits"):
         z_range = [report.minIntensityLimit, report.maxIntensityLimit]
     else:
@@ -2363,7 +2363,7 @@ def _safe_beamline_item_name(name, names):
     idx = 2
     current = name
     while current in names:
-        current = "{}{}".format(name, idx)
+        current = f"{name}{idx}"
         idx += 1
     return current
 
@@ -2410,7 +2410,7 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     v.beamlineFirstElementPosition = _get_first_element_position(report, data)
     v[report] = 1
     for k in _OUTPUT_FOR_MODEL:
-        v["{}Filename".format(k)] = _OUTPUT_FOR_MODEL[k].filename
+        v[f"{k}Filename"] = _OUTPUT_FOR_MODEL[k].filename
     v.setupMagneticMeasurementFiles = (
         plot_reports or is_for_rsopt
     ) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
@@ -2667,14 +2667,14 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
 
         assert path_is_sub_path(
             f, target_dir
-        ), "Cannot extract {} above target directory".format(f)
+        ), f"Cannot extract {f} above target directory"
         assert s <= max_file_size, "{} too large ({} > {})".format(
             f, str(s), str(max_file_size)
         )
-        assert file_attrs_ok(attrs), "{} not a normal file or is executable".format(f)
+        assert file_attrs_ok(attrs), f"{f} not a normal file or is executable"
         assert not file_exists_in_dir(
             f, target_dir
-        ), "Cannot overwrite file {} in target directory {}".format(f, target_dir)
+        ), f"Cannot overwrite file {f} in target directory {target_dir}"
 
     for validator in args:
         res, err_string = validator(zip_file)

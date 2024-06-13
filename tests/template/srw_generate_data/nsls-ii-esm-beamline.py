@@ -24,7 +24,7 @@ def set_optics(v, names=None, want_final_propagation=True):
             # M1: mirror 34.366m
             mirror_file = v.op_M1_hfn
             assert os.path.isfile(mirror_file), \
-                'Missing input file {}, required by M1 beamline element'.format(mirror_file)
+                f'Missing input file {mirror_file}, required by M1 beamline element'
             el.append(srwpy.srwlib.srwl_opt_setup_surf_height_1d(
                 srwpy.srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_M1_dim,

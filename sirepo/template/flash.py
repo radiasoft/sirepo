@@ -312,7 +312,7 @@ def sim_frame_varAnimation(frame_args):
             _time_and_units(ds.parameters["time"]),
             frame_args.frameIndex + 1,
         ),
-        title="{}".format(f),
+        title=f"{f}",
         x_label=f"{l[g][frame_args.axis].x} [m]",
         x_range=[ds.parameters["xmin"] / 100, ds.parameters["xmax"] / 100, d.shape[1]],
         y_label=f"{l[g][frame_args.axis].y} [m]",
@@ -497,7 +497,7 @@ def _generate_par_file(data):
         if m not in flash_schema.model:
             continue
         schema = flash_schema.model[m]
-        heading = "# {}\n".format(flash_schema.view[m].title)
+        heading = f"# {flash_schema.view[m].title}\n"
         has_heading = False
         for f in sorted(data.models[m]):
             if f not in schema:
@@ -517,7 +517,7 @@ def _generate_par_file(data):
                     res += heading
                 if schema[f][1] == "Boolean":
                     v = _format_boolean(v)
-                res += '{} = "{}"\n'.format(f, v)
+                res += f'{f} = "{v}"\n'
         if has_heading:
             res += "\n"
     return res
@@ -563,7 +563,7 @@ def _grid_evolution_columns(run_dir):
 
 
 def _h5_file_list(run_dir):
-    return pkio.sorted_glob(run_dir.join("{}*".format(_PLOT_FILE_PREFIX)))
+    return pkio.sorted_glob(run_dir.join(f"{_PLOT_FILE_PREFIX}*"))
 
 
 def _init_yt():
