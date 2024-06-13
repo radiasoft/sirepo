@@ -13,7 +13,8 @@ _err() {
 
 _js() {
     local jsfiles=( sirepo/package_data/static/js/*.js )
-    _no_prints '\s(srdbg|console.log|console.trace)\(' "${jsfiles[@]}"
+    _no_prints "${jsfiles[@]}"
+    _no_smart_quotes "${jsfiles[@]}"
     jshint --config=etc/jshint.conf "${jsfiles[@]}"
     if [[ ! ${sirepo_test_no_karma:-} ]]; then
         declare r=$(karma start etc/karma-conf.js 2>&1 || true)
@@ -50,7 +51,7 @@ _no_h5py() {
     fi
 }
 
-_no_prints() {
+_no_pattern() {
     local pat=$1
     shift
     local f=( $@ )
@@ -58,6 +59,14 @@ _no_prints() {
     if [[ $r ]]; then
         _err "$pat found in: $r"
     fi
+}
+
+_no_prints() {
+    _no_pattern '\s(srdbg|console.log|console.trace)\(' $@
+}
+
+_no_smart_quotes() {
+    _no_pattern '(“|”|‘|’)' $@
 }
 
 _main "$@"
