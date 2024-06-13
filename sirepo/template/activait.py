@@ -615,14 +615,14 @@ def _build_model_py(v):
     _name_layers(net, "input_args", first_level=True)
 
     return (
-        f"""
-from keras.models import Model, Sequential
+        f"""from keras.models import Model, Sequential
 from keras.layers import Input, Dense{_import_layers(v)}
+
 input_args = Input(shape=input_shape)
 {_build_layers(net)}"""
         + _final_layer(v)
         + f"""\nmodel = Model(input_args, x)
-model.save('{_OUTPUT_FILE.neuralNetLayer}')
+model.save("{_OUTPUT_FILE.neuralNetLayer}")
 """
     )
 

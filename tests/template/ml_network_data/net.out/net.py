@@ -1,5 +1,6 @@
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, Add
+
 input_args = Input(shape=input_shape)
 x = Dense(10, activation="relu")(input_args)
 x_2 = Dense(10, activation="relu")(x)
@@ -11,4 +12,4 @@ x = Add()([x_1, x_5])
 
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
-model.save('unweighted.h5')
+model.save("unweighted.h5")

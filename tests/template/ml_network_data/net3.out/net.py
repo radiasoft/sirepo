@@ -1,5 +1,6 @@
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, Activation, Conv2D, Add
+
 input_args = Input(shape=input_shape)
 x = Dense(10, activation="relu")(input_args)
 x_1 = Activation("relu")(x)
@@ -46,4 +47,4 @@ x = Conv2D(10,
 
 x = Dense(output_shape, activation="linear")(x)
 model = Model(input_args, x)
-model.save('unweighted.h5')
+model.save("unweighted.h5")
