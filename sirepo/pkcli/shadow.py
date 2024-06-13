@@ -113,6 +113,7 @@ def _run_beam_statistics(cfg_dir, data):
         x_label="Longitudinal Position [m]",
         x_points=x,
         plots=plots,
+        isPlotClass=True,
         y_range=template_common.compute_plot_color_and_range(plots),
     )
 
@@ -204,6 +205,7 @@ def _run_shadow(cfg_dir, data):
             # TODO(pjm): include offset range for client
             res["x_range"][0] = 0
             res["x_range"][1] = dist
+    res["isPlotClass"] = True
     return res
 
 
