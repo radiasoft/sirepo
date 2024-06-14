@@ -448,6 +448,7 @@
         "simulationSettings": {
             "title": "Simulation Settings",
             "basic": [
+                "simulation.visualizationBeamlineId",
                 "Dt",
                 "Ntstep",
                 "Nemission",
