@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Test role management operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 import os
 import pytest
 
@@ -56,5 +56,10 @@ def test_flash_list_role_by_email(auth_fc):
     pkunit.data_dir().join("db").copy(srdb.root())
     auth_fc.sr_email_login(e, sim_type="flash")
     roles.add(e, r)
-    pkunit.pkok(r in roles.list(e))
-    pkunit.pkok(r in roles.list(auth_fc.sr_uid))
+    pkunit.pkok(r in roles.list(e), "expected user {} to have role {}", e, r)
+    pkunit.pkok(
+        r in roles.list(auth_fc.sr_uid),
+        "expected user {} to have role {}",
+        auth_fc.sr_uid,
+        r,
+    )
