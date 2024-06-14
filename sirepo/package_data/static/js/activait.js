@@ -1206,48 +1206,6 @@ SIREPO.app.directive('imageViewer', function(appState, plotting) {
     };
 });
 
-SIREPO.app.directive('imagePreviewPanel', function(appState, requestSender) { // TODO (gurhar1133): unused?
-    return {
-        restrict: 'A',
-        scope: {
-            method: '@',
-            comparisonId: '=',
-        },
-        template: `
-        <div class="container-fluid">
-          <div data-ng-if="isLoading" data-sim-state-progress-bar="" data-sim-state="simState"></div>
-          <div data-ng-if="imageInfo">
-              <div data-image-preview="imageInfo"></div>
-          </div>
-        </div>
-        `,
-        controller: function($scope, $element) {
-            $scope.isLoading = true;
-            srdbg("$scope.method for imagePreviewPanel", $scope.method);
-            const f = $scope.method == 'imagePreview' ? requestSender.sendStatefulCompute : requestSender.sendAnalysisJob;
-            f(
-                appState,
-                response => {
-                    $scope.isLoading = false;
-                    response.method = $scope.method;
-                    $scope.imageInfo = response;
-                },
-                {
-                    method: 'sample_images',
-                    modelName: 'animation',
-                    args: {
-                        method: $scope.method,
-                        imageFilename: 'sample',
-                        dataFile: appState.applicationState().dataFile,
-                        columnInfo: appState.applicationState().columnInfo,
-                        otherSimId: $scope.comparisonId ? $scope.comparisonId : null,
-                    }
-                }
-            );
-        }
-    };
-});
-
 SIREPO.app.directive('imagePreview', function(appState, requestSender, panelState) {
     return {
         restrict: 'A',
@@ -1295,7 +1253,6 @@ SIREPO.app.directive('imagePreview', function(appState, requestSender, panelStat
           </div>
         `,
         controller: function($scope, $element) {
-            srdbg("imagePreview directive");
             $scope.numPages = 0;
             $scope.imagesPerPage = 3;
             $scope.pageImages = SIREPO.UTILS.indexArray($scope.imagesPerPage);
