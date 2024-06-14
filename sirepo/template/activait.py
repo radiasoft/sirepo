@@ -280,7 +280,6 @@ def sim_frame_dicePlotComparisonAnimation(frame_args):
 
 def _epoch_plot(run_dir):
     d = pandas.read_csv(str(run_dir.join(_OUTPUT_FILE.fitCSVFile)))
-    # TODO (gurhar1133): needs to call parameter_plot?
     return _report_info(
         list(d.index),
         [
@@ -297,22 +296,18 @@ def _epoch_plot(run_dir):
     )
 
 
-
 def sim_frame_bestLossesAnimation(frame_args):
-    res = _image_preview("bestLosses", frame_args.sim_in, frame_args.run_dir)
-    pkdp("\n\n\n bestLosses type(res)={}", type(res))
-    return res
+    return _image_preview("bestLosses", frame_args.sim_in, frame_args.run_dir)
 
 
 def sim_frame_bestLossesComparisonAnimation(frame_args):
-    res = _image_preview(
+    return _image_preview(
         "bestLosses",
         frame_args.sim_in,
         simulation_db.simulation_dir("activait", sid=frame_args.otherSimId).join(
             "animation"
         ),
     )
-    return res
 
 
 def sim_frame_epochAnimation(frame_args):
@@ -885,6 +880,7 @@ def _dice(frame_args, run_dir):
                 label="Counts",
             ),
         ],
+        # TODO (gurhar1133): name other than 'frameReport'?
         PKDict(frameReport=frame_args.frameReport),
         PKDict(
             title="Dice Coefficients",
@@ -978,7 +974,6 @@ def _extract_partition_report(run_dir, sim_in):
         x, y = _histogram_plot(d[name], r)
         c[name] = y
         plots.append(_plot_info(y, name))
-    # TODO (gurhar1133): double check this works
     _write_csv_for_download(
         PKDict(x=x, **c),
         f"partitionColumnReport{idx}.csv",
@@ -1587,7 +1582,6 @@ def _report_info(x, plots, title="", fields=PKDict(), summary_data=PKDict()):
             summaryData=summary_data,
         )
     )
-
     res.update(fields)
     return res
 
