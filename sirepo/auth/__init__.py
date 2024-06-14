@@ -547,7 +547,7 @@ class _Auth(sirepo.quest.Attr):
                 # Force login to this specific method so we can migrate to valid method
                 r = "loginWith"
                 p = PKDict({":method": m})
-                e = "forced {}={} uid={}".format(r, m, u)
+                e = f"forced {r}={m} uid={u}"
         elif s == _STATE_COMPLETE_REGISTRATION:
             if m == METHOD_GUEST:
                 pkdc("guest completeRegistration={}", u)
@@ -557,9 +557,7 @@ class _Auth(sirepo.quest.Attr):
             r = "completeRegistration"
             e = "uid={} needs to complete registration".format(u)
         else:
-            self.qcall.cookie.reset_state(
-                "state={} uid={} invalid, cannot continue".format(s, u)
-            )
+            self.qcall.cookie.reset_state(f"state={s} uid={u} invalid, cannot continue")
             p = PKDict(reload_js=True)
             e = "invalid cookie state={} uid={}".format(s, u)
         pkdc("SRException uid={} route={} params={} method={} error={}", u, r, p, m, e)
