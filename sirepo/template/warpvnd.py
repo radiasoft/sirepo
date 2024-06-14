@@ -189,7 +189,8 @@ def generate_field_report(data, run_dir, args=None):
             "Results could not be calculated.\n\nThe Simulation Grid may"
             " require adjustments to the Grid Points and Channel Width."
         )
-    res = _field_plot(values, axes, grid, _SIM_DATA.warpvnd_is_3d(data))
+    p = "fieldAnimation" if args is None else args.frameReport
+    res = _field_plot(values, axes, grid, _SIM_DATA.warpvnd_is_3d(data), plotName=p)
     res.title = "ϕ Across Whole Domain" + slice_text
     res.global_min = np.min(potential) if vals_equal else None
     res.global_max = np.max(potential) if vals_equal else None
@@ -597,7 +598,11 @@ def _extract_field(field, data, data_file, args=None):
     )
     res.global_min = np.min(field_values) if vals_equal else None
     res.global_max = np.max(field_values) if vals_equal else None
-    return template_common.plot_default(res)
+    return template_common.heatmap(
+        None,
+        PKDict(frameReport="fieldAnimation"),
+        data_complete=res,
+    )
 
 
 def _extract_impact_density(report, run_dir, data):
@@ -774,7 +779,7 @@ def _field_input(args):
     return axes, slice_axis, field_slice, show3d
 
 
-def _field_plot(values, axes, grid, is3d):
+def _field_plot(values, axes, grid, is3d, plotName=None):
     plate_spacing = _meters(grid.plate_spacing)
     radius = _meters(grid.channel_width / 2.0)
     half_height = _meters(grid.channel_height / 2.0)
@@ -804,7 +809,7 @@ def _field_plot(values, axes, grid, is3d):
     pkdp("\n\n\n HIT ON _FIELD_PLOT, x_label={}, y_label={}", x_label, y_label)
     return template_common.heatmap(
         None,
-        PKDict(frameReport="fieldAnimation"),
+        PKDict(frameReport=plotName),
         data_complete=PKDict(
             {
                 "aspectRatio": ar,
