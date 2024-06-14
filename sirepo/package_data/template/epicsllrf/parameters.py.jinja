@@ -13,7 +13,7 @@ def pv_to_model_field_name(pv_name):
 
 STATUS_FILE = "{{ statusFile }}"
 OUT_FILE = "out.json"
-pvs = PKDict(isPlotClass=True) # needs to know to convert to PlotClass
+pvs = PKDict()
 last_name = None
 
 for line in sys.stdin:

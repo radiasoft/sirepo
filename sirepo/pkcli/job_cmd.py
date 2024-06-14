@@ -170,9 +170,8 @@ def _do_compute(msg, template):
 
 
 def _do_analysis_job(msg, template):
-    r = _dispatch_compute(msg, template)
-    pkdp("\n\n\n\n analysisJob ret type={}", type(r))
-    return r
+    return _dispatch_compute(msg, template)
+
 
 def _do_download_data_file(msg, template):
     return _do_download_run_file(msg, template)

@@ -105,16 +105,17 @@ def _run_beam_statistics(cfg_dir, data):
                 points=d[report[y]],
             )
         )
-    return PKDict(
-        aspectRatio=0.3,
-        title="",
-        x_range=[min(x), max(x)],
-        y_label="",
-        x_label="Longitudinal Position [m]",
-        x_points=x,
-        plots=plots,
-        isPlotClass=True,
-        y_range=template_common.compute_plot_color_and_range(plots),
+    return template_common.plot_default(
+        PKDict(
+            aspectRatio=0.3,
+            title="",
+            x_range=[min(x), max(x)],
+            y_label="",
+            x_label="Longitudinal Position [m]",
+            x_points=x,
+            plots=plots,
+            y_range=template_common.compute_plot_color_and_range(plots),
+        )
     )
 
 
@@ -205,8 +206,7 @@ def _run_shadow(cfg_dir, data):
             # TODO(pjm): include offset range for client
             res["x_range"][0] = 0
             res["x_range"][1] = dist
-    res["isPlotClass"] = True
-    return res
+    return template_common.plot_default(res)
 
 
 def _scale_ticket(ticket):

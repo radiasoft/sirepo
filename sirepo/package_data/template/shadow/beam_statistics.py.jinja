@@ -188,7 +188,7 @@ def run_shadow_simulation():
 beam_stats = []
 sigma_mat = create_sigma_matrix()
 stats = run_shadow_simulation()
-print("stats", stats)
+# TODO (gurhar1133): circle back to this one
 stats.isPlotClass = True
 pandas.DataFrame(stats).to_csv("beamStatisticsReport.csv", index=False)
 pkjson.dump_pretty(stats, filename='{{beamStatsFile}}')
