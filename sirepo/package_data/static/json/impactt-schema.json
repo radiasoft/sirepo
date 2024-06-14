@@ -49,13 +49,13 @@
         }
     },
     "frameIdFields": {
-        "statAnimation": ["x", "y1", "y2", "y3"],
-        "particleAnimation": [
+        "animation": [
             "x",
             "y",
             "histogramBins",
             "reportIndex"
-        ]
+        ],
+        "statAnimation": ["x", "y1", "y2", "y3"]
     },
     "enum": {
         "BeamParticle": [
@@ -69,18 +69,14 @@
             ["3", "no output"]
         ],
         "DistType": [
-            ["Uniform", "1"],
-            ["Gauss3", "2"],
-            ["Waterbag", "3"],
-            ["Semigauss", "4"],
-            ["KV3d", "5"],
-            ["ParobGauss", "10"],
-            ["SemicircGauss", "15"],
-            ["Read", "16"],
-            ["readParmela", "24"],
-            ["readElegant", "25"],
-            ["CylcoldZSob", "27"],
-            ["Combine", "ijk"]
+            ["1", "Uniform"],
+            ["2", "Gauss3"],
+            ["3", "Waterbag"],
+            ["4", "Semigauss"],
+            ["5", "KV3d"],
+            ["10", "ParobGauss"],
+            ["15", "SemicircGauss"],
+            ["27", "CylcoldZSob"]
         ],
         "PhaseSpaceCoordinate": [
             ["x", "x"],
@@ -89,6 +85,10 @@
             ["py", "Py"],
             ["z", "z"],
             ["pz", "Pz"]
+        ],
+        "PlotType": [
+            ["heatmap", "Heatmap"],
+            ["3d", "Heatmap with Histograms"]
         ],
         "PoleType": [
             ["sextupole", "Sextupole"],
@@ -175,60 +175,44 @@
             "name": ["Name", "ValidatedString"]
         },
         "beamlineReport": {},
-        "command_beam": {
-            "Npcol": ["Npcol", "Integer", 1, "Number of columns of processors, used to decompose domain along Y dimension"],
-            "Nprow": ["Nprow processors", "Integer", 1, "Number of columns of processors, used to decompose domain along Z dimension"],
-            "Dt": ["Dt", "RPNValue", 1e-11, "Time step size (secs)"],
-            "Ntstep": ["Ntstep ", "Integer", 100000, "Maximum number of time steps"],
-            "Dim": ["Dim", "Integer", 6, "Random Seed Integer > 0"],
-            "Np": ["Np", "Integer", 1000, "Number of macroparticles to track"],
-            "Flagerr": ["Flagerr", "Boolean", "1", "Error study flag  No - no misalignment and rotation errors; Yes - misalignment and rotation errors are allowed for Quadrupole, Multipole (Sextupole, Octupole, Decapole) and SolRF elements"],
-            "Flagdiag": ["Flagdiag", "Diagnostics", "2"],
-            "Flagimg": ["Flagimg", "Boolean", "0", "Image charge flag. If set to Yes then the image charge forces due to the cathode are included"],
-            "Zimage": ["Zimage", "RPNValue", 0.02, "z position beyond which image charge forces are neglected"],
-            "Nx": ["Nx", "Integer", 32, "Number of mesh points in x"],
-            "Ny": ["Ny", "Integer", 32, "Number of mesh points in y"],
-            "Nz": ["Nz", "Integer", 32, "Number of mesh points in z"],
-            "Xrad": ["Xrad", "RPNValue", 0.015, "Size of transverse computational domain"],
-            "Yrad": ["Yrad", "RPNValue", 0.015, "Size of transverse computational domain"],
-            "Perdlen": ["Perdlen", "RPNValue", 100.0, "Size of longitudinal computational domain. Must be greater than the beam line lattice length"],
-            "Nemission": ["Nemission", "Integer", 400, "The number of numerical emission steps"],
-            "Temission": ["Temission [sec]", "RPNValue", 1.4e-11, "Temission Laser pulse emission time"],
-            "Bcurr": ["Bcurr [A]", "RPNValue", 1.0, "Beam current in Amps"],
-            "Bkenergy": ["Bkenergy [eV]", "RPNValue", 1.0, "Initial beam pseudo-kinetic energy in eV"],
-            "Bmas": ["Bmas [eV]", "RPNValue", 510998.95, "Mass of the particles in eV"],
-            "Bcharge": ["Bcharge", "RPNValue", -1.0, "Particle charge in units of proton charge"],
-            "Bfreq": ["Bfreq [Hz]", "RPNValue", 2856000000.0, "Reference frequency in Hz"],
-            "Tini": ["Tini [sec]", "RPNValue", 0.0, "Initial reference time in seconds"],
-            "particle": ["Particle", "BeamParticle", "other", "Particle species"]
+        "beam": {
+            "Np": ["Macroparticle count", "Integer", 1000, "Np: Number of macroparticles to track"],
+            "Bcurr": ["Current [A]", "RPNValue", 1.0],
+            "Bkenergy": ["Initial energy [eV]", "RPNValue", 1.0, "Bkenergy: Initial beam pseudo-kinetic energy in eV"],
+            "Bmas": ["Mass [eV]", "RPNValue", 510998.95],
+            "Bcharge": ["Charge", "RPNValue", -1.0, "Bcharge: Particle charge in units of proton charge"],
+            "Bfreq": ["Reference frequency [Hz]", "RPNValue", 2856000000.0],
+            "Tini": ["Initial reference time [sec]", "RPNValue", 0.0],
+            "particle": ["Particle", "BeamParticle", "electron", "Particle species"]
         },
-        "command_distribution": {
-            "Flagdist": ["Flagdist", "DistType", "Gauss3", "Type of the initial distribution"],
-            "sigx": ["sigx [m]", "RPNValue", 0.001],
-            "sigpx": ["sigpx", "RPNValue", 0.0],
-            "muxpx": ["muxpx", "RPNValue", 0.0],
-            "xscale": ["xscale", "RPNValue", 1.0],
-            "pxscale": ["pxscale", "RPNValue", 1.0],
-            "xmu1": ["xmu1 [m]", "RPNValue", 0.0],
-            "xmu2": ["xmu2", "RPNValue", 0.0],
-            "sigy": ["sigy [m]", "RPNValue", 0.001],
-            "sigpy": ["sigpy", "RPNValue", 0.0],
-            "muxpy": ["muxpy", "RPNValue", 0.0],
-            "yscale": ["yscale", "RPNValue", 1.0],
-            "pyscale": ["pyscale", "RPNValue", 1.0],
-            "ymu1": ["ymu1 [m]", "RPNValue", 0.0],
-            "ymu2": ["ymu2", "RPNValue", 0.0],
-            "sigz": ["sigz [m]", "RPNValue", 0.0001],
-            "sigpz": ["sigpz", "RPNValue", 0.0],
-            "muxpz": ["muxpz", "RPNValue", 0.0],
-            "zscale": ["zscale", "RPNValue", 1.0],
-            "pzscale": ["pzscale", "RPNValue", 1.0],
-            "zmu1": ["zmu1 [m]", "RPNValue", 0.0],
-            "zmu2": ["zmu2", "RPNValue", 19.569511835591836]
+        "distribution": {
+            "Flagdist": ["Distribution type", "DistType", "2", "Flagdist: Type of the initial distribution"],
+            "sigx": ["X sig [m]", "RPNValue", 0.001],
+            "sigpx": ["X sigp", "RPNValue", 0.0],
+            "muxpx": ["X muxp", "RPNValue", 0.0],
+            "xscale": ["X scale", "RPNValue", 1.0],
+            "pxscale": ["X pscale", "RPNValue", 1.0],
+            "xmu1": ["X mu1 [m]", "RPNValue", 0.0],
+            "xmu2": ["X mu2", "RPNValue", 0.0],
+            "sigy": ["Y sig [m]", "RPNValue", 0.001],
+            "sigpy": ["Y sigp", "RPNValue", 0.0],
+            "muxpy": ["Y muxp", "RPNValue", 0.0],
+            "yscale": ["Y scale", "RPNValue", 1.0],
+            "pyscale": ["Y pscale", "RPNValue", 1.0],
+            "ymu1": ["Y mu1 [m]", "RPNValue", 0.0],
+            "ymu2": ["Y mu2", "RPNValue", 0.0],
+            "sigz": ["Z sig [m]", "RPNValue", 0.0001],
+            "sigpz": ["Z sigp", "RPNValue", 0.0],
+            "muxpz": ["Z muxp", "RPNValue", 0.0],
+            "zscale": ["Z scale", "RPNValue", 1.0],
+            "pzscale": ["Z pscale", "RPNValue", 1.0],
+            "zmu1": ["Z mu1 [m]", "RPNValue", 0.0],
+            "zmu2": ["Z mu2", "RPNValue", 19.569511835591836]
         },
-        "particleAnimation": {
+        "elementAnimation": {
             "x": ["X Value", "PhaseSpaceCoordinate", "x"],
             "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
@@ -242,6 +226,23 @@
         "simulation": {
             "elementPosition": ["Element Positioning", "ElementPosition", "absolute"],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+        },
+        "simulationSettings": {
+            "Dt": ["Time step size [sec]", "RPNValue", 1e-11],
+            "Ntstep": ["Maximum time steps ", "Integer", 1000000, "Ntstep: Maximum number of time steps. IMPACT-T will stop after Ntstep time steps or when the center of the bunch goes beyond the end of the lattice, whichever is first."],
+            "Nemission": ["Numerical emission steps", "Integer", 0, "Nemission: There is a time period where the laser is shining on the cathode and electrons are being emitted. Nemisson gives the number of numerical emission steps. More steps gives more accurate modeling but the computation time varies linearly with the number of steps. If Nemission < 0, there will be no cathode model. The particles are assumed to start in a vacuum."],
+            "Temission": ["Laser pulse emission time [sec]", "RPNValue", 1.4e-11, "Temission: This time needs to be somewhat greater than the real emission time in the initial longitudinal distribution so that the time step size is changed after the whole beam is a few time steps out of the cathode."],
+            "Dim": ["Random Seed", "Integer", 6],
+            "Flagerr": ["Error study", "Boolean", "1", "Flagerr: Error study flag  No - no misalignment and rotation errors; Yes - misalignment and rotation errors are allowed for Quadrupole, Multipole (Sextupole, Octupole, Decapole) and SolRF elements"],
+            "Flagdiag": ["Diagnostics", "Diagnostics", "2", "Flagdiag"],
+            "Flagimg": ["Image charge", "Boolean", "0", "Flagimg: Image charge flag. If set to Yes then the image charge forces due to the cathode are included"],
+            "Zimage": ["Image charge stop [m]", "RPNValue", 0.02, "Zimage: z position beyond which image charge forces are neglected"],
+            "Nx": ["X mesh points", "Integer", 32],
+            "Ny": ["Y mesh points", "Integer", 32],
+            "Nz": ["Z mesh points", "Integer", 32],
+            "Xrad": ["X transverse size", "RPNValue", 0.015, "Xrad: Size of transverse computational domain"],
+            "Yrad": ["Y transverse size", "RPNValue", 0.015, "Yrad: Size of transverse computational domain"],
+            "Perdlen": ["Longitudinal domain [m]", "RPNValue", 100.0, "Perdlen: Size of longitudinal computational domain. Must be greater than the beam line lattice length"]
         },
         "simulationStatus": {},
         "statAnimation": {
@@ -378,40 +379,58 @@
             "hasDataFile": false,
             "advanced": []
         },
-        "command_beam": {
-            "title": "Command Beam",
-            "description": "The BEAM statement defines data for the particles in a beam",
-            "fieldsPerTab": 8,
-            "advanced": [
+        "beam": {
+            "title": "Beam",
+            "basic": [
                 "particle",
-                "Npcol",
-                "Nprow",
-                "Dt",
-                "Ntstep",
-                "Nbunch",
-                "Dim",
                 "Np",
-                "Flagerr",
-                "Flagdiag",
-                "Flagimg",
-                "Zimage",
-                "Nx",
-                "Ny",
-                "Nz",
-                "Xrad",
-                "Yrad",
-                "Perdlen",
-                "Nemission",
-                "Temission",
                 "Bcurr",
                 "Bkenergy",
                 "Bfreq",
                 "Tini"
-            ]
+            ],
+            "advanced": []
         },
-        "particleAnimation": {
+        "distribution": {
+            "title": "Particle Distribution",
+            "basic": [
+                "Flagdist",
+                [
+                    ["X", [
+                        "sigx",
+                        "sigpx",
+                        "muxpx",
+                        "xscale",
+                        "pxscale",
+                        "xmu1",
+                        "xmu2"
+                    ]],
+                    ["Y", [
+                        "sigy",
+                        "sigpy",
+                        "muxpy",
+                        "yscale",
+                        "pyscale",
+                        "ymu1",
+                        "ymu2"
+                    ]],
+                    ["Z", [
+                        "sigz",
+                        "sigpz",
+                        "muxpz",
+                        "zscale",
+                        "pzscale",
+                        "zmu1",
+                        "zmu2"
+                    ]]
+                ]
+            ],
+            "advanced": []
+        },
+        "elementAnimation": {
             "title": "Particle Plot",
             "advanced": [
+                "plotType",
                 [
                     ["Horizontal", [
                         "x"
@@ -424,6 +443,35 @@
                 "aspectRatio",
                 "colorMap",
                 "notes"
+            ]
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "Dt",
+                "Ntstep",
+                "Nemission",
+                "Temission",
+                "Perdlen"
+            ],
+            "advanced": [
+                ["Main", [
+                    "Dim",
+                    "Flagerr",
+                    "Flagdiag"
+                ]],
+                ["Domain", [
+                    "Nx",
+                    "Ny",
+                    "Nz",
+                    "Xrad",
+                    "Yrad",
+                    "Perdlen"
+                ]],
+                ["Image Charge", [
+                    "Flagimg",
+                    "Zimage"
+                ]]
             ]
         },
         "simulationStatus": {

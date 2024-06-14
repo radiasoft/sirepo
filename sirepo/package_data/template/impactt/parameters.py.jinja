@@ -20,6 +20,11 @@ I = Impact(
     workdir=".",
     timeout=1e6,
 )
+I.header.update(dict(
+{% for k in impactHeader %}
+    {{k}}={{impactHeader[k]}},
+{% endfor %}
+))
 del I.lattice[:]
 I.lattice.extend([
 {% for v in lattice %}

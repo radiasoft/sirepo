@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Impact-T execution template.
-:copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkio
@@ -11,6 +11,7 @@ from sirepo.template import code_variable
 from sirepo.template import template_common
 import impact
 import impact.parsers
+import pmd_beamphysics
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template.lattice
@@ -20,6 +21,14 @@ import time
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _ARCHIVE_FILE = "impact.h5"
 _MAX_OUTPUT_ID = 100
+_PLOT_TITLE = PKDict(
+    {
+        "x-px": "Horizontal",
+        "y-py": "Vertical",
+        "x-y": "Cross-section",
+        "z-pz": "Longitudinal",
+    },
+)
 _S_ELEMENTS = set(
     [
         "CHANGE_TIMESTEP",
@@ -60,7 +69,7 @@ def background_percent_complete(report, run_dir, is_running):
             frameCount=0,
             percentComplete=0,
         )
-    r = _particle_plot_info(data, run_dir)
+    r = _output_info(data, run_dir)
     return PKDict(
         percentComplete=100,
         frameCount=1 if len(r) else 0,
@@ -68,25 +77,21 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def _particle_plot_info(data, run_dir):
-    names = ["initial_particles", "final_particles"]
-    for el in data.models.elements:
-        if el.type == "WRITE_BEAM":
-            names.append(el.name)
-    res = []
-    for idx, n in enumerate(names):
-        fn = f"{n}.h5"
-        if run_dir.join(fn).exists():
-            res.append(
-                PKDict(
-                    reportIndex=idx,
-                    report="particleAnimation",
-                    name=n,
-                    filename=fn,
-                    frameCount=1,
-                )
-            )
-    return res
+def bunch_plot(model, run_dir, frame_index, filename):
+    p = pmd_beamphysics.ParticleGroup(str(run_dir.join(filename)))
+
+    x = p[model.x]
+    y = p[model.y]
+
+    return template_common.heatmap(
+        values=[x, y],
+        model=model,
+        plot_fields=PKDict(
+            x_label=f"{model.x} [{p.units(model.x)}]",
+            y_label=f"{model.y} [{p.units(model.y)}]",
+            title=_PLOT_TITLE.get(f"{model.x}-{model.y}", f"{model.x} - {model.y}"),
+        ),
+    )
 
 
 def prepare_for_client(data, qcall, **kwargs):
@@ -96,6 +101,16 @@ def prepare_for_client(data, qcall, **kwargs):
 
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
+
+
+def sim_frame(frame_args):
+    # elementAnimations
+    return bunch_plot(
+        frame_args,
+        frame_args.run_dir,
+        frame_args.frameIndex,
+        _file_name_for_element_animation(frame_args),
+    )
 
 
 def sim_frame_statAnimation(frame_args):
@@ -150,6 +165,14 @@ def write_parameters(data, run_dir, is_parallel):
     return None
 
 
+def _file_name_for_element_animation(frame_args):
+    r = frame_args.frameReport
+    for info in _output_info(frame_args.sim_in, frame_args.run_dir):
+        if info.modelKey == r:
+            return info.filename
+    raise AssertionError(f"no output for frameReport={r}")
+
+
 def _find_last_stop(data, beamline_id):
     util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
     beamline = util.id_map[abs(beamline_id)]
@@ -179,6 +202,23 @@ def _format_field(name, field, field_type, value):
     else:
         value = f'"{value}"'
     return f"{field}={value},\n"
+
+
+def _generate_header(data):
+    dm = data.models
+    res = PKDict()
+    for m in ("beam", "distribution", "simulationSettings"):
+        for k in dm[m]:
+            res[k] = dm[m][k]
+    if dm.beam.particle == "electron":
+        pass
+    elif dm.beam.particle == "proton":
+        pass
+    else:
+        if dm.beam.particle != "other":
+            raise AssertionError(f"Invalid particle type: {dm.beam.particle}")
+    del res["particle"]
+    return res
 
 
 def _generate_lattice(util, beamline_id, result):
@@ -218,6 +258,7 @@ def _generate_parameters_file(data):
     v.lattice = _generate_lattice(util, util.select_beamline().id, [])
     v.archiveFile = _ARCHIVE_FILE
     v.numProcs = sirepo.mpi.cfg().cores
+    v.impactHeader = _generate_header(data)
     return res + template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -233,3 +274,29 @@ def _next_output_id(output_ids):
             raise AssertionError("Max output files exceeded")
     output_ids.add(i)
     return i
+
+
+def _output_info(data, run_dir):
+    res = []
+    for idx, n in enumerate(_output_names(data)):
+        fn = f"{n}.h5"
+        if run_dir.join(fn).exists():
+            res.append(
+                PKDict(
+                    modelKey=f"elementAnimation{idx}",
+                    reportIndex=idx,
+                    report="elementAnimation",
+                    name=n,
+                    filename=fn,
+                    frameCount=1,
+                )
+            )
+    return res
+
+
+def _output_names(data):
+    res = ["initial_particles", "final_particles"]
+    for el in data.models.elements:
+        if el.type == "WRITE_BEAM":
+            res.append(el.name)
+    return res

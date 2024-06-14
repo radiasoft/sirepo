@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['statAnimation'];
     SIREPO.appFieldEditors += ``;
     SIREPO.lattice = {
@@ -49,13 +50,42 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     self.simScope = $scope;
     self.errorMessage = '';
 
+    function cleanFilename(fn) {
+        return fn.replace(/\_/g, ' ').replace(/\.(?:h5|outfn)/g, '');
+    }
+
     function loadReports(reports) {
-        self.reports = [];
+        self.outputFiles = [];
+        reports.forEach((info) => {
+            var outputFile = {
+                info: info,
+                reportType: 'heatmap',
+                viewName: 'elementAnimation',
+                filename: info.filename,
+                modelAccess: {
+                    modelKey: info.modelKey,
+                    getData: function() {
+                        return appState.models[info.modelKey];
+                    },
+                },
+                panelTitle: cleanFilename(info.filename),
+            };
+            self.outputFiles.push(outputFile);
+            panelState.setError(info.modelKey, null);
+            if (! appState.models[info.modelKey]) {
+                appState.models[info.modelKey] = {};
+            }
+            var m = appState.models[info.modelKey];
+            appState.setModelDefaults(m, 'elementAnimation');
+            appState.saveQuietly(info.modelKey);
+            frameCache.setFrameCount(1, info.modelKey);
+        });
     }
 
     self.simHandleStatus = data => {
         self.errorMessage = data.error;
         frameCache.setFrameCount(data.frameCount || 0);
+        self.outputFiles = [];
         if (data.reports && data.reports.length) {
             loadReports(data.reports);
         }

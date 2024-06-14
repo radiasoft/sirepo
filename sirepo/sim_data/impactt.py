@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """simulation data operations
-:copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkdebug import pkdc, pkdlog, pkdp
@@ -12,7 +12,17 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         dm = data.models
-        cls._init_models(dm, ("beamline", "simulation", "statAnimation")),
+        cls._init_models(
+            dm,
+            (
+                "beam",
+                "beamline",
+                "distribution",
+                "simulation",
+                "simulationSettings",
+                "statAnimation",
+            ),
+        ),
         dm.setdefault("rpnVariables", [])
 
     @classmethod
