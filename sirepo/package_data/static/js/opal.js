@@ -120,19 +120,6 @@ SIREPO.app.factory('opalService', function(appState, commandService, latticeServ
         return value;
     };
 
-    self.dataFileURL = function(model, index) {
-        if (! appState.isLoaded()) {
-            return '';
-        }
-        return requestSender.formatUrl('downloadRunFile', {
-            '<simulation_id>': appState.models.simulation.simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': model,
-            '<frame>': index,
-        });
-
-    };
-
     latticeService.includeCommandNames = true;
     appState.setAppService(self);
 
