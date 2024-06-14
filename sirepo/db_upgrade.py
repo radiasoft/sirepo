@@ -98,11 +98,8 @@ def _20240524_add_role_user(qcall):
     qcall.auth_db.drop_table("user_role_invite_t")
     qcall.auth_db.execute_sql(
         f"INSERT INTO user_role_t (uid, role, expiration)"
-        + f'VALUES ((select uid from user_registration_t), "{sirepo.auth_role.ROLE_USER}", NULL);'
+        + f'SELECT uid, "{sirepo.auth_role.ROLE_USER}", NULL from user_registration_t'
     )
-    for u in qcall.auth_db.all_uids():
-        with qcall.auth.logged_in_user_set(u):
-            qcall.auth_db.model("UserRole").add_roles([sirepo.auth_role.ROLE_USER])
 
 
 @contextlib.contextmanager
