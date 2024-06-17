@@ -124,7 +124,6 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _calculate_computed_values(d, computed_values):
-    pkdp("\n\n\n\ncomputed values={}", computed_values)
     for f in computed_values:
         fd = computed_values[f]
         if fd.method == "magnitude":
@@ -138,7 +137,6 @@ def _calculate_computed_values(d, computed_values):
             ).tolist()
         else:
             raise AssertionError(f"unknown computedValue method: {fd.method}")
-        pkdp("\n\n\n\nd={}", d)
     return d
 
 

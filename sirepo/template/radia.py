@@ -730,8 +730,6 @@ def _electron_trajectory_plot(sim_id, **kwargs):
                 style="line",
             )
         )
-    # pkdp("\n\n\n d.keys()={}", d.keys())
-
     return template_common.parameter_plot(
         pts,
         plots,

@@ -430,8 +430,6 @@ def _plot_beam(sim_type, frame_args):
 
 def _plot_field_dist(sim_type, frame_args):
     frame_args.frameIndex = 0
-    pkdp("\n\n\n frame_args.frameReport before={}", frame_args.frameReport)
-    # frame_args.frameReport = "finalFieldAnimation"
     return _template_for_sim_type("genesis").sim_frame_finalFieldAnimation(frame_args)
 
 

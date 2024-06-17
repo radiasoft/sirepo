@@ -574,9 +574,6 @@ def heatmap(values, model, plot_fields=None, weights=None, data_complete=None):
     n = model.frameReport
     pandas.DataFrame(columns_dict).to_csv(f"{n}.csv", index=False)
     return PlotClass(res)
-    # final_res = PlotClass(res)
-    # pkdp("\n\n\n\nFINAL RES={}", final_res)
-    # return final_res
 
 
 def histogram_bins(nbins):
@@ -699,10 +696,8 @@ def read_sequential_result(run_dir):
     res = simulation_db.read_json(
         simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir),
     )
-    pkdp("\n\n\n RES.keys()={}", res.keys())
     if res.get("isPlotClass", False):
         return PlotClass(res)
-    # pkdp("\n\n\n res={}", res)
     return res
 
 
@@ -904,10 +899,8 @@ def write_sequential_result(result, run_dir=None):
         run_dir = pkio.py_path()
     f = simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir)
     assert not f.exists(), "{} file exists".format(OUTPUT_BASE_NAME)
-    pkdp("\n\n\n\n type(result)={} isinstance(result, sirepo.template.template_common.PlotClass)=>{}", type(result), isinstance(result, sirepo.template.template_common.PlotClass))
     if isinstance(result, sirepo.template.template_common.PlotClass):
         result.isPlotClass = True
-    pkdp("\n\n\n RESULT AFTER.keys={}", result.keys())
     simulation_db.write_json(f, result)
     t = sirepo.template.import_module(
         simulation_db.read_json(

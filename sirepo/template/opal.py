@@ -489,7 +489,6 @@ def code_var(variables):
 
 
 def get_data_file(run_dir, model, frame, options):
-    pkdp("\n\n\n\n calling get_data_file model={}, frame={} options={}", model, frame, options)
     if options.suffix == "csv":
         return run_dir.join(model + ".csv")
     if model in ("bunchAnimation", "plotAnimation") or "bunchReport" in model:
@@ -564,7 +563,6 @@ def save_sequential_report_data(data, run_dir):
     report = data.models[data.report]
     res = None
     if "bunchReport" in data.report:
-        pkdp("\n\n\ndata.report={}", data.report)
         report.frameReport = data.report
         res = bunch_plot(report, run_dir, 0)
         res.title = ""

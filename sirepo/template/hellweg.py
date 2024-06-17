@@ -125,9 +125,6 @@ def sim_frame_beamAnimation(frame_args):
     # see issue #872
     if not numpy.any(values):
         values = [[], []]
-    pkdp("\n\n\n in template model.frameReport={}", model.frameReport)
-    pkdp("\n\n\n frame_args.reportType={}", frame_args.reportType)
-    pkdp("\n\n\n frame_args{}", frame_args)
     return template_common.heatmap(
         values,
         model,

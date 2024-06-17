@@ -196,7 +196,6 @@ def generate_field_report(data, run_dir, args=None):
     res.global_max = np.max(potential) if vals_equal else None
     res.frequency_title = "Volts"
     res.isPlotClass = True
-    pkdp("\n\n\n typeof res={}", type(res))
     return res
 
 
@@ -284,7 +283,6 @@ def prepare_sequential_output_file(run_dir, data):
                     run_dir=run_dir,
                 )
             else:
-                pkdp("\n\n\n writing seq result for data.report={}", data.report)
                 template_common.write_sequential_result(
                     generate_field_report(data, run_dir),
                     run_dir=run_dir,
@@ -687,7 +685,6 @@ def _extract_impact_density_3d(report, run_dir, data):
 
 
 def _extract_optimization_results(run_dir, data, args):
-    pkdp("\n\n\n EXTRACTING OPTIMIZATION RESULTS? \n\n\n")
     x_index = int(args.x or "0")
     y_index = int(args.y or "0")
     # steps, time, tolerance, result, p1, ... pn
@@ -806,7 +803,6 @@ def _field_plot(values, axes, grid, is3d, plotName=None):
     xr.append(len(values[0]))
     yr.append(len(values))
 
-    pkdp("\n\n\n HIT ON _FIELD_PLOT, x_label={}, y_label={}", x_label, y_label)
     return template_common.heatmap(
         None,
         PKDict(frameReport=plotName),

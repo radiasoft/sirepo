@@ -91,7 +91,6 @@ def extract_field_report(frame_args, field, coordinate, mode, data_file):
         field_label = field
     else:
         field_label = "{} {}".format(field, coordinate)
-    pkdp("\n\n\n\n frame_args.frameReport={}", frame_args.frameReport)
     return template_common.heatmap(
         None,
         PKDict(frameReport=frame_args.frameReport),
@@ -112,7 +111,6 @@ def extract_field_report(frame_args, field, coordinate, mode, data_file):
 def extract_particle_report(frame_args, particle_type):
     data_file = open_data_file(frame_args.run_dir, frame_args.frameIndex)
     opmd = _opmd_time_series(data_file)
-    pkdp("\n\n\n\nframe_args.x={} frame_args.y={} particle_type={}", frame_args.x, frame_args.y, particle_type)
     data_list = opmd.get_particle(
         var_list=[frame_args.x, frame_args.y],
         species=particle_type,

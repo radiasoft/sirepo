@@ -178,7 +178,6 @@ def plot_magin(magin_filename):
             _SIM_DATA.lib_file_name_with_model_field("io", "maginfile", magin_filename)
         )
     )
-    pkdp("\n\n\n\nmagin_filename={}", magin_filename)
     return template_common.parameter_plot(
         _x_points(d),
         [
@@ -310,7 +309,6 @@ def _field_plot(frame_args, d):
     if frame_args.fieldPlot == "phasePlot":
         d = numpy.arctan(d.imag / d.real)
     d = numpy.abs(d)
-    pkdp("\n\n\n\n d={}", d)
     s = d.shape[0]
     pandas.DataFrame(d).to_csv(f"{frame_args.frameReport}.csv", index=False)
     return template_common.plot_default(

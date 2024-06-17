@@ -560,6 +560,8 @@ def save_sequential_report_data(data, run_dir):
             # TODO(pjm): x_range requied by sirepo-plotting.js
             x_range=[],
             summaryData=_read_twiss_header(run_dir),
+            # TODO (gurhar1133): try to remove these and have write_sequential do this if it is PlotClass
+            # that way user doesn't have to do manually (do this everywhere if possible)
             isPlotClass=True,
         )
     elif "bunchReport" in report_name:
@@ -728,7 +730,6 @@ def _extract_heatmap_data(report_name, report, col_names, rows, title):
     x = np.array(column_data(report.x, col_names, rows)) * x_info[1]
     y = np.array(column_data(report.y, col_names, rows)) * y_info[1]
     report["frameReport"] = report_name
-    pkdp("\n\n\n\n report={}", report)
     return template_common.heatmap(
         [x, y],
         report,

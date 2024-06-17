@@ -733,7 +733,7 @@ def get_data_file(run_dir, model, frame, options):
 
     if frame >= 0:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        # # ex. elementAnimation17-55
+        # ex. elementAnimation17-55
         i = LatticeUtil.file_id_from_output_model_name(model)
         return _sdds(_get_filename_for_element_id(i, data))
     if model == "animation":
