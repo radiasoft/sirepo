@@ -698,6 +698,7 @@ def extract_report_data(filename, frame_args, page_count=0):
                 page_count,
             ),
             y_field=y_field,
+            plotName=frame_args.frameReport,
         )
     )
 

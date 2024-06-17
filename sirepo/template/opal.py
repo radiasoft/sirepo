@@ -563,7 +563,7 @@ def save_sequential_report_data(data, run_dir):
     report = data.models[data.report]
     res = None
     if "bunchReport" in data.report:
-        report.frameReport = data.report
+        report.plotName = data.report
         res = bunch_plot(report, run_dir, 0)
         res.title = ""
     else:
@@ -577,7 +577,7 @@ def save_sequential_report_data(data, run_dir):
 def sim_frame(frame_args):
     # elementAnimations
     return bunch_plot(
-        frame_args,
+        frame_args.pkupdate(PKDict(plotName=frame_args.frameReport)),
         frame_args.run_dir,
         frame_args.frameIndex,
         _file_name_for_element_animation(frame_args),
@@ -620,7 +620,7 @@ def sim_frame_beamline3dAnimation(frame_args):
 
 def sim_frame_bunchAnimation(frame_args):
     a = frame_args.sim_in.models.bunchAnimation
-    a.update(frame_args)
+    a.update(frame_args).pkupdate(PKDict(plotName=frame_args.frameReport))
     return bunch_plot(a, a.run_dir, a.frameIndex)
 
 

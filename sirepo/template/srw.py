@@ -1676,7 +1676,7 @@ def _extract_trajectory_report(model, filename):
         x_points,
         plots,
         PKDict(
-            frameReport="trajectoryReport",
+            plotName="trajectoryReport",
             title="Electron Trajectory",
             x_range=[min(x_points), max(x_points)],
             x_points=x_points,

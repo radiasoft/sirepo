@@ -229,6 +229,7 @@ def sim_frame_particleAnimation(frame_args):
         plot_attrs=PKDict(
             format_col_name=_map_field_name,
             title=_title(frame_args),
+            plotName=frame_args.frameReport,
             model=template_common.model_from_frame_args(frame_args),
             format_plot=_format_plot,
         )

@@ -83,6 +83,7 @@ class SDDSUtil:
             plot_attrs.format_plot(plot, col.column_def[1])
             plots[f] = plot
 
+        plot_attrs.model.plotName = plot_attrs.plotName
         return template_common.heatmap(
             values=[plots[x_field].points, plots[y_field].points],
             model=plot_attrs.model,

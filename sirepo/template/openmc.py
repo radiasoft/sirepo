@@ -460,7 +460,7 @@ def _energy_plot(run_dir, data):
                 label=r.score,
             ),
         ],
-        PKDict(),
+        PKDict(plotName=data.report),
         PKDict(
             title=f"Energy Spectrum at ({round(r.x, ndigits=4)}, {round(r.y, ndigits=4)}, {round(r.z, ndigits=4)})",
             x_label="Energy [eV]",

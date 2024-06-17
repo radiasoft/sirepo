@@ -186,7 +186,7 @@ def plot_magin(magin_filename):
                 label=f"{_MAGIN_PLOT_FIELD} Value",
             )
         ],
-        PKDict(frameReport="maginPlotReport"),
+        PKDict(plotName="maginPlotReport"),
         PKDict(
             title="MAGINFILE",
             x_label="length (m)",
@@ -242,7 +242,7 @@ def sim_frame_parameterAnimation(frame_args):
     return template_common.parameter_plot(
         s[:, _SLICE_COLS.index(x)].tolist(),
         plots,
-        PKDict(frameReport=frame_args.frameReport),
+        PKDict(plotName=frame_args.frameReport),
         PKDict(
             title=title,
             x_label=x,
@@ -518,7 +518,7 @@ def _particle_plot(frame_args, filename):
             b[int(frame_args.frameIndex), x[0], :].tolist(),
             b[int(frame_args.frameIndex), y[0], :].tolist(),
         ],
-        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args),
+        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args).pkupdate(PKDict(plotName=frame_args.frameReport)),
         PKDict(
             title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ippart),
             x_label=x[1],

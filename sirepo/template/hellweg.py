@@ -122,6 +122,7 @@ def sim_frame_beamAnimation(frame_args):
     ]
     model["x"] = x
     model["y"] = y
+    model["plotName"] = frame_args.frameReport
     # see issue #872
     if not numpy.any(values):
         values = [[], []]
@@ -189,7 +190,7 @@ def sim_frame_parameterAnimation(frame_args):
                 label=hellweg_dump_reader.get_parameter_title(y2_var),
             )
         ],
-        frame_args,
+        frame_args.pkupdate(PKDict(plotName=frame_args.frameReport)),
         PKDict(
             title=_enum_text("ParameterReportType", frame_args.reportType),
             x_label=hellweg_dump_reader.get_parameter_label(x_field)),

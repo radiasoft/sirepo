@@ -539,7 +539,7 @@ def heatmap(values, model, plot_fields=None, weights=None, data_complete=None):
     import numpy
 
     if data_complete is not None:
-        pandas.DataFrame(data_complete.z_matrix).to_csv(f"{model.frameReport}.csv", index=False)
+        pandas.DataFrame(data_complete.z_matrix).to_csv(f"{model.plotName}.csv", index=False)
         return PlotClass(data_complete)
     r = None
     if "plotRangeType" in model:
@@ -571,8 +571,7 @@ def heatmap(values, model, plot_fields=None, weights=None, data_complete=None):
     columns_dict[model.get("x", "x")] = values[0]
     columns_dict[model.get("y", "y")] = values[1]
     columns_dict["particleID"] = range(1, len(values[0]) + 1)
-    n = model.frameReport
-    pandas.DataFrame(columns_dict).to_csv(f"{n}.csv", index=False)
+    pandas.DataFrame(columns_dict).to_csv(f"{model.plotName}.csv", index=False)
     return PlotClass(res)
 
 
@@ -611,7 +610,7 @@ def plot_default(data):
 
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None, data_complete=None):
     if data_complete is not None:
-        pandas.DataFrame(plots).to_csv(f"{model.frameReport}.csv", index=False)
+        pandas.DataFrame(plots).to_csv(f"{model.plotName}.csv", index=False)
         return PlotClass(data_complete)
 
     res = PKDict(
@@ -641,8 +640,7 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None, data_com
         if not c:
             c = plot.get("name", f"col{i + 1}")
         columns_dict[c] = plot.points
-    # TODO (gurhar1133): put field on model for naming instead of frameReport?
-    pandas.DataFrame(columns_dict).to_csv(f"{model.frameReport}.csv", index=False)
+    pandas.DataFrame(columns_dict).to_csv(f"{model.plotName}.csv", index=False)
     return PlotClass(res)
 
 

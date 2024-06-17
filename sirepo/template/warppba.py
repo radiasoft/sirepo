@@ -93,7 +93,7 @@ def extract_field_report(frame_args, field, coordinate, mode, data_file):
         field_label = "{} {}".format(field, coordinate)
     return template_common.heatmap(
         None,
-        PKDict(frameReport=frame_args.frameReport),
+        PKDict(plotName=frame_args.frameReport),
         data_complete=PKDict(
             x_range=[extent[0], extent[1], len(F[0])],
             y_range=[extent[2], extent[3], len(F)],
@@ -156,7 +156,7 @@ def extract_particle_report(frame_args, particle_type):
         values=[data_list[0], data_list[1]],
         model=PKDict(
             histogramBins=frame_args.histogramBins,
-            frameReport=frame_args.frameReport,
+            plotName=frame_args.frameReport,
         ),
         plot_fields=PKDict(
             x_label="{}{}".format(

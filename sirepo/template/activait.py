@@ -832,7 +832,10 @@ def _confusion_matrix_to_heatmap_report(frame_args, filename, title):
         labels = r.labels
     return template_common.heatmap(
         a,
-        PKDict(histogramBins=len(r.matrix)),
+        PKDict(
+            histogramBins=len(r.matrix),
+            plotName=frame_args.frameReport,
+        ),
         plot_fields=PKDict(
             labels=labels,
             title=title.format(**r),
@@ -880,8 +883,7 @@ def _dice(frame_args, run_dir):
                 label="Counts",
             ),
         ],
-        # TODO (gurhar1133): name other than 'frameReport'?
-        PKDict(frameReport=frame_args.frameReport),
+        PKDict(plotName=frame_args.frameReport),
         PKDict(
             title="Dice Coefficients",
             x_label="Scores",
@@ -1028,6 +1030,7 @@ def _fit_animation(frame_args):
         [x, y],
         PKDict(
             **frame_args,
+            plotName=frame_args.frameReport,
             x="x",
             y="y",
         ),
@@ -1577,7 +1580,7 @@ def _report_info(x, plots, title="", fields=PKDict(), summary_data=PKDict()):
             x_range=[float(min(x)), float(max(x))],
             y_label="",
             x_label="",
-            frameReport="reportInfo",
+            plotName="reportInfo",
             y_range=template_common.compute_plot_color_and_range(plots),
             summaryData=summary_data,
         )

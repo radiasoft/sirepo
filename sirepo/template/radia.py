@@ -696,7 +696,7 @@ def _extruded_points_plot(sim_in, name, points, width_axis, height_axis):
     return template_common.parameter_plot(
         pts[0].tolist(),
         plots,
-        PKDict(frameReport=sim_in.frameReport),
+        PKDict(plotName=sim_in.frameReport),
         PKDict(
             title=name,
             y_label=f"{width_axis} [mm]",
@@ -733,7 +733,7 @@ def _electron_trajectory_plot(sim_id, **kwargs):
     return template_common.parameter_plot(
         pts,
         plots,
-        PKDict(frameReport="electronTrajectoryReport"),
+        PKDict(plotName="electronTrajectoryReport"),
         PKDict(
             title=f"{d.energy} GeV",
             y_label="Position [m]",
@@ -826,7 +826,7 @@ def _extract_optimization_results(args):
     return template_common.parameter_plot(
         numpy.arange(1, len(out_files) + 1).tolist(),
         plots,
-        PKDict(frameReport=args.frameReport),
+        PKDict(plotName=args.frameReport),
         PKDict(
             title="Optimization Output",
             y_label="Result",
@@ -862,7 +862,7 @@ def _field_lineout_plot(frame_args, sim_id, name, f_type, f_path, plot_axis, fie
     return template_common.parameter_plot(
         pts[:, radia_util.axes_index(plot_axis)].tolist(),
         plots,
-        PKDict(frameReport=frame_args.frameReport),
+        PKDict(plotName=frame_args.frameReport),
         PKDict(
             title=f"{f_type} on {f_path.name}",
             y_label=f_type,

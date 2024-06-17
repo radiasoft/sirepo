@@ -145,8 +145,7 @@ def sim_frame_tempProfileAnimation(frame_args):
                 label="(T-T₀), K",
             ),
         ],
-        # TODO (gurhar1133): maybe a name besides frameReport
-        PKDict(frameReport=frame_args.frameReport),
+        PKDict(plotName=frame_args.frameReport),
         PKDict(
             x_label=(
                 "Radial"
@@ -567,7 +566,7 @@ class _LaserPulsePlot(PKDict):
                     label=self._plot_label(),
                 ),
             ],
-            PKDict(),
+            PKDict(plotName=""),
             PKDict(
                 x_label=self._x_label(),
             ),

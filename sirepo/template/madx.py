@@ -287,7 +287,7 @@ def extract_parameter_report(
             PKDict(field=m[f], points=to_floats(t[m[f]]), label=field_label(m[f])),
         )
     x = m.get("x", "s")
-    m.frameReport = data.report
+    m.plotName = data.report
     res = template_common.parameter_plot(
         to_floats(t[x]),
         plots,
@@ -706,7 +706,7 @@ def _calc_bunch_parameters(bunch, beam, variables):
 def _extract_report_bunchReport(data, run_dir):
     parts = simulation_db.read_json(run_dir.join(BUNCH_PARTICLES_FILE))
     m = data.models[data.report]
-    m.frameReport = data.report
+    m.plotName = data.report
     res = template_common.heatmap(
         [
             parts[m.x],
@@ -739,7 +739,7 @@ def _extract_report_elementAnimation(data, run_dir, filename):
     m = data.models[data.report]
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
     info = madx_parser.parse_tfs_page_info(run_dir.join(filename))[m.frameIndex]
-    m.frameReport = data.report
+    m.plotName = data.report
     return template_common.heatmap(
         [to_floats(t[m.x]), to_floats(t[m.y1])],
         m,

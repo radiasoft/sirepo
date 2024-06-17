@@ -442,7 +442,7 @@ def extract_tunes_report(run_dir, data):
     return template_common.parameter_plot(
         x,
         plots,
-        {},
+        PKDict(plotName=data.report),
         PKDict(
             title=title,
             y_label="",
@@ -539,13 +539,12 @@ def save_sequential_report_data(data, run_dir):
                 error=error,
             )
         else:
-            # TODO(pjm): use template_common
             x = column_data("sums", col_names, rows)
             res = template_common.parameter_plot(
                 x,
                 plots,
                 PKDict(
-                    frameReport=data.report,
+                    plotName=data.report,
                     title="",
                     x_range=[min(x), max(x)],
                     y_label="",
@@ -728,7 +727,7 @@ def _extract_heatmap_data(report_name, report, col_names, rows, title):
     y_info = _ANIMATION_FIELD_INFO[report.y]
     x = np.array(column_data(report.x, col_names, rows)) * x_info[1]
     y = np.array(column_data(report.y, col_names, rows)) * y_info[1]
-    report["frameReport"] = report_name
+    report["plotName"] = report_name
     return template_common.heatmap(
         [x, y],
         report,

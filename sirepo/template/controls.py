@@ -348,6 +348,7 @@ def _extract_report_elementAnimation(frame_args, run_dir, filename):
     i, x = _get_target_info(a, frame_args)
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=x)
     data.models[frame_args.frameReport] = frame_args
+    frame_args.plotName = frame_args.frameReport
     return template_common.heatmap(
         [
             sirepo.template.madx.to_floats(t[frame_args.x]),

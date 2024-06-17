@@ -150,7 +150,7 @@ def generate_field_comparison_report(data, run_dir, args):
     return template_common.parameter_plot(
         None,
         plots,
-        PKDict(frameReport="fieldComparisonAnimation"),
+        PKDict(plotName="fieldComparisonAnimation"),
         data_complete=PKDict(
             title="Comparison of E {}".format(dimension),
             y_label="E {} [V/m]".format(dimension),
@@ -538,7 +538,7 @@ def _extract_current_results(data, curr, data_time):
             ),
         ],
         PKDict(
-            frameReport="egunCurrentAnimation",
+            plotName="egunCurrentAnimation",
             title="Current for Time: {:.4e}s".format(data_time),
             x_range=[0, plate_spacing],
             x_label="Z [m]",
@@ -597,7 +597,7 @@ def _extract_field(field, data, data_file, args=None):
     res.global_max = np.max(field_values) if vals_equal else None
     return template_common.heatmap(
         None,
-        PKDict(frameReport="fieldAnimation"),
+        PKDict(plotName="fieldAnimation"),
         data_complete=res,
     )
 
@@ -625,7 +625,7 @@ def _extract_impact_density_2d(report, run_dir, data):
         horizontalOffset=plate_spacing / 2,
         verticalSize=channel_width,
         verticalOffset=0,
-        frameReport=report,
+        plotName=report,
     )
     return template_common.heatmap(
         [all_particles[1].tolist(), all_particles[0].tolist()],
@@ -804,7 +804,7 @@ def _field_plot(values, axes, grid, is3d, plotName=None):
 
     return template_common.heatmap(
         None,
-        PKDict(frameReport=plotName),
+        PKDict(plotName=plotName),
         data_complete=PKDict(
             {
                 "aspectRatio": ar,
