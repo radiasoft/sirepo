@@ -19,16 +19,17 @@ def run(cfg_dir):
     ]
     # write out a dummy plot, real plot data is returned from template.epicsllrf.background_percent_complete
     template_common.write_sequential_result(
-        PKDict(
-            title="",
-            x_range=[0, 1],
-            y_label="",
-            x_label="",
-            x_points=[0, 1],
-            plots=plots,
-            y_range=template_common.compute_plot_color_and_range(plots),
-            isPlotClass=True,
-        ),
+        template_common.plot_default(
+            PKDict(
+                title="",
+                x_range=[0, 1],
+                y_label="",
+                x_label="",
+                x_points=[0, 1],
+                plots=plots,
+                y_range=template_common.compute_plot_color_and_range(plots),
+            )
+        )
     )
 
 

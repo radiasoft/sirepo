@@ -100,17 +100,17 @@ def _extract_twiss_report(data):
                 ),
             }
         )
-    return PKDict(
-        title="",
-        isPlotClass=True,
-        x_range=[min(x), max(x)],
-        y_label="",
-        x_label="{} [{}]".format(report["x"], "m"),
-        x_points=x,
-        plots=plots,
-        y_range=template_common.compute_plot_color_and_range(plots),
+    return template_common.plot_default(
+        PKDict(
+            title="",
+            x_range=[min(x), max(x)],
+            y_label="",
+            x_label="{} [{}]".format(report["x"], "m"),
+            x_points=x,
+            plots=plots,
+            y_range=template_common.compute_plot_color_and_range(plots),
+        )
     )
-
 
 def _float_from_str(v):
     # handle misformatted floats, ex. -9.29135e-00E-25

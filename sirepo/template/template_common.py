@@ -900,7 +900,7 @@ def write_sequential_result(result, run_dir=None):
     f = simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir)
     assert not f.exists(), "{} file exists".format(OUTPUT_BASE_NAME)
     if isinstance(result, sirepo.template.template_common.PlotClass):
-        result.isPlotClass = True
+        result.isPlotClass = True # set this so read knows it was plotClass
     simulation_db.write_json(f, result)
     t = sirepo.template.import_module(
         simulation_db.read_json(

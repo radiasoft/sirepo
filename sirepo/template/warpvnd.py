@@ -195,8 +195,7 @@ def generate_field_report(data, run_dir, args=None):
     res.global_min = np.min(potential) if vals_equal else None
     res.global_max = np.max(potential) if vals_equal else None
     res.frequency_title = "Volts"
-    res.isPlotClass = True
-    return res
+    return template_common.plot_default(res)
 
 
 def get_data_file(run_dir, model, frame, options):

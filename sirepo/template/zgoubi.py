@@ -556,13 +556,12 @@ def save_sequential_report_data(data, run_dir):
                 )
             )
     elif report_name == "twissSummaryReport":
-        res = PKDict(
-            # TODO(pjm): x_range requied by sirepo-plotting.js
-            x_range=[],
-            summaryData=_read_twiss_header(run_dir),
-            # TODO (gurhar1133): try to remove these and have write_sequential do this if it is PlotClass
-            # that way user doesn't have to do manually (do this everywhere if possible)
-            isPlotClass=True,
+        res = template_common.plot_default(
+                PKDict(
+                # TODO(pjm): x_range requied by sirepo-plotting.js
+                x_range=[],
+                summaryData=_read_twiss_header(run_dir),
+            )
         )
     elif "bunchReport" in report_name:
         report = data.models[report_name]
