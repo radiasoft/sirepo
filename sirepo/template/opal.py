@@ -620,7 +620,7 @@ def sim_frame_beamline3dAnimation(frame_args):
 
 def sim_frame_bunchAnimation(frame_args):
     a = frame_args.sim_in.models.bunchAnimation
-    a.update(frame_args).pkupdate(PKDict(plotName=frame_args.frameReport))
+    a.pkupdate(frame_args).pkupdate(PKDict(plotName=frame_args.frameReport))
     return bunch_plot(a, a.run_dir, a.frameIndex)
 
 
@@ -635,7 +635,7 @@ def sim_frame_plotAnimation(frame_args):
 
     return hdf5_util.HDF5Util(frame_args.run_dir.join(_OPAL_H5_FILE)).lineplot(
         PKDict(
-            model=frame_args,
+            model=frame_args.pkupdate(PKDict(plotName=frame_args.frameReport)),
             index=lambda parts: _DIM_INDEX[parts[1]] if len(parts) > 1 else 0,
             format_plots=lambda h5file, plots: _iterate_hdf5_steps_from_handle(
                 h5file,
@@ -659,7 +659,7 @@ def sim_frame_plot2Animation(frame_args):
         PKDict(
             format_col_name=_format_col_name,
             format_plot=_format_plot,
-            model=template_common.model_from_frame_args(frame_args),
+            model=template_common.model_from_frame_args(frame_args).pkupdate(PKDict(plotName=frame_args.frameReport)),
             dynamicYLabel=True,
         )
     )

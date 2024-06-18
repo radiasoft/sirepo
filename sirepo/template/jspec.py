@@ -485,7 +485,7 @@ def _sdds_report(frame_args, filename, x_field):
     return sdds_util.SDDSUtil(filename).lineplot(
         PKDict(
             format_col_name=_map_field_name,
-            model=template_common.model_from_frame_args(frame_args),
+            model=template_common.model_from_frame_args(frame_args).pkupdate(PKDict(plotName=frame_args.frameReport)),
             format_plot=_format_plot,
         )
     )

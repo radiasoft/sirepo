@@ -438,7 +438,7 @@ def _plot_phase(sim_type, frame_args):
 
     if sim_type == "opal":
         r = _template_for_sim_type(sim_type).bunch_plot(
-            frame_args,
+            frame_args.pkupdate(PKDict(plotName=frame_args.frameReport)),
             frame_args.run_dir,
             frame_args.frameIndex,
         )
