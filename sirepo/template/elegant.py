@@ -672,7 +672,9 @@ def extract_report_data(filename, frame_args, page_count=0):
     plot_attrs = PKDict(
         format_plot=_label,
         page_index=frame_args.frameIndex,
-        model=template_common.model_from_frame_args(frame_args).pkupdate(PKDict(plotName=frame_args.frameReport)),
+        model=template_common.model_from_frame_args(frame_args).pkupdate(
+            PKDict(plotName=frame_args.frameReport)
+        ),
         x_field=x_field,
     )
     _sdds_init()

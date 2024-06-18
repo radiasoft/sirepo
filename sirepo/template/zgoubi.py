@@ -552,11 +552,11 @@ def save_sequential_report_data(data, run_dir):
                     x_points=x,
                     y_range=template_common.compute_plot_color_and_range(plots),
                     summaryData=_read_twiss_header(run_dir),
-                )
+                ),
             )
     elif report_name == "twissSummaryReport":
         res = template_common.plot_default(
-                PKDict(
+            PKDict(
                 # TODO(pjm): x_range requied by sirepo-plotting.js
                 x_range=[],
                 summaryData=_read_twiss_header(run_dir),

@@ -177,9 +177,7 @@ def extract_report_data(run_dir, sim_in):
         )
     if sim_in.report == "kickMapReport":
         template_common.write_sequential_result(
-            template_common.PlotClass(
-                _kick_map_plot(sim_in.models.kickMapReport)
-            ),
+            template_common.PlotClass(_kick_map_plot(sim_in.models.kickMapReport)),
             run_dir=run_dir,
         )
     if sim_in.report == "fieldIntegralReport":
@@ -836,7 +834,9 @@ def _extract_optimization_results(args):
     )
 
 
-def _field_lineout_plot(frame_args, sim_id, name, f_type, f_path, plot_axis, field_data=None):
+def _field_lineout_plot(
+    frame_args, sim_id, name, f_type, f_path, plot_axis, field_data=None
+):
     v = (
         field_data
         if field_data

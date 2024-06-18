@@ -1524,7 +1524,12 @@ def _move_children_in_add(neural_net):
 
 
 def _numbered_model_file(model):
-    for m in ("fitAnimation", "fileColumnReport", "partitionColumnReport", "dicePlotAnimation"):
+    for m in (
+        "fitAnimation",
+        "fileColumnReport",
+        "partitionColumnReport",
+        "dicePlotAnimation",
+    ):
         if m in model:
             return True
     return False
@@ -1583,7 +1588,7 @@ def _report_info(x, plots, title="", fields=PKDict(), summary_data=PKDict()):
             plotName="reportInfo",
             y_range=template_common.compute_plot_color_and_range(plots),
             summaryData=summary_data,
-        )
+        ),
     )
     res.update(fields)
     return res

@@ -161,6 +161,7 @@ def sim_frame_beamHistogramAnimation(frame_args):
         )
     )
 
+
 def sim_frame_parameterAnimation(frame_args):
     s = rshellweg.solver.BeamSolver(
         os.path.join(str(frame_args.run_dir), HELLWEG_INI_FILE),
@@ -188,12 +189,13 @@ def sim_frame_parameterAnimation(frame_args):
                 col_name=hellweg_dump_reader.get_parameter_title(y2_var),
                 points=y2,
                 label=hellweg_dump_reader.get_parameter_title(y2_var),
-            )
+            ),
         ],
         frame_args.pkupdate(PKDict(plotName=frame_args.frameReport)),
         PKDict(
             title=_enum_text("ParameterReportType", frame_args.reportType),
-            x_label=hellweg_dump_reader.get_parameter_label(x_field)),
+            x_label=hellweg_dump_reader.get_parameter_label(x_field),
+        ),
     )
 
 

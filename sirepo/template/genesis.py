@@ -518,7 +518,9 @@ def _particle_plot(frame_args, filename):
             b[int(frame_args.frameIndex), x[0], :].tolist(),
             b[int(frame_args.frameIndex), y[0], :].tolist(),
         ],
-        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args).pkupdate(PKDict(plotName=frame_args.frameReport)),
+        frame_args.sim_in.models.particleAnimation.pkupdate(frame_args).pkupdate(
+            PKDict(plotName=frame_args.frameReport)
+        ),
         PKDict(
             title=_z_title_at_frame(frame_args, frame_args.sim_in.models.io.ippart),
             x_label=x[1],

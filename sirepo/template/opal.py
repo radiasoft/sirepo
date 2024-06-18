@@ -659,7 +659,9 @@ def sim_frame_plot2Animation(frame_args):
         PKDict(
             format_col_name=_format_col_name,
             format_plot=_format_plot,
-            model=template_common.model_from_frame_args(frame_args).pkupdate(PKDict(plotName=frame_args.frameReport)),
+            model=template_common.model_from_frame_args(frame_args).pkupdate(
+                PKDict(plotName=frame_args.frameReport)
+            ),
             dynamicYLabel=True,
         )
     )

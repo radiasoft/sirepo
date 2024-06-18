@@ -539,7 +539,9 @@ def heatmap(values, model, plot_fields=None, weights=None, data_complete=None):
     import numpy
 
     if data_complete is not None:
-        pandas.DataFrame(data_complete.z_matrix).to_csv(f"{model.plotName}.csv", index=False)
+        pandas.DataFrame(data_complete.z_matrix).to_csv(
+            f"{model.plotName}.csv", index=False
+        )
         return PlotClass(data_complete)
     r = None
     if "plotRangeType" in model:
@@ -608,7 +610,9 @@ def plot_default(data):
     return PlotClass(data)
 
 
-def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None, data_complete=None):
+def parameter_plot(
+    x, plots, model, plot_fields=None, plot_colors=None, data_complete=None
+):
     if data_complete is not None:
         pandas.DataFrame(plots).to_csv(f"{model.plotName}.csv", index=False)
         return PlotClass(data_complete)
@@ -898,7 +902,7 @@ def write_sequential_result(result, run_dir=None):
     f = simulation_db.json_filename(OUTPUT_BASE_NAME, run_dir)
     assert not f.exists(), "{} file exists".format(OUTPUT_BASE_NAME)
     if isinstance(result, sirepo.template.template_common.PlotClass):
-        result.isPlotClass = True # set this so read knows it was plotClass
+        result.isPlotClass = True  # set this so read knows it was plotClass
     simulation_db.write_json(f, result)
     t = sirepo.template.import_module(
         simulation_db.read_json(

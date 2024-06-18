@@ -107,7 +107,9 @@ def sim_frame_fieldComparisonAnimation(frame_args):
 
 
 def sim_frame_impactDensityAnimation(frame_args):
-    return _extract_impact_density(frame_args.frameReport, frame_args.run_dir, frame_args.sim_in)
+    return _extract_impact_density(
+        frame_args.frameReport, frame_args.run_dir, frame_args.sim_in
+    )
 
 
 def sim_frame_optimizerAnimation(frame_args):
@@ -543,7 +545,10 @@ def _extract_current_results(data, curr, data_time):
             x_range=[0, plate_spacing],
             x_label="Z [m]",
             x_points=x,
-            y_range=[min(np.min(curr), np.min(curr2)), max(np.max(curr), np.max(curr2))],
+            y_range=[
+                min(np.min(curr), np.min(curr2)),
+                max(np.max(curr), np.max(curr2)),
+            ],
         ),
     )
 
@@ -669,18 +674,22 @@ def _extract_impact_density_3d(report, run_dir, data):
         dy = 0  # plot_info['dy']
         width = _meters(grid.channel_width)
 
-    return template_common.plot_default(PKDict({
-        "title": "Impact Density!",
-        "x_range": [0, plate_spacing],
-        "y_range": [-radius, radius],
-        "z_range": [-width / 2.0, width / 2.0],
-        "y_label": "x [m]",
-        "x_label": "z [m]",
-        "z_label": "y [m]",
-        "density": plot_info["density"] if "density" in plot_info else [],
-        "v_min": plot_info["min"],
-        "v_max": plot_info["max"],
-    }))
+    return template_common.plot_default(
+        PKDict(
+            {
+                "title": "Impact Density!",
+                "x_range": [0, plate_spacing],
+                "y_range": [-radius, radius],
+                "z_range": [-width / 2.0, width / 2.0],
+                "y_label": "x [m]",
+                "x_label": "z [m]",
+                "z_label": "y [m]",
+                "density": plot_info["density"] if "density" in plot_info else [],
+                "v_min": plot_info["min"],
+                "v_max": plot_info["max"],
+            }
+        )
+    )
 
 
 def _extract_optimization_results(run_dir, data, args):
@@ -740,22 +749,26 @@ def _extract_particle(run_dir, model_name, data, args):
     data_file = open_data_file(run_dir, model_name, None)
     with h5py.File(data_file.filename, "r") as f:
         field = np.array(f["data/{}/meshes/{}".format(data_file.iteration, "phi")])
-    return template_common.plot_default(PKDict({
-        "title": "Particle Trace",
-        "x_range": [0, plate_spacing],
-        "y_label": "x [m]",
-        "x_label": "z [m]",
-        "z_label": "y [m]",
-        "points": y_points,
-        "x_points": x_points,
-        "z_points": z_points,
-        "y_range": [-radius, radius],
-        "z_range": [-half_height, half_height],
-        "lost_x": lost_x,
-        "lost_y": lost_y,
-        "lost_z": lost_z,
-        "field": field.tolist(),
-    }))
+    return template_common.plot_default(
+        PKDict(
+            {
+                "title": "Particle Trace",
+                "x_range": [0, plate_spacing],
+                "y_label": "x [m]",
+                "x_label": "z [m]",
+                "z_label": "y [m]",
+                "points": y_points,
+                "x_points": x_points,
+                "z_points": z_points,
+                "y_range": [-radius, radius],
+                "z_range": [-half_height, half_height],
+                "lost_x": lost_x,
+                "lost_y": lost_y,
+                "lost_z": lost_z,
+                "field": field.tolist(),
+            }
+        )
+    )
 
 
 def _field_input(args):
@@ -815,7 +828,7 @@ def _field_plot(values, axes, grid, is3d, plotName=None):
                 "z_matrix": values.tolist(),
                 "summaryData": {"runMode3d": is3d},
             }
-        )
+        ),
     )
 
 
