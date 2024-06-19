@@ -1449,6 +1449,11 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     //TODO(pjm): need to refactor picType processing
                     if (picType == 'bend') {
                         var angle = rpnValue(item.angle || item.kick || item.hkick || 0);
+                        if (! ("angle" in item) && item.e1) {
+                            angle = - rpnValue(item.e1);
+                            item.e1 = - angle / 8;
+                            item.e2 = item.e1;
+                        }
                         if (pos.inReverseBend) {
                             angle = -angle;
                         }
