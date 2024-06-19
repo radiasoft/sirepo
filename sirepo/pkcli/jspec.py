@@ -112,6 +112,7 @@ def _extract_twiss_report(data):
         )
     )
 
+
 def _float_from_str(v):
     # handle misformatted floats, ex. -9.29135e-00E-25
     v = re.sub(r"(e[+\-]\d+)(e[+\-]\d+)", r"\1", v, flags=re.IGNORECASE)

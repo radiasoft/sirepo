@@ -73,4 +73,3 @@ def _report(title, fields, data):
             y_range=template_common.compute_plot_color_and_range(plots),
         )
     )
-
