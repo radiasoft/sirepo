@@ -21,6 +21,8 @@ _cfg = None
 
 _HUB_USER_SEP = "-"
 
+# "-" is considered invalid here, though it will be replaced
+# with _HUB_USER_SEP
 _INVALID_USER_NAME_CHARS = re.compile(r"[^a-z0-9]+")
 
 _JUPYTERHUB_LOGOUT_USER_NAME_ATTR = "jupyterhub_logout_user_name"
@@ -66,13 +68,18 @@ def create_user(qcall):
         user_name (str): The user_name of the new or existing user
     """
 
-    def __name_sanitized():
-        return _INVALID_USER_NAME_CHARS.sub(
-            _HUB_USER_SEP, qcall.auth.local_part_user_name().lower()
-        )
+    def _name_sanitized():
+        n = _INVALID_USER_NAME_CHARS.sub(
+            _HUB_USER_SEP, qcall.auth.logged_in_user_name_local_part()
+        ).strip(_HUB_USER_SEP)
+        if not len(n) > 0:
+            raise AssertionError(
+                f"sanitized Jupyter username is empty for uid={qcall.auth.logged_in_user()}"
+            )
+        return n
 
-    def __user_name():
-        n = __name_sanitized()
+    def _user_name():
+        n = _name_sanitized()
         if qcall.auth_db.model("JupyterhubUser").unchecked_search_by(user_name=n):
             # The username already exists. Add some randomness to try and create
             # a unique user name.
@@ -82,7 +89,7 @@ def create_user(qcall):
     n = _unchecked_jupyterhub_user_name(qcall)
     if n:
         return n
-    u = __user_name()
+    u = _user_name()
     # POSIT: if two creates happen simultaneously, there may be an existence
     # collision, but the db will be consistent, because this call happens
     # first, before db insert.

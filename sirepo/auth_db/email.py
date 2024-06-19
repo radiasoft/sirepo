@@ -41,8 +41,8 @@ class AuthEmailUser(sirepo.auth_db.UserDbBase):
 
     def __init__(self, *args, **kwargs):
         for x in ("unverified_email", "user_name"):
-            if kwargs.get(x):
-                kwargs[x] = kwargs.get(x).lower()
+            if (v := kwargs.get(x)) is not None:
+                kwargs[x] = v.lower()
         super().__init__(*args, **kwargs)
 
     def create_token(self):
