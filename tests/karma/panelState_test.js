@@ -8,6 +8,7 @@ describe('Factory: panelState', function() {
 
     beforeEach(module(function ($provide) {
         $provide.value('appState', {
+	    clone: function(obj) { return angular.copy(obj) },
             isLoaded: function() { return true; },
             applicationState: function() { return applicationState },
             isReportModelName: function() { return false },

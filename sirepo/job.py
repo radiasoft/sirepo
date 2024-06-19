@@ -27,6 +27,7 @@ OP_OK = "ok"
 #: Agent indicates it is ready
 OP_ALIVE = "alive"
 OP_RUN = "run"
+OP_SBATCH_AGENT_READY = "sbatch_agent_ready"
 OP_SBATCH_LOGIN = "sbatch_login"
 OP_BEGIN_SESSION = "begin_session"
 

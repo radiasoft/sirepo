@@ -87,6 +87,7 @@ class SbatchDriver(job_driver.DriverBase):
             cores=(None, int, "dev cores config"),
             host=pkconfig.Required(str, "host name for slum controller"),
             host_key=pkconfig.Required(str, "host key"),
+            nodes=(None, int, "dev nodes config"),
             run_slots=(1, int, "number of concurrent OP_RUN for each user"),
             shifter_image=(None, str, "needed if using Shifter"),
             sirepo_cmd=pkconfig.Required(str, "how to run sirepo"),
@@ -127,8 +128,12 @@ class SbatchDriver(job_driver.DriverBase):
             m.runDir = "/".join((m.userDir, m.simulationType, m.computeJid))
             if op.op_name == job.OP_RUN:
                 assert m.sbatchHours
-                if self.cfg.cores:
-                    m.sbatchCores = min(m.sbatchCores, self.cfg.cores)
+                for f, c in [
+                    ["sbatchCores", self.cfg.cores],
+                    ["sbatchNodes", self.cfg.nodes],
+                ]:
+                    if f in m and c:
+                        m[f] = min(m[f], c)
                 m.mpiCores = m.sbatchCores
             m.shifterImage = self.cfg.shifter_image
         return await super().prepare_send(op)
@@ -206,22 +211,17 @@ disown
                     username=self._creds.username,
                 )
                 await get_agent_log(c, before_start=False)
-        except asyncssh.misc.PermissionDenied:
-            pkdlog("{}", pkdexc())
+        except Exception as e:
+            pkdlog("error={} stack={}", e, pkdexc())
             self._srdb_root = None
-            self._raise_sbatch_login_srexception("invalid-creds", original_msg)
-        except asyncssh.misc.ProtocolError:
-            pkdlog("{}", pkdexc())
-            raise sirepo.util.UserAlert(
-                f"Unable to connect to {self.cfg.host}. Please try again later.",
+            self._raise_sbatch_login_srexception(
+                (
+                    "invalid-creds"
+                    if isinstance(e, asyncssh.misc.PermissionDenied)
+                    else "general-connection-error"
+                ),
+                original_msg,
             )
-        except OSError as e:
-            pkdlog("{}", pkdexc())
-            if e.errno == errno.EHOSTUNREACH:
-                raise sirepo.util.UserAlert(
-                    f"Host {self.cfg.host} unreachable. Please try again later.",
-                )
-            raise
         finally:
             self.pkdel("_creds")
 
@@ -242,7 +242,6 @@ scancel -u $USER >& /dev/null || true
         raise util.SRException(
             "sbatchLogin",
             PKDict(
-                host=self.cfg.host,
                 isModal=True,
                 isSbatchLogin=True,
                 reason=reason,

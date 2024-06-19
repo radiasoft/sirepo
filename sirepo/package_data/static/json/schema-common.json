@@ -162,6 +162,7 @@
         "runStatus": "/run-status",
         "saveModerationReason": "/save-moderation-reason",
         "saveSimulationData": "/save-simulation",
+        "sbatchLoginStatus": "/sbatch-login-status",
         "sbatchLogin": "/sbatch-login",
         "serverStatus": "/server-status",
         "simOauthFlashAuthorized": "/sim-oauth-flash-authorized",
@@ -180,11 +181,10 @@
     },
     "common": {
         "adm": {
-            "userRoleInviteColumns": [
+            "userRoleModerationColumns": [
               ["email", "Email"],
               ["uid", "uid"],
               ["role", "Role"],
-              ["token", "Token"],
               ["status", "Status"],
               ["last_updated", "Last Updated"],
               ["moderator_uid", "Moderator uid"]

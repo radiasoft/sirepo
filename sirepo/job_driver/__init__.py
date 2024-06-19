@@ -96,6 +96,9 @@ class DriverBase(PKDict):
         self.__instances[self._agent_id] = self
         pkdlog("{}", self)
 
+    def agent_is_ready_or_starting(self):
+        return self._websocket_ready.is_set() or bool(self._websocket_ready_timeout)
+
     def destroy_op(self, op):
         """Remove op from our list of sends"""
         self._prepared_sends.pkdel(op.op_id)
@@ -305,7 +308,7 @@ class DriverBase(PKDict):
         self._websocket_ready_timeout_cancel()
         if self._websocket:
             if self._websocket != msg.handler:
-                raise AssertionError(f"incoming msg.content={msg.content}")
+                raise AssertionError(pkdformat("incoming msg.content={}", msg.content))
         else:
             self._websocket = msg.handler
         self._websocket_ready.set()
@@ -322,8 +325,7 @@ class DriverBase(PKDict):
             return
         try:
             async with self._agent_life_change_lock:
-                if self._websocket_ready_timeout or self._websocket_ready.is_set():
-                    # agent is starting or ready
+                if self.agent_is_ready_or_starting():
                     return
                 pkdlog("{} {} await=_do_agent_start", self, op)
                 # All awaits must be after this. If a call hangs the timeout
@@ -391,10 +393,6 @@ class DriverBase(PKDict):
         if n in (job.OP_CANCEL, job.OP_KILL, job.OP_BEGIN_SESSION):
             return res
         if n == job.OP_SBATCH_LOGIN:
-            if self._prepared_sends:
-                raise AssertionError(
-                    f"received op={op} but have _prepared_sends={self._prepared_sends}",
-                )
             return res
         await _alloc_check(
             op.op_slot.alloc, "Waiting for another simulation to complete await=op_slot"
