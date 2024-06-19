@@ -1,5 +1,6 @@
 {
     "dynamicYLabel": false,
+    "plot_type": "parameter",
     "plots": [
         {
             "col_name": "LinearDensity",

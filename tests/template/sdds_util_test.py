@@ -28,6 +28,7 @@ def test_sdds_lineplot():
                         y1="LinearDensity",
                         y2="LinearDensityDeriv",
                         y3="DeltaGamma",
+                        plotName=f,
                     ),
                     format_plot=_format_plot,
                 )
