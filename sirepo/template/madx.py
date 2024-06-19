@@ -901,7 +901,7 @@ def _format_rpn_value(value):
 
     if code_variable.CodeVar.infix_to_postfix(value) == value:
         value = code_variable.PurePythonEval.postfix_to_infix(value)
-    if type(value) == str and "pow" in value:
+    if type(value) == str and ("pow" in value or re.search(r"\-\s*\-", value)):
         tree = ast.parse(value)
         for n in ast.walk(tree):
             Visitor().visit(n)
