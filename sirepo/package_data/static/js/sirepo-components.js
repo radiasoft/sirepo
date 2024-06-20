@@ -1531,7 +1531,7 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
         },
     };
 });
-
+// TODO (gurhar1133): generalize between these two
 SIREPO.app.directive('parameterCsvLink', function(appState, panelState) {
     return {
         restrict: 'A',
