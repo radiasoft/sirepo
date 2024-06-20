@@ -32,7 +32,7 @@ _ACTIVE = frozenset(
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec(
-        "require_adm", token="AuthModerationToken", status="AuthModerationStatus"
+        "require_adm", uid="Str", role="Str", status="AuthModerationStatus"
     )
     async def api_admModerate(self):
         def _send_moderation_status_email(info):
@@ -56,21 +56,25 @@ class API(sirepo.quest.API):
         def _set_moderation_status(info):
             if info.status == "approve":
                 self.auth_db.model("UserRole").add_roles(roles=[info.role])
-            self.auth_db.model("UserRoleInvite").set_status(
+            self.auth_db.model("UserRoleModeration").set_status(
                 role=info.role,
                 status=info.status,
                 moderator_uid=info.moderator_uid,
             )
 
         req = self.parse_post(type=False)
-        i = self.auth_db.model("UserRoleInvite").unchecked_search_by(
-            token=req.req_data.token
+        i = self.auth_db.model("UserRoleModeration").unchecked_search_by(
+            uid=req.req_data.uid,
+            role=req.req_data.role,
         )
         if not i:
-            pkdlog(f"No record in UserRoleInvite for token={req.req_data.token}")
+            pkdlog()
             raise sirepo.util.UserAlert(
                 "Could not find the moderation request; "
-                "refresh your browser to get the latest moderation list.",
+                + "refresh your browser to get the latest moderation list.",
+                "UserRoleModeration not found uid={} role={}",
+                req.req_data.uid,
+                req.req_data.role,
             )
         p = PKDict(
             app_name=sirepo.simulation_db.SCHEMA_COMMON.appInfo[
@@ -80,14 +84,13 @@ class API(sirepo.quest.API):
             status=req.req_data.status,
             moderator_uid=self.auth.logged_in_user(),
         )
-        pkdlog("status={} uid={} role={} token={}", p.status, i.uid, i.role, i.token)
-        with self.auth.logged_in_user_set(uid=i.uid, method=self.auth.METHOD_EMAIL):
-            p.pkupdate(
-                display_name=self.auth.user_display_name(i.uid),
-                user_name=self.auth.logged_in_user_name(),
-            )
-            _set_moderation_status(p)
-            _send_moderation_status_email(p)
+        pkdlog("status={} uid={} role={}", p.status, i.uid, i.role)
+        p.pkupdate(
+            display_name=self.auth.user_display_name(i.uid),
+            user_name=self.auth.user_name(i.uid),
+        )
+        _set_moderation_status(p)
+        _send_moderation_status_email(p)
         return self.reply_ok()
 
     @sirepo.quest.Spec("require_adm")
@@ -106,7 +109,9 @@ class API(sirepo.quest.API):
         return self.reply_dict(
             PKDict(
                 rows=_datetime_to_str(
-                    self.auth_db.model("UserRoleInvite").get_moderation_request_rows()
+                    self.auth_db.model(
+                        "UserRoleModeration"
+                    ).get_moderation_request_rows()
                 ),
             ),
         )
@@ -131,15 +136,14 @@ class API(sirepo.quest.API):
             raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
         try:
             self.auth_db.model(
-                "UserRoleInvite",
+                "UserRoleModeration",
                 uid=u,
                 role=r,
                 status=sirepo.auth_role.ModerationStatus.PENDING,
-                token=sirepo.util.random_base62(32),
             ).save()
         except sqlalchemy.exc.IntegrityError as e:
             pkdlog(
-                "Error={} saving UserRoleInvite for uid={} role={} stack={}",
+                "Error={} saving UserRoleModeration for uid={} role={} stack={}",
                 e,
                 u,
                 r,
@@ -174,7 +178,7 @@ def _datetime_to_str(rows):
 
 
 def raise_control_for_user(qcall, uid, role):
-    s = qcall.auth_db.model("UserRoleInvite").get_status(role=role)
+    s = qcall.auth_db.model("UserRoleModeration").get_status(uid=uid, role=role)
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", None)
     if s == sirepo.auth_role.ModerationStatus.DENY:

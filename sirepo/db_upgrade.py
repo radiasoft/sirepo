@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Database upgrade management
 
 :copyright: Copyright (c) 2021-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkinspect, pkio, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
@@ -83,6 +83,23 @@ def _20240507_cloudmc_to_openmc(qcall):
     for u in qcall.auth_db.all_uids():
         with qcall.auth.logged_in_user_set(u):
             _migrate_sim_type("cloudmc", "openmc", qcall, u)
+
+
+def _20240524_add_role_user(qcall):
+    if not qcall.auth_db.table_exists("user_role_invite_t"):
+        return
+    qcall.auth_db.execute_sql(
+        """
+        INSERT INTO user_role_moderation_t (uid, role, status, moderator_uid, last_updated)
+        SELECT uid, role, status, moderator_uid, last_updated
+        FROM user_role_invite_t
+        """
+    )
+    qcall.auth_db.drop_table("user_role_invite_t")
+    qcall.auth_db.execute_sql(
+        f"INSERT INTO user_role_t (uid, role, expiration)"
+        + f'SELECT uid, "{sirepo.auth_role.ROLE_USER}", NULL from user_registration_t'
+    )
 
 
 @contextlib.contextmanager

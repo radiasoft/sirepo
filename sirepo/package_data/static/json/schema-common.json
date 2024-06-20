@@ -181,11 +181,10 @@
     },
     "common": {
         "adm": {
-            "userRoleInviteColumns": [
+            "userRoleModerationColumns": [
               ["email", "Email"],
               ["uid", "uid"],
               ["role", "Role"],
-              ["token", "Token"],
               ["status", "Status"],
               ["last_updated", "Last Updated"],
               ["moderator_uid", "Moderator uid"]
