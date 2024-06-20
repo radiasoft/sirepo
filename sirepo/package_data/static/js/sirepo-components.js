@@ -1532,6 +1532,34 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('parameterCsvLink', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        template: `
+            <a href data-ng-show=":: isParameterPlot()" data-ng-click="exportParameter()">Download CSV</a>
+        `,
+        controller: function($scope) {
+
+            function findReportPanelScope() {
+                var s = $scope.$parent;
+                while (s && ! s.reportPanel) {
+                    s = s.$parent;
+                }
+                return s;
+            }
+
+            $scope.exportParameter = function() {
+                findReportPanelScope().$broadcast('parameterPlotCSVDownload', $scope.axis);
+            };
+
+            $scope.isParameterPlot = function() {
+                // srdbg("panelState.findParentAttribute($scope, 'reportPanel')", panelState.findParentAttribute($scope, 'reportPanel'))
+                return panelState.findParentAttribute($scope, 'reportPanel').includes('parameter');
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('modalDialog', function(appState, panelState) {
     return {
         restrict: 'A',
