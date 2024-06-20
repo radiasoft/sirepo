@@ -18,7 +18,7 @@ _env_mail_common() {
 
 _env_mail_smtp() {
     _env_mail_common
-    export SIREPO_SMTP_FROM_EMAIL=$USER+support@localhost.localdomainn
+    export SIREPO_SMTP_FROM_EMAIL=$USER+support@localhost.localdomain
     export SIREPO_SMTP_SEND_DIRECTLY=1
     export SIREPO_SMTP_SERVER=localhost
 }
@@ -89,7 +89,7 @@ _op_jupyterhub() {
     for f in \
         jupyterhub==1.4.2 \
         jupyterlab==3.1.14  \
-        notebook==6.5.4 \
+        'notebook>=6.5.6' \
         jupyterlab-server==2.8.2\
         ; do
         if ! [[ $p =~ $f ]]; then

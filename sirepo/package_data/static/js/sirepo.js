@@ -2967,11 +2967,11 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     function checkLoginRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn
             || SIREPO.authState.needCompleteRegistration
-            // Any controller that has 'login' in it will stay on page
-            || (route.controller && route.controller.toLowerCase().indexOf('login') >= 0)
+            || route.$$route && route.$$route.sirepoNoLoginRedirect
         ) {
             return;
         }
+
         let p = browserStorage.getString(storageKey);
         if (! p) {
             return;
@@ -3107,7 +3107,7 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
     function saveLoginRedirect() {
         const u = $location.url();
         if (u == LOGIN_URI) {
-            return true;
+            return;
         }
         browserStorage.setString(
             storageKey,

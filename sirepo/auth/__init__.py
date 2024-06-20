@@ -311,6 +311,13 @@ class _Auth(sirepo.quest.Attr):
             method=self._qcall_bound_method(),
         )
 
+    def logged_in_user_name_local_part(self):
+        """If user_name is email address, return the local part.
+        Otherwise, just return user_name.
+        """
+
+        return self.logged_in_user_name().split("@")[0].lower()
+
     @contextlib.contextmanager
     def logged_in_user_set(self, uid, method=METHOD_GUEST):
         """Ephemeral login or may be used to logout"""
