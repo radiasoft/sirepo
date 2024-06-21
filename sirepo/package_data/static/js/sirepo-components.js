@@ -1502,7 +1502,7 @@ SIREPO.app.directive('downloadCsvLink', function(appState, panelState) {
         template: `
             <a href data-ng-if=":: plotType() == '3d'" data-ng-click="exportCSV('x')">CSV - Horizontal Cut</a>
             <a href data-ng-if=":: plotType() == '3d'" data-ng-click="exportCSV('y')">CSV - Vertical Cut</a>
-            <a href data-ng-if=":: plotType() == '3d'" data-ng-click="exportCSV('z')">CSV - Full Plot</a>
+            <a href data-ng-if=":: plotType() == '3d'" data-ng-click="exportCSV('full')">CSV - Full Plot</a>
             <a href data-ng-if=":: plotType() == 'parameter'" data-ng-click="exportCSV('')">Download CSV</a>
         `,
         controller: function($scope) {
