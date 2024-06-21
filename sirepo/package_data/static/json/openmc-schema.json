@@ -78,6 +78,8 @@
         ],
         "MaterialLibrary": [
             ["ENDFB-7.1-NNDC", "ENDFB-7.1-NNDC"],
+            ["ENDFB-8.0-NNDC", "ENDFB-8.0-NNDC"],
+            ["FENDL-3.1d", "FENDL-3.1d"],
             ["TENDL-2019", "TENDL-2019"]
         ],
         "Particle": [
