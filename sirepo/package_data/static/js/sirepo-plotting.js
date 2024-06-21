@@ -3,6 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
+SIREPO.PLOTTING_PARAMETER_CSV_EVENT = 'parameterPlotCSVDownload';
 SIREPO.PLOTTING_YMIN_ZERO = true;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
@@ -3250,7 +3251,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                         points.push(row);
                     });
                 }
-                srdbg("HEADING FOR THE PLOT3D=", heading);
                 plotting.exportCSV(title, heading, points);
             });
         },
@@ -4322,25 +4322,25 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
             };
 
-            $scope.$on('parameterPlotCSVDownload', ()=> {
+            $scope.$on(SIREPO.PLOTTING_PARAMETER_CSV_EVENT, ()=> {
                 var points = [];
                 $scope.axes.y.plots.forEach((plot)=> {
                     points.push(plot.points);
-                })
+                });
                 var res = '';
                 $scope.axes.y.plots.forEach((plot, idx) => {
                     res += (idx > 0 ? ', ' : '') + plot.label;
-                })
+                });
                 res += '\n';
                 for (var i = 0; i < points[0].length; i++) {
-                    var row = ''
+                    var row = '';
                     points.forEach((col, idx) => {
                         row += (idx > 0 ? ', ' : '') + col[i].toExponential(9);
                     });
                     res += row + '\n';
                 }
-                saveAs(new Blob([res], {type: "text/csv;charset=utf-8"}), "parameter.csv");
-            })
+                saveAs(new Blob([res], {type: "text/csv;charset=utf-8"}), `${$scope.modelName}.csv`);
+            });
 
             // Note that here we pad the axis domain, not the scale!  The scale is set by
             // user interaction

@@ -1496,14 +1496,14 @@ SIREPO.app.directive('videoButton', function(appState, requestSender) {
     };
 });
 
-SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
+SIREPO.app.directive('downloadCsvLink', function(appState, panelState) {
     return {
         restrict: 'A',
-        scope: {
-            axis: '@lineoutCsvLink',
-        },
         template: `
-            <a href data-ng-show=":: is3dPlot()" data-ng-click="exportLineout()">CSV - {{:: axisName }}</a>
+            <a href data-ng-if=":: plotType() == '3d'" data-ng-click="exportCSV('x')">CSV - Horizontal Cut</a>
+            <a href data-ng-if=":: plotType() == '3d'" data-ng-click="exportCSV('y')">CSV - Vertical Cut</a>
+            <a href data-ng-if=":: plotType() == '3d'" data-ng-click="exportCSV('z')">CSV - Full Plot</a>
+            <a href data-ng-if=":: plotType() == 'parameter'" data-ng-click="exportCSV('')">Download CSV</a>
         `,
         controller: function($scope) {
 
@@ -1515,46 +1515,18 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
                 return s;
             }
 
-            $scope.axisName = $scope.axis == 'x'
-                ? 'Horizontal Cut'
-                : $scope.axis == 'y'
-                    ? 'Vertical Cut'
-                    : 'Full Plot';
-
-            $scope.exportLineout = function() {
-                findReportPanelScope().$broadcast(SIREPO.PLOTTING_LINE_CSV_EVENT, $scope.axis);
+            $scope.exportCSV = function(axis) {
+                const e = $scope.plotType() == '3d' ? SIREPO.PLOTTING_LINE_CSV_EVENT : SIREPO.PLOTTING_PARAMETER_CSV_EVENT;
+                findReportPanelScope().$broadcast(e, axis);
             };
 
-            $scope.is3dPlot = function() {
-                return panelState.findParentAttribute($scope, 'reportPanel') == '3d';
-            };
-        },
-    };
-});
-// TODO (gurhar1133): generalize between these two
-SIREPO.app.directive('parameterCsvLink', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        template: `
-            <a href data-ng-show=":: isParameterPlot()" data-ng-click="exportParameter()">Download CSV</a>
-        `,
-        controller: function($scope) {
-
-            function findReportPanelScope() {
-                var s = $scope.$parent;
-                while (s && ! s.reportPanel) {
-                    s = s.$parent;
+            $scope.plotType = function() {
+                const p = panelState.findParentAttribute($scope, 'reportPanel');
+                if (p == '3d') {
+                    return '3d';
+                } else if (p.includes('parameter')) {
+                    return 'parameter';
                 }
-                return s;
-            }
-
-            $scope.exportParameter = function() {
-                findReportPanelScope().$broadcast('parameterPlotCSVDownload', $scope.axis);
-            };
-
-            $scope.isParameterPlot = function() {
-                // srdbg("panelState.findParentAttribute($scope, 'reportPanel')", panelState.findParentAttribute($scope, 'reportPanel'))
-                return panelState.findParentAttribute($scope, 'reportPanel').includes('parameter');
             };
         },
     };

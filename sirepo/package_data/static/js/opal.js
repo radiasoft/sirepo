@@ -30,7 +30,7 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
     `;
     SIREPO.appDownloadLinks = `
-        <li data-parameter-csv-link=""></li>
+        <li data-download-csv-link=""></li>
     `;
     SIREPO.lattice = {
         canReverseBeamline: true,
