@@ -4334,9 +4334,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 res += '\n';
                 for (var i = 0; i < points[0].length; i++) {
                     var row = '';
-                    points.forEach((col, idx) => {
+                    for (const [idx, col] of points.entries()) {
                         row += (idx > 0 ? ', ' : '') + col[i].toExponential(9);
-                    });
+                    }
                     res += row + '\n';
                 }
                 saveAs(new Blob([res], {type: "text/csv;charset=utf-8"}), `${$scope.modelName}.csv`);
