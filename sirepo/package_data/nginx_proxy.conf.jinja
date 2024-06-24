@@ -10,11 +10,15 @@ events {
 }
 
 http {
-    client_max_body_size 200m;
+    # We have to define all of these paths because we are running nginx as a non-privileged user.
+    # nginx default paths expect write level privs on files only writable by root.
+    # So, we have to define our own paths in a place writable by us (vagrant).
     client_body_temp_path {{ run_dir }}/client_body_temp;
     proxy_temp_path {{ run_dir }}/proxy_temp;
     fastcgi_temp_path {{ run_dir }}/fastcgi_temp;
+    uwsgi_temp_path {{ run_dir }}/uwsgi_temp;
     scgi_temp_path {{ run_dir }}/scgi_temp;
+    client_max_body_size 200m;
     log_format main '$remote_addr - $remote_user [$time_local] "$request" '
         '$status $body_bytes_sent "$http_referer" '
         '"$http_user_agent" "$http_x_forwarded_for"';

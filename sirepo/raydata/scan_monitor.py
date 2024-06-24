@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """ray data scan monitor
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkasyncio
 from pykern import pkconfig
 from pykern import pkio
@@ -16,6 +16,7 @@ import databroker.queries
 import datetime
 import functools
 import io
+import itertools
 import math
 import pymongo
 import re
@@ -23,6 +24,7 @@ import requests
 import sirepo.raydata.adaptive_workflow
 import sirepo.raydata.analysis_driver
 import sirepo.raydata.databroker
+import sirepo.sim_data
 import sirepo.srdb
 import sirepo.srtime
 import sqlalchemy
@@ -37,14 +39,12 @@ _ANALYSIS_PROCESSOR_TASKS = None
 #: task(s) monitoring catalogs for new scans
 _CATALOG_MONITOR_TASKS = PKDict()
 
-_DEFAULT_COLUMNS = PKDict(
-    start="time",
-    stop="time",
-    suid="rduid",
-)
-
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
+
+# Fields that come from the top-level of metadata (as opposed to start document).
+# Must match key name from _default_columns()
+_METADATA_COLUMNS = {"start", "stop", "suid"}
 
 _NON_DISPLAY_SCAN_FIELDS = "rduid"
 
@@ -343,7 +343,9 @@ class _RequestHandler(_JsonPostRequestHandler):
             return q
 
         def _sort_params(req_data):
-            c = _DEFAULT_COLUMNS.get(req_data.sortColumn, req_data.sortColumn)
+            c = _default_columns(req_data.catalogName).get(
+                req_data.sortColumn, req_data.sortColumn
+            )
             s = [
                 (
                     c,
@@ -554,6 +556,20 @@ def _display_columns(columns):
     return [k for k in columns if k not in _NON_DISPLAY_SCAN_FIELDS]
 
 
+def _default_columns(catalog_name):
+    return PKDict(
+        start="time",
+        stop="time",
+        suid="rduid",
+        **{
+            e: e
+            for e in sirepo.sim_data.get_class("raydata")
+            .schema()
+            .constants.defaultColumns.get(catalog_name, [])
+        },
+    )
+
+
 def _get_detailed_status(catalog_name, rduid):
     d = sirepo.raydata.analysis_driver.get(
         PKDict(catalog_name=catalog_name, rduid=rduid)
@@ -647,6 +663,9 @@ def _scan_index(rduid, req_data):
 def _scan_info(
     rduid, status, detailed_status, analysis_elapsed_time, req_data, all_columns
 ):
+    def _get_start_field(metadata, column):
+        return
+
     m = sirepo.raydata.databroker.get_metadata(rduid, req_data.catalogName)
     d = PKDict(
         rduid=rduid,
@@ -657,12 +676,15 @@ def _scan_info(
             PKDict(rduid=rduid, **req_data)
         ).has_analysis_pdfs(),
     )
-    for c in _DEFAULT_COLUMNS.keys():
-        d[c] = getattr(m, c)()
-
-    for c in req_data.get("selectedColumns", []):
-        d[c] = m.get_start_field(c, unchecked=True)
-
+    for c in itertools.chain(
+        _default_columns(req_data.catalogName).keys(),
+        req_data.get("selectedColumns", []),
+    ):
+        d[c] = (
+            getattr(m, c)()
+            if c in _METADATA_COLUMNS
+            else m.get_start_field(c, unchecked=True)
+        )
     for c in m.get_start_fields():
         all_columns.add(c)
 

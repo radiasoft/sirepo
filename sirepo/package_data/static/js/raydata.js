@@ -102,8 +102,14 @@ SIREPO.app.factory('columnsService', function(appState, requestSender, $rootScop
         );
     }
 
-    self.defaultColumns = (analysisStatus) => {
-        const res = ['status', 'start', 'stop', 'suid'];
+    self.defaultColumns = (analysisStatus, appState) => {
+        const res = [
+	    'status',
+	    'start',
+	    'stop',
+	    'suid',
+	    ...(SIREPO.APP_SCHEMA.constants.defaultColumns[appState.models.catalog.catalogName] || []),
+	];
         if (analysisStatus == 'queued') {
             res.splice(1, 0, 'queue order');
         }
@@ -637,7 +643,7 @@ SIREPO.app.directive('scansTable', function() {
 
             function setColumnHeaders() {
                 $scope.columnHeaders = [
-                    ...columnsService.defaultColumns($scope.analysisStatus),
+                    ...columnsService.defaultColumns($scope.analysisStatus, appState),
                     ...appState.models.metadataColumns.selected
                 ];
             }
@@ -791,7 +797,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.showDeleteButton = index => {
-                return index > columnsService.defaultColumns($scope.analysisStatus).length - 1;
+                return index > columnsService.defaultColumns($scope.analysisStatus, appState).length - 1;
             };
 
             $scope.showPdfButton = () => {

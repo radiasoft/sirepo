@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Test role management operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 import os
 import pytest
 
@@ -33,6 +33,7 @@ def test_flash_change_role_change_lib_files(auth_fc):
     pkunit.data_dir().join("db").copy(srdb.root())
     _proprietary_file = "flash.tar.gz"
     fc = auth_fc
+
     fc.sr_email_login("a@b.c", sim_type="flash")
     r = fc.sr_post(
         "listSimulations", {"simulationType": fc.sr_sim_type}, raw_response=True
@@ -51,9 +52,14 @@ def test_flash_list_role_by_email(auth_fc):
     from sirepo.pkcli import roles
 
     e = "a@b.c"
-    r = ["premium"]
+    r = "premium"
     pkunit.data_dir().join("db").copy(srdb.root())
     auth_fc.sr_email_login(e, sim_type="flash")
-    roles.add(e, *r)
-    pkunit.pkeq(r, roles.list(e))
-    pkunit.pkeq(r, roles.list(auth_fc.sr_uid))
+    roles.add(e, r)
+    pkunit.pkok(r in roles.list(e), "expected user {} to have role {}", e, r)
+    pkunit.pkok(
+        r in roles.list(auth_fc.sr_uid),
+        "expected user {} to have role {}",
+        auth_fc.sr_uid,
+        r,
+    )

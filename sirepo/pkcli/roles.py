@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """CRUD operations for user roles
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.pkcli import admin
@@ -46,13 +45,30 @@ def delete_roles(*args):
     delete(*args)
 
 
+def disable_user(uid_or_email, moderator):
+    """Remove role user
+    Args:
+        uid_or_email (str): Uid or email of the user
+        moderator (str): Uid or email
+    """
+    with _parse_args(uid_or_email) as qcall:
+        qcall.auth_db.model("UserRole").delete_roles([sirepo.auth_role.ROLE_USER])
+        qcall.auth_db.model(
+            "UserRoleModeration",
+            uid=qcall.auth.logged_in_user(),
+            role=sirepo.auth_role.ROLE_USER,
+            status=sirepo.auth_role.ModerationStatus.DENY,
+            moderator_uid=_lookup_uid(qcall, moderator),
+        ).save()
+
+
 def list(uid_or_email):
     """List all roles assigned to a user
     Args:
         uid_or_email (str): Uid or email of the user
     """
 
-    with _parse_args(uid_or_email, []) as qcall:
+    with _parse_args(uid_or_email) as qcall:
         return qcall.auth_db.model("UserRole").get_roles()
 
 
@@ -61,18 +77,22 @@ def list_roles(*args):
     return list(*args)
 
 
+def _lookup_uid(qcall, uid_or_email):
+    # POSIT: Uid's are from the base62 charset so an '@' implies an email.
+    if "@" in uid_or_email:
+        return qcall.auth_db.model("AuthEmailUser").unchecked_uid(
+            user_name=uid_or_email
+        )
+    else:
+        return qcall.auth.unchecked_get_user(uid_or_email)
+
+
 # TODO(e-carlin): This only works for email auth or using a uid
 # doesn't work for other auth methods
 @contextlib.contextmanager
-def _parse_args(uid_or_email, roles):
+def _parse_args(uid_or_email, roles=None):
     with sirepo.quest.start() as qcall:
-        # POSIT: Uid's are from the base62 charset so an '@' implies an email.
-        if "@" in uid_or_email:
-            u = qcall.auth_db.model("AuthEmailUser").unchecked_uid(
-                user_name=uid_or_email
-            )
-        else:
-            u = qcall.auth.unchecked_get_user(uid_or_email)
+        u = _lookup_uid(qcall, uid_or_email)
         if not u:
             pykern.pkcli.command_error("uid_or_email={} not found", uid_or_email)
         if roles:

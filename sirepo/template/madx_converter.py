@@ -19,8 +19,8 @@ import sirepo.template
 class MadxConverter:
     _MADX_VARIABLES = PKDict(
         twopi="pi * 2",
-        raddeg="180 / pi",
-        degrad="pi / 180",
+        raddeg="pi / 180",
+        degrad="180 / pi",
     )
 
     def __init__(self, sim_type, field_map, downcase_variables=False, qcall=None):
