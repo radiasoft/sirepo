@@ -76,7 +76,7 @@
         "settings": {
             "batches": 1,
             "inactive": 0,
-            "materialLibrary": "TENDL-2019",
+            "materialLibrary": "ENDFB-8.0-NNDC",
             "particles": 10000,
             "photon_transport": "0",
             "run_mode": "eigenvalue",
