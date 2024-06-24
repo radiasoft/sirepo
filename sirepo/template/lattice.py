@@ -350,10 +350,11 @@ class LatticeParser(object):
             # assert label, 'unlabeled element: {}'.format(values)
             if not label:
                 label = cmd
-            else:
-                assert (
-                    label.upper() not in self.elements_by_name
-                ), "duplicate element in sequence: {}".format(label)
+            if label.upper() in self.elements_by_name:
+                self.container["items"].append(
+                    [self.elements_by_name[label.upper()]._id, at]
+                )
+                return
             if cmd not in self.schema.model:
                 parent = self.elements_by_name[cmd]
                 assert parent
