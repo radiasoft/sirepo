@@ -10,12 +10,10 @@ SIREPO.app.config(function() {
           '<input data-reflectivity-material="" data-ng-model="model[field]" class="form-control" required />',
         '</div>',
     ].join('');
-    SIREPO.appDownloadLinks = [
-        '<li data-lineout-csv-link="x"></li>',
-        '<li data-lineout-csv-link="y"></li>',
-        '<li data-lineout-csv-link="full"></li>',
-        '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
-    ].join('');
+    SIREPO.appDownloadLinks = `
+        <li data-download-csv-link=""></li>
+        <li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>'
+    `;
 });
 
 SIREPO.app.factory('shadowService', function(appState, beamlineService, panelState, requestSender) {
