@@ -9,6 +9,7 @@ INSERT INTO db_upgrade_t VALUES('_20230203_drop_spa_session','');
 INSERT INTO db_upgrade_t VALUES('_20231120_deploy_flash_update','');
 INSERT INTO db_upgrade_t VALUES('_20240322_remove_github_auth','');
 INSERT INTO db_upgrade_t VALUES('_20240507_cloudmc_to_openmc','');
+INSERT INTO db_upgrade_t VALUES('_20240524_add_role_user','');
 CREATE TABLE auth_email_user_t (
 	unverified_email VARCHAR(255) NOT NULL,
 	uid VARCHAR(8),
@@ -37,18 +38,16 @@ CREATE TABLE user_role_t (
 	role VARCHAR(100) NOT NULL, expiration DATETIME,
 	PRIMARY KEY (uid, role)
 );
-CREATE TABLE user_role_invite_t (
-	uid VARCHAR(8) NOT NULL,
-	role VARCHAR(100) NOT NULL,
-	status VARCHAR(100) NOT NULL,
-	token VARCHAR(100) NOT NULL,
-	moderator_uid VARCHAR(8),
-	last_updated DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL,
-	PRIMARY KEY (uid, role),
-	UNIQUE (token)
-);
 CREATE TABLE zz_sentinel (
 	anything VARCHAR(8) NOT NULL,
 	PRIMARY KEY (anything)
+);
+CREATE TABLE user_role_moderation_t (
+	uid VARCHAR(8) NOT NULL, 
+	role VARCHAR(100) NOT NULL, 
+	status VARCHAR(100) NOT NULL, 
+	moderator_uid VARCHAR(8), 
+	last_updated DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
+	PRIMARY KEY (uid, role)
 );
 COMMIT;

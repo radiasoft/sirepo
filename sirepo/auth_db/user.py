@@ -38,7 +38,7 @@ class UserRole(sirepo.auth_db.UserDbBase):
             try:
                 # Check here, because sqlite doesn't through IntegrityErrors
                 # at the point of the new() operation.
-                if not self.has_role(r):
+                if not self.has_role(r, uid=u):
                     self.new(uid=u, role=r, expiration=expiration).save()
             except sqlalchemy.exc.IntegrityError:
                 # role already exists
@@ -53,14 +53,14 @@ class UserRole(sirepo.auth_db.UserDbBase):
         r.expiration = expiration
         r.save()
 
-    def delete_roles(self, roles):
+    def delete_roles(self, roles, uid=None):
         from sirepo import sim_data
 
         cls = self.__class__
         self.auth_db.execute(
             sqlalchemy.delete(cls)
             .where(
-                cls.uid == self.logged_in_user(),
+                cls.uid == (uid or self.logged_in_user()),
             )
             .where(
                 cls.role.in_(roles),
@@ -71,8 +71,10 @@ class UserRole(sirepo.auth_db.UserDbBase):
     def get_roles(self):
         return self.search_all_for_column("role", uid=self.logged_in_user())
 
-    def has_role(self, role):
-        return bool(self.unchecked_search_by(uid=self.logged_in_user(), role=role))
+    def has_role(self, role, uid=None):
+        return bool(
+            self.unchecked_search_by(uid=uid or self.logged_in_user(), role=role)
+        )
 
     def is_expired(self, role):
         u = self.logged_in_user()
@@ -102,12 +104,11 @@ class UserRole(sirepo.auth_db.UserDbBase):
         ]
 
 
-class UserRoleInvite(sirepo.auth_db.UserDbBase):
-    __tablename__ = "user_role_invite_t"
+class UserRoleModeration(sirepo.auth_db.UserDbBase):
+    __tablename__ = "user_role_moderation_t"
     uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID, primary_key=True)
     role = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, primary_key=True)
     status = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
-    token = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False, unique=True)
     moderator_uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID)
     last_updated = sqlalchemy.Column(
         sqlalchemy.DateTime(),
@@ -135,8 +136,8 @@ class UserRoleInvite(sirepo.auth_db.UserDbBase):
         )
         return [PKDict(zip(r.keys(), r)) for r in q]
 
-    def get_status(self, role):
-        s = self.unchecked_search_by(uid=self.logged_in_user(), role=role)
+    def get_status(self, role, uid=None):
+        s = self.unchecked_search_by(uid=uid or self.logged_in_user(), role=role)
         if not s:
             return None
         return sirepo.auth_role.ModerationStatus.check(s.status)

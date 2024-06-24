@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
 """CLI for jupyterhublogin
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcli
+from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 import pyisemail
@@ -58,9 +59,28 @@ def create_user(email, display_name):
         with qcall.auth.logged_in_user_set(u, method=sirepo.auth.METHOD_EMAIL):
             n = sirepo.sim_api.jupyterhublogin.create_user(
                 qcall=qcall,
-                check_dir=True,
             )
             qcall.auth_db.model("UserRole").add_roles(
                 roles=[sirepo.auth_role.for_sim_type("jupyterhublogin")],
             )
         return PKDict(email=email, jupyterhub_user_name=n)
+
+
+def unknown_user_dirs():
+    """Directory names for Jupyter users that are not in database.
+    Excludes directories that begin with capital letter.
+
+    Returns:
+        list: directories for Jupyter users that are not in the database.
+    """
+    with sirepo.quest.start() as qcall:
+        m = []
+        r = frozenset(
+            qcall.auth_db.model("JupyterhubUser").search_all_for_column("user_name")
+        )
+        for d in pkio.sorted_glob(
+            sirepo.sim_api.jupyterhublogin.cfg().user_db_root_d.join("*")
+        ):
+            if not d.basename[0].isupper() and not d.basename in r:
+                m.append(d)
+        return m

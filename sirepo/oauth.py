@@ -8,7 +8,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import authlib.integrations.base_client
 import authlib.integrations.requests_client
-import sirepo.events
 import sirepo.feature_config
 import sirepo.sim_oauth
 import sirepo.uri_router
