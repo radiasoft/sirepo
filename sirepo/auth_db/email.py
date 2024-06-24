@@ -39,6 +39,12 @@ class AuthEmailUser(sirepo.auth_db.UserDbBase):
     token = sqlalchemy.Column(sqlalchemy.String(sirepo.util.TOKEN_SIZE), unique=True)
     expires = sqlalchemy.Column(sqlalchemy.DateTime())
 
+    def __init__(self, *args, **kwargs):
+        for x in ("unverified_email", "user_name"):
+            if (v := kwargs.get(x)) is not None:
+                kwargs[x] = v.lower()
+        super().__init__(*args, **kwargs)
+
     def create_token(self):
         self.expires = sirepo.srtime.utc_now() + _EXPIRES_DELTA
         self.token = sirepo.util.create_token(self.unverified_email)

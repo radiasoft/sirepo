@@ -7,21 +7,14 @@
         }
     },
     "appDefaults": {
-        "route": "migrateJupyter"
+        "route": "jupyterHubLogin"
     },
     "localRoutes": {
-        "migrateJupyter": {
-            "route": "/migrate-jupyter",
+        "jupyterHubLogin": {
+            "route": "/jupyterhublogin",
             "config": {
-                "controller": "JupyterhubMigrateController as jupyterhubmigrate",
-                "templateUrl": "/static/html/jupyterhub-migrate.html"
-            }
-        },
-        "jupyterNameConflict": {
-            "route": "/jupyter-name-conflict",
-            "config": {
-                "controller": "NameConflictController as nameConflict",
-                "templateUrl": "/static/html/jupyter-name-conflict.html"
+                "controller": "JupyterHubLoginController as jupyterhublogin",
+                "templateUrl": "/static/html/jupyterhublogin.html"
             }
         }
     }

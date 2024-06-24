@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
-"""Test sirepo.cookie
+"""Test template_common ModelUnits
 
-:copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2019-2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import pytest
 
 
 def test_model_units():
