@@ -1,5 +1,6 @@
 title, "test1";
 
+REAL l2 = (0.33543 - (- 0.10457));
 REAL lt = 9.25;
 REAL sr_alpha_x = -1.0;
 REAL sr_alpha_y = -0.0;

@@ -39,6 +39,7 @@ _OPAL_PI = 3.14159265358979323846
 _OPAL_CONSTANTS = PKDict(
     pi=_OPAL_PI,
     twopi=_OPAL_PI * 2.0,
+    # note: OPAL's raddeg and raddeg have the opposite behavior of MAD-X
     raddeg=180.0 / _OPAL_PI,
     degrad=_OPAL_PI / 180.0,
     e=2.7182818284590452354,
