@@ -2,8 +2,7 @@
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
-SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
-SIREPO.PLOTTING_PARAMETER_CSV_EVENT = 'parameterPlotCSVDownload';
+SIREPO.PLOTTING_CSV_EVENT = 'plottingCSV';
 SIREPO.PLOTTING_YMIN_ZERO = true;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
@@ -3224,7 +3223,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 return appState.models[$scope.modelName].showPlotSize == '1';
             };
 
-            $scope.$on(SIREPO.PLOTTING_LINE_CSV_EVENT, function(evt, axisName) {
+            $scope.$on(SIREPO.PLOTTING_CSV_EVENT, function(evt, axisName) {
                 var title = plotting.plotTitle($scope.element);
                 var heading, points;
                 if (axisName == 'x' || axisName == 'y') {
@@ -4328,20 +4327,22 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
             };
 
-            $scope.$on(SIREPO.PLOTTING_PARAMETER_CSV_EVENT, ()=> {
-                var points = [];
+            $scope.$on(SIREPO.PLOTTING_CSV_EVENT, ()=> {
+                const points = [
+                    $scope.axes.x.points,
+                ];
                 $scope.axes.y.plots.forEach((plot)=> {
                     points.push(plot.points);
                 });
-                var res = '';
-                $scope.axes.y.plots.forEach((plot, idx) => {
-                    res += (idx > 0 ? ', ' : '') + plot.label;
-                });
+                let res = $scope.axes.x.label;
+                for (const p of $scope.axes.y.plots) {
+                    res += ',' + p.label;
+                }
                 res += '\n';
-                for (var i = 0; i < points[0].length; i++) {
-                    var row = '';
+                for (let i = 0; i < points[0].length; i++) {
+                    let row = '';
                     for (const [idx, col] of points.entries()) {
-                        row += (idx > 0 ? ', ' : '') + col[i].toExponential(9);
+                        row += (idx > 0 ? ',' : '') + col[i].toExponential(9);
                     }
                     res += row + '\n';
                 }

@@ -1516,8 +1516,9 @@ SIREPO.app.directive('downloadCsvLink', function(appState, panelState) {
             }
 
             $scope.exportCSV = function(axis) {
-                const e = $scope.plotType() == '3d' ? SIREPO.PLOTTING_LINE_CSV_EVENT : SIREPO.PLOTTING_PARAMETER_CSV_EVENT;
-                findReportPanelScope().$broadcast(e, axis);
+                findReportPanelScope().$broadcast(
+                    SIREPO.PLOTTING_CSV_EVENT,
+                    axis);
             };
 
             $scope.plotType = function() {
