@@ -59,8 +59,8 @@ _PI = 4 * math.atan(1)
 MADX_CONSTANTS = PKDict(
     pi=_PI,
     twopi=_PI * 2.0,
-    raddeg=180.0 / _PI,
-    degrad=_PI / 180.0,
+    raddeg=_PI / 180.0,
+    degrad=180 / _PI,
     e=math.exp(1),
     emass=0.510998928e-03,
     pmass=0.938272046e00,
@@ -901,7 +901,7 @@ def _format_rpn_value(value):
 
     if code_variable.CodeVar.infix_to_postfix(value) == value:
         value = code_variable.PurePythonEval.postfix_to_infix(value)
-    if type(value) == str and "pow" in value:
+    if type(value) == str and ("pow" in value or re.search(r"\-\s*\-", value)):
         tree = ast.parse(value)
         for n in ast.walk(tree):
             Visitor().visit(n)

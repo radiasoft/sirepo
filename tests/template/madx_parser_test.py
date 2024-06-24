@@ -40,7 +40,12 @@ def test_parse_madx_file():
     from sirepo.template import madx, madx_parser
 
     with pkunit.save_chdir_work():
-        for name in ("particle_track.madx", "alba.madx", "simple_cell.seq"):
+        for name in (
+            "particle_track.madx",
+            "alba.madx",
+            "simple_cell.seq",
+            "crab.madx",
+        ):
             actual = madx_parser.parse_file(
                 pkio.read_text(pkunit.data_dir().join(name))
             )
