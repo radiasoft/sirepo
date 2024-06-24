@@ -5,9 +5,12 @@
         }
     },
     "constants": {
-         "canDownloadInputFile": false,
-         "canExportArchive": false,
-         "canShowDocumentationUrl": false
+	"canDownloadInputFile": false,
+	"canExportArchive": false,
+        "canShowDocumentationUrl": false,
+	"defaultColumns": {
+	    "csx": ["plan_name"]
+	}
     },
     "dynamicFiles": {
         "sirepoLibs": {
