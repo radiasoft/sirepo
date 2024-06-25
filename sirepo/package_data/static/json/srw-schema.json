@@ -803,7 +803,6 @@
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "precision": ["Relative Precision", "Float", 0.01],
             "polarization": ["Polarization Component to Extract", "Polarization", "6"],
-            "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "notes": ["Notes", "Text", ""]
         },
@@ -1714,7 +1713,6 @@
                     "finalEnergy",
                     "photonEnergyPointCount",
                     "polarization",
-                    "fieldUnits",
                     [
                         ["Horizontal", [
                             "horizontalPosition"
