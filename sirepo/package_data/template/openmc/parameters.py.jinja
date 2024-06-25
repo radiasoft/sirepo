@@ -46,6 +46,9 @@ def create_materials():
 def create_settings():
     settings = openmc.Settings()
     settings.batches = {{ settings_batches }}
+    settings.statepoint = dict(
+        batches=range(1, {{ settings_batches + 1}}),
+    )
     settings.inactive = {{ settings_inactive }}
     settings.particles = {{ settings_particles }}
     settings.temperature = dict(

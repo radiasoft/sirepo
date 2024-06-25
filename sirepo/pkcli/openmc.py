@@ -37,14 +37,6 @@ def extract_dagmc(dagmc_filename):
     return res
 
 
-def run(cfg_dir):
-    template_common.exec_parameters()
-    data = sirepo.simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    sirepo.template.import_module("openmc").extract_report_data(
-        pkio.py_path(cfg_dir), data
-    )
-
-
 class _MoabGroupCollector:
     def __init__(self, dagmc_filename):
         mb = pymoab.core.Core()

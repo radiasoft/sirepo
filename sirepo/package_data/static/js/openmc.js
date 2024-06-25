@@ -955,7 +955,6 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                 r[y] = vVal;
                 r[z] = appState.models.tallyReport.planePos;
                 appState.models.openmcAnimation.isEnergySelected = "1";
-                appState.saveChanges(['energyAnimation', 'openmcAnimation']);
             }
 
             function buildTallyReport() {
@@ -1238,7 +1237,13 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                 if (d.name !== SIREPO.PLOTTING.HeatmapSelectCellEvent) {
                     return;
                 }
-                setBins(...d.cell);
+                if (d.cell) {
+                    setBins(...d.cell);
+                }
+                else {
+                    appState.models.openmcAnimation.isEnergySelected = '0';
+                }
+                appState.saveChanges(['energyAnimation', 'openmcAnimation']);
             });
 
             $scope.$on('sr-volume-visibility-toggle', (event, volume, isVisible, doUpdate) => {
