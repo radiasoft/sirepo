@@ -66,10 +66,12 @@ class _MoabGroupCollector:
     def _groups_and_volumes(self, mb):
         res = PKDict()
         for g in self._groups(mb):
+            # pkdp("\n\n\n G={}", g)
             n = self._parse_entity_name(mb, g)
             if not n:
                 continue
             v = [h for h in mb.get_entities_by_handle(g)]
+            # pkdp("\n\n\n v={}", v)
             if not v:
                 continue
             res.pksetdefault(n, lambda: PKDict(name=n, volumes=[]))
@@ -82,8 +84,11 @@ class _MoabGroupCollector:
         return tuple(res.values())
 
     def _parse_entity_name(self, mb, group):
-        m = re.search("^mat:(.*)$", self._tag_value(mb, self._name_tag, group))
+        t = self._tag_value(mb, self._name_tag, group)
+        # pkdp("\n\n\ntag_value={}", t)
+        m = re.search("^mat:(.*)$", t)
         if m:
+            # pkdp("\nm.group(1)={}", m.group(1))
             return m.group(1)
         return None
 

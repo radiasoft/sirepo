@@ -550,7 +550,9 @@ def _generate_materials(data, j2_ctx):
     res = ""
     material_vars = []
     for v in data.models.volumes.values():
+        pkdp("\n\n\nv.name={}", v.name)
         if "material" not in v:
+            pkdp("\n\n\n NO MATERIAL")
             continue
         n = f"m{v.volId}"
         material_vars.append(n)
