@@ -558,7 +558,8 @@ def _generate_materials(data, j2_ctx):
         material_vars.append(n)
         res += f"# {v.name}\n"
         res += f'{n} = openmc.Material(name="{v.key}", material_id={v.volId})\n'
-        res += f'{n}.set_density("{v.material.density_units}", {v.material.density})\n'
+        if v.material.get("density"):
+            res += f'{n}.set_density("{v.material.density_units}", {v.material.density})\n'
         if v.material.depletable == "1":
             res += f"{n}.depletable = True\n"
         if "temperature" in v.material and v.material.temperature:
