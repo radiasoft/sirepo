@@ -30,10 +30,9 @@ def add_materials(volumes):
             mat.temperature = float(child.attrib["temperature"])
         for m in child:
             if m.tag == "density":
-                _units = m.attrib["units"]
-                if _units != "sum":
+                if (u := m.attrib["units"]) != "sum":
                     mat.density = float(m.attrib["value"])
-                    mat.density_units = _units
+                    mat.density_units = u
             elif m.tag == "nuclide":
                 if "components" not in mat:
                     mat.components = []
