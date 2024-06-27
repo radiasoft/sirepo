@@ -21,7 +21,7 @@ def add_materials(volumes):
         volumes[n].material = PKDict()
         volumes[n].key = n
         mat = volumes[n].material
-        mat.name = _name(n)
+        mat.name = n
         if "depletable" in child.attrib:
             mat.depletable = "1" if child.attrib["depletable"] == "true" else "0"
         if "volume" in child.attrib:
