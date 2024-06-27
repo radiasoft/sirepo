@@ -79,12 +79,8 @@ def background_percent_complete(report, run_dir, is_running):
 
 def bunch_plot(model, run_dir, frame_index, filename):
     p = pmd_beamphysics.ParticleGroup(str(run_dir.join(filename)))
-
-    x = p[model.x]
-    y = p[model.y]
-
     return template_common.heatmap(
-        values=[x, y],
+        values=[p[model.x], p[model.y]],
         model=model,
         plot_fields=PKDict(
             x_label=f"{model.x} [{p.units(model.x)}]",
