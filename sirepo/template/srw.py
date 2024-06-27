@@ -4,17 +4,15 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
 import array
-import asyncio
 import copy
 import glob
 import math
@@ -65,31 +63,26 @@ _OUTPUT_FOR_MODEL = PKDict(
         filename="res_csd_cm.h5",
         dimensions=3,
         labels=["Horizontal Position", "Vertical Position", "Intensity"],
-        units=["m", "m", "{intensity_units}"],
+        units=["m", "m", "ph/s/.1%bw/mm^2"],
     ),
     fluxReport=PKDict(
         title="Flux through Finite Aperture",
         subtitle="{polarization} Polarization",
         filename="res_spec_me.dat",
         dimensions=2,
-        labels=["Photon Energy", "{flux_label}"],
-        units=["eV", "{flux_units}"],
     ),
     initialIntensityReport=PKDict(
         title="Before Propagation (E={photonEnergy} eV)",
         subtitle="{characteristic}",
         filename="res_int_se.dat",
         dimensions=3,
-        labels=["Horizontal Position", "Vertical Position", "Intensity"],
-        units=["m", "m", "{intensity_units}"],
+        special_z_units=True,
     ),
     intensityReport=PKDict(
         title="On-Axis Spectrum from Filament Electron Beam",
         subtitle="{polarization} Polarization",
         filename="res_spec_se.dat",
         dimensions=2,
-        labels=["Photon Energy", "Intensity"],
-        units=["eV", "{intensity_units}"],
     ),
     mirrorReport=PKDict(
         title="Optical Path Difference",
@@ -102,15 +95,11 @@ _OUTPUT_FOR_MODEL = PKDict(
         title="E={photonEnergy} eV",
         filename="res_int_pr_me.dat",
         dimensions=3,
-        labels=["Horizontal Position", "Vertical Position", "Intensity"],
-        units=["m", "m", "{intensity_units}"],
     ),
     powerDensityReport=PKDict(
         title="Power Density",
         filename="res_pow.dat",
         dimensions=3,
-        labels=["Horizontal Position", "Vertical Position", "Power Density"],
-        units=["m", "m", "W/mm^2"],
     ),
     brillianceReport=PKDict(
         filename="res_brilliance.dat",
@@ -129,8 +118,7 @@ _OUTPUT_FOR_MODEL = PKDict(
         subtitle="{characteristic}",
         filename="res_int_pr_se.dat",
         dimensions=3,
-        labels=["Horizontal Position", "Vertical Position", "Intensity"],
-        units=["m", "m", "{intensity_units}"],
+        special_z_units=True,
     ),
 )
 _OUTPUT_FOR_MODEL[f"{_SIM_DATA.EXPORT_RSOPT}"] = PKDict(
@@ -407,19 +395,31 @@ def extract_report_data(sim_in):
             sourcePhotonEnergy=dm.sourceIntensityReport.photonEnergy,
             polarization=_enum_text("Polarization", dm[r], "polarization"),
             characteristic=_enum_text("Characteristic", dm[r], "characteristic"),
-            intensity_units=_intensity_units(sim_in),
-            flux_label=_flux_label(dm[r]),
-            flux_units=_flux_units(dm[r]),
             watchpoint_id=dm[r].get("id", 0),
             plotModesStart=dm[r].get("plotModesStart", ""),
             plotModesEnd=dm[r].get("plotModesEnd", ""),
         ),
     )
-    if out.units[1] == "m":
-        out.units[1] = "[m]"
+    data, _, allrange, labels, units = srwpy.uti_plot_com.file_load(out.filename)
+
+    if "labels" not in out:
+        if out.dimensions == 3:
+            out.labels = labels[1:]
+            out.units = units[1:]
+            if not out.labels[2]:
+                out.labels[2] = "Intensity"
+        elif out.dimensions == 2:
+            out.labels = [labels[0], labels[3] or "Intensity"]
+            out.units = [units[0], units[3]]
+
+    if out.get("special_z_units"):
+        out.units[2] = _intensity_units(sim_in)
+
+    if out.units[1] in ("m", "rad"):
+        out.units[1] = f"[{out.units[1]}]"
     else:
         out.units[1] = "({})".format(out.units[1])
-    data, _, allrange, _, _ = srwpy.uti_plot_com.file_load(out.filename)
+
     res = PKDict(
         title=out.title,
         subtitle=out.get("subtitle", ""),
@@ -1744,18 +1744,6 @@ def _fix_file_header(filename):
     pkio.write_text(filename, "".join(rows))
 
 
-def _flux_label(model):
-    if "fluxType" not in model:
-        return ""
-    return "Flux" if int(model.fluxType) == 1 else "Intensity"
-
-
-def _flux_units(model):
-    if "fluxType" not in model:
-        return ""
-    return "ph/s/.1%bw" if int(model.fluxType) == 1 else "ph/s/.1%bw/mm^2"
-
-
 def _generate_beamline_optics(report, data, qcall=None):
     res = PKDict(names=[], exclude=[], last_id=None, watches=PKDict())
     models = data.models
@@ -1774,6 +1762,7 @@ def _generate_beamline_optics(report, data, qcall=None):
     prev = None
     propagation = models.propagation
     max_name_size = 0
+    zero_drift_count = 0
 
     for item in models.beamline:
         is_disabled = "isDisabled" in item and item.isDisabled
@@ -1803,11 +1792,15 @@ def _generate_beamline_optics(report, data, qcall=None):
         item.drift_propagation = pp[1]
         item.name = name
         if not is_disabled:
-            if item.type == "watch" and not items:
-                # first item is a watch, insert a 0 length drift in front
+            if item.type == "watch" and (
+                not items
+                or (items[-1].type == "watch" and items[-1].position == item.position)
+            ):
+                # first item is a watch or no space between watches, insert a 0 length drift
+                zero_drift_count += 1
                 items.append(
                     PKDict(
-                        name="zero_drift",
+                        name=f"zero_drift{zero_drift_count}",
                         type="drift",
                         position=item.position,
                         propagation=item.propagation,
@@ -2122,10 +2115,7 @@ def _intensity_units(sim_in):
     if "models" in sim_in and _SIM_DATA.srw_is_gaussian_source(
         sim_in.models.simulation
     ):
-        if "report" in sim_in and sim_in.report in (
-            "intensityReport",
-            "sourceIntensityReport",
-        ):
+        if sim_in.get("report", "") == "sourceIntensityReport":
             i = sim_in.models[sim_in.report].fieldUnits
         else:
             i = sim_in.models.simulation.fieldUnits

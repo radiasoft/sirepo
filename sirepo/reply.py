@@ -489,7 +489,7 @@ class _SReply(sirepo.quest.Attr):
                     kind=sirepo.const.SCHEMA_COMMON.websocketMsg.kind.asyncMsg,
                     method=sirepo.const.SCHEMA_COMMON.websocketMsg.method.setCookies,
                 ),
-                c.http_header_values(self._cookies_to_delete),
+                c.http_header_values(to_delete=self._cookies_to_delete),
             )
 
         try:

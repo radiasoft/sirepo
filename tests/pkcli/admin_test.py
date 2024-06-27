@@ -33,9 +33,11 @@ def test_delete_user():
         pkunit.pkeq(_UID_IN_DB, qcall.auth.unchecked_get_user(_UID_IN_DB))
     admin.delete_user(_UID_IN_DB)
     with srunit.quest_start() as qcall:
-        _is_empty_table(qcall.auth_db.model("JupyterhubUser"))
-        _is_empty_table(qcall.auth_db.model("UserRegistration"))
-        _is_empty_table(qcall.auth_db.model("UserRoleInvite"))
+        for t in ("JupyterhubUser", "UserRegistration", "UserRoleModeration"):
+            pkunit.pkeq(
+                None,
+                qcall.auth_db.model(t).unchecked_search_by(uid=_UID_IN_DB),
+            )
     _is_empty_dir(jupyterhublogin.cfg().user_db_root_d)
     _is_empty_dir(simulation_db.user_path_root())
 
@@ -66,7 +68,3 @@ def _is_empty_dir(path):
     from pykern import pkio
 
     _is_empty(pkio.sorted_glob(path.join("*")))
-
-
-def _is_empty_table(table):
-    _is_empty(table.query().all())

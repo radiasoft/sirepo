@@ -1496,14 +1496,14 @@ SIREPO.app.directive('videoButton', function(appState, requestSender) {
     };
 });
 
-SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
+SIREPO.app.directive('downloadCsvLink', function(appState, panelState) {
     return {
         restrict: 'A',
-        scope: {
-            axis: '@lineoutCsvLink',
-        },
         template: `
-            <a href data-ng-show=":: is3dPlot()" data-ng-click="exportLineout()">CSV - {{:: axisName }}</a>
+            <a href data-ng-if=":: plotType() == '3d'" data-ng-click="exportCSV('x')">CSV - Horizontal Cut</a>
+            <a href data-ng-if=":: plotType() == '3d'" data-ng-click="exportCSV('y')">CSV - Vertical Cut</a>
+            <a href data-ng-if=":: plotType() == '3d'" data-ng-click="exportCSV('full')">CSV - Full Plot</a>
+            <a href data-ng-if=":: plotType() == 'parameter'" data-ng-click="exportCSV('')">Download CSV</a>
         `,
         controller: function($scope) {
 
@@ -1515,18 +1515,19 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
                 return s;
             }
 
-            $scope.axisName = $scope.axis == 'x'
-                ? 'Horizontal Cut'
-                : $scope.axis == 'y'
-                    ? 'Vertical Cut'
-                    : 'Full Plot';
-
-            $scope.exportLineout = function() {
-                findReportPanelScope().$broadcast(SIREPO.PLOTTING_LINE_CSV_EVENT, $scope.axis);
+            $scope.exportCSV = function(axis) {
+                findReportPanelScope().$broadcast(
+                    SIREPO.PLOTTING_CSV_EVENT,
+                    axis);
             };
 
-            $scope.is3dPlot = function() {
-                return panelState.findParentAttribute($scope, 'reportPanel') == '3d';
+            $scope.plotType = function() {
+                const p = panelState.findParentAttribute($scope, 'reportPanel');
+                if (p == '3d') {
+                    return '3d';
+                } else if (p.includes('parameter')) {
+                    return 'parameter';
+                }
             };
         },
     };
@@ -4496,7 +4497,7 @@ SIREPO.app.directive('admRolesList', function(appState, errorService, panelState
             $scope.getModerationRequestRows = function () {
                 const handleResponse = (r) => {
                     $scope.rows = r.rows;
-                    $scope.headers = SIREPO.APP_SCHEMA.common.adm.userRoleInviteColumns;
+                    $scope.headers = SIREPO.APP_SCHEMA.common.adm.userRoleModerationColumns;
                 };
                 requestSender.sendRequest(
                     'getModerationRequestRows',
@@ -4516,7 +4517,8 @@ SIREPO.app.directive('admRolesList', function(appState, errorService, panelState
                     'admModerate',
                     handleResponse,
                     {
-                        token: info.token,
+                        uid: info.uid,
+                        role: info.role,
                         status: status,
                     }
                 );

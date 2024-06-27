@@ -2,7 +2,7 @@
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
-SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
+SIREPO.PLOTTING_CSV_EVENT = 'plottingCSV';
 SIREPO.PLOTTING_YMIN_ZERO = true;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
@@ -653,6 +653,12 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return [h, w];
         },
 
+        csvFilename: (fileName) => {
+            return fileName.replace(/\[.*\]/, '')
+                .replace(/\s+$/, '')
+                .replace(/(\_|\W|\s)+/g, '-') + '.csv';
+        },
+
         drawImage: function(xAxisScale, yAxisScale, width, height, xValues, yValues, canvas, cacheCanvas, alignOnPixel) {
             var xZoomDomain = xAxisScale.domain();
             var xDomain = [xValues[0], xValues[xValues.length - 1]];
@@ -688,9 +694,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         exportCSV: function(fileName, heading, points) {
-            fileName = fileName.replace(/\[.*\]/, '')
-                .replace(/\s+$/, '')
-                .replace(/(\_|\W|\s)+/g, '-') + '.csv';
             var res = heading.map(function(v) {
                 v = v.replace(/"/g, '');
                 if (v.indexOf(',') >= 0) {
@@ -703,7 +706,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     return v.toExponential(9);
                 }).join(',') + "\n";
             });
-            saveAs(new Blob([res], {type: "text/csv;charset=utf-8"}), fileName);
+            saveAs(new Blob([res], {type: "text/csv;charset=utf-8"}), self.csvFilename(fileName));
         },
 
         // returns an array of substrings of str that fit in the given width. The provided d3Text selection
@@ -996,6 +999,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 linkedShape: linkedShape,
                 fn: linkFunction,
             };
+        },
+
+        plotTitle: (element) => {
+            return $(element).closest('.panel').find('.sr-panel-heading').text();
         },
 
         recalculateDomainFromPoints: function(modelName, yScale, points, xDomain, invertAxis) {
@@ -3216,9 +3223,8 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 return appState.models[$scope.modelName].showPlotSize == '1';
             };
 
-            $scope.$on(SIREPO.PLOTTING_LINE_CSV_EVENT, function(evt, axisName) {
-                var title = $($scope.element).closest('.panel-body')
-                        .parent().parent().find('.sr-panel-heading').text();
+            $scope.$on(SIREPO.PLOTTING_CSV_EVENT, function(evt, axisName) {
+                var title = plotting.plotTitle($scope.element);
                 var heading, points;
                 if (axisName == 'x' || axisName == 'y') {
                     var axisText = axes[axisName].label + ' ' + layoutService.formatUnits(axes[axisName].units);
@@ -4320,6 +4326,30 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     $scope.onRefresh();
                 }
             };
+
+            $scope.$on(SIREPO.PLOTTING_CSV_EVENT, ()=> {
+                const points = [
+                    $scope.axes.x.points,
+                ];
+                $scope.axes.y.plots.forEach((plot)=> {
+                    points.push(plot.points);
+                });
+                let res = $scope.axes.x.label;
+                for (const p of $scope.axes.y.plots) {
+                    res += ',' + p.label;
+                }
+                res += '\n';
+                for (let i = 0; i < points[0].length; i++) {
+                    let row = '';
+                    for (const [idx, col] of points.entries()) {
+                        row += (idx > 0 ? ',' : '') + col[i].toExponential(9);
+                    }
+                    res += row + '\n';
+                }
+                saveAs(new Blob([res], {
+                    type: "text/csv;charset=utf-8"
+                }), plotting.csvFilename(plotting.plotTitle($element)));
+            });
 
             // Note that here we pad the axis domain, not the scale!  The scale is set by
             // user interaction

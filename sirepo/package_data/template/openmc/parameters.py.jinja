@@ -48,6 +48,9 @@ def create_settings():
     settings.batches = {{ settings_batches }}
     settings.inactive = {{ settings_inactive }}
     settings.particles = {{ settings_particles }}
+    settings.temperature = dict(
+        method='interpolation',
+    )
 {% if settings_varianceReduction == "weight_windows_mesh" or settings_varianceReduction == "weight_windows_tally" %}
     settings.max_splits = {{ settings_max_splits }}
 {% endif %}
