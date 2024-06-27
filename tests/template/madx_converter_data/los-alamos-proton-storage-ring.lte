@@ -4,8 +4,8 @@
 execution_mode = 'serial'
 
 lattice_file = """
-% pi 180 / sto degrad
-% 180 pi / sto raddeg
+% 180 pi / sto degrad
+% pi 180 / sto raddeg
 % 0.83333504 sto sr_alpha_x
 % -0.94425989 sto sr_alpha_y
 % 6.069332 sto sr_beta_x

@@ -430,7 +430,7 @@
             "notes": "",
             "photonEnergy": 7000,
             "sampleFactor": 1,
-            "samplingMethod": 1,
+            "samplingMethod": 2,
             "sourceType": "m",
             "verticalPointCount": 100,
             "verticalPosition": 0,

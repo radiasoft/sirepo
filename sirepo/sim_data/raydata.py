@@ -19,6 +19,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(data.models)
         # always clear confirmation for next session
         data.models.runAnalysis.confirmRunAnalysis = "0"
+        if data.models.simulation.folder == "/Examples":
+            data.models.simulation.folder = "/"
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):

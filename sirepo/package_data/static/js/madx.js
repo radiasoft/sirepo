@@ -33,14 +33,14 @@ SIREPO.app.config(function() {
         },
         elementPic: {
             aperture: ['COLLIMATOR', 'ECOLLIMATOR', 'RCOLLIMATOR'],
-            bend: ['RBEND', 'SBEND'],
+            bend: ['RBEND', 'SBEND', 'DIPEDGE'],
             drift: ['DRIFT'],
             lens: ['NLLENS'],
             magnet: ['HACDIPOLE', 'HKICKER', 'KICKER', 'MATRIX', 'MULTIPOLE', 'OCTUPOLE', 'QUADRUPOLE', 'RFMULTIPOLE', 'SEXTUPOLE', 'VACDIPOLE', 'VKICKER'],
             rf: ['CRABCAVITY', 'RFCAVITY', 'TWCAVITY'],
             solenoid: ['SOLENOID'],
             watch: ['INSTRUMENT', 'HMONITOR', 'MARKER', 'MONITOR', 'PLACEHOLDER', 'VMONITOR'],
-            zeroLength: ['BEAMBEAM', 'CHANGEREF', 'DIPEDGE', 'SROTATION', 'TRANSLATION', 'XROTATION', 'YROTATION'],
+            zeroLength: ['BEAMBEAM', 'CHANGEREF', 'SROTATION', 'TRANSLATION', 'XROTATION', 'YROTATION'],
         },
     };
 });
