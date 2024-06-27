@@ -21,16 +21,17 @@ import math
 import pymongo
 import re
 import requests
+import sirepo.feature_config
 import sirepo.raydata.adaptive_workflow
 import sirepo.raydata.analysis_driver
 import sirepo.raydata.databroker
 import sirepo.sim_data
 import sirepo.srdb
 import sirepo.srtime
+import sirepo.tornado
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
-import tornado.web
 import zipfile
 
 #: task(s) monitoring the execution of the analysis process
@@ -244,7 +245,7 @@ class _Analysis(_DbBase):
 # TODO(e-carlin): copied from sirepo
 # TODO(e-carlin): Since we are going to sockets for communication we should probably use them here.
 # But, for now it is easier to just make a normal http request
-class _JsonPostRequestHandler(tornado.web.RequestHandler):
+class _JsonPostRequestHandler(sirepo.tornado.AuthHeaderRequestHandler):
     def set_default_headers(self):
         self.set_header("Content-Type", pkjson.CONTENT_TYPE)
 
@@ -254,7 +255,14 @@ class _RequestHandler(_JsonPostRequestHandler):
         return getattr(self, "_request_" + body.method)(body.data.get("args"))
 
     async def post(self):
+        self._rs_authenticate()
         self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
+
+    def _rs_authenticate(self):
+        t = super()._rs_authenticate()
+        if t == sirepo.feature_config.for_sim_type("raydata").scan_monitor_api_secret:
+            return t
+        raise sirepo.tornado.error_forbidden()
 
     def _build_search_terms(self, terms):
         res = []

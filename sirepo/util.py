@@ -27,12 +27,6 @@ import zipfile
 
 _cfg = None
 
-#: Http auth header name
-AUTH_HEADER = "Authorization"
-
-#: http auth header scheme bearer
-AUTH_HEADER_SCHEME_BEARER = "Bearer"
-
 #: length of string returned by create_token
 TOKEN_SIZE = 16
 
