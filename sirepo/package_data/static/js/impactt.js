@@ -4,6 +4,8 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+    SIREPO.SINGLE_FRAME_ANIMATION = ['statAnimation'];
     SIREPO.appFieldEditors += ``;
     SIREPO.lattice = {
         elementColor: {
@@ -14,15 +16,15 @@ SIREPO.app.config(function() {
             DRIFT: 'grey',
         },
         elementPic: {
-            drift: ['DRIFT'],
+            drift: ['DRIFT', 'EMFIELD_CARTESIAN', 'EMFIELD_CYLINDRICAL', 'WAKEFIELD'],
             lens: ['ROTATIONALLY_SYMMETRIC_TO_3D'],
-            magnet: ['MULTIPOLE', 'QUADRUPOLE', 'DIPOLE'],
-            solenoid: ['SOLENOID', 'SOLENOIDRF'],
-            watch: ['WRITE_BEAM'],
+            magnet: ['QUADRUPOLE', 'DIPOLE'],
+            solenoid: ['SOLENOID', 'SOLRF'],
+            watch: ['WRITE_BEAM', 'WRITE_SLICE_INFO',],
             zeroLength: [
                 'CHANGE_TIMESTEP',
+                'OFFSET_BEAM',
                 'SPACECHARGE',
-                'WAKEFIELD',
                 'STOP',
             ],
         },
@@ -32,7 +34,7 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('impacttService', function(appState) {
     const self = {};
 
-    self.computeModel = () => 'impacttReport';
+    self.computeModel = () => 'animation';
 
     appState.setAppService(self);
     return self;
@@ -43,12 +45,58 @@ SIREPO.app.controller('SourceController', function(appState, $scope) {
     var self = this;
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, panelState, persistentSimulation, impacttService, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, impacttService, panelState, persistentSimulation, $scope) {
     const self = this;
     self.simScope = $scope;
+    self.errorMessage = '';
 
-    self.simHandleStatus = data => {};
+    function cleanFilename(fn) {
+        return fn.replace(/\_/g, ' ').replace(/\.(?:h5|outfn)/g, '');
+    }
+
+    function loadReports(reports) {
+        self.outputFiles = [];
+        reports.forEach((info) => {
+            var outputFile = {
+                info: info,
+                reportType: 'heatmap',
+                viewName: 'elementAnimation',
+                filename: info.filename,
+                modelAccess: {
+                    modelKey: info.modelKey,
+                    getData: function() {
+                        return appState.models[info.modelKey];
+                    },
+                },
+                panelTitle: cleanFilename(info.filename),
+            };
+            self.outputFiles.push(outputFile);
+            panelState.setError(info.modelKey, null);
+            if (! appState.models[info.modelKey]) {
+                appState.models[info.modelKey] = {};
+            }
+            var m = appState.models[info.modelKey];
+            appState.setModelDefaults(m, 'elementAnimation');
+            appState.saveQuietly(info.modelKey);
+            frameCache.setFrameCount(1, info.modelKey);
+        });
+    }
+
+    self.simHandleStatus = data => {
+        self.errorMessage = data.error;
+        frameCache.setFrameCount(data.frameCount || 0);
+        self.outputFiles = [];
+        if (data.reports && data.reports.length) {
+            loadReports(data.reports);
+        }
+    };
     self.simState = persistentSimulation.initSimulationState(self);
+    self.simState.runningMessage = () => {
+        if (appState.isLoaded() && self.simState.getFrameCount()) {
+            return 'Completed time step: ' + self.simState.getFrameCount();
+        }
+        return 'Simulation running';
+    };
 });
 
 SIREPO.app.controller('LatticeController', function(latticeService, appState) {
@@ -100,4 +148,23 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             </div>
         `,
     };
+});
+
+SIREPO.viewLogic('wakefieldView', function(appState, panelState, $scope) {
+
+    function updateFields() {
+        const m = appState.models.WAKEFIELD;
+        if (! m) {
+            return;
+        }
+        panelState.showFields('WAKEFIELD', [
+            ['gap', 'period', 'iris_radius'], m.method == 'analytical',
+            ['filename'], m.method == 'from_file',
+        ]);
+    }
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['WAKEFIELD.method'], updateFields,
+    ];
 });

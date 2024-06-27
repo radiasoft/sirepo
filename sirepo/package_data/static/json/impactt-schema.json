@@ -10,16 +10,24 @@
             "CHANGE_TIMESTEP",
             "DIPOLE",
             "DRIFT",
-            "MULTIPOLE",
+            "EMFIELD_CARTESIAN",
+            "EMFIELD_CYLINDRICAL",
+            "OFFSET_BEAM",
             "QUADRUPOLE",
             "ROTATIONALLY_SYMMETRIC_TO_3D",
             "SOLENOID",
-            "SOLENOIDRF",
+            "SOLRF",
             "SPACECHARGE",
             "STOP",
             "WAKEFIELD",
-            "WRITE_BEAM"
-        ]
+            "WRITE_BEAM",
+            "WRITE_SLICE_INFO"
+        ],
+        "helpUserManualURL": "https://portal.nersc.gov/project/m669/IMPACT-T/documents/ImpactTv2.pdf",
+        "particleMassAndCharge": {
+            "electron": [510998.95, -1.0],
+            "proton": [938272088.16, 1.0]
+        }
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -36,35 +44,108 @@
             ],
             "css": [
                 "lattice.css",
-                "command.css",
-                "vtk.css"
+                "command.css"
            ]
         }
     },
+    "frameIdFields": {
+        "animation": [
+            "x",
+            "y",
+            "histogramBins",
+            "reportIndex"
+        ],
+        "statAnimation": ["x", "y1", "y2", "y3"]
+    },
     "enum": {
+        "BeamParticle": [
+            ["electron", "Electron"],
+            ["proton", "Proton"],
+            ["other", "Other"]
+        ],
         "Diagnostics": [
             ["1", "output the information at given time"],
             ["2", "output the information at the location of bunch centroid by drifting the particles to that location"],
-            ["3", "no output."]
+            ["3", "no output"]
         ],
         "DistType": [
-            ["Uniform", "1"],
-            ["Gauss3", "2"],
-            ["Waterbag", "3"],
-            ["Semigauss", "4"],
-            ["KV3d", "5"],
-            ["ParobGauss", "10"],
-            ["SemicircGauss", "15"],
-            ["Read", "16"],
-            ["readParmela", "24"],
-            ["readElegant", "25"],
-            ["CylcoldZSob", "27"],
-            ["Combine", "ijk"]
+            ["1", "Uniform"],
+            ["2", "Gauss3"],
+            ["3", "Waterbag"],
+            ["4", "Semigauss"],
+            ["5", "KV3d"],
+            ["10", "ParobGauss"],
+            ["15", "SemicircGauss"],
+            ["27", "CylcoldZSob"]
+        ],
+        "PhaseSpaceCoordinate": [
+            ["x", "x"],
+            ["px", "Px"],
+            ["y", "y"],
+            ["py", "Py"],
+            ["z", "z"],
+            ["pz", "Pz"]
+        ],
+        "PlotType": [
+            ["heatmap", "Heatmap"],
+            ["3d", "Heatmap with Histograms"]
         ],
         "PoleType": [
             ["sextupole", "Sextupole"],
             ["octupole", "Octupole"],
             ["decapole", "Decapole"]
+        ],
+        "Stat": [
+            ["none", "None"],
+            ["cov_x__px", "cov_x__px"],
+            ["cov_y__py", "cov_y__py"],
+            ["cov_z__pz", "cov_z__pz"],
+            ["loadbalance_max_n_particle", "loadbalance_max_n_particle"],
+            ["loadbalance_min_n_particle", "loadbalance_min_n_particle"],
+            ["max_amplitude_px", "max_amplitude_px"],
+            ["max_amplitude_py", "max_amplitude_py"],
+            ["max_amplitude_pz", "max_amplitude_pz"],
+            ["max_amplitude_x", "max_amplitude_x"],
+            ["max_amplitude_y", "max_amplitude_y"],
+            ["max_amplitude_z", "max_amplitude_z"],
+            ["max_r", "max_r"],
+            ["mean_beta", "mean_beta"],
+            ["mean_gamma", "mean_gamma"],
+            ["mean_kinetic_energy", "mean_kinetic_energy"],
+            ["mean_px", "mean_px"],
+            ["mean_py", "mean_py"],
+            ["mean_pz", "mean_pz"],
+            ["mean_x", "mean_x"],
+            ["mean_y", "mean_y"],
+            ["mean_z", "mean_z"],
+            ["moment3_px", "moment3_px"],
+            ["moment3_py", "moment3_py"],
+            ["moment3_pz", "moment3_pz"],
+            ["moment3_x", "moment3_x"],
+            ["moment3_y", "moment3_y"],
+            ["moment3_z", "moment3_z"],
+            ["moment4_px", "moment4_px"],
+            ["moment4_py", "moment4_py"],
+            ["moment4_pz", "moment4_pz"],
+            ["moment4_x", "moment4_x"],
+            ["moment4_y", "moment4_y"],
+            ["moment4_z", "moment4_z"],
+            ["n_particle", "n_particle"],
+            ["norm_emit_x", "norm_emit_x"],
+            ["norm_emit_y", "norm_emit_y"],
+            ["norm_emit_z", "norm_emit_z"],
+            ["sigma_gamma", "sigma_gamma"],
+            ["sigma_px", "sigma_px"],
+            ["sigma_py", "sigma_py"],
+            ["sigma_pz", "sigma_pz"],
+            ["sigma_x", "sigma_x"],
+            ["sigma_y", "sigma_y"],
+            ["sigma_z", "sigma_z"],
+            ["t", "t"]
+        ],
+        "WakefieldMethod": [
+            ["analytical", "Analytical"],
+            ["from_file", "From File"]
         ]
     },
     "localRoutes": {
@@ -94,58 +175,50 @@
             "name": ["Name", "ValidatedString"]
         },
         "beamlineReport": {},
-        "command_beam": {
-            "n_p_row": ["Nprow", "Integer", 2, "Number of columns of processors, used to decompose domain along Z dimension"],
-            "n_p_col": ["Npcol", "Integer", 2, "Number of columns of processors, used to decompose domain along Y dimension"],
-            "d_t": ["Dt", "RPNValue", 0, "Time step size (secs)."],
-            "n_step": ["Ntstep ", "Integer", 100000, "Maximum number of time steps."],
-            "n_bunch": ["Nbunch", "Integer", 1],
-            "dim": ["Dim", "Integer", 1, "Random Seed Integer > 0"],
-            "n_p": ["Np", "Integer", 1000, "Number of macroparticles to track"],
-            "flag_err": ["Flagerr", "Boolean", "1", "Error study flag  No - no misalignment and rotation errors; Yes - misalignment and rotation errors are allowed for Quadrupole, Multipole (Sextupole, Octupole, Decapole) and SolRF elements."],
-            "flag_diag": ["Flagdiag", "Diagnostics", "1"],
-            "flag_img": ["Flagimg", "Boolean", "0", "Image charge flag. If set to Yes then the image charge forces due to the cathode are included."],
-            "z_img": ["Zimage", "RPNValue", 0.02, "z position beyond which image charge forces are neglected."],
-            "n_x": ["Nx", "Integer", 32, "Number of mesh points in x"],
-            "n_y": ["Ny", "Integer", 32, "Number of mesh points in y"],
-            "n_z": ["Nz", "Integer", 32, "Number of mesh points in z"],
-            "x_rad": ["Xrad", "RPNValue", 0.015, "Size of computational domain"],
-            "y_rad": ["Yrad", "RPNValue", 0.015, "Size of computational domain"],
-            "perd_len": ["Perdlen", "RPNValue", 45.0, "Size of computational domain"],
-            "flag_dist": ["FlagDist", "DistType", "Gauss3", "Type of the initial distribution."],
-            "n_emission": ["Nemission", "Integer", 400, "The number of numerical emission steps"],
-            "t_emission": ["Temission [sec]", "RPNValue", 6.5e-12, "Temission Laser pulse emission time"],
-            "b_curr": ["Bcurr [A]", "RPNValue", 0.7140000000000003, "Beam current in Amps."],
-            "b_k_energy": ["Bkenergy [eV]", "RPNValue", 1.0, "Initial beam pseudo-kinetic energy in eV."],
-            "b_mass": ["Bmas [eV]", "RPNValue", 511005.0, "Mass of the particles in eV"],
-            "b_charge": ["Bcharge", "RPNValue", -1.0,"Particle charge in units of proton charge."],
-            "b_freq": ["Bfreq [Hz]", "RPNValue", 2856000000.0, "Reference frequency in Hz"],
-            "t_ini": ["Tini", "RPNValue", -3.249141278122655e-12, "Initial reference time in seconds."]
+        "beam": {
+            "Np": ["Macroparticle count", "Integer", 1000, "Np: Number of macroparticles to track"],
+            "Bcurr": ["Current [A]", "RPNValue", 1.0],
+            "Bkenergy": ["Initial energy [eV]", "RPNValue", 1.0, "Bkenergy: Initial beam pseudo-kinetic energy in eV"],
+            "Bmas": ["Mass [eV]", "RPNValue", 510998.95],
+            "Bcharge": ["Charge", "RPNValue", -1.0, "Bcharge: Particle charge in units of proton charge"],
+            "Bfreq": ["Reference frequency [Hz]", "RPNValue", 2856000000.0],
+            "Tini": ["Initial reference time [sec]", "RPNValue", 0.0],
+            "particle": ["Particle", "BeamParticle", "electron", "Particle species"]
         },
-        "command_distribution": {
-            "sigx": ["sigx [m]", "RPNValue", 0.0006],
-            "sigpx": ["sigpx", "RPNValue", 0.0],
-            "muxpx": ["muxpx", "RPNValue", 0.0],
-            "xscale": ["xscale", "RPNValue", 1.0],
-            "pxscale": ["pxscale", "RPNValue", 1.0],
-            "xmu1": ["xmu1 [m]", "RPNValue", 0.0],
-            "xmu2": ["xmu2", "RPNValue", 0.0],
-            "sigy": ["sigy [m]", "RPNValue", 0.0006],
-            "sigpy": ["sigpy", "RPNValue", 0.0],
-            "muxpy": ["muxpy", "RPNValue", 0.0],
-            "yscale": ["yscale", "RPNValue", 1.0],
-            "pyscale": ["pyscale", "RPNValue", 1.0],
-            "ymu1": ["ymu1 [m]", "RPNValue", 0.0],
-            "ymu2": ["ymu2", "RPNValue", 0.0],
-            "sigz": ["sigz [m]", "RPNValue", 1.27e-06],
-            "sigpz": ["sigpz", "RPNValue", 0.0],
-            "muxpz": ["muxpz", "RPNValue", 0.0],
-            "zscale": ["zscale", "RPNValue", 1.0],
-            "pzscale": ["pzscale", "RPNValue", 1.0],
-            "zmu1": ["zmu1 [m]", "RPNValue", 0.0],
-            "zmu2": ["zmu2", "RPNValue", 0.0]
+        "distribution": {
+            "Flagdist": ["Distribution type", "DistType", "2", "Flagdist: Type of the initial distribution"],
+            "sigx": ["X sig [m]", "RPNValue", 0.001],
+            "sigpx": ["X sigp", "RPNValue", 0.0],
+            "muxpx": ["X muxp", "RPNValue", 0.0],
+            "xscale": ["X scale", "RPNValue", 1.0],
+            "pxscale": ["X pscale", "RPNValue", 1.0],
+            "xmu1": ["X mu1 [m]", "RPNValue", 0.0],
+            "xmu2": ["X mu2", "RPNValue", 0.0],
+            "sigy": ["Y sig [m]", "RPNValue", 0.001],
+            "sigpy": ["Y sigp", "RPNValue", 0.0],
+            "muxpy": ["Y muxp", "RPNValue", 0.0],
+            "yscale": ["Y scale", "RPNValue", 1.0],
+            "pyscale": ["Y pscale", "RPNValue", 1.0],
+            "ymu1": ["Y mu1 [m]", "RPNValue", 0.0],
+            "ymu2": ["Y mu2", "RPNValue", 0.0],
+            "sigz": ["Z sig [m]", "RPNValue", 0.0001],
+            "sigpz": ["Z sigp", "RPNValue", 0.0],
+            "muxpz": ["Z muxp", "RPNValue", 0.0],
+            "zscale": ["Z scale", "RPNValue", 1.0],
+            "pzscale": ["Z pscale", "RPNValue", 1.0],
+            "zmu1": ["Z mu1 [m]", "RPNValue", 0.0],
+            "zmu2": ["Z mu2", "RPNValue", 19.569511835591836]
         },
-        "simulationStatus": {},
+        "elementAnimation": {
+            "x": ["X Value", "PhaseSpaceCoordinate", "x"],
+            "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "notes": ["Notes", "Text", ""],
+            "reportIndex": ["", "Integer"]
+        },
         "rpnVariable": {
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"]
@@ -153,6 +226,32 @@
         "simulation": {
             "elementPosition": ["Element Positioning", "ElementPosition", "absolute"],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+        },
+        "simulationSettings": {
+            "Dt": ["Time step size [sec]", "RPNValue", 1e-11],
+            "Ntstep": ["Maximum time steps ", "Integer", 1000000, "Ntstep: Maximum number of time steps. IMPACT-T will stop after Ntstep time steps or when the center of the bunch goes beyond the end of the lattice, whichever is first."],
+            "Nemission": ["Numerical emission steps", "Integer", 0, "Nemission: There is a time period where the laser is shining on the cathode and electrons are being emitted. Nemisson gives the number of numerical emission steps. More steps gives more accurate modeling but the computation time varies linearly with the number of steps. If Nemission < 0, there will be no cathode model. The particles are assumed to start in a vacuum."],
+            "Temission": ["Laser pulse emission time [sec]", "RPNValue", 1.4e-11, "Temission: This time needs to be somewhat greater than the real emission time in the initial longitudinal distribution so that the time step size is changed after the whole beam is a few time steps out of the cathode."],
+            "Dim": ["Random Seed", "Integer", 6],
+            "Flagerr": ["Error study", "Boolean", "1", "Flagerr: Error study flag  No - no misalignment and rotation errors; Yes - misalignment and rotation errors are allowed for Quadrupole, Multipole (Sextupole, Octupole, Decapole) and SolRF elements"],
+            "Flagdiag": ["Diagnostics", "Diagnostics", "2", "Flagdiag"],
+            "Flagimg": ["Image charge", "Boolean", "0", "Flagimg: Image charge flag. If set to Yes then the image charge forces due to the cathode are included"],
+            "Zimage": ["Image charge stop [m]", "RPNValue", 0.02, "Zimage: z position beyond which image charge forces are neglected"],
+            "Nx": ["X mesh points", "Integer", 32],
+            "Ny": ["Y mesh points", "Integer", 32],
+            "Nz": ["Z mesh points", "Integer", 32],
+            "Xrad": ["X transverse size", "RPNValue", 0.015, "Xrad: Size of transverse computational domain"],
+            "Yrad": ["Y transverse size", "RPNValue", 0.015, "Yrad: Size of transverse computational domain"],
+            "Perdlen": ["Longitudinal domain [m]", "RPNValue", 100.0, "Perdlen: Size of longitudinal computational domain. Must be greater than the beam line lattice length"]
+        },
+        "simulationStatus": {},
+        "statAnimation": {
+            "x": ["Horizontal Value to Plot", "Stat", "mean_z"],
+            "y1": ["Vertical Value to Plot", "Stat", "sigma_x"],
+            "y2": ["Vertical Value to Plot", "Stat", "sigma_y"],
+            "y3": ["Vertical Value to Plot", "Stat", "sigma_z"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
+            "notes": ["Notes", "Text", ""]
         },
         "_ELEMENT": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -164,45 +263,75 @@
             "y_rotation": ["Rotation Error Y [rad]", "RPNValue", 0],
             "z_rotation": ["Rotation Error Z [rad]", "RPNValue", 0]
         },
+        "CHANGE_TIMESTEP": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "dt": ["Time step [sec]", "RPNValue", 0, "Time step size (secs)"]
+        },
+        "DIPOLE": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "b_field_x": ["X Field Strength [T]", "RPNValue", 0],
+            "b_field": ["Y Field Strength [T]", "RPNValue", 0],
+            "half_gap": ["Half of Gap Width (m)", "RPNValue", 0],
+            "filename": ["Filename", "InputFile", "", "file ID to contain the geometry information of bend"]
+        },
+        "DRIFT": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"]
+        },
+        "EMFIELD_CARTESIAN": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "radius": ["Radius [m]", "RPNValue", 0],
+            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz"],
+            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1"],
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "filename": ["Filename", "InputFile", "", "EMfldCart filename"]
+        },
+        "EMFIELD_CYLINDRICAL": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "radius": ["Radius [m]", "RPNValue", 0],
+            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz"],
+            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1"],
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "filename": ["Filename", "InputFile", "", "EMfldCyl filename"]
+        },
         "OFFSET_BEAM": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "x_offset": ["X offset [m]", "RPNValue", 0, "X offset V3(m)"],
-            "y_offset": ["Y offset [m]", "RPNValue", 0, "Y offset V5(m)"],
-            "z_offset": ["Z offset [m]", "RPNValue", 0, "Z offset V7(m)"],
-            "px_offset": ["Px offset", "RPNValue", 0, "(γβx) offset V4"],
-            "py_offset": ["Py offset", "RPNValue", 0, "(γβy) offset V6"],
-            "pz_offset": ["Pz offset", "RPNValue", 0, "(γβz) offset V8"]
+            "x_offset": ["X offset [m]", "RPNValue", 0],
+            "y_offset": ["Y offset [m]", "RPNValue", 0],
+            "z_offset": ["Z offset [m]", "RPNValue", 0],
+            "px_offset": ["Px offset [$\\gamma\\beta_x$]", "RPNValue", 0],
+            "py_offset": ["Py offset [$\\gamma\\beta_y$]", "RPNValue", 0],
+            "pz_offset": ["Pz offset [$\\gamma\\beta_z$]", "RPNValue", 0]
         },
-        "WRITE_BEAM": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "filename": ["Filename", "InputFile", ""],
-            "sample_frequency": ["Bnseg", "Integer", 0, "particle sample frequency"]
-        },
-        "WRITE_BEAM_FOR_RESTART": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "filename": ["Filename", "InputFile", ""]
+        "QUADRUPOLE": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz"],
+            "rf_phase_deg": ["RF Quadrupole Phase [deg]", "RPNValue", 0],
+            "b1_gradient": ["Gradient [T/m]", "RPNValue", 0],
+            "L_effective": ["Effective Length [m]", "RPNValue", 0]
         },
         "ROTATIONALLY_SYMMETRIC_TO_3D": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"]
         },
-        "CHANGE_TIMESTEP": {
+        "SOLENOID": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "dt": ["Dt", "RPNValue", 0, "Time step size (secs)."]
+            "radius": ["Radius [m]", "RPNValue", 0],
+            "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
         },
-        "WAKEFIELD": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "method": ["Method", "String", ""],
-            "gap": ["Gap", "RPNValue", 0],
-            "period": ["Period", "RPNValue", 0],
-            "s": ["S [m]", "RPNValue", 0, "Wakefield end position]"],
-            "iris_radius": ["Iris Radius", "RPNValue", 0],
-            "filename": ["Filename", "InputFile", ""]
+        "SOLRF": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
+            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz"],
+            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1"],
+            "solenoid_field_scale": ["Scale of solenoid B field", "RPNValue", 1],
+            "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
         },
         "SPACECHARGE": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -213,124 +342,30 @@
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"]
         },
+        "WAKEFIELD": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The wakefield length"],
+            "method": ["Method", "WakefieldMethod", "analytical"],
+            "gap": ["Gap", "RPNValue", 0],
+            "period": ["Period", "RPNValue", 0],
+            "iris_radius": ["Iris Radius", "RPNValue", 0],
+            "filename": ["Filename", "InputFile", ""]
+        },
+        "WRITE_BEAM": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "sample_frequency": ["Sample frequency", "Integer", 1, "particle sample frequency"],
+            "filename": ["", "OutputFile", ""]
+        },
         "WRITE_SLICE_INFO": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
             "n_slices": ["Number of Slices", "Integer", 0],
-            "filename": ["Filename", "InputFile", ""]
-        },
-        "CONSTFOC": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "radius": ["Radius [m]", "RPNValue", 0],
-            "x_focusing_gradient": ["X Focusing Gradient [kx0^2]", "RPNValue", 0],
-            "y_focusing_gradient": ["Y Focusing Gradient [ky0^2]", "RPNValue", 0],
-            "z_focusing_gradient": ["Z Focusing Gradient [kz0^2]", "RPNValue", 0]
-        },
-        "DIPOLE": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "b_field_x": ["X Field Strength [T]", "RPNValue", 0],
-            "b_field": ["Y Field Strength [T]", "RPNValue", 0],
-            "half_gap": ["Half of Gap Width (m)", "RPNValue", 0],
-            "filename": ["Filename", "InputFile", "", "file ID to contain the geometry information of bend."]
-        },
-        "DRIFT": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"]
-        },
-        "DTL": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "radius": ["Radius [m]", "RPNValue", 0],
-            "field_amplitude_scale": ["Scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
-            "filename": ["Filename", "InputFile", "", "Drift Tube Linac filename"],
-            "quad_1_length": ["Quad 1 Length [m]", "RPNValue", 0],
-            "quad_1_gradient": ["Quad 1 Gradient [T/m]", "RPNValue", 0],
-            "quad_1_x_offset": ["Quad 1 Misalignment X [m]", "RPNValue", 0],
-            "quad_1_y_offset": ["Quad 1 Misalignment Y [m]", "RPNValue", 0],
-            "quad_1_x_rotation": ["Quad 1 Rotation Error X [rad]", "RPNValue", 0],
-            "quad_1_y_rotation": ["Quad 1 Rotation Error Y [rad]", "RPNValue", 0],
-            "quad_1_z_rotation": ["Quad 1 Rotation Error Z [rad]", "RPNValue", 0],
-            "quad_2_length": ["Quad 2 Length [m]", "RPNValue", 0],
-            "quad_2_gradient": ["Quad 2 Gradient [T/m]", "RPNValue", 0],
-            "quad_2_x_offset": ["Quad 2 Misalignment X [m]", "RPNValue", 0],
-            "quad_2_y_offset": ["Quad 2 Misalignment Y [m]", "RPNValue", 0],
-            "quad_2_x_rotation": ["Quad 2 Rotation Error X [rad]", "RPNValue", 0],
-            "quad_2_y_rotation": ["Quad 2 Rotation Error Y [rad]", "RPNValue", 0],
-            "quad_2_z_rotation": ["Quad 2 Rotation Error Z [rad]", "RPNValue", 0],
-            "rf_cavity_length": ["RF Cavity Length [m]", "RPNValue", 0],
-            "rf_cavity_gradient": ["RF Cavity Gradient [T/m]", "RPNValue", 0],
-            "rf_cavity_x_offset": ["RF Cavity Misalignment X [m]", "RPNValue", 0],
-            "rf_cavity_y_offset": ["RF Cavity Misalignment Y [m]", "RPNValue", 0],
-            "rf_cavity_x_rotation": ["RF Cavity Rotation Error X [rad]", "RPNValue", 0],
-            "rf_cavity_y_rotation": ["RF Cavity Rotation Error Y [rad]", "RPNValue", 0],
-            "rf_cavity_z_rotation": ["RF Cavity Rotation Error Z [rad]", "RPNValue", 0]
-        },
-        "EMFLDCART": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "radius": ["Radius [m]", "RPNValue", 0],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "filename": ["Filename", "InputFile", "", "EMfldCart filename"]
-        },
-        "EMFLDCYL": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "radius": ["Radius [m]", "RPNValue", 0],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "filename": ["Filename", "InputFile", "", "EMfldCyl filename"]
-        },
-        "EMFLDANA": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "e_scale": ["E Scale", "RPNValue", 0],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "filename": ["Filename", "InputFile", "", "EMfldAna filename"]
-        },
-        "MULTIPOLE": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "pole_type": ["Pole Type", "PoleType", "sextupole"],
-            "b_field_x": ["Field Strength [T/m^n]", "RPNValue", 0],
-            "filename": ["Filename", "InputFile", "", "Multipole filename"]
-        },
-        "QUADRUPOLE": {
-            "_super": ["_", "model", "_ELEMENT"],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "rf_phase_deg": ["RF Quadrupole Phase [deg]", "RPNValue", 0],
-            "b1_gradient": ["Gradient [T/m]", "RPNValue", 0],
-            "L_effective": ["Effective Length [m]", "RPNValue", 0],
-            "file_id": ["Filename", "InputFile", "", "file ID to contain the geometry information of bend."]
-        },
-        "SC": {
-            "_super": ["_", "model", "_ELEMENT"],
-            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "filename": ["Filename", "InputFile", "", "Superconducting cavity filename"]
-        },
-        "SOLENOIDRF": {
-            "_super": ["_", "model", "_ELEMENT"],
-            "theta0_deg": ["Theta 0 [deg]", "RPNValue", 0, "Initial phase in degrees"],
-            "rf_frequency": ["RF Frequency [Hz]", "RPNValue", 0, "Frequency of the RF field in Hz."],
-            "rf_field_scale": ["RF field scale", "RPNValue", 1, "This can be used to scale the field amplitude. Normally set to 1."],
-            "solenoid_field_scale": ["Scale of solenoid B field", "RPNValue", 1],
-            "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
-        },
-        "SOLENOID": {
-            "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"],
-            "radius": ["Radius [m]", "RPNValue", 0],
-            "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
+            "filename": ["", "OutputFile", ""]
         }
+    },
+    "strings": {
+        "completionState": ""
     },
     "view": {
         "beamline": {
@@ -344,60 +379,132 @@
             "hasDataFile": false,
             "advanced": []
         },
-        "command_beam": {
-            "title": "Command Beam",
-            "description": "The BEAM statement defines data for the particles in a beam.",
-            "fieldsPerTab": 8,
+        "beam": {
+            "title": "Beam",
+            "basic": [
+                "particle",
+                "Np",
+                "Bcurr",
+                "Bkenergy",
+                "Bfreq",
+                "Tini"
+            ],
+            "advanced": []
+        },
+        "distribution": {
+            "title": "Particle Distribution",
+            "basic": [
+                "Flagdist",
+                [
+                    ["X", [
+                        "sigx",
+                        "sigpx",
+                        "muxpx",
+                        "xscale",
+                        "pxscale",
+                        "xmu1",
+                        "xmu2"
+                    ]],
+                    ["Y", [
+                        "sigy",
+                        "sigpy",
+                        "muxpy",
+                        "yscale",
+                        "pyscale",
+                        "ymu1",
+                        "ymu2"
+                    ]],
+                    ["Z", [
+                        "sigz",
+                        "sigpz",
+                        "muxpz",
+                        "zscale",
+                        "pzscale",
+                        "zmu1",
+                        "zmu2"
+                    ]]
+                ]
+            ],
+            "advanced": []
+        },
+        "elementAnimation": {
+            "title": "Particle Plot",
             "advanced": [
-                "n_p_row",
-                "n_p_col",
-                "d_t",
-                "n_step",
-                "n_bunch",
-                "dim",
-                "n_p",
-                "flag_err",
-                "flag_diag",
-                "flag_img",
-                "z_img",
-                "n_x",
-                "n_y",
-                "n_z",
-                "x_rad",
-                "y_rad",
-                "perd_len",
-                "flag_dist",
-                "n_emission",
-                "t_emission",
-                "b_curr",
-                "b_k_energy",
-                "b_mass",
-                "b_charge",
-                "b_freq",
-                "t_ini"
+                "plotType",
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "aspectRatio",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "simulation.visualizationBeamlineId",
+                "Dt",
+                "Ntstep",
+                "Nemission",
+                "Temission",
+                "Perdlen"
+            ],
+            "advanced": [
+                ["Main", [
+                    "Dim",
+                    "Flagerr",
+                    "Flagdiag"
+                ]],
+                ["Domain", [
+                    "Nx",
+                    "Ny",
+                    "Nz",
+                    "Xrad",
+                    "Yrad",
+                    "Perdlen"
+                ]],
+                ["Image Charge", [
+                    "Flagimg",
+                    "Zimage"
+                ]]
             ]
         },
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": []
         },
-        "simulationSettings": {
-            "title": "Simulation Settings",
-            "basic": [],
-            "advanced": []
+        "statAnimation": {
+            "title": "Beam Variables",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y1",
+                        "y2",
+                        "y3"
+                    ]]
+                ],
+                "includeLattice",
+                "notes"
+            ]
         },
         "CHANGE_TIMESTEP": {
             "title": "CHANGE_TIMESTEP",
-            "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "l",
                 "dt"
             ]
         },
         "DIPOLE": {
             "title": "DIPOLE",
-            "fieldsPerTab": 8,
             "advanced": [
                 "name",
                 "l",
@@ -408,55 +515,77 @@
             ]
         },
         "DRIFT": {
-            "title": "DRIFTTUBE",
-            "description": "The DRIFTTUBE element defines a drift space.",
-            "fieldsPerTab": 8,
+            "title": "DRIFT",
             "advanced": [
                 "name",
                 "l"
             ]
         },
-        "MULTIPOLE": {
-            "title": "MULTIPOLE",
-            "fieldsPerTab": 8,
+        "EMFIELD_CARTESIAN": {
+            "title": "EMFIELD_CARTESIAN",
             "advanced": [
                 "name",
                 "l",
-                "pole_type",
-                "b_field_x",
+                "radius",
+                "rf_frequency",
+                "rf_field_scale",
+                "theta0_deg",
                 "filename"
+            ]
+        },
+        "EMFIELD_CYLINDRICAL": {
+            "title": "EMFIELD_CYLINDRICAL",
+            "advanced": [
+                "name",
+                "l",
+                "radius",
+                "rf_frequency",
+                "rf_field_scale",
+                "theta0_deg",
+                "filename"
+            ]
+        },
+        "OFFSET_BEAM": {
+            "title": "OFFSET_BEAM",
+            "advanced": [
+                "name",
+                "x_offset",
+                "y_offset",
+                "z_offset",
+                "px_offset",
+                "py_offset",
+                "pz_offset"
             ]
         },
         "QUADRUPOLE": {
             "title": "QUADRUPOLE",
-            "fieldsPerTab": 8,
             "advanced": [
-                "name",
-                "l",
-                "rf_frequency",
-                "rf_phase_deg",
-                "b1_gradient",
-                "L_effective",
-                "file_id",
-                "radius",
-                "x_offset",
-                "y_offset",
-                "x_rotation",
-                "y_rotation",
-                "z_rotation"
+                ["Main", [
+                    "name",
+                    "l",
+                    "b1_gradient",
+                    "L_effective",
+                    "radius",
+                    "rf_frequency",
+                    "rf_phase_deg"
+                ]],
+                ["Misalignment", [
+                    "x_offset",
+                    "y_offset",
+                    "x_rotation",
+                    "y_rotation",
+                    "z_rotation"
+                ]]
             ]
         },
         "ROTATIONALLY_SYMMETRIC_TO_3D": {
             "title": "ROTATIONALLY_SYMMETRIC_TO_3D",
-            "fieldsPerTab": 8,
             "advanced": [
-                "name",
-                "l"
+                "name"
             ]
         },
         "SOLENOID": {
             "title": "SOLENOID",
-            "fieldsPerTab": 8,
             "advanced": [
                 "name",
                 "l",
@@ -464,49 +593,46 @@
                 "filename"
             ]
         },
-        "SOLENOIDRF": {
-            "title": "SOLENOIDRF",
-            "fieldsPerTab": 8,
+        "SOLRF": {
+            "title": "SOLRF",
             "advanced": [
-                "name",
-                "l",
-                "theta0_deg",
-                "rf_frequency",
-                "rf_field_scale",
-                "solenoid_field_scale",
-                "filename",
-                "radius",
-                "x_offset",
-                "y_offset",
-                "x_rotation",
-                "y_rotation",
-                "z_rotation"
+                ["Main", [
+                    "name",
+                    "l",
+                    "rf_frequency",
+                    "rf_field_scale",
+                    "theta0_deg",
+                    "solenoid_field_scale",
+                    "radius",
+                    "filename"
+                ]],
+                ["Misalignment", [
+                    "x_offset",
+                    "y_offset",
+                    "x_rotation",
+                    "y_rotation",
+                    "z_rotation"
+                ]]
             ]
         },
         "SPACECHARGE": {
             "title": "SPACECHARGE",
-            "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "l",
                 "is_on"
             ]
         },
         "STOP": {
             "title": "STOP",
-            "fieldsPerTab": 8,
             "advanced": [
-                "name",
-                "l"
+                "name"
             ]
         },
         "WAKEFIELD": {
             "title": "WAKEFEILD",
-            "fieldsPerTab": 8,
             "advanced": [
                 "name",
                 "l",
-                "s",
                 "method",
                 "gap",
                 "period",
@@ -516,18 +642,16 @@
         },
         "WRITE_BEAM": {
             "title": "WRITE_BEAM",
-            "fieldsPerTab": 8,
             "advanced": [
                 "name",
-                "l",
-                "filename",
                 "sample_frequency"
             ]
         },
-        "simulation": {
-            "title": "Simulation",
+        "WRITE_SLICE_INFO": {
+            "title": "WRITE_SLICE_INFO",
             "advanced": [
-                "name"
+                "name",
+                "n_slices"
             ]
         }
     }
