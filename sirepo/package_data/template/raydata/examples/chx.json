@@ -8,7 +8,7 @@
             "selected": []
         },
         "simulation": {
-            "folder": "/Examples",
+            "folder": "/",
             "isExample": true,
             "name": "CHX Analysis"
         },

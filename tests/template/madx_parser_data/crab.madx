@@ -1,0 +1,44 @@
+circum=120.;
+lcell=20.;
+f=lcell/sin(pi/5)/4;
+k=1.0/f;
+
+beam, particle=proton, energy = 2;
+angle = 2*pi/6;
+qfstart: multipole, knl={0, 0.98*k};
+qf: multipole, knl={0, k};
+qd: multipole, knl={0, -k};
+hkick: HKICKER,L=0, KICK=0.0012, TILT=0;
+vkick: VKICKER,L=0, KICK=0.00133, TILT=0;
+rfcav: RFCAVITY, VOLT=10.1, LAG=0.0, L =0.0, HARMON=100;
+crab:crabcavity, volt=20, freq =100, l=0.0;
+seq: sequence, l=circum;
+qfstart: qfstart, at = 0.2*lcell ;
+qd: qd, at = 0.5 * lcell;
+hkick: hkick, at =0.55* lcell;
+vkick: vkick, at =0.56* lcell;
+qf: qf, at = 1.0 * lcell;
+qd: qd, at = 1.5 * lcell;
+qf: qf, at = 2.0 * lcell;
+qd: qd, at = 2.5 * lcell;
+qf: qf, at =  3*lcell;
+rfcav:rfcav, at = 3.001*lcell;
+qd: qd, at = 0.5 * lcell+3*lcell;
+qf: qf, at = 1.0 * lcell+3*lcell;
+crab,   at = 1.0 * lcell+3*lcell+0.5 ;
+qd: qd, at = 1.5 * lcell+3*lcell;
+qf: qf, at = 2.0 * lcell+3*lcell;
+qd: qd, at = 2.5 * lcell+3*lcell;
+endsequence;
+
+
+use, sequence=seq;
+
+select, flag=twiss, column=name, s, x, y, pt,t, re11, re12, re15, re25, re56;
+twiss, file="fodo.twiss", rmatrix, betx=1, bety=1;
+select, flag=ptc_twiss, column=name, s, x, y, pt,t, re11, re12, re15, re25, re56;
+ptc_create_universe;
+ptc_create_layout,model=1,method=6,nst=2;
+ptc_twiss, file="fodo.ptc", rmatrix, icase=6, betx=1, bety=1, betz=1;
+ptc_end;
+stop;
