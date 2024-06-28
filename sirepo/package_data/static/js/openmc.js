@@ -364,7 +364,7 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
     self.results = null;
     self.simScope = $scope;
     self.simComputeModel = 'openmcAnimation';
-    let errorMessage;
+    let errorMessage, statusMessage;
 
     function validateSelectedTally(tallies) {
         appState.models.openmcAnimation.tallies = tallies;
@@ -380,9 +380,14 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
     };
 
     self.simHandleStatus = function(data) {
+        statusMessage = '';
+        tallyService.isRunning = self.simState.isProcessing();
         errorMessage = data.error;
         self.eigenvalue = data.eigenvalue;
         self.results = data.results;
+        if (data.iteration > 0) {
+            statusMessage = ': ' + (data.iteration > 1 ? ( data.iteration + ' iterations, ') : '') + data.batch + ' batches';
+        }
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }
@@ -392,8 +397,11 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
     };
     self.simState = persistentSimulation.initSimulationState(self);
     self.simState.errorMessage = () => errorMessage;
+    self.simCompletionState = () => {
+        return statusMessage;
+    };
     self.simState.runningMessage = () => {
-        return `Completed batch: ${self.simState.getFrameCount()}`;
+        return 'Completed' + statusMessage;
     };
     self.startSimulation = function() {
         tallyService.clearMesh();
@@ -491,6 +499,7 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         maxField: 0,
         outlines: null,
         sourceParticles: [],
+        isRunning: false,
     };
 
     function normalizer(score, numParticles) {
@@ -577,7 +586,8 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         self.fieldData = fieldData.map(n);
         self.minField = n(min);
         self.maxField = n(max);
-        if (! openmcService.isRangeValid(appState.models.openmcAnimation, 'thresholds')) {
+        if (self.isRunning
+            || ! openmcService.isRangeValid(appState.models.openmcAnimation, 'thresholds')) {
             appState.models.openmcAnimation.thresholds = [self.minField, self.maxField];
             appState.saveQuietly('openmcAnimation');
         }
@@ -2699,7 +2709,7 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
         panelState.showFields(
             $scope.modelName,
             [
-                ['eigenvalueHistory', 'inactive'], isRunModeEigenvalue,
+                ['inactive'], isRunModeEigenvalue,
             ],
         );
         panelState.showFields('survivalBiasing', [

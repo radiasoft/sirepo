@@ -26,34 +26,6 @@ _VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
-def _percent_complete(run_dir, is_running):
-    res = PKDict(
-        frameCount=0,
-        percentComplete=0,
-    )
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    batches = data.models.settings.batches
-    _parse_run_stats(run_dir, batches, res)
-    if is_running:
-        if data.models.settings.varianceReduction == "weight_windows_tally":
-            batches *= data.models.weightWindows.iterations
-        if res.frameCount:
-            res.frameCount -= 1
-        res.percentComplete = res.frameCount * 100 / batches
-    # TODO(pjm): cleanup old statepoint files here
-    if res.frameCount:
-        res.tallies = data.models.settings.tallies
-    return res
-
-
-def stateful_compute_check_animation_dir(data, **kwargs):
-    return PKDict(
-        animationDirExists=simulation_db.simulation_dir("openmc", sid=data.simulationId)
-        .join(data.args.modelName)
-        .exists()
-    )
-
-
 def background_percent_complete(report, run_dir, is_running):
     if report == "dagmcAnimation":
         if is_running:
@@ -116,18 +88,6 @@ def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
 
-def stateful_compute_download_remote_lib_file(data, **kwargs):
-    _SIM_DATA.lib_file_save_from_url(
-        "{}/{}".format(
-            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
-            data.args.exampleURL,
-        ),
-        "geometryInput",
-        "dagmcFile",
-    )
-    return PKDict()
-
-
 def sim_frame(frame_args):
     import openmc
 
@@ -182,6 +142,10 @@ def sim_frame(frame_args):
             f"Could not find index for tally={frame_args.tally} score={frame_args.score}"
         )
 
+    # need to cleanup previous files in case sim is canceled
+    _cleanup_statepoint_files(
+        frame_args.run_dir, frame_args.sim_in, frame_args.frameIndex + 1, 0
+    )
     t = openmc.StatePoint(
         frame_args.run_dir.join(
             _statepoint_filename(frame_args.sim_in, frame_args.frameIndex)
@@ -219,6 +183,26 @@ def sim_frame(frame_args):
             ),
         ),
     )
+
+
+def stateful_compute_check_animation_dir(data, **kwargs):
+    return PKDict(
+        animationDirExists=simulation_db.simulation_dir("openmc", sid=data.simulationId)
+        .join(data.args.modelName)
+        .exists()
+    )
+
+
+def stateful_compute_download_remote_lib_file(data, **kwargs):
+    _SIM_DATA.lib_file_save_from_url(
+        "{}/{}".format(
+            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+            data.args.exampleURL,
+        ),
+        "geometryInput",
+        "dagmcFile",
+    )
+    return PKDict()
 
 
 def stateless_compute_validate_material_name(data, **kwargs):
@@ -369,6 +353,20 @@ def write_volume_outlines():
                         pass
                     outlines[vol_id][dim].append(coords)
     simulation_db.write_json(_OUTLINES_FILE, all_outlines)
+
+
+def _cleanup_statepoint_files(run_dir, data, frame_count, is_running):
+    s = run_dir.join(_statepoint_filename(data, frame_count - 1))
+    if s.exists():
+        t = s.mtime()
+        for f in pkio.sorted_glob(run_dir.join("statepoint.*")):
+            t2 = f.mtime()
+            if t2 < t:
+                if is_running and t - t2 < 15:
+                    # keep files around for 15 seconds extra if running
+                    # to prevent deletions from happening while the requested plot is processed
+                    continue
+                pkio.unchecked_remove(f)
 
 
 def _energy_plot(run_dir, data, frame_index):
@@ -791,7 +789,7 @@ def _parse_openmc_log(run_dir, log_filename="run.log"):
     ).parse_for_errors()
 
 
-def _parse_run_stats(run_dir, batches, out):
+def _parse_run_stats(run_dir, out):
     def _get_groups(match, *args):
         res = []
         for i in args:
@@ -804,7 +802,7 @@ def _parse_run_stats(run_dir, batches, out):
     log = run_dir.join(template_common.RUN_LOG)
     if not log.exists():
         return results
-    iteration = 0
+    out.iteration = 0
     mode = "start"
     with pkio.open_text(log) as f:
         for line in f:
@@ -812,30 +810,28 @@ def _parse_run_stats(run_dir, batches, out):
                 r" FIXED SOURCE TRANSPORT SIMULATION", line
             ):
                 mode = "fixed"
-                iteration += 1
+                out.iteration += 1
             elif mode in ("start", "results") and re.search(
                 r" K EIGENVALUE SIMULATION", line
             ):
                 mode = "eigen"
-                iteration += 1
+                out.iteration += 1
+                out.eigenvalue = []
             elif mode in ("fixed", "eigen") and re.search(
                 r"\s*=+>\s+RESULTS\s+<=+\s*", line
             ):
                 mode = "results"
                 out.results = []
-                out.eigenvalue = []
             elif mode == "fixed":
                 m = re.match(r"^ Simulating batch (\d+)", line)
                 if m:
                     out.batch = int(m.group(1))
-                    out.frameCount = out.batch + (iteration - 1) * batches
             elif mode == "eigen":
                 m = re.match(
                     rf"^\s+(\d+)/1\s+({RE_F})\s*({RE_F})?\s*(\+/-)?\s*({RE_F})?", line
                 )
                 if m:
                     out.batch = int(m.group(1))
-                    out.frameCount = out.batch + (iteration - 1) * batches
                     out.eigenvalue.append(
                         PKDict(
                             batch=out.batch,
@@ -846,6 +842,33 @@ def _parse_run_stats(run_dir, batches, out):
                 m = re.match(rf"^\s+(.+)\s=\s({RE_F})\s+\+/-\s+({RE_F})", line)
                 if m:
                     out.results.append(_get_groups(m, 1, 2, 3))
+
+
+def _percent_complete(run_dir, is_running):
+    res = PKDict(
+        frameCount=0,
+        percentComplete=0,
+        iteration=0,
+        batch=0,
+    )
+    _parse_run_stats(run_dir, res)
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    batches = data.models.settings.batches
+    if res.iteration > 0:
+        res.frameCount = res.batch + (res.iteration - 1) * batches
+    if is_running:
+        if res.frameCount:
+            res.frameCount -= 1
+        total = batches
+        if data.models.settings.varianceReduction == "weight_windows_tally":
+            total *= data.models.weightWindows.iterations
+        res.percentComplete = (res.batch + (res.iteration - 1) * batches) * 100 / total
+        if res.percentComplete < 0:
+            res.percentComplete = 0
+    if res.frameCount:
+        _cleanup_statepoint_files(run_dir, data, res.frameCount, is_running)
+        res.tallies = data.models.settings.tallies
+    return res
 
 
 def _planes(data):
