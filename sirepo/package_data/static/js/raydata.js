@@ -446,7 +446,7 @@ SIREPO.app.directive('scansTable', function() {
                     <tr>
                       <th style="width: 20px; height: 40px; white-space: nowrap" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-checked="pdfSelectAllScans" data-ng-click="togglePdfSelectAll()"/> <span style="vertical-align: top">PDF</span></th>
                       <th data-ng-repeat="column in columnHeaders track by $index" class="raydata-removable-column" style="width: 100px; height: 40px; white-space: nowrap">
-                        <span style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
+                        <span data-ng-if="columnIsSortable(column)" style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
                         <span style="cursor: pointer" data-ng-click="sortCol(column)">{{ column }}</span>
                         <button type="submit" class="btn btn-info btn-xs raydata-remove-column-button" data-ng-if="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
                       </th>
@@ -808,8 +808,12 @@ SIREPO.app.directive('scansTable', function() {
                 $scope.runLogScanId = scan.rduid;
             };
 
+            $scope.columnIsSortable = (column) => {
+                return column !== 'stop';
+            };
+
             $scope.sortCol = column => {
-                if (column === 'selected') {
+                if (! $scope.columnIsSortable(column)) {
                     return;
                 }
                 scanArgs.sortColumn = column;
