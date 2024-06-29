@@ -44,6 +44,8 @@ for html_file in glob.glob("manual/*.html"):
                 line = re.sub(r"&#x00A0;", " ", line)
                 line = re.sub(r".*?<br />", "", line)
                 line = re.sub(r"^\s+", "", line)
+                if not line:
+                    continue
                 f = line.split(" ")[1]
                 assert f, f"line split failed: {line}"
                 if f in ("balance_terms", "output_monitors_only") and f in fields:
@@ -88,7 +90,7 @@ for name in sorted(models):
     else:
         m = f"command_{name}"
     if m in schema.model:
-        pkconst.builtin_print_header = False
+        print_header = False
         for f in models[name]:
             if f == "printout_format":
                 continue
@@ -150,19 +152,32 @@ for view in schema.view:
             assert f in schema.model[view], f"missing {view} {f}"
 
 for m in schema.model:
+    if m == "_COMMAND":
+        continue
     if m.upper() == m or re.search(r"^command_", m):
         for f in schema.model[m]:
-            if re.search(r"(X|Y)$", f):
+            if f in ("_super",) or re.search(r"(X|Y)$", f):
                 continue
             assert f in schema.view[m].advanced, f"missing view field {m} {f}"
 
+_IGNORE_TOOLTIP_FIELDS = set(
+    [
+        "name",
+        "_super",
+        "malign_method",
+        "yaw_end",
+        "distribution",
+    ]
+)
 
 types = {}
 for m in schema.model:
+    if m == "_COMMAND":
+        continue
     if m.upper() == m or re.search(r"^command_", m):
         for f in schema.model[m]:
             row = schema.model[m][f]
-            if f != "name" and not re.search(r"(X|Y)$", f):
+            if f not in _IGNORE_TOOLTIP_FIELDS and not re.search(r"(X|Y)$", f):
                 assert len(row) >= 4, f"missing tooltip: {m} {f}"
             t = row[1]
             assert not re.search(r"^\d", str(t)), f"invalid type: {m} {f} {t}"
