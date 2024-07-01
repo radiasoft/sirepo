@@ -7,7 +7,7 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog
 import re
-import sirepo.job
+import sirepo.util
 
 #: Http auth header name
 _AUTH_HEADER = "Authorization"
@@ -17,13 +17,13 @@ _AUTH_HEADER_SCHEME_BEARER = "Bearer"
 
 #: Regex to test format of auth header and extract token
 _AUTH_HEADER_RE = re.compile(
-    _AUTH_HEADER_SCHEME_BEARER + r"\s(" + sirepo.job.UNIQUE_KEY_CHARS_RE + ")",
+    _AUTH_HEADER_SCHEME_BEARER + r"\s+(" + sirepo.util.UNIQUE_KEY_CHARS_RE + ")",
     re.IGNORECASE,
 )
 
 
 def auth_header(token):
-    """Construct auth header object.
+    """Construct RFC6750 auth header compatible with `requests`.
 
     Args:
       token (str): Secret to be included in the header
@@ -34,15 +34,15 @@ def auth_header(token):
 
 
 def parse_auth_header(headers):
-    """Validate and retrieve authentication header.
+    """Parse and retrieve RFC6750 bearer token.
 
     Args:
       headers (object): Object containing a `get` method to retrieve headers by name.
     Returns:
-      bool|str: False if parseable auth header not found otherwise token from auth header.
+      str: bearer token from header or None if invalid syntax
     """
     if not (h := headers.get(_AUTH_HEADER)):
-        return False
+        return None
     if m := _AUTH_HEADER_RE.search(h):
         return m.group(1)
-    return False
+    return None

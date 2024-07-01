@@ -12,26 +12,24 @@ from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdformat
 from sirepo import job
 from sirepo.template import template_common
 import datetime
-import json
 import os
 import re
-import shutil
 import signal
 import sirepo.feature_config
 import sirepo.modules
 import sirepo.nersc
 import sirepo.tornado
+import sirepo.util
 import socket
 import subprocess
-import sys
 import time
 import tornado.gen
 import tornado.ioloop
 import tornado.iostream
 import tornado.locks
+import tornado.netutil
 import tornado.process
 import tornado.websocket
-import tornado.netutil
 
 
 #: Long enough for job_cmd to write result in run_dir
@@ -579,7 +577,7 @@ class _Cmd(PKDict):
 
     def _create_in_file(self):
         f = self.run_dir.join(
-            _IN_FILE.format(job.unique_key()),
+            _IN_FILE.format(sirepo.util.unique_key()),
         )
         pkjson.dump_pretty(self.msg, filename=f, pretty=False)
         return f

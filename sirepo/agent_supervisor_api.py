@@ -20,7 +20,7 @@ class ReqBase(sirepo.tornado.AuthHeaderRequestHandler):
     def token_for_user(cls, uid):
         def _token():
             for _ in range(10):
-                t = sirepo.job.unique_key()
+                t = sirepo.util.unique_key()
                 if t not in cls._TOKEN_TO_UID:
                     cls._TOKEN_TO_UID[t] = uid
                     return t

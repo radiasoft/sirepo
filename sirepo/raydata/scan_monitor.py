@@ -258,8 +258,8 @@ class _RequestHandler(_JsonPostRequestHandler):
         self._rs_authenticate()
         self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
 
-    def _rs_authenticate(self):
-        t = super()._rs_authenticate()
+    def _rs_authenticate(self, *args, **kwargs):
+        t = super()._rs_authenticate(*args, **kwargs)
         if t == sirepo.feature_config.for_sim_type("raydata").scan_monitor_api_secret:
             return t
         raise sirepo.tornado.error_forbidden()

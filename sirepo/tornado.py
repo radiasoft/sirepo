@@ -27,6 +27,9 @@ class Event(tornado.locks.Event):
 
 
 class AuthHeaderRequestHandler(tornado.web.RequestHandler):
+    def create_header(self, token):
+        return sirepo.http_util.auth_header(token)
+
     def _rs_authenticate(self, *args, **kwargs):
         if m := sirepo.http_util.parse_auth_header(self.request.headers):
             return m
