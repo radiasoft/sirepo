@@ -189,7 +189,7 @@ class _DataFileReq(tornado.web.RequestHandler):
     async def put(self, path):
         # should be exactly two levels
         (d, f) = path.split("/")
-        assert sirepo.job.UNIQUE_KEY_RE.search(d), "invalid directory={}".format(d)
+        assert sirepo.util.UNIQUE_KEY_RE.search(d), "invalid directory={}".format(d)
         d = sirepo.job.DATA_FILE_ROOT.join(d)
         assert d.check(dir=True), "directory does not exist={}".format(d)
         # (tornado ensures no '..' and '.'), but a bit of sanity doesn't hurt

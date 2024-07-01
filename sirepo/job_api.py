@@ -115,7 +115,7 @@ class API(sirepo.quest.API):
         t = None
         with sirepo.sim_run.tmp_dir(qcall=self) as d:
             # TODO(e-carlin): computeJobHash
-            t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
+            t = sirepo.job.DATA_FILE_ROOT.join(sirepo.util.unique_key())
             t.mksymlinkto(d, absolute=True)
             try:
                 r = await self._request_api(
@@ -161,7 +161,7 @@ class API(sirepo.quest.API):
     async def api_jobSupervisorPing(self):
         e = None
         try:
-            k = sirepo.job.unique_key()
+            k = sirepo.util.unique_key()
             r = await self._request_api(
                 _request_content=PKDict(ping=k),
                 _request_uri=self._supervisor_uri(sirepo.job.SERVER_PING_URI),
@@ -446,7 +446,7 @@ class API(sirepo.quest.API):
         with sirepo.sim_run.tmp_dir(qcall=self) as d:
             t = None
             try:
-                t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
+                t = sirepo.job.DATA_FILE_ROOT.join(sirepo.util.unique_key())
                 t.mksymlinkto(d, absolute=True)
                 content.dataFileKey = t.basename
                 yield d
