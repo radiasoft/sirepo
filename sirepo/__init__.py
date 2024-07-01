@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-"""sirepo package
+""":mod:`sirepo` package
 
-:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
-:license: http://www.apache.org/licenses/LICENSE-2.0.html
+:copyright: Copyright (c) 2018-2024 RadiaSoft LLC..  All Rights Reserved.
+:license: https://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+
 import pkg_resources
 
 try:

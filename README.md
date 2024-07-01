@@ -13,7 +13,7 @@ The Sirepo gateway supports physics codes like elegant, Warp, SRW, JSPEC, Zgoubi
 ### If you prefer, Sirepo can also be downloaded! :arrow_down:
 * [Curl Installer for Mac and Linux](#curl-installer)
 * [Manual Install with Docker](#manual-install-with-docker)
-* [Development](https://github.com/radiasoft/sirepo/wiki/Development)
+* [Development](https://wiki.radiasoft.org/sirepo/wiki/Development)
 
 ### Curl Installer
 
@@ -29,7 +29,7 @@ $ curl https://sirepo.run | bash
 
 For this to work, you will need to [install the prerequisites](https://github.com/radiasoft/download/blob/master/README.md#requirements).
 
-[API Documentation is available on Read the Docs.](http://sirepo.readthedocs.org)
+[API Documentation is available on Read the Docs.](https://sirepo.readthedocs.io)
 
 ### Manual Install with Docker
 
