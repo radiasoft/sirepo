@@ -251,6 +251,7 @@ class _JsonPostRequestHandler(tornado.web.RequestHandler):
 
 class _RequestHandler(_JsonPostRequestHandler):
     async def _incoming(self, body):
+        pkdp(f"body={body}")
         return getattr(self, "_request_" + body.method)(body.data.get("args"))
 
     async def post(self):
@@ -343,22 +344,23 @@ class _RequestHandler(_JsonPostRequestHandler):
             return q
 
         def _sort_params(req_data):
-            c = _default_columns(req_data.catalogName).get(
-                req_data.sortColumn, req_data.sortColumn
-            )
+            pkdp(f"req_data.sortColumns={req_data.sortColumns}")
+            # c = _default_columns(req_data.catalogName).get(
+            #     req_data.sortColumn, req_data.sortColumn
+            # )
             s = [
                 (
-                    c,
-                    pymongo.ASCENDING if req_data.sortOrder else pymongo.DESCENDING,
-                ),
-            ]
-            if c != "time":
-                s.append(
-                    (
-                        "time",
-                        pymongo.DESCENDING,
-                    )
+                    "time",
+                    pymongo.DESCENDING,
                 )
+            ]
+            # if c != "time":
+            #     s.append(
+            #         (
+            #             "time",
+            #             pymongo.DESCENDING,
+            #         )
+            #     )
             return s
 
         c = sirepo.raydata.databroker.catalog(req_data.catalogName)
@@ -695,8 +697,9 @@ def _scan_info(
 def _scan_info_result(scans, page_count, req_data):
     def _compare_values(v1, v2):
         # very careful compare - needs to account for missing values or mismatched types
-        v1 = v1.get(req_data.sortColumn)
-        v2 = v2.get(req_data.sortColumn)
+        # TODO change to just use priority or some other default
+        v1 = v1.get("time")
+        v2 = v2.get("time")
         if v1 is None and v2 is None:
             return 0
         if v1 is None:
@@ -729,7 +732,7 @@ def _scan_info_result(scans, page_count, req_data):
         s = sorted(
             s,
             key=functools.cmp_to_key(_compare_values),
-            reverse=not req_data.sortOrder,
+            reverse=1,
         )
     return PKDict(
         data=PKDict(
@@ -737,8 +740,7 @@ def _scan_info_result(scans, page_count, req_data):
             cols=_display_columns(all_columns),
             pageCount=page_count,
             pageNumber=req_data.pageNumber,
-            sortColumn=req_data.sortColumn,
-            sortOrder=req_data.sortOrder,
+            sortColumns=req_data.sortColumns,
         )
     )
 

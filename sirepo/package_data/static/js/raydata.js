@@ -502,8 +502,7 @@ SIREPO.app.directive('scansTable', function() {
             let scanArgs = {
                 pageCount: 0,
                 pageNumber: 0,
-                sortColumn: $scope.analysisStatus == 'queued' ? 'queue order' : 'start',
-                sortOrder: $scope.analysisStatus == 'queued',
+                sortColumns: defaultSortColumns(),
             };
 
             const errorOptions = {
@@ -540,6 +539,17 @@ SIREPO.app.directive('scansTable', function() {
                 }
             }
 
+            function defaultSortColumns() {
+                return new Map(
+                    [
+                        [
+                            $scope.analysisStatus == 'queued' ? 'queue order' : 'start',
+                            $scope.analysisStatus == 'queued'
+                        ]
+                    ]
+                );
+            }
+
             function findScan(scanId) {
                 return $scope.scans[
                     $scope.scans.findIndex(s => s.rduid === scanId)
@@ -547,6 +557,7 @@ SIREPO.app.directive('scansTable', function() {
             }
 
             function init() {
+                srdbg("init", scanArgs.sortColumns);
                 setColumnHeaders();
                 if (scanService.cachedScans($scope.analysisStatus)) {
                     loadScans(scanService.cachedScans($scope.analysisStatus));
@@ -578,12 +589,12 @@ SIREPO.app.directive('scansTable', function() {
                 }
                 scanArgs.pageCount = scanInfo.pageCount || 0;
                 scanArgs.pageNumber = scanInfo.pageNumber;
-                scanArgs.sortColumn = scanInfo.sortColumn;
-                scanArgs.sortOrder = scanInfo.sortOrder;
+                scanArgs.sortColumns = scanInfo.sortColumns;
                 updatePageLocation();
             }
 
             function sendScanRequest(clearScans, resetPager) {
+                srdbg("sendScanRequest", scanArgs.sortColumns);
                 if (clearScans) {
                     scanOutputIndex++;
                     $scope.isRefreshingScans = false;
@@ -608,6 +619,7 @@ SIREPO.app.directive('scansTable', function() {
                     $scope.isRefreshingScans = true;
                     $scope.noScansReturned = false;
                     const expectedOutputIndex = scanOutputIndex;
+                    srdbg("sendScanRequest2", scanArgs.sortColumns);
                     requestSender.sendStatelessCompute(
                         appState,
                         json => {
@@ -628,8 +640,7 @@ SIREPO.app.directive('scansTable', function() {
                                 pageNumber: scanArgs.pageNumber,
                                 searchText: m.searchText,
                                 searchTerms: buildSearchTerms(m.searchTerms),
-                                sortColumn: scanArgs.sortColumn,
-                                sortOrder: scanArgs.sortOrder,
+                                sortColumns: JSON.stringify(scanArgs.sortColumns)
                             }
                         },
                         errorOptions
@@ -677,12 +688,12 @@ SIREPO.app.directive('scansTable', function() {
             }
 
             $scope.arrowClass = column => {
-                if (scanArgs.sortColumn !== column) {
+                if (! scanArgs.sortColumns.has(column)) {
                     return {};
                 }
                 return {
                     glyphicon: true,
-                    [`glyphicon-arrow-${scanArgs.sortOrder ? 'up' : 'down'}`]: true,
+                    [`glyphicon-arrow-${scanArgs.sortColumns.get(column) ? 'up' : 'down'}`]: true,
                 };
             };
 
@@ -815,9 +826,11 @@ SIREPO.app.directive('scansTable', function() {
             $scope.sortCol = column => {
                 if (! $scope.columnIsSortable(column)) {
                     return;
+                } else if (scanArgs.sortColumns.has(column)) {
+                    scanArgs.sortColumns.set(column, ! scanArgs.sortColumns.get(column));
+                } else {
+                    scanArgs.sortColumns.set(column, true);
                 }
-                scanArgs.sortColumn = column;
-                scanArgs.sortOrder = ! scanArgs.sortOrder;
                 sendScanRequest(true, true);
             };
 
