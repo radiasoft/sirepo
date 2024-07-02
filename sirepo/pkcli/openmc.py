@@ -33,16 +33,9 @@ def extract_dagmc(dagmc_filename):
         res[g.name] = PKDict(
             name=g.name,
             volId=g.vol_id,
+            density=g.density,
         )
     return res
-
-
-def run(cfg_dir):
-    template_common.exec_parameters()
-    data = sirepo.simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    sirepo.template.import_module("openmc").extract_report_data(
-        pkio.py_path(cfg_dir), data
-    )
 
 
 class _MoabGroupCollector:
@@ -66,13 +59,13 @@ class _MoabGroupCollector:
     def _groups_and_volumes(self, mb):
         res = PKDict()
         for g in self._groups(mb):
-            n = self._parse_entity_name(mb, g)
+            n, d = self._parse_entity_name_and_density(mb, g)
             if not n:
                 continue
             v = [h for h in mb.get_entities_by_handle(g)]
             if not v:
                 continue
-            res.pksetdefault(n, lambda: PKDict(name=n, volumes=[]))
+            res.pksetdefault(n, lambda: PKDict(name=n, volumes=[], density=d))
             res[n].volumes[0:0] = v
         for g in res.values():
             g.vol_id = self._tag_value(mb, self._id_tag, g.volumes[0])
@@ -81,11 +74,13 @@ class _MoabGroupCollector:
                 g.is_complement = True
         return tuple(res.values())
 
-    def _parse_entity_name(self, mb, group):
-        m = re.search("^mat:(.*)$", self._tag_value(mb, self._name_tag, group))
+    def _parse_entity_name_and_density(self, mb, group):
+        m = re.search(
+            r"^mat:(.*?)(?:/rho:(.*))?$", self._tag_value(mb, self._name_tag, group)
+        )
         if m:
-            return m.group(1)
-        return None
+            return m.group(1), m.group(2)
+        return None, None
 
     def _tag(self, mb, name):
         return mb.tag_get_handle(getattr(pymoab.types, f"{name}_TAG_NAME"))

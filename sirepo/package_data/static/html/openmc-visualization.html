@@ -7,9 +7,9 @@
       <div data-simple-panel="simulationStatus">
         <div data-sim-status-panel="visualization.simState" data-start-function="visualization.startSimulation()"></div>
         <div class="row">
-          <div class="col-md-offset-2 col-md-8" data-ng-show="visualization.eigenvalue">
+          <div class="col-md-offset-2 col-md-8" data-ng-show="visualization.eigenvalue.length">
           <table class="table">
-            <caption style="text-align: center; font-weight: bold;">Last {{ visualization.eigenvalueHistory() }} Eigenvalues</caption>
+            <caption style="text-align: center; font-weight: bold;">Eigenvalues</caption>
             <thead>
               <th>Batch</th>
               <th>k</th>
@@ -26,7 +26,7 @@
             </tbody>
           </table>
           </div>
-          <div class="col-md-offset-2 col-md-8" data-ng-show="visualization.results">
+          <div class="col-md-offset-2 col-md-8" data-ng-show="visualization.results.length">
           <table class="table">
             <caption style="text-align: center; font-weight: bold;">Results</caption>
             <thead>
@@ -48,7 +48,7 @@
     </div>
     <div class="clearfix"></div>
   </div>
-  <div class="row" data-ng-if="visualization.simState.isStateCompleted() && visualization.simState.hasFrames()">
+  <div class="row" data-ng-if="visualization.simState.hasFrames()">
     <div class="col-sm-8">
       <div data-report-panel="tallyViewer" data-model-name="openmcAnimation" data-panel-title="{{visualization.tallyTitle()}}"></div>
     </div>
