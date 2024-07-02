@@ -222,16 +222,17 @@ SIREPO.app.factory('openmcService', function(appState, panelState, $rootScope) {
         return null;
     };
 
-    self.invalidateRange = (model, field) => {
-        model[field] = [0, 0];
+    self.invalidateRange = (field) => {
+        appState.models.openmcAnimation[field] = [0, 0];
     };
 
     self.isGraveyard = volume => {
         return volume.name && volume.name.toLowerCase() === 'graveyard';
     };
 
-    self.isRangeValid = (model, field) => {
-        return model[field] && (model[field][0] || model[field][1]);
+    self.isRangeValid = (field) => {
+        const m = appState.models.openmcAnimation;
+        return m[field] && (m[field][0] || m[field][1]);
     };
 
     self.toggleAllVolumes = (isVisible, visibleKey) => {
@@ -364,7 +365,7 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
     self.results = null;
     self.simScope = $scope;
     self.simComputeModel = 'openmcAnimation';
-    let errorMessage, statusMessage;
+    let errorMessage, isRunning, statusMessage;
 
     function validateSelectedTally(tallies) {
         appState.models.openmcAnimation.tallies = tallies;
@@ -382,6 +383,10 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
     self.simHandleStatus = function(data) {
         statusMessage = '';
         tallyService.isRunning = self.simState.isProcessing();
+        if (isRunning || self.simState.isProcessing()) {
+            openmcService.invalidateRange('thresholds');
+            isRunning = self.simState.isProcessing();
+        }
         errorMessage = data.error;
         self.eigenvalue = data.eigenvalue;
         self.results = data.results;
@@ -408,8 +413,8 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
         const r = appState.models.openmcAnimation;
         delete r.tallies;
         delete r.tally;
-        openmcService.invalidateRange(r, 'energyRangeSum');
-        openmcService.invalidateRange(r, 'thresholds');
+        openmcService.invalidateRange('energyRangeSum');
+        openmcService.invalidateRange('thresholds');
         r.isEnergySelected = "0";
         panelState.clear('tallyReport');
         self.simState.saveAndRunSimulation('openmcAnimation');
@@ -499,7 +504,6 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         maxField: 0,
         outlines: null,
         sourceParticles: [],
-        isRunning: false,
     };
 
     function normalizer(score, numParticles) {
@@ -586,13 +590,12 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         self.fieldData = fieldData.map(n);
         self.minField = n(min);
         self.maxField = n(max);
-        if (self.isRunning
-            || ! openmcService.isRangeValid(appState.models.openmcAnimation, 'thresholds')) {
+        if (! openmcService.isRangeValid('thresholds')) {
             appState.models.openmcAnimation.thresholds = [self.minField, self.maxField];
             appState.saveQuietly('openmcAnimation');
         }
         const f = openmcService.findFilter('energyFilter');
-        if (f && ! openmcService.isRangeValid(appState.models.openmcAnimation, 'energyRangeSum')) {
+        if (f && ! openmcService.isRangeValid('energyRangeSum')) {
             appState.models.openmcAnimation.energyRangeSum = [
                 f.start,
                 f.stop,
@@ -3133,7 +3136,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
     }, 500);
 
     function invalidateThreshold() {
-        openmcService.invalidateRange(appState.models.openmcAnimation, 'thresholds');
+        openmcService.invalidateRange('thresholds');
     }
 
     function showFields() {

@@ -1016,8 +1016,8 @@
             "photon_transport": ["Photon transport", "Boolean", "0", "Simulate the passage of photons through matter"],
             "sources": ["", "SourcesOrTallies", []],
             "tallies": ["", "SourcesOrTallies", []],
-            "run_mode": ["Run mode", "RunMode", "eigenvalue", "The type of calculation to perform"],
-            "materialLibrary": ["Material data library", "MaterialLibrary", "ENDFB-7.1-NNDC"],
+            "run_mode": ["Run mode", "RunMode", "fixed source", "The type of calculation to perform"],
+            "materialLibrary": ["Material data library", "MaterialLibrary", "ENDFB-8.0-NNDC"],
             "varianceReduction": ["Technique", "VarianceReduction", "None"],
             "max_splits": ["Maximum splits", "Integer", 1000, "Maximum number of particle splits for weight windows"],
             "outputInterval": ["Output interval", "Integer", 1, "Output interval for active batches", 1]

@@ -355,6 +355,18 @@ def write_volume_outlines():
     simulation_db.write_json(_OUTLINES_FILE, all_outlines)
 
 
+def _batch_sequence(settings):
+    res = []
+    b = 1
+    if settings.run_mode == "eigenvalue":
+        b += settings.inactive
+    while b < settings.batches:
+        res.append(b)
+        b += settings.outputInterval
+    res.append(settings.batches)
+    return res
+
+
 def _cleanup_statepoint_files(run_dir, data, frame_count, is_running):
     s = run_dir.join(_statepoint_filename(data, frame_count - 1))
     if s.exists():
@@ -586,6 +598,7 @@ def _generate_parameters_file(data, run_dir=None):
     else:
         v.materialDirectory = sirepo.sim_run.cache_dir(_CACHE_DIR)
         v.isSBATCH = _is_sbatch_run_mode(data)
+    v.batchSequence = _batch_sequence(data.models.settings)
     v.weightWindowsMesh = _generate_mesh(data.models.weightWindowsMesh)
     v.runCommand = _generate_run_mode(data, v)
     v.incomplete_data_msg = ""
@@ -754,6 +767,29 @@ t{tally._index + 1}.nuclides = [{','.join(["'" + s.nuclide + "'" for s in tally.
     return res
 
 
+def _get_batch(count, data):
+    settings = data.models.settings
+    c = 0
+    iterations = 1
+    if settings.varianceReduction == "weight_windows_tally":
+        iterations = data.models.weightWindows.iterations
+    for i in range(iterations):
+        b = 1
+        if settings.run_mode == "eigenvalue":
+            b += settings.inactive
+        while b < settings.batches:
+            c += 1
+            if c == count:
+                return b
+            b += settings.outputInterval
+            if b > settings.batches:
+                b = settings.batches
+        c += 1
+        if c == count:
+            return b
+    raise AssertionError(f"Count outside of batch window: {count}")
+
+
 def _get_filter(tally, type):
     for i in range(1, SCHEMA.constants.maxFilters + 1):
         f = tally[f"filter{i}"]
@@ -847,6 +883,29 @@ def _parse_run_stats(run_dir, out):
                     out.results.append(_get_groups(m, 1, 2, 3))
 
 
+def _frame_count_for_batch(batch, data):
+    settings = data.models.settings
+    c = 0
+    iterations = 1
+    if settings.varianceReduction == "weight_windows_tally":
+        iterations = data.models.weightWindows.iterations
+    for i in range(iterations):
+        b = 1
+        if settings.run_mode == "eigenvalue":
+            b += settings.inactive
+        if batch < settings.batches * i + b:
+            return c
+        while b < settings.batches:
+            c += 1
+            b += settings.outputInterval
+            if b > settings.batches:
+                b = settings.batches
+            if batch < settings.batches * i + b:
+                return c
+        c += 1
+    return c
+
+
 def _percent_complete(run_dir, is_running):
     res = PKDict(
         frameCount=0,
@@ -858,10 +917,17 @@ def _percent_complete(run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     batches = data.models.settings.batches
     if res.iteration > 0:
-        res.frameCount = res.batch + (res.iteration - 1) * batches
+        res.frameCount = _frame_count_for_batch(
+            res.batch + (res.iteration - 1) * batches,
+            data,
+        )
     if is_running:
-        if res.frameCount:
-            res.frameCount -= 1
+        if res.batch == 1 or (
+            _frame_count_for_batch(res.batch - 1 + (res.iteration - 1) * batches, data)
+            != res.frameCount
+        ):
+            if res.frameCount > 0:
+                res.frameCount -= 1
         total = batches
         if data.models.settings.varianceReduction == "weight_windows_tally":
             total *= data.models.weightWindows.iterations
@@ -906,9 +972,7 @@ def _source_filename(data):
 def _statepoint_filename(data, frame_index=None):
     b = data.models.settings.batches
     if frame_index is not None:
-        if data.models.settings.varianceReduction == "weight_windows_tally":
-            frame_index = frame_index % b
-        b = str(frame_index + 1).zfill(int(math.log10(b) + 1))
+        b = str(_get_batch(frame_index + 1, data)).zfill(int(math.log10(b) + 1))
     return f"statepoint.{b}.h5"
 
 

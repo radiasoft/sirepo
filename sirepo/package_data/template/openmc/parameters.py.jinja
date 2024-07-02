@@ -47,7 +47,7 @@ def create_settings():
     settings = openmc.Settings()
     settings.batches = {{ settings_batches }}
     settings.statepoint = dict(
-        batches=range(1, {{ settings_batches + 1}}),
+        batches={{ batchSequence }},
     )
 {% if settings_run_mode == "eigenvalue"  %}
     settings.inactive = {{ settings_inactive }}
