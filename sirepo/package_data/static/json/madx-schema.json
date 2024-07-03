@@ -33,15 +33,15 @@
             "YROTATION"
         ],
         "basicElementNames": [
-            "SBEND",
-            "RBEND",
-            "DRIFT",
             "COLLIMATOR",
+            "DRIFT",
             "ECOLLIMATOR",
-            "RCOLLIMATOR",
             "KICKER",
             "MARKER",
             "QUADRUPOLE",
+            "RBEND",
+            "RCOLLIMATOR",
+            "SBEND",
             "SEXTUPOLE"
         ],
         "helpUserManualURL": "https://mad.web.cern.ch/mad/webguide/manual.html",
