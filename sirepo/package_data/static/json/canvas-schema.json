@@ -1,0 +1,289 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "lattice"
+        }
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "split-1.3.5.min.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "canvas.js",
+                "sirepo-command.js",
+                "sirepo-lattice.js"
+            ],
+             "css": [
+                 "lattice.css",
+                 "command.css"
+            ]
+        }
+    },
+    "enum": {
+        "ApertureShape": [
+            ["elliptical", "elliptical"],
+            ["rectangular", "rectangular"]
+        ],
+        "MultipoleIndex": [
+            ["1", "dipole"],
+            ["2", "quadrupole"],
+            ["3", "sextupole"],
+            ["4", "octupole"]
+        ]
+    },
+    "localRoutes": {
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "LatticeController as lattice",
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+            }
+        }
+    },
+    "model": {
+        "beamline": {
+            "name": ["Name", "ValidatedString"]
+        },
+        "_ELEMENT": {
+            "_super": ["", "model", "_MISALIGNMENT"],
+            "name": ["Name", "ValidatedString"],
+            "l": ["Length [m]", "RPNValue", 0]
+        },
+        "_MISALIGNMENT": {
+            "dx": ["X misalignment [m]", "RPNValue", 0],
+            "dy": ["Y misalignment [m]", "RPNValue", 0],
+            "psi": ["Z rotation [rad]", "RPNValue", 0]
+        },
+        "APERTURE": {
+            "_super": ["", "model", "_ELEMENT"],
+            "shape": ["Boundary shape", "ApertureShape", "rectangular"],
+            "xmax": ["X max [m]", "RPNValue", 0],
+            "ymax": ["Y max [m]", "RPNValue", 0]
+        },
+        "DRIFT": {
+            "_super": ["", "model", "_ELEMENT"]
+        },
+        "KICKER": {
+            "_super": ["", "model", "_ELEMENT"],
+            "xkick": ["X Kick", "RPNValue", 0],
+            "ykick": ["Y Kick", "RPNValue", 0]
+        },
+        "MONITOR": {
+            "_super": ["", "model", "_ELEMENT"]
+        },
+        "MULTIPOLE": {
+            "_super": ["", "model", "_ELEMENT"],
+            "multipole": ["Multipole index", "MultipoleIndex", "1"],
+            "k_normal": ["Normal coefficient", "RPNValue", 0],
+            "k_skew": ["Skew coefficient", "RPNValue", 0]
+        },
+        "QUADRUPOLE": {
+            "_super": ["", "model", "_ELEMENT"],
+            "k1": ["Normal coefficient [$\\bf m^{-2}$]", "RPNValue", 0],
+            "k1s": ["Skew coefficient [$\\bf m^{-2}$]", "RPNValue", 0]
+        },
+        "RFCAVITY": {
+            "_super": ["", "model", "_ELEMENT"],
+            "volt": ["Voltage [V]", "RPNValue", 0],
+            "freq": ["Frequency [Hz]", "RPNValue", 0],
+            "phase": ["Phase [rad]", "RPNValue", 0]
+        },
+        "SBEND": {
+            "_super": ["", "model", "_ELEMENT"],
+            "angle": ["Angle [rad]", "RPNValue", 0, "The bend angle"],
+            "gap": ["Gap [m]", "RPNValue", 0, "The gap of the magnet."],
+            "fint": ["Entrance Fringe field integral", "RPNValue", 0],
+            "fintx": ["Exit Fringe field integral", "RPNValue", 0],
+            "e1": ["Entrance Pole face rotation angle [rad]", "RPNValue", 0],
+            "e2": ["Exit Pole face rotation angle [rad]", "RPNValue", 0]
+        },
+        "SEXTUPOLE": {
+            "_super": ["", "model", "_ELEMENT"],
+            "k2": ["Normal coefficient [$\\bf m^{-3}$]", "RPNValue", 0],
+            "k2s": ["Skew coefficient [$\\bf m^{-3}$]", "RPNValue", 0]
+        },
+        "SOLENOID": {
+            "_super": ["", "model", "_ELEMENT"],
+            "ks": ["Strength [rad/m]", "RPNValue", 0]
+        },
+        "rpnVariable": {
+            "name": ["Name", "String"],
+            "value": ["Value", "RPNValue"]
+        },
+        "simulationStatus": {}
+    },
+    "view": {
+        "beamline": {
+            "title": "Beamline",
+            "advanced": [
+                "name"
+            ]
+        },
+        "APERTURE": {
+            "title": "APERTURE",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "shape",
+                    "xmax",
+                    "ymax"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "DRIFT": {
+            "title": "DRIFT",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "KICKER": {
+            "title": "KICKER",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "xkick",
+                    "ykick"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "MONITOR": {
+            "title": "MONITOR: A beam monitor",
+            "advanced": [
+                "name"
+            ]
+        },
+        "MULTIPOLE": {
+            "title": "MULTIPOLE",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "multipole",
+                    "l",
+                    "k_normal",
+                    "k_skew"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "QUADRUPOLE": {
+            "title": "QUADRUPOLE",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "k1",
+                    "k1s"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "RFCAVITY": {
+            "title": "RFCAVITY: A radiafrequency cavity",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "volt",
+                    "freq",
+                    "phase"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "SBEND": {
+            "title": "SBEND: An ideal sector bend",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "angle",
+                    [
+                        ["Entrance", [
+                            "fint",
+                            "e1"
+                        ]],
+                        ["Exit", [
+                            "fintx",
+                            "e2"
+                        ]]
+                    ]
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "SEXTUPOLE": {
+            "title": "SEXTUPOLE",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "k2",
+                    "k2s"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "SOLENOID": {
+            "title": "SOLENOID",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "ks"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        }
+    }
+}

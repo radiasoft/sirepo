@@ -1,0 +1,12 @@
+{
+    "models": {
+        "beamlines": [],
+        "elements": [],
+        "commands": [],
+        "rpnCache": {},
+        "rpnVariables": [],
+        "simulation": {
+        }
+    },
+    "simulationType": "canvas"
+}
