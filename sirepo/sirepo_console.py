@@ -2,7 +2,7 @@
 
 See :mod:`pykern.pkcli` for how this module is used.
 
-:copyright: Copyright (c) 2015-2024 RadiaSoft LLC..  All Rights Reserved.
+:copyright: Copyright (c) 2015-2024 RadiaSoft LLC.  All Rights Reserved.
 :license: https://www.apache.org/licenses/LICENSE-2.0.html
 """
 
