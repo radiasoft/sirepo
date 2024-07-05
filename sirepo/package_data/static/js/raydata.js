@@ -557,7 +557,6 @@ SIREPO.app.directive('scansTable', function() {
             }
 
             function init() {
-                srdbg("init", scanArgs.sortColumns);
                 setColumnHeaders();
                 if (scanService.cachedScans($scope.analysisStatus)) {
                     loadScans(scanService.cachedScans($scope.analysisStatus));
@@ -594,7 +593,6 @@ SIREPO.app.directive('scansTable', function() {
             }
 
             function sendScanRequest(clearScans, resetPager) {
-                srdbg("sendScanRequest", scanArgs.sortColumns);
                 if (clearScans) {
                     scanOutputIndex++;
                     $scope.isRefreshingScans = false;
@@ -619,7 +617,6 @@ SIREPO.app.directive('scansTable', function() {
                     $scope.isRefreshingScans = true;
                     $scope.noScansReturned = false;
                     const expectedOutputIndex = scanOutputIndex;
-                    srdbg("sendScanRequest2", scanArgs.sortColumns);
                     requestSender.sendStatelessCompute(
                         appState,
                         json => {
@@ -640,7 +637,7 @@ SIREPO.app.directive('scansTable', function() {
                                 pageNumber: scanArgs.pageNumber,
                                 searchText: m.searchText,
                                 searchTerms: buildSearchTerms(m.searchTerms),
-                                sortColumns: JSON.stringify(scanArgs.sortColumns)
+                                sortColumns: [...scanArgs.sortColumns.entries()].join(';')
                             }
                         },
                         errorOptions
