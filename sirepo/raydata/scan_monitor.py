@@ -344,24 +344,25 @@ class _RequestHandler(_JsonPostRequestHandler):
             return q
 
         def _sort_params(req_data):
-            pkdp(f"req_data.sortColumns={req_data.sortColumns}")
-            # c = _default_columns(req_data.catalogName).get(
-            #     req_data.sortColumn, req_data.sortColumn
-            # )
-            s = [
-                (
-                    "time",
-                    pymongo.DESCENDING,
-                )
-            ]
-            # if c != "time":
-            #     s.append(
-            #         (
-            #             "time",
-            #             pymongo.DESCENDING,
-            #         )
-            #     )
-            return s
+            r = req_data.sortColumns.split(";")
+            z = []
+            hastime = False
+            for x in r:
+                x = x.split(",")
+                if x[1] == "true":
+                    x[1] = pymongo.ASCENDING
+                elif x[1] == "false":
+                    x[1] = pymongo.DESCENDING
+                else:
+                    assert 0, x[1]
+                x = (_default_columns(req_data.catalogName).get(x[0], x[0]), x[1])
+                z.append(x)
+                if x[0] == "time":
+                    hastime = True
+            if not hastime:
+                z.append(("time", pymongo.DESCENDING))
+            pkdp(f"z={z}")
+            return z
 
         c = sirepo.raydata.databroker.catalog(req_data.catalogName)
         pc = math.ceil(
