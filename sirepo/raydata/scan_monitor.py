@@ -344,21 +344,24 @@ class _RequestHandler(_JsonPostRequestHandler):
             return q
 
         def _sort_params(req_data):
-            r = req_data.sortColumns.split(";")
+            pkdp(f"rrrrrrr={req_data.sortColumns}")
+
             z = []
             hastime = False
-            for x in r:
-                x = x.split(",")
-                if x[1] == "true":
-                    x[1] = pymongo.ASCENDING
-                elif x[1] == "false":
-                    x[1] = pymongo.DESCENDING
-                else:
-                    assert 0, x[1]
-                x = (_default_columns(req_data.catalogName).get(x[0], x[0]), x[1])
-                z.append(x)
-                if x[0] == "time":
-                    hastime = True
+            if req_data.sortColumns != "":
+                r = req_data.sortColumns.split(";")
+                for x in r:
+                    x = x.split(",")
+                    if x[1] == "true":
+                        x[1] = pymongo.ASCENDING
+                    elif x[1] == "false":
+                        x[1] = pymongo.DESCENDING
+                    else:
+                        assert 0, x[1]
+                    x = (_default_columns(req_data.catalogName).get(x[0], x[0]), x[1])
+                    z.append(x)
+                    if x[0] == "time":
+                        hastime = True
             if not hastime:
                 z.append(("time", pymongo.DESCENDING))
             pkdp(f"z={z}")
