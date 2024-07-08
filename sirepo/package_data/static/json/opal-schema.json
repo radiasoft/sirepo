@@ -1906,6 +1906,8 @@
                 "angle",
                 "k0",
                 "k0s",
+                "e1",
+                "e2",
                 "fmapfn",
                 "gap",
                 "hapert",
