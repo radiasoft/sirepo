@@ -440,7 +440,7 @@ SIREPO.app.directive('scansTable', function() {
                   <button class="btn btn-info btn-xs raydata-button" data-ng-click="pageNext()" data-ng-disabled="! canNextPage()"><span class="glyphicon glyphicon-chevron-right"></span></button>
                 </div>
                 <div data-ng-if="columnsService.allColumns" data-column-picker=""></div>
-                <button data-ng-if="columnsService.allColumns" class="btn btn-info btn-xs raydata-button" data-ng-click="clearSort()">Clear Sort</button>
+                <button data-ng-if="analysisStatus === 'allStatuses'" class="btn btn-info btn-xs raydata-button" data-ng-click="clearSort()">Clear Sort</button>
                 <button class="btn btn-info btn-xs raydata-button pull-right" data-ng-show="showPdfButton()" data-ng-click="downloadSelectedAnalyses()">Download Selected Analysis PDFs</button>
                 <table class="table table-striped table-hover">
                   <thead>
@@ -847,6 +847,8 @@ SIREPO.app.directive('scansTable', function() {
                     return;
                 } else if (scanArgs.sortColumns.has(column)) {
                     scanArgs.sortColumns.set(column, ! scanArgs.sortColumns.get(column));
+                } else if ($scope.analysisStatus !== 'allStatuses') {
+                    scanArgs.sortColumns = new Map([[column, true]])
                 } else {
                     scanArgs.sortColumns.set(column, true);
                 }
