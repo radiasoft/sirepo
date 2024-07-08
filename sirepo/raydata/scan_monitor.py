@@ -251,7 +251,6 @@ class _JsonPostRequestHandler(tornado.web.RequestHandler):
 
 class _RequestHandler(_JsonPostRequestHandler):
     async def _incoming(self, body):
-        pkdp(f"body={body}")
         return getattr(self, "_request_" + body.method)(body.data.get("args"))
 
     async def post(self):
@@ -481,28 +480,23 @@ class _RequestHandler(_JsonPostRequestHandler):
 
 
 def _sort_params(req_data):
-    pkdp(f"rrrrrrr={req_data.sortColumns}")
-
-    z = []
-    hastime = False
+    r = []
+    has_time = False
     if req_data.sortColumns != "":
-        r = req_data.sortColumns.split(";")
-        for x in r:
+        for x in req_data.sortColumns.split(";"):
             x = x.split(",")
             if x[1] == "true":
                 x[1] = pymongo.ASCENDING
-            elif x[1] == "false":
-                x[1] = pymongo.DESCENDING
             else:
-                assert 0, x[1]
-            x = (_default_columns(req_data.catalogName).get(x[0], x[0]), x[1])
-            z.append(x)
+                assert x[1] == "false", f"unrecognized sort order {x}"
+                x[1] = pymongo.DESCENDING
+            x[0] = _default_columns(req_data.catalogName).get(x[0], x[0])
             if x[0] == "time":
-                hastime = True
-    if not hastime:
-        z.append(("time", pymongo.DESCENDING))
-    pkdp(f"z={z}")
-    return z
+                has_time = True
+            r.append(x)
+    if not has_time:
+        r.append(("time", pymongo.DESCENDING))
+    return r
 
 
 async def _init_analysis_processors():
