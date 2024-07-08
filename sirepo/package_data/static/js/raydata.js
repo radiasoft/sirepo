@@ -844,7 +844,7 @@ SIREPO.app.directive('scansTable', function() {
                 } else if (scanArgs.sortColumns.has(column)) {
                     scanArgs.sortColumns.set(column, ! scanArgs.sortColumns.get(column));
                 } else if ($scope.analysisStatus !== 'allStatuses') {
-                    scanArgs.sortColumns = new Map([[column, true]])
+                    scanArgs.sortColumns = new Map([[column, true]]);
                 } else {
                     scanArgs.sortColumns.set(column, true);
                 }
