@@ -343,30 +343,6 @@ class _RequestHandler(_JsonPostRequestHandler):
                 }
             return q
 
-        def _sort_params(req_data):
-            pkdp(f"rrrrrrr={req_data.sortColumns}")
-
-            z = []
-            hastime = False
-            if req_data.sortColumns != "":
-                r = req_data.sortColumns.split(";")
-                for x in r:
-                    x = x.split(",")
-                    if x[1] == "true":
-                        x[1] = pymongo.ASCENDING
-                    elif x[1] == "false":
-                        x[1] = pymongo.DESCENDING
-                    else:
-                        assert 0, x[1]
-                    x = (_default_columns(req_data.catalogName).get(x[0], x[0]), x[1])
-                    z.append(x)
-                    if x[0] == "time":
-                        hastime = True
-            if not hastime:
-                z.append(("time", pymongo.DESCENDING))
-            pkdp(f"z={z}")
-            return z
-
         c = sirepo.raydata.databroker.catalog(req_data.catalogName)
         pc = math.ceil(
             len(
@@ -502,6 +478,31 @@ class _RequestHandler(_JsonPostRequestHandler):
                 ).get_start_fields(),
             )
         )
+
+
+def _sort_params(req_data):
+    pkdp(f"rrrrrrr={req_data.sortColumns}")
+
+    z = []
+    hastime = False
+    if req_data.sortColumns != "":
+        r = req_data.sortColumns.split(";")
+        for x in r:
+            x = x.split(",")
+            if x[1] == "true":
+                x[1] = pymongo.ASCENDING
+            elif x[1] == "false":
+                x[1] = pymongo.DESCENDING
+            else:
+                assert 0, x[1]
+            x = (_default_columns(req_data.catalogName).get(x[0], x[0]), x[1])
+            z.append(x)
+            if x[0] == "time":
+                hastime = True
+    if not hastime:
+        z.append(("time", pymongo.DESCENDING))
+    pkdp(f"z={z}")
+    return z
 
 
 async def _init_analysis_processors():
@@ -700,10 +701,10 @@ def _scan_info(
 
 def _scan_info_result(scans, page_count, req_data):
     def _compare_values(v1, v2):
+        sort_column = _sort_params(req_data)[0][0]
         # very careful compare - needs to account for missing values or mismatched types
-        # TODO change to just use priority or some other default
-        v1 = v1.get("time")
-        v2 = v2.get("time")
+        v1 = v1.get(sort_column)
+        v2 = v2.get(sort_column)
         if v1 is None and v2 is None:
             return 0
         if v1 is None:
@@ -736,7 +737,7 @@ def _scan_info_result(scans, page_count, req_data):
         s = sorted(
             s,
             key=functools.cmp_to_key(_compare_values),
-            reverse=1,
+            reverse=not _sort_params(req_data)[0][1],
         )
     return PKDict(
         data=PKDict(
