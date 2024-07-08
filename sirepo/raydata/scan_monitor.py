@@ -568,7 +568,7 @@ def _default_columns(catalog_name):
     return PKDict(
         start="time",
         stop="time",
-        suid="rduid",
+        suid="uid",
         **{
             e: e
             for e in sirepo.sim_data.get_class("raydata")
