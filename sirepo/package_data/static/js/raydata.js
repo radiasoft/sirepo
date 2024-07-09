@@ -1187,7 +1187,13 @@ SIREPO.app.directive('scanDetail', function() {
             };
 
             $scope.detailedStatus = () => {
-                return utilities.objectToText($scope.detailedStatusFile());
+                return utilities.objectToText($scope.detailedStatusFile()).replace(
+                    /(start:|stop:)(\s*)(\d+\.?\d*)/gi,
+                    (_, p1, p2, p3) => {
+                        return p1 + p2 + (new Date(parseFloat(p3)*1000)).toString();
+                    }
+                )
+                ;
             };
 
             $scope.detailedStatusFile = () => {
