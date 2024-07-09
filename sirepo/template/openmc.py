@@ -840,7 +840,7 @@ def _parse_run_stats(run_dir, out):
     RE_F = "\d*\.\d+"
     log = run_dir.join(template_common.RUN_LOG)
     if not log.exists():
-        return results
+        return
     out.iteration = 0
     mode = "start"
     with pkio.open_text(log) as f:

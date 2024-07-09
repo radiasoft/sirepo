@@ -384,7 +384,9 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
         statusMessage = '';
         tallyService.isRunning = self.simState.isProcessing();
         if (isRunning || self.simState.isProcessing()) {
-            openmcService.invalidateRange('thresholds');
+            if (data.frameCount != frameCache.getFrameCount()) {
+                openmcService.invalidateRange('thresholds');
+            }
             isRunning = self.simState.isProcessing();
         }
         errorMessage = data.error;
