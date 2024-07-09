@@ -1124,6 +1124,10 @@ SIREPO.app.directive('scanDetail', function() {
             <div class="well" style="height: 250px; overflow: auto;">
             <div data-ng-if="scan">
               <div><strong>Scan Id:</strong> {{ scan.rduid }}</div>
+              <div data-ng-if="analysisElapsedTime()"><strong>Analysis Elapsed Time:</strong> {{ analysisElapsedTime() }} seconds</div>
+              <div data-ng-if="detailedStatusFile()">
+                <div><strong>Current Consecutive Failures:</strong> {{ consecutiveFailures() }}</div>
+              </div>
               <div data-ng-if="detailedStatusFile()">
                 <div><strong>Most Recent Status</strong></div>
                 <pre>{{ currentStatus() }}</pre>
@@ -1132,10 +1136,6 @@ SIREPO.app.directive('scanDetail', function() {
                 <div><strong>Detailed Status File</strong></div>
                 <pre>{{ detailedStatus() }}</pre>
               </div>
-              <div data-ng-if="detailedStatusFile()">
-                <div><strong>Current Consecutive Failures:</strong> {{ consecutiveFailures() }}</div>
-              </div>
-              <div data-ng-if="analysisElapsedTime()"><strong>Analysis Elapsed Time:</strong> {{ analysisElapsedTime() }} seconds</div>
             </div>
             </div>
 `,
