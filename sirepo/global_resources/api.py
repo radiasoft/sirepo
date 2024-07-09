@@ -17,36 +17,37 @@ class Req(sirepo.agent_supervisor_api.ReqBase):
     _TOKEN_TO_UID = PKDict()
     _UID_TO_TOKEN = PKDict()
 
-    def post(self):
-        d = PKDict(pkjson.load_any(self.request.body))
-        u = self._rs_authenticate(d.simulationType)
-        return self.write(
-            sirepo.global_resources.for_simulation(
-                d.simulationType,
-                d.simulationId,
-                uid=u,
-                for_gui=False,
-            )
-        )
-
-    def _rs_authenticate(self, sim_type):
+    def _sr_authenticate(self, token, *args, **kwargs):
         assert (
             sirepo.feature_config.cfg().enable_global_resources
         ), "global resources supervisor api called but system not enabled"
-        u = super()._rs_authenticate()
+        u = super()._sr_authenticate(token)
         with sirepo.quest.start() as qcall:
             with qcall.auth.logged_in_user_set(u):
+                s = None
                 try:
+                    s = pkjson.load_any(self.request.body).simulationType
                     qcall.auth.check_sim_type_role(
-                        sim_type, force_sim_type_required_for_api=True
+                        s, force_sim_type_required_for_api=True
                     )
                 except Exception as e:
                     pkdlog(
                         "user={} does not have access to sim_type={} error={} stack={}",
                         u,
-                        sim_type,
+                        s,
                         e,
                         pkdexc(),
                     )
                     raise sirepo.tornado.error_forbidden()
         return u
+
+    async def _sr_post(self, uid, *args, **kwargs):
+        d = PKDict(pkjson.load_any(self.request.body))
+        return self.write(
+            sirepo.global_resources.for_simulation(
+                d.simulationType,
+                d.simulationId,
+                uid=uid,
+                for_gui=False,
+            )
+        )

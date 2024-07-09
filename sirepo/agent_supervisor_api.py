@@ -28,16 +28,15 @@ class ReqBase(sirepo.tornado.AuthHeaderRequestHandler):
 
         return cls._UID_TO_TOKEN.pksetdefault(uid, _token)[uid]
 
-    def write_error(self, *args, **kwargs):
-        if e := kwargs.get("exc_info"):
+    def write_error(self, status_code, *args, **kwargs):
+        if status_code >= 500 and (e := kwargs.get("exc_info")):
             pkdlog("exception={} stack={}", e[1], pkdexc(e))
         super().write_error(*args, **kwargs)
 
-    def _rs_authenticate(self, *args, **kwargs):
-        m = super()._rs_authenticate(self, *args, **kwargs)
-        u = self._TOKEN_TO_UID.get(m)
+    def _sr_authenticate(self, token, *args, **kwargs):
+        u = self._TOKEN_TO_UID.get(token)
         if not u:
-            pkdlog("token={} not found", m)
+            pkdlog("token={} not found", token)
             raise sirepo.tornado.error_forbidden()
         return u
 
@@ -50,7 +49,7 @@ def request(method, uri, token, data=None, json=None):
         json=json,
         data=data,
         verify=sirepo.job.cfg().verify_tls,
-        headers=sirepo.http_util.auth_header(token),
+        headers=sirepo.tornado.AuthHeaderRequestHandler.get_header(token),
     )
 
 

@@ -254,16 +254,6 @@ class _RequestHandler(_JsonPostRequestHandler):
     async def _incoming(self, body):
         return getattr(self, "_request_" + body.method)(body.data.get("args"))
 
-    async def post(self):
-        self._rs_authenticate()
-        self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
-
-    def _rs_authenticate(self, *args, **kwargs):
-        t = super()._rs_authenticate(*args, **kwargs)
-        if t == sirepo.feature_config.for_sim_type("raydata").scan_monitor_api_secret:
-            return t
-        raise sirepo.tornado.error_forbidden()
-
     def _build_search_terms(self, terms):
         res = []
         for search in terms:
@@ -504,6 +494,17 @@ class _RequestHandler(_JsonPostRequestHandler):
                 ).get_start_fields(),
             )
         )
+
+    def _sr_authenticate(self, token):
+        if (
+            token
+            == sirepo.feature_config.for_sim_type("raydata").scan_monitor_api_secret
+        ):
+            return token
+        raise sirepo.tornado.error_forbidden()
+
+    async def _sr_post(self, *args, **kwargs):
+        self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
 
 
 async def _init_analysis_processors():

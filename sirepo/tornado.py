@@ -27,12 +27,22 @@ class Event(tornado.locks.Event):
 
 
 class AuthHeaderRequestHandler(tornado.web.RequestHandler):
-    def create_header(self, token):
+    @classmethod
+    def get_header(cls, token):
         return sirepo.http_util.auth_header(token)
 
-    def _rs_authenticate(self, *args, **kwargs):
+    async def get(self):
+        await self._sr_get(self.__authenticate())
+
+    async def post(self):
+        await self._sr_post(self.__authenticate())
+
+    async def put(self):
+        await self._sr_put(self.__authenticate())
+
+    def __authenticate(self):
         if m := sirepo.http_util.parse_auth_header(self.request.headers):
-            return m
+            return self._sr_authenticate(m)
         raise error_forbidden()
 
 

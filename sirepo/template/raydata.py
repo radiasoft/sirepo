@@ -16,8 +16,8 @@ import re
 import requests
 import requests.exceptions
 import sirepo.feature_config
-import sirepo.http_util
 import sirepo.sim_data
+import sirepo.tornado
 import sirepo.util
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -84,7 +84,9 @@ def _request_scan_monitor(data):
         r = requests.post(
             c.scan_monitor_url,
             json=data,
-            headers=sirepo.http_util.auth_header(c.scan_monitor_api_secret),
+            headers=sirepo.tornado.AuthHeaderRequestHandler.get_header(
+                c.scan_monitor_api_secret
+            ),
         )
         r.raise_for_status()
     except requests.exceptions.ConnectionError as e:
