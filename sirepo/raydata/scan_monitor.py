@@ -57,6 +57,8 @@ _SCANS_AWAITING_ANALYSIS = []
 #: path scan_monitor registers to receive api requests
 _URI = "/scan-monitor"
 
+_SIM_TYPE = "raydata"
+
 cfg = None
 
 engine = None
@@ -498,7 +500,7 @@ class _RequestHandler(_JsonPostRequestHandler):
     def _sr_authenticate(self, token):
         if (
             token
-            == sirepo.feature_config.for_sim_type("raydata").scan_monitor_api_secret
+            == sirepo.feature_config.for_sim_type(_SIM_TYPE).scan_monitor_api_secret
         ):
             return token
         raise sirepo.tornado.error_forbidden()
@@ -572,7 +574,7 @@ def _default_columns(catalog_name):
         suid="uid",
         **{
             e: e
-            for e in sirepo.sim_data.get_class("raydata")
+            for e in sirepo.sim_data.get_class(_SIM_TYPE)
             .schema()
             .constants.defaultColumns.get(catalog_name, [])
         },
@@ -768,7 +770,7 @@ def start():
                 "max number of analyses that can run concurrently",
             ),
             db_dir=pkconfig.RequiredUnlessDev(
-                sirepo.srdb.root().join("raydata"),
+                sirepo.srdb.root().join(_SIM_TYPE),
                 pkio.py_path,
                 "root directory for db",
             ),
