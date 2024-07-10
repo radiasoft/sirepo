@@ -542,14 +542,16 @@ SIREPO.app.directive('scansTable', function() {
 
             function decodeSortColumns(encoded) {
                 let columns = new Map();
-                encoded.split(';').forEach((e) => {
-                    let z = e.split(',');
-                    if (z[1] === 'true') {
-                        columns.set(z[0], true);
-                    } else {
-                        columns.set(z[0], false);
-                    }
-                });
+                if (encoded !== '') {
+                    encoded.split(';').forEach((e) => {
+                        let z = e.split(',');
+                        if (z[1] === 'true') {
+                            columns.set(z[0], true);
+                        } else {
+                            columns.set(z[0], false);
+                        }
+                    });
+                }
                 return columns;
             }
 

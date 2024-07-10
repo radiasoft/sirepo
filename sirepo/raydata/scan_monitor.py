@@ -495,7 +495,7 @@ def _sort_params(req_data):
                 has_time = True
             r.append(x)
     if not has_time:
-        r.append(("time", pymongo.DESCENDING))
+        r.append(["time", pymongo.DESCENDING])
     return r
 
 
