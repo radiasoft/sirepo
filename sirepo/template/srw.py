@@ -1252,6 +1252,8 @@ def _compute_material_characteristics(model, photon_energy, prefix=""):
 
 
 def _compute_PGM_value(model):
+    if model.computeParametersFrom == "3":
+        return model
     parms_list = ["energyAvg", "cff", "grazingAngle"]
     try:
         mirror = srwpy.srwlib.SRWLOptMirPl(

@@ -222,6 +222,8 @@ my($type_map) = {
     makeTokenListArray => 'OptionalString',
     makeRange => 'OptionalString',
     makeTableRow => 'OptionalString',
+    makePredefinedString => 'OptionalString',
+    makeUpperCaseString => 'OptionalString',
 };
 
 sub clean_text {
@@ -364,6 +366,8 @@ sub parse_files {
             if $res->{$v->{class}};
         $res->{$v->{class}} = $v;
     }
+    die('no results from directive: ' . $dir)
+        unless scalar(keys(%$res));
     return $res;
 }
 
@@ -492,6 +496,7 @@ sub update_type_and_units {
                 if (length($f->{default})) {
                     $f->{default} =~ s/^(true)$/1/i;
                     $f->{default} =~ s/^(false)$/0/i;
+                    $f->{default} =~ s/^(enableVTK|computePercentiles|dumpBeamMatrix)$/1/i;
                     die('invalid boolean: ' . $f->{default})
                         unless $f->{default} =~ /^(0|1)$/;
                 }
@@ -722,7 +727,7 @@ my($schema) = {
 };
 
 #my($_OPAL_SRC_DIR) = '/home/vagrant/src/OPAL-2.0.1/src/';
-my($_OPAL_SRC_DIR) = '/home/vagrant/src/OPAL/src/';
+my($_OPAL_SRC_DIR) = '/home/vagrant/src/OPAL/src/src/';
 
 if (1) {
     foreach my $dir (qw(Elements Classic/TrimCoils)) {

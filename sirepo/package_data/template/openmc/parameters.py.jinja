@@ -46,7 +46,12 @@ def create_materials():
 def create_settings():
     settings = openmc.Settings()
     settings.batches = {{ settings_batches }}
+    settings.statepoint = dict(
+        batches={{ batchSequence }},
+    )
+{% if settings_run_mode == "eigenvalue"  %}
     settings.inactive = {{ settings_inactive }}
+{% endif %}
     settings.particles = {{ settings_particles }}
     settings.temperature = dict(
         method='interpolation',
