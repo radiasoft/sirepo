@@ -6,6 +6,7 @@
 """
 from pykern.pkdebug import pkdlog, pkdexc
 import sirepo.const
+import sirepo.http_util
 import tornado.locks
 import tornado.queues
 
@@ -25,12 +26,24 @@ class Event(tornado.locks.Event):
         self._waiters = self._OrderedWaiters()
 
 
-def error_forbidden():
-    return tornado.web.HTTPError(403)
+class AuthHeaderRequestHandler(tornado.web.RequestHandler):
+    @classmethod
+    def get_header(cls, token):
+        return sirepo.http_util.auth_header(token)
 
+    async def get(self, *args, **kwargs):
+        await self._sr_get(self.__authenticate())
 
-def error_not_found():
-    return tornado.web.HTTPError(404)
+    async def post(self, *args, **kwargs):
+        await self._sr_post(self.__authenticate())
+
+    async def put(self, *args, **kwargs):
+        await self._sr_put(self.__authenticate())
+
+    def __authenticate(self):
+        if m := sirepo.http_util.parse_auth_header(self.request.headers):
+            return self._sr_authenticate(m)
+        raise error_forbidden()
 
 
 class Queue(tornado.queues.Queue):
@@ -75,3 +88,11 @@ class Queue(tornado.queues.Queue):
                             pkdexc(),
                         )
             raise
+
+
+def error_forbidden():
+    return tornado.web.HTTPError(403)
+
+
+def error_not_found():
+    return tornado.web.HTTPError(404)

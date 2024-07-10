@@ -17,6 +17,7 @@ import requests
 import requests.exceptions
 import sirepo.feature_config
 import sirepo.sim_data
+import sirepo.tornado
 import sirepo.util
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -78,10 +79,14 @@ def stateless_compute_scan_fields(data, **kwargs):
 
 
 def _request_scan_monitor(data):
+    c = sirepo.feature_config.for_sim_type(SIM_TYPE)
     try:
         r = requests.post(
-            sirepo.feature_config.for_sim_type(SIM_TYPE).scan_monitor_url,
+            c.scan_monitor_url,
             json=data,
+            headers=sirepo.tornado.AuthHeaderRequestHandler.get_header(
+                c.scan_monitor_api_secret
+            ),
         )
         r.raise_for_status()
     except requests.exceptions.ConnectionError as e:

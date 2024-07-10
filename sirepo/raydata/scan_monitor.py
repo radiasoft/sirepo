@@ -21,16 +21,17 @@ import math
 import pymongo
 import re
 import requests
+import sirepo.feature_config
 import sirepo.raydata.adaptive_workflow
 import sirepo.raydata.analysis_driver
 import sirepo.raydata.databroker
 import sirepo.sim_data
 import sirepo.srdb
 import sirepo.srtime
+import sirepo.tornado
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
-import tornado.web
 import zipfile
 
 #: task(s) monitoring the execution of the analysis process
@@ -55,6 +56,8 @@ _SCANS_AWAITING_ANALYSIS = []
 
 #: path scan_monitor registers to receive api requests
 _URI = "/scan-monitor"
+
+_SIM_TYPE = "raydata"
 
 cfg = None
 
@@ -244,7 +247,7 @@ class _Analysis(_DbBase):
 # TODO(e-carlin): copied from sirepo
 # TODO(e-carlin): Since we are going to sockets for communication we should probably use them here.
 # But, for now it is easier to just make a normal http request
-class _JsonPostRequestHandler(tornado.web.RequestHandler):
+class _JsonPostRequestHandler(sirepo.tornado.AuthHeaderRequestHandler):
     def set_default_headers(self):
         self.set_header("Content-Type", pkjson.CONTENT_TYPE)
 
@@ -252,9 +255,6 @@ class _JsonPostRequestHandler(tornado.web.RequestHandler):
 class _RequestHandler(_JsonPostRequestHandler):
     async def _incoming(self, body):
         return getattr(self, "_request_" + body.method)(body.data.get("args"))
-
-    async def post(self):
-        self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
 
     def _build_search_terms(self, terms):
         res = []
@@ -497,6 +497,17 @@ class _RequestHandler(_JsonPostRequestHandler):
             )
         )
 
+    def _sr_authenticate(self, token):
+        if (
+            token
+            == sirepo.feature_config.for_sim_type(_SIM_TYPE).scan_monitor_api_secret
+        ):
+            return token
+        raise sirepo.tornado.error_forbidden()
+
+    async def _sr_post(self, *args, **kwargs):
+        self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
+
 
 async def _init_analysis_processors():
     global _ANALYSIS_PROCESSOR_TASKS
@@ -563,7 +574,7 @@ def _default_columns(catalog_name):
         suid="uid",
         **{
             e: e
-            for e in sirepo.sim_data.get_class("raydata")
+            for e in sirepo.sim_data.get_class(_SIM_TYPE)
             .schema()
             .constants.defaultColumns.get(catalog_name, [])
         },
@@ -759,7 +770,7 @@ def start():
                 "max number of analyses that can run concurrently",
             ),
             db_dir=pkconfig.RequiredUnlessDev(
-                sirepo.srdb.root().join("raydata"),
+                sirepo.srdb.root().join(_SIM_TYPE),
                 pkio.py_path,
                 "root directory for db",
             ),
