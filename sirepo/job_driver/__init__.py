@@ -75,7 +75,7 @@ class DriverBase(PKDict):
             # there should only be one OP_ANALYSIS running on an agent at one time.
             op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in job.SLOT_OPS}),
             uid=op.msg.uid,
-            _agent_id=job.unique_key(),
+            _agent_id=sirepo.util.unique_key(),
             _agent_life_change_lock=tornado.locks.Lock(),
             _idle_timer=None,
             _prepared_sends=PKDict(),
