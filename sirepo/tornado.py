@@ -31,13 +31,13 @@ class AuthHeaderRequestHandler(tornado.web.RequestHandler):
     def get_header(cls, token):
         return sirepo.http_util.auth_header(token)
 
-    async def get(self):
+    async def get(self, *args, **kwargs):
         await self._sr_get(self.__authenticate())
 
-    async def post(self):
+    async def post(self, *args, **kwargs):
         await self._sr_post(self.__authenticate())
 
-    async def put(self):
+    async def put(self, *args, **kwargs):
         await self._sr_put(self.__authenticate())
 
     def __authenticate(self):
