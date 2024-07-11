@@ -118,7 +118,7 @@ SIREPO.app.config(() => {
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
-        'geometryInput-dagmcFile': '.h5m',
+        'geometryInput-dagmcFile': '.h5m,.stp',
         'geometryInput-materialsFile': '.xml',
     };
 });
