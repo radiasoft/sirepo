@@ -40,6 +40,8 @@ _ANALYSIS_PROCESSOR_TASKS = None
 #: task(s) monitoring catalogs for new scans
 _CATALOG_MONITOR_TASKS = PKDict()
 
+_LOOP = None
+
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
 
@@ -404,6 +406,12 @@ class _RequestHandler(_JsonPostRequestHandler):
     def _request_analysis_run_log(self, req_data):
         return sirepo.raydata.analysis_driver.get(req_data).get_run_log()
 
+    def _request_automatic_analysis(self, req_data):
+        cfg.automatic_analysis = bool(int(req_data.automaticAnalysis))
+        if cfg.automatic_analysis:
+            pkasyncio.Loop().run(_init_catalog_monitors())
+        return PKDict(data="ok")
+
     def _request_catalog_names(self, _):
         return PKDict(
             data=PKDict(
@@ -632,7 +640,7 @@ async def _poll_catalog_for_scans(catalog_name):
 
     async def _poll_for_new_scans(most_recent_scan_metadata):
         m = most_recent_scan_metadata
-        while True:
+        while cfg.automatic_analysis:
             m = _collect_new_scans_and_queue(m)
             await pkasyncio.sleep(2)
 
@@ -648,7 +656,6 @@ async def _poll_catalog_for_scans(catalog_name):
     if not _Analysis.have_analyzed_scan(s):
         _queue_for_analysis(s)
     await _poll_for_new_scans(s)
-    raise AssertionError("should never get here")
 
 
 def _queue_for_analysis(scan_metadata):
@@ -781,10 +788,11 @@ def start():
         sirepo.raydata.analysis_driver.init(cfg.catalog_names)
 
     def _start():
-        l = pkasyncio.Loop()
-        l.run(_init_catalog_monitors(), _init_analysis_processors())
-        l.http_server(PKDict(uri_map=((_URI, _RequestHandler),)))
-        l.start()
+        global _LOOP
+        _LOOP = pkasyncio.Loop()
+        _LOOP.run(_init_catalog_monitors(), _init_analysis_processors())
+        _LOOP.http_server(PKDict(uri_map=((_URI, _RequestHandler),)))
+        _LOOP.start()
 
     if cfg:
         return

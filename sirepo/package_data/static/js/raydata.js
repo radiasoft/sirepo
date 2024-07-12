@@ -641,6 +641,21 @@ SIREPO.app.directive('scansTable', function() {
                 scanRequestInterval = $interval(doRequest, 5000);
             }
 
+            function setAutomaticAnalysis() {
+                requestSender.sendStatelessCompute(
+                        appState,
+                        json => {
+                        },
+                        {
+                            method: 'automatic_analysis',
+                            args: {
+                                automaticAnalysis: appState.models.runAnalysis.automaticAnalysis,
+                            }
+                        },
+                        errorOptions
+                );
+            }
+
             function setColumnHeaders() {
                 $scope.columnHeaders = [
                     ...columnsService.defaultColumns($scope.analysisStatus, appState),
@@ -842,6 +857,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.$on(`${$scope.modelName}.changed`, () => sendScanRequest(true, true));
+            $scope.$on('runAnalysis.changed', setAutomaticAnalysis);
             $scope.$on('catalog.changed', () => sendScanRequest(true, true));
             $scope.$on('metadataColumns.changed', () => {
                 sendScanRequest(true);
