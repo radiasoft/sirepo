@@ -31,7 +31,7 @@ class ReqBase(sirepo.tornado.AuthHeaderRequestHandler):
     def write_error(self, status_code, *args, **kwargs):
         if status_code >= 500 and (e := kwargs.get("exc_info")):
             pkdlog("exception={} stack={}", e[1], pkdexc(e))
-        super().write_error(*args, **kwargs)
+        super().write_error(status_code, *args, **kwargs)
 
     def _sr_authenticate(self, token, *args, **kwargs):
         u = self._TOKEN_TO_UID.get(token)
